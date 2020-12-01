@@ -147,7 +147,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getAdapterInfo(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -225,7 +225,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getBank(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -302,7 +302,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getBanks(@CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -382,7 +382,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], @CacheKeyOmit callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -509,7 +509,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getBranch(bankId: BankId, branchId: BranchId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -639,7 +639,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getBranches(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -746,7 +746,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getAtm(bankId: BankId, atmId: AtmId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -856,7 +856,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getAtms(bankId: BankId, @CacheKeyOmit callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -948,7 +948,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getCustomersByUserId(userId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(List[Customer], Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -1040,7 +1040,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getCustomerByCustomerId(customerId: String, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */
@@ -1133,7 +1133,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
   override def getCustomerByCustomerNumber(customerNumber: String, bankId: BankId, @CacheKeyOmit callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = saveConnectorMetric {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */

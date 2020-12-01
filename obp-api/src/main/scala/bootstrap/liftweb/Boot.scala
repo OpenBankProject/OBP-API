@@ -630,12 +630,6 @@ class Boot extends MdcLoggable {
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
-      val readAccountBasic = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_BASIC_VIEW_ID).isDefined
-      val readAccountDetail = Views.views.vend.getOrCreateSystemView(READ_ACCOUNTS_DETAIL_VIEW_ID).isDefined
-      val readAccountBalance = Views.views.vend.getOrCreateSystemView(READ_BALANCES_VIEW_ID).isDefined
-      val readAccountTransactionBasic = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_BASIC_VIEW_ID).isDefined
-      val readAccountTransactionDebits = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DEBITS_VIEW_ID).isDefined
-      val readAccountTransactionDetails = Views.views.vend.getOrCreateSystemView(READ_TRANSACTIONS_DETAIL_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -647,14 +641,28 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
-           |System view ${READ_ACCOUNTS_BASIC_VIEW_ID} exists/created at the instance: ${readAccountBasic}
-           |System view ${READ_ACCOUNTS_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountDetail}
-           |System view ${READ_BALANCES_VIEW_ID} exists/created at the instance: ${readAccountBalance}
-           |System view ${READ_TRANSACTIONS_BASIC_VIEW_ID} exists/created at the instance: ${readAccountTransactionBasic}
-           |System view ${READ_TRANSACTIONS_DEBITS_VIEW_ID} exists/created at the instance: ${readAccountTransactionDebits}
-           |System view ${READ_TRANSACTIONS_DETAIL_VIEW_ID} exists/created at the instance: ${readAccountTransactionDetails}
            |""".stripMargin
       logger.info(comment)
+
+      APIUtil.getPropsValue("additional_system_views") match {
+        case Full(value) =>
+          val viewSetUKOpenBanking = value.split(",").map(_.trim).toList
+          val viewsUKOpenBanking = List(
+            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
+            SYSTEM_READ_BALANCES_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
+            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID
+          )
+          for {
+            systemView <- viewSetUKOpenBanking
+            if viewsUKOpenBanking.exists(_ == systemView)
+          } {
+            Views.views.vend.getOrCreateSystemView(systemView)
+            val comment = s"System view ${systemView} exists/created at the instance"
+            logger.info(comment)
+          }
+        case _ => // Do nothing
+      }
+      
     }
 
     //see the notes for this method:

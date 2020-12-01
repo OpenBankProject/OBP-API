@@ -116,6 +116,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       git_commit = APIUtil.gitCommit,
       date = DateWithMsFormat.format(new Date())
     ), callContext))
+  
+  override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future {
+    // TODO Implement IBAN Checker
+    (Full(IbanChecker(true, None)), callContext)
+  }
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(bankId: String,
@@ -306,7 +311,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def validateChallenge(
+  override def validateChallengeAnswerC2(
     transactionRequestId: Option[String],
     consentId: Option[String],
     challengeId: String,
@@ -464,7 +469,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     = {
       /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * is just a temporary value field with UUID values in order to prevent any ambiguity.
         * The real value will be assigned by Macro during compile time at this line of a code:
         * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
         */
@@ -510,7 +515,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     = {
       /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+        * is just a temporary value field with UUID values in order to prevent any ambiguity.
         * The real value will be assigned by Macro during compile time at this line of a code:
         * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
         */
@@ -791,6 +796,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
     Future(Counterparties.counterparties.vend.getCounterpartyByIban(iban), callContext)
+  }
+
+  override def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) = {
+    Future(Counterparties.counterparties.vend.getCounterpartyByIbanAndBankAccountId(iban, bankId, accountId), callContext)
   }
 
 
@@ -1527,6 +1536,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
     TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestStatusImpl(transactionRequestId, status)
+  }
+
+  override def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean] = {
+    TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestDescriptionImpl(transactionRequestId, description)
   }
 
 
@@ -3502,6 +3515,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                     entityName: String,
                                     requestBody: Option[JObject],
                                     entityId: Option[String],
+                                    bankId: Option[String],
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
 
     Future {
@@ -3828,13 +3842,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   // Set initial status
   override def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal, transactionRequestType: TransactionRequestType): Future[TransactionRequestStatus.Value] = {
     Future(
-      if (transactionRequestCommonBodyAmount < challengeThresholdAmount) {
+      if (transactionRequestCommonBodyAmount < challengeThresholdAmount && transactionRequestType.value != REFUND.toString) {
         // For any connector != mapped we should probably assume that transaction_status_scheduler_delay will be > 0
         // so that getTransactionRequestStatusesImpl needs to be implemented for all connectors except mapped.
         // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_status_scheduler_delay
         // can be empty in the props file. Otherwise, the status will be set to STATUS_PENDING
         // and getTransactionRequestStatusesImpl needs to be run periodically to update the transaction request status.
-        if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty || (transactionRequestType.value == REFUND.toString))
+        if (APIUtil.getPropsAsLongValue("transaction_status_scheduler_delay").isEmpty)
           TransactionRequestStatus.COMPLETED
         else
           TransactionRequestStatus.PENDING
@@ -3932,7 +3946,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             _ <- Future {
               saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)
             }
-            //update transaction_id filed for varibale 'transactionRequest'
+            //update transaction_id field for varibale 'transactionRequest'
             transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
 
           } yield {
@@ -4055,7 +4069,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             _ <- Future {
               saveTransactionRequestTransaction(transactionRequest.id, createdTransactionId)
             }
-            //update transaction_id filed for varibale 'transactionRequest'
+            //update transaction_id field for varibale 'transactionRequest'
             transactionRequest <- Future(transactionRequest.copy(transaction_ids = createdTransactionId.value))
 
           } yield {
@@ -4107,7 +4121,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
               newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
+              (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
+              _ <- Future(saveTransactionRequestStatusImpl(transactionRequest.id, newTransactionRequestStatus.toString).openOrThrowException(attemptedToOpenAnEmptyBox))
+              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge, status = newTransactionRequestStatus.toString))
             } yield {
               (transactionRequest, callContext)
             }
@@ -4133,6 +4149,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .save()
     }
   }
+
+  override def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatusValue]] =
+    Future((Full(TransactionRequestStatusValue(transactionRequest.status)), callContext))
 
   override def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
     //put connector agnostic logic here if necessary
@@ -4332,6 +4351,45 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               transactionRequestCommonBody = counterpartyBody,
               BigDecimal(counterpartyBody.value.amount),
               counterpartyBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy,
+              callContext
+            )
+          } yield {
+            (transactionId, callContext)
+          }
+        // In the case of a REFUND (currently working only implemented for SEPA refund request)
+        case REFUND =>
+          for {
+            (fromAccount, toAccount, callContext) <- {
+              if (fromAccount.accountId.value == transactionRequest.from.account_id) {
+                val toCounterpartyIban = transactionRequest.other_account_routing_address
+                for {
+                  (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(toCounterpartyIban, fromAccount.bankId, fromAccount.accountId, callContext)
+                  toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+                } yield (fromAccount, toAccount, callContext)
+              } else {
+                // Warning here, we need to use the accountId here to store the counterparty IBAN.
+                // Maybe we should change the transaction request design to support bidirectional transaction requests.
+                val fromCounterpartyIban = transactionRequest.from.account_id
+                val toAccount = fromAccount
+                for {
+                  (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(fromCounterpartyIban, toAccount.bankId, toAccount.accountId, callContext)
+                  fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
+                } yield (fromAccount, toAccount, callContext)
+              }
+            }
+            refundBody = TransactionRequestBodyCommonJSON(
+              value = AmountOfMoneyJsonV121(transactionRequest.body.value.currency, transactionRequest.body.value.amount),
+              description = transactionRequest.body.description,
+            )
+            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
+              fromAccount,
+              toAccount,
+              transactionRequest.id,
+              transactionRequestCommonBody = refundBody,
+              BigDecimal(refundBody.value.amount),
+              refundBody.description,
               TransactionRequestType(transactionRequestType),
               transactionRequest.charge_policy,
               callContext
@@ -4544,7 +4602,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value filed with UUID values in order to prevent any ambiguity.
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
       * The real value will be assigned by Macro during compile time at this line of a code:
       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
       */

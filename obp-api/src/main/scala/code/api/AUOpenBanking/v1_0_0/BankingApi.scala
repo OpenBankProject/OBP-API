@@ -59,13 +59,12 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -77,7 +76,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -100,13 +99,12 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 
@@ -118,7 +116,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -141,13 +139,12 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -159,7 +156,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -182,13 +179,12 @@ object APIMethods_BankingApi extends RestHelper {
        emptyObjectJson,
        json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -200,7 +196,7 @@ object APIMethods_BankingApi extends RestHelper {
              } yield {
             (json.parse("""{
   "data" : "",
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
@@ -290,7 +286,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -407,8 +402,7 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Banking") ::ApiTag("Accounts") :: Nil
      )
 
      lazy val listAccounts : OBPEndpoint = {
@@ -452,14 +446,13 @@ Some general notes that apply to all end points that retrieve transactions:
     "currency" : "currency",
     "availableBalance" : "availableBalance"
   },
-  "meta" : { },
+  "meta" : " ",
   "links" : {
     "self" : "self"
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Banking") ::ApiTag("Accounts") :: Nil
      )
 
      lazy val listBalance : OBPEndpoint = {
@@ -531,7 +524,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -604,7 +596,7 @@ Some general notes that apply to all end points that retrieve transactions:
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
@@ -651,7 +643,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Accounts") :: apiTagMockedData :: Nil
      )
 
@@ -760,7 +751,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -863,7 +853,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -930,7 +919,7 @@ Some general notes that apply to all end points that retrieve transactions:
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
@@ -971,7 +960,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Direct Debits") :: apiTagMockedData :: Nil
      )
 
@@ -1064,7 +1052,6 @@ Some general notes that apply to all end points that retrieve transactions:
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Payees") :: apiTagMockedData :: Nil
      )
 
@@ -1215,7 +1202,6 @@ In addition, the concept of effective date and time has also been included. This
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Products") :: apiTagMockedData :: Nil
      )
 
@@ -1592,7 +1578,6 @@ In addition, the concept of effective date and time has also been included. This
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -2211,7 +2196,6 @@ In addition, the concept of effective date and time has also been included. This
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -2536,7 +2520,7 @@ In addition, the concept of effective date and time has also been included. This
   "data" : {
     "accountIds" : [ "accountIds", "accountIds" ]
   },
-  "meta" : { }
+    "meta" : " ",
 }"""),
        json.parse("""{
   "data" : {
@@ -2835,7 +2819,6 @@ In addition, the concept of effective date and time has also been included. This
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Banking") ::ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
      )
 

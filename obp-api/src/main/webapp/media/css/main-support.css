@@ -1,0 +1,32 @@
+#main-support {
+    margin-left: 100px;
+    margin-right: 100px;
+    margin-top: 72px;
+    margin-bottom: 56px;
+    background-color: #ffffff;
+    text-align: left;
+}
+#main-support h2 {
+    margin-bottom: 64px;
+}
+#main-support h3 {
+    margin-top: 24px ;
+    margin-bottom: 9px ;
+}
+.main-support-item a {
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    text-decoration: underline;
+    word-wrap:break-word;
+    word-break:break-all;
+    overflow: hidden;
+}
+
+.main-support-item a:hover {
+    text-decoration: underline;
+}
+#main-support #main-support_place_holder{
+    display: none;
+}

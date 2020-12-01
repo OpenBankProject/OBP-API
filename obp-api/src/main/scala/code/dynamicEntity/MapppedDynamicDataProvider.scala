@@ -24,12 +24,12 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     saveOrUpdate(entityName, requestBody, dynamicData)
   }
 
-  override def get(entityName: String, id: String): Box[DynamicData] = DynamicData.find(By(DynamicData.DynamicDataId, id))
+  override def get(entityName: String, id: String): Box[DynamicData] = DynamicData.find(By(DynamicData.DynamicDataId, id), By(DynamicData.DynamicEntityName, entityName))
 
   override def getAll(entityName: String): List[JObject] = DynamicData.findAll(By(DynamicData.DynamicEntityName, entityName))
     .map(it => json.parse(it.dataJson)).map(_.asInstanceOf[JObject])
 
-  override def delete(entityName: String, id: String): Boolean = DynamicData.bulkDelete_!!(By(DynamicData.DynamicDataId, id))
+  override def delete(entityName: String, id: String): Boolean = DynamicData.bulkDelete_!!(By(DynamicData.DynamicDataId, id), By(DynamicData.DynamicEntityName, entityName))
 
   override def existsData(dynamicEntityName: String): Boolean = {
     DynamicData.findAll(By(DynamicData.DynamicEntityName, dynamicEntityName), MaxRows(1))

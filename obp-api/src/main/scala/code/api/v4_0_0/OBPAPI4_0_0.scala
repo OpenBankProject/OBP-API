@@ -36,6 +36,7 @@ import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
+import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -62,6 +63,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
       nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
       nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
       nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
+      nameOf(Implementations3_1_0.createAccount) ::
       Nil
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.

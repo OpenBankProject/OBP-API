@@ -274,8 +274,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.body.extract[ErrorMessage].message should startWith (InvalidTransactionRequestId)
     }
     scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisation) {
-
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
       val acountRoutingIbanFrom = accountsRoutingIban.head
       val acountRoutingIbanTo = accountsRoutingIban.last
 
@@ -354,6 +353,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].scaStatus should be("finalised")
       responseUpdatePaymentPsuData.body.extract[StartPaymentAuthorisationJson].authorisationId should be(authorisationId)
 
+      Thread.sleep(100) // wait for 100 milliseconds
+      
       val afterPaymentFromAccountBalance = MappedBankAccount.find(
         By(MappedBankAccount.bank, acountRoutingIbanFrom.bankId.value),
         By(MappedBankAccount.theAccountId, acountRoutingIbanFrom.accountId.value))

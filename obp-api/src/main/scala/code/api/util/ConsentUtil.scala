@@ -3,13 +3,14 @@ package code.api.util
 import java.util.Date
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.PostConsentJson
-import code.api.{Constant, RequestHeader}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
+import code.api.{Constant, RequestHeader}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.model.Consumer
+import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
@@ -18,8 +19,9 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Extraction, MappingException, compactRender}
+import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By
+import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
@@ -136,7 +138,7 @@ object Consent {
         Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
     }
   }
-  
+
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, calContext: CallContext): Box[Boolean] = {
     Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString =>
@@ -458,4 +460,122 @@ object Consent {
     }
   }
   
+  def createUKConsentJWT(
+    user: Option[User],
+    bankId: Option[String],
+    accountIds: Option[List[String]],
+    permissions: List[String],
+    expirationDateTime: Date,
+    transactionFromDateTime: Date,
+    transactionToDateTime: Date,
+    secret: String,
+    consentId: String,
+    consumerId: Option[String]
+  ): String = {
+
+    val createdByUserId = user.map(_.userId).getOrElse("None")
+    val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, createdByUserId)).map(_.consumerId.get).headOption.getOrElse("")
+    val currentTimeInSeconds = System.currentTimeMillis / 1000
+    val validUntilTimeInSeconds = expirationDateTime.getTime() / 1000
+    
+    // 1. Add views
+    val consentViews: List[ConsentView] = if (bankId.isDefined && accountIds.isDefined) {
+      permissions.map {
+        permission =>
+          accountIds.get.map(
+            accountId =>
+              ConsentView(
+                bank_id = bankId.getOrElse(null),
+                account_id = accountId,
+                view_id = permission
+              ))
+      }.flatten
+    } else {
+      permissions.map {
+        permission =>
+          ConsentView(
+            bank_id = null,
+            account_id = null,
+            view_id = permission
+          )
+      }
+    }
+
+    val json = ConsentJWT(
+      createdByUserId = createdByUserId,
+      sub = APIUtil.generateUUID(),
+      iss = Constant.HostName,
+      aud = consumerId.getOrElse(currentConsumerId),
+      jti = consentId,
+      iat = currentTimeInSeconds,
+      nbf = currentTimeInSeconds,
+      exp = validUntilTimeInSeconds,
+      name = None,
+      email = None,
+      entitlements = Nil,
+      views = consentViews
+    )
+    
+    implicit val formats = CustomJsonFormats.formats
+    val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
+    val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+    CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
+  }
+
+  private def checkConsumerIsActiveAndMatchedUK(consent: ConsentJWT, consumerIdOfLoggedInUser: Option[String]): Box[Boolean] = {
+    Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
+      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
+        consumerIdOfLoggedInUser match {
+          case Some(consumerId) =>
+            if (consumerId == consumerFromConsent.consumerId.get)
+              Full(true) // This consent can be used by current application
+            else // This consent can NOT be used by current application
+              Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
+          case None => Failure(ErrorMessages.ConsumerNotFound) // Consumer cannot be found by logged in user
+        }
+      case Full(consumerFromConsent) if consumerFromConsent.isActive.get == false => // Consumer is NOT active
+        Failure(ErrorMessages.ConsumerAtConsentDisabled + " aud: " + consent.aud)
+      case _ => // There is NO Consumer
+        Failure(ErrorMessages.ConsumerAtConsentCannotBeFound + " aud: " + consent.aud)
+    }
+  }
+
+
+  def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
+      val accessToken = calContext.flatMap(_.authReqHeaderField)
+        .map(_.replaceFirst("Bearer\\s+", ""))
+        .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
+    val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(accessToken, null)
+    if(!introspectOAuth2Token.getActive) {
+      return Failure(ErrorMessages.ConsentExpiredIssue)
+    }
+
+    val boxedConsent: Box[MappedConsent] = {
+      val accessExt = introspectOAuth2Token.getExt.asInstanceOf[java.util.Map[String, String]]
+      val consentId = accessExt.get("consent_id")
+      Consents.consentProvider.vend.getConsentByConsentId(consentId)
+    }
+
+    boxedConsent match {
+      case Full(c) if c.mStatus == ConsentStatus.AUTHORISED.toString =>
+        System.currentTimeMillis match {
+          case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
+            Failure(ErrorMessages.ConsentNotBeforeIssue)
+          case _ =>
+            val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
+            implicit val dateFormats = CustomJsonFormats.formats
+            val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
+              .map(parse(_).extract[ConsentJWT])
+            checkConsumerIsActiveAndMatchedUK(
+              consent.openOrThrowException("Parsing of the consent failed."), 
+              consumerIdOfLoggedInUser
+            )
+        }
+      case Full(c) if c.mStatus != ConsentStatus.AUTHORISED.toString =>
+        Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
+      case _ =>
+        Failure(ErrorMessages.ConsentNotFound)
+    }
+  }
+
 }

@@ -169,7 +169,6 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
@@ -439,7 +438,6 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
@@ -709,7 +707,6 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
@@ -882,7 +879,6 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 
@@ -1044,7 +1040,6 @@ object APIMethods_InternationalPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Payments") :: apiTagMockedData :: Nil
      )
 

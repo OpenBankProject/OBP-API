@@ -100,8 +100,7 @@ object APIMethods_AccountsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Accounts") :: Nil
      )
 
      lazy val getAccounts : OBPEndpoint = {
@@ -190,8 +189,7 @@ object APIMethods_AccountsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
-       ApiTag("Accounts") :: apiTagMockedData :: Nil
+       ApiTag("Accounts") :: Nil
      )
 
      lazy val getAccountsAccountId : OBPEndpoint = {

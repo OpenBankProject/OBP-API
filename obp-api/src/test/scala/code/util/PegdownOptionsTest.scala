@@ -1,66 +1,52 @@
-package code.api.util
+package code.util
 
-import com.vladsch.flexmark.convert.html.FlexmarkHtmlParser
-import com.vladsch.flexmark.html.HtmlRenderer
-import com.vladsch.flexmark.parser.Parser
-import com.vladsch.flexmark.profiles.pegdown.Extensions
-import com.vladsch.flexmark.profiles.pegdown.PegdownOptionsAdapter
-import com.vladsch.flexmark.util.options.{DataHolder, MutableDataSet}
+import code.api.util.PegdownOptions.{convertPegdownToHtmlTweaked,convertHtmlMarkdown}
+import net.liftweb.util.Html5
+import org.scalatest.{FlatSpec, Matchers, Tag}
 
+import scala.xml.NodeSeq
 
-object PegdownOptions {
-  private val OPTIONS: DataHolder = PegdownOptionsAdapter.flexmarkOptions(Extensions.ALL)
-  private val PARSER: Parser = Parser.builder(OPTIONS).build
-  private val RENDERER: HtmlRenderer = HtmlRenderer.builder(OPTIONS).build
-  
-  // use the PARSER to parse and RENDERER to render with pegdown compatibility
-  def convertPegdownToHtml(description: String): String = {
-    val document = PARSER.parse(description.stripMargin)
-    RENDERER.render(document)
+class PegdownOptionsTest extends FlatSpec with Matchers {
+  /**
+   * this is the method from api_explorer to show the description filed to browser.
+   * @param html
+   * @return
+   */
+  def stringToNodeSeq(html : String) : NodeSeq = {
+    val newHtmlString =scala.xml.XML.loadString("<div>" + html + "</div>").toString()
+    //Note: `parse` method: We much enclose the div, otherwise only the first element is returned. 
+    Html5.parse(newHtmlString).head
   }
-  def convertPegdownToHtmlTweaked(description: String): String = {
-    val document = PARSER.parse(convertImgTag(description.stripMargin))
-    RENDERER.render(document)
-      .replaceAll("&ldquo", "&quot")
-      .replaceAll("&rdquo", "&quot")
-      .replaceAll("&rsquo;", "'")
-      .replaceAll("&lsquo;;", "'")
-      .replaceAll("&amp;;", "&")
-      .replaceAll("&lsquo;", "'")
-      .replaceAll("&hellip;", "...")
-//        not support make text bold that not at beginning of a line, so here manual convert to it to <strong> tag
-//      .replaceAll("""\*\*(.+?)\*\*""", "<strong>$1</strong>")
-  }
-  // convertPegdownToHtmlTweaked not support insert image, so here manual convert to html img tag
-  private def convertImgTag(markdown: String) = markdown.stripMargin.replaceAll("""!\[(.*)\]\((.*) =(.*?)x(.*?)\)""", """<img alt="$1" src="$2" width="$3" height="$4" />""")
+  object FunctionsTag extends Tag("PegdownOptions")
 
-  def convertGitHubDocMarkdownToHtml(description: String): String = {
-    val options = new MutableDataSet()
-    import com.vladsch.flexmark.parser.ParserEmulationProfile
-    options.setFrom(ParserEmulationProfile.GITHUB_DOC)
-    val parser = Parser.builder(options).build
-    val renderer = HtmlRenderer.builder(options).build
-    val document = parser.parse(description.stripMargin)
-    renderer.render(document)
-  }
-  
-  def convertHtmlMarkdown(html: String): String = {
-    //TODO, this is a simple version, may add more options later.
-    FlexmarkHtmlParser.parse(html)
-  }
+  "description string" should "be transfer to proper html, no exception is good" taggedAs FunctionsTag in {
 
-  // use the PARSER to parse and RENDERER to render with pegdown compatibility
-  def main(args: Array[String]): Unit = { // You can re-use parser and renderer instances
-    val input = """Get public accounts at all banks (Anonymous access).
-                  |Returns accounts that contain at least one public view (a view where is_public is true)
-                  |For each account the API returns the ID and the available views.
-                  |
-                  |${authenticationRequiredMessage(false)}
-                  |
-                  |""".stripMargin
+    val descriptionString =
+      """Get basic information about the Adapter listening on behalf of this bank.
+        |
+        |Authentication is Optional**URL Parameters:**
+        |
+        |[BANK_ID](/glossary#Bank.bank_id):gh.29.uk
+        |
+        |""".stripMargin
+    val descriptionString2 ="""Get basic information about the Adapter listening on behalf of this bank.
+        |
+        |Authentication is Optional
+        |
+        |      **URL Parameters:**
+        |
+        |* [BANK_ID](/glossary#Bank.bank_id):gh.29.uk
+        |
+        |""".stripMargin
+    val descriptionHtml= convertPegdownToHtmlTweaked(descriptionString)
+    val descriptionHtml2= convertPegdownToHtmlTweaked(descriptionString2)
     
-    System.out.println(convertPegdownToHtml(input))
-    
+    val descriptionApiExplorer = stringToNodeSeq(descriptionHtml)
+    val descriptionApiExplorer2 = stringToNodeSeq(descriptionHtml2)
+      
+//    println(descriptionHtml)
+//    println(descriptionHtml2)
+
     val html ="""<h3>
                 |    Description</h3>\\nThe PISP sent a Payment/Transfer Request through a POST command.
                 |<br>\\n  The ASPSP registered the Payment/Transfer Request, updated if necessary the relevant identifiers in order to avoid duplicates and returned the location of the updated Request.
@@ -238,12 +224,118 @@ object PegdownOptions {
                 |    \\n
                 |</ul>\\nCase of the PSU neither gives nor denies his/her consent, the Cancellation Request shall expire and is then rejected to the PISP. The expiration delay is specified by each ASPSP.
                 |<br>""".stripMargin
-      
+
     // this response still contains `\[` there, need to be fixed.
     val markdown = convertHtmlMarkdown(html)
-    
-    System.out.println(markdown)
-    
+
+//    println(markdown)
+    stringToNodeSeq(markdown)
+  }
+
+  "description string" should "test the markdown * -> html <li> tag" taggedAs FunctionsTag in {
+
+    // This string is from Foobar Property List: format
+    val descriptionString = """Update exists Foo Bar33.
+
+Description of this entity, can be markdown text.
+
+
+**Property List:**
+
+* name: * description of **name** field, can be markdown text.
+* number: * description of **number** field, can be markdown text.
+
+
+
+Authentication is Mandatory""".stripMargin
+    val descriptionHtml= convertPegdownToHtmlTweaked(descriptionString)
+    val descriptionApiExplorer = stringToNodeSeq(descriptionHtml)
+
+    descriptionHtml contains("<li>name: * description of <strong>name</strong> field, can be markdown text.</li>") should be (true)
+
+
+    //This string is from obp JSON response body fields: format
+    val descriptionString2 ="""Get basic information about the Adapter listening on behalf of this bank.
+                              |
+                              |Authentication is Optional
+                              |
+                              |      **URL Parameters:**
+                              |
+                              |* [BANK_ID](/glossary#Bank.bank_id):gh.29.uk
+                              |
+                              |""".stripMargin
+    val descriptionHtml2= convertPegdownToHtmlTweaked(descriptionString2)
+
+    descriptionHtml2 contains("<li><a href=\"/glossary#Bank.bank_id\">BANK_ID</a>:gh.29.uk</li>") should be (true)
     
   }
+
+
+  "description string" should " Authentication is Mandatory should have more space " taggedAs FunctionsTag in {
+
+    // This string is from Foobar Property List: format
+    val descriptionString = """Update exists Foo Bar33.
+
+Description of this entity, can be markdown text.
+
+
+**Property List:**
+
+* name: * description of **name** field, can be markdown text.
+* number: * description of **number** field, can be markdown text.
+
+
+
+Authentication is Mandatory""".stripMargin
+    val descriptionHtml= convertPegdownToHtmlTweaked(descriptionString)
+    val descriptionApiExplorer = stringToNodeSeq(descriptionHtml)
+
+    descriptionHtml contains("<li>name: * description of <strong>name</strong> field, can be markdown text.</li>") should be (true)
+
+
+    //This string is from obp JSON response body fields: format
+    val descriptionString2 ="""See [FPML](http://www.fpml.org/) for more examples.
+                              |
+                              |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+                              |
+                              |Authentication is Mandatory
+                              |
+                              |**URL Parameters:**
+                              |
+                              |
+                              |
+                              |* [ACCOUNT_ID](/glossary#Account.account_id): 8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0
+                              |""".stripMargin
+    val descriptionHtml2= convertPegdownToHtmlTweaked(descriptionString2)
+
+    descriptionHtml2 contains("<p>Authentication is Mandatory</p>") should be (true)
+
+    
+    val descriptionString3 ="""Returns information about:
+      |
+      |* The default bank_id
+      |* Akka configuration
+      |* Elastic Search configuration
+      |* Cached functions
+      |
+      |Authentication is Mandatory
+      |
+      |
+      |**JSON response body fields:**
+      |
+      |
+      |
+      |* [akka](/glossary#Adapter.Akka.Intro): no-example-provided
+      |""".stripMargin
+
+    val descriptionHtml3= convertPegdownToHtmlTweaked(descriptionString3)
+
+    descriptionHtml3 contains("<p>Authentication is Mandatory</p>") should be (true)
+
+  }
+  
+  
+  
+  
+ 
 }

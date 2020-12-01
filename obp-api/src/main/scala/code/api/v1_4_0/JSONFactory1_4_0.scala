@@ -3,21 +3,25 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
-import code.api.util.{ApiRole, PegdownOptions}
+import code.api.util.Glossary.glossaryItems
+import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, PegdownOptions}
 import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import com.openbankproject.commons.model.{Product, _}
-import com.openbankproject.commons.util.{EnumValue, OBPEnumeration, ReflectUtils}
+import com.openbankproject.commons.util.{EnumValue, JsonUtils, OBPEnumeration, ReflectUtils}
 import net.liftweb.common.Full
 import net.liftweb.json
-import net.liftweb.json.{JDouble, JInt, JString}
+import net.liftweb.json.Extraction.decompose
+import net.liftweb.json.{Formats, JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 
-object JSONFactory1_4_0 {
+import scala.util.matching.Regex
+import code.util.Helper.MdcLoggable
 
-
+object JSONFactory1_4_0 extends MdcLoggable{
+  implicit def formats: Formats = CustomJsonFormats.formats
   case class PostCustomerJson(
                           customer_number : String,
                           legal_name : String,
@@ -328,9 +332,6 @@ object JSONFactory1_4_0 {
                              example_request_body: scala.Product,
                              success_response_body: scala.Product,
                              error_response_bodies: List[String],
-                             is_core: Boolean,
-                             is_psd2: Boolean,
-                             is_obwg: Boolean,
                              tags: List[String],
                              typed_request_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
                              typed_success_response_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
@@ -346,6 +347,86 @@ object JSONFactory1_4_0 {
   // Creates the json resource_docs
   case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
 
+  /**
+   * get the glossaryItem.title by the input string
+   * @param parameter from the request URL, eg: BANK_ID
+   * @return Bank.bank_id
+   */
+  def getGlossaryItemTitle(parameter: String): String = {
+    glossaryItems.find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}")).map(_.title).getOrElse("")
+  }
+  
+  /**
+   * will find the ExampleValue.bankIdExample by the parameter(BANK_ID),and return the ExampleValue.bankIdExample.value
+   * @also see the usage from JSONFactory1_4_0Test 
+   * @param parameter from the request URL, eg: BANK_ID
+   * @return ExampleValue.bankIdExample.value ,eg: gh.29.uk
+   */
+  def getExampleFieldValue(parameter: String): String = {
+    val exampleValueFieldName = APIUtil.firstCharToLowerCase(StringHelpers.camelify(parameter.toLowerCase).capitalize)+"Example"
+    try {
+      ReflectUtils.getValueByFieldName(ExampleValue, exampleValueFieldName).asInstanceOf[ConnectorField].value
+    } catch {
+      case ex: Throwable => //The ExampleValue are not totally finished, lots of fields are missing here. so we first hide them. and show them in the log
+        logger.error(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
+        s"$parameter"
+    }
+  }
+  
+  /**
+   * prepare the markdown string for each parameter from the URL.
+   * @also see the usage from JSONFactory1_4_0Test
+   * @param requestUrl eg: /obp/v4.0.0/banks/BANK_ID/accounts/account_ids/private
+   * @return list all the parameters, eg:
+   *         **URL Parameters**:
+   *         [BANK_ID](/glossary#Bank.bank_id):gh.29.uk
+   */
+  def prepareUrlParameterDescription(requestUrl: String): String = {
+    //1rd: get the parameters from URL:
+    val str = requestUrl
+    //Inside a character class, $ (as well as ^, ., and /) has no special meaning, 
+    // so [/$] matches either a literal / or a literal $ rather than terminating the regex (/) or matching end-of-line ($).
+    // here, I use (/|\z) instead, To match either / or end of content, use (/|\z)
+    val regex = """/([A-Z_]+)(?=(/|\z))""".r
+    val findMatches: Iterator[Regex.Match] = regex.findAllMatchIn(str)
+    //urlParameters can be: List(BANK_ID,ACCOUNT_ID, ...)
+    val urlParameters: List[String] = findMatches.map(_.group(1)).toList.sorted
+    if (urlParameters.length == 0) { //for some endpoints, there is not parameters in the URL, so it can be empty 
+      ""
+    } else {
+      val parametersDescription: List[String] = urlParameters.map(prepareDescription)
+      parametersDescription.mkString("\n\n\n**URL Parameters:**", "", "\n")
+    }
+  }
+
+  /**
+   * this will create the markdown description for the parameter. 
+   * @param parameter BANK_ID
+   * @return [BANK_ID](/glossary#Bank.bank_id):gh.29.uk 
+   */
+  def prepareDescription(parameter: String): String = {
+    val glossaryItemTitle = getGlossaryItemTitle(parameter)
+    val exampleFieldValue = getExampleFieldValue(parameter)
+    s"""
+       |
+       |* [${parameter}](/glossary#$glossaryItemTitle): $exampleFieldValue
+       |
+       |""".stripMargin
+  }
+
+  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
+
+    val jsonBodyJValue = decompose(jsonBody)
+
+    val jsonBodyFields =JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList.sorted
+
+    val jsonFieldsDescription = jsonBodyFields.map(prepareDescription)
+    
+    val jsonTitleType = if (jsonType.contains("request")) "\n\n\n**JSON request body fields:**\n\n" else  "\n\n\n**JSON response body fields:**\n\n"
+
+    jsonFieldsDescription.mkString(jsonTitleType,"","\n")
+  }
+
   def createResourceDocJson(rd: ResourceDoc) : ResourceDocJson = {
 
     // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
@@ -353,21 +434,46 @@ object JSONFactory1_4_0 {
     // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
 
+    //Here area some endpoints, which should not be added the description:
+    // 1st: Dynamic entity endpoint, 
+    // 2rd: Dynamic endpoint endpoints,
+    // 3rd: all the user created endpoints,
+    val fieldsDescription = 
+      if(rd.tags.toString.contains("Dynamic-Entity") 
+        ||rd.tags.toString.contains("Dynamic-Endpoint") 
+        ||rd.roles.toString.contains("DynamicEntity")
+        ||rd.roles.toString.contains("DynamicEntities")
+        ||rd.roles.toString.contains("DynamicEndpoint")) {
+        ""
+      } else{
+        //1st: prepare the description from URL 
+        val urlParametersDescription: String = prepareUrlParameterDescription(rd.requestUrl)
+        //2rd: get the fields description from the post json body:
+        val exampleRequestBodyFieldsDescription =
+          if (rd.requestVerb=="POST" ){
+            prepareJsonFieldDescription(rd.exampleRequestBody,"request")
+          } else {
+            ""
+          }
+        //3rd: get the fields description from the response body:
+        val responseFieldsDescription = prepareJsonFieldDescription(rd.successResponseBody,"response")
+        urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
+      }
+    
+    val description = rd.description.stripMargin.trim ++ fieldsDescription
+    
     ResourceDocJson(
       operation_id = s"${rd.implementedInApiVersion.fullyQualifiedVersion}-${rd.partialFunctionName.toString}",
       request_verb = rd.requestVerb,
       request_url = rd.requestUrl,
       summary = rd.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary
       // Strip the margin character (|) and line breaks and convert from markdown to html
-      description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin), //.replaceAll("\n", ""),
-      description_markdown =rd.description.stripMargin,
+      description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
+      description_markdown = description,
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       error_response_bodies = rd.errorResponseBodies,
       implemented_by = ImplementedByJson(rd.implementedInApiVersion.fullyQualifiedVersion, rd.partialFunctionName), // was rd.implementedInApiVersion.noV
-      is_core = rd.catalogs.core,
-      is_psd2 = rd.catalogs.psd2,
-      is_obwg = rd.catalogs.obwg,
       tags = rd.tags.map(i => i.tag),
       typed_request_body = createTypedBody(rd.exampleRequestBody),
       typed_success_response_body = createTypedBody(rd.successResponseBody),
@@ -430,7 +536,7 @@ object JSONFactory1_4_0 {
         case List(i: Boolean, _*)          => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
         case Some(List(i: Boolean, _*))    => "\""  + key + """": {"type": "array","items": {"type": "boolean"}}"""
           
-        //String --> Some field calleds `date`, we will treat the filed as a `date` object.
+        //String --> Some field calleds `date`, we will treat the field as a `date` object.
         //String --> But for some are not, eg: `date_of_birth` and `future_date` in V300Custom  
         case i: String if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""
         case Some(i: String) if(key.contains("date")&& i.length != "20181230".length)  => "\""  + key + """": {"type": "string","format": "date-time"}"""

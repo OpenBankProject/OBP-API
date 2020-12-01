@@ -1,10 +1,10 @@
 package code.api.v4_0_0
 
-import code.api.util.APIUtil.{Catalogs, EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID, notCore, notOBWG, notPSD2}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiTag, NewStyle}
+import code.api.util.{APIUtil, ApiRole, ApiTag, ExampleValue, NewStyle}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
@@ -17,11 +17,20 @@ import scala.collection.mutable.ArrayBuffer
 
 
 object EntityName {
-
-  def unapply(entityName: String): Option[String] = DynamicEntityHelper.definitionsMap.keySet.find(entityName ==)
-
-  def unapply(url: List[String]): Option[(String, String)] = url match {
-    case entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.keySet.find(entityName ==).map((_, id))
+//                                         BankId, entityName, id, DynamicEntityInfo
+  def unapply(url: List[String]): Option[(String, String, String, DynamicEntityInfo)] = url match {
+    //no bank:
+    //eg: /FooBar21
+    case entityName ::  Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => ("", entityName, "", definitionMap._2))
+    //eg: /FooBar21/FOO_BAR21_ID
+    case entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => ("", entityName, id, definitionMap._2))
+      
+    //contains Bank:
+    //eg: /Banks/BANK_ID/FooBar21
+    case banks :: bankId :: entityName :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId, entityName, "", definitionMap._2))
+    //eg: /Banks/BANK_ID/FooBar21/FOO_BAR21_ID
+    case banks :: bankId :: entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId,entityName, id, definitionMap._2))
+      
     case _ => None
   }
 
@@ -29,9 +38,9 @@ object EntityName {
 
 object DynamicEntityHelper {
 
-  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName))).toMap
+  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
 
-  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName))
+  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
   def doc: ArrayBuffer[ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
@@ -96,6 +105,8 @@ object DynamicEntityHelper {
 
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
+    val bankId = dynamicEntityInfo.bankId
+    val resourceDocUrl = if(bankId.isDefined)  s"/banks/BANK_ID/$entityName" else  s"/$entityName"
 
     val endPoint = APIUtil.dynamicEndpointStub
     val implementedInApiVersion = ApiVersion.v4_0_0
@@ -107,7 +118,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"get${entityName}List",
       "GET",
-      s"/$entityName",
+      s"$resourceDocUrl",
       s"Get $splitName List",
       s"""Get $splitName List.
          |${dynamicEntityInfo.description}
@@ -129,7 +140,6 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canGetRole))
     )
@@ -138,7 +148,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"getSingle$entityName",
       "GET",
-      s"/$entityName/$idNameInUrl",
+      s"$resourceDocUrl/$idNameInUrl",
       s"Get $splitName by id",
       s"""Get $splitName by id.
          |${dynamicEntityInfo.description}
@@ -156,7 +166,6 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canGetRole))
     )
@@ -166,7 +175,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"create$entityName",
       "POST",
-      s"/$entityName",
+      s"$resourceDocUrl",
       s"Create new $splitName",
       s"""Create new $splitName.
          |${dynamicEntityInfo.description}
@@ -186,7 +195,6 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canCreateRole))
       )
@@ -196,9 +204,9 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"update$entityName",
       "PUT",
-      s"/$entityName/$idNameInUrl",
-      s"Update exists $splitName",
-      s"""Update exists $splitName.
+      s"$resourceDocUrl/$idNameInUrl",
+      s"Update $splitName",
+      s"""Update $splitName.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -216,7 +224,6 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canUpdateRole))
     )
@@ -226,7 +233,7 @@ object DynamicEntityHelper {
       implementedInApiVersion,
       s"delete$entityName",
       "DELETE",
-      s"/$entityName/$idNameInUrl",
+      s"$resourceDocUrl/$idNameInUrl",
       s"Delete $splitName by id",
       s"""Delete $splitName by id
          |
@@ -243,7 +250,6 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTag, apiTagApi, apiTagNewStyle),
       Some(List(dynamicEntityInfo.canDeleteRole))
     )
@@ -275,7 +281,7 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String]) {
 
   import net.liftweb.json
 
@@ -284,6 +290,8 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
   val idName = StringUtils.uncapitalize(entityName) + "Id"
 
   val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
+  
+  val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
 
   val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
 
@@ -311,7 +319,7 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
     if(descriptions.nonEmpty) {
       descriptions
         .map(field => s"""* ${field.name}: ${(field.value \ "description").asInstanceOf[JString].s}""")
-        .mkString("**Property List:** \n", "\n", "")
+        .mkString("**Property List:** \n\n", "\n", "")
     } else {
       ""
     }
@@ -351,24 +359,38 @@ case class DynamicEntityInfo(definition: String, entityName: String) {
     val exampleFields = fields.map(field => JField(field.name, extractExample(field.value)))
     JObject(exampleFields)
   }
-  def getSingleExample: JObject = JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)
+  val bankIdJObject: JObject = ("bank-id" -> ExampleValue.bankIdExample.value)
+  
+  def getSingleExample: JObject = if (bankId.isDefined){
+    val SingleObject: JObject = (singleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
+    bankIdJObject merge SingleObject
+  } else{
+    (singleName -> (JObject(JField(idName, JString(generateUUID())) :: getSingleExampleWithoutId.obj)))
+  }
 
-  def getExampleList: JObject =   listName -> JArray(List(getSingleExample))
+  def getExampleList: JObject =  if (bankId.isDefined){
+    val objectList: JObject = (listName -> JArray(List(getSingleExample)))
+    bankIdJObject merge objectList 
+  } else{
+    (listName -> JArray(List(getSingleExample)))
+  }
 
-  val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName)
-  val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName)
-  val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName)
-  val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName)
+  val canCreateRole: ApiRole = DynamicEntityInfo.canCreateRole(entityName, bankId)
+  val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName, bankId)
+  val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName, bankId)
+  val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName, bankId)
 }
 
 object DynamicEntityInfo {
-  def canCreateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName)
-  def canUpdateRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName)
-  def canGetRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName)
-  def canDeleteRole(entityName: String): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName)
+  def canCreateRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, bankId.isDefined)
+  def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, bankId.isDefined)
+  def canGetRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, bankId.isDefined)
+  def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, bankId.isDefined)
 
-  def roleNames(entityName: String): List[String] = List(
-      canCreateRole(entityName), canUpdateRole(entityName),
-      canGetRole(entityName), canDeleteRole(entityName)
-    ).map(_.toString())
+  def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
+    canCreateRole(entityName, bankId), 
+    canUpdateRole(entityName, bankId),
+    canGetRole(entityName, bankId), 
+    canDeleteRole(entityName, bankId)
+  ).map(_.toString())
 }

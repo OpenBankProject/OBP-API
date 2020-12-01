@@ -1,13 +1,12 @@
 <div id="authorise" data-lift="surround?with=default;at=content">
 	<div data-lift="OAuthWorkedThanks.thanks" id="oauth-done-thanks">
-		<h1>You have been authenticated!</h1>
+		<div id="thanks-h1">You have been authenticated</div>
 
+		<div id ="thanks-detail"> You'll be redirected to <span class="app-name">Your App</span>. If you're not being redirected, please select 'View <span class="app-name">Your App</span>' </div>
+		
 		<div id="manual-redirect">
-			Please click <a id="redirect-link" href="">here</a> to be redirected.</noscript>
+			<a class="btn btn-danger pull-left" id="redirect-link" href="">View <span class="app-name">Your App</span></a>
 		</div>
-		<p>
-			The requesting application <span class="app-name">Default_App</span> should have received an ok and you may now close this window.
-		</p>
 
 		<script class="redirect-script" type="text/javascript">
 			$('#manualRedirect').hide(); //don't need the manual link if js is enabled

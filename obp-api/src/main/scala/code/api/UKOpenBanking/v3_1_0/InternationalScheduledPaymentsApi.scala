@@ -171,7 +171,6 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -444,7 +443,6 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -717,7 +715,6 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -892,7 +889,6 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 
@@ -1055,7 +1051,6 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
      )
 

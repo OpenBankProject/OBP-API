@@ -22,11 +22,14 @@ object Glossary {
 		def makeGlossaryItem (title: String, connectorField: ConnectorField) : GlossaryItem = {
 			GlossaryItem(
 				title = title,
-				description = s"""
-																						|${connectorField.description}
-																						|
-																						|Example value: ${connectorField.value}
-				""")
+				description =
+					s"""
+						|Example value: ${connectorField.value}
+						|
+						|Description: ${connectorField.description} 
+						|
+				""".stripMargin
+			)
 		}
 
 	object GlossaryItem {

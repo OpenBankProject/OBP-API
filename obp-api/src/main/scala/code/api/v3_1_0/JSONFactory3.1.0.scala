@@ -1380,22 +1380,6 @@ object JSONFactory310{
       accountAttributes.map(createAccountAttributeJson)
     )
   }
-
-  def createCoreBankAccountJSON(account : ModeratedBankAccount, accountAttributes: List[AccountAttribute]) : ModeratedCoreAccountJsonV310 =  {
-    val bankName = account.bankName.getOrElse("")
-    new ModeratedCoreAccountJsonV310 (
-      account.accountId.value,
-      stringOrNull(account.bankId.value),
-      stringOptionOrNull(account.label),
-      stringOptionOrNull(account.number),
-      createOwnersJSON(account.owners.getOrElse(Set()), bankName),
-      stringOptionOrNull(account.accountType),
-      createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
-      createAccountRoutingsJSON(account.accountRoutings),
-      createAccountRulesJSON(account.accountRules),
-      accountAttributes.map(createAccountAttributeJson)
-    )
-  }
   
   def createPostHistoricalTransactionResponseJson(
     transactionId: TransactionId,

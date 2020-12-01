@@ -96,6 +96,10 @@ case class TransactionRequestType(value : String) {
   override def toString = value
 }
 
+case class TransactionRequestStatusValue(value : String) {
+  override def toString = value
+}
+
 //Note: change case class -> trait, for kafka extends it
 trait TransactionRequestStatus{
   def transactionRequestId : String
@@ -293,6 +297,25 @@ object AmountOfMoney extends Converter[AmountOfMoneyTrait, AmountOfMoney]
 case class Iban(
   iban: String
 )
+case class IbanChecker(
+                 isValid: Boolean,
+                 details: Option[IbanDetails]
+)
+case class IbanDetails(bic: String,
+                       bank: String,
+                       branch: String,
+                       address: String,
+                       city: String,
+                       zip: String,
+                       phone: String,
+                       country: String,
+                       countryIso: String,
+                       sepaCreditTransfer: String,
+                       sepaDirectDebit: String,
+                       sepaSddCore: String,
+                       sepaB2b: String,
+                       sepaCardClearing: String
+                      )
 
 case class Attribute(
   name: String,

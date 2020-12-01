@@ -113,7 +113,6 @@ object APIBuilderSwagger {
       emptyObjectJson,
       templatesJson,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagApiBuilder :: Nil
     )"""
   val getTemplatesPartialFunction: Defn.Val = q"""
@@ -145,7 +144,6 @@ object APIBuilderSwagger {
       createTemplateJson, 
       templateJson,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   
@@ -180,7 +178,6 @@ object APIBuilderSwagger {
       emptyObjectJson, 
       templateJson,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   
@@ -213,7 +210,6 @@ object APIBuilderSwagger {
       emptyObjectJson, 
       emptyObjectJson.copy("true"),
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG), 
       apiTagApiBuilder :: Nil
     )"""
   

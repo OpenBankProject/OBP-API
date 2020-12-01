@@ -1,0 +1,163 @@
+#authorise{
+    padding: 0px 10px;
+    color: white;
+    margin: 80px auto;
+}
+
+#authorise h1 {
+    font-family: Roboto-Light;
+    font-size: 28px;
+    color: #333333;
+    line-height: 36px;
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+#login-Register-text, 
+#login-form-username, 
+#login-form-password{
+    margin-bottom: 8px;
+    margin-top: 32px;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+}
+
+#authorise #authorise-submit input{
+    border: 0;
+    background-color: #53C4EF;
+    color: #FFFFFF;
+    float: right;
+    height: 44px;
+    width: 92px;
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    text-align: center;
+    line-height: 24px;
+    margin-top: 0px;
+    margin-bottom: 20px;
+    padding-top: 9px;
+    padding-bottom: 11px;
+    padding-left: 20px;
+    padding-right: 20px;
+    outline:  0;
+}
+
+#authorise #authorise-submit input:hover{
+    background-color: #1f97ef;
+}
+
+
+#authorise #authorise-submit input:active{
+    background-color: #0b3aef;
+}
+
+
+
+
+#authorise #login-special-instructions {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#authorise #authorise-recover-password {
+    color: #333333;
+    margin-top: 16px;
+    margin-bottom: 8px;
+}
+#authorise #oauth-authorise-recover-password{
+    color: #333333;
+    margin-top: 16px; 
+    margin-bottom: 8px;
+}
+#authorise #authorise-recover-password a,
+#authorise #oauth-authorise-recover-password a{
+    font-family: Roboto-Regular;
+    font-size: 14px;
+    color: #333333;
+    letter-spacing: 0;
+    line-height: 20px;
+    text-decoration:underline;
+}
+
+#authorise .login-or {
+    margin-top: 30px;
+    float: left;
+    font-family: Roboto-Regular;
+    font-size: 18px;
+    color: #929292;
+    letter-spacing: 0;
+}
+
+#authorise form  hr{
+    margin-top: 44px;
+    margin-bottom: 43px;
+    margin-left: 40px;
+    border-top: 1px solid #D7D8D6;
+}
+
+#authorise .login-error {
+    margin-bottom: 10px;
+    color: red;
+}
+#authorise #thanks-h1 {
+    font-family: Roboto-Light;
+    font-size: 28px;
+    color: #333333;
+    letter-spacing: 0;
+    line-height: 36px;
+}
+
+#authorise #thanks-detail{
+    font-family: Roboto-Regular;
+    font-size: 16px;
+    color: #333333;
+    line-height: 24px;
+    margin-top: 32px;
+    margin-bottom: 48px;
+}
+
+#authorise #manual-redirect .btn-danger{
+    margin: 0;
+}
+
+#authorise #authorise-submit {
+    text-align: left;
+}
+
+#authorise #manual-redirect a {
+    color: white;
+}
+
+#authorise form,
+#authorise #oauth-done-thanks{
+    max-width: 400px;
+    margin: 0 auto;
+    color: #333333;
+}
+
+#authorise #login-form-username-error,
+#authorise #login-form-password-error{
+    font-family: Roboto-Regular;
+    font-size: 14px;
+    color: #333333;
+    line-height: 20px;
+    background-image: url(/media/images/icons/status_error_onlight.svg);
+    background-repeat:no-repeat;
+    background-position: left 8px;
+    background-size: 18px 15.70px;
+    padding-top: 8px;
+    padding-left: 26px;
+}
+
+#authorise #login-username-error,
+#authorise #login-password-error{
+    margin-top: 8px;
+}
+
+.authorise-button-oidc {
+    text-align: right;
+    margin-bottom: 10px;
+    margin-top: 10px;
+}

@@ -52,6 +52,10 @@ object ErrorMessages {
 
   val DynamicEndpointExists = "OBP-09008: DynamicEndpoint already exists."
   val DynamicEndpointNotFoundByDynamicEndpointId = "OBP-09009: DynamicEndpoint not found. Please specify a valid value for DYNAMIC_ENDPOINT_ID."
+  val InvalidMyDynamicEntityUser = "OBP-09010: DynamicEntity can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Entity` endpoint"
+  val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
+  
+  val InvalidBankIdDynamicEntity = "OBP-09012: This is a bank level dynamic entity. Please specify a valid value for BANK_ID."
 
 
   // General messages (OBP-10XXX)
@@ -175,6 +179,7 @@ object ErrorMessages {
   val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. The ID token is invalid or expired. "
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
+  val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
 
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
@@ -226,6 +231,8 @@ object ErrorMessages {
   val NoViewPermission = "OBP-30022: The current view does not have the permission: "
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create Consumer "
+  val CreateOAuth2ConsumerError = "OBP-30077: Could not create OAuth2 Consumer."
+
   val CreateUserCustomerLinksError = "OBP-30025: Could not create user_customer_links "
   val ConsumerKeyAlreadyExists = "OBP-30026: Consumer Key already exists. Please specify a different value."
   val NoExistingAccountHolders = "OBP-30027: Account Holders not found. The BANK_ID / ACCOUNT_ID specified for account holder does not exist on this server"
@@ -336,6 +343,8 @@ object ErrorMessages {
   val EntitlementRequestCannotBeAdded = "OBP-30217: Entitlement Request cannot be added."
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
+  val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
+  
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
   val SystemViewNotFound = "OBP-30252: System view not found. Please specify a valid value for VIEW_ID"
@@ -384,6 +393,10 @@ object ErrorMessages {
   val ConsumerAtConsentCannotBeFound = "OBP-35018: The Consumer specified in this consent cannot be found."
   val ConsumerValidationMethodForConsentNotDefined = "OBP-35019: Consumer validation method for consent is not defined at this instance."
   val ConsentMaxTTL = "OBP-35020: You exceeded max value of time to live of consents."
+  val ConsentViewNotFund = "OBP-35021: Consent Views not found by CONSENT_ID."
+  val ConsumerNotFound = "OBP-35022: The Consumer cannot be found by logged in user."
+  val ConsentDoesNotMatchUser = "OBP-35023: The Consent does not match a valid User."
+  val ConsentUserAlreadyAdded = "OBP-35024: The Consent's User is already added."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -412,7 +425,7 @@ object ErrorMessages {
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
   val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
-  val TransactionRequestStatusNotInitiatedOrPending = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING}."
+  val TransactionRequestStatusNotInitiatedOrPendingOrForwarded = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING} or ${FORWARDED}."
   val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
   val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
 
@@ -476,6 +489,7 @@ object ErrorMessages {
   val AdapterUnknownError = "OBP-60013: Adapter Unknown Error. "
   val AdapterTimeOurError = "OBP-60014: Adapter Timeout Error. "
   val AdapterFunctionNotImplemented = "OBP-60015: Adapter Function Not Implemented."
+  val SaveTransactionRequestDescriptionException = "OBP-60016: Save Transaction Request Description Exception. "
 
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."

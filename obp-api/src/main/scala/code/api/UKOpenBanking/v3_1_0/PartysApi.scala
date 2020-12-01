@@ -81,7 +81,6 @@ object APIMethods_PartysApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Partys") :: apiTagMockedData :: Nil
      )
 
@@ -192,7 +191,6 @@ object APIMethods_PartysApi extends RestHelper {
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG), 
        ApiTag("Partys") :: apiTagMockedData :: Nil
      )
 

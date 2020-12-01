@@ -74,6 +74,7 @@ object ApiTag {
   val apiTagBerlinGroupM = ResourceDocTag("Berlin-Group-M")
   
   //PSD2 Tags.
+  val apiTagPsd2 = ResourceDocTag("PSD2")
   val apiTagPSD2AIS=ResourceDocTag("Account Information Service (AIS)")
   val apiTagPSD2PIIS=ResourceDocTag("Confirmation of Funds Service (PIIS)")
   val apiTagPSD2PIS=ResourceDocTag("Payment Initiation Service (PIS)")

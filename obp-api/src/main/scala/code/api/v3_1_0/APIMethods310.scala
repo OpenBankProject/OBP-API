@@ -95,7 +95,6 @@ trait APIMethods310 {
         InvalidConnectorResponseForGetCheckbookOrdersFuture,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagAccount :: apiTagNewStyle :: Nil)
 
     lazy val getCheckbookOrders : OBPEndpoint = {
@@ -137,7 +136,6 @@ trait APIMethods310 {
         InvalidConnectorResponseForGetStatusOfCreditCardOrderFuture,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagCard :: apiTagNewStyle :: Nil)
 
     lazy val getStatusOfCreditCardOrder : OBPEndpoint = {
@@ -175,7 +173,6 @@ trait APIMethods310 {
       creditLimitRequestJson,
       creditLimitOrderResponseJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagCustomer :: apiTagNewStyle :: Nil)
 
     lazy val createCreditLimitRequest : OBPEndpoint = {
@@ -206,8 +203,7 @@ trait APIMethods310 {
       emptyObjectJson,
       creditLimitOrderJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
-      apiTagCustomer :: Nil)
+      apiTagCustomer :: apiTagNewStyle :: Nil)
 
     lazy val getCreditLimitRequests : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: "credit_limit"  :: "requests" :: Nil JsonGet req => {
@@ -237,7 +233,6 @@ trait APIMethods310 {
       emptyObjectJson,
       creditLimitOrderJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagCustomer :: apiTagNewStyle :: Nil)
 
     lazy val getCreditLimitRequestByRequestId : OBPEndpoint = {
@@ -314,7 +309,6 @@ trait APIMethods310 {
         GetTopApisError,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagMetric :: apiTagNewStyle :: Nil,
       Some(List(canReadMetrics))
     )
@@ -404,7 +398,6 @@ trait APIMethods310 {
         GetMetricsTopConsumersError,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagMetric :: apiTagNewStyle :: Nil,
       Some(List(canReadMetrics))
     )
@@ -463,7 +456,6 @@ trait APIMethods310 {
       emptyObjectJson,
       customerJSONs,
       List(UserNotLoggedIn, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseCustomerFirehoseAtAnyBank)))
 
@@ -513,7 +505,6 @@ trait APIMethods310 {
       emptyObjectJson,
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canReadUserLockedStatus))
     )
@@ -550,7 +541,6 @@ trait APIMethods310 {
       emptyObjectJson,
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canUnlockUser)))
 
@@ -602,7 +592,6 @@ trait APIMethods310 {
         UpdateConsumerError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
 
@@ -659,7 +648,6 @@ trait APIMethods310 {
         UpdateConsumerError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagNewStyle),
       Some(List(canSetCallLimits)))
 
@@ -706,8 +694,7 @@ trait APIMethods310 {
         InvalidISOCurrencyCode,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2PIIS :: apiTagNewStyle :: Nil)
+      apiTagAccount :: apiTagPSD2PIIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
 
     lazy val checkFundsAvailable : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "funds-available" :: Nil JsonGet req => {
@@ -770,7 +757,6 @@ trait APIMethods310 {
         ConsumerNotFoundByConsumerId,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi, apiTagNewStyle),
       Some(List(canGetConsumers)))
 
@@ -806,7 +792,6 @@ trait APIMethods310 {
         UserNotLoggedIn,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi, apiTagNewStyle)
     )
 
@@ -842,7 +827,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagConsumer, apiTagApi, apiTagNewStyle),
       Some(List(canGetConsumers))
     )
@@ -886,7 +870,6 @@ trait APIMethods310 {
       accountWebhookPostJson,
       accountWebhookJson,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canCreateWebhook))
     )
@@ -944,7 +927,6 @@ trait APIMethods310 {
       accountWebhookPutJson,
       accountWebhookJson,
       List(UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canUpdateWebhook))
     )
@@ -1004,7 +986,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
       Some(List(canGetWebhooks))
     )
@@ -1048,7 +1029,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagApi :: apiTagNewStyle :: Nil,
       Some(List(canGetConfig)))
 
@@ -1078,7 +1058,6 @@ trait APIMethods310 {
       emptyObjectJson,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagApi, apiTagNewStyle))
 
 
@@ -1112,7 +1091,6 @@ trait APIMethods310 {
       emptyObjectJson,
       transactionJsonV300,
       List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagTransaction, apiTagNewStyle))
 
     lazy val getTransactionByIdForBankAccount : OBPEndpoint = {
@@ -1178,7 +1156,6 @@ trait APIMethods310 {
         GetTransactionRequestsException,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagNewStyle))
 
     lazy val getTransactionRequests: OBPEndpoint = {
@@ -1228,7 +1205,6 @@ trait APIMethods310 {
         CreateConsumerError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
       Some(List(canCreateCustomer,canCreateCustomerAtAnyBank))
     )
@@ -1247,7 +1223,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerJsonV310]
             }
-            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The filed dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array" ) {
+            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array" ) {
               postedData.dependants == postedData.dob_of_dependants.length 
             }
             (customer, callContext) <- NewStyle.function.createCustomer(
@@ -1298,7 +1274,6 @@ trait APIMethods310 {
       emptyObjectJson,
       rateLimitingInfoV310,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
       List(apiTagApi, apiTagNewStyle))
 
 
@@ -1345,7 +1320,6 @@ trait APIMethods310 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomer)))
 
@@ -1388,7 +1362,6 @@ trait APIMethods310 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
       Some(List(canGetCustomer))
     )
@@ -1434,7 +1407,6 @@ trait APIMethods310 {
         CreateUserAuthContextError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canCreateUserAuthContext)))
 
@@ -1477,7 +1449,6 @@ trait APIMethods310 {
         CreateUserAuthContextError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(canGetUserAuthContext :: Nil)
     )
@@ -1517,7 +1488,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canDeleteUserAuthContext)))
 
@@ -1556,7 +1526,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canDeleteUserAuthContext)))
 
@@ -1595,7 +1564,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc, apiTagNewStyle),
       Some(List(canCreateTaxResidence)))
 
@@ -1639,7 +1607,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc, apiTagNewStyle))
 
     lazy val getTaxResidence : OBPEndpoint = {
@@ -1678,7 +1645,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc, apiTagNewStyle))
 
     lazy val deleteTaxResidence : OBPEndpoint = {
@@ -1716,7 +1682,6 @@ trait APIMethods310 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
 
 
@@ -1761,7 +1726,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canCreateCustomerAddress)))
 
@@ -1819,7 +1783,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle))
 
     lazy val updateCustomerAddress : OBPEndpoint = {
@@ -1874,7 +1837,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc, apiTagNewStyle),
       Some(List(canGetCustomerAddress)))
 
@@ -1914,7 +1876,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagKyc, apiTagNewStyle),
       Some(List(canDeleteCustomerAddress)))
 
@@ -1957,7 +1918,6 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApi, apiTagNewStyle))
 
     lazy val getObpConnectorLoopback : OBPEndpoint = {
@@ -1965,7 +1925,7 @@ trait APIMethods310 {
         cc =>
           for {
             (_, callContext) <- anonymousAccess(cc)
-            connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props filed `connector` not set")
+            connectorVersion = APIUtil.getPropsValue("connector").openOrThrowException("connector props field `connector` not set")
             starConnectorProps = APIUtil.getPropsValue("starConnector_supported_types").openOr("notfound")
             obpApiLoopback <- connectorVersion.contains("kafka") ||  (connectorVersion.contains("star") && starConnectorProps.contains("kafka")) match {
               case false => throw new IllegalStateException(s"${NotImplemented}for connector ${connectorVersion}")
@@ -1999,7 +1959,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canRefreshUser))
     )
@@ -2069,7 +2028,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle),
       Some(List(canCreateProductAttribute))
     )
@@ -2085,7 +2043,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
@@ -2128,7 +2086,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle))
 
     lazy val getProductAttribute : OBPEndpoint = {
@@ -2169,7 +2126,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle))
 
     lazy val updateProductAttribute : OBPEndpoint = {
@@ -2183,7 +2139,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[ProductAttributeJson]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
@@ -2227,7 +2183,6 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagProduct, apiTagNewStyle))
 
     lazy val deleteProductAttribute : OBPEndpoint = {
@@ -2262,7 +2217,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG), 
       List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle))
 
     lazy val createAccountApplication : OBPEndpoint = {
@@ -2325,7 +2279,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle))
 
     lazy val getAccountApplications : OBPEndpoint = {
@@ -2369,7 +2322,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle))
 
     lazy val getAccountApplication : OBPEndpoint = {
@@ -2416,7 +2368,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccountApplication, apiTagAccount, apiTagNewStyle)
     )
 
@@ -2524,8 +2475,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProduct),
+      List(apiTagProduct, apiTagNewStyle),
       Some(List(canCreateProduct, canCreateProductAtAnyBank))
     )
 
@@ -2594,7 +2544,7 @@ trait APIMethods310 {
          |* Terms and Conditions
          |* License the data under this endpoint is released under
          |
-         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productJsonV310,
       List(
@@ -2602,8 +2552,7 @@ trait APIMethods310 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProduct)
+      List(apiTagProduct, apiTagNewStyle)
     )
 
     lazy val getProduct: OBPEndpoint = {
@@ -2651,7 +2600,7 @@ trait APIMethods310 {
          |
          |
          |
-         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       childProductTreeJsonV310,
       List(
@@ -2659,8 +2608,7 @@ trait APIMethods310 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProduct)
+      List(apiTagProduct, apiTagNewStyle)
     )
 
     lazy val getProductTree: OBPEndpoint = {
@@ -2713,7 +2661,7 @@ trait APIMethods310 {
          |Can filter with attributes name and values.
          |URL params example: /banks/some-bank-id/products?manager=John&count=8
          |
-         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
       productsJsonV310,
       List(
@@ -2722,8 +2670,7 @@ trait APIMethods310 {
         ProductNotFoundByProductCode,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProduct)
+      List(apiTagProduct, apiTagNewStyle)
     )
 
     lazy val getProducts : OBPEndpoint = {
@@ -2796,7 +2743,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canCreateAccountAttributeAtOneBank))
     )
@@ -2816,7 +2762,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[AccountAttributeJson]
             }
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
@@ -2872,7 +2818,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagNewStyle),
       Some(List(canUpdateAccountAttribute))
     )
@@ -2889,7 +2834,7 @@ trait APIMethods310 {
               json.extract[AccountAttributeJson]
             }
             
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)"
             accountAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               AccountAttributeType.withName(postedData.`type`)
@@ -2956,8 +2901,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProductCollection, apiTagProduct),
+      List(apiTagProductCollection, apiTagProduct, apiTagNewStyle),
       Some(List(canMaintainProductCollection))
     )
 
@@ -3017,8 +2961,7 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagProductCollection, apiTagProduct)
+      List(apiTagProductCollection, apiTagProduct, apiTagNewStyle)
     )
 
     lazy val getProductCollection : OBPEndpoint = {
@@ -3060,8 +3003,7 @@ trait APIMethods310 {
         InsufficientAuthorisationToDeleteBranch,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, OBWG),
-      List(apiTagBranch),
+      List(apiTagBranch, apiTagNewStyle),
       Some(List(canDeleteBranch,canDeleteBranchAtAnyBank))
     )
 
@@ -3109,8 +3051,7 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
     
     lazy val createMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
@@ -3186,8 +3127,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeetings: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
@@ -3227,8 +3167,7 @@ trait APIMethods310 {
         MeetingNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
@@ -3260,8 +3199,7 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      Catalogs(Core, PSD2, notOBWG),
-      List(apiTagApi, apiTagPSD2AIS))
+      List(apiTagApi, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val getServerJWK: OBPEndpoint = {
       case "certs" :: Nil JsonGet _ => {
@@ -3296,18 +3234,17 @@ trait APIMethods310 {
       emptyObjectJson,
       messageDocsJson,
       List(UnknownError),
-      Catalogs(Core, notPSD2, OBWG),
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagDocumentation, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
-          val (showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions, languageParam) = ResourceDocsAPIMethodsUtil.getParams()
+          val (resourceDocTags, partialFunctions, languageParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
             messageDocsSwagger = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
-            resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(messageDocsSwagger, showCore, showPSD2, showOBWG, resourceDocTags, partialFunctions)
+            resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(messageDocsSwagger, resourceDocTags, partialFunctions)
             json <- Future {SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocListFiltered, ApiVersion.v3_1_0)}
             //For this connector swagger, it share some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
             allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields++SwaggerDefinitionsJSON.allFields
@@ -3452,8 +3389,7 @@ trait APIMethods310 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
 
     resourceDocs += ResourceDoc(
       createConsentSms,
@@ -3533,8 +3469,7 @@ trait APIMethods310 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagConsent :: apiTagPSD2AIS ::apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 ::apiTagNewStyle :: Nil)
 
     lazy val createConsentEmail = createConsent
     lazy val createConsentSms = createConsent
@@ -3687,8 +3622,7 @@ trait APIMethods310 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
 
     lazy val answerConsentChallenge : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "consents"  :: consentId :: "challenge" :: Nil JsonPost json -> _  => {
@@ -3733,8 +3667,7 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(Core, PSD2, notOBWG),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagNewStyle))
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val getConsents: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
@@ -3773,8 +3706,7 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(Core, PSD2, notOBWG),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagNewStyle))
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
 
     lazy val revokeConsent: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: consentId :: "revoke" :: Nil JsonGet _ => {
@@ -3820,7 +3752,6 @@ trait APIMethods310 {
         CreateUserAuthContextError,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagUser, apiTagNewStyle),
       None
     )
@@ -3880,7 +3811,6 @@ trait APIMethods310 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
       apiTagUser :: apiTagNewStyle :: Nil)
 
     lazy val answerUserAuthContextUpdateChallenge : OBPEndpoint = {
@@ -3945,7 +3875,6 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagSystemView, apiTagNewStyle),
       Some(List(canGetSystemView))
     )
@@ -3994,7 +3923,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagSystemView, apiTagNewStyle),
       Some(List(canCreateSystemView))
     )
@@ -4036,7 +3964,6 @@ trait APIMethods310 {
         UnknownError,
         "user does not have owner access"
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagSystemView, apiTagNewStyle),
       Some(List(canCreateSystemView))
     )
@@ -4078,7 +4005,6 @@ trait APIMethods310 {
         BankAccountNotFound,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagSystemView, apiTagNewStyle),
       Some(List(canUpdateSystemView))
     )
@@ -4122,8 +4048,7 @@ trait APIMethods310 {
       List(
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagApi))
+      List(apiTagApi, apiTagNewStyle))
 
     lazy val getOAuth2ServerJWKsURIs: OBPEndpoint = {
       case "jwks-uris" :: Nil JsonGet _ => {
@@ -4166,7 +4091,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canGetMethodRoutings))
     )
@@ -4273,7 +4197,6 @@ trait APIMethods310 {
         InvalidConnectorMethodName,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canCreateMethodRouting)))
 
@@ -4372,7 +4295,6 @@ trait APIMethods310 {
         InvalidConnectorMethodName,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateMethodRouting)))
 
@@ -4443,7 +4365,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMethodRouting, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteMethodRouting)))
 
@@ -4482,7 +4403,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerEmail :: Nil)
     )
@@ -4532,7 +4452,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerNumber :: Nil)
     )
@@ -4588,7 +4507,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerMobilePhoneNumber :: Nil)
     )
@@ -4638,7 +4556,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerIdentity :: Nil)
     )
@@ -4696,7 +4613,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerCreditLimit :: Nil)
     )
@@ -4746,7 +4662,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerCreditRatingAndSource :: Nil)
     )
@@ -4790,8 +4705,7 @@ trait APIMethods310 {
       updateAccountRequestJsonV310,
       updateAccountResponseJsonV310,
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound),
-      Catalogs(Core, notPSD2, notOBWG),
-      List(apiTagAccount),
+      List(apiTagAccount, apiTagNewStyle),
       Some(List(canUpdateAccount))
     )
 
@@ -4858,8 +4772,7 @@ trait APIMethods310 {
         AllowedValuesAre,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCard),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canCreateCardsForBank)))
     lazy val addCardForBank: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
@@ -4952,8 +4865,7 @@ trait APIMethods310 {
         AllowedValuesAre,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCard),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canCreateCardsForBank)))
     lazy val updatedCardForBank: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonPut json -> _ => {
@@ -5021,9 +4933,9 @@ trait APIMethods310 {
       "GET",
       "/management/banks/BANK_ID/cards",
       "Get Cards for the specified bank",
-      """Should be able to filter on the following fields
+      s"""Should be able to filter on the following fields
         |
-        |eg:/management/banks/BANK_ID/cards?customer_id=66214b8e-259e-44ad-8868-3eb47be70646$account_id=8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0
+        |eg:/management/banks/BANK_ID/cards?customer_id=66214b8e-259e-44ad-8868-3eb47be70646&account_id=8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0
         |
         |1 customer_id should be valid customer_id, otherwise, it will return an empty card list.  
         |
@@ -5034,8 +4946,7 @@ trait APIMethods310 {
       emptyObjectJson,
       physicalCardsJsonV310,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCard))
+      List(apiTagCard, apiTagNewStyle))
     lazy val getCardsForBank : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
         cc => {
@@ -5071,8 +4982,7 @@ trait APIMethods310 {
       emptyObjectJson,
       physicalCardWithAttributesJsonV310,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCard))
+      List(apiTagCard, apiTagNewStyle))
     lazy val getCardForBank : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId ::  Nil JsonGet _ => {
         cc => {
@@ -5110,8 +5020,7 @@ trait APIMethods310 {
         AllowedValuesAre,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCard),
+      List(apiTagCard, apiTagNewStyle),
       Some(List(canCreateCardsForBank)))
     lazy val deleteCardForBank: OBPEndpoint = {
       case "management"::"banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonDelete _ => {
@@ -5162,7 +5071,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle))
 
     lazy val createCardAttribute : OBPEndpoint = {
@@ -5178,7 +5086,7 @@ trait APIMethods310 {
               json.extract[CardAttributeJson]
             }
             
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
@@ -5234,7 +5142,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCard, apiTagNewStyle))
 
     lazy val updateCardAttribute : OBPEndpoint = {
@@ -5251,7 +5158,7 @@ trait APIMethods310 {
               json.extract[CardAttributeJson]
             }
 
-            failMsg = s"$InvalidJsonFormat The `Type` filed can only accept the following field: " +
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)"
             createCardAttribute <- NewStyle.function.tryons(failMsg, 400, callContext) {
               CardAttributeType.withName(postedData.`type`)
@@ -5294,7 +5201,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerIdentity :: Nil)
     )
@@ -5351,7 +5257,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer, apiTagNewStyle),
       Some(canUpdateCustomerIdentity :: Nil)
     )
@@ -5425,8 +5330,7 @@ trait APIMethods310 {
         AccountIdAlreadyExists,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagAccount,apiTagOnboarding),
+      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
       Some(List(canCreateAccount))
     )
 
@@ -5542,7 +5446,6 @@ trait APIMethods310 {
       emptyObjectJson,
       moderatedAccountJSON310,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  apiTagNewStyle :: Nil)
     lazy val getPrivateAccountByIdFull : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
@@ -5652,8 +5555,7 @@ trait APIMethods310 {
         InvalidTransactionRequestCurrency,
         UnknownError
       ),
-      Catalogs(Core, notPSD2, OBWG),
-      List(apiTagTransactionRequest),
+      List(apiTagTransactionRequest, apiTagNewStyle),
       Some(List(canCreateHistoricalTransaction))
     )
 
@@ -5793,7 +5695,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
       Some(List(canGetWebUiProps))
     )
@@ -5886,7 +5787,6 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
       Some(List(canCreateWebUiProps)))
 
@@ -5932,7 +5832,6 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteWebUiProps)))
 
@@ -5962,8 +5861,7 @@ trait APIMethods310 {
       emptyObjectJson,
       accountBalancesV310Json,
       List(UnknownError),
-      Catalogs(Core, PSD2, OBWG),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagNewStyle :: Nil
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
     lazy val getBankAccountsBalances : OBPEndpoint = {
@@ -5999,8 +5897,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 

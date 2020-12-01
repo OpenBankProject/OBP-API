@@ -115,7 +115,6 @@ As a last option, an ASPSP might in addition accept a command with access rights
        )
          ,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -185,7 +184,6 @@ As a last option, an ASPSP might in addition accept a command with access rights
        emptyObjectJson,
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")   :: apiTagBerlinGroupM :: Nil
      )
 
@@ -262,7 +260,6 @@ of the PSU at this ASPSP.
                     |}
                     |""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -346,7 +343,6 @@ The account-id is constant at least throughout the lifecycle of a given consent.
 }
 """),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -420,7 +416,6 @@ respectively the OAuth2 access token.
   ]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
      )
 
@@ -494,8 +489,7 @@ This account-id then can be retrieved by the
   }]
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: Nil
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
@@ -585,7 +579,6 @@ Reads account data from a given card account addressed by "account-id".
                       }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM ::Nil
      )
 
@@ -642,7 +635,6 @@ This function returns an array of hyperlinks to all generated authorisation sub-
   "authorisationIds" : "faa3657e-13f0-4feb-a6c3-34bf21a9ae8e"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -703,7 +695,6 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                       "consentStatus": "received"
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -747,7 +738,6 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
   "scaStatus" : "started"
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -785,7 +775,6 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
                       "consentStatus": "received"
                      }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")   :: apiTagBerlinGroupM :: Nil
      )
 
@@ -845,8 +834,7 @@ of the "Read Transaction List" call within the _links subfield.
   }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)")  :: Nil
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
@@ -937,7 +925,6 @@ The ASPSP might add balance information, if transaction lists without balances a
                       }
                     }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1015,7 +1002,6 @@ Give detailed information about the addressed account together with balance info
   "status" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1067,8 +1053,7 @@ respectively the OAuth2 access token.
   "status" : { }
 }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
-       ApiTag("Account Information Service (AIS)")  :: apiTagMockedData :: Nil
+       ApiTag("Account Information Service (AIS)") :: Nil
      )
 
      lazy val readCardAccount : OBPEndpoint = {
@@ -1132,7 +1117,6 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
                          }
                      }"""),
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
 
@@ -1204,7 +1188,6 @@ Maybe in a later version the access path will change.
                     }"""),
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
-       Catalogs(notCore, notPSD2, notOBWG),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 

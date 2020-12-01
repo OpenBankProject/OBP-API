@@ -156,6 +156,13 @@ case class OutBoundMakePaymentv210(outboundAdapterCallContext: OutboundAdapterCa
 
 case class InBoundMakePaymentv210(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId) extends InBoundTrait[TransactionId]
 
+case class OutBoundNotifyTransactionRequest(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                            fromAccount: BankAccount, toAccount: BankAccount,
+                                            transactionRequest: TransactionRequest) extends TopicTrait
+
+case class InBoundNotifyTransactionRequest(inboundAdapterCallContext: InboundAdapterCallContext,
+                                           status: Status, data: TransactionRequestStatusValue) extends InBoundTrait[TransactionRequestStatusValue]
+
 case class OutBoundMakePaymentV400(outboundAdapterCallContext: OutboundAdapterCallContext,
                                    transactionRequest: TransactionRequest,
                                    reasons: Option[List[TransactionRequestReason]]) extends TopicTrait
@@ -950,7 +957,8 @@ case class OutBoundDynamicEntityProcess (outboundAdapterCallContext: OutboundAda
                                          operation: DynamicEntityOperation,
                                          entityName: String,
                                          requestBody: Option[JObject],
-                                         entityId: Option[String]) extends TopicTrait
+                                         entityId: Option[String],
+                                         bankId: Option[String]) extends TopicTrait
 case class InBoundDynamicEntityProcess (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: JValue) extends InBoundTrait[JValue]
 
 // because swagger generate not support JValue type, so here supply too xxxDoc TO generate correct request and response body example
@@ -1300,7 +1308,7 @@ case class OutBoundCreateChallengesC2(
 
 case class InBoundCreateChallengesC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
 
-case class OutBoundValidateChallenge(
+case class OutBoundValidateChallengeAnswerC2(
   outboundAdapterCallContext: OutboundAdapterCallContext,
   transactionRequestId: Option[String],
   consentId: Option[String],
@@ -1308,6 +1316,20 @@ case class OutBoundValidateChallenge(
   hashOfSuppliedAnswer: String
 ) extends TopicTrait
 
-case class InBoundValidateChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+case class InBoundValidateChallengeAnswerC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+
+case class OutBoundValidateAndCheckIbanNumber(
+  outboundAdapterCallContext: OutboundAdapterCallContext,
+  iban: String
+) extends TopicTrait
+case class InBoundValidateAndCheckIbanNumber(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: IbanChecker) extends InBoundTrait[IbanChecker]
+
+
+case class OutBoundGetChallenge(outboundAdapterCallContext: OutboundAdapterCallContext, challengeId: String) extends TopicTrait
+case class InBoundGetChallenge(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ChallengeCommons) extends InBoundTrait[ChallengeCommons]
+
+case class OutBoundGetChallengesByTransactionRequestId(outboundAdapterCallContext: OutboundAdapterCallContext, transactionRequestId: String) extends TopicTrait
+case class InBoundGetChallengesByTransactionRequestId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
+
 
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --
