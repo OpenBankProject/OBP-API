@@ -68,6 +68,19 @@ case class OutBoundGetChargeLevel(outboundAdapterCallContext: OutboundAdapterCal
                                   currency: String) extends TopicTrait
 case class InBoundGetChargeLevel(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]
 
+case class OutBoundGetChargeLevelC2(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                    bankId: BankId,
+                                    accountId: AccountId,
+                                    viewId: ViewId,
+                                    userId: String,
+                                    username: String,
+                                    transactionRequestType: String,
+                                    currency: String,
+                                    amount: String,
+                                    toAccountRoutings: List[AccountRouting],
+                                    customAttributes: List[CustomAttribute]) extends TopicTrait
+case class InBoundGetChargeLevelC2(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AmountOfMoney) extends InBoundTrait[AmountOfMoney]
+
 
 case class OutBoundGetBank(outboundAdapterCallContext: OutboundAdapterCallContext,
                            bankId: BankId) extends TopicTrait
@@ -168,6 +181,12 @@ case class OutBoundMakePaymentV400(outboundAdapterCallContext: OutboundAdapterCa
                                    reasons: Option[List[TransactionRequestReason]]) extends TopicTrait
 
 case class InBoundMakePaymentV400(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionId) extends InBoundTrait[TransactionId]
+
+case class OutBoundCancelPaymentV400(outboundAdapterCallContext: OutboundAdapterCallContext,
+                                     transactionId: TransactionId) extends TopicTrait
+case class InBoundCancelPaymentV400(inboundAdapterCallContext: 
+                                    InboundAdapterCallContext, 
+                                    status: Status, data: CancelPayment) extends InBoundTrait[CancelPayment]
 
 
 case class OutBoundCreateTransactionRequestv210(outboundAdapterCallContext: OutboundAdapterCallContext,
@@ -1330,6 +1349,9 @@ case class InBoundGetChallenge(inboundAdapterCallContext: InboundAdapterCallCont
 
 case class OutBoundGetChallengesByTransactionRequestId(outboundAdapterCallContext: OutboundAdapterCallContext, transactionRequestId: String) extends TopicTrait
 case class InBoundGetChallengesByTransactionRequestId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
+
+case class OutBoundGetCounterpartyByIbanAndBankAccountId(outboundAdapterCallContext: OutboundAdapterCallContext, iban: String, bankId: BankId, accountId: AccountId) extends TopicTrait
+case class InBoundGetCounterpartyByIbanAndBankAccountId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
 
 
 // --------------------- some special connector methods corresponding InBound and OutBound -- end --

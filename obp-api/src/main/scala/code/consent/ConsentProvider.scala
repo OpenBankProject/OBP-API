@@ -5,6 +5,7 @@ import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 import java.util.Date
 
+import code.consent.ConsentStatus.ConsentStatus
 import scala.collection.immutable.List
 
 object Consents extends SimpleInjector {
@@ -14,6 +15,8 @@ object Consents extends SimpleInjector {
 
 trait ConsentProvider {
   def getConsentByConsentId(consentId: String): Box[MappedConsent]
+  def updateConsentStatus(consentId: String, status: ConsentStatus): Box[MappedConsent]
+  def updateConsentUser(consentId: String, user: User): Box[MappedConsent]
   def getConsentsByUser(userId: String): List[MappedConsent]
   def createConsent(user: User, challenge: String): Box[MappedConsent]
   def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent]
@@ -24,7 +27,9 @@ trait ConsentProvider {
     recurringIndicator: Boolean,
     validUntil: Date,
     frequencyPerDay: Int,
-    combinedServiceIndicator: Boolean): Box[Consent]  
+    combinedServiceIndicator: Boolean,
+    apiStandard: Option[String],
+    apiVersion: Option[String]): Box[Consent]  
   def updateBerlinGroupConsent(
     consentId: String,
     user: User,
@@ -129,17 +134,6 @@ trait Consent {
    */
   def lastActionDate: Date
 
-
-  // The following creationDateTime, statusUpdateDateTime, expirationDateTime, transactionFromDateTime and transactionToDateTime are added for UKOpenBanking
-  //  in the standard it also contains the Permissions. but we will put it into the jsonWebToken.views     
-  //  the Permissions are the following system views:   
-  //  
-  //  final val READ_ACCOUNTS_BASIC_VIEW_ID = "ReadAccountsBasic"
-  //  final val READ_ACCOUNTS_DETAIL_VIEW_ID = "ReadAccountsDetail"
-  //  final val READ_BALANCES_VIEW_ID = "ReadBalances"
-  //  final val READ_TRANSACTIONS_BASIC_VIEW_ID = "ReadTransactionsBasic"
-  //  final val READ_TRANSACTIONS_DEBITS_VIEW_ID = "ReadTransactionsDebits"
-  //  final val READ_TRANSACTIONS_DETAIL_VIEW_ID = "ReadTransactionsDetail" 
   /**
    * CreationDateTime*	CreationDateTimestring($date-time)
    * Date and time in which the consent was created.
@@ -165,17 +159,15 @@ trait Consent {
    * Specified end date and time for the transaction query period. If the field does not contain information or if it is not sent in the request, the end date will be 90 calendar days prior to the creation of the consent.
    */
   def transactionToDateTime: Date
-
-
 }
 
 object ConsentStatus extends Enumeration {
   type ConsentStatus = Value
   val INITIATED, ACCEPTED, REJECTED, REVOKED,
       //The following are for BelinGroup
-      RECEIVED, VALID, REVOKEDBYPSU, EXPIRED, TERMINATEDBYTPP,
-      //these added for UK Open Banking 
-      AUTHORISED, AWAITINGAUTHORISATION = Value
+      RECEIVED, VALID, REVOKEDBYPSU, EXPIRED, TERMINATEDBYTPP ,
+     //these added for UK Open Banking 
+     AUTHORISED, AWAITINGAUTHORISATION = Value
 }
 
 

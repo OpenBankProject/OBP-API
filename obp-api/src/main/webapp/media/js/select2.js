@@ -118,7 +118,7 @@
                                 // as an ID it is less than ideal. In larger point
                                 // releases, may be better to just kick out an error.
                                 if (i === 0 || (i === 1 && name[2] === '..') || name[i - 1] === '..') {
-                                    continue;
+
                                 } else if (i > 0) {
                                     name.splice(i - 1, 2);
                                     i -= 2;

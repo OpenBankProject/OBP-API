@@ -590,7 +590,7 @@ trait APIMethods200 {
           for {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canGetSocialMediaHandles), UserHasMissingRoles + CanGetSocialMediaHandles)
+            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canGetSocialMediaHandles, cc.callContext)
             customer <- CustomerX.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
@@ -827,7 +827,7 @@ trait APIMethods200 {
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canAddSocialMediaHandle), UserHasMissingRoles + CanAddSocialMediaHandle)
+            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canAddSocialMediaHandle, cc.callContext)
             _ <- CustomerX.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             _ <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
@@ -1113,7 +1113,9 @@ trait APIMethods200 {
             postedOrLoggedInUser <- UserX.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! s"Bank $bankId not found"
             // User can create account for self or an account for another user if they have CanCreateAccount role
-            _ <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, canCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
+            _ <- if (user_id == loggedInUser.userId) Full(Unit)
+                else NewStyle.function.ownEntitlement(bankId.value, loggedInUser.userId, canCreateAccount, callContext, s"User must either create account for self or have role $CanCreateAccount")
+
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~! ErrorMessages.InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~! ErrorMessages.InvalidAccountType
             accountLabel <- tryo(jsonBody.`type`) //?~! ErrorMessages.InvalidAccountLabel // TODO looks strange.
@@ -1282,7 +1284,7 @@ trait APIMethods200 {
                 case Full(_) =>
                   booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true)
                 case _ =>
-                  booleanToBox(hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
+                  NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
               }
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
@@ -1347,8 +1349,8 @@ trait APIMethods200 {
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
               view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u))
-              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true || hasEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest) == true, InsufficientAuthorisationToCreateTransactionRequest)
-
+              _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))) Full(Unit)
+                  else NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
               // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
 
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~! InvalidJsonFormat
@@ -1735,7 +1737,7 @@ trait APIMethods200 {
                                    canCreateUserCustomerLink ::
                                    Nil
             requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
-            _ <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), UserHasMissingRoles + requiredEntitlementsTxt)
+            _ <- NewStyle.function.hasAllEntitlements(bankId.value, u.userId, requiredEntitlements, callContext)
             _ <- tryo(assert(CustomerX.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             _ <- UserX.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
@@ -1827,8 +1829,8 @@ trait APIMethods200 {
         cc =>
             for {
               l <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", l.userId, ApiRole.canGetAnyUser), UserHasMissingRoles + CanGetAnyUser )
-              // Workaround to get userEmail address directly from URI without needing to URL-encode it
+              _ <- NewStyle.function.ownEntitlement("", l.userId, ApiRole.canGetAnyUser, cc.callContext)
+                // Workaround to get userEmail address directly from URI without needing to URL-encode it
               users <- tryo{AuthUser.getResourceUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
             }
               yield {
@@ -1890,9 +1892,8 @@ trait APIMethods200 {
             user <- UserX.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             _ <- booleanToBox(postedData.customer_id.nonEmpty) ?~! "Field customer_id is not defined in the posted json!"
             (customer, callContext) <- Connector.connector.vend.getCustomerByCustomerIdLegacy(postedData.customer_id, callContext) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            _ <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank) ||
-                                            hasAllEntitlements("", u.userId, createUserCustomerLinksEntitlementsRequiredForAnyBank),
-                                            s"$createUserCustomerLinksrequiredEntitlementsText")
+            _ <- NewStyle.function.hasAllEntitlements(bankId.value, u.userId, createUserCustomerLinksEntitlementsRequiredForSpecificBank,
+                  createUserCustomerLinksEntitlementsRequiredForAnyBank, callContext)
             _ <- booleanToBox(customer.bankId == bank.bankId.value, s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bank.bankId.value}) in URL")
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
@@ -1935,7 +1936,7 @@ trait APIMethods200 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
 
     lazy val addEntitlement : OBPEndpoint = {
@@ -1943,24 +1944,33 @@ trait APIMethods200 {
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-            _ <- UserX.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~! s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
-            role <- tryo{valueOf(postedData.role_name)} ?~! {IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")}
-            _ <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
-              {if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole}
-            allowedEntitlements = canCreateEntitlementAtOneBank ::
-                                  canCreateEntitlementAtAnyBank ::
-                                  Nil
-            _ <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~! {
-              UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementJSON "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateEntitlementJSON]
             }
-            _ <- booleanToBox(postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), Some(cc)).map(_._1).isEmpty == false) ?~! BankNotFound
-            _ <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, EntitlementAlreadyExists )
-            addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
+            role <- Future { tryo{valueOf(postedData.role_name)} } map {
+              val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+              ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
+            }
+            allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
+            allowedEntitlementsTxt = UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
+                  else NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements, callContext)
+
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
+              postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
+            }
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
+              hasEntitlement(postedData.bank_id, userId, role) == false
+            }
+            addedEntitlement <- Future(Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)) map { unboxFull(_) }
           } yield {
-            val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
-            successJsonResponse(Extraction.decompose(viewJson), 201)
+            (JSONFactory200.createEntitlementJSON(addedEntitlement), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1990,8 +2000,8 @@ trait APIMethods200 {
         cc =>
             for {
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
-              _ <- booleanToBox(hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank), UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank )
-              entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+              _ <- NewStyle.function.ownEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank, cc.callContext)
+                entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
             }
             yield {
               var json = EntitlementJSONs(Nil)
@@ -2034,10 +2044,9 @@ trait APIMethods200 {
         cc =>
             for {
               (Full(u), callContext) <- authenticatedAccess(cc)
-              _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canDeleteEntitlementAtAnyBank") {
-                hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank)
-              }
-              entitlement <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId)) map {
+              _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteEntitlementAtAnyBank, cc.callContext)
+
+                entitlement <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId)) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementNotFound, 404, callContext.map(_.toLight)))
               } map { unboxFull(_) }
               _ <- Helper.booleanToFuture(UserDoesNotHaveEntitlement) { entitlement.userId == userId }
@@ -2073,10 +2082,9 @@ trait APIMethods200 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank) {
-              hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank)
-            }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank,callContext)
+
+              entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
               connectorEmptyResponse(_, callContext)
             }
           } yield {

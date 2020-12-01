@@ -1,28 +1,22 @@
 package code.api.builder.ConfirmationOfFundsServicePIISApi
 
-import code.api.APIFailureNewStyle
-import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
-import net.liftweb.json
-import net.liftweb.json._
-import code.api.util.APIUtil.{defaultBankId, _}
-import code.api.util.{ApiTag, NewStyle}
-import code.api.util.ErrorMessages._
+import code.api.berlin.group.v1_3.{JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
+import code.api.util.APIUtil._
 import code.api.util.ApiTag._
-import code.api.util.NewStyle.HttpCode
-import code.bankconnectors.Connector
+import code.api.util.ErrorMessages._
+import code.api.util.{ApiTag, NewStyle}
 import code.fx.fx
-import code.model._
 import code.util.Helper
-import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
-import com.github.dwickern.macros.NameOf.nameOf
+import net.liftweb.json
+import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
     val apiVersion =  OBP_BERLIN_GROUP_1_3.apiVersion

@@ -52,7 +52,7 @@ object OBPAPI3_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v3_1_0
 
-  val versionStatus = "DRAFT"
+  val versionStatus = "STABLE"
 
 
   // Possible Endpoints from 1.2.1

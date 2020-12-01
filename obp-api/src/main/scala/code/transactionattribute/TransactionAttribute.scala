@@ -44,7 +44,9 @@ trait TransactionAttributeProvider {
   def getTransactionAttributesCanBeSeenOnView(bankId: BankId,
                                               transactionId: TransactionId,
                                               viewId: ViewId): Future[Box[List[TransactionAttribute]]]
-
+  def getTransactionsAttributesCanBeSeenOnView(bankId: BankId,
+                                               transactionIds: List[TransactionId],
+                                               viewId: ViewId): Future[Box[List[TransactionAttribute]]]
   def getTransactionAttributeById(transactionAttributeId: String): Future[Box[TransactionAttribute]]
 
   def getTransactionIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]]
@@ -71,6 +73,9 @@ class RemotedataTransactionAttributeCaseClasses {
   case class getTransactionAttributesCanBeSeenOnView(bankId: BankId,
                                                      transactionId: TransactionId,
                                                      viewId:ViewId)
+  case class getTransactionsAttributesCanBeSeenOnView(bankId: BankId,
+                                                      transactionIds: List[TransactionId],
+                                                      viewId:ViewId)
 
   case class getTransactionAttributeById(transactionAttributeId: String)
   

@@ -38,7 +38,7 @@ class SettlementAccountTest extends V400ServerSetup {
     .copy(user_id = resourceUser1.userId, payment_system = "SEPA", balance = AmountOfMoneyJsonV121("EUR","0"))
   lazy val createSettlementAccountOtherUser = SwaggerDefinitionsJSON.settlementAccountRequestJson
     .copy(user_id = resourceUser2.userId, payment_system = "CARD", balance = AmountOfMoneyJsonV121("USD","0"),
-      account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(4))))
+      account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
   
 
   feature(s"test $CreateSettlementAccountEndpoint - Unauthorized access") {

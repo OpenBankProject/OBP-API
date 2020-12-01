@@ -3,7 +3,6 @@ package code.api.builder.AccountInformationServiceAISApi
 import java.text.SimpleDateFormat
 
 import code.api.APIFailureNewStyle
-import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
@@ -18,7 +17,9 @@ import code.model._
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionId, ViewId}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -27,8 +28,6 @@ import net.liftweb.json._
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 
 object APIMethods_AccountInformationServiceAISApi extends RestHelper {
@@ -139,7 +138,9 @@ As a last option, an ASPSP might in addition accept a command with access rights
                recurringIndicator = consentJson.recurringIndicator,
                validUntil = validUntil,
                frequencyPerDay = consentJson.frequencyPerDay,
-               combinedServiceIndicator = consentJson.combinedServiceIndicator
+               combinedServiceIndicator = consentJson.combinedServiceIndicator,
+               apiStandard = Some(apiVersion.apiStandard),
+               apiVersion = Some(apiVersion.apiShortVersion)
              )) map {
                i => connectorEmptyResponse(i, callContext)
              }
@@ -1121,7 +1122,7 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
      )
 
      lazy val startConsentAuthorisation : OBPEndpoint = {
-       case "consents" :: consentId:: "authorisations" :: Nil JsonPost _ => {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonPost _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1129,18 +1130,22 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
              consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
               }
-             authorization <- Future(Authorisations.authorisationProvider.vend.createAuthorization(
-               "",
-               consent.consentId,
-               AuthenticationType.SMS_OTP.toString,
-               "",
-               ScaStatus.received.toString,
-               "12345" // TODO Implement SMS sending
-             )) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError ")
+             (challenges, callContext) <- NewStyle.function.createChallengesC2(
+               List(u.userId),
+               ChallengeType.BERLINGROUP_CONSENT,
+               None,
+               Some(StrongCustomerAuthentication.SMS),
+               Some(StrongCustomerAuthenticationStatus.received),
+               Some(consentId),
+               None,
+               callContext
+             )
+             //NOTE: in OBP it support multiple challenges, but in Berlin Group it has only one challenge. The following guard is to make sure it return the 1st challenge properly.
+             challenge <- NewStyle.function.tryons(InvalidConnectorResponseForCreateChallenge,400, callContext) {
+               challenges.head
              }
            } yield {
-             (createStartConsentAuthorisationJson(consent, authorization), HttpCode.`201`(callContext))
+             (createStartConsentAuthorisationJson(consent, challenge), HttpCode.`201`(callContext))
            }
          }
        }

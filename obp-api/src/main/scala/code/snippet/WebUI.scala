@@ -70,12 +70,9 @@ class WebUI extends MdcLoggable{
   def cookieConsent = {
     val toDisplay = APIUtil.getPropsAsBoolValue("display_accept_cookies_question",false)
     if (toDisplay) {
-      var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
-      val buttonString = """<input id="clickMe" class="btn btn-default" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
-      val button  = scala.xml.Unparsed(s"""$buttonString""")
-      "#clickMe" #> button
+      "#no-exiting-id" #> "" //here we do nothing, just show all the cookie div
     } else {
-      "*" #> NodeSeq.Empty
+      "*" #> NodeSeq.Empty // here we totally hide the cookie div
     }
   }
 
@@ -241,7 +238,7 @@ class WebUI extends MdcLoggable{
   // For example customers and credentials
   // This relies on the page for sandbox documentation having an anchor called example-customer-logins
   def exampleSandboxCredentialsLink: CssSel = {
-    ".example_sandbox_credentials_link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "") + "#customer-logins")
+    ".example_sandbox_credentials_link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "") + "#Dummy-Customer-Logins")
   }
 
   // For link to OAuth Client SDKs

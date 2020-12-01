@@ -2,7 +2,7 @@ package code.api.util
 
 import java.util.Date
 
-import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.PostConsentJson
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
 import code.api.{Constant, RequestHeader}
 import code.bankconnectors.Connector
@@ -12,6 +12,7 @@ import code.entitlement.Entitlement
 import code.model.Consumer
 import code.model.dataAccess.AuthUser
 import code.users.Users
+import code.util.HydraUtil
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -37,7 +38,8 @@ case class ConsentJWT(createdByUserId: String,
                       name: Option[String],
                       email: Option[String],
                       entitlements: List[Role],
-                      views: List[ConsentView]) {
+                      views: List[ConsentView],
+                      access: Option[ConsentAccessJson]) {
   def toConsent(): Consent = {
     Consent(
       createdByUserId=this.createdByUserId, 
@@ -51,7 +53,8 @@ case class ConsentJWT(createdByUserId: String,
       name=this.name, 
       email=this.email, 
       entitlements=this.entitlements,
-      views=this.views
+      views=this.views,
+      access = this.access
     )
   }
 }
@@ -75,7 +78,8 @@ case class Consent(createdByUserId: String,
                    name: Option[String],
                    email: Option[String],
                    entitlements: List[Role],
-                   views: List[ConsentView]
+                   views: List[ConsentView],
+                   access: Option[ConsentAccessJson]
                   ) {
   def toConsentJWT(): ConsentJWT = {
     ConsentJWT(
@@ -90,7 +94,8 @@ case class Consent(createdByUserId: String,
       name=this.name,
       email=this.email,
       entitlements=this.entitlements,
-      views=this.views
+      views=this.views,
+      access = this.access
     )
   }
 }
@@ -404,7 +409,8 @@ object Consent {
       name=None,
       email=None,
       entitlements=entitlements.toList,
-      views=views.toList
+      views=views.toList,
+      access = None
     )
     
     implicit val formats = CustomJsonFormats.formats
@@ -451,7 +457,8 @@ object Consent {
         name = None,
         email = None,
         entitlements = Nil,
-        views = views
+        views = views,
+        access = Some(consent.access)
       )
       implicit val formats = CustomJsonFormats.formats
       val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
@@ -513,7 +520,8 @@ object Consent {
       name = None,
       email = None,
       entitlements = Nil,
-      views = consentViews
+      views = consentViews,
+      access = None
     )
     
     implicit val formats = CustomJsonFormats.formats
@@ -545,7 +553,7 @@ object Consent {
       val accessToken = calContext.flatMap(_.authReqHeaderField)
         .map(_.replaceFirst("Bearer\\s+", ""))
         .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
-    val introspectOAuth2Token: OAuth2TokenIntrospection = AuthUser.hydraAdmin.introspectOAuth2Token(accessToken, null)
+    val introspectOAuth2Token: OAuth2TokenIntrospection = HydraUtil.hydraAdmin.introspectOAuth2Token(accessToken, null)
     if(!introspectOAuth2Token.getActive) {
       return Failure(ErrorMessages.ConsentExpiredIssue)
     }

@@ -59,14 +59,7 @@ Berlin 13359, Germany
 							</div>
 						</div>
 						<div class="form-group">
-							<label for="appDesc">Description of the application</label>
-							<textarea rows="4" name="app-description" id="appDesc" class="form-control" aria-describedby="consumer-registration-app-description-error"></textarea>
-							<div id = "consumer-registration-app-description-error-div" class="hide">
-								<span data-lift="Msg?id=consumer-registration-app-description-error"/>
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="appRedirectUrl">Redirect URL (Optional)</label>
+							<label for="appRedirectUrl" id="redirect_url_label">Redirect URL (Optional)</label>
 							<input type="text" name="app-redirect-url" id="appRedirectUrl" class="form-control" aria-describedby="consumer-registration-app-redirect-url-error">
 							<div id = "consumer-registration-app-redirect-url-error-div" class="hide">
 								<span data-lift="Msg?id=consumer-registration-app-redirect-url-error"/>
@@ -79,11 +72,84 @@ Berlin 13359, Germany
 								<span data-lift="Msg?id=consumer-registration-app-developer-error"/>
 							</div>
 						</div>
-						<input type="submit" value="Submit" class="btn btn-danger" aria-describedby="register-consumer-errors"/>
-						<div id = "register-consumer-errors-div" class="hide">
-							<span data-lift="Msg?id=register-consumer-errors"/>
+						<div class="form-group">
+							<label for="appDesc">Description of the application</label>
+							<textarea rows="4" name="app-description" id="appDesc" class="form-control" aria-describedby="consumer-registration-app-description-error"></textarea>
+							<div id = "consumer-registration-app-description-error-div" class="hide">
+								<span data-lift="Msg?id=consumer-registration-app-description-error"/>
+							</div>
 						</div>
 					</div>
+				</div>
+				
+				<div class="row oauth2_fields">
+					<hr>
+					<h2 style="text-align: center">OAuth2 related:</h2>
+
+					<div class="col-xs-12 col-sm-12">
+						<div class="form-group">
+							<label for="app-signing_alg" id="request_signing_alg">signing_alg,
+								<a role="button" data-toggle="collapse" href="#collapse_signing_alg" aria-expanded="false" aria-controls="collapse_signing_alg">
+									 help
+								</a>
+							</label>
+							<div class="collapse" id="collapse_signing_alg">
+								<div class="well">
+									The signing algorithm name of request object and client_assertion.
+									Reference <a target="_blank" href="https://openid.net/specs/openid-connect-core-1_0.html#RequestObject">6.1.  Passing a Request Object by Value</a>
+									and <a target="_blank" href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">9.  Client Authentication</a>
+								</div>
+							</div>
+							<select name="app-signing_alg" id="app-signing_alg" class="form-control js-example-basic-single">
+								<option value="">none</option>
+								<option value="RS256">RS256</option>
+								<option value="ES256">ES256</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="app-request_uri" id="request_uri_label">
+								request_uri (Optional), <a href="https://openid.net/specs/openid-connect-core-1_0.html#RequestUriParameter" target="_blank">reference</a>
+							</label>
+							<input type="url" name="app-request_uri" id="app-request_uri" class="form-control">
+							<div id = "consumer-registration-app-request_uri-error-div" class="hide">
+								<span data-lift="Msg?id=consumer-registration-app-request_uri-error"/>
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="app-jwks_uri" id="request_jwks_uri">
+								jwks_uri (Optional), <a href="https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys" target="_blank">reference</a>
+							</label>
+							<input type="url" name="app-jwks_uri" id="app-jwks_uri" class="form-control">
+						</div>
+						<div class="form-group">
+							<label for="app-jwks">jwks (Optional),
+								<a role="button" data-toggle="collapse" href="#collapse_jwks" aria-expanded="false" aria-controls="collapse_jwks">
+									 help
+								</a>
+							</label>
+							<div class="collapse" id="collapse_jwks">
+								<div class="well">
+									Content of <b>jwks_uri</b>. <b>jwks_uri</b> and <b>jwks</b> should not both have value at the same time.
+									Reference <a target="_blank" href="https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys">10.1.1.  Rotation of Asymmetric Signing Keys</a>
+								</div>
+							</div>
+							<textarea rows="4" name="app-jwks" id="app-jwks" class="form-control" placeholder="Content of jwks"></textarea>
+							<div id = "consumer-registration-app-signing_jwks-div" class="hide alert alert-danger">
+								<span data-lift="Msg?id=consumer-registration-app-signing_jwks-error"/>
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="app-client_certificate">MTLS Client certificate (Optional)</label>
+							<textarea rows="4" name="app-client_certificate" id="app-client_certificate" class="form-control" placeholder="Whole content of crt file"></textarea>
+							<div id = "consumer-registration-app-client_certificate-error-div" class="hide alert alert-danger">
+								<span data-lift="Msg?id=consumer-registration-app-client_certificate-error"/>
+							</div>
+						</div>
+					</div>
+				</div>
+				<input type="submit" value="Submit" class="btn btn-danger" aria-describedby="register-consumer-errors"/>
+				<div id = "register-consumer-errors-div" class="hide">
+					<span data-lift="Msg?id=register-consumer-errors"/>
 				</div>
 			</form>
 		</div>
@@ -120,6 +186,12 @@ Berlin 13359, Germany
 				<div class="col-xs-12 col-sm-8"><span id="app-description">ABCDEF</span></div>
 			</div>
 			<div class="row">
+				<div class="col-xs-12 col-sm-4">Client certificate</div>
+				<div class="col-xs-12 col-sm-8">
+					<span id="client_certificate" style="overflow-wrap: anywhere">ABCDEF</span>
+				</div>
+			</div>
+			<div class="row">
 				<div class="col-xs-12 col-sm-4">Consumer Key</div>
 				<div class="col-xs-12 col-sm-8"><span id="auth-key">23432432432432</span></div>
 			</div>
@@ -128,11 +200,11 @@ Berlin 13359, Germany
 				<div class="col-xs-12 col-sm-8"><span id="secret-key">3334543543543</span></div>
 			</div>
 			<div class="row">
-				<div class="col-xs-12 col-sm-4">OAuth Endpoint</div>
+				<div class="col-xs-12 col-sm-4">OAuth 1.0a Endpoint</div>
 				<div class="col-xs-12 col-sm-8"><span id="oauth-endpoint"><a href="#">endpoint</a></span></div>
 			</div>
 			<div class="row">
-				<div class="col-xs-12 col-sm-4">OAuth Documentation</div>
+				<div class="col-xs-12 col-sm-4">OAuth 1.0a Documentation</div>
 				<div class="col-xs-12 col-sm-8"><a href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server">How to use OAuth for OpenBankProject</a></div>
 			</div>
 			<div class="row" id="dummy-user-tokens">
@@ -151,6 +223,21 @@ Berlin 13359, Germany
 			<div class="row">
 				<div class="col-xs-12 col-sm-4"></div>
 				<div class="col-xs-12 col-sm-8"><span id="post-consumer-registration-more-info-link"><a href="#"></a></span></div>
+			</div>
+			<div class="row">
+				<div class="col-xs-12 col-sm-4" id="hydra-client-info-title">OAuth2</div>
+				<div class="col-xs-12 col-sm-8">
+					<span id="hydra-client-info" style="overflow-wrap: anywhere">
+						  oauth2.client_id=<span id="client_id">auth-code-client</span><br>
+						  oauth2.redirect_uri=<span id="redirect_uri">http://127.0.0.1:8081/main.html</span><br>
+						  <span id="oauth2_request_uri">
+							  oauth2.request_uri=<span id="request_uri_value">http://127.0.0.1:8081/request_object.json</span><br>
+						  </span>
+						  oauth2.client_scope=<span id="client_scope"><span class="client-scope-value">ReadAccountsBasic</span><br></span><br>
+						  oauth2.jws_alg=<span id="client_jws_alg"></span><br>
+						  oauth2.jwk_private_key=<span id="jwk_private_key">content of jwk key</span><br>
+					</span>
+				</div>
 			</div>
 		</div><!-- success -->
 	</div>

@@ -3,8 +3,9 @@ package code.bankconnectors
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPEndpoint, _}
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{APIUtil, CallContext, CustomJsonFormats, OBPQueryParam}
+import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, NewStyle, OBPQueryParam}
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
+import code.bankconnectors.ConnectorEndpoints.getMethod
 import code.bankconnectors.rest.RestConnector_vMar2019
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ReflectUtils
@@ -43,32 +44,28 @@ object ConnectorEndpoints extends RestHelper{
   lazy val connectorEndpoints: OBPEndpoint = {
     case "connector" :: methodName :: Nil JsonAny json -> req if(hashMethod(methodName, json))  => {
       cc => {
-        val methodSymbol: ru.MethodSymbol = getMethod(methodName, json).get
-        val outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
-        val mf = ManifestFactory.classType[TopicTrait](outBoundType)
-        val formats = CustomJsonFormats.nullTolerateFormats
-        val outBound = json.extract[TopicTrait](formats, mf)
-        val optionCC = Option(cc)
-
-        // TODO need wait for confirm the rule, after that do refactor
-        val paramValues: Seq[Any] = getParamValues(outBound, methodSymbol, optionCC)
-
-        val value = invokeMethod(methodSymbol, paramValues :_*)
-
-        // convert any to Future[(Box[_], Option[CallContext])]  type
-        val futureValue: Future[(Box[_], Option[CallContext])] = toStandardFuture(value)
-
         for {
-          (boxedData, _) <- futureValue
-          data = APIUtil.fullBoxOrException(boxedData ~> APIFailureNewStyle("", 400, optionCC.map(_.toLight)))
+          (Full(user), callContext) <- authenticatedAccess(cc)
+          _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetConnectorEndpoint, callContext)
+          methodSymbol: ru.MethodSymbol = getMethod(methodName, json).get
+          outBoundType = Class.forName(s"com.openbankproject.commons.dto.OutBound${methodName.capitalize}")
+          mf = ManifestFactory.classType[TopicTrait](outBoundType)
+          formats = CustomJsonFormats.nullTolerateFormats
+          outBound = json.extract[TopicTrait](formats, mf)
+          // TODO need wait for confirm the rule, after that do refactor
+          paramValues: Seq[Any] = getParamValues(outBound, methodSymbol, callContext)          
+          value = invokeMethod(methodSymbol, paramValues :_*)         
+          // convert any to Future[(Box[_], Option[CallContext])]  type
+          (boxedData, _) <- toStandardFuture(value)              
+          data = APIUtil.fullBoxOrException(boxedData ~> APIFailureNewStyle("", 400, callContext.map(_.toLight)))
           inboundAdapterCallContext = nameOf(InboundAdapterCallContext)
           //convert first letter to small case
           inboundAdapterCallContextKey = StringUtils.uncapitalize(inboundAdapterCallContext)
-          inboundAdapterCallContextValue = InboundAdapterCallContext(cc.correlationId)
+          inboundAdapterCallContextValue = InboundAdapterCallContext(callContext.map(_.correlationId).getOrElse(""))
         } yield {
           // NOTE: if any field type is BigDecimal, it is can't be serialized by lift json
           val json = Map((inboundAdapterCallContextKey, inboundAdapterCallContextValue),("status", Status("",List(InboundStatusMessage("","","","")))),("data", toValueObject(data)))
-          (json, HttpCode.`200`(cc))
+          (json, HttpCode.`200`(callContext))
         }
       }
     }
@@ -137,7 +134,7 @@ object ConnectorEndpoints extends RestHelper{
       paramValues
   }
   private lazy val connector: Connector = {
-    val connectorName = APIUtil.getPropsValue("connector.name.export.as.endpoint", "mapped")
+    val connectorName = APIUtil.getPropsValue("connector.name.export.as.endpoints", "mapped")
     Connector.getConnectorInstance(connectorName)
   }
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)

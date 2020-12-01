@@ -162,6 +162,29 @@ object MapperViews extends Views with MdcLoggable {
       Full(viewDefinitions.map(_._1))
     }
   }
+  def revokeAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = {
+    val viewDefinitions: List[(ViewDefinition, ViewIdBankIdAccountId)] = views.map {
+      uid => ViewDefinition.findCustomView(uid.bankId.value,uid.accountId.value, uid.viewId.value).map((_, uid))
+          .or(ViewDefinition.findSystemView(uid.viewId.value).map((_, uid)))
+    }.collect { case Full(v) => v}
+
+    if (viewDefinitions.size != views.size) {
+      val failMsg = s"not all viewimpls could be found for views ${viewDefinitions} (${viewDefinitions.size} != ${views.size}"
+      //logger.debug(failMsg)
+      Failure(failMsg) ~>
+        APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
+      //TODO: APIFailures with http response codes belong at a higher level in the code
+    } else {
+      viewDefinitions.foreach(v => {
+        if(v._1.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+        val viewDefinition = v._1
+        val viewIdBankIdAccountId = v._2
+        // This is idempotent 
+        revokeAccess(v._2, user)
+      })
+      Full(viewDefinitions.map(_._1))
+    }
+  }
 
   def revokeAccess(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
     val isRevokedCustomViewAccess =
@@ -258,6 +281,21 @@ object MapperViews extends Views with MdcLoggable {
         " to this owner view if access to the user was revoked. No permissions to any views on the account have been revoked.")
     }
 
+  }
+
+  def revokeAccountAccessesByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
+    canRevokeAccessToViewCommon(bankId, accountId, user) match {
+      case true =>
+        val permissions = AccountAccess.findAll(
+          By(AccountAccess.user_fk, user.userPrimaryKey.value),
+          By(AccountAccess.bank_id, bankId.value),
+          By(AccountAccess.account_id, accountId.value)
+        )
+        permissions.foreach(_.delete_!)
+        Full(true)
+      case false =>
+        Failure(CannotRevokeAccountAccess)
+    }
   }
 
   def customView(viewId : ViewId, account: BankIdAccountId) : Box[View] = {

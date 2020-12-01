@@ -47,6 +47,14 @@ object TransactionAttributeType extends  OBPEnumeration[TransactionAttributeType
   object DATE_WITH_DAY extends Value
 }
 
+sealed trait TransactionRequestAttributeType extends EnumValue
+object TransactionRequestAttributeType extends  OBPEnumeration[TransactionRequestAttributeType]{
+  object STRING        extends Value
+  object INTEGER       extends Value
+  object DOUBLE        extends Value
+  object DATE_WITH_DAY extends Value
+}
+
 //------api enumerations ----
 sealed trait StrongCustomerAuthentication extends EnumValue
 object StrongCustomerAuthentication extends OBPEnumeration[StrongCustomerAuthentication] {
@@ -170,6 +178,12 @@ object LanguageParam extends OBPEnumeration[LanguageParam] {
   object ZH extends Value
 }
 
+sealed trait ContentParam extends EnumValue
+object ContentParam extends OBPEnumeration[ContentParam] {
+  object DYNAMIC extends Value
+  object STATIC extends Value
+  object ALL extends Value
+}
 
 sealed trait AttributeType extends EnumValue
 object AttributeType extends OBPEnumeration[AttributeType]{
@@ -186,11 +200,12 @@ object AttributeCategory extends OBPEnumeration[AttributeCategory]{
   object Account extends Value
   object Transaction extends Value
   object Card extends Value
+  object TransactionRequest extends Value
 }
 
 object TransactionRequestStatus extends Enumeration {
   type TransactionRequestStatus = Value
-  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED, CANCELLED = Value
+  val INITIATED, PENDING, NEXT_CHALLENGE_PENDING, FAILED, COMPLETED, FORWARDED, REJECTED, CANCELLED, CANCELLATION_PENDING = Value
 }
 
 object AccountRoutingScheme extends Enumeration {

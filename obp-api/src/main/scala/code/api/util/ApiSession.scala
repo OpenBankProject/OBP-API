@@ -53,7 +53,7 @@ case class CallContext(
       user <- this.user //If there is no user, then will go to `.openOr` method, to return anonymousAccess box.
       username <- tryo(Some(user.name))
       currentResourceUserId <- tryo(Some(user.userId))
-      consumerId <- this.consumer.map(_.consumerId.get) //If there is no consumer, then will go to `.openOr` method, to return anonymousAccess box.
+      consumerId = this.consumer.map(_.consumerId.get).openOr("") // if none, just return ""
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))

@@ -1,3 +1,18 @@
+.container #api_documentation_content ol{
+    margin-top: 0;
+    margin-bottom: 10px;
+    display: block;
+    list-style-type: decimal;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    padding-inline-start: 40px;
+}
+.container #api_documentation_content ul {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
 .container #api_documentation_content h1 {
     weight: lighter;
     margin-top: 72px;

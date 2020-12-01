@@ -641,6 +641,8 @@ case class PaymentAccount( //This is from berlinGroup
   iban: String
 )
 
+case class CancelPayment(canBeCancelled: Boolean, startSca: Option[Boolean])
+
 case class SepaCreditTransfers( //This is from berlinGroup
   debtorAccount: PaymentAccount,
   instructedAmount: AmountOfMoneyJsonV121,
