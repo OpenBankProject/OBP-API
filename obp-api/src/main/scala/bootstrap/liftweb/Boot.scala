@@ -96,7 +96,7 @@ import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
 import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
-import code.selections.Selections
+import code.selections.Selection
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -893,7 +893,7 @@ object ToSchemify {
     DirectDebit,
     StandingOrder,
     MappedUserRefreshes,
-    Selections
+    Selection
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

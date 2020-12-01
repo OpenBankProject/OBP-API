@@ -43,7 +43,7 @@ import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
-import code.selections.SelectionsTrait
+import code.selections.SelectionTrait
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
@@ -925,7 +925,7 @@ object JSONFactory400 {
     )
   }
 
-  def createSelectionJsonV400(selection: SelectionsTrait) = {
+  def createSelectionJsonV400(selection: SelectionTrait) = {
       SelectionJson400(
         selection.selectionId,
         selection.userId,
@@ -935,7 +935,7 @@ object JSONFactory400 {
       )
   }
   
-  def createSelectionsJsonV400(selections: List[SelectionsTrait]) = {
+  def createSelectionsJsonV400(selections: List[SelectionTrait]) = {
     selections.map(selection => createSelectionJsonV400(selection))
   }
   

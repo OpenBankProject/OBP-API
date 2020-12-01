@@ -3,8 +3,8 @@ package code.selections
 import code.util.MappedUUID
 import net.liftweb.mapper._
 
-class Selections extends SelectionsTrait with LongKeyedMapper[Selections] with IdPK with CreatedUpdated {
-  def getSingleton = Selections
+class Selection extends SelectionTrait with LongKeyedMapper[Selection] with IdPK with CreatedUpdated {
+  def getSingleton = Selection
 
   object SelectionId extends MappedUUID(this)
   object UserId extends MappedString(this, 100)
@@ -19,11 +19,11 @@ class Selections extends SelectionsTrait with LongKeyedMapper[Selections] with I
   override def isSharable: Boolean = IsSharable.get    
 }
 
-object Selections extends Selections with LongKeyedMetaMapper[Selections] {
+object Selection extends Selection with LongKeyedMetaMapper[Selection] {
   override def dbIndexes = UniqueIndex(SelectionId) :: super.dbIndexes
 }
 
-trait SelectionsTrait {
+trait SelectionTrait {
   def selectionId: String
   def userId: String
   def selectionName: String

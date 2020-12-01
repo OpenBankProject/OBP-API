@@ -30,7 +30,7 @@ import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
-import code.selections.{MappedSelectionsProvider, SelectionsTrait}
+import code.selections.{MappedSelectionsProvider, SelectionTrait}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
@@ -2554,13 +2554,13 @@ object NewStyle {
     } map { fullBoxOrException(_) }
 
 
-    def getSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[SelectionsTrait] = {
+    def getSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[SelectionTrait] = {
       Future(MappedSelectionsProvider.getSelectionById(selectionId)) map {
         i => (unboxFullOrFail(i, callContext, s"SelectionNotFound Current selectionId($selectionId)"), callContext)
       }
     }
 
-    def getSelectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[SelectionsTrait]] = {
+    def getSelectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[SelectionTrait]] = {
       Future(MappedSelectionsProvider.getSelectionsByUserId(userId), callContext) 
     }
     
@@ -2569,7 +2569,7 @@ object NewStyle {
       isFavourites: Boolean,
       isSharable: Boolean,
       callContext: Option[CallContext]
-    ) : OBPReturnType[SelectionsTrait] = {
+    ) : OBPReturnType[SelectionTrait] = {
       Future(MappedSelectionsProvider.createSelection(
         userId: String,
         selectionName: String,
