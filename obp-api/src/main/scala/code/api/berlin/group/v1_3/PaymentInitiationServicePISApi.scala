@@ -572,13 +572,10 @@ $additionalInstructions
              (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
-             _ <- Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionRequest) {
-               
-               u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true ||
-                 hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest) == true
-             }
+             _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))) Future.successful(Full(Unit))
+                  else NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
-             // Prevent default value for transaction request type (at least).
+               // Prevent default value for transaction request type (at least).
              _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}") {
                transDetailsJson.instructedAmount.currency == fromAccount.currency
              }
@@ -770,7 +767,10 @@ This applies in the following scenarios:
              _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct),400, callContext) {
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
-             (_, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+             _ <- Helper.booleanToFuture(failMsg= CannotStartTheAuthorisationProcessForTheCancellation) {
+               transactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString
+             }
              (challenges, callContext) <- NewStyle.function.createChallengesC2(
                List(u.userId),
                ChallengeType.BERLINGROUP_PAYMENT,
@@ -900,10 +900,7 @@ There are the following request types on this access path:
              )
              _ <- challenge.scaStatus match {
                case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
-                 NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext) map {
-                   response =>
-                     Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, CANCELLED.toString)
-                 }
+                 Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, CANCELLED.toString))
                case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
                  Future(Connector.connector.vend.saveTransactionRequestStatusImpl(existingTransactionRequest.id, REJECTED.toString))
                case _ => // all other cases

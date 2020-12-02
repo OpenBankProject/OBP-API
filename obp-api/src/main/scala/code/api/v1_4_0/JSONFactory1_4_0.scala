@@ -467,7 +467,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val description = rd.description.stripMargin.trim ++ fieldsDescription
     
     ResourceDocJson(
-      operation_id = s"${rd.implementedInApiVersion.fullyQualifiedVersion}-${rd.partialFunctionName.toString}",
+      operation_id = rd.operationId,
       request_verb = rd.requestVerb,
       request_url = rd.requestUrl,
       summary = rd.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary

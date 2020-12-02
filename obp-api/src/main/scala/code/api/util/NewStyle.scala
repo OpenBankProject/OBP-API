@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
-import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_2_1.OBPAPI1_2_1.Implementations1_2_1
@@ -36,6 +36,7 @@ import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper
+import code.util.{Helper, JsonSchemaUtil}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -46,7 +47,7 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatu
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
@@ -58,6 +59,7 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
 import scala.reflect.runtime.universe.MethodSymbol
+import code.validation.{JsonValidation, ValidationProvider}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -123,6 +125,9 @@ object NewStyle {
     }
     def `204`(callContext: Option[CallContext]): Option[CallContext] = {
       callContext.map(_.copy(httpCode = Some(204)))
+    }
+    def `401`(callContext: Option[CallContext]): Option[CallContext] = {
+      callContext.map(_.copy(httpCode = Some(401)))
     }
     def `200`(callContext: CallContext): Option[CallContext] = {
       Some(callContext.copy(httpCode = Some(200)))
@@ -378,7 +383,7 @@ object NewStyle {
     
     def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future{
-        code.api.util.APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) match {
+        APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) match {
           case true => Full(true)
           case false => user.hasOwnerViewAccess(BankIdAccountId(bankAccountId.bankId,bankAccountId.accountId)) match {
             case true => Full(true)
@@ -706,24 +711,75 @@ object NewStyle {
       }
     }
 
+    /**
+     * as check entitlement methods return map parameter,
+     * do request payload validation with json-schema
+     * @param callContext callContext
+     * @param checkFull whether check result is Full, for hasXXEntitlement that return Future[Box[Unit]], the value should be true
+     * @param boxResult hasXXEntitlement method return value, if validation fail, return fail box or throw exception for Future type
+     * @tparam T
+     * @return
+     */
+    private def validateRequestPayload[T](callContext: Option[CallContext], checkFull: Boolean = false)(boxResult: Box[T]): Box[T] = {
+      val validationResult: Option[String] = callContext.flatMap(_.resourceDocument)
+        .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
+        .flatMap(v => JsonSchemaUtil.validateRequest(callContext)(v.operationId)) // request payload validation error message
 
-    def hasEntitlement(failMsg: String)(bankId: String, userId: String, role: ApiRole): Future[Box[Unit]] = {
-      Helper.booleanToFuture(failMsg + role.toString()) {
-        APIUtil.hasEntitlement(bankId, userId, role)
+      if(boxResult.isEmpty || validationResult.isEmpty) {
+        boxResult
+      } else {
+        val Some(errorMsg) = validationResult
+        val errorInfo = s"${ErrorMessages.InvalidRequestPayload} $errorMsg"
+        val apiFailure = APIFailureNewStyle(errorInfo, 401, callContext.map(_.toLight))
+
+        checkFull match {
+          case true => fullBoxOrException(ParamFailure(errorInfo, apiFailure))
+          case _ => ParamFailure(errorInfo, apiFailure)
+        }
       }
     }
-    def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext] = None): Future[Box[Unit]] = {
-      hasEntitlement(UserHasMissingRoles)(bankId, userId, role)
+
+    def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext], errorMsg: String = ""): Future[Box[Unit]] = {
+      val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
+                       else errorMsg
+
+      Helper.booleanToFuture(errorInfo) {
+        APIUtil.hasEntitlement(bankId, userId, role)
+      } map validateRequestPayload(callContext, true)
+    }
+    // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
+    def ownEntitlement(bankId: String, userId: String, role: ApiRole,callContext: Option[CallContext], errorMsg: String = ""): Box[Unit] = {
+      val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
+                      else errorMsg
+      val boxResult = Helper.booleanToBox(APIUtil.hasEntitlement(bankId, userId, role), errorInfo)
+      validateRequestPayload(callContext)(boxResult)
     }
     
-    def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole]): Future[Box[Unit]] =
+    def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
-      }
+      } map validateRequestPayload(callContext, true)
 
-    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Future[Box[Unit]] =
-      hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles)
+    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
+      hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles, callContext)
 
+    def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
+      val boxResult = Helper.booleanToBox(APIUtil.hasAllEntitlements(bankId, userId, roles), s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required.")
+      validateRequestPayload(callContext)(boxResult)
+    }
+
+    def hasAllEntitlements(bankId: String, userId: String, specificBankRoles: List[ApiRole], anyBankRoles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
+      val errorMsg = UserHasMissingRoles + specificBankRoles.mkString(" and ") + " OR " + anyBankRoles.mkString(" and ") + " entitlements are required."
+      val boxResult = Helper.booleanToBox(
+        APIUtil.hasAllEntitlements(bankId, userId, specificBankRoles) || APIUtil.hasAllEntitlements("", userId, anyBankRoles),
+        errorMsg)
+      validateRequestPayload(callContext)(boxResult)
+    }
+
+    def hasEntitlementAndScope(bankId: String, userId: String, consumerId: String, role: ApiRole, callContext: Option[CallContext]): Box[EntitlementAndScopeStatus] = {
+      val boxResult = APIUtil.hasEntitlementAndScope(bankId, userId, consumerId, role)
+      validateRequestPayload(callContext)(boxResult)
+    }
 
     def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
       Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
@@ -2622,6 +2678,45 @@ object NewStyle {
       }
     }
 
+
+
+    def createValidation(validation: JsonValidation, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+      Future {
+        val newValidation = ValidationProvider.validationProvider.vend.create(validation)
+        val errorMsg = s"$InvalidValidation Can not create Validation in the backend. "
+        (unboxFullOrFail(newValidation, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateValidation(operationId: String, jsonschema: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+      Future {
+        val updatedValidation = ValidationProvider.validationProvider.vend.update(JsonValidation(operationId, jsonschema))
+        val errorMsg = s"$InvalidValidation Can not update Validation in the backend. "
+        (unboxFullOrFail(updatedValidation, callContext, errorMsg, 400), callContext)
+      }
+
+    def getValidations(callContext: Option[CallContext]): OBPReturnType[List[JsonValidation]] =
+      Future {
+        val validations: List[JsonValidation] = ValidationProvider.validationProvider.vend.getAll()
+        validations -> callContext
+      }
+
+    def getValidationByOperationId(operationId: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+      Future {
+        val validation = ValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        (unboxFullOrFail(validation, callContext, ValidationNotFound, 400), callContext)
+      }
+
+    def deleteValidation(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result = ValidationProvider.validationProvider.vend.deleteByOperationId(operationId)
+        (unboxFullOrFail(result, callContext, ValidationDeleteError, 400), callContext)
+      }
+
+    def isValidationExists(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result = ValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        (result.isDefined, callContext)
+      }
 
   }
 }

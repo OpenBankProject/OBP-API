@@ -134,7 +134,7 @@ object ConnectorEndpoints extends RestHelper{
       paramValues
   }
   private lazy val connector: Connector = {
-    val connectorName = APIUtil.getPropsValue("connector.name.export.as.endpoint", "mapped")
+    val connectorName = APIUtil.getPropsValue("connector.name.export.as.endpoints", "mapped")
     Connector.getConnectorInstance(connectorName)
   }
   private val mirror: ru.Mirror = ru.runtimeMirror(getClass().getClassLoader)

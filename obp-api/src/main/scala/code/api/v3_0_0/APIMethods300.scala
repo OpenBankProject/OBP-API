@@ -1029,8 +1029,6 @@ trait APIMethods300 {
     // Create Branch
     val createBranchEntitlementsRequiredForSpecificBank = CanCreateBranch :: Nil
     val createBranchEntitlementsRequiredForAnyBank = CanCreateBranchAtAnyBank :: Nil
-    val createBranchEntitlementsRequiredText = UserHasMissingRoles + createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required OR " + createBranchEntitlementsRequiredForAnyBank.mkString(" and ")
-
 
     // TODO Put the RequiredEntitlements and AlternativeRequiredEntitlements in the Resource Doc and use that in the Partial Function?
 
@@ -1064,12 +1062,7 @@ trait APIMethods300 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, _) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(
-              hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
-              ||
-              hasEntitlement("", u.userId, canCreateBranchAtAnyBank) == true
-              , createBranchEntitlementsRequiredText
-            )
+            _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, canCreateBranch::Nil, canCreateBranchAtAnyBank::Nil, cc.callContext)
             branchJsonV300 <- tryo {json.extract[BranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + " BranchJsonV300"}
             _ <- booleanToBox(branchJsonV300.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
             branch <- transformToBranchFromV300(branchJsonV300) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Branch"}
@@ -1111,7 +1104,7 @@ trait APIMethods300 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, _) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canUpdateBranch) == true, s"$UserHasMissingRoles $canUpdateBranch")
+            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canUpdateBranch, cc.callContext)
             postBranchJsonV300 <- tryo {json.extract[PostBranchJsonV300]} ?~! {ErrorMessages.InvalidJsonFormat + PostBranchJsonV300.toString()}
             branchJsonV300 = BranchJsonV300(
               id = branchId.value, 
@@ -1141,8 +1134,6 @@ trait APIMethods300 {
     
     val createAtmEntitlementsRequiredForSpecificBank = canCreateAtm ::  Nil
     val createAtmEntitlementsRequiredForAnyBank = canCreateAtmAtAnyBank ::  Nil
-
-    val createAtmEntitlementsRequiredText = UserHasMissingRoles + createAtmEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createAtmEntitlementsRequiredForAnyBank.mkString(" and ")
 
     resourceDocs += ResourceDoc(
       createAtm,
@@ -1176,11 +1167,8 @@ trait APIMethods300 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, _) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
-              ||
-              hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
-              createAtmEntitlementsRequiredText)
-            atmJson <- tryo {json.extract[AtmJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
+            _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank, createAtmEntitlementsRequiredForAnyBank, cc.callContext)
+              atmJson <- tryo {json.extract[AtmJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
             atm <- transformToAtmFromV300(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
             _ <- booleanToBox(atmJson.bank_id == bank.bankId.value, "BANK_ID has to be the same in the URL and Body")
             success <- Connector.connector.vend.createOrUpdateAtm(atm)
@@ -1873,7 +1861,7 @@ trait APIMethods300 {
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", u.userId, allowedEntitlements, callContext)
             entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(callContext)
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
@@ -1912,7 +1900,7 @@ trait APIMethods300 {
           val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (Full(authorizedUser), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", authorizedUser.userId, allowedEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)("", authorizedUser.userId, allowedEntitlements, callContext)
             entitlementRequests <- NewStyle.function.getEntitlementRequestsFuture(userId, callContext)
           } yield {
             (JSONFactory300.createEntitlementRequestsJSON(entitlementRequests), HttpCode.`200`(callContext))
@@ -1986,7 +1974,7 @@ trait APIMethods300 {
           val allowedEntitlementsTxt = UserHasMissingRoles + allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)("", u.userId, allowedEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)("", u.userId, allowedEntitlements, callContext)
             deleteEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestId) map {
               connectorEmptyResponse(_, callContext)
             }
@@ -2254,7 +2242,7 @@ trait APIMethods300 {
             allowedEntitlements = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
             allowedEntitlementsTxt = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
 
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements, callContext)
 
             _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
               postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
@@ -2299,7 +2287,7 @@ trait APIMethods300 {
             consumer <- Future{callContext.get.consumer} map {
               x => unboxFullOrFail(x, callContext, InvalidConsumerCredentials)
             }
-            _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank)}  map ( fullBoxOrException(_))
+            _ <- Future {NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canDeleteScopeAtAnyBank, callContext)}  map ( fullBoxOrException(_))
             scope <- Future{ Scope.scope.vend.getScopeById(scopeId) ?~! ScopeNotFound } map {
               val msg = s"$ScopeNotFound Current Value is $scopeId"
               x => unboxFullOrFail(x, callContext, msg)
@@ -2337,7 +2325,7 @@ trait APIMethods300 {
             consumer <- Future{callContext.get.consumer} map {
               x => unboxFullOrFail(x , callContext, InvalidConsumerCredentials)
             }
-            _ <- Future {hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank)} flatMap {unboxFullAndWrapIntoFuture(_)}
+            _ <- Future {NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank, callContext)} flatMap {unboxFullAndWrapIntoFuture(_)}
             scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerId)} map { unboxFull(_) }
           } yield
             (JSONFactory300.createScopeJSONs(scopes), HttpCode.`200`(callContext))

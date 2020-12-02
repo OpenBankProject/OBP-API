@@ -38,7 +38,7 @@ import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
-import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300, ViewBasicV300}
+import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300}
 import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.entitlement.Entitlement
@@ -531,6 +531,43 @@ case class SelectionEndpointsJson400(
 case class PostSelectionEndpointJson400(
   operation_id: String
 )
+// Validation related START
+case class JsonSchemaV400(
+    $schema: String,
+    description: String,
+    title: String,
+    required: List[String],
+    `type`: String,
+    properties: Properties,
+    additionalProperties: Boolean
+  )
+  case class Properties (xxx_id: XxxId)
+  case class XxxId (
+    `type`: String,
+    minLength: Int,
+    maxLength: Int,
+    examples: List[String]
+  )
+case class JsonValidationV400(operationId: String, jsonSchema: JsonSchemaV400)
+// Validation related END
+
+
+case class IbanCheckerJsonV400(
+                                is_valid: Boolean,
+                                details: Option[IbanDetailsJsonV400]
+                              )
+
+case class AttributeJsonV400(name: String, value: String)
+case class IbanDetailsJsonV400(bank_routings: List[BankRoutingJsonV121],
+                               bank: String,
+                               branch: String,
+                               address: String,
+                               city: String,
+                               zip: String,
+                               phone: String,
+                               country: String,
+                               attributes: List[AttributeJsonV400]
+                              )
 
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
@@ -951,6 +988,33 @@ object JSONFactory400 {
         selection.isFavourites,
         selection.isSharable,
       )
+  }
+  def createIbanCheckerJson(iban: IbanChecker): IbanCheckerJsonV400 = {
+    val details = iban.details.map(
+      i =>
+        IbanDetailsJsonV400(
+          bank_routings = List(BankRoutingJsonV121("bic", i.bic)),
+          bank = i.bank,
+          branch = i.branch,
+          address = i.address,
+          city = i.city,
+          zip = i.zip,
+          phone = i.phone,
+          country = i.country,
+          attributes = List(
+            AttributeJsonV400("country_iso", i.countryIso),
+            AttributeJsonV400("sepa_credit_transfer", i.sepaDirectDebit),
+            AttributeJsonV400("sepa_direct_debit", i.sepaSddCore),
+            AttributeJsonV400("sepa_sdd_core", i.sepaSddCore),
+            AttributeJsonV400("sepa_b2b", i.sepaB2b),
+            AttributeJsonV400("sepa_card_clearing", i.sepaCardClearing),
+          )
+        )
+    )
+    IbanCheckerJsonV400(
+      iban.isValid,
+      details
+    )
   }
   
   def createSelectionsJsonV400(selections: List[SelectionTrait]) = {

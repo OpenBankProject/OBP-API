@@ -23,7 +23,7 @@ Berlin 13359, Germany
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
 
-  */
+ */
 
 package code.api
 
@@ -119,7 +119,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     case ScannedApiVersion(urlPrefix, _, _) =>
       (urlPrefix / version.vDottedApiVersion).oPrefix(_)
     case _ =>
-    (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
+      (ApiPathZero / version.vDottedApiVersion).oPrefix(_)
   }
 
   /*
@@ -192,10 +192,10 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
 
   /**
-    * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
-    * @param rd Resource Document which contains all description of an Endpoint
-    * @return true if some endpoint can get User from Authorization Header
-    */
+   * Function which inspect does an Endpoint use Akka's Future in non-blocking way i.e. without using Await.result
+   * @param rd Resource Document which contains all description of an Endpoint
+   * @return true if some endpoint can get User from Authorization Header
+   */
   def newStyleEndpoints(rd: Option[ResourceDoc]) : Boolean = {
     rd match {
       // Versions that precede the 3.0.0 are mostly written as Old Style endpoint.
@@ -226,11 +226,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       } =>
         true
       case Some(e) if List(
-        ApiVersion.v1_2_1.toString, 
-        ApiVersion.v1_3_0.toString, 
-        ApiVersion.v1_4_0.toString, 
-        ApiVersion.v2_0_0.toString, 
-        ApiVersion.v2_1_0.toString, 
+        ApiVersion.v1_2_1.toString,
+        ApiVersion.v1_3_0.toString,
+        ApiVersion.v1_4_0.toString,
+        ApiVersion.v2_0_0.toString,
+        ApiVersion.v2_1_0.toString,
         ApiVersion.v2_2_0.toString,
         ApiVersion.apiBuilder.toString, //apiBuilder is the old style.
       ).exists(_ == e.implementedInApiVersion.toString()) =>
@@ -352,9 +352,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     val listLen = list.length
 
     /**
-      * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
-      * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
-      */
+     * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
+     * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
+     */
     def oPrefix(pf: OBPEndpoint): OBPEndpoint =
       new OBPEndpoint {
         def isDefinedAt(req: Req): Boolean =
@@ -400,8 +400,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           //if request has correct oauth headers
           val startTime = Helpers.now
           val response = failIfBadAuthorizationHeader(rd) {
-                          failIfBadJSON(r, handler)
-                        }
+            failIfBadJSON(r, handler)
+          }
           val endTime = Helpers.now
           logAPICall(startTime, endTime.getTime - startTime.getTime, rd)
           response
