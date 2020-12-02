@@ -508,6 +508,9 @@ case class SelectionJson400 (
   is_favourites: Boolean,
   is_sharable: Boolean
 )
+case class SelectionsJson400 (
+  selections: List[SelectionJson400] 
+)
 
 case class PostSelectionJson400(
   selection_name: String,
@@ -519,6 +522,10 @@ case class SelectionEndpointJson400 (
   selection_endpoint_id: String,
   selection_id: String,
   operation_id: String,
+)
+
+case class SelectionEndpointsJson400(
+  selection_endpoints: List[SelectionEndpointJson400]
 )
 
 case class PostSelectionEndpointJson400(
@@ -947,7 +954,7 @@ object JSONFactory400 {
   }
   
   def createSelectionsJsonV400(selections: List[SelectionTrait]) = {
-    selections.map(selection => createSelectionJsonV400(selection))
+    SelectionsJson400(selections.map(selection => createSelectionJsonV400(selection)))
   }
 
   def createSelectionEndpointJsonV400(selection: SelectionEndpointTrait) = {
@@ -959,7 +966,7 @@ object JSONFactory400 {
   }
 
   def createSelectionEndpointsJsonV400(selections: List[SelectionEndpointTrait]) = {
-    selections.map(selection => createSelectionEndpointJsonV400(selection))
+    SelectionEndpointsJson400(selections.map(selection => createSelectionEndpointJsonV400(selection)))
   }
   
 }

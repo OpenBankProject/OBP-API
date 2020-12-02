@@ -18,7 +18,7 @@ import scala.xml.NodeSeq
 class ResourceDocsTest extends ResourceDocsV140ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v1_4_0.toString)
   object ApiEndpoint1 extends Tag("Get OBP ResourceDoc")
-  object ApiEndpoint2 extends Tag("Get Swagger  ResourceDoc ")
+  object ApiEndpoint2 extends Tag("Get Swagger ResourceDoc ")
 
   // here must supply a Serializer of json, to support Product type, because the follow type are Product:
   //ResourceDocsJson#ResourceDocJson.example_request_body

@@ -86,10 +86,10 @@ class SelectionEndpointTest extends V400ServerSetup {
       Then("We should get a 200")
       responseGet.code should equal(200)
 
-      val selectionsJsonGet400 = responseGet.body.extract[List[SelectionEndpointJson400]]
+      val selectionsJsonGet400 = responseGet.body.extract[SelectionEndpointsJson400]
 
-      selectionsJsonGet400.length should be (1)
-      selectionsJsonGet400.head should be (selectionEndpoint)
+      selectionsJsonGet400.selection_endpoints.length should be (1)
+      selectionsJsonGet400.selection_endpoints.head should be (selectionEndpoint)
 
 
       Then(s"we test the $ApiEndpoint3")
@@ -100,7 +100,7 @@ class SelectionEndpointTest extends V400ServerSetup {
       Then("We should get a 200")
       responseGetSingle.code should equal(200)
 
-      val selectionsJsonGetSingle400 = responseGet.body.extract[SelectionEndpointJson400]
+      val selectionsJsonGetSingle400 = responseGetSingle.body.extract[SelectionEndpointJson400]
 
       selectionsJsonGetSingle400 should be (selectionEndpoint)
 
@@ -115,9 +115,9 @@ class SelectionEndpointTest extends V400ServerSetup {
       Then("We should get a 200")
       responseGetAfterDelete.code should equal(200)
 
-      val selectionEndpointsJsonGetAfterDelete = responseGetAfterDelete.body.extract[List[SelectionEndpointJson400]]
+      val selectionEndpointsJsonGetAfterDelete = responseGetAfterDelete.body.extract[SelectionEndpointsJson400]
 
-      selectionEndpointsJsonGetAfterDelete.length should be (0)
+      selectionEndpointsJsonGetAfterDelete.selection_endpoints.length should be (0)
 
     }
   }

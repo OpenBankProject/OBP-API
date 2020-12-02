@@ -309,9 +309,9 @@ object ErrorMessages {
   val CreateSelectionError = "OBP-30080:Could not create Selection."
   val DeleteSelectionError = "OBP-30081:Could not delete Selection."
 
-  val SelectionEndpointNotFound = "OBP-30081:SelectionEndpoint not found. Please specify a valid value for SELECTION_ENDPOINT_ID."
-  val CreateSelectionEndpointError = "OBP-30082:Could not create SelectionEndpoint."
-  val DeleteSelectionEndpointError = "OBP-30083:Could not delete SelectionEndpoint."
+  val SelectionEndpointNotFound = "OBP-30082:SelectionEndpoint not found. Please specify a valid value for SELECTION_ENDPOINT_ID."
+  val CreateSelectionEndpointError = "OBP-30083:Could not create SelectionEndpoint."
+  val DeleteSelectionEndpointError = "OBP-30084:Could not delete SelectionEndpoint."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

@@ -5896,7 +5896,7 @@ trait APIMethods400 {
          |
          |""".stripMargin,
       EmptyBody,
-      List(selectionJson400),
+      selectionsJson400,
       List(
         UnknownError
       ),
@@ -6035,7 +6035,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      List(selectionEndpointJson400),
+      selectionEndpointsJson400,
       List(
         $UserNotLoggedIn,
         UserNotFoundByUserId,
