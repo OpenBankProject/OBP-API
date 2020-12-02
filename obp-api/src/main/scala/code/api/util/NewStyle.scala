@@ -30,6 +30,7 @@ import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
+import code.selectionEndpoints.{MappedSelectionEndpointsProvider, SelectionEndpointTrait}
 import code.selections.{MappedSelectionsProvider, SelectionTrait}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
@@ -2556,7 +2557,7 @@ object NewStyle {
 
     def getSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[SelectionTrait] = {
       Future(MappedSelectionsProvider.getSelectionById(selectionId)) map {
-        i => (unboxFullOrFail(i, callContext, s"SelectionNotFound Current selectionId($selectionId)"), callContext)
+        i => (unboxFullOrFail(i, callContext, s"$SelectionNotFound Current SELECTION_ID($selectionId)"), callContext)
       }
     }
 
@@ -2582,15 +2583,45 @@ object NewStyle {
 
     def getUserByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[User] = {
       Users.users.vend.getUserByUserIdFuture(userId) map {
-        x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)"),callContext)
+        x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current USER_ID($userId)"),callContext)
       }
     }
 
     def deleteSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
       Future(MappedSelectionsProvider.deleteSelectionById(selectionId)) map {
-        i => (unboxFullOrFail(i, callContext, s"DeleteSelectionError Current selectionId($selectionId)"), callContext)
+        i => (unboxFullOrFail(i, callContext, s"$DeleteSelectionError Current SELECTION_ID($selectionId)"), callContext)
       }
     }
+
+    def createSelectionEndpoint(
+      selectionId: String,
+      operationId: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[SelectionEndpointTrait] = {
+      Future(MappedSelectionEndpointsProvider.createSelectionEndpoint(
+        selectionId: String,
+        operationId: String
+      )) map {
+        i => (unboxFullOrFail(i, callContext, CreateSelectionEndpointError), callContext)
+      }
+    }
+
+    def getSelectionEndpointById(selectionEndpointId : String, callContext: Option[CallContext]) : OBPReturnType[SelectionEndpointTrait] = {
+      Future(MappedSelectionEndpointsProvider.getSelectionEndpointById(selectionEndpointId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$SelectionEndpointNotFound Current SELECTION_ENDPOINT_ID($selectionEndpointId)"), callContext)
+      }
+    }
+
+    def getSelectionEndpoints(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[List[SelectionEndpointTrait]] = {
+      Future(MappedSelectionEndpointsProvider.getSelectionEndpoints(selectionId), callContext)
+    }
+
+    def deleteSelectionEndpointById(selectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedSelectionEndpointsProvider.deleteSelectionEndpointById(selectionEndpointById)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteSelectionEndpointError Current SELECTION_ENDPOINT_ID($selectionEndpointById)"), callContext)
+      }
+    }
+
 
   }
 }

@@ -43,6 +43,7 @@ import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
+import code.selectionEndpoints.SelectionEndpointTrait
 import code.selections.SelectionTrait
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
@@ -514,6 +515,16 @@ case class PostSelectionJson400(
   is_sharable: Boolean
 )
 
+case class SelectionEndpointJson400 (
+  selection_endpoint_id: String,
+  selection_id: String,
+  operation_id: String,
+)
+
+case class PostSelectionEndpointJson400(
+  operation_id: String
+)
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -937,6 +948,18 @@ object JSONFactory400 {
   
   def createSelectionsJsonV400(selections: List[SelectionTrait]) = {
     selections.map(selection => createSelectionJsonV400(selection))
+  }
+
+  def createSelectionEndpointJsonV400(selection: SelectionEndpointTrait) = {
+    SelectionEndpointJson400(
+      selection.selectionEndpointId,
+      selection.selectionId,
+      selection.operationId
+    )
+  }
+
+  def createSelectionEndpointsJsonV400(selections: List[SelectionEndpointTrait]) = {
+    selections.map(selection => createSelectionEndpointJsonV400(selection))
   }
   
 }

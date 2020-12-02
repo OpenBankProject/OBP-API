@@ -5855,7 +5855,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getSelection),
       "GET",
-      "users/USER_ID/selections/SELECTION_ID",
+      "/users/USER_ID/selections/SELECTION_ID",
       "Get selection",
       s"""Get selection By Selection Id.
          |
@@ -5888,7 +5888,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getSelections),
       "GET",
-      "users/USER_ID/selections",
+      "/users/USER_ID/selections",
       "Get selections",
       s"""Get all the selections for one user.
          |
@@ -5927,7 +5927,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       Full(true),
       List(
         $UserNotLoggedIn,
@@ -5942,12 +5942,154 @@ trait APIMethods400 {
         cc =>
           for {
             (user, callContext) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, callContext)
             (deleted, callContext) <- NewStyle.function.deleteSelectionById(selectionId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      createSelectionEndpoint,
+      implementedInApiVersion,
+      nameOf(createSelectionEndpoint),
+      "POST",
+      "/selections/SELECTION_ID/selection-endpoints",
+      "Create Selection Endpoint",
+      s"""Create Selection Endpoint.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      postSelectionEndpointJson400,
+      selectionEndpointJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagSelection, apiTagNewStyle)
+    )
+
+    lazy val createSelectionEndpoint: OBPEndpoint = {
+      case "selections" :: selectionId :: "selection-endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostSelectionEndpointJson400", 400, cc.callContext) {
+              json.extract[PostSelectionEndpointJson400]
+            }
+            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, Some(cc))
+            (selectionEndpoint, callContext) <- NewStyle.function.createSelectionEndpoint(
+              selection.selectionId,
+              postJson.operation_id,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createSelectionEndpointJsonV400(selectionEndpoint), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSelectionEndpoint,
+      implementedInApiVersion,
+      nameOf(getSelectionEndpoint),
+      "GET",
+      "/selections/SELECTION_ID/selection-endpoints/SELECTION_ENDPOINT_ID",
+      "Get Selection Endpoint",
+      s"""Get Selection Endpoint By Id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      selectionEndpointJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagSelection, apiTagNewStyle)
+    )
+    
+    lazy val getSelectionEndpoint: OBPEndpoint = {
+      case "selections" :: selectionId :: "selection-endpoints" :: selectionEndpointId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (selection, callContext) <- NewStyle.function.getSelectionEndpointById(selectionEndpointId, Some(cc))
+          } yield {
+            (JSONFactory400.createSelectionEndpointJsonV400(selection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSelectionEndpoints,
+      implementedInApiVersion,
+      nameOf(getSelectionEndpoints),
+      "GET",
+      "/selections/SELECTION_ID/selection-endpoints",
+      "Get Selection Endpoints",
+      s"""Get Selection Endpoints By SELECTION_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      List(selectionEndpointJson400),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagSelection, apiTagNewStyle)
+    )
+
+    lazy val getSelectionEndpoints: OBPEndpoint = {
+      case "selections" :: selectionId :: "selection-endpoints":: Nil JsonGet _ => {
+        cc =>
+          for {
+            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, Some(cc) )
+            (selectionEndpoints, callContext) <- NewStyle.function.getSelectionEndpoints(selectionId, callContext)
+          } yield {
+            (JSONFactory400.createSelectionEndpointsJsonV400(selectionEndpoints), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteSelectionEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteSelectionEndpoint),
+      "DELETE",
+      "/selections/SELECTION_ID/selection-endpoints/SELECTION_ENDPOINT_ID",
+      "Delete Selection Endpoint",
+      s"""Delete Selection Endpoint By Id
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagSelection, apiTagNewStyle)
+    )
+
+    lazy val deleteSelectionEndpoint : OBPEndpoint = {
+      case "selections" :: selectionId ::"selection-endpoints" :: selectionEndpointId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, Some(cc) )
+            (deleted, callContext) <- NewStyle.function.deleteSelectionEndpointById(selectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
 
   }
 }

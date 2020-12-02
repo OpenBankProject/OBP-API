@@ -306,8 +306,12 @@ object ErrorMessages {
   val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
 
   val SelectionNotFound = "OBP-30079:Selection not found. Please specify a valid value for SELECTION_ID."
-  val CreateSelectionError = "OBP-30079:Could not create Selection."
-  val DeleteSelectionError = "OBP-30079:Could not delete Selection."
+  val CreateSelectionError = "OBP-30080:Could not create Selection."
+  val DeleteSelectionError = "OBP-30081:Could not delete Selection."
+
+  val SelectionEndpointNotFound = "OBP-30081:SelectionEndpoint not found. Please specify a valid value for SELECTION_ENDPOINT_ID."
+  val CreateSelectionEndpointError = "OBP-30082:Could not create SelectionEndpoint."
+  val DeleteSelectionEndpointError = "OBP-30083:Could not delete SelectionEndpoint."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
