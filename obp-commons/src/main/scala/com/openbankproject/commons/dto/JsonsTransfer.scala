@@ -1350,6 +1350,9 @@ case class InBoundGetChallenge(inboundAdapterCallContext: InboundAdapterCallCont
 case class OutBoundGetChallengesByTransactionRequestId(outboundAdapterCallContext: OutboundAdapterCallContext, transactionRequestId: String) extends TopicTrait
 case class InBoundGetChallengesByTransactionRequestId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
 
+case class OutBoundGetChallengesByConsentId(outboundAdapterCallContext: OutboundAdapterCallContext, consentId: String) extends TopicTrait
+case class InBoundGetChallengesByConsentId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[ChallengeCommons]) extends InBoundTrait[List[ChallengeCommons]]
+
 case class OutBoundGetCounterpartyByIbanAndBankAccountId(outboundAdapterCallContext: OutboundAdapterCallContext, iban: String, bankId: BankId, accountId: AccountId) extends TopicTrait
 case class InBoundGetCounterpartyByIbanAndBankAccountId(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: CounterpartyTraitCommons) extends InBoundTrait[CounterpartyTraitCommons]
 

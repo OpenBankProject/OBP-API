@@ -1016,6 +1016,17 @@ object NewStyle {
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($transactionRequestId) ", 400), i._2)
       }
+    }    
+    def getChallengesByConsentId(
+      consentId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[List[ChallengeTrait]] = {
+      Connector.connector.vend.getChallengesByConsentId(
+        consentId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($consentId) ", 400), i._2)
+      }
     }
 
     def getChallenge(

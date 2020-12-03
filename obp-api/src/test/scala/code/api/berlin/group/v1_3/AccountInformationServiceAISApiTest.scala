@@ -245,18 +245,18 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].scaStatus should be ("received")
 
         Then(s"We test the $getConsentAuthorisation")
-        val requestGetConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
+        val requestGetConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).GET<@ (user1)
         val responseGetConsentAuthorisation = makeGetRequest(requestGetConsentAuthorisation)
         responseGetConsentAuthorisation.code should be (200)
         responseGetConsentAuthorisation.body.extract[AuthorisationJsonV13].authorisationIds.length > 0 should be (true)
 
         Then(s"We test the $getConsentScaStatus")
         val authorisationId = responseGetConsentAuthorisation.body.extract[AuthorisationJsonV13].authorisationIds.head
-        val requestGetConsentScaStatus = (V1_3_BG / "consents"/consentId /"authorisations"/authorisationId ).POST <@ (user1)
+        val requestGetConsentScaStatus = (V1_3_BG / "consents"/consentId /"authorisations"/authorisationId ).GET <@ (user1)
         val responseGetConsentScaStatus = makeGetRequest(requestGetConsentScaStatus)
         responseGetConsentScaStatus.code should be (200)
         responseGetConsentScaStatus.body.extract[ScaStatusJsonV13].scaStatus should be ("received")
-
+/*
         Then(s"We test the $updateConsentsPsuData")
         val updateConsentsPsuDataJsonBody = APIMethods_AccountInformationServiceAISApi
           .resourceDocs
@@ -267,7 +267,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         val responseUpdateConsentsPsuData = makePutRequest(requestUpdateConsentsPsuData, write(updateConsentsPsuDataJsonBody))
         responseUpdateConsentsPsuData.code should be (200)
         responseUpdateConsentsPsuData.body.extract[PostConsentResponseJson].consentStatus should be ("received")
-        
+        */
       }
     }  
 

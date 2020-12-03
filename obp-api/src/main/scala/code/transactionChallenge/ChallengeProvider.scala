@@ -24,6 +24,8 @@ trait ChallengeProvider {
   
   def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]]
   
+  def getChallengesByConsentId(consentId: String): Box[List[ChallengeTrait]]
+  
   /**
     * There is another method:  Connector.validateChallengeAnswer, it validate the challenge over Kafka.
     * This method, will validate the answer in OBP side. 
@@ -47,6 +49,7 @@ class RemotedataChallengeProviderCaseClasses {
   )
   case class getChallenge(challengeId: String)
   case class getChallengesByTransactionRequestId(transactionRequestId: String)
+  case class getChallengesByConsentId(consentId: String)
   case class validateChallenge(challengeId: String, challengeAnswer: String, userId: Option[String])
 }
 
