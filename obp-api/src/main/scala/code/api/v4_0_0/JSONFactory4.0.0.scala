@@ -531,7 +531,7 @@ case class IbanDetailsJsonV400(bank_routings: List[BankRoutingJsonV121],
                                branch: String,
                                address: String,
                                city: String,
-                               postcode: String,T
+                               postcode: String,
                                phone: String,
                                country: String,
                                attributes: List[AttributeJsonV400]
