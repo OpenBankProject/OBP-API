@@ -39,4 +39,9 @@ object RemotedataChallenges extends ObpActorInit with ChallengeProvider {
   override def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]] = getValueFromFuture(
     (actor ? cc.getChallengesByTransactionRequestId(transactionRequestId)).mapTo[Box[List[ChallengeTrait]]]
   )
+  
+  override def getChallengesByConsentId(consentId: String): Box[List[ChallengeTrait]] = getValueFromFuture(
+    (actor ? cc.getChallengesByConsentId(consentId)).mapTo[Box[List[ChallengeTrait]]]
+  )
+  
 }
