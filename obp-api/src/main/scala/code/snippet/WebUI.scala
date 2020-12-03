@@ -38,6 +38,7 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.http.{LiftRules, S, SessionVar}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Props}
+import net.liftweb.util.PassThru
 
 import scala.xml.{NodeSeq, XML}
 import scala.io.Source
@@ -70,7 +71,7 @@ class WebUI extends MdcLoggable{
   def cookieConsent = {
     val toDisplay = APIUtil.getPropsAsBoolValue("display_accept_cookies_question",false)
     if (toDisplay) {
-      "#no-existing-id" #> "" //here we do nothing, just show all the cookie div
+      PassThru
     } else {
       "*" #> NodeSeq.Empty // here we totally hide the cookie div
     }
