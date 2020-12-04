@@ -1068,21 +1068,26 @@ trait APIMethods121 {
         "the view does not allow metadata access",
         "the view does not allow public alias access"
       ),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val getCounterpartyPublicAlias : OBPEndpoint = {
       //get public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            alias <- Box(metadata.publicAlias) ?~ {"the view " + viewId + "does not allow public alias access"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a public alias" ) {
+              otherBankAccount.metadata.get.publicAlias.isDefined
+            }
           } yield {
-            val aliasJson = JSONFactory.createAliasJSON(alias)
-            successJsonResponse(Extraction.decompose(aliasJson))
+            val aliasJson = JSONFactory.createAliasJSON(otherBankAccount.metadata.get.publicAlias.get)
+            (aliasJson, HttpCode.`200`(callContext))
           }
       }
     }
