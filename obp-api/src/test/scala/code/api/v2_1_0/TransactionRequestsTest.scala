@@ -171,7 +171,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       var getTransReqRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         CUSTOM_OWNER_VIEW_ID / "transaction-requests").GET <@ (user1)
 
-      def makeGetTransReqRequest = makeGetRequest(getTransReqRequest, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+      def makeGetTransReqRequest = makeGetRequest(getTransReqRequest, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
       def checkAllGetTransReqResBodyField(getTransactionRequestResponse: APIResponse, withChellenge: Boolean): Unit = {
         Then("we should get a 200 created code")
@@ -207,7 +207,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         */
       var getTransactionRequest = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value / CUSTOM_OWNER_VIEW_ID / "transactions").GET <@ (user1)
 
-      def makeGetTransRequest = makeGetRequest(getTransactionRequest, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+      def makeGetTransRequest = makeGetRequest(getTransactionRequest, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
       def checkAllGetTransResBodyField(getTransactionResponse: APIResponse, withChellenge: Boolean): Unit = {
         Then("we should get a 200 created code")

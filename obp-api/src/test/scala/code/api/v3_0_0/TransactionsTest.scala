@@ -5,6 +5,8 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import code.api.util.ErrorMessages.{AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles}
 import code.api.util.{APIUtil, ErrorMessages}
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import com.github.dwickern.macros.NameOf.nameOf
 import org.scalatest.Tag
 
 class TransactionsTest extends V300ServerSetup {
@@ -17,8 +19,8 @@ class TransactionsTest extends V300ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object API300 extends Tag("api3.0.0")
-  object GetTransactions extends Tag("getTransactions")
-  object GetTransactionsWithParams extends Tag("getTransactionsWithParams")
+  object GetTransactions extends Tag(nameOf(Implementations3_0_0.getTransactionsForBankAccount))
+  object GetTransactionsWithParams extends Tag(nameOf(Implementations3_0_0.getCoreTransactionsForBankAccount))
   
   feature("Get Transactions for Account (Full)") {
     scenario("Success Full case") {

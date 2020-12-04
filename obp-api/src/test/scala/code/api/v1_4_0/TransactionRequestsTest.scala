@@ -128,7 +128,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         //check that we created a new transaction (since no challenge)
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transactions").GET <@(user1)
-        response = makeGetRequest(request, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+        response = makeGetRequest(request, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
