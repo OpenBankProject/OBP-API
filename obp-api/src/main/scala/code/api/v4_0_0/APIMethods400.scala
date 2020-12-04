@@ -729,9 +729,7 @@ trait APIMethods400 {
                     json.extract[TransactionRequestBodyRefundJsonV400]
                   }
 
-                  // TODO : create transaction request attributes to store those data somewhere else than in the description
                   transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
-                  refundReasonCode = transactionRequestBodyRefundJson.refund.reason_code
 
                   (fromAccount, toAccount, transaction, callContext) <- transactionRequestBodyRefundJson.to match {
                     case Some(refundRequestTo) if refundRequestTo.account_id.isDefined && refundRequestTo.bank_id.isDefined =>
@@ -778,8 +776,8 @@ trait APIMethods400 {
 //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
 //                  }
 
-                  //we add the extra info (counterparty name + transaction_id + reason_code) for this special Refund endpoint.
-                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName} - Reason code : ${refundReasonCode}"
+                  //we add the extra info (counterparty name + transaction_id) for this special Refund endpoint.
+                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
 
                   //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money.
                   refundToAccount = fromAccount
@@ -798,6 +796,29 @@ trait APIMethods400 {
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
+
+                  _ <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                    bankId = bankId,
+                    transactionRequestId = createdTransactionRequest.id,
+                    transactionRequestAttributeId = None,
+                    name = "original_transaction_id",
+                    attributeType = TransactionRequestAttributeType.withName("STRING"),
+                    value = transactionId.value,
+                    callContext = callContext
+                  )
+
+                  refundReasonCode = transactionRequestBodyRefundJson.refund.reason_code
+                  _ <- if (refundReasonCode.nonEmpty) {
+                    NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                      bankId = bankId,
+                      transactionRequestId = createdTransactionRequest.id,
+                      transactionRequestAttributeId = None,
+                      name = "refund_reason_code",
+                      attributeType = TransactionRequestAttributeType.withName("STRING"),
+                      value = refundReasonCode,
+                      callContext = callContext)
+                  } else Future.successful()
+
                 } yield (createdTransactionRequest, callContext)
               }
               case ACCOUNT | SANDBOX_TAN => {
