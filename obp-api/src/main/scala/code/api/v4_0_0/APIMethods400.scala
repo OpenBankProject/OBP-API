@@ -1094,9 +1094,7 @@ trait APIMethods400 {
             (transactionRequest, callContext) <- challengeAnswerJson.answer match {
               // If the challenge answer is `REJECT` - Currently only to Reject a SEPA transaction request REFUND
               case "REJECT" =>
-                val transactionRequest = existingTransactionRequest.copy(status = TransactionRequestStatus.REJECTED.toString,
-                  body = existingTransactionRequest.body.copy(description =
-                    s"${existingTransactionRequest.body.description} - Reject reason code : ${challengeAnswerJson.reason_code.getOrElse("")} - Reject additional information : ${challengeAnswerJson.additional_information.getOrElse("")}"))
+                val transactionRequest = existingTransactionRequest.copy(status = TransactionRequestStatus.REJECTED.toString)
                 for {
                   (fromAccount, toAccount, callContext) <- {
                     // If the transaction request comes from the account to debit
@@ -1117,6 +1115,28 @@ trait APIMethods400 {
                       } yield (fromAccount, toAccount, callContext)
                     }
                   }
+                  rejectReasonCode = challengeAnswerJson.reason_code.getOrElse("")
+                  _ <- if (rejectReasonCode.nonEmpty) {
+                    NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                      bankId = bankId,
+                      transactionRequestId = transactionRequest.id,
+                      transactionRequestAttributeId = None,
+                      name = "reject_reason_code",
+                      attributeType = TransactionRequestAttributeType.withName("STRING"),
+                      value = rejectReasonCode,
+                      callContext = callContext)
+                  } else Future.successful()
+                  rejectAdditionalInformation = challengeAnswerJson.additional_information.getOrElse("")
+                  _ <- if (rejectAdditionalInformation.nonEmpty) {
+                    NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                      bankId = bankId,
+                      transactionRequestId = transactionRequest.id,
+                      transactionRequestAttributeId = None,
+                      name = "reject_additional_information",
+                      attributeType = TransactionRequestAttributeType.withName("STRING"),
+                      value = rejectAdditionalInformation,
+                      callContext = callContext)
+                  } else Future.successful()
                   _ <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
                   _ <- Future(Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, transactionRequest.status))
                   _ <- Future(Connector.connector.vend.saveTransactionRequestDescriptionImpl(transactionRequest.id, transactionRequest.body.description))
