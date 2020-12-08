@@ -40,13 +40,16 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen {
   
-  val startDateString = DateWithMsForFilteringFromDateString
+  val startDateString = DefaultFromDateString
   val startDateStringWrongFormat = "Wrong Date Format"
-  val endDateString = DateWithMsForFilteringEndDateString
+  val endDateString = DefaultToDateString
   val endDateStringWrongFormat = "Wrong Date Format"
   val inputStringDateFormat = DateWithMsFormat
-  val startDateObject: Date = DefaultFromDate
-  val endDateObject: Date = DefaultToDate
+  val DefaultFromDateString = APIUtil.DefaultFromDateString
+  val DefaultToDateString = APIUtil.DefaultToDateString
+  val startDateObject: Date = DateWithMsFormat.parse(DefaultFromDateString)
+  val endDateObject: Date = DateWithMsFormat.parse(DefaultToDateString)
+  ZonedDateTime.now(ZoneId.of("UTC"))
 
   feature("test APIUtil.dateRangesOverlap method") {
     
@@ -391,11 +394,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen {
   {
     val RetrunDefaultParams = Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
     
-    scenario(s"test the correct case1: empty list for httpParams") 
+    scenario(s"test the correct case1: with default parameters") 
     {
       val ExpectResult = RetrunDefaultParams 
       
-      val httpParams: List[HTTPParam] = List.empty[HTTPParam]
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString"))
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
@@ -406,7 +412,11 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen {
         Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending)
                   ,OBPFromDate(startDateObject),OBPToDate(endDateObject),
                   OBPAnon(true)))
-      val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("anon", "true")
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
@@ -417,7 +427,12 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen {
         Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending),
              OBPFromDate(startDateObject),OBPToDate(endDateObject),
              OBPAnon(true),OBPConsumerId("1")))
-      val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"), HTTPParam("consumer_id", "1"))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("anon", "true"), 
+        HTTPParam("consumer_id", "1")
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
@@ -433,6 +448,8 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen {
                   OBPExcludeAppNames(List("TrainApp", "BusApp")), OBPExcludeUrlPatterns(List("%/obp/v1.2.1%")),
                   OBPExcludeImplementedByPartialFunctions(List("getBank", "getAccounts"))))
       val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
         HTTPParam("anon", "true"), 
         HTTPParam("consumer_id", "1"), 
         HTTPParam("user_id", "2"), 
@@ -481,14 +498,22 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen {
     
     scenario(s"test the wrong case: wrong values - duration (wrongValue) in HTTPParam") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("duration", List("wrongValue")))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("duration", List("wrongValue"))
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterDurationFormatError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("true")))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("wrongName", List("true"))
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (RetrunDefaultParams)
     }
