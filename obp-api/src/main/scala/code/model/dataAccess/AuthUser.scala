@@ -1051,6 +1051,17 @@ def restoreSomeSessions(): Unit = {
           "submit" #> insertSubmitButton
    bind(loginXhtml)
   }
+
+  override def logout = {
+    logoutCurrentUser
+    S.request match {
+      case Full(a) =>  a.param("redirect") match {
+        case Full(customRedirect) => S.redirectTo(customRedirect)
+        case _ => S.redirectTo(homePage)
+      }
+      case _ => S.redirectTo(homePage)
+    }
+  }
   
   
   /**
