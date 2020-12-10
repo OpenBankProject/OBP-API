@@ -19,6 +19,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
@@ -640,16 +641,14 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
-       case "consents" :: consentId:: "authorisations" :: Nil JsonGet _ => {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
              (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByConsentId(consentId)) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError ")
-             }
+             (challenges, callContext) <-  NewStyle.function.getChallengesByConsentId(consentId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(authorisations.map(_.authorisationId)), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(challenges.map(_.challengeId)), HttpCode.`200`(callContext))
            }
          }
        }
@@ -751,13 +750,11 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
              _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
              }
-             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
-               authorisationId
-             )) map {
-               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)")
-             }
+             (challenges, callContext) <-  NewStyle.function.getChallengesByConsentId(consentId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(authorisation.scaStatus), HttpCode.`200`(callContext))
+             val challengeStatus = challenges.filter(_.challengeId == authorisationId)
+               .flatMap(_.scaStatus).headOption.map(_.toString).getOrElse("None")
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challengeStatus), HttpCode.`200`(callContext))
            }
          }
        }
@@ -1184,56 +1181,50 @@ Maybe in a later version the access path will change.
 Maybe in a later version the access path will change.
 
             """,
-       json.parse("""{
-                      "access": {"accounts": []},
-                      "recurringIndicator": false,
-                      "validUntil": "2020-12-31",
-                      "frequencyPerDay": 4,
-                      "combinedServiceIndicator": false
-                    }"""),
+       json.parse("""{"scaAuthenticationData":"123"}"""),
        emptyObjectJson,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
      )
 
      lazy val updateConsentsPsuData : OBPEndpoint = {
-       case "consents" :: consentId:: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ => {
+       case "consents" :: consentId :: "authorisations" :: authorisationId :: Nil JsonPut jsonPut -> _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+             _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, ConsentNotFound)
              }
-             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
-               authorisationId
-             )) map {
-               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)")
+             failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePaymentPsuDataJson "
+             updateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+               jsonPut.extract[UpdatePaymentPsuDataJson]
              }
-             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
-             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-               jsonPut.extract[PostConsentJson]
+             (challenges, callContext) <-  NewStyle.function.getChallengesByConsentId(consentId, callContext)
+             _ <- NewStyle.function.tryons(s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)", 400, callContext) {
+               challenges.filter(_.challengeId == authorisationId).size == 1
              }
-
-             failMsg = s"$InvalidDateFormat Current `validUntil` field is ${consentJson.validUntil}. Please use this format ${DateWithDayFormat.toPattern}!"
-             validUntil <- NewStyle.function.tryons(failMsg, 400, callContext) {
-               new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
+             (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
+               ChallengeType.BERLINGROUP_CONSENT,
+               None,
+               Some(consentId),
+               challenges.filter(_.challengeId == authorisationId).head.challengeId,
+               updateJson.scaAuthenticationData,
+               callContext
+             )
+             consent <- challenge.scaStatus match {
+               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised => // finalised
+                 Future(Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.VALID))
+               case Some(status) if status == StrongCustomerAuthenticationStatus.failed => // failed
+                 Future(Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.REJECTED))
+               case _ => // all other cases
+                 Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
              }
-
-             failMsg = s"$InvalidJsonContent Only Support empty accounts List for now. It will return an accessible account List. "
-             _ <- Helper.booleanToFuture(failMsg) {consentJson.access.accounts.get.isEmpty}
-             consent <- Future(Consents.consentProvider.vend.updateBerlinGroupConsent(
-               consentId,
-               u,
-               recurringIndicator = consentJson.recurringIndicator,
-               validUntil = validUntil,
-               frequencyPerDay = consentJson.frequencyPerDay,
-               combinedServiceIndicator = consentJson.combinedServiceIndicator
-             )) map {
-               i => connectorEmptyResponse(i, callContext)
+             _ <- NewStyle.function.tryons(ConsentUpdateStatusError, 400, callContext) {
+               consent.toList.size == 1
              }
-             } yield {
-             (createPostConsentResponseJson(consent), HttpCode.`200`(callContext))
+           } yield {
+             (createPostConsentResponseJson(consent.toList.head), HttpCode.`200`(callContext))
            }
          }
        }

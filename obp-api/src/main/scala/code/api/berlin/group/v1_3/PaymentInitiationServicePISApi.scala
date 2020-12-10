@@ -105,7 +105,8 @@ or * access method is generally applicable, but further authorisation processes 
              fromAccountIban = transactionRequestBody.debtorAccount.iban
              toAccountIban = transactionRequestBody.creditorAccount.iban
              (_, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
-             (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+             (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+             _ <- Helper.booleanToFuture(invalidIban) { ibanChecker.isValid == true }
              (_, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
              (canBeCancelled, _, startSca) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
@@ -569,7 +570,8 @@ $additionalInstructions
              toAccountIban = transDetailsJson.creditorAccount.iban
 
              (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
-             (_, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+             (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
+             _ <- Helper.booleanToFuture(invalidIban) { ibanChecker.isValid == true }
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
              _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))) Future.successful(Full(Unit))

@@ -839,12 +839,12 @@ object SwaggerDefinitionsJSON {
     true, 
     Some(
       IbanDetailsJsonV400(
-        bank_routings = List(BankRoutingJsonV121("bic", "SOGEDEFF")) ,
+        bank_routings = List(BankRoutingJsonV121("BIC", "SOGEDEFF")) ,
         bank = "Societe Generale",
         branch = "",
         address = "Neue mainzer strasse 46-50",
         city = "Frankfurt am Main",
-        zip = "60311",
+        postcode = "60311",
         phone = "",
         country = "Germany",
         attributes = List(

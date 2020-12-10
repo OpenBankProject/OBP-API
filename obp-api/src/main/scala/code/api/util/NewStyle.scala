@@ -60,6 +60,9 @@ import code.validation.{JsonValidation, ValidationProvider}
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
@@ -936,7 +939,7 @@ object NewStyle {
     
     def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[IbanChecker] = 
      Connector.connector.vend.validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]) map { i =>
-       (unboxFullOrFail(i._1, callContext, s"$invalidIban "), i._2)
+       (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse() "), i._2)
       }
 
     def validateChallengeAnswerC2(
@@ -1015,6 +1018,17 @@ object NewStyle {
         callContext:  Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($transactionRequestId) ", 400), i._2)
+      }
+    }    
+    def getChallengesByConsentId(
+      consentId: String, 
+      callContext:  Option[CallContext]
+    ): OBPReturnType[List[ChallengeTrait]] = {
+      Connector.connector.vend.getChallengesByConsentId(
+        consentId: String,
+        callContext:  Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeTransactionRequestId Current transactionRequestId($consentId) ", 400), i._2)
       }
     }
 

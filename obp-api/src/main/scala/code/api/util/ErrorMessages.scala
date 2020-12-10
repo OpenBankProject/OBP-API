@@ -403,6 +403,7 @@ object ErrorMessages {
   val ConsumerNotFound = "OBP-35022: The Consumer cannot be found by logged in user."
   val ConsentDoesNotMatchUser = "OBP-35023: The Consent does not match a valid User."
   val ConsentUserAlreadyAdded = "OBP-35024: The Consent's User is already added."
+  val ConsentUpdateStatusError = "OBP-35025: The Consent's status cannot be updated."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

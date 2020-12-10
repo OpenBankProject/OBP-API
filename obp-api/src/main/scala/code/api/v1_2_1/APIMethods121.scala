@@ -1068,21 +1068,26 @@ trait APIMethods121 {
         "the view does not allow metadata access",
         "the view does not allow public alias access"
       ),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val getCounterpartyPublicAlias : OBPEndpoint = {
       //get public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            alias <- Box(metadata.publicAlias) ?~ {"the view " + viewId + "does not allow public alias access"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a public alias" ) {
+              otherBankAccount.metadata.get.publicAlias.isDefined
+            }
           } yield {
-            val aliasJson = JSONFactory.createAliasJSON(alias)
-            successJsonResponse(Extraction.decompose(aliasJson))
+            val aliasJson = JSONFactory.createAliasJSON(otherBankAccount.metadata.get.publicAlias.get)
+            (aliasJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -1114,23 +1119,33 @@ trait APIMethods121 {
         "Alias cannot be added",
         "public alias added"
       ),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val addCounterpartyPublicAlias : OBPEndpoint = {
       //add public alias to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
-            aliasJson <- tryo{(json.extract[AliasJSON])} ?~ {InvalidJsonFormat}
-            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias) ?~ {"Alias cannot be added"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            } 
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a public alias" ) {
+              otherBankAccount.metadata.get.addPublicAlias.isDefined
+            }
+            aliasJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
+              json.extract[AliasJSON]
+            }
+            (added, _) <- Future(Counterparties.counterparties.vend.addPublicAlias(other_account_id, aliasJson.alias)) map { i =>
+              (unboxFullOrFail(i, callContext, "Alias cannot be added", 400), i)
+            }
             if(added)
           } yield {
-            successJsonResponse(Extraction.decompose(SuccessMessage("public alias added")), 201)
+            (SuccessMessage("public alias added"), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1635,24 +1650,33 @@ trait APIMethods121 {
         "the view does not allow adding an image url",
         "URL cannot be added",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val addCounterpartyImageUrl : OBPEndpoint = {
       //add image url to other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
-            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
-            added <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be added"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding an image url" ) {
+              otherBankAccount.metadata.get.addImageURL.isDefined
+            }
+            imageUrlJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
+              json.extract[ImageUrlJSON]
+            }
+            (added, _) <- Future(Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL)) map { i =>
+              (unboxFullOrFail(i, callContext, "URL cannot be added", 400), i)
+            }
             if(added)
           } yield {
-            val successJson = SuccessMessage("image url added")
-            successJsonResponse(Extraction.decompose(successJson), 201)
+            (SuccessMessage("image url added"), HttpCode.`201`(callContext))
           }
       }
     }

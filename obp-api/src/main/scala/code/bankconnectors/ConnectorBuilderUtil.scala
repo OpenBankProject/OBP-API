@@ -365,6 +365,7 @@ object ConnectorBuilderUtil {
     "createChallengesC2",
     "getChallenge",
     "getChallengesByTransactionRequestId",
+    "getChallengesByConsentId",
     "validateAndCheckIbanNumber",
     "validateChallengeAnswerC2",
     "getCounterpartyByIbanAndBankAccountId",
