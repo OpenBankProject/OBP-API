@@ -4279,9 +4279,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
               newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-              (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
-              _ <- Future(saveTransactionRequestStatusImpl(transactionRequest.id, newTransactionRequestStatus.toString).openOrThrowException(attemptedToOpenAnEmptyBox))
-              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge, status = newTransactionRequestStatus.toString))
+              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
             } yield {
               (transactionRequest, callContext)
             }
