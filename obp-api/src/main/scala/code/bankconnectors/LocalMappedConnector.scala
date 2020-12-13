@@ -1253,6 +1253,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
 
+  override def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId,
+                                              callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
+    Future(
+      DoubleEntryBookTransaction.find(
+          By(DoubleEntryBookTransaction.DebitTransactionBankId, bankId.value),
+          By(DoubleEntryBookTransaction.DebitTransactionAccountId, accountId.value),
+          By(DoubleEntryBookTransaction.DebitTransactionId, transactionId.value)
+        ).or(DoubleEntryBookTransaction.find(
+        By(DoubleEntryBookTransaction.CreditTransactionBankId, bankId.value),
+        By(DoubleEntryBookTransaction.CreditTransactionAccountId, accountId.value),
+        By(DoubleEntryBookTransaction.CreditTransactionId, transactionId.value)
+      ))
+    ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+  }
+
   override def makePaymentV400(transactionRequest: TransactionRequest,
                                reasons: Option[List[TransactionRequestReason]],
                                callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {

@@ -543,6 +543,9 @@ object ApiRole {
   case class CanGetTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTransactionRequestAttributeAtOneBank = CanGetTransactionRequestAttributeAtOneBank()
 
+  case class CanGetDoubleEntryTransactionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetDoubleEntryTransactionAtOneBank = CanGetDoubleEntryTransactionAtOneBank()
+
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
   
