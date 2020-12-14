@@ -1,5 +1,8 @@
 package code.api.v4_0_0
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
@@ -19,7 +22,7 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
-import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, UpdateViewJSON}
 import dispatch.Req
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
@@ -352,6 +355,40 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       user1
     )
     (bank.bankId.value, fromAccount.account_id, transactionId)
+  }
+
+  def saveHistoricalTransactionViaEndpoint(fromBankId: BankId,
+                                          fromAccountId: AccountId,
+                                          toBankId: BankId,
+                                          toAccountId: AccountId,
+                                          amount: BigDecimal,
+                                          description: String,
+                                          consumerAndToken: Option[(Consumer, Token)]): PostHistoricalTransactionResponseJson = {
+    val dateTimeNow = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
+    val historicalTransactionJson = PostHistoricalTransactionJson(
+      from = HistoricalTransactionAccountJsonV310(
+        bank_id = Some(fromBankId.value),
+        account_id = Some(fromAccountId.value),
+        counterparty_id = None
+      ),
+      to = HistoricalTransactionAccountJsonV310(
+        bank_id = Some(toBankId.value),
+        account_id = Some(toAccountId.value),
+        counterparty_id = None
+      ),
+      value = AmountOfMoneyJsonV121(
+        currency = "EUR",
+        amount = amount.toString()
+      ),
+      description = description,
+      posted = dateTimeNow,
+      completed = dateTimeNow,
+      `type` = "SEPA",
+      charge_policy = "SHARED"
+    )
+    val saveHistoricalTransactionRequest = (v4_0_0_Request / "management" / "historical" / "transactions").POST <@ (consumerAndToken)
+
+    makePostRequest(saveHistoricalTransactionRequest, write(historicalTransactionJson)).body.extract[PostHistoricalTransactionResponseJson]
   }
   
 }
