@@ -28,6 +28,7 @@ import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccount
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createNewCoreBankAccountJson}
+import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
@@ -5843,7 +5844,7 @@ trait APIMethods400 {
       nameOf(createApiCollection),
       "POST",
       "/my/api-collections",
-      "Create Api Collection",
+      "Create My Api Collection",
       s"""Create Api Collection for logged in user.
          |
          |${authenticationRequiredMessage(true)}
@@ -5866,6 +5867,10 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionJson400]
             }
+            apiCollection <- Future{MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(cc.userId, postJson.api_collection_name)}
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExisting Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.") {
+              apiCollection.isEmpty
+            }
             (apiCollection, callContext) <- NewStyle.function.createApiCollection(
               cc.userId,
               postJson.api_collection_name,
@@ -5879,13 +5884,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollection,
+      getApiCollectionByName,
       implementedInApiVersion,
-      nameOf(getApiCollection),
+      nameOf(getApiCollectionByName),
       "GET",
-      "/my/api-collections/API_COLLECTION_ID",
-      "Get Api Collection",
-      s"""Get Api Collection By API_COLLECTION_ID.
+      "/my/api-collections/API_COLLECTION_NAME",
+      "Get My Api Collection By Name",
+      s"""Get Api Collection By API_COLLECTION_NAME.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -5899,24 +5904,24 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getApiCollection: OBPEndpoint = {
-      case "my" :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
+    lazy val getApiCollectionByName: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: Nil JsonGet _ => {
         cc =>
           for {
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
           } yield {
             (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
           }
       }
     }
-
+    
     staticResourceDocs += ResourceDoc(
       getApiCollections,
       implementedInApiVersion,
       nameOf(getApiCollections),
       "GET",
       "/my/api-collections",
-      "Get Api Collections",
+      "Get My Api Collections",
       s"""Get all the apiCollections for logged in user.
          |
          |${authenticationRequiredMessage(true)}
@@ -5947,7 +5952,7 @@ trait APIMethods400 {
       nameOf(deleteApiCollection),
       "DELETE",
       "/my/api-collections/API_COLLECTION_ID",
-      "Delete Api Collection",
+      "Delete My Api Collection",
       s"""Delete Api Collection By API_COLLECTION_ID
          |
          |${authenticationRequiredMessage(true)}
@@ -5980,8 +5985,8 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createApiCollectionEndpoint),
       "POST",
-      "/api-collections/API_COLLECTION_ID/api-collection-endpoints",
-      "Create Api Collection Endpoint",
+      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
+      "Create My Api Collection Endpoint",
       s"""Create Api Collection Endpoint.
          |
          |${authenticationRequiredMessage(true)}
@@ -5998,15 +6003,15 @@ trait APIMethods400 {
     )
 
     lazy val createApiCollectionEndpoint: OBPEndpoint = {
-      case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
+      case "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionEndpointJson400]
             }
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
-            apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId, postJson.operation_id)} 
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current API_COLLECTION_ID($apiCollectionId) and OPERATION_ID(${postJson.operation_id})") {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
+            apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ") {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
@@ -6025,9 +6030,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getApiCollectionEndpoint),
       "GET",
-      "/api-collections/API_COLLECTION_ID/api-collection-endpoints/API_COLLECTION_ENDPOINT_ID",
-      "Get Api Collection Endpoint",
-      s"""Get Api Collection Endpoint By Id.
+      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
+      "Get My Api Collection Endpoint",
+      s"""Get Api Collection Endpoint By API_COLLECTION_NAME and OPERATION_ID.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -6042,12 +6047,17 @@ trait APIMethods400 {
     )
     
     lazy val getApiCollectionEndpoint: OBPEndpoint = {
-      case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: apiCollectionEndpointId :: Nil JsonGet _ => {
+      case "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, Some(cc))
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(
+              apiCollection.apiCollectionId,
+              operationId, 
+              Some(cc)
+            )
           } yield {
-            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollection), HttpCode.`200`(callContext))
+            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint), HttpCode.`200`(callContext))
           }
       }
     }
@@ -6057,9 +6067,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getApiCollectionEndpoints),
       "GET",
-      "/api-collections/API_COLLECTION_ID/api-collection-endpoints",
-      "Get Api Collection Endpoints",
-      s"""Get Api Collection Endpoints By API_COLLECTION_ID.
+      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
+      "Get My Api Collection Endpoints",
+      s"""Get Api Collection Endpoints By API_COLLECTION_NAME.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -6074,11 +6084,11 @@ trait APIMethods400 {
     )
 
     lazy val getApiCollectionEndpoints: OBPEndpoint = {
-      case "api-collections" :: apiCollectionId :: "api-collection-endpoints":: Nil JsonGet _ => {
+      case "api-collections" :: apiCollectionName :: "api-collection-endpoints":: Nil JsonGet _ => {
         cc =>
           for {
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
-            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollectionId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollection.apiCollectionId, callContext)
           } yield {
             (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
           }
@@ -6090,8 +6100,8 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteApiCollectionEndpoint),
       "DELETE",
-      "/api-collections/API_COLLECTION_ID/api-collection-endpoints/API_COLLECTION_ENDPOINT_ID",
-      "Delete Api Collection Endpoint",
+      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
+      "Delete My Api Collection Endpoint",
       s"""Delete Api Collection Endpoint By Id
          |
          |${authenticationRequiredMessage(true)}
@@ -6108,11 +6118,12 @@ trait APIMethods400 {
     )
 
     lazy val deleteApiCollectionEndpoint : OBPEndpoint = {
-      case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: apiCollectionEndpointId :: Nil JsonDelete _ => {
+      case "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
-            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpointId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }

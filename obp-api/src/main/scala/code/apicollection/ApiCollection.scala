@@ -18,7 +18,7 @@ class ApiCollection extends ApiCollectionTrait with LongKeyedMapper[ApiCollectio
 }
 
 object ApiCollection extends ApiCollection with LongKeyedMetaMapper[ApiCollection] {
-  override def dbIndexes = UniqueIndex(ApiCollectionId) :: UniqueIndex(ApiCollectionName) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(ApiCollectionId) :: UniqueIndex(UserId, ApiCollectionName) :: super.dbIndexes
 }
 
 trait ApiCollectionTrait {

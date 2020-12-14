@@ -45,7 +45,7 @@ class ApiCollectionTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createApiCollection))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getApiCollections))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getApiCollection))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getApiCollectionByName))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteApiCollection))
 
   feature("Test the apiCollection endpoints") {
@@ -83,7 +83,7 @@ class ApiCollectionTest extends V400ServerSetup {
 
 
       Then(s"we test the $ApiEndpoint3")
-      val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_id).GET <@ (user1)
+      val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_name).GET <@ (user1)
 
 
       val responseGetSingle = makeGetRequest(requestGetSingle)

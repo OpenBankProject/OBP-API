@@ -16,6 +16,11 @@ trait ApiCollectionsProvider {
     apiCollectionId: String
   ): Box[ApiCollectionTrait]
 
+  def getApiCollectionByUserIdAndCollectionName(
+    userId: String,
+    apiCollectionName: String
+  ): Box[ApiCollectionTrait]
+  
   def deleteApiCollectionById(
     apiCollectionId: String,
   ): Box[Boolean]
@@ -46,6 +51,11 @@ object MappedApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
     apiCollectionId: String
   ) = ApiCollection.find(By(ApiCollection.ApiCollectionId,apiCollectionId))
 
+  override def getApiCollectionByUserIdAndCollectionName(
+    userId: String,
+    apiCollectionName: String
+  ) = ApiCollection.find(By(ApiCollection.UserId, userId), By(ApiCollection.ApiCollectionName, apiCollectionName))
+  
   override def deleteApiCollectionById(
     apiCollectionId: String,
   ): Box[Boolean]  =  ApiCollection.find(By(ApiCollection.ApiCollectionId,apiCollectionId)).map(_.delete_!)

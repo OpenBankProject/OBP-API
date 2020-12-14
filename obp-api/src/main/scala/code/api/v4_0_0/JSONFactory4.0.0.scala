@@ -519,7 +519,7 @@ case class PostApiCollectionJson400(
 case class ApiCollectionEndpointJson400 (
   api_collection_endpoint_id: String,
   api_collection_id: String,
-  operation_id: String,
+  operation_id: String
 )
 
 case class ApiCollectionEndpointsJson400(
@@ -1018,16 +1018,16 @@ object JSONFactory400 {
     ApiCollectionsJson400(apiCollections.map(apiCollection => createApiCollectionJsonV400(apiCollection)))
   }
 
-  def createApiCollectionEndpointJsonV400(apiCollection: ApiCollectionEndpointTrait) = {
+  def createApiCollectionEndpointJsonV400(apiCollectionEndpoint: ApiCollectionEndpointTrait) = {
     ApiCollectionEndpointJson400(
-      apiCollection.apiCollectionEndpointId,
-      apiCollection.apiCollectionId,
-      apiCollection.operationId
+      apiCollectionEndpoint.apiCollectionEndpointId,
+      apiCollectionEndpoint.apiCollectionId,
+      apiCollectionEndpoint.operationId
     )
   }
 
-  def createApiCollectionEndpointsJsonV400(apiCollections: List[ApiCollectionEndpointTrait]) = {
-    ApiCollectionEndpointsJson400(apiCollections.map(apiCollection => createApiCollectionEndpointJsonV400(apiCollection)))
+  def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
+    ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))
   }
   
 }

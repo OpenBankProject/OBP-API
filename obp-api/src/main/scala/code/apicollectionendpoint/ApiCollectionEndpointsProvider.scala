@@ -48,7 +48,7 @@ object MappedApiCollectionEndpointsProvider extends MdcLoggable with ApiCollecti
     apiCollectionId: String,
     operationId: String,
   ) = ApiCollectionEndpoint.find(
-    By(ApiCollectionEndpoint.ApiCollectionId,apiCollectionId),
+    By(ApiCollectionEndpoint.ApiCollectionId, apiCollectionId),
     By(ApiCollectionEndpoint.OperationId,operationId)
   )
   
