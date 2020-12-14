@@ -819,6 +819,10 @@ trait APIMethods400 {
                       callContext = callContext)
                   } else Future.successful()
 
+                  (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(refundFromAccount, refundToAccount, createdTransactionRequest, callContext)
+                  _ <- Future(Connector.connector.vend.saveTransactionRequestStatusImpl(createdTransactionRequest.id, newTransactionRequestStatus.toString))
+                  createdTransactionRequest <- Future(createdTransactionRequest.copy(status = newTransactionRequestStatus.toString))
+
                 } yield (createdTransactionRequest, callContext)
               }
               case ACCOUNT | SANDBOX_TAN => {
@@ -1139,7 +1143,6 @@ trait APIMethods400 {
                   } else Future.successful()
                   _ <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
                   _ <- Future(Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, transactionRequest.status))
-                  _ <- Future(Connector.connector.vend.saveTransactionRequestDescriptionImpl(transactionRequest.id, transactionRequest.body.description))
                 } yield (transactionRequest, callContext)
               case _ =>
                 for {
