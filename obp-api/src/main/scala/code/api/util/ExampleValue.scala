@@ -220,17 +220,17 @@ object ExampleValue {
   lazy val branchIdExample = ConnectorField("DERBY6", "Uniquely identifies the Branch in combination with the bankId.")
   glossaryItems += makeGlossaryItem("Branch.branch_id", branchIdExample)
 
-  lazy val selectionNameExample = ConnectorField("Favourites", "Name of the selection")
-  glossaryItems += makeGlossaryItem("Selection.selectionName", selectionNameExample)
+  lazy val apiCollectionNameExample = ConnectorField("Favourites", "Name of the ApiCollection")
+  glossaryItems += makeGlossaryItem("ApiCollection.apiCollectionName", apiCollectionNameExample)
 
-  lazy val selectionIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "A string that MUST uniquely identify the session on this OBP instance, can be used in all cache.")
-  glossaryItems += makeGlossaryItem("Selection.selectionId", selectionIdExample)
+  lazy val apiCollectionIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "A string that MUST uniquely identify the session on this OBP instance, can be used in all cache.")
+  glossaryItems += makeGlossaryItem("ApiCollection.apiCollectionId", apiCollectionIdExample)
 
-  lazy val selectionEndpointIdExample = ConnectorField("8uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "A string that MUST uniquely identify the session on this OBP instance, can be used in all cache.")
-  glossaryItems += makeGlossaryItem("SelectionEndpoint.selectionEndpointId", selectionEndpointIdExample)
+  lazy val apiCollectionEndpointIdExample = ConnectorField("8uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "A string that MUST uniquely identify the session on this OBP instance, can be used in all cache.")
+  glossaryItems += makeGlossaryItem("ApiCollectionEndpoint.apiCollectionEndpointId", apiCollectionEndpointIdExample)
   
   lazy val operationIdExample = ConnectorField("OBPv4.0.0-getBanks", "A uniquely identify the obp endpoint on OBP instance, you can get it from Get Resource endpoints.")
-  glossaryItems += makeGlossaryItem("SelectionEndpoint.operation_id", operationIdExample)
+  glossaryItems += makeGlossaryItem("ApiCollectionEndpoint.operationId", operationIdExample)
   
   lazy val accountTypeExample = ConnectorField("AC","A short code that represents the type of the account as provided by the bank.")
 

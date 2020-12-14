@@ -30,8 +30,8 @@ import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
 import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
-import code.selectionEndpoints.{MappedSelectionEndpointsProvider, SelectionEndpointTrait}
-import code.selections.{MappedSelectionsProvider, SelectionTrait}
+import code.apicollectionendpoint.{MappedApiCollectionEndpointsProvider, ApiCollectionEndpointTrait}
+import code.apicollection.{MappedApiCollectionsProvider, ApiCollectionTrait}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
@@ -2611,29 +2611,28 @@ object NewStyle {
     } map { fullBoxOrException(_) }
 
 
-    def getSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[SelectionTrait] = {
-      Future(MappedSelectionsProvider.getSelectionById(selectionId)) map {
-        i => (unboxFullOrFail(i, callContext, s"$SelectionNotFound Current SELECTION_ID($selectionId)"), callContext)
+    def getApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionById(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Current API_COLLECTION_ID($apiCollectionId)"), callContext)
       }
     }
 
-    def getSelectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[SelectionTrait]] = {
-      Future(MappedSelectionsProvider.getSelectionsByUserId(userId), callContext) 
+    def getApiCollectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
     }
     
-    def createSelection(userId: String,
-      selectionName: String,
-      isFavourites: Boolean,
+    def createApiCollection(
+      userId: String,
+      apiCollectionName: String,
       isSharable: Boolean,
       callContext: Option[CallContext]
-    ) : OBPReturnType[SelectionTrait] = {
-      Future(MappedSelectionsProvider.createSelection(
+    ) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.createApiCollection(
         userId: String,
-        selectionName: String,
-        isFavourites: Boolean,
+        apiCollectionName: String,
         isSharable: Boolean)
       ) map {
-        i => (unboxFullOrFail(i, callContext, CreateSelectionError), callContext)
+        i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
       }
     }
 
@@ -2643,38 +2642,38 @@ object NewStyle {
       }
     }
 
-    def deleteSelectionById(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
-      Future(MappedSelectionsProvider.deleteSelectionById(selectionId)) map {
-        i => (unboxFullOrFail(i, callContext, s"$DeleteSelectionError Current SELECTION_ID($selectionId)"), callContext)
+    def deleteApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedApiCollectionsProvider.deleteApiCollectionById(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionError Current API_COLLECTION_ID($apiCollectionId)"), callContext)
       }
     }
 
-    def createSelectionEndpoint(
-      selectionId: String,
+    def createApiCollectionEndpoint(
+      apiCollectionId: String,
       operationId: String,
       callContext: Option[CallContext]
-    ) : OBPReturnType[SelectionEndpointTrait] = {
-      Future(MappedSelectionEndpointsProvider.createSelectionEndpoint(
-        selectionId: String,
+    ) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.createApiCollectionEndpoint(
+        apiCollectionId: String,
         operationId: String
       )) map {
-        i => (unboxFullOrFail(i, callContext, CreateSelectionEndpointError), callContext)
+        i => (unboxFullOrFail(i, callContext, CreateApiCollectionEndpointError), callContext)
       }
     }
 
-    def getSelectionEndpointById(selectionEndpointId : String, callContext: Option[CallContext]) : OBPReturnType[SelectionEndpointTrait] = {
-      Future(MappedSelectionEndpointsProvider.getSelectionEndpointById(selectionEndpointId)) map {
-        i => (unboxFullOrFail(i, callContext, s"$SelectionEndpointNotFound Current SELECTION_ENDPOINT_ID($selectionEndpointId)"), callContext)
+    def getApiCollectionEndpointById(apiCollectionEndpointId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointById(apiCollectionEndpointId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId)"), callContext)
       }
     }
 
-    def getSelectionEndpoints(selectionId : String, callContext: Option[CallContext]) : OBPReturnType[List[SelectionEndpointTrait]] = {
-      Future(MappedSelectionEndpointsProvider.getSelectionEndpoints(selectionId), callContext)
+    def getApiCollectionEndpoints(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionEndpointTrait]] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionId), callContext)
     }
 
-    def deleteSelectionEndpointById(selectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
-      Future(MappedSelectionEndpointsProvider.deleteSelectionEndpointById(selectionEndpointById)) map {
-        i => (unboxFullOrFail(i, callContext, s"$DeleteSelectionEndpointError Current SELECTION_ENDPOINT_ID($selectionEndpointById)"), callContext)
+    def deleteApiCollectionEndpointById(apiCollectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedApiCollectionEndpointsProvider.deleteApiCollectionEndpointById(apiCollectionEndpointById)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionEndpointError Current API_COLLECTION__ENDPOINT_ID($apiCollectionEndpointById)"), callContext)
       }
     }
 

@@ -28,6 +28,7 @@ import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccount
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createNewCoreBankAccountJson}
+import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
@@ -5837,120 +5838,117 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      createSelection,
+      createApiCollection,
       implementedInApiVersion,
-      nameOf(createSelection),
+      nameOf(createApiCollection),
       "POST",
-      "/users/USER_ID/selections",
-      "Create Selection",
-      s"""Create Selection for user.
+      "/my/api-collections",
+      "Create Api Collection",
+      s"""Create Api Collection for logged in user.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      postSelectionJson400,
-      selectionJson400,
+      postApiCollectionJson400,
+      apiCollectionJson400,
       List(
         $UserNotLoggedIn,
         InvalidJsonFormat,
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val createSelection: OBPEndpoint = {
-      case "users" :: userId :: "selections" :: Nil JsonPost json -> _ => {
+    lazy val createApiCollection: OBPEndpoint = {
+      case "my" :: "api-collections" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostSelectionJson400", 400, cc.callContext) {
-              json.extract[PostSelectionJson400]
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionJson400", 400, cc.callContext) {
+              json.extract[PostApiCollectionJson400]
             }
-            (user, callContext) <- NewStyle.function.getUserByUserId(userId, Some(cc))
-            (selection, callContext) <- NewStyle.function.createSelection(
-              user.userId,
-              postJson.selection_name,
-              postJson.is_favourites,
+            (apiCollection, callContext) <- NewStyle.function.createApiCollection(
+              cc.userId,
+              postJson.api_collection_name,
               postJson.is_sharable,
-              callContext)
+              Some(cc)
+            )
           } yield {
-            (JSONFactory400.createSelectionJsonV400(selection), HttpCode.`201`(callContext))
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`201`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      getSelection,
+      getApiCollection,
       implementedInApiVersion,
-      nameOf(getSelection),
+      nameOf(getApiCollection),
       "GET",
-      "/users/USER_ID/selections/SELECTION_ID",
-      "Get selection",
-      s"""Get selection By Selection Id.
+      "/my/api-collections/API_COLLECTION_ID",
+      "Get Api Collection",
+      s"""Get Api Collection By API_COLLECTION_ID.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      selectionJson400,
+      apiCollectionJson400,
       List(
         $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getSelection: OBPEndpoint = {
-      case "users" :: userId :: "selections" :: selectionId :: Nil JsonGet _ => {
+    lazy val getApiCollection: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- NewStyle.function.getUserByUserId(userId, Some(cc))
-            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
           } yield {
-            (JSONFactory400.createSelectionJsonV400(selection), HttpCode.`200`(callContext))
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      getSelections,
+      getApiCollections,
       implementedInApiVersion,
-      nameOf(getSelections),
+      nameOf(getApiCollections),
       "GET",
-      "/users/USER_ID/selections",
-      "Get selections",
-      s"""Get all the selections for one user.
+      "/my/api-collections",
+      "Get Api Collections",
+      s"""Get all the apiCollections for logged in user.
          |
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
       EmptyBody,
-      selectionsJson400,
+      apiCollectionsJson400,
       List(
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getSelections: OBPEndpoint = {
-      case "users" :: userId :: "selections" :: Nil JsonGet _ => {
+    lazy val getApiCollections: OBPEndpoint = {
+      case "my" :: "api-collections" :: Nil JsonGet _ => {
         cc =>
           for {
-            (user, callContext) <- NewStyle.function.getUserByUserId(userId, Some(cc))
-            (selections, callContext) <- NewStyle.function.getSelectionsByUserId(userId, callContext)
+            (apiCollections, callContext) <- NewStyle.function.getApiCollectionsByUserId(cc.userId, Some(cc))
           } yield {
-            (JSONFactory400.createSelectionsJsonV400(selections), HttpCode.`200`(callContext))
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      deleteSelection,
+      deleteApiCollection,
       implementedInApiVersion,
-      nameOf(deleteSelection),
+      nameOf(deleteApiCollection),
       "DELETE",
-      "/users/USER_ID/selections/SELECTION_ID",
-      "Delete Selection",
-      s"""Delete Selection By SELECTION_ID
+      "/my/api-collections/API_COLLECTION_ID",
+      "Delete Api Collection",
+      s"""Delete Api Collection By API_COLLECTION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -5962,16 +5960,15 @@ trait APIMethods400 {
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val deleteSelection : OBPEndpoint = {
-      case "users" :: userId :: "selections" :: selectionId :: Nil JsonDelete _ => {
+    lazy val deleteApiCollection : OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (user, callContext) <- NewStyle.function.getUserByUserId(userId, Some(cc))
-            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, callContext)
-            (deleted, callContext) <- NewStyle.function.deleteSelectionById(selectionId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionById(apiCollectionId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }
@@ -5979,119 +5976,123 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      createSelectionEndpoint,
+      createApiCollectionEndpoint,
       implementedInApiVersion,
-      nameOf(createSelectionEndpoint),
+      nameOf(createApiCollectionEndpoint),
       "POST",
-      "/selections/SELECTION_ID/selection-endpoints",
-      "Create Selection Endpoint",
-      s"""Create Selection Endpoint.
+      "/api-collections/API_COLLECTION_ID/api-collection-endpoints",
+      "Create Api Collection Endpoint",
+      s"""Create Api Collection Endpoint.
          |
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      postSelectionEndpointJson400,
-      selectionEndpointJson400,
+      postApiCollectionEndpointJson400,
+      apiCollectionEndpointJson400,
       List(
         $UserNotLoggedIn,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val createSelectionEndpoint: OBPEndpoint = {
-      case "selections" :: selectionId :: "selection-endpoints" :: Nil JsonPost json -> _ => {
+    lazy val createApiCollectionEndpoint: OBPEndpoint = {
+      case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostSelectionEndpointJson400", 400, cc.callContext) {
-              json.extract[PostSelectionEndpointJson400]
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
+              json.extract[PostApiCollectionEndpointJson400]
             }
-            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, Some(cc))
-            (selectionEndpoint, callContext) <- NewStyle.function.createSelectionEndpoint(
-              selection.selectionId,
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId, postJson.operation_id)} 
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current API_COLLECTION_ID($apiCollectionId) and OPERATION_ID(${postJson.operation_id})") {
+              apiCollectionEndpoint.isEmpty
+            }
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
+              apiCollection.apiCollectionId,
               postJson.operation_id,
               callContext
             )
           } yield {
-            (JSONFactory400.createSelectionEndpointJsonV400(selectionEndpoint), HttpCode.`201`(callContext))
+            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint), HttpCode.`201`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      getSelectionEndpoint,
+      getApiCollectionEndpoint,
       implementedInApiVersion,
-      nameOf(getSelectionEndpoint),
+      nameOf(getApiCollectionEndpoint),
       "GET",
-      "/selections/SELECTION_ID/selection-endpoints/SELECTION_ENDPOINT_ID",
-      "Get Selection Endpoint",
-      s"""Get Selection Endpoint By Id.
+      "/api-collections/API_COLLECTION_ID/api-collection-endpoints/API_COLLECTION_ENDPOINT_ID",
+      "Get Api Collection Endpoint",
+      s"""Get Api Collection Endpoint By Id.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      selectionEndpointJson400,
+      apiCollectionEndpointJson400,
       List(
         $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
     
-    lazy val getSelectionEndpoint: OBPEndpoint = {
-      case "selections" :: selectionId :: "selection-endpoints" :: selectionEndpointId :: Nil JsonGet _ => {
+    lazy val getApiCollectionEndpoint: OBPEndpoint = {
+      case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: apiCollectionEndpointId :: Nil JsonGet _ => {
         cc =>
           for {
-            (selection, callContext) <- NewStyle.function.getSelectionEndpointById(selectionEndpointId, Some(cc))
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, Some(cc))
           } yield {
-            (JSONFactory400.createSelectionEndpointJsonV400(selection), HttpCode.`200`(callContext))
+            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollection), HttpCode.`200`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      getSelectionEndpoints,
+      getApiCollectionEndpoints,
       implementedInApiVersion,
-      nameOf(getSelectionEndpoints),
+      nameOf(getApiCollectionEndpoints),
       "GET",
-      "/selections/SELECTION_ID/selection-endpoints",
-      "Get Selection Endpoints",
-      s"""Get Selection Endpoints By SELECTION_ID.
+      "/api-collections/API_COLLECTION_ID/api-collection-endpoints",
+      "Get Api Collection Endpoints",
+      s"""Get Api Collection Endpoints By API_COLLECTION_ID.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      selectionEndpointsJson400,
+      apiCollectionEndpointsJson400,
       List(
         $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getSelectionEndpoints: OBPEndpoint = {
-      case "selections" :: selectionId :: "selection-endpoints":: Nil JsonGet _ => {
+    lazy val getApiCollectionEndpoints: OBPEndpoint = {
+      case "api-collections" :: apiCollectionId :: "api-collection-endpoints":: Nil JsonGet _ => {
         cc =>
           for {
-            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, Some(cc) )
-            (selectionEndpoints, callContext) <- NewStyle.function.getSelectionEndpoints(selectionId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollectionId, callContext)
           } yield {
-            (JSONFactory400.createSelectionEndpointsJsonV400(selectionEndpoints), HttpCode.`200`(callContext))
+            (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
           }
       }
     }
     
     staticResourceDocs += ResourceDoc(
-      deleteSelectionEndpoint,
+      deleteApiCollectionEndpoint,
       implementedInApiVersion,
-      nameOf(deleteSelectionEndpoint),
+      nameOf(deleteApiCollectionEndpoint),
       "DELETE",
-      "/selections/SELECTION_ID/selection-endpoints/SELECTION_ENDPOINT_ID",
-      "Delete Selection Endpoint",
-      s"""Delete Selection Endpoint By Id
+      "/api-collections/API_COLLECTION_ID/api-collection-endpoints/API_COLLECTION_ENDPOINT_ID",
+      "Delete Api Collection Endpoint",
+      s"""Delete Api Collection Endpoint By Id
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -6103,15 +6104,15 @@ trait APIMethods400 {
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagSelection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val deleteSelectionEndpoint : OBPEndpoint = {
-      case "selections" :: selectionId ::"selection-endpoints" :: selectionEndpointId :: Nil JsonDelete _ => {
+    lazy val deleteApiCollectionEndpoint : OBPEndpoint = {
+      case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: apiCollectionEndpointId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (selection, callContext) <- NewStyle.function.getSelectionById(selectionId, Some(cc) )
-            (deleted, callContext) <- NewStyle.function.deleteSelectionEndpointById(selectionEndpointId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpointId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }

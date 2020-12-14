@@ -33,7 +33,7 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
-class SelectionTest extends V400ServerSetup {
+class ApiCollectionTest extends V400ServerSetup {
 
   /**
    * Test tags
@@ -43,60 +43,59 @@ class SelectionTest extends V400ServerSetup {
    *  This is made possible by the scalatest maven plugin
    */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createSelection))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getSelections))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getSelection))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteSelection))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createApiCollection))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getApiCollections))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getApiCollection))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteApiCollection))
 
-  feature("Test the selection endpoints") {
-    scenario("We create the selection ", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  feature("Test the apiCollection endpoints") {
+    scenario("We create the apiCollection ", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       
-      val request = (v4_0_0_Request / "users" /resourceUser1.userId / "selections").POST <@ (user1)
+      val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
 
-      lazy val postSelectionJson = SwaggerDefinitionsJSON.postSelectionJson400
+      lazy val postApiCollectionJson = SwaggerDefinitionsJSON.postApiCollectionJson400
 
-      val response = makePostRequest(request, write(postSelectionJson))
+      val response = makePostRequest(request, write(postApiCollectionJson))
       Then("We should get a 201")
       response.code should equal(201)
 
-      val selectionJson400 = response.body.extract[SelectionJson400]
+      val apiCollectionJson400 = response.body.extract[ApiCollectionJson400]
 
-      selectionJson400.is_favourites should be (postSelectionJson.is_favourites)
-      selectionJson400.is_sharable should be (postSelectionJson.is_sharable)
-      selectionJson400.selection_name should be (postSelectionJson.selection_name)
-      selectionJson400.user_id should be (resourceUser1.userId)
-      selectionJson400.selection_id shouldNot be (null)
+      apiCollectionJson400.is_sharable should be (postApiCollectionJson.is_sharable)
+      apiCollectionJson400.api_collection_name should be (postApiCollectionJson.api_collection_name)
+      apiCollectionJson400.user_id should be (resourceUser1.userId)
+      apiCollectionJson400.api_collection_id shouldNot be (null)
       
       
       Then(s"we test the $ApiEndpoint2")
-      val requestGet = (v4_0_0_Request / "users" /resourceUser1.userId / "selections").GET <@ (user1)
+      val requestGet = (v4_0_0_Request / "my" / "api-collections").GET <@ (user1)
 
 
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
       responseGet.code should equal(200)
 
-      val selectionsJsonGet400 = responseGet.body.extract[SelectionsJson400]
+      val apiCollectionsJsonGet400 = responseGet.body.extract[ApiCollectionsJson400]
 
-      selectionsJsonGet400.selections.length should be (1)
-      selectionsJsonGet400.selections.head should be (selectionJson400)
+      apiCollectionsJsonGet400.api_collections.length should be (1)
+      apiCollectionsJsonGet400.api_collections.head should be (apiCollectionJson400)
 
 
       Then(s"we test the $ApiEndpoint3")
-      val requestGetSingle = (v4_0_0_Request / "users" /resourceUser1.userId / "selections" / selectionJson400.selection_id).GET <@ (user1)
+      val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_id).GET <@ (user1)
 
 
       val responseGetSingle = makeGetRequest(requestGetSingle)
       Then("We should get a 200")
       responseGetSingle.code should equal(200)
 
-      val selectionsJsonGetSingle400 = responseGetSingle.body.extract[SelectionJson400]
+      val apiCollectionsJsonGetSingle400 = responseGetSingle.body.extract[ApiCollectionJson400]
 
-      selectionsJsonGetSingle400 should be (selectionJson400)
+      apiCollectionsJsonGetSingle400 should be (apiCollectionJson400)
 
       Then(s"we test the $ApiEndpoint4")
-      val requestDelete = (v4_0_0_Request / "users" /resourceUser1.userId / "selections" / selectionJson400.selection_id).DELETE <@ (user1)
+      val requestDelete = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_id).DELETE <@ (user1)
 
       val responseDelete = makeDeleteRequest(requestDelete)
       Then("We should get a 204")
@@ -106,9 +105,9 @@ class SelectionTest extends V400ServerSetup {
       Then("We should get a 200")
       responseGetAfterDelete.code should equal(200)
 
-      val selectionsJsonGetAfterDelete = responseGetAfterDelete.body.extract[SelectionsJson400]
+      val apiCollectionsJsonGetAfterDelete = responseGetAfterDelete.body.extract[ApiCollectionsJson400]
 
-      selectionsJsonGetAfterDelete.selections.length should be (0)
+      apiCollectionsJsonGetAfterDelete.api_collections.length should be (0)
 
     }
   }

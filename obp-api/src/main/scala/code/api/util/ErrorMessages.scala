@@ -306,13 +306,14 @@ object ErrorMessages {
 
   val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
 
-  val SelectionNotFound = "OBP-30079:Selection not found. Please specify a valid value for SELECTION_ID."
-  val CreateSelectionError = "OBP-30080:Could not create Selection."
-  val DeleteSelectionError = "OBP-30081:Could not delete Selection."
+  val ApiCollectionNotFound = "OBP-30079:ApiCollection not found. Please specify a valid value for API_COLLECTION_ID."
+  val CreateApiCollectionError = "OBP-30080:Could not create ApiCollection."
+  val DeleteApiCollectionError = "OBP-30081:Could not delete ApiCollection."
 
-  val SelectionEndpointNotFound = "OBP-30082:SelectionEndpoint not found. Please specify a valid value for SELECTION_ENDPOINT_ID."
-  val CreateSelectionEndpointError = "OBP-30083:Could not create SelectionEndpoint."
-  val DeleteSelectionEndpointError = "OBP-30084:Could not delete SelectionEndpoint."
+  val ApiCollectionEndpointNotFound = "OBP-30082:ApiCollectionEndpoint not found. Please specify a valid value for API_COLLECTION_ENDPOINT_ID."
+  val CreateApiCollectionEndpointError = "OBP-30083:Could not create ApiCollectionEndpoint."
+  val DeleteApiCollectionEndpointError = "OBP-30084:Could not delete ApiCollectionEndpoint."
+  val ApiCollectionEndpointAlreadyExisting = "OBP-30085:The ApiCollectionEndpoint is already Existing."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

@@ -96,8 +96,8 @@ import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
 import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
-import code.selectionEndpoints.SelectionEndpoint
-import code.selections.Selection
+import code.apicollectionendpoint.ApiCollectionEndpoint
+import code.apicollection.ApiCollection
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -895,8 +895,8 @@ object ToSchemify {
     DirectDebit,
     StandingOrder,
     MappedUserRefreshes,
-    Selection,
-    SelectionEndpoint,
+    ApiCollection,
+    ApiCollectionEndpoint,
     Validation
   )++ APIBuilder_Connector.allAPIBuilderModels
 

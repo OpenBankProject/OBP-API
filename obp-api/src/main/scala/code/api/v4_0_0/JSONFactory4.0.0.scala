@@ -43,8 +43,8 @@ import code.api.v3_1_0.AccountAttributeResponseJson
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
-import code.selectionEndpoints.SelectionEndpointTrait
-import code.selections.SelectionTrait
+import code.apicollectionendpoint.ApiCollectionEndpointTrait
+import code.apicollection.ApiCollectionTrait
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
@@ -501,34 +501,32 @@ case class ChallengeAnswerJson400 (
                                  additional_information: Option[String] = None
                                )
 
-case class SelectionJson400 (
-  selection_id: String,
+case class ApiCollectionJson400 (
+  api_collection_id: String,
   user_id: String,
-  selection_name: String,
-  is_favourites: Boolean,
+  api_collection_name: String,
   is_sharable: Boolean
 )
-case class SelectionsJson400 (
-  selections: List[SelectionJson400] 
+case class ApiCollectionsJson400 (
+  api_collections: List[ApiCollectionJson400] 
 )
 
-case class PostSelectionJson400(
-  selection_name: String,
-  is_favourites: Boolean,
+case class PostApiCollectionJson400(
+  api_collection_name: String,
   is_sharable: Boolean
 )
 
-case class SelectionEndpointJson400 (
-  selection_endpoint_id: String,
-  selection_id: String,
+case class ApiCollectionEndpointJson400 (
+  api_collection_endpoint_id: String,
+  api_collection_id: String,
   operation_id: String,
 )
 
-case class SelectionEndpointsJson400(
-  selection_endpoints: List[SelectionEndpointJson400]
+case class ApiCollectionEndpointsJson400(
+  api_collection_endpoints: List[ApiCollectionEndpointJson400]
 )
 
-case class PostSelectionEndpointJson400(
+case class PostApiCollectionEndpointJson400(
   operation_id: String
 )
 // Validation related START
@@ -980,13 +978,12 @@ object JSONFactory400 {
     )
   }
 
-  def createSelectionJsonV400(selection: SelectionTrait) = {
-      SelectionJson400(
-        selection.selectionId,
-        selection.userId,
-        selection.selectionName,
-        selection.isFavourites,
-        selection.isSharable,
+  def createApiCollectionJsonV400(apiCollection: ApiCollectionTrait) = {
+      ApiCollectionJson400(
+        apiCollection.apiCollectionId,
+        apiCollection.userId,
+        apiCollection.apiCollectionName,
+        apiCollection.isSharable,
       )
   }
   def createIbanCheckerJson(iban: IbanChecker): IbanCheckerJsonV400 = {
@@ -1017,20 +1014,20 @@ object JSONFactory400 {
     )
   }
   
-  def createSelectionsJsonV400(selections: List[SelectionTrait]) = {
-    SelectionsJson400(selections.map(selection => createSelectionJsonV400(selection)))
+  def createApiCollectionsJsonV400(apiCollections: List[ApiCollectionTrait]) = {
+    ApiCollectionsJson400(apiCollections.map(apiCollection => createApiCollectionJsonV400(apiCollection)))
   }
 
-  def createSelectionEndpointJsonV400(selection: SelectionEndpointTrait) = {
-    SelectionEndpointJson400(
-      selection.selectionEndpointId,
-      selection.selectionId,
-      selection.operationId
+  def createApiCollectionEndpointJsonV400(apiCollection: ApiCollectionEndpointTrait) = {
+    ApiCollectionEndpointJson400(
+      apiCollection.apiCollectionEndpointId,
+      apiCollection.apiCollectionId,
+      apiCollection.operationId
     )
   }
 
-  def createSelectionEndpointsJsonV400(selections: List[SelectionEndpointTrait]) = {
-    SelectionEndpointsJson400(selections.map(selection => createSelectionEndpointJsonV400(selection)))
+  def createApiCollectionEndpointsJsonV400(apiCollections: List[ApiCollectionEndpointTrait]) = {
+    ApiCollectionEndpointsJson400(apiCollections.map(apiCollection => createApiCollectionEndpointJsonV400(apiCollection)))
   }
   
 }
