@@ -61,6 +61,7 @@ object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
@@ -855,6 +856,7 @@ object NewStyle {
                                       challengeType: Option[String],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
+                                      berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
                                       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv400(
@@ -869,6 +871,7 @@ object NewStyle {
         challengeType: Option[String],
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
+        berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
