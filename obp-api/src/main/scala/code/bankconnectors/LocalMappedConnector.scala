@@ -4154,6 +4154,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
                                             reasons: Option[List[TransactionRequestReason]],
+                                            berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {

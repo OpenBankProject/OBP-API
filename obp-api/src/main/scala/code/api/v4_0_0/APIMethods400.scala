@@ -795,6 +795,7 @@ trait APIMethods400 {
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
 
                   _ <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
@@ -850,6 +851,7 @@ trait APIMethods400 {
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
               }
@@ -877,6 +879,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_WEB_FORM.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
@@ -912,6 +915,7 @@ trait APIMethods400 {
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -946,6 +950,7 @@ trait APIMethods400 {
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     transDetailsSEPAJson.reasons.map(_.map(_.transform)),
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -969,6 +974,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     None,
                     callContext)
                 } yield

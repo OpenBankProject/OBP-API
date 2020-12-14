@@ -856,6 +856,7 @@ object NewStyle {
                                       challengeType: Option[String],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
+                                      berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
                                       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv400(
@@ -870,6 +871,7 @@ object NewStyle {
         challengeType: Option[String],
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
+        berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)

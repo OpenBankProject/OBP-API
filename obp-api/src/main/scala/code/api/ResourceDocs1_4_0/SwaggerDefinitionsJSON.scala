@@ -386,6 +386,13 @@ object SwaggerDefinitionsJSON {
       creditorAccount = PaymentAccount(iban = "54321"),
       creditorName = "John Miles"
     )
+  
+    val sepaCreditTransfersBerlinGroupV13 = SepaCreditTransfersBerlinGroupV13(
+      debtorAccount = PaymentAccount(iban = "12345"),
+      instructedAmount = amountOfMoneyJsonV121,
+      creditorAccount = PaymentAccount(iban = "54321"),
+      creditorName = "John Miles"
+    )
 
   val transactionRequestBodyAllTypes = TransactionRequestBodyAllTypes (
     to_sandbox_tan = Some(transactionRequestAccount),
