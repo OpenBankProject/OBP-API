@@ -2613,13 +2613,13 @@ object NewStyle {
 
     def getApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
       Future(MappedApiCollectionsProvider.getApiCollectionById(apiCollectionId)) map {
-        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId)"), callContext)
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) "), callContext)
       }
     }
 
     def getApiCollectionByUserIdAndCollectionName(userId : String, apiCollectionName : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
       Future(MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(userId, apiCollectionName)) map {
-        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_NAME. Current API_COLLECTION_NAME($apiCollectionName)"), callContext)
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_NAME. Current API_COLLECTION_NAME($apiCollectionName) "), callContext)
       }
     }
 
@@ -2644,13 +2644,13 @@ object NewStyle {
 
     def getUserByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[User] = {
       Users.users.vend.getUserByUserIdFuture(userId) map {
-        x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current USER_ID($userId)"),callContext)
+        x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current USER_ID($userId) "),callContext)
       }
     }
 
     def deleteApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
       Future(MappedApiCollectionsProvider.deleteApiCollectionById(apiCollectionId)) map {
-        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionError Current API_COLLECTION_ID($apiCollectionId)"), callContext)
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionError Current API_COLLECTION_ID($apiCollectionId) "), callContext)
       }
     }
 
@@ -2670,13 +2670,13 @@ object NewStyle {
     def getApiCollectionEndpointById(apiCollectionEndpointId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
       Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointById(apiCollectionEndpointId)) map {
         i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Please specify a valid value for API_COLLECTION_ENDPOINT_ID. " +
-          s"Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId)"), callContext)
+          s"Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId) "), callContext)
       }
     }
 
     def getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
       Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId, operationId)) map {
-        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Current API_COLLECTION_ID($apiCollectionId) and OPERATION_ID($operationId)"), callContext)
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Current API_COLLECTION_ID($apiCollectionId) and OPERATION_ID($operationId) "), callContext)
       }
     }
 
@@ -2686,7 +2686,7 @@ object NewStyle {
 
     def deleteApiCollectionEndpointById(apiCollectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
       Future(MappedApiCollectionEndpointsProvider.deleteApiCollectionEndpointById(apiCollectionEndpointById)) map {
-        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionEndpointError Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointById)"), callContext)
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionEndpointError Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointById) "), callContext)
       }
     }
 
