@@ -164,12 +164,12 @@ object JwtUtil extends MdcLoggable {
     // also gracefully handle key-rollover
     val keySource: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(remoteJWKSetUrl))
 
-    // The expected JWS algorithm of the access tokens (agreed out-of-band)
-    val expectedJWSAlg = JWSAlgorithm.RS256
+    // The JWS algorithm of the access tokens
+    val jwsAlg: JWSAlgorithm = getAlgorithm(accessToken).getOrElse(JWSAlgorithm.RS256)
 
     // Configure the JWT processor with a key selector to feed matching public
     // RSA keys sourced from the JWK set URL
-    val keySelector = new JWSVerificationKeySelector[SecurityContext](expectedJWSAlg, keySource)
+    val keySelector = new JWSVerificationKeySelector[SecurityContext](jwsAlg, keySource)
     jwtProcessor.setJWSKeySelector(keySelector)
 
     try {
