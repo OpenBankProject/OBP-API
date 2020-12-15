@@ -119,10 +119,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
   val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
 
-  val DateWithMsForFilteringFromDateString: String = "0000-00-00T00:00:00.000Z"
-  val DateWithMsForFilteringEndDateString: String = "3049-01-01T00:00:00.000Z"
-
-
   // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
   // (Else caching is invalidated by constantly changing date)
 
@@ -137,14 +133,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     oneYearAgo.add(Calendar.YEAR, -1)
     oneYearAgo.getTime()
   }
-  val DefaultToDate = new Date()
-  val DefaultFromDate = oneYearAgo(DefaultToDate)
+  def DefaultToDate = new Date()
+  def DefaultFromDate = oneYearAgo(DefaultToDate)
 
   def formatDate(date : Date) : String = {
     CustomJsonFormats.losslessFormats.dateFormat.format(date)
   }
-  val DefaultToDateString = formatDate(DefaultToDate)
-  val DefaultFromDateString = formatDate(DefaultFromDate)
+  def DefaultFromDateString = formatDate(DefaultFromDate)
+  def DefaultToDateString = formatDate(DefaultToDate)
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
@@ -1693,7 +1689,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val commonParameters =
       s"""
          |
-         |Possible custom headers for pagination:
+         |Possible custom url parameters for pagination:
          |
          |* limit=NUMBER ==> default value: 50
          |* offset=NUMBER ==> default value: 0
@@ -1713,8 +1709,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val dateParameter = if(containsDate){
       s"""
          |
-         |* from_date=DATE => example value: $DateWithMsForFilteringFromDateString. NOTE! The default value is one year ago ($DefaultFromDateString).
-         |* to_date=DATE => example value: $DateWithMsForFilteringEndDateString. NOTE! The default value is now ($DefaultToDateString).
+         |* from_date=DATE => example value: $DefaultFromDateString. NOTE! The default value is one year ago ($DefaultFromDateString).
+         |* to_date=DATE => example value: $DefaultToDateString. NOTE! The default value is now ($DefaultToDateString).
          |
          |Date format parameter: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.
          |

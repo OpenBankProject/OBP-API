@@ -19,6 +19,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
@@ -640,16 +641,14 @@ This function returns an array of hyperlinks to all generated authorisation sub-
      )
 
      lazy val getConsentAuthorisation : OBPEndpoint = {
-       case "consents" :: consentId:: "authorisations" :: Nil JsonGet _ => {
+       case "consents" :: consentId :: "authorisations" :: Nil JsonGet _ => {
          cc =>
            for {
              (_, callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             authorisations <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByConsentId(consentId)) map {
-               unboxFullOrFail(_, callContext, s"$UnknownError ")
-             }
+             (challenges, callContext) <-  NewStyle.function.getChallengesByConsentId(consentId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(authorisations.map(_.authorisationId)), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(challenges.map(_.challengeId)), HttpCode.`200`(callContext))
            }
          }
        }
@@ -751,13 +750,11 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
              _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
                unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
              }
-             authorisation <- Future(Authorisations.authorisationProvider.vend.getAuthorizationByAuthorizationId(
-               authorisationId
-             )) map {
-               unboxFullOrFail(_, callContext, s"$AuthorisationNotFound Current AUTHORISATION_ID($authorisationId)")
-             }
+             (challenges, callContext) <-  NewStyle.function.getChallengesByConsentId(consentId, callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(authorisation.scaStatus), HttpCode.`200`(callContext))
+             val challengeStatus = challenges.filter(_.challengeId == authorisationId)
+               .flatMap(_.scaStatus).headOption.map(_.toString).getOrElse("None")
+             (JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challengeStatus), HttpCode.`200`(callContext))
            }
          }
        }

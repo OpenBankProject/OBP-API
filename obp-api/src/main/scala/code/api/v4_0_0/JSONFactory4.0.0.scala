@@ -561,7 +561,7 @@ case class IbanDetailsJsonV400(bank_routings: List[BankRoutingJsonV121],
                                branch: String,
                                address: String,
                                city: String,
-                               zip: String,
+                               postcode: String,
                                phone: String,
                                country: String,
                                attributes: List[AttributeJsonV400]
@@ -990,12 +990,12 @@ object JSONFactory400 {
     val details = iban.details.map(
       i =>
         IbanDetailsJsonV400(
-          bank_routings = List(BankRoutingJsonV121("bic", i.bic)),
+          bank_routings = List(BankRoutingJsonV121("BIC", i.bic)),
           bank = i.bank,
           branch = i.branch,
           address = i.address,
           city = i.city,
-          zip = i.zip,
+          postcode = i.zip,
           phone = i.phone,
           country = i.country,
           attributes = List(
