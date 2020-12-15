@@ -124,6 +124,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     }
     
     def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      // In case of Hydra issued access tokens are not self-encoded like JWT tokens are.
+      // It implies the access token can be revoked at any time.
       val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null);
       var consumer: Box[Consumer] = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
 
@@ -157,7 +159,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         }
       }
 
-      if (introspectOAuth2Token.getActive) {
+      if (introspectOAuth2Token.getActive) { // The access token can be disabled at any time due to fact it is NOT self-encoded.
         val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
         user match {
           case Full(u) =>
