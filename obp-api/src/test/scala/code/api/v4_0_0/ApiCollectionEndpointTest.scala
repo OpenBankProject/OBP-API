@@ -43,10 +43,10 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
    *  This is made possible by the scalatest maven plugin
    */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createApiCollectionEndpoint))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getApiCollectionEndpoints))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getApiCollectionEndpoint))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteApiCollectionEndpoint))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createMyApiCollectionEndpoint))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpoints))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpoint))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteMyApiCollectionEndpoint))
 
   feature("Test the apiCollection endpoints") {
     scenario("We create the apiCollection Endpoint", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
@@ -65,7 +65,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       val apiCollectionName = apiCollectionJson400.api_collection_name
 
       Then(s"we test the $ApiEndpoint1")
-      val requestApiCollectionEndpoint = (v4_0_0_Request / "api-collections" / apiCollectionName / "api-collection-endpoints").POST <@ (user1)
+      val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints").POST <@ (user1)
 
       lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400
 
@@ -79,7 +79,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       
       val  operationId= apiCollectionEndpoint.operation_id      
       Then(s"we test the $ApiEndpoint2")
-      val requestGet = (v4_0_0_Request / "api-collections" / apiCollectionName / "api-collection-endpoints").GET <@ (user1)
+      val requestGet = (v4_0_0_Request / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints").GET <@ (user1)
 
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
@@ -92,7 +92,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
 
       Then(s"we test the $ApiEndpoint3")
-      val requestGetSingle = (v4_0_0_Request /  "api-collections" / apiCollectionName /"api-collection-endpoints" /operationId).GET <@ (user1)
+      val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints" /operationId).GET <@ (user1)
 
 
       val responseGetSingle = makeGetRequest(requestGetSingle)
@@ -104,7 +104,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       apiCollectionsJsonGetSingle400 should be (apiCollectionEndpoint)
 
       Then(s"we test the $ApiEndpoint4")
-      val requestDelete = (v4_0_0_Request / "api-collections" / apiCollectionName / "api-collection-endpoints" / operationId).DELETE <@ (user1)
+      val requestDelete = (v4_0_0_Request / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints" / operationId).DELETE <@ (user1)
 
       val responseDelete = makeDeleteRequest(requestDelete)
       Then("We should get a 204")

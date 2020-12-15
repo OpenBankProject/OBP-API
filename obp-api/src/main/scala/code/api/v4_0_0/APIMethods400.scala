@@ -5839,9 +5839,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      createApiCollection,
+      createMyApiCollection,
       implementedInApiVersion,
-      nameOf(createApiCollection),
+      nameOf(createMyApiCollection),
       "POST",
       "/my/api-collections",
       "Create My Api Collection",
@@ -5860,7 +5860,7 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val createApiCollection: OBPEndpoint = {
+    lazy val createMyApiCollection: OBPEndpoint = {
       case "my" :: "api-collections" :: Nil JsonPost json -> _ => {
         cc =>
           for {
@@ -5884,9 +5884,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollectionByName,
+      getMyApiCollectionByName,
       implementedInApiVersion,
-      nameOf(getApiCollectionByName),
+      nameOf(getMyApiCollectionByName),
       "GET",
       "/my/api-collections/API_COLLECTION_NAME",
       "Get My Api Collection By Name",
@@ -5904,7 +5904,7 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getApiCollectionByName: OBPEndpoint = {
+    lazy val getMyApiCollectionByName: OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionName :: Nil JsonGet _ => {
         cc =>
           for {
@@ -5914,11 +5914,79 @@ trait APIMethods400 {
           }
       }
     }
-    
+
+    staticResourceDocs += ResourceDoc(
+      getApiCollectionById,
+      implementedInApiVersion,
+      nameOf(getApiCollectionById),
+      "GET",
+      "/users/USER_ID/api-collections/API_COLLECTION_ID",
+      "Get Api Collection By Id",
+      s"""Get Api Collection By Id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle),
+      Some(List(canGetApiCollection))
+    )
+
+    lazy val getApiCollectionById: OBPEndpoint = {
+      case "users" :: userId :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       getApiCollections,
       implementedInApiVersion,
       nameOf(getApiCollections),
+      "GET",
+      "/users/USER_ID/api-collections",
+      "Get Api Collections",
+      s"""Get Api Collections.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle),
+      Some(List(canGetApiCollections))
+    )
+
+    lazy val getApiCollections: OBPEndpoint = {
+      case "users" :: userId :: "api-collections" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
+            (apiCollections, callContext) <- NewStyle.function.getApiCollectionsByUserId(userId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollections,
+      implementedInApiVersion,
+      nameOf(getMyApiCollections),
       "GET",
       "/my/api-collections",
       "Get My Api Collections",
@@ -5935,7 +6003,7 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getApiCollections: OBPEndpoint = {
+    lazy val getMyApiCollections: OBPEndpoint = {
       case "my" :: "api-collections" :: Nil JsonGet _ => {
         cc =>
           for {
@@ -5947,9 +6015,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      deleteApiCollection,
+      deleteMyApiCollection,
       implementedInApiVersion,
-      nameOf(deleteApiCollection),
+      nameOf(deleteMyApiCollection),
       "DELETE",
       "/my/api-collections/API_COLLECTION_ID",
       "Delete My Api Collection",
@@ -5968,7 +6036,7 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val deleteApiCollection : OBPEndpoint = {
+    lazy val deleteMyApiCollection : OBPEndpoint = {
       case "my" :: "api-collections" :: apiCollectionId :: Nil JsonDelete _ => {
         cc =>
           for {
@@ -5981,11 +6049,11 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      createApiCollectionEndpoint,
+      createMyApiCollectionEndpoint,
       implementedInApiVersion,
-      nameOf(createApiCollectionEndpoint),
+      nameOf(createMyApiCollectionEndpoint),
       "POST",
-      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
       "Create My Api Collection Endpoint",
       s"""Create Api Collection Endpoint.
          |
@@ -6002,8 +6070,8 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val createApiCollectionEndpoint: OBPEndpoint = {
-      case "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
+    lazy val createMyApiCollectionEndpoint: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
@@ -6026,11 +6094,11 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollectionEndpoint,
+      getMyApiCollectionEndpoint,
       implementedInApiVersion,
-      nameOf(getApiCollectionEndpoint),
+      nameOf(getMyApiCollectionEndpoint),
       "GET",
-      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
       "Get My Api Collection Endpoint",
       s"""Get Api Collection Endpoint By API_COLLECTION_NAME and OPERATION_ID.
          |
@@ -6046,8 +6114,8 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
     
-    lazy val getApiCollectionEndpoint: OBPEndpoint = {
-      case "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonGet _ => {
+    lazy val getMyApiCollectionEndpoint: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
@@ -6063,11 +6131,11 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollectionEndpoints,
+      getMyApiCollectionEndpoints,
       implementedInApiVersion,
-      nameOf(getApiCollectionEndpoints),
+      nameOf(getMyApiCollectionEndpoints),
       "GET",
-      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
       "Get My Api Collection Endpoints",
       s"""Get Api Collection Endpoints By API_COLLECTION_NAME.
          |
@@ -6083,8 +6151,8 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getApiCollectionEndpoints: OBPEndpoint = {
-      case "api-collections" :: apiCollectionName :: "api-collection-endpoints":: Nil JsonGet _ => {
+    lazy val getMyApiCollectionEndpoints: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints":: Nil JsonGet _ => {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
@@ -6096,11 +6164,11 @@ trait APIMethods400 {
     }
     
     staticResourceDocs += ResourceDoc(
-      deleteApiCollectionEndpoint,
+      deleteMyApiCollectionEndpoint,
       implementedInApiVersion,
-      nameOf(deleteApiCollectionEndpoint),
+      nameOf(deleteMyApiCollectionEndpoint),
       "DELETE",
-      "/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
       "Delete My Api Collection Endpoint",
       s"""Delete Api Collection Endpoint By Id
          |
@@ -6117,8 +6185,8 @@ trait APIMethods400 {
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val deleteApiCollectionEndpoint : OBPEndpoint = {
-      case "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+    lazy val deleteMyApiCollectionEndpoint : OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )

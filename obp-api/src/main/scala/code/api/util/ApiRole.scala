@@ -248,6 +248,12 @@ object ApiRole {
   case class CanGetCounterparty(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCounterparty = CanGetCounterparty()
 
+  case class CanGetApiCollection(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetApiCollection = CanGetApiCollection()
+
+  case class CanGetApiCollections(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetApiCollections = CanGetApiCollections()
+  
   case class CanGetCounterpartyAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCounterpartyAtAnyBank = CanGetCounterpartyAtAnyBank()
   
