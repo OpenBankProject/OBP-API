@@ -1,7 +1,6 @@
 package code.DynamicEndpoint
 
 import java.util.UUID.randomUUID
-
 import code.api.cache.Caching
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.MappedUUID
@@ -9,11 +8,15 @@ import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 import scala.concurrent.duration.DurationInt
 
 object MappedDynamicEndpointProvider extends DynamicEndpointProvider with CustomJsonFormats{
-  val dynamicEndpointTTL : Int = APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "0").toInt
+  val dynamicEndpointTTL : Int = {
+    if(Props.testMode) 0
+    else APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "32").toInt
+  }
 
   override def create(userId: String, swaggerString: String): Box[DynamicEndpointT] = {
     tryo{DynamicEndpoint.create.UserId(userId).SwaggerString(swaggerString).saveMe()}

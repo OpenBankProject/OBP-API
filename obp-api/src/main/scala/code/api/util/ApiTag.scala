@@ -76,6 +76,7 @@ object ApiTag {
   val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint")
 
   val apiTagValidation = ResourceDocTag("Validation")
+  val apiTagAuthTypeValidation = ResourceDocTag("Auth-Type-Validation")
 
   // To mark the Berlin Group APIs suggested order of implementation
   val apiTagBerlinGroupM = ResourceDocTag("Berlin-Group-M")

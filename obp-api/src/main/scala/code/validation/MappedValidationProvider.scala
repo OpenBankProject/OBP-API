@@ -1,18 +1,21 @@
 package code.validation
 
 import java.util.UUID.randomUUID
-
 import code.api.cache.Caching
 import code.api.util.APIUtil
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Props
 
 import scala.concurrent.duration.DurationInt
 
 object MappedValidationProvider extends ValidationProvider {
-  val getValidationByOperationIdTTL : Int = APIUtil.getPropsValue(s"validation.cache.ttl.seconds", "0").toInt
+  val getValidationByOperationIdTTL : Int = {
+    if(Props.testMode) 0
+    else APIUtil.getPropsValue(s"validation.cache.ttl.seconds", "34").toInt
+  }
 
   override def getByOperationId(operationId: String): Box[JsonValidation] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)

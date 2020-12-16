@@ -194,7 +194,7 @@ class ValidationTest extends V400ServerSetup {
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
-      val validations = response.body
+      val validations = response.body \ "validations"
       validations shouldBe a [JArray]
 
       val validation = validations(0)

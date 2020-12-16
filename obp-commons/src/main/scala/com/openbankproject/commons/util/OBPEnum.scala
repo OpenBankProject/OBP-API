@@ -2,6 +2,7 @@ package com.openbankproject.commons.util
 
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
+import Functions.Implicits._
 
 /**
  * OBP enumeration
@@ -38,7 +39,7 @@ abstract class OBPEnumeration[T <: EnumValue: ru.TypeTag] { // trait not support
 
   assert(values.nonEmpty, s"enumeration must at least have one value, please check ${tpe}")
 
-  val nameToValue: Map[String, T] = modules.map(it => (it.symbol.name.toString, it.instance.asInstanceOf[T])).toMap
+  val nameToValue: Map[String, T] = values.toMapByKey(_.toString)
 
   def withNameOption(name: String): Option[T] = nameToValue.get(name)
   def withIndexOption(index: Int): Option[T] = values.lift(index)

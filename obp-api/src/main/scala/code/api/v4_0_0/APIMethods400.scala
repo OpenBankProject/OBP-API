@@ -1,7 +1,6 @@
 package code.api.v4_0_0
 
 import java.util.Date
-
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -28,6 +27,7 @@ import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccount
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createNewCoreBankAccountJson}
+import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
@@ -55,7 +55,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.http.Req
+import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
@@ -1980,7 +1980,13 @@ trait APIMethods400 {
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonGet req => { cc =>
         val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        for {
+        val isGetAll = StringUtils.isBlank(id)
+        val operationId = if(isGetAll) DynamicEntityHelper.buildGetAllOperationId(entityName)
+                          else DynamicEntityHelper.buildGetOneOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -1996,19 +2002,19 @@ trait APIMethods400 {
             }
           
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, dynamicEntityInfo.bankId), callContext)
-          (box, _) <- if(id==""){
+          (box, _) <- if(isGetAll){
               NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, dynamicEntityInfo.bankId, Some(cc))
             } else{
               NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
             }
           
-          _<- if(id==""){
+          _<- if(isGetAll){
             Future{""}
           } else{
             Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {box.isDefined}
           }
         } yield {
-          val jValue = if(id=="") {
+          val jValue = if(isGetAll) {
             val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
             if (dynamicEntityInfo.bankId.isDefined){
               val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
@@ -2019,13 +2025,13 @@ trait APIMethods400 {
               result
             }
           }else{
-              val sigleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+              val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
               if (dynamicEntityInfo.bankId.isDefined) {
                 val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
-                val result: JObject = (singleName -> sigleObject)
+                val result: JObject = (singleName -> singleObject)
                 bankIdJobject merge result
               }else{
-                val result: JObject = (singleName -> sigleObject)
+                val result: JObject = (singleName -> singleObject)
                 result
               }
           }
@@ -2035,7 +2041,11 @@ trait APIMethods400 {
         
       case EntityName(bankId, entityName, _, dynamicEntityInfo) JsonPost json -> _ => {cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        for {
+        val operationId = DynamicEntityHelper.buildCreateOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -2052,7 +2062,7 @@ trait APIMethods400 {
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, dynamicEntityInfo.bankId), callContext)
 
           // validate request json payload
-          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEntityHelper.buildOperationId("POST", entityName))
+          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
           _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
             errorMsg.isEmpty
           }
@@ -2072,7 +2082,11 @@ trait APIMethods400 {
       }
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonPut json -> _ => { cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        for {
+        val operationId = DynamicEntityHelper.buildUpdateOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -2089,7 +2103,7 @@ trait APIMethods400 {
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, dynamicEntityInfo.bankId), callContext)
 
           // validate request json payload
-          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEntityHelper.buildOperationId("POST", entityName))
+          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
           _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
             errorMsg.isEmpty
           }
@@ -2112,7 +2126,11 @@ trait APIMethods400 {
         }
       }
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonDelete req => { cc =>
-        for {
+        val operationId = DynamicEntityHelper.buildDeleteOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -4340,33 +4358,35 @@ trait APIMethods400 {
     }
 
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role, mockResponse) => { cc =>
-        for {
-          (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
+      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse) => { cc =>
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          // validate request json payload
-          httpRequestMethod = cc.verb
-          path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
-          errorMsg:Option[String] = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEndpointHelper.buildOperationId(httpRequestMethod, path))
-          _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
-            errorMsg.isEmpty
-          }
+            // validate request json payload
+            httpRequestMethod = cc.verb
+            path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
+            errorMsg:Option[String] = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
+            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
+              errorMsg.isEmpty
+            }
 
-          (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
-            NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
-          }
-        } yield {
-          box match {
-            case Full(v) =>
-              val code = (v \ "code").asInstanceOf[JInt].num.toInt
-              (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
+            (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
+              NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+            }
+          } yield {
+            box match {
+              case Full(v) =>
+                val code = (v \ "code").asInstanceOf[JInt].num.toInt
+                (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
 
-            case e: Failure =>
-              val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
-              fullBoxOrException[JValue](changedMsgFailure)
-              ??? // will not execute to here, Because the failure message is thrown by upper line.
-          }
+              case e: Failure =>
+                val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
+                fullBoxOrException[JValue](changedMsgFailure)
+                ??? // will not execute to here, Because the failure message is thrown by upper line.
+            }
 
         }
       }
@@ -6107,7 +6127,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      responseJsonSchema::Nil,
+      ListResult("validations", responseJsonSchema::Nil),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -6125,11 +6145,209 @@ trait APIMethods400 {
             (Full(u), callContext) <- SS.user
             (validations, callContext) <- NewStyle.function.getValidations(callContext)
           } yield {
-            (validations, HttpCode.`200`(callContext))
+            (ListResult("validations", validations), HttpCode.`200`(callContext))
           }
       }
     }
 
+    // auth type validation related endpoints
+    private val allowedAuthTypes = AuthType.values.filterNot(AuthType.Anonymous==)
+    staticResourceDocs += ResourceDoc(
+      createAuthTypeValidation,
+      implementedInApiVersion,
+      "createAuthTypeValidation",
+      "POST",
+      "/management/authTypeValidations/OPERATION_ID",
+      "Create a AuthTypeValidation",
+      s"""Create a AuthTypeValidation.
+         |
+         |Please supply allowed auth types.
+         |""",
+      allowedAuthTypes,
+      JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthTypeValidation, apiTagNewStyle),
+      Some(List(canCreateAuthTypeValidation)))
+
+
+    lazy val createAuthTypeValidation: OBPEndpoint = {
+      case "management" :: "authTypeValidations" :: operationId :: Nil JsonPost jArray -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+
+            authTypes <- NewStyle.function.tryons(s"$AuthTypeNameIllegal Allowed AuthType names: ${allowedAuthTypes.mkString("[", ", ", "]")}", 400, cc.callContext) {
+              jArray.extract[List[AuthType]]
+            }
+
+            (isExists, callContext) <- NewStyle.function.isAuthTypeValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = ValidationOperationIdExistsError) {
+              !isExists
+            }
+            (authTypeValidation, callContext) <- NewStyle.function.createAuthTypeValidation(JsonAuthTypeValidation(operationId, authTypes), callContext)
+          } yield {
+            (authTypeValidation, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAuthTypeValidation,
+      implementedInApiVersion,
+      "updateAuthTypeValidation",
+      "PUT",
+      "/management/authTypeValidations/OPERATION_ID",
+      "Update a AuthTypeValidation",
+      s"""Update a AuthTypeValidation.
+         |
+         |Please supply allowed auth types.
+         |""",
+      allowedAuthTypes,
+      JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthTypeValidation, apiTagNewStyle),
+      Some(List(canUpdateAuthTypeValidation)))
+
+
+    lazy val updateAuthTypeValidation: OBPEndpoint = {
+      case "management" :: "authTypeValidations" :: operationId :: Nil JsonPut jArray -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+
+            authTypes <- NewStyle.function.tryons(s"$AuthTypeNameIllegal Allowed AuthType names: ${allowedAuthTypes.mkString("[", ", ", "]")}", 400, cc.callContext) {
+              jArray.extract[List[AuthType]]
+            }
+
+
+            (isExists, callContext) <- NewStyle.function.isAuthTypeValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = AuthTypeValidationNotFound) {
+              isExists
+            }
+            (authTypeValidation, callContext) <- NewStyle.function.updateAuthTypeValidation(operationId, authTypes, callContext)
+          } yield {
+            (authTypeValidation, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteAuthTypeValidation,
+      implementedInApiVersion,
+      "deleteAuthTypeValidation",
+      "DELETE",
+      "/management/authTypeValidations/OPERATION_ID",
+      "Delete a AuthTypeValidation",
+      s"""Delete a AuthTypeValidation by operation_id.
+         |
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthTypeValidation, apiTagNewStyle),
+      Some(List(canDeleteAuthTypeValidation)))
+
+
+    lazy val deleteAuthTypeValidation: OBPEndpoint = {
+      case "management" :: "authTypeValidations" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+
+            (isExists, callContext) <- NewStyle.function.isAuthTypeValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = AuthTypeValidationNotFound) {
+              isExists
+            }
+
+            (deleteResult, callContext) <- NewStyle.function.deleteAuthTypeValidation(operationId, callContext)
+          } yield {
+            (deleteResult, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAuthTypeValidation,
+      implementedInApiVersion,
+      "getAuthTypeValidation",
+      "GET",
+      "/management/authTypeValidations/OPERATION_ID",
+      "Get a AuthTypeValidation",
+      s"""Get a AuthTypeValidation by operation_id.
+         |
+         |""",
+      EmptyBody,
+      JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthTypeValidation, apiTagNewStyle),
+      Some(List(canGetAuthTypeValidation)))
+
+
+    lazy val getAuthTypeValidation: OBPEndpoint = {
+      case "management" :: "authTypeValidations" :: operationId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            (authTypeValidation, callContext) <- NewStyle.function.getAuthTypeValidationByOperationId(operationId, callContext)
+          } yield {
+            (authTypeValidation, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllAuthTypeValidation,
+      implementedInApiVersion,
+      "getAllAuthTypeValidation",
+      "GET",
+      "/management/authTypeValidations",
+      "Get all AuthTypeValidations",
+      s"""Get all AuthTypeValidations.
+         |
+         |""",
+      EmptyBody,
+      ListResult("auth_types_validations",List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthTypeValidation, apiTagNewStyle),
+      Some(List(canGetAuthTypeValidation)))
+
+
+    lazy val getAllAuthTypeValidation: OBPEndpoint = {
+      case "management" :: "authTypeValidations" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            (authTypeValidations, callContext) <- NewStyle.function.getAuthTypeValidations(callContext)
+          } yield {
+            (ListResult("auth_types_validations", authTypeValidations), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
   }
 }

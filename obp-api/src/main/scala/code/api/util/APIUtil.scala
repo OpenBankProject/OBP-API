@@ -32,7 +32,6 @@ import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -47,6 +46,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
+import code.authtypevalidation.AuthTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
@@ -60,7 +60,6 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.{Helper, JsonSchemaUtil}
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
-import code.validation.{JsonValidation, ValidationProvider}
 import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
@@ -3547,4 +3546,29 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   val currentYear = Calendar.getInstance.get(Calendar.YEAR).toString
+
+
+  /**
+   * validate whether current request's auth type is legal
+   * @param operationId
+   * @param callContext
+   * @return Full(errorResponse) if validate fail
+   */
+  def validateAuthType(operationId: String, callContext: CallContext): Box[JsonResponse] = {
+    val authType = callContext.authType
+    if (authType == AuthType.Anonymous) {
+      Empty
+    } else {
+      AuthTypeValidationProvider.validationProvider.vend.getByOperationId(operationId) match {
+        case Full(v) if !v.authTypes.contains(callContext.authType)=>
+          import net.liftweb.json.JsonDSL._
+          val errorMsg = s"""$AuthTypeIllegal allowed auth types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
+          val errorCode = 400
+          val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
+          val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]
+          Some(jsonResponse)
+        case _ => Empty
+      }
+    }
+  }
 }

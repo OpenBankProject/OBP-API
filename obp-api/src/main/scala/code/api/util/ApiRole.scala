@@ -630,6 +630,18 @@ object ApiRole {
   case class CanGetValidation(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetValidation = CanGetValidation()
 
+  case class CanCreateAuthTypeValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateAuthTypeValidation = CanCreateAuthTypeValidation()
+
+  case class CanUpdateAuthTypeValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateAuthTypeValidation = CanUpdateAuthTypeValidation()
+
+  case class CanDeleteCanCreateAuthTypeValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteAuthTypeValidation = CanDeleteCanCreateAuthTypeValidation()
+
+  case class CanGetAuthTypeValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAuthTypeValidation = CanGetAuthTypeValidation()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{

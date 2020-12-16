@@ -1,10 +1,10 @@
 package code.api.util
 
 import java.util.{Date, UUID}
-
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
+import code.api.util.AuthType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
@@ -12,6 +12,7 @@ import code.customer.CustomerX
 import code.model.{Consumer, _}
 import code.views.Views
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
@@ -139,6 +140,35 @@ case class CallContext(
   def loggedInUser: User = user.openOrThrowException(UserNotLoggedIn)
   // for endpoint body convenient get cc.callContext
   def callContext: Option[CallContext] = Option(this)
+
+  def authType: AuthType = {
+    if(hasGatewayHeader(authReqHeaderField)) {
+      GatewayLogin
+    } else if(hasDirectLoginHeader(authReqHeaderField)) {
+      DirectLogin
+    } else if(hasAnOAuthHeader(authReqHeaderField)) {
+      AuthType.`OAuth1.0a`
+    //↓ have no client certificate, the request should contains Google or Yahoo id token OIDC way
+    } else if(hasAnOAuth2Header(authReqHeaderField) && APIUtil.`getPSD2-CERT`(requestHeaders).isEmpty) {
+      OAuth2_OIDC
+    } else if(hasAnOAuth2Header(authReqHeaderField)) {
+      OAuth2_OIDC_FAPI
+    } else {
+      Anonymous
+    }
+  }
+}
+
+sealed trait AuthType extends EnumValue
+object AuthType extends OBPEnumeration[AuthType]{
+  object DirectLogin extends AuthType
+  object `OAuth1.0a` extends AuthType {
+    override def toString: String = "OAuth1.0a"
+  }
+  object GatewayLogin extends AuthType
+  object OAuth2_OIDC extends AuthType
+  object OAuth2_OIDC_FAPI extends AuthType
+  object Anonymous extends AuthType
 }
 
 case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
