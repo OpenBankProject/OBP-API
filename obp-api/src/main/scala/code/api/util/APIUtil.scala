@@ -3566,7 +3566,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val errorCode = 400
           val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
           val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]
-          Some(jsonResponse)
+          // add correlatedId to header
+          val newHeader = (ResponseHeader.`Correlation-Id` -> callContext.correlationId) :: jsonResponse.headers
+          Some(jsonResponse.copy(headers = newHeader))
         case _ => Empty
       }
     }
