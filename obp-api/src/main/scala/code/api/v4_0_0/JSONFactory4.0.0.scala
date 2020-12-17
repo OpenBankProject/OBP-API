@@ -537,6 +537,24 @@ case class IbanDetailsJsonV400(bank_routings: List[BankRoutingJsonV121],
                                attributes: List[AttributeJsonV400]
                               )
 
+case class DoubleEntryTransactionJson(
+                                         transaction_request: TransactionRequestBankAccountJson,
+                                         debit_transaction: TransactionBankAccountJson,
+                                         credit_transaction: TransactionBankAccountJson
+                                         )
+
+case class TransactionRequestBankAccountJson(
+                                        bank_id: String,
+                                        account_id: String,
+                                        transaction_request_id: String
+                                        )
+
+case class TransactionBankAccountJson(
+                                  bank_id: String,
+                                  account_id: String,
+                                  transaction_id: String
+                                  )
+
 object JSONFactory400 {
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
@@ -974,6 +992,29 @@ object JSONFactory400 {
       details
     )
   }
+
+  def createDoubleEntryTransactionJson(doubleEntryBookTransaction: DoubleEntryTransaction): DoubleEntryTransactionJson =
+    DoubleEntryTransactionJson(
+      transaction_request = (for {
+        transactionRequestBankId <- doubleEntryBookTransaction.transactionRequestBankId
+        transactionRequestAccountId <- doubleEntryBookTransaction.transactionRequestAccountId
+        transactionRequestId <- doubleEntryBookTransaction.transactionRequestId
+      } yield TransactionRequestBankAccountJson(
+        transactionRequestBankId.value,
+        transactionRequestAccountId.value,
+        transactionRequestId.value
+      )).orNull,
+      debit_transaction = TransactionBankAccountJson(
+        doubleEntryBookTransaction.debitTransactionBankId.value,
+        doubleEntryBookTransaction.debitTransactionAccountId.value,
+        doubleEntryBookTransaction.debitTransactionId.value
+      ),
+      credit_transaction = TransactionBankAccountJson(
+        doubleEntryBookTransaction.creditTransactionBankId.value,
+        doubleEntryBookTransaction.creditTransactionAccountId.value,
+        doubleEntryBookTransaction.creditTransactionId.value
+      )
+    )
   
 }
 

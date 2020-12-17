@@ -209,6 +209,50 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
+      getDoubleEntryTransaction,
+      implementedInApiVersion,
+      nameOf(getDoubleEntryTransaction),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/double-entry-transaction",
+      "Get Double Entry Transaction",
+      s"""Get Double Entry Transaction
+         |
+         |This endpoint can be used to see the double entry transactions. It returns the `bank_id`, `account_id` and `transaction_id`
+         |for the debit end the credit transaction. The other side account can be a settlement account or an OBP account.
+         |
+         |The endpoint also provide the `transaction_request` object which contains the `bank_id`, `account_id` and
+         |`transaction_request_id` of the transaction request at the origin of the transaction. Please note that if none
+         |transaction request is at the origin of the transaction, the `transaction_request` object will be `null`.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      doubleEntryTransactionJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetDoubleEntryTransactionAtOneBank))
+    )
+
+    lazy val getDoubleEntryTransaction : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "double-entry-transaction" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
+            (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, cc.callContext)
+          } yield {
+            (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       createSettlementAccount,
       implementedInApiVersion,
       nameOf(createSettlementAccount),
