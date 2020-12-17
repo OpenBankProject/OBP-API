@@ -47,6 +47,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpoints))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpoint))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteMyApiCollectionEndpoint))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getApiCollectionEndpoints))
 
   feature("Test the apiCollection endpoints") {
     scenario("We create the apiCollection Endpoint", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
@@ -63,6 +64,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       val apiCollectionJson400 = response.body.extract[ApiCollectionJson400]
 
       val apiCollectionName = apiCollectionJson400.api_collection_name
+      val apiCollectionId = apiCollectionJson400.api_collection_id
 
       Then(s"we test the $ApiEndpoint1")
       val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints").POST <@ (user1)
@@ -102,6 +104,19 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       val apiCollectionsJsonGetSingle400 = responseGetSingle.body.extract[ApiCollectionEndpointJson400]
 
       apiCollectionsJsonGetSingle400 should be (apiCollectionEndpoint)
+
+
+      Then(s"we test the $ApiEndpoint5")
+      val request5 = (v4_0_0_Request / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints").GET <@ (user1)
+
+
+      val response5= makeGetRequest(request5)
+      Then("We should get a 200")
+      response5.code should equal(200)
+
+      val apiCollectionsJson5 = response5.body.extract[ApiCollectionEndpointsJson400]
+
+      apiCollectionsJson5.api_collection_endpoints.head should be (apiCollectionEndpoint)
 
       Then(s"we test the $ApiEndpoint4")
       val requestDelete = (v4_0_0_Request / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints" / operationId).DELETE <@ (user1)
