@@ -1099,6 +1099,11 @@ object NewStyle {
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForSaveDoubleEntryBookTransaction ", 400), i._2)
       }
 
+    def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
+      }
+
     def cancelPaymentV400(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[CancelPayment] = {
       Connector.connector.vend.cancelPaymentV400(transactionId: TransactionId, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCancelPayment ",400), i._2)
