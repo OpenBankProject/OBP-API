@@ -5955,7 +5955,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "createJsonSchemaValidation",
       "POST",
-      "/management/jsonSchemaValidations/OPERATION_ID",
+      "/management/json-schema-validations/OPERATION_ID",
       "Create a JSON Schema Validation",
       s"""Create a JSON Schema Validation.
          |
@@ -5974,7 +5974,7 @@ trait APIMethods400 {
 
 
     lazy val createJsonSchemaValidation: OBPEndpoint = {
-      case "management" :: "jsonSchemaValidations" :: operationId :: Nil JsonPost _ -> _ => {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonPost _ -> _ => {
         cc =>
           val Some(httpBody): Option[String] = cc.httpBody
           for {
@@ -6001,7 +6001,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "updateJsonSchemaValidation",
       "PUT",
-      "/management/jsonSchemaValidations/OPERATION_ID",
+      "/management/json-schema-validations/OPERATION_ID",
       "Update a JSON Schema Validation",
       s"""Update a JSON Schema Validation.
          |
@@ -6020,7 +6020,7 @@ trait APIMethods400 {
 
 
     lazy val updateJsonSchemaValidation: OBPEndpoint = {
-      case "management" :: "jsonSchemaValidations" :: operationId :: Nil JsonPut _ -> _ => {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonPut _ -> _ => {
         cc =>
           val Some(httpBody): Option[String] = cc.httpBody
           for {
@@ -6047,7 +6047,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "deleteJsonSchemaValidation",
       "DELETE",
-      "/management/jsonSchemaValidations/OPERATION_ID",
+      "/management/json-schema-validations/OPERATION_ID",
       "Delete a JSON Schema Validation",
       s"""Delete a JSON Schema Validation by operation_id.
          |
@@ -6065,7 +6065,7 @@ trait APIMethods400 {
 
 
     lazy val deleteJsonSchemaValidation: OBPEndpoint = {
-      case "management" :: "jsonSchemaValidations" :: operationId :: Nil JsonDelete _ => {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonDelete _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
@@ -6087,7 +6087,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "getJsonSchemaValidation",
       "GET",
-      "/management/jsonSchemaValidations/OPERATION_ID",
+      "/management/json-schema-validations/OPERATION_ID",
       "Get a JSON Schema Validation",
       s"""Get a JSON Schema Validation by operation_id.
          |
@@ -6105,7 +6105,7 @@ trait APIMethods400 {
 
 
     lazy val getJsonSchemaValidation: OBPEndpoint = {
-      case "management" :: "jsonSchemaValidations" :: operationId :: Nil JsonGet _ => {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
@@ -6121,7 +6121,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "getAllJsonSchemaValidation",
       "GET",
-      "/management/jsonSchemaValidations",
+      "/management/json-schema-validations",
       "Get all JSON Schema Validations",
       s"""Get all JSON Schema Validations.
          |
@@ -6139,7 +6139,7 @@ trait APIMethods400 {
 
 
     lazy val getAllJsonSchemaValidation: OBPEndpoint = {
-      case "management" :: "jsonSchemaValidations" :: Nil JsonGet _ => {
+      case "management" :: "json-schema-validations" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
@@ -6157,7 +6157,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "createAuthenticationTypeValidation",
       "POST",
-      "/management/authenticationTypeValidations/OPERATION_ID",
+      "/management/authentication-type-validations/OPERATION_ID",
       "Create a Authentication Type Validation",
       s"""Create a Authentication Type Validation.
          |
@@ -6176,7 +6176,7 @@ trait APIMethods400 {
 
 
     lazy val createAuthenticationTypeValidation: OBPEndpoint = {
-      case "management" :: "authenticationTypeValidations" :: operationId :: Nil JsonPost jArray -> _ => {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonPost jArray -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
@@ -6201,7 +6201,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "updateAuthenticationTypeValidation",
       "PUT",
-      "/management/authenticationTypeValidations/OPERATION_ID",
+      "/management/authentication-type-validations/OPERATION_ID",
       "Update a Authentication Type Validation",
       s"""Update a Authentication Type Validation.
          |
@@ -6220,7 +6220,7 @@ trait APIMethods400 {
 
 
     lazy val updateAuthenticationTypeValidation: OBPEndpoint = {
-      case "management" :: "authenticationTypeValidations" :: operationId :: Nil JsonPut jArray -> _ => {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonPut jArray -> _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
@@ -6245,7 +6245,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "deleteAuthenticationTypeValidation",
       "DELETE",
-      "/management/authenticationTypeValidations/OPERATION_ID",
+      "/management/authentication-type-validations/OPERATION_ID",
       "Delete a Authentication Type Validation",
       s"""Delete a Authentication Type Validation by operation_id.
          |
@@ -6263,7 +6263,7 @@ trait APIMethods400 {
 
 
     lazy val deleteAuthenticationTypeValidation: OBPEndpoint = {
-      case "management" :: "authenticationTypeValidations" :: operationId :: Nil JsonDelete _ => {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonDelete _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
@@ -6285,7 +6285,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "getAuthenticationTypeValidation",
       "GET",
-      "/management/authenticationTypeValidations/OPERATION_ID",
+      "/management/authentication-type-validations/OPERATION_ID",
       "Get a Authentication Type Validation",
       s"""Get a Authentication Type Validation by operation_id.
          |
@@ -6303,7 +6303,7 @@ trait APIMethods400 {
 
 
     lazy val getAuthenticationTypeValidation: OBPEndpoint = {
-      case "management" :: "authenticationTypeValidations" :: operationId :: Nil JsonGet _ => {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
@@ -6319,7 +6319,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       "getAllAuthenticationTypeValidation",
       "GET",
-      "/management/authenticationTypeValidations",
+      "/management/authentication-type-validations",
       "Get all Authentication Type Validations",
       s"""Get all Authentication Type Validations.
          |
@@ -6337,7 +6337,7 @@ trait APIMethods400 {
 
 
     lazy val getAllAuthenticationTypeValidation: OBPEndpoint = {
-      case "management" :: "authenticationTypeValidations" :: Nil JsonGet _ => {
+      case "management" :: "authentication-type-validations" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user

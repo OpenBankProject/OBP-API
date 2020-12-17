@@ -39,7 +39,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthenticated access") {
     scenario(s"We will call the endpoint $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).POST
       val response= makePostRequest(request, allowedDirectLogin)
       Then("We should get a 401")
       response.code should equal(401)
@@ -48,7 +48,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).PUT
       val response= makePutRequest(request, allowedDirectLogin)
       Then("We should get a 401")
       response.code should equal(401)
@@ -57,7 +57,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).DELETE
       val response= makeDeleteRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -66,7 +66,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -75,7 +75,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" ).GET
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" ).GET
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -86,7 +86,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthorized access") {
     scenario(s"We will call the endpoint $ApiEndpoint1 without required role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, allowedDirectLogin)
       Then("We should get a 403")
       response.code should equal(403)
@@ -95,7 +95,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint2 without required role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, allowedDirectLogin)
       Then("We should get a 403")
       response.code should equal(403)
@@ -104,7 +104,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 without required role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
@@ -113,7 +113,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
@@ -122,7 +122,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" ).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" ).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
@@ -134,7 +134,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     scenario(s"We will call the endpoint $ApiEndpoint1 with required role", ApiEndpoint1, VersionOfApi) {
       grantEntitlement(canCreateAuthenticationTypeValidation)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, allowedDirectLogin)
       Then("We should get a 201")
       response.code should equal(201)
@@ -148,7 +148,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canUpdateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, allowedAll)
       Then("We should get a 200")
       response.code should equal(200)
@@ -162,7 +162,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canDeleteAuthenticationValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -174,7 +174,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -188,7 +188,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" ).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" ).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -206,7 +206,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canCreateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, """["wrong_auth_name"]""")
       Then("We should get a 400")
       response.code should equal(400)
@@ -222,7 +222,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
       When("We make a request v4.0.0")
       grantEntitlement(canCreateAuthenticationTypeValidation)
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" / mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" / mockOperationId).POST <@ user1
       val response = makePostRequest(request, allowedDirectLogin)
       Then("We should get a 400")
       response.code should equal(400)
@@ -236,7 +236,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canUpdateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, allowedDirectLogin)
       Then("We should get a 400")
       response.code should equal(400)
@@ -250,7 +250,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canDeleteAuthenticationValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).DELETE <@ user1
       val response = makeDeleteRequest(request)
       Then("We should get a 400")
       response.code should equal(400)
@@ -264,7 +264,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 400")
       response.code should equal(400)
@@ -378,7 +378,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
   // prepare one AuthenticationTypeValidation for update, delete and get
   private def addOneAuthenticationTypeValidation(allowedAuthTypes: String, operationId: String): APIResponse = {
     grantEntitlement(canCreateAuthenticationTypeValidation)
-    val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" / operationId).POST <@ user1
+    val request = (v4_0_0_Request / "management" / "authentication-type-validations" / operationId).POST <@ user1
     val response = makePostRequest(request, allowedAuthTypes)
     response.code should equal(201)
 

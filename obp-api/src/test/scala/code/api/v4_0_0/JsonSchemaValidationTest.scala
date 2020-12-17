@@ -39,7 +39,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Unauthenticated access") {
     scenario(s"We will call the endpoint $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).POST
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).POST
       val response= makePostRequest(request, jsonSchemaFooBar)
       Then("We should get a 401")
       response.code should equal(401)
@@ -48,7 +48,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).PUT
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).PUT
       val response= makePutRequest(request, jsonSchemaFooBar)
       Then("We should get a 401")
       response.code should equal(401)
@@ -57,7 +57,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).DELETE
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).DELETE
       val response= makeDeleteRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -66,7 +66,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).GET
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).GET
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -75,7 +75,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" ).GET
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" ).GET
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -86,7 +86,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Unauthorized access") {
     scenario(s"We will call the endpoint $ApiEndpoint1 without required role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, jsonSchemaFooBar)
       Then("We should get a 403")
       response.code should equal(403)
@@ -95,7 +95,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint2 without required role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, jsonSchemaFooBar)
       Then("We should get a 403")
       response.code should equal(403)
@@ -104,7 +104,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 without required role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
@@ -113,7 +113,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
@@ -122,7 +122,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" ).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" ).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
@@ -134,7 +134,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     scenario(s"We will call the endpoint $ApiEndpoint1 with required role", ApiEndpoint1, VersionOfApi) {
       addEntitlement(canCreateJsonSchemaValidation)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, jsonSchemaFooBar)
       Then("We should get a 201")
       response.code should equal(201)
@@ -150,7 +150,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       val newJsonSchema = jsonSchemaFooBar.replaceFirst("""("title":\s*")[^"]+("\s*,)""", "$1 This is a new Title $2")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, newJsonSchema)
       Then("We should get a 200")
       response.code should equal(200)
@@ -164,7 +164,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addEntitlement(canDeleteJsonSchemaValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -176,7 +176,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addEntitlement(canGetJsonSchemaValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -190,7 +190,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addEntitlement(canGetJsonSchemaValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" ).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" ).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -208,7 +208,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addEntitlement(canCreateJsonSchemaValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, """{"name": "wrong json-schema"}""")
       Then("We should get a 400")
       response.code should equal(400)
@@ -224,7 +224,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
       When("We make a request v4.0.0")
       addEntitlement(canCreateJsonSchemaValidation)
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" / mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" / mockOperationId).POST <@ user1
       val response = makePostRequest(request, jsonSchemaFooBar)
       Then("We should get a 400")
       response.code should equal(400)
@@ -238,7 +238,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addEntitlement(canUpdateJsonSchemaValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, jsonSchemaFooBar)
       Then("We should get a 400")
       response.code should equal(400)
@@ -252,7 +252,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addEntitlement(canDeleteJsonSchemaValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).DELETE <@ user1
       val response = makeDeleteRequest(request)
       Then("We should get a 400")
       response.code should equal(400)
@@ -266,7 +266,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addEntitlement(canGetJsonSchemaValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 400")
       response.code should equal(400)
@@ -380,7 +380,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   // prepare one JSON Schema Validation for update, delete and get
   private def addOneValidation(schema: String, operationId: String): APIResponse = {
     addEntitlement(canCreateJsonSchemaValidation)
-    val request = (v4_0_0_Request / "management" / "jsonSchemaValidations" / operationId).POST <@ user1
+    val request = (v4_0_0_Request / "management" / "json-schema-validations" / operationId).POST <@ user1
     val response = makePostRequest(request, schema)
     response.code should equal(201)
 
