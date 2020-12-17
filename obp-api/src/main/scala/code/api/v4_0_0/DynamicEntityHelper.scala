@@ -27,13 +27,12 @@ object EntityName {
       
     //contains Bank:
     //eg: /Banks/BANK_ID/FooBar21
-    case banks :: bankId :: entityName :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId, entityName, "", definitionMap._2))
+    case "banks" :: bankId :: entityName :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId, entityName, "", definitionMap._2))
     //eg: /Banks/BANK_ID/FooBar21/FOO_BAR21_ID
-    case banks :: bankId :: entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId,entityName, id, definitionMap._2))
+    case "banks" :: bankId :: entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId,entityName, id, definitionMap._2))
       
     case _ => None
   }
-
 }
 
 object DynamicEntityHelper {
@@ -117,7 +116,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"dynamicEntity_get${entityName}List",
+      buildGetAllFunctionName(entityName),
       "GET",
       s"$resourceDocUrl",
       s"Get $splitName List",
@@ -147,7 +146,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"dynamicEntity_getSingle$entityName",
+      buildGetOneFunctionName(entityName),
       "GET",
       s"$resourceDocUrl/$idNameInUrl",
       s"Get $splitName by id",
@@ -174,7 +173,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildPartialFunctionName("POST", entityName),
+      buildCreateFunctionName(entityName),
       "POST",
       s"$resourceDocUrl",
       s"Create new $splitName",
@@ -203,7 +202,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildPartialFunctionName("PUT", entityName),
+      buildUpdateFunctionName(entityName),
       "PUT",
       s"$resourceDocUrl/$idNameInUrl",
       s"Update $splitName",
@@ -232,7 +231,7 @@ object DynamicEntityHelper {
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"dynamicEntity_delete$entityName",
+      buildDeleteFunctionName(entityName),
       "DELETE",
       s"$resourceDocUrl/$idNameInUrl",
       s"Delete $splitName by id",
@@ -258,16 +257,22 @@ object DynamicEntityHelper {
     resourceDocs
   }
 
-  def buildPartialFunctionName(httpRequestMethod: String, entityName: String): String = httpRequestMethod match {
-    case "POST" => s"dynamicEntity_create$entityName"
-    case "PUT" => s"dynamicEntity_update$entityName"
-    case _ => throw new IllegalArgumentException(s"""the parameter httpRequestMethod must be "POST" or "PUT", current value is $httpRequestMethod""")
+  private def buildCreateFunctionName(entityName: String) = s"dynamicEntity_create$entityName"
+  private def buildUpdateFunctionName(entityName: String) = s"dynamicEntity_update$entityName"
+  private def buildDeleteFunctionName(entityName: String) = s"dynamicEntity_delete$entityName"
+  private def buildGetOneFunctionName(entityName: String) = s"dynamicEntity_getSingle$entityName"
+  private def buildGetAllFunctionName(entityName: String) = s"dynamicEntity_get${entityName}List"
+
+  @inline
+  private def buildOperationId(entityName: String, fun: String => String): String = {
+    APIUtil.buildOperationId(implementedInApiVersion, fun(entityName))
   }
 
-  def buildOperationId(httpRequestMethod: String, entityName: String): String = {
-    val partialFunctionName = buildPartialFunctionName(httpRequestMethod, entityName)
-    APIUtil.buildOperationId(implementedInApiVersion, partialFunctionName)
-  }
+  def buildCreateOperationId(entityName: String) = buildOperationId(entityName, buildCreateFunctionName)
+  def buildUpdateOperationId(entityName: String) = buildOperationId(entityName, buildUpdateFunctionName)
+  def buildDeleteOperationId(entityName: String) = buildOperationId(entityName, buildDeleteFunctionName)
+  def buildGetOneOperationId(entityName: String) = buildOperationId(entityName, buildGetOneFunctionName)
+  def buildGetAllOperationId(entityName: String) = buildOperationId(entityName, buildGetAllFunctionName)
 
   private def methodRoutingExample(entityName: String) =
     s"""

@@ -29,7 +29,6 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
-
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -48,6 +47,7 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
+import code.authtypevalidation.AuthenticationTypeValidation
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
@@ -112,7 +112,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
-import code.validation.Validation
+import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
@@ -120,6 +120,7 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
+
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -893,7 +894,8 @@ object ToSchemify {
     DirectDebit,
     StandingOrder,
     MappedUserRefreshes,
-    Validation
+    JsonSchemaValidation,
+    AuthenticationTypeValidation
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

@@ -28,7 +28,6 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.URLDecoder
-
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
@@ -49,6 +48,7 @@ import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
+import net.liftweb.common.Box
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
@@ -265,7 +265,16 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       ipAddress = remoteIpAddress,
       requestHeaders = reqHeaders
     )
-    if(newStyleEndpoints(rd)) {
+
+    val authTypeError: Option[JsonResponse] = for {
+      resourceDoc <- rd
+      errorMsg <- validateAuthType(resourceDoc.operationId, cc)
+    } yield errorMsg
+
+    // current request authType not in allowed authType
+    if(authTypeError.isDefined) {
+      authTypeError.get
+    } else if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (APIUtil.hasConsentJWT(reqHeaders)) {
       val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentJWT(reqHeaders), cc)

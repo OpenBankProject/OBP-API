@@ -440,13 +440,17 @@ object ErrorMessages {
   val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
   val CannotUpdatePSUData = s"OBP-40024: Cannot Update PSU Data for payment initiation due to transaction request is not in status: ${INITIATED}."
   val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}, ${CANCELLATION_PENDING} or ${COMPLETED}."
-  val InvalidValidation = "OBP-40026: Invalid json schema. "
-  val ValidationNotFound = "OBP-40027: Validation not found, please specify valid query parameter. "
-  val ValidationDeleteError = "OBP-40028: Could not delete the Validation. "
-  val ValidationOperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
-  val ValidationJsonSchemaIllegal = "OBP-40030: Incorrect json-schema Format. "
+  val JsonSchemaIllegal = "OBP-40026: Incorrect json-schema Format. "
+  val JsonSchemaValidationNotFound = "OBP-40027: JSON Schema Validation not found, please specify valid query parameter. "
+  val ValidationDeleteError = "OBP-40028: Could not delete the JSON Schema Validation. "
+  val OperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
+
   val CannotStartTheAuthorisationProcessForTheCancellation = s"OBP-40031: Cannot start the authorisation process for the cancellation of the addressed payment due to transaction request is not in status: ${CANCELLATION_PENDING}."
 
+  val AuthenticationTypeNameIllegal= s"OBP-40030: AuthenticationType name not correct. "
+  val AuthenticationTypeValidationNotFound = "OBP-40032: AuthenticationTypeValidation not found, please specify valid query parameter. "
+  val AuthenticationTypeValidationDeleteError = "OBP-40033: Could not delete the AuthenticationTypeValidation. "
+  val AuthenticationTypeIllegal = "OBP-40034: Current request authentication type is illegal. "
 
 
   // Exceptions (OBP-50XXX)

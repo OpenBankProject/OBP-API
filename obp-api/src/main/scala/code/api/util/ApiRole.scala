@@ -618,17 +618,29 @@ object ApiRole {
   case class CanGetConnectorEndpoint(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConnectorEndpoint = CanGetConnectorEndpoint()
 
-  case class CanCreateValidation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateValidation = CanCreateValidation()
+  case class CanCreateJsonSchemaValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateJsonSchemaValidation = CanCreateJsonSchemaValidation()
 
-  case class CanUpdateValidation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUpdateValidation = CanUpdateValidation()
+  case class CanUpdateJsonSchemaValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateJsonSchemaValidation = CanUpdateJsonSchemaValidation()
 
-  case class CanDeleteCanCreateValidation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteValidation = CanDeleteCanCreateValidation()
+  case class CanDeleteJsonSchemaValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteJsonSchemaValidation = CanDeleteJsonSchemaValidation()
 
-  case class CanGetValidation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetValidation = CanGetValidation()
+  case class CanGetJsonSchemaValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetJsonSchemaValidation = CanGetJsonSchemaValidation()
+
+  case class CanCreateAuthenticationTypeValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateAuthenticationTypeValidation = CanCreateAuthenticationTypeValidation()
+
+  case class CanUpdateAuthenticationTypeValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateAuthenticationTypeValidation = CanUpdateAuthenticationTypeValidation()
+
+  case class CanDeleteAuthenticationValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteAuthenticationValidation = CanDeleteAuthenticationValidation()
+
+  case class CanGetAuthenticationTypeValidation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAuthenticationTypeValidation = CanGetAuthenticationTypeValidation()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
