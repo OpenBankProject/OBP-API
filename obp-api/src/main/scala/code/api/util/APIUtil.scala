@@ -46,7 +46,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
-import code.authtypevalidation.AuthTypeValidationProvider
+import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
@@ -3556,13 +3556,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def validateAuthType(operationId: String, callContext: CallContext): Box[JsonResponse] = {
     val authType = callContext.authType
-    if (authType == AuthType.Anonymous) {
+    if (authType == AuthenticationType.Anonymous) {
       Empty
     } else {
-      AuthTypeValidationProvider.validationProvider.vend.getByOperationId(operationId) match {
+      AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId) match {
         case Full(v) if !v.authTypes.contains(callContext.authType)=>
           import net.liftweb.json.JsonDSL._
-          val errorMsg = s"""$AuthTypeIllegal allowed auth types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
+          val errorMsg = s"""$AuthenticationTypeIllegal allowed authentication types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
           val errorCode = 400
           val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
           val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]

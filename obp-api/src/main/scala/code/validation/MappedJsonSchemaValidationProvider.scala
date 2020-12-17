@@ -11,7 +11,7 @@ import net.liftweb.util.Props
 
 import scala.concurrent.duration.DurationInt
 
-object MappedValidationProvider extends ValidationProvider {
+object MappedJsonSchemaValidationProvider extends JsonSchemaValidationProvider {
   val getValidationByOperationIdTTL : Int = {
     if(Props.testMode) 0
     else APIUtil.getPropsValue(s"validation.cache.ttl.seconds", "34").toInt
@@ -21,17 +21,17 @@ object MappedValidationProvider extends ValidationProvider {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL second) {
-        Validation.find(By(Validation.OperationId, operationId))
+        JsonSchemaValidation.find(By(JsonSchemaValidation.OperationId, operationId))
           .map(it => JsonValidation(it.operationId, it.jsonSchema))
       }}
   }
 
-  override def getAll(): List[JsonValidation] = Validation.findAll()
+  override def getAll(): List[JsonValidation] = JsonSchemaValidation.findAll()
     .map(it => JsonValidation(it.operationId, it.jsonSchema))
 
   override def create(jsonValidation: JsonValidation): Box[JsonValidation] =
     tryo {
-      Validation.create
+      JsonSchemaValidation.create
       .OperationId(jsonValidation.operationId)
       .JsonSchema(jsonValidation.jsonSchema)
       .saveMe()
@@ -39,7 +39,7 @@ object MappedValidationProvider extends ValidationProvider {
 
 
   override def update(jsonValidation: JsonValidation): Box[JsonValidation] = {
-    Validation.find(By(Validation.OperationId, jsonValidation.operationId)) match {
+    JsonSchemaValidation.find(By(JsonSchemaValidation.OperationId, jsonValidation.operationId)) match {
       case Full(v) =>
         tryo {
           v.JsonSchema(jsonValidation.jsonSchema).saveMe()
@@ -49,7 +49,7 @@ object MappedValidationProvider extends ValidationProvider {
   }
 
   override def deleteByOperationId(operationId: String): Box[Boolean] = tryo {
-    Validation.bulkDelete_!!(By(Validation.OperationId, operationId))
+    JsonSchemaValidation.bulkDelete_!!(By(JsonSchemaValidation.OperationId, operationId))
   }
 }
 

@@ -11,7 +11,7 @@ import net.liftweb.util.Props
 import java.util.UUID.randomUUID
 import scala.concurrent.duration.DurationInt
 
-object MappedAuthTypeValidationProvider extends AuthTypeValidationProvider {
+object MappedAuthTypeValidationProvider extends AuthenticationTypeValidationProvider {
   val getValidationByOperationIdTTL : Int = {
     if(Props.testMode) 0
     else APIUtil.getPropsValue(s"authTypeValidation.cache.ttl.seconds", "36").toInt
@@ -23,17 +23,17 @@ object MappedAuthTypeValidationProvider extends AuthTypeValidationProvider {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL second) {
-        AuthTypeValidation.find(By(AuthTypeValidation.OperationId, operationId))
+        AuthenticationTypeValidation.find(By(AuthenticationTypeValidation.OperationId, operationId))
           .map(it => JsonAuthTypeValidation(it.operationId, it.allowedAuthTypes))
       }}
   }
 
-  override def getAll(): List[JsonAuthTypeValidation] = AuthTypeValidation.findAll()
+  override def getAll(): List[JsonAuthTypeValidation] = AuthenticationTypeValidation.findAll()
     .map(it => JsonAuthTypeValidation(it.operationId, it.allowedAuthTypes))
 
   override def create(jsonValidation: JsonAuthTypeValidation): Box[JsonAuthTypeValidation] =
     tryo {
-      AuthTypeValidation.create
+      AuthenticationTypeValidation.create
       .OperationId(jsonValidation.operationId)
       .AllowedAuthTypes(jsonValidation.authTypes.mkString(","))
       .saveMe()
@@ -41,7 +41,7 @@ object MappedAuthTypeValidationProvider extends AuthTypeValidationProvider {
 
 
   override def update(jsonValidation: JsonAuthTypeValidation): Box[JsonAuthTypeValidation] = {
-    AuthTypeValidation.find(By(AuthTypeValidation.OperationId, jsonValidation.operationId)) match {
+    AuthenticationTypeValidation.find(By(AuthenticationTypeValidation.OperationId, jsonValidation.operationId)) match {
       case Full(v) =>
         tryo {
           v.AllowedAuthTypes(jsonValidation.authTypes.mkString(",")).saveMe()
@@ -51,7 +51,7 @@ object MappedAuthTypeValidationProvider extends AuthTypeValidationProvider {
   }
 
   override def deleteByOperationId(operationId: String): Box[Boolean] = tryo {
-    AuthTypeValidation.bulkDelete_!!(By(AuthTypeValidation.OperationId, operationId))
+    AuthenticationTypeValidation.bulkDelete_!!(By(AuthenticationTypeValidation.OperationId, operationId))
   }
 }
 

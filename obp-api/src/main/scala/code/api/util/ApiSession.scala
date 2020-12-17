@@ -4,7 +4,7 @@ import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
-import code.api.util.AuthType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
+import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
@@ -22,7 +22,7 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.List
 
 case class CallContext(
-                       gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!  
+                       gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
                        gatewayLoginResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
@@ -32,7 +32,7 @@ case class CallContext(
                        startTime: Option[Date] = Some(Helpers.now),
                        endTime: Option[Date] = None,
                        correlationId: String = "",
-                       sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
+                       sessionId: Option[String] = None, //Only this value must be used for cache key !!!
                        url: String = "",
                        verb: String = "",
                        implementedInVersion: String = "",
@@ -65,17 +65,17 @@ case class CallContext(
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))
       authViews<- tryo(
         for{
-          view <- views   
+          view <- views
           (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccountLegacy(view.bankId, view.accountId, Some(this)) ?~! {BankAccountNotFound}
           internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
           internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
           accountBasic =  AccountBasic(
-            account.accountId.value, 
-            account.accountRoutings, 
+            account.accountId.value,
+            account.accountRoutings,
             internalCustomers.customers,
             internalUsers.users)
-        }yield 
+        }yield
           AuthView(viewBasic, accountBasic)
       )
     } yield{
@@ -94,7 +94,7 @@ case class CallContext(
     }}.openOr(OutboundAdapterCallContext( //For anonymousAccess endpoints, there are no user info
       this.correlationId,
       this.sessionId))
-  
+
   def toLight: CallContextLight = {
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
@@ -141,13 +141,13 @@ case class CallContext(
   // for endpoint body convenient get cc.callContext
   def callContext: Option[CallContext] = Option(this)
 
-  def authType: AuthType = {
+  def authType: AuthenticationType = {
     if(hasGatewayHeader(authReqHeaderField)) {
       GatewayLogin
     } else if(hasDirectLoginHeader(authReqHeaderField)) {
       DirectLogin
     } else if(hasAnOAuthHeader(authReqHeaderField)) {
-      AuthType.`OAuth1.0a`
+      AuthenticationType.`OAuth1.0a`
     //↓ have no client certificate, the request should contains Google or Yahoo id token OIDC way
     } else if(hasAnOAuth2Header(authReqHeaderField) && APIUtil.`getPSD2-CERT`(requestHeaders).isEmpty) {
       OAuth2_OIDC
@@ -159,16 +159,16 @@ case class CallContext(
   }
 }
 
-sealed trait AuthType extends EnumValue
-object AuthType extends OBPEnumeration[AuthType]{
-  object DirectLogin extends AuthType
-  object `OAuth1.0a` extends AuthType {
+sealed trait AuthenticationType extends EnumValue
+object AuthenticationType extends OBPEnumeration[AuthenticationType]{
+  object DirectLogin extends AuthenticationType
+  object `OAuth1.0a` extends AuthenticationType {
     override def toString: String = "OAuth1.0a"
   }
-  object GatewayLogin extends AuthType
-  object OAuth2_OIDC extends AuthType
-  object OAuth2_OIDC_FAPI extends AuthType
-  object Anonymous extends AuthType
+  object GatewayLogin extends AuthenticationType
+  object OAuth2_OIDC extends AuthenticationType
+  object OAuth2_OIDC_FAPI extends AuthenticationType
+  object Anonymous extends AuthenticationType
 }
 
 case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,

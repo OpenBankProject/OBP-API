@@ -16,7 +16,7 @@ import net.liftweb.json.JsonAST.JBool
 import net.liftweb.json.{JArray, JString}
 import org.scalatest.Tag
 
-class AuthTypeValidationTest extends V400ServerSetup {
+class AuthenticationTypeValidationTest extends V400ServerSetup {
   /**
     * Test tags
     * Example: To run tests with tag "getPermissions":
@@ -25,21 +25,21 @@ class AuthTypeValidationTest extends V400ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createAuthTypeValidation))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateAuthTypeValidation))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteAuthTypeValidation))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getAuthTypeValidation))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllAuthTypeValidation))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createAuthenticationTypeValidation))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateAuthenticationTypeValidation))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteAuthenticationTypeValidation))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getAuthenticationTypeValidation))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllAuthenticationTypeValidation))
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 
   lazy val bankId = randomBankId
   private val mockOperationId = "MOCK_OPERATION_ID"
 
-  feature(s"test AuthTypeValidation endpoints version $VersionOfApi - Unauthenticated access") {
+  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthenticated access") {
     scenario(s"We will call the endpoint $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).POST
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST
       val response= makePostRequest(request, allowedDirectLogin)
       Then("We should get a 401")
       response.code should equal(401)
@@ -48,7 +48,7 @@ class AuthTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).PUT
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT
       val response= makePutRequest(request, allowedDirectLogin)
       Then("We should get a 401")
       response.code should equal(401)
@@ -57,7 +57,7 @@ class AuthTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).DELETE
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE
       val response= makeDeleteRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -66,7 +66,7 @@ class AuthTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).GET
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -75,7 +75,7 @@ class AuthTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" ).GET
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" ).GET
       val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -83,86 +83,86 @@ class AuthTypeValidationTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test AuthTypeValidation endpoints version $VersionOfApi - Unauthorized access") {
+  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthorized access") {
     scenario(s"We will call the endpoint $ApiEndpoint1 without required role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, allowedDirectLogin)
       Then("We should get a 403")
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canCreateAuthTypeValidation")
+      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canCreateAuthenticationTypeValidation")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 without required role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, allowedDirectLogin)
       Then("We should get a 403")
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canUpdateAuthTypeValidation")
+      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canUpdateAuthenticationTypeValidation")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 without required role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canDeleteAuthTypeValidation")
+      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canDeleteAuthenticationValidation")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetAuthTypeValidation")
+      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetAuthenticationTypeValidation")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" ).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" ).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetAuthTypeValidation")
+      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetAuthenticationTypeValidation")
     }
   }
 
-  feature(s"test AuthTypeValidation endpoints version $VersionOfApi - Authorized access") {
+  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Authorized access") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with required role", ApiEndpoint1, VersionOfApi) {
-      addEntitlement(canCreateAuthTypeValidation)
+      grantEntitlement(canCreateAuthenticationTypeValidation)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, allowedDirectLogin)
       Then("We should get a 201")
       response.code should equal(201)
       val authTypeValidation = response.body
       authTypeValidation \ "operation_id" should equal (JString(mockOperationId))
-      authTypeValidation \ "allowed_auth_types" should equal (json.parse(allowedDirectLogin))
+      authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedDirectLogin))
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with required role", ApiEndpoint2, VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, mockOperationId)
-      addEntitlement(canUpdateAuthTypeValidation)
+      addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
+      grantEntitlement(canUpdateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, allowedAll)
       Then("We should get a 200")
       response.code should equal(200)
       val authTypeValidation = response.body
       authTypeValidation \ "operation_id" should equal (JString(mockOperationId))
-      authTypeValidation \ "allowed_auth_types" should equal (json.parse(allowedAll))
+      authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedAll))
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, mockOperationId)
-      addEntitlement(canDeleteAuthTypeValidation)
+      addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
+      grantEntitlement(canDeleteAuthenticationValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -170,117 +170,117 @@ class AuthTypeValidationTest extends V400ServerSetup {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, mockOperationId)
-      addEntitlement(canGetAuthTypeValidation)
+      addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
+      grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
       val authTypeValidation = response.body
       authTypeValidation \ "operation_id" should equal (JString(mockOperationId))
-      authTypeValidation \ "allowed_auth_types" should equal (json.parse(allowedDirectLogin))
+      authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedDirectLogin))
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint5 with required role", ApiEndpoint5, VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, mockOperationId)
-      addEntitlement(canGetAuthTypeValidation)
+      addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
+      grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" ).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" ).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
-      val authTypeValidations = response.body \ "auth_types_validations"
+      val authTypeValidations = response.body \ "authentication_types_validations"
       authTypeValidations shouldBe a [JArray]
 
       val authTypeValidation = authTypeValidations(0)
       authTypeValidation \ "operation_id" should equal (JString(mockOperationId))
-      authTypeValidation \ "allowed_auth_types" should equal (json.parse(allowedDirectLogin))
+      authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedDirectLogin))
     }
   }
 
-  feature(s"test AuthTypeValidation endpoints version $VersionOfApi - Wrong request") {
+  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Wrong request") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with wrong auth type name", ApiEndpoint1, VersionOfApi) {
-      addEntitlement(canCreateAuthTypeValidation)
+      grantEntitlement(canCreateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).POST <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, """["wrong_auth_name"]""")
       Then("We should get a 400")
       response.code should equal(400)
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(AuthTypeNameIllegal)
-      message should include("Allowed AuthType names: [")
+      message should include(AuthenticationTypeNameIllegal)
+      message should include("Allowed Authentication Type names: [")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with exists operationId", ApiEndpoint1, VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, mockOperationId)
+      addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
 
       When("We make a request v4.0.0")
-      addEntitlement(canCreateAuthTypeValidation)
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" / mockOperationId).POST <@ user1
+      grantEntitlement(canCreateAuthenticationTypeValidation)
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" / mockOperationId).POST <@ user1
       val response = makePostRequest(request, allowedDirectLogin)
       Then("We should get a 400")
       response.code should equal(400)
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(ValidationOperationIdExistsError)
+      message should include(OperationIdExistsError)
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with not exists operationId", ApiEndpoint2, VersionOfApi) {
-      addEntitlement(canUpdateAuthTypeValidation)
+      grantEntitlement(canUpdateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).PUT <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, allowedDirectLogin)
       Then("We should get a 400")
       response.code should equal(400)
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(AuthTypeValidationNotFound)
+      message should include(AuthenticationTypeValidationNotFound)
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
-      addEntitlement(canDeleteAuthTypeValidation)
+      grantEntitlement(canDeleteAuthenticationValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).DELETE <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).DELETE <@ user1
       val response = makeDeleteRequest(request)
       Then("We should get a 400")
       response.code should equal(400)
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(AuthTypeValidationNotFound)
+      message should include(AuthenticationTypeValidationNotFound)
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
-      addEntitlement(canGetAuthTypeValidation)
+      grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authTypeValidations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 400")
       response.code should equal(400)
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(AuthTypeValidationNotFound)
+      message should include(AuthenticationTypeValidationNotFound)
     }
 
   }
 
 
-  feature(s"test AuthTypeValidation endpoints version $VersionOfApi - Validate static endpoint request body") {
+  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate static endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpointCreateFx with invalid Fx", VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, "OBPv2.2.0-createFx")
-      addEntitlement(canCreateFxRate, bankId)
+      addOneAuthenticationTypeValidation(allowedDirectLogin, "OBPv2.2.0-createFx")
+      grantEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId /  "fx").PUT <@ user1
       val response= makePutRequest(request, newFx)
@@ -289,14 +289,14 @@ class AuthTypeValidationTest extends V400ServerSetup {
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(AuthTypeIllegal)
-      message should include("allowed auth types: [DirectLogin]")
+      message should include(AuthenticationTypeIllegal)
+      message should include("allowed authentication types: [DirectLogin]")
       message should include("current request auth type: OAuth1.0a")
     }
 
     scenario(s"We will call the endpoint $ApiEndpointCreateFx with valid Fx", VersionOfApi) {
-      addOneAuthTypeValidation(allowedAll, "OBPv2.2.0-createFx")
-      addEntitlement(canCreateFxRate, bankId)
+      addOneAuthenticationTypeValidation(allowedAll, "OBPv2.2.0-createFx")
+      grantEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId /  "fx").PUT <@ user1
       val response= makePutRequest(request, newFx)
@@ -306,9 +306,9 @@ class AuthTypeValidationTest extends V400ServerSetup {
 
   }
 
-  feature(s"test AuthTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
+  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, "OBPv4.0.0-dynamicEntity_createFooBar")
+      addOneAuthenticationTypeValidation(allowedDirectLogin, "OBPv4.0.0-dynamicEntity_createFooBar")
       addDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
@@ -320,13 +320,13 @@ class AuthTypeValidationTest extends V400ServerSetup {
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(AuthTypeIllegal)
-      message should include("allowed auth types: [DirectLogin]")
+      message should include(AuthenticationTypeIllegal)
+      message should include("allowed authentication types: [DirectLogin]")
       message should include("current request auth type: OAuth1.0a")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneAuthTypeValidation(allowedAll, "OBPv4.0.0-dynamicEntity_createFooBar")
+      addOneAuthenticationTypeValidation(allowedAll, "OBPv4.0.0-dynamicEntity_createFooBar")
       addDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
@@ -339,9 +339,9 @@ class AuthTypeValidationTest extends V400ServerSetup {
 
   }
 
-  feature(s"test AuthTypeValidation endpoints version $VersionOfApi - Validate dynamic endpoints endpoint request body") {
+  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic endpoints endpoint request body") {
     scenario("We will call the endpoint /dynamic/save with invalid FooBar", VersionOfApi) {
-      addOneAuthTypeValidation(allowedDirectLogin, "OBPv4.0.0-dynamicEndpoint_POST_save")
+      addOneAuthenticationTypeValidation(allowedDirectLogin, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
@@ -353,13 +353,13 @@ class AuthTypeValidationTest extends V400ServerSetup {
       val authTypeValidation = response.body
       val message = (authTypeValidation \ "message").asInstanceOf[JString].s
 
-      message should include(AuthTypeIllegal)
-      message should include("allowed auth types: [DirectLogin]")
+      message should include(AuthenticationTypeIllegal)
+      message should include("allowed authentication types: [DirectLogin]")
       message should include("current request auth type: OAuth1.0a")
     }
 
     scenario("We will call the endpoint /dynamic/save with valid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneAuthTypeValidation(allowedAll, "OBPv4.0.0-dynamicEndpoint_POST_save")
+      addOneAuthenticationTypeValidation(allowedAll, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
@@ -372,13 +372,13 @@ class AuthTypeValidationTest extends V400ServerSetup {
 
   }
 
-  private def addEntitlement(role: ApiRole, bankId: String = "") = addStringEntitlement(role.toString, bankId)
+  private def grantEntitlement(role: ApiRole, bankId: String = "") = addStringEntitlement(role.toString, bankId)
   private def addStringEntitlement(role: String, bankId: String = "") = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, role)
 
-  // prepare one AuthTypeValidation for update, delete and get
-  private def addOneAuthTypeValidation(allowedAuthTypes: String, operationId: String): APIResponse = {
-    addEntitlement(canCreateAuthTypeValidation)
-    val request = (v4_0_0_Request / "management" / "authTypeValidations" / operationId).POST <@ user1
+  // prepare one AuthenticationTypeValidation for update, delete and get
+  private def addOneAuthenticationTypeValidation(allowedAuthTypes: String, operationId: String): APIResponse = {
+    grantEntitlement(canCreateAuthenticationTypeValidation)
+    val request = (v4_0_0_Request / "management" / "authenticationTypeValidations" / operationId).POST <@ user1
     val response = makePostRequest(request, allowedAuthTypes)
     response.code should equal(201)
 
@@ -386,7 +386,7 @@ class AuthTypeValidationTest extends V400ServerSetup {
   }
   // prepare one dynamic entity FooBar
   private def addDynamicEntity(): APIResponse = {
-    addEntitlement(canCreateDynamicEntity)
+    grantEntitlement(canCreateDynamicEntity)
     val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
     val fooBar =
       s"""
@@ -420,7 +420,7 @@ class AuthTypeValidationTest extends V400ServerSetup {
   }
   // prepare dynamic endpoints
   private def addDynamicEndpoints(): APIResponse = {
-    addEntitlement(canCreateDynamicEndpoint)
+    grantEntitlement(canCreateDynamicEndpoint)
     val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST <@ user1
 
     val response = makePostRequest(request, swagger)

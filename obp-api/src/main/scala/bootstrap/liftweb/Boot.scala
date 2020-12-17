@@ -47,7 +47,7 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
-import code.authtypevalidation.AuthTypeValidation
+import code.authtypevalidation.AuthenticationTypeValidation
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
@@ -112,7 +112,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
-import code.validation.Validation
+import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
@@ -894,8 +894,8 @@ object ToSchemify {
     DirectDebit,
     StandingOrder,
     MappedUserRefreshes,
-    Validation,
-    AuthTypeValidation
+    JsonSchemaValidation,
+    AuthenticationTypeValidation
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server
