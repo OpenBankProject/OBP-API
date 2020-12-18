@@ -69,6 +69,7 @@ object NewStyle {
     (nameOf(Implementations1_2_1.addOtherAccountPrivateAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateAccountLabel), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addImageForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteImageForViewOnTransaction), ApiVersion.v1_2_1.toString),

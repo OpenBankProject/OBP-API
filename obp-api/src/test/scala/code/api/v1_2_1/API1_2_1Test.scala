@@ -28,6 +28,7 @@ package code.api.v1_2_1
 
 import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.bankconnectors.Connector
@@ -135,6 +136,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   object GetNarrative extends Tag("getNarrative")
   object PostNarrative extends Tag("postNarrative")
   object PutNarrative extends Tag("putNarrative")
+  object UpdateAccountLabel extends Tag("updateAccountLabel")
   object DeleteNarrative extends Tag("deleteNarrative")
   object GetComments extends Tag("getComments")
   object PostComment extends Tag("postComment")
@@ -579,6 +581,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").PUT <@(consumerAndToken)
     val narrativeJson = TransactionNarrativeJSON(narrative)
     makePutRequest(request, write(narrativeJson))
+  }
+  
+  def updateAccountLabel(bankId : String, accountId : String, label: String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId).POST <@(consumerAndToken)
+    val json = SwaggerDefinitionsJSON.updateAccountJSON.copy(label = label)
+    makePostRequest(request, write(json))
   }
 
   def deleteNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
@@ -6510,4 +6518,42 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   }
+
+  feature("We Update Account Label"){
+    scenario("we will the update label for one random account", API1_2_1, UpdateAccountLabel){
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = CUSTOM_OWNER_VIEW_ID
+      When("the request is sent")
+      val randomLabel = randomString(20)
+      val postReply = updateAccountLabel(bankId, bankAccount.id, randomLabel, user1)
+      Then("we should get a 200 code")
+      postReply.code should equal (200)
+      postReply.body.extract[SuccessMessage]
+      
+      When("the request is sent")
+      val reply = getPrivateBankAccountDetails(bankId, bankAccount.id, view, user1)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val privateAccountDetails = reply.body.extract[ModeratedAccountJSON]
+      And("some fields should not be empty")
+      privateAccountDetails.label should equal (randomLabel)
+    }
+    scenario("we will not the update label for one random account due to a missing token", API1_2_1, UpdateAccountLabel){
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = CUSTOM_OWNER_VIEW_ID
+      When("the request is sent")
+      val randomLabel = randomString(20)
+      val postReply = updateAccountLabel(bankId, bankAccount.id, randomLabel, None)
+      Then("we should get a 401 code")
+      postReply.code should equal (401)
+      And("we should get an error message")
+      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    }
+  }
+
+
 }

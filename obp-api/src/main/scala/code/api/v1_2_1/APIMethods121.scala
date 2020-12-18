@@ -482,7 +482,7 @@ trait APIMethods121 {
       updateAccountJSON,
       successMessage,
       List(InvalidJsonFormat, UserNotLoggedIn, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
-      List(apiTagAccount)
+      List(apiTagAccount, apiTagNewStyle)
     )
 
     lazy val updateAccountLabel : OBPEndpoint = {
@@ -491,12 +491,12 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            json <- tryo { json.extract[UpdateAccountJSON] } ?~ InvalidJsonFormat
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[UpdateAccountJSON] }
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           } yield {
             account.updateLabel(u, json.label)
-            successJsonResponse(Extraction.decompose(successMessage), 200)
+            (successMessage, HttpCode.`200`(callContext))
           }
       }
     }
