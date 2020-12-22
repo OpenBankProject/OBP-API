@@ -453,6 +453,7 @@ SELECT
 	mbody_value_amount body_value_amount,
 	mbody_description body_description,
 	mdetails details,
+ -- cast(mdetails as nvarchar(MAX)) details,  MSSQL case
 	mfrom_bankid from_bank_id,
 	mfrom_accountid from_account_id,
 	mto_bankid to_bank_id,

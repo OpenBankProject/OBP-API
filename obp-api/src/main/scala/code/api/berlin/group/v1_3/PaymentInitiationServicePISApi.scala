@@ -535,7 +535,7 @@ $additionalInstructions
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
 
-             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers ", 400, callContext) {
+             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
                json.extract[SepaCreditTransfersBerlinGroupV13]
              }
 
