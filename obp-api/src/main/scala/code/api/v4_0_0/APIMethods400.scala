@@ -6163,21 +6163,18 @@ trait APIMethods400 {
       EmptyBody,
       responseJsonSchema,
       List(
-        $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
       List(apiTagJsonSchemaValidation, apiTagNewStyle),
-      Some(List(canGetJsonSchemaValidation)))
+      None)
 
 
     lazy val getJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, callContext)
+            (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, cc.callContext)
           } yield {
             (validation, HttpCode.`200`(callContext))
           }
@@ -6361,21 +6358,18 @@ trait APIMethods400 {
       EmptyBody,
       JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
       List(
-        $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
       List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
-      Some(List(canGetAuthenticationTypeValidation)))
+      None)
 
 
     lazy val getAuthenticationTypeValidation: OBPEndpoint = {
       case "management" :: "authentication-type-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, callContext)
+            (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, cc.callContext)
           } yield {
             (authenticationTypeValidation, HttpCode.`200`(callContext))
           }
