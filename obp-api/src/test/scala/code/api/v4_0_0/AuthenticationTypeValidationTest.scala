@@ -64,15 +64,6 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
-      When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET
-      val response= makeGetRequest(request)
-      Then("We should get a 401")
-      response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
-    }
-
     scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" ).GET
@@ -109,15 +100,6 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       Then("We should get a 403")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canDeleteAuthenticationValidation")
-    }
-
-    scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
-      When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
-      val response= makeGetRequest(request)
-      Then("We should get a 403")
-      response.code should equal(403)
-      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetAuthenticationTypeValidation")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
@@ -174,7 +156,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
