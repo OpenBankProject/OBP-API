@@ -1744,24 +1744,33 @@ trait APIMethods121 {
         "the view does not allow updating an image url",
         "URL cannot be updated",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val updateCounterpartyImageUrl : OBPEndpoint = {
       //update image url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
-            imageUrlJson <- tryo{(json.extract[ImageUrlJSON])} ?~ {InvalidJsonFormat}
-            updated <- Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL) ?~ {"URL cannot be updated"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating an image url" ) {
+              otherBankAccount.metadata.get.addImageURL.isDefined
+            }
+            imageUrlJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
+              json.extract[ImageUrlJSON]
+            }
+            (updated, _) <- Future(Counterparties.counterparties.vend.addImageURL(other_account_id, imageUrlJson.image_URL)) map { i =>
+              (unboxFullOrFail(i, callContext, "URL cannot be updated", 400), i)
+            }
             if(updated)
           } yield {
-            val successJson = SuccessMessage("image url updated")
-            successJsonResponse(Extraction.decompose(successJson))
+            (SuccessMessage("image url updated"), HttpCode.`200`(callContext))
           }
       }
     }
