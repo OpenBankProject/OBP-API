@@ -2529,16 +2529,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * This block of code needs to update Call Context with Rate Limiting
      * Please note that first source is the table RateLimiting and second is the table Consumer
      */
-    def getRateLimiting(consumerId: String): Future[Box[RateLimiting]] = {
+    def getRateLimiting(consumerId: String, version: String, name: String): Future[Box[RateLimiting]] = {
       RateLimitingUtil.useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, Some(new Date()))
+        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, version, name, Some(new Date()))
         case false => Future(Empty)
       }
     }
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
       (user, cc) <- res
       consumer = cc.flatMap(_.consumer)
-      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""))
+      version = cc.map(_.implementedInVersion).getOrElse("None")
+      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)).getOrElse("None")
+      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""), version, name)
     } yield {
       val limit: Option[CallLimit] = rateLimiting match {
         case Full(rl) => Some(CallLimit(

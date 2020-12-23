@@ -20,7 +20,7 @@ object RateLimitingDI extends SimpleInjector {
 trait RateLimitingProviderTrait {
   def getAll(): Future[List[RateLimiting]]
   def getAllByConsumerId(consumerId: String, date: Option[Date] = None): Future[List[RateLimiting]]
-  def getByConsumerId(consumerId: String, date: Option[Date] = None): Future[Box[RateLimiting]]
+  def getByConsumerId(consumerId: String, apiVersion: String, apiName: String, date: Option[Date] = None): Future[Box[RateLimiting]]
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        fromDate: Date,
                                        toDate: Date,
@@ -55,7 +55,7 @@ trait RateLimitingTrait {
 class RemotedataRateLimitingCaseClasses {
   case class getAll()
   case class getAllByConsumerId(consumerId: String, date: Option[Date] = None)
-  case class getByConsumerId(consumerId: String, date: Option[Date] = None)
+  case class getByConsumerId(consumerId: String, apiVersion: String, apiName: String, date: Option[Date] = None)
   case class createOrUpdateConsumerCallLimits(consumerId: String,
                                               from_date: Date,
                                               to_date: Date,
