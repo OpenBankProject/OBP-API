@@ -24,6 +24,9 @@ trait RateLimitingProviderTrait {
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        fromDate: Date,
                                        toDate: Date,
+                                       apiVersion: Option[String],
+                                       apiName: Option[String],
+                                       bankId: Option[String],
                                        perSecond: Option[String],
                                        perMinute: Option[String],
                                        perHour: Option[String],
@@ -34,10 +37,10 @@ trait RateLimitingProviderTrait {
 
 trait RateLimitingTrait {
   def rateLimitingId: String
-  def apiVersion: String
-  def apiName: String
+  def apiVersion: Option[String]
+  def apiName: Option[String]
   def consumerId: String
-  def bankId: String
+  def bankId: Option[String]
   def perSecondCallLimit: Long
   def perMinuteCallLimit: Long
   def perHourCallLimit: Long
@@ -56,6 +59,9 @@ class RemotedataRateLimitingCaseClasses {
   case class createOrUpdateConsumerCallLimits(consumerId: String,
                                               from_date: Date,
                                               to_date: Date,
+                                              apiVersion: Option[String],
+                                              apiName: Option[String],
+                                              bankId: Option[String],
                                               perSecond: Option[String],
                                               perMinute: Option[String],
                                               perHour: Option[String],

@@ -39,10 +39,11 @@ import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, R
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300}
-import code.api.v3_1_0.AccountAttributeResponseJson
+import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
+import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
@@ -50,6 +51,36 @@ import com.openbankproject.commons.model.{DirectDebitTrait, _}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
+
+
+case class CallLimitPostJsonV400(
+                                  from_date : Date,
+                                  to_date : Date,
+                                  api_version: Option[String],
+                                  api_name: Option[String],
+                                  bank_id: Option[String],
+                                  per_second_call_limit : String,
+                                  per_minute_call_limit : String,
+                                  per_hour_call_limit : String,
+                                  per_day_call_limit : String,
+                                  per_week_call_limit : String,
+                                  per_month_call_limit : String
+                                )
+
+case class CallLimitJsonV400(
+                             from_date: Date,
+                             to_date: Date,
+                             api_version: Option[String],
+                             api_name: Option[String],
+                             bank_id: Option[String],
+                             per_second_call_limit: String,
+                             per_minute_call_limit: String,
+                             per_hour_call_limit: String,
+                             per_day_call_limit: String,
+                             per_week_call_limit: String,
+                             per_month_call_limit: String,
+                             current_state: Option[RedisCallLimitJson]
+                           )
 
 case class BankJson400(
                         id: String,
@@ -556,6 +587,25 @@ case class TransactionBankAccountJson(
                                   )
 
 object JSONFactory400 {
+
+  def createCallsLimitJson(rateLimiting: RateLimiting) : CallLimitJsonV400 = {
+    CallLimitJsonV400(
+      rateLimiting.fromDate,
+      rateLimiting.toDate,
+      rateLimiting.apiVersion,
+      rateLimiting.apiName,
+      rateLimiting.bankId,
+      rateLimiting.perSecondCallLimit.toString,
+      rateLimiting.perMinuteCallLimit.toString,
+      rateLimiting.perHourCallLimit.toString,
+      rateLimiting.perDayCallLimit.toString,
+      rateLimiting.perWeekCallLimit.toString,
+      rateLimiting.perMonthCallLimit.toString,
+      None
+    )
+
+  }
+  
   def createBankJSON400(bank: Bank): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
     val bic = BankRoutingJsonV121("BIC", bank.swiftBic)

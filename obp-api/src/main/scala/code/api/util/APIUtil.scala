@@ -2527,7 +2527,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     /******************************************************************************************************************
      * This block of code needs to update Call Context with Rate Limiting
-     * Please note that first source is the table RateLimiting and second the table Consumer
+     * Please note that first source is the table RateLimiting and second is the table Consumer
      */
     def getRateLimiting(consumerId: String): Future[Box[RateLimiting]] = {
       RateLimitingUtil.useConsumerLimits match {
@@ -2543,9 +2543,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val limit: Option[CallLimit] = rateLimiting match {
         case Full(rl) => Some(CallLimit(
           rl.consumerId,
-          None,
-          None,
-          None,
+          rl.apiName,
+          rl.apiVersion,
+          rl.bankId,
           rl.perSecondCallLimit,
           rl.perMinuteCallLimit,
           rl.perHourCallLimit,
