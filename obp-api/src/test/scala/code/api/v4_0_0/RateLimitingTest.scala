@@ -49,7 +49,7 @@ class RateLimitingTest extends V400ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object ApiVersion400 extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations4_0_0.callsLimit))
+  object ApiCallsLimit extends Tag(nameOf(Implementations4_0_0.callsLimit))
 
   val yesterday = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val tomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(10)
@@ -71,36 +71,16 @@ class RateLimitingTest extends V400ServerSetup {
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
   )
-  val callLimitJsonSeconds = CallLimitPostJsonV400(
-    from_date = fromDate,
-    to_date = toDate,
-    api_version = None,
-    api_name = Some(nameOf(getCurrentUser)),
-    bank_id = None,
-    per_second_call_limit = "1",
-    per_minute_call_limit = "-1",
-    per_hour_call_limit = "-1",
-    per_day_call_limit ="-1",
-    per_week_call_limit = "-1",
-    per_month_call_limit = "-1"
-  )
-  val callLimitJsonMinutes = CallLimitPostJsonV400(
-    from_date = fromDate,
-    to_date = toDate,
-    api_version = None,
-    api_name = Some(nameOf(getCurrentUser)),
-    bank_id = None,
-    per_second_call_limit = "-1",
-    per_minute_call_limit = "1",
-    per_hour_call_limit = "-1",
-    per_day_call_limit ="-1",
-    per_week_call_limit = "-1",
-    per_month_call_limit = "-1"
-  )
+  val callLimitJsonSecond = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_second_call_limit = "1")
+  val callLimitJsonMinute = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_minute_call_limit = "1")
+  val callLimitJsonHour = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_hour_call_limit = "1")
+  val callLimitJsonWeek = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_week_call_limit = "1")
+  val callLimitJsonMonth = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_month_call_limit = "1")
+    
 
-  feature("Rate Limit - " + ApiEndpoint + " - " + ApiVersion400) {
+  feature("Rate Limit - " + ApiCallsLimit + " - " + ApiVersion400) {
 
-    scenario("We will try to set calls limit per minute for a Consumer - unauthorized access", ApiEndpoint, ApiVersion400) {
+    scenario("We will try to set Rate Limiting per minute for a Consumer - unauthorized access", ApiCallsLimit, ApiVersion400) {
       When("We make a request v4.0.0")
       val response400 = setRateLimitingAnonymousAccess(callLimitJsonInitial)
       Then("We should get a 401")
@@ -108,7 +88,7 @@ class RateLimitingTest extends V400ServerSetup {
       And("error should be " + UserNotLoggedIn)
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
     }
-    scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canSetCallLimits, ApiEndpoint, ApiVersion400) {
+    scenario("We will try to set Rate Limiting per minute without a proper Role " + ApiRole.canSetCallLimits, ApiCallsLimit, ApiVersion400) {
       When("We make a request v4.0.0 without a Role " + ApiRole.canSetCallLimits)
       val response400 = setRateLimitingWithoutRole(user1, callLimitJsonInitial)
       Then("We should get a 403")
@@ -116,17 +96,113 @@ class RateLimitingTest extends V400ServerSetup {
       And("error should be " + UserHasMissingRoles + CanSetCallLimits)
       response400.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanSetCallLimits)
     }
-    scenario("We will try to set calls limit per minute with a proper Role " + ApiRole.canSetCallLimits, ApiEndpoint, ApiVersion400) {
+    scenario("We will try to set Rate Limiting per minute with a proper Role " + ApiRole.canSetCallLimits, ApiCallsLimit, ApiVersion400) {
       When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
       val response400 = setRateLimiting(user1, callLimitJsonInitial)
       Then("We should get a 200")
       response400.code should equal(200)
       response400.body.extract[CallLimitJsonV400]
     }
-    scenario("We will set calls limit per second for a Consumer", ApiEndpoint, ApiVersion400) {
+    scenario("We will set Rate Limiting per second for an Endpoint", ApiCallsLimit, ApiVersion400) {
       if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
-        val response01 = setRateLimiting(user1, callLimitJsonMinutes)
+        val response01 = setRateLimiting(user1, callLimitJsonSecond)
+        Then("We should get a 200")
+        response01.code should equal(200)
+        org.scalameta.logger.elem(response01)
+
+        When("We make the first call after update")
+        val response02 = getCurrentUserEndpoint(user1)
+        Then("We should get a 200")
+        response02.code should equal(200)
+
+        When("We make the second call after update")
+        val response03 = getCurrentUserEndpoint(user1)
+        Then("We should get a 429")
+        response03.code should equal(429)
+
+        // Revert to initial state
+        val response04 = setRateLimiting(user1, callLimitJsonInitial)
+        Then("We should get a 200")
+        response04.code should equal(200)
+      }
+    }
+    scenario("We will set Rate Limiting per minute for an Endpoint", ApiCallsLimit, ApiVersion400) {
+      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+        When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
+        val response01 = setRateLimiting(user1, callLimitJsonMinute)
+        Then("We should get a 200")
+        response01.code should equal(200)
+        org.scalameta.logger.elem(response01)
+
+        When("We make the first call after update")
+        val response02 = getCurrentUserEndpoint(user1)
+        Then("We should get a 200")
+        response02.code should equal(200)
+
+        When("We make the second call after update")
+        val response03 = getCurrentUserEndpoint(user1)
+        Then("We should get a 429")
+        response03.code should equal(429)
+
+        // Revert to initial state
+        val response04 = setRateLimiting(user1, callLimitJsonInitial)
+        Then("We should get a 200")
+        response04.code should equal(200)
+      }
+    }
+    scenario("We will set Rate Limiting per hour for an Endpoint", ApiCallsLimit, ApiVersion400) {
+      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+        When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
+        val response01 = setRateLimiting(user1, callLimitJsonHour)
+        Then("We should get a 200")
+        response01.code should equal(200)
+        org.scalameta.logger.elem(response01)
+
+        When("We make the first call after update")
+        val response02 = getCurrentUserEndpoint(user1)
+        Then("We should get a 200")
+        response02.code should equal(200)
+
+        When("We make the second call after update")
+        val response03 = getCurrentUserEndpoint(user1)
+        Then("We should get a 429")
+        response03.code should equal(429)
+
+        // Revert to initial state
+        val response04 = setRateLimiting(user1, callLimitJsonInitial)
+        Then("We should get a 200")
+        response04.code should equal(200)
+      }
+    }
+    scenario("We will set Rate Limiting per week for an Endpoint", ApiCallsLimit, ApiVersion400) {
+      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+        When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
+        val response01 = setRateLimiting(user1, callLimitJsonWeek)
+        Then("We should get a 200")
+        response01.code should equal(200)
+        org.scalameta.logger.elem(response01)
+
+        When("We make the first call after update")
+        val response02 = getCurrentUserEndpoint(user1)
+        Then("We should get a 200")
+        response02.code should equal(200)
+
+        When("We make the second call after update")
+        val response03 = getCurrentUserEndpoint(user1)
+        Then("We should get a 429")
+        response03.code should equal(429)
+
+        // Revert to initial state
+        val response04 = setRateLimiting(user1, callLimitJsonInitial)
+        Then("We should get a 200")
+        response04.code should equal(200)
+      }
+    }
+    scenario("We will set Rate Limiting per month for an Endpoint", ApiCallsLimit, ApiVersion400) {
+      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+        When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
+        val response01 = setRateLimiting(user1, callLimitJsonMonth)
         Then("We should get a 200")
         response01.code should equal(200)
         org.scalameta.logger.elem(response01)
