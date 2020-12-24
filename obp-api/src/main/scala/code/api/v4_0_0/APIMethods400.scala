@@ -4430,7 +4430,7 @@ trait APIMethods400 {
         val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
         if(authTypeError.isDefined) authTypeError
         else for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId)))
             _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
             // validate request json payload

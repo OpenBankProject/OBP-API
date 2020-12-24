@@ -2539,7 +2539,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       (user, cc) <- res
       consumer = cc.flatMap(_.consumer)
       version = cc.map(_.implementedInVersion).getOrElse("None")
-      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)).getOrElse("None")
+      operationId = cc.flatMap(_.operationId)
+      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)).orElse(operationId).getOrElse("None")
       rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""), version, name)
     } yield {
       val limit: Option[CallLimit] = rateLimiting match {
