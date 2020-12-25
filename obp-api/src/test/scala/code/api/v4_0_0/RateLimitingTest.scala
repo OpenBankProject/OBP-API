@@ -29,15 +29,18 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
 
-import code.api.util.ApiRole.CanSetCallLimits
+import code.api.util.ApiRole.{CanSetCallLimits, canCreateDynamicEndpoint}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util.{APIUtil, ApiRole, ExampleValue}
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0.getCurrentUser
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+import code.api.util.APIUtil.OAuth._
 
 class RateLimitingTest extends V400ServerSetup {
 
@@ -50,6 +53,9 @@ class RateLimitingTest extends V400ServerSetup {
     */
   object ApiVersion400 extends Tag(ApiVersion.v4_0_0.toString)
   object ApiCallsLimit extends Tag(nameOf(Implementations4_0_0.callsLimit))
+  object ApiCreateDynamicEndpoint extends Tag(nameOf(Implementations4_0_0.createDynamicEndpoint))
+  
+  val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
 
   val yesterday = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val tomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(10)
@@ -104,7 +110,7 @@ class RateLimitingTest extends V400ServerSetup {
       response400.body.extract[CallLimitJsonV400]
     }
     scenario("We will set Rate Limiting per second for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonSecond)
         Then("We should get a 200")
@@ -128,12 +134,11 @@ class RateLimitingTest extends V400ServerSetup {
       }
     }
     scenario("We will set Rate Limiting per minute for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonMinute)
         Then("We should get a 200")
         response01.code should equal(200)
-        org.scalameta.logger.elem(response01)
 
         When("We make the first call after update")
         val response02 = getCurrentUserEndpoint(user1)
@@ -152,12 +157,11 @@ class RateLimitingTest extends V400ServerSetup {
       }
     }
     scenario("We will set Rate Limiting per hour for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonHour)
         Then("We should get a 200")
         response01.code should equal(200)
-        org.scalameta.logger.elem(response01)
 
         When("We make the first call after update")
         val response02 = getCurrentUserEndpoint(user1)
@@ -176,12 +180,11 @@ class RateLimitingTest extends V400ServerSetup {
       }
     }
     scenario("We will set Rate Limiting per week for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonWeek)
         Then("We should get a 200")
         response01.code should equal(200)
-        org.scalameta.logger.elem(response01)
 
         When("We make the first call after update")
         val response02 = getCurrentUserEndpoint(user1)
@@ -200,12 +203,11 @@ class RateLimitingTest extends V400ServerSetup {
       }
     }
     scenario("We will set Rate Limiting per month for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
+      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonMonth)
         Then("We should get a 200")
         response01.code should equal(200)
-        org.scalameta.logger.elem(response01)
 
         When("We make the first call after update")
         val response02 = getCurrentUserEndpoint(user1)
@@ -223,7 +225,38 @@ class RateLimitingTest extends V400ServerSetup {
         response04.code should equal(200)
       }
     }
+  }
 
+  feature(s"Dynamic Endpoint: test $ApiCreateDynamicEndpoint version $ApiVersion400 - authorized access - with role - should be success!") {
+    scenario("We will call the endpoint with user credentials", ApiCreateDynamicEndpoint, ApiVersion400) {
+      if(useConsumerLimits) {
+        When("We make a request v4.0.0")
+        val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
+        When("We make a request v4.0.0")
+        val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
+        Then("We grant the role to the user1")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
+        val responseWithRole = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+        Then("We should get a 201")
+        responseWithRole.code should equal(201)
+
+        // Set Rate Limiting in case of a Dynamic Endpoint
+        val operationId = "OBPv4.0.0-dynamicEndpoint_GET_user_USERNAME"
+        val response01 = setRateLimiting(user1, callLimitJsonHour.copy(api_name = Some(operationId)))
+        Then("We should get a 200")
+        response01.code should equal(200)
+
+        val requestDynamicEndpoint = baseRequest / "obp" / "v4.0.0" / "dynamic" / "user" / "NON_EXISTING_USERNAME"
+        // 1st call dos NOT exceed rate limit
+        When("We make the first call after update")
+        Then("We should get a 404")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(404)
+        // 2nd call exceeds rate limit
+        When("We make the second call after update")
+        Then("We should get a 429")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(429)
+      }
+    }
   }
 
 }
