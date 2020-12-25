@@ -255,6 +255,20 @@ class RateLimitingTest extends V400ServerSetup {
         When("We make the second call after update")
         Then("We should get a 429")
         makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(429)
+
+        // Revert Rate Limiting to initial state in case of a Dynamic Endpoint
+        val response02 = setRateLimiting(user1, callLimitJsonInitial.copy(api_name = Some(operationId)))
+        Then("We should get a 200")
+        response02.code should equal(200)
+
+        // 1st call dos NOT exceed rate limit
+        When("We make the first call after update")
+        Then("We should get a 404")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(404)
+        // 2nd call dos NOT exceed rate limit
+        When("We make the first call after update")
+        Then("We should get a 404")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(404)
       }
     }
   }

@@ -163,11 +163,12 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
     val byApiVersionParam = if(apiVersion.isDefined) By(RateLimiting.ApiVersion, apiVersion.get) else NullRef(RateLimiting.ApiVersion)
     val byApiNameParam = if(apiName.isDefined) By(RateLimiting.ApiName, apiName.get) else NullRef(RateLimiting.ApiName)
 
-    val rateLimit = RateLimiting.find(Seq(byConsumerParam, byBankParam, byApiVersionParam, byApiNameParam))
-    rateLimit match {
+    val rateLimit = RateLimiting.find(byConsumerParam, byBankParam, byApiVersionParam, byApiNameParam)
+    val result = rateLimit match {
       case Full(limit) => createRateLimit(limit)
       case _ => createRateLimit(RateLimiting.create)
     }
+    result
   }
 }
 
