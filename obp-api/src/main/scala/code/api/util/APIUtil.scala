@@ -2538,9 +2538,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
       (user, cc) <- res
       consumer = cc.flatMap(_.consumer)
-      version = cc.map(_.implementedInVersion).getOrElse("None")
-      operationId = cc.flatMap(_.operationId)
-      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)).orElse(operationId).getOrElse("None")
+      version = cc.map(_.implementedInVersion).getOrElse("None") // Calculate apiVersion  in case of Rate Limiting
+      operationId = cc.flatMap(_.operationId) // Unique Identifier of Dynamic Endpoints
+      // Calculate apiName in case of Rate Limiting
+      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)) // 1st try: function name at resource doc
+        .orElse(operationId) // 2nd try: In case of Dynamic Endpoint we can only use operationId
+        .getOrElse("None") // Not found any unique identifier
       rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""), version, name)
     } yield {
       val limit: Option[CallLimit] = rateLimiting match {

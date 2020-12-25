@@ -36,7 +36,7 @@ case class CallContext(
                        url: String = "",
                        verb: String = "",
                        implementedInVersion: String = "",
-                       operationId: Option[String] = None,
+                       operationId: Option[String] = None, // Dynamic Endpoint Unique Identifier. Important for Rate Limiting.
                        authReqHeaderField: Box[String] = Empty,
                        directLoginParams: Map[String, String] = Map(),
                        oAuthParams: Map[String, String] = Map(),

@@ -4430,7 +4430,7 @@ trait APIMethods400 {
         val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
         if(authTypeError.isDefined) authTypeError
         else for {
-            (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId)))
+            (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
             _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
             // validate request json payload
