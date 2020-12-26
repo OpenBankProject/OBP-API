@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
 import java.util.Date
+
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -23,6 +24,7 @@ import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
+import code.api.v4_0_0.JSONFactory400.createCallsLimitJson
 import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310}
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
@@ -36,6 +38,7 @@ import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
+import code.ratelimiting.RateLimitingDI
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
@@ -140,6 +143,71 @@ trait APIMethods400 {
             val link = code.api.Constant.HostName + AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
             val logoutLink = LogoutLinkJson(link)
             (logoutLink, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      callsLimit,
+      implementedInApiVersion,
+      nameOf(callsLimit),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/call-limits",
+      "Set Calls Limit for a Consumer",
+      s"""
+         |Set the API call limits for a Consumer:
+         |
+         |Per Second
+         |Per Minute
+         |Per Hour
+         |Per Week
+         |Per Month
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      callLimitPostJsonV400,
+      callLimitPostJsonV400,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles,
+        UpdateConsumerError,
+        UnknownError
+      ),
+      List(apiTagConsumer, apiTagNewStyle),
+      Some(List(canSetCallLimits)))
+
+    lazy val callsLimit : OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canSetCallLimits, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJsonV400 ", 400, callContext) {
+              json.extract[CallLimitPostJsonV400]
+            }
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
+              consumerId,
+              postJson.from_date,
+              postJson.to_date,
+              postJson.api_version,
+              postJson.api_name,
+              postJson.bank_id,
+              Some(postJson.per_second_call_limit),
+              Some(postJson.per_minute_call_limit),
+              Some(postJson.per_hour_call_limit),
+              Some(postJson.per_day_call_limit),
+              Some(postJson.per_week_call_limit),
+              Some(postJson.per_month_call_limit)) map {
+              unboxFullOrFail(_, callContext, UpdateConsumerError)
+            }
+          } yield {
+            (createCallsLimitJson(rateLimiting), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4362,7 +4430,7 @@ trait APIMethods400 {
         val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
         if(authTypeError.isDefined) authTypeError
         else for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
             _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
             // validate request json payload

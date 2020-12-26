@@ -36,6 +36,7 @@ case class CallContext(
                        url: String = "",
                        verb: String = "",
                        implementedInVersion: String = "",
+                       operationId: Option[String] = None, // Dynamic Endpoint Unique Identifier. Important for Rate Limiting.
                        authReqHeaderField: Box[String] = Empty,
                        directLoginParams: Map[String, String] = Map(),
                        oAuthParams: Map[String, String] = Map(),
@@ -111,6 +112,7 @@ case class CallContext(
       url = this.url,
       verb = this.verb,
       implementedInVersion = this.implementedInVersion,
+      operationId = this.operationId,
       httpCode = this.httpCode,
       httpBody = this.httpBody,
       authReqHeaderField = this.authReqHeaderField.toOption,
@@ -185,6 +187,7 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             url: String = "",
                             verb: String = "",
                             implementedInVersion: String = "",
+                            operationId: Option[String] = None,
                             httpCode: Option[Int] = None,
                             httpBody: Option[String] = None,
                             authReqHeaderField: Option[String] = None,

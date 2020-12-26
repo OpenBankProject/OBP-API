@@ -2527,25 +2527,31 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     /******************************************************************************************************************
      * This block of code needs to update Call Context with Rate Limiting
-     * Please note that first source is the table RateLimiting and second the table Consumer
+     * Please note that first source is the table RateLimiting and second is the table Consumer
      */
-    def getRateLimiting(consumerId: String): Future[Box[RateLimiting]] = {
+    def getRateLimiting(consumerId: String, version: String, name: String): Future[Box[RateLimiting]] = {
       RateLimitingUtil.useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, Some(new Date()))
+        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, version, name, Some(new Date()))
         case false => Future(Empty)
       }
     }
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
       (user, cc) <- res
       consumer = cc.flatMap(_.consumer)
-      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""))
+      version = cc.map(_.implementedInVersion).getOrElse("None") // Calculate apiVersion  in case of Rate Limiting
+      operationId = cc.flatMap(_.operationId) // Unique Identifier of Dynamic Endpoints
+      // Calculate apiName in case of Rate Limiting
+      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)) // 1st try: function name at resource doc
+        .orElse(operationId) // 2nd try: In case of Dynamic Endpoint we can only use operationId
+        .getOrElse("None") // Not found any unique identifier
+      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""), version, name)
     } yield {
       val limit: Option[CallLimit] = rateLimiting match {
         case Full(rl) => Some(CallLimit(
           rl.consumerId,
-          None,
-          None,
-          None,
+          rl.apiName,
+          rl.apiVersion,
+          rl.bankId,
           rl.perSecondCallLimit,
           rl.perMinuteCallLimit,
           rl.perHourCallLimit,
