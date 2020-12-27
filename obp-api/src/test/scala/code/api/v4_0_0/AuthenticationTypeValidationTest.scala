@@ -18,18 +18,18 @@ import org.scalatest.Tag
 
 class AuthenticationTypeValidationTest extends V400ServerSetup {
   /**
-    * Test tags
-    * Example: To run tests with tag "getPermissions":
-    * 	mvn test -D tagsToInclude
-    *
-    *  This is made possible by the scalatest maven plugin
-    */
+   * Test tags
+   * Example: To run tests with tag "getPermissions":
+   * 	mvn test -D tagsToInclude
+   *
+   *  This is made possible by the scalatest maven plugin
+   */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createAuthenticationTypeValidation))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateAuthenticationTypeValidation))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteAuthenticationTypeValidation))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getAuthenticationTypeValidation))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllAuthenticationTypeValidation))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllAuthenticationTypeValidations))
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 
@@ -59,6 +59,15 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).DELETE
       val response= makeDeleteRequest(request)
+      Then("We should get a 401")
+      response.code should equal(401)
+      response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+
+    scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET
+      val response= makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
@@ -100,6 +109,15 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       Then("We should get a 403")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canDeleteAuthenticationValidation")
+    }
+
+    scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
+      val response= makeGetRequest(request)
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetAuthenticationTypeValidation")
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
@@ -156,7 +174,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET
+      val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -372,29 +390,29 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
     val fooBar =
       s"""
-        |{
-        |    "bankId": "$bankId",
-        |    "FooBar": {
-        |        "description": "description of this entity, can be markdown text.",
-        |        "required": [
-        |            "name"
-        |        ],
-        |        "properties": {
-        |            "name": {
-        |                "type": "string",
-        |                "minLength": 3,
-        |                "maxLength": 20,
-        |                "example": "James Brown",
-        |                "description": "description of **name** field, can be markdown text."
-        |            },
-        |            "number": {
-        |                "type": "integer",
-        |                "example": 698761728,
-        |                "description": "description of **number** field, can be markdown text."
-        |            }
-        |        }
-        |    }
-        |}""".stripMargin
+         |{
+         |    "bankId": "$bankId",
+         |    "FooBar": {
+         |        "description": "description of this entity, can be markdown text.",
+         |        "required": [
+         |            "name"
+         |        ],
+         |        "properties": {
+         |            "name": {
+         |                "type": "string",
+         |                "minLength": 3,
+         |                "maxLength": 20,
+         |                "example": "James Brown",
+         |                "description": "description of **name** field, can be markdown text."
+         |            },
+         |            "number": {
+         |                "type": "integer",
+         |                "example": 698761728,
+         |                "description": "description of **number** field, can be markdown text."
+         |            }
+         |        }
+         |    }
+         |}""".stripMargin
     val response = makePostRequest(request, fooBar)
     response.code should equal(201)
 

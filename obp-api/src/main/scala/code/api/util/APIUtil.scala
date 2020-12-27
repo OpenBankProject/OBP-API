@@ -90,9 +90,9 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
-import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 
+import java.util.regex.Pattern
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
@@ -1426,8 +1426,37 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }
       }
 
+
+      val isUrlMatchesResourceDocUrl: List[String] => Boolean = {
+        val urlInDoc = StringUtils.split(this.requestUrl, '/')
+
+        val isPathParam= {
+          val pattern = Pattern.compile("[-_A-Z0-9]+")
+          pattern.matcher(_:String).matches()
+        }
+        // convert requestUrl parts to function, in order to check request url part matches this url
+        // if url part value is Uppercase, match any value, else evaluate with equals method
+        val pathFunction = urlInDoc.map {
+          case v if isPathParam(v) => Functions.truePredicate[String]
+          case v => v == _
+        }
+
+        (requestUrl: List[String]) => {
+          if (requestUrl.size != urlInDoc.size) {
+            false
+          } else if (requestUrl == urlInDoc) {
+            true
+          } else {
+            pathFunction.zip(requestUrl).forall(it => {
+              val (checkFunc, urlPart) = it
+              checkFunc(urlPart)
+            })
+          }
+        }
+      }
+
       new OBPEndpoint {
-        override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
+        override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x) && isUrlMatchesResourceDocUrl(x.path.partPath)
 
         override def apply(req: Req): CallContext => Box[JsonResponse] = {
           val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
