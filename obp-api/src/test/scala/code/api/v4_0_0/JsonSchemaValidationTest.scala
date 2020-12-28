@@ -30,6 +30,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteJsonSchemaValidation))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getJsonSchemaValidation))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllJsonSchemaValidations))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getAllJsonSchemaValidationsPublic))
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 
@@ -191,6 +192,22 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" ).GET <@ user1
+      val response= makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+      val validations = response.body \ "json_schema_validations"
+      validations shouldBe a [JArray]
+
+      val validation = validations(0)
+      validation \ "operation_id" should equal (JString(mockOperationId))
+      validation \ "json_schema" should equal (json.parse(jsonSchemaFooBar))
+    }
+
+    scenario(s"We will call the endpoint $ApiEndpoint6 anonymously", ApiEndpoint6, VersionOfApi) {
+      addOneValidation(jsonSchemaFooBar, mockOperationId)
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "endpoints" / "json-schema-validations" ).GET
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)

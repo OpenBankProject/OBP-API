@@ -1429,28 +1429,27 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       val isUrlMatchesResourceDocUrl: List[String] => Boolean = {
         val urlInDoc = StringUtils.split(this.requestUrl, '/')
-
-        val isPathParam= {
-          val pattern = Pattern.compile("[-_A-Z0-9]+")
-          pattern.matcher(_:String).matches()
-        }
-        // convert requestUrl parts to function, in order to check request url part matches this url
-        // if url part value is Uppercase, match any value, else evaluate with equals method
-        val pathFunction = urlInDoc.map {
-          case v if isPathParam(v) => Functions.truePredicate[String]
-          case v => v == _
-        }
+        val indices = urlInDoc.indices
+        // all path parameter indices
+        // whether url part is path parameter, e.g: BAR_ID in the path /obp/v4.0.0/foo/bar/BAR_ID
+        val pathParamIndices = {
+          for {
+            index <- indices
+            urlPart = urlInDoc(index)
+            if urlPart.toUpperCase == urlPart
+          } yield index
+        }.toSet
 
         (requestUrl: List[String]) => {
-          if (requestUrl.size != urlInDoc.size) {
-            false
-          } else if (requestUrl == urlInDoc) {
+          if (requestUrl == urlInDoc) {
             true
           } else {
-            pathFunction.zip(requestUrl).forall(it => {
-              val (checkFunc, urlPart) = it
-              checkFunc(urlPart)
-            })
+            (requestUrl.size == urlInDoc.size) &&
+              indices.forall { index =>
+                val requestUrlPart = requestUrl(index)
+                val docUrlPart = urlInDoc(index)
+                requestUrlPart == docUrlPart || pathParamIndices.contains(index)
+              }
           }
         }
       }
