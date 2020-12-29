@@ -1223,21 +1223,31 @@ trait APIMethods121 {
         "Alias cannot be deleted",
         UnknownError
       ),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val deleteCounterpartyPublicAlias : OBPEndpoint = {
       //delete public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
-            added <- Counterparties.counterparties.vend.addPublicAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
-            if(added)
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a public alias" ) {
+              otherBankAccount.metadata.get.addPublicAlias.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.addPublicAlias(other_account_id, "")) map { i =>
+              (unboxFullOrFail(i, callContext, "Alias cannot be deleted", 400), i)
+            }
+            if(deleted)
+          } yield {
+            ("", HttpCode.`204`(callContext))
+          }
       }
     }
 
