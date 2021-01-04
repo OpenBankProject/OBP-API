@@ -18,18 +18,19 @@ import org.scalatest.Tag
 
 class JsonSchemaValidationTest extends V400ServerSetup {
   /**
-    * Test tags
-    * Example: To run tests with tag "getPermissions":
-    * 	mvn test -D tagsToInclude
-    *
-    *  This is made possible by the scalatest maven plugin
-    */
+   * Test tags
+   * Example: To run tests with tag "getPermissions":
+   * 	mvn test -D tagsToInclude
+   *
+   *  This is made possible by the scalatest maven plugin
+   */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createJsonSchemaValidation))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateJsonSchemaValidation))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteJsonSchemaValidation))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getJsonSchemaValidation))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllJsonSchemaValidation))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllJsonSchemaValidations))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getAllJsonSchemaValidationsPublic))
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 
@@ -191,6 +192,22 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" ).GET <@ user1
+      val response= makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+      val validations = response.body \ "json_schema_validations"
+      validations shouldBe a [JArray]
+
+      val validation = validations(0)
+      validation \ "operation_id" should equal (JString(mockOperationId))
+      validation \ "json_schema" should equal (json.parse(jsonSchemaFooBar))
+    }
+
+    scenario(s"We will call the endpoint $ApiEndpoint6 anonymously", ApiEndpoint6, VersionOfApi) {
+      addOneValidation(jsonSchemaFooBar, mockOperationId)
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "endpoints" / "json-schema-validations" ).GET
       val response= makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)
@@ -392,29 +409,29 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
     val fooBar =
       s"""
-        |{
-        |    "bankId": "$bankId",
-        |    "FooBar": {
-        |        "description": "description of this entity, can be markdown text.",
-        |        "required": [
-        |            "name"
-        |        ],
-        |        "properties": {
-        |            "name": {
-        |                "type": "string",
-        |                "minLength": 3,
-        |                "maxLength": 20,
-        |                "example": "James Brown",
-        |                "description": "description of **name** field, can be markdown text."
-        |            },
-        |            "number": {
-        |                "type": "integer",
-        |                "example": 698761728,
-        |                "description": "description of **number** field, can be markdown text."
-        |            }
-        |        }
-        |    }
-        |}""".stripMargin
+         |{
+         |    "bankId": "$bankId",
+         |    "FooBar": {
+         |        "description": "description of this entity, can be markdown text.",
+         |        "required": [
+         |            "name"
+         |        ],
+         |        "properties": {
+         |            "name": {
+         |                "type": "string",
+         |                "minLength": 3,
+         |                "maxLength": 20,
+         |                "example": "James Brown",
+         |                "description": "description of **name** field, can be markdown text."
+         |            },
+         |            "number": {
+         |                "type": "integer",
+         |                "example": 698761728,
+         |                "description": "description of **number** field, can be markdown text."
+         |            }
+         |        }
+         |    }
+         |}""".stripMargin
     val response = makePostRequest(request, fooBar)
     response.code should equal(201)
 

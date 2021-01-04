@@ -6021,7 +6021,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       createJsonSchemaValidation,
       implementedInApiVersion,
-      "createJsonSchemaValidation",
+      nameOf(createJsonSchemaValidation),
       "POST",
       "/management/json-schema-validations/OPERATION_ID",
       "Create a JSON Schema Validation",
@@ -6067,7 +6067,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       updateJsonSchemaValidation,
       implementedInApiVersion,
-      "updateJsonSchemaValidation",
+      nameOf(updateJsonSchemaValidation),
       "PUT",
       "/management/json-schema-validations/OPERATION_ID",
       "Update a JSON Schema Validation",
@@ -6113,7 +6113,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       deleteJsonSchemaValidation,
       implementedInApiVersion,
-      "deleteJsonSchemaValidation",
+      nameOf(deleteJsonSchemaValidation),
       "DELETE",
       "/management/json-schema-validations/OPERATION_ID",
       "Delete a JSON Schema Validation",
@@ -6153,7 +6153,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       getJsonSchemaValidation,
       implementedInApiVersion,
-      "getJsonSchemaValidation",
+      nameOf(getJsonSchemaValidation),
       "GET",
       "/management/json-schema-validations/OPERATION_ID",
       "Get a JSON Schema Validation",
@@ -6163,21 +6163,17 @@ trait APIMethods400 {
       EmptyBody,
       responseJsonSchema,
       List(
-        $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
       List(apiTagJsonSchemaValidation, apiTagNewStyle),
       Some(List(canGetJsonSchemaValidation)))
 
-
     lazy val getJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, callContext)
+            (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, cc.callContext)
           } yield {
             (validation, HttpCode.`200`(callContext))
           }
@@ -6185,9 +6181,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getAllJsonSchemaValidation,
+      getAllJsonSchemaValidations,
       implementedInApiVersion,
-      "getAllJsonSchemaValidation",
+      nameOf(getAllJsonSchemaValidations),
       "GET",
       "/management/json-schema-validations",
       "Get all JSON Schema Validations",
@@ -6206,28 +6202,52 @@ trait APIMethods400 {
       Some(List(canGetJsonSchemaValidation)))
 
 
-    lazy val getAllJsonSchemaValidation: OBPEndpoint = {
-      case "management" :: "json-schema-validations" :: Nil JsonGet _ => {
+    lazy val getAllJsonSchemaValidations: OBPEndpoint = {
+      case ("management" | "endpoints") :: "json-schema-validations" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (jsonSchemaValidations, callContext) <- NewStyle.function.getJsonSchemaValidations(callContext)
+            (jsonSchemaValidations, callContext) <- NewStyle.function.getJsonSchemaValidations(cc.callContext)
           } yield {
             (ListResult("json_schema_validations", jsonSchemaValidations), HttpCode.`200`(callContext))
           }
       }
     }
 
+    private val jsonSchemaValidationRequiresRole: Boolean = APIUtil.getPropsAsBoolValue("read_json_schema_validation_requires_role", false)
+    lazy val getAllJsonSchemaValidationsPublic = getAllJsonSchemaValidations
+
+    staticResourceDocs += ResourceDoc(
+      getAllJsonSchemaValidationsPublic,
+      implementedInApiVersion,
+      nameOf(getAllJsonSchemaValidationsPublic),
+      "GET",
+      "/endpoints/json-schema-validations",
+      "Get all JSON Schema Validations - public",
+      s"""Get all JSON Schema Validations - public.
+         |
+         |""",
+      EmptyBody,
+      ListResult("json_schema_validations", responseJsonSchema::Nil),
+      (if (jsonSchemaValidationRequiresRole) List($UserNotLoggedIn) else Nil)
+        ::: List(
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      None)
+
+
     // auth type validation related endpoints
     private val allowedAuthTypes = AuthenticationType.values.filterNot(AuthenticationType.Anonymous==)
     staticResourceDocs += ResourceDoc(
       createAuthenticationTypeValidation,
       implementedInApiVersion,
-      "createAuthenticationTypeValidation",
+      nameOf(createAuthenticationTypeValidation),
       "POST",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Create a Authentication Type Validation",
-      s"""Create a Authentication Type Validation.
+      "Create an Authentication Type Validation",
+      s"""Create an Authentication Type Validation.
          |
          |Please supply allowed authentication types.
          |""",
@@ -6267,11 +6287,11 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       updateAuthenticationTypeValidation,
       implementedInApiVersion,
-      "updateAuthenticationTypeValidation",
+      nameOf(updateAuthenticationTypeValidation),
       "PUT",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Update a Authentication Type Validation",
-      s"""Update a Authentication Type Validation.
+      "Update an Authentication Type Validation",
+      s"""Update an Authentication Type Validation.
          |
          |Please supply allowed authentication types.
          |""",
@@ -6311,11 +6331,11 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       deleteAuthenticationTypeValidation,
       implementedInApiVersion,
-      "deleteAuthenticationTypeValidation",
+      nameOf(deleteAuthenticationTypeValidation),
       "DELETE",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Delete a Authentication Type Validation",
-      s"""Delete a Authentication Type Validation by operation_id.
+      "Delete an Authentication Type Validation",
+      s"""Delete an Authentication Type Validation by operation_id.
          |
          |""",
       EmptyBody,
@@ -6351,18 +6371,16 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       getAuthenticationTypeValidation,
       implementedInApiVersion,
-      "getAuthenticationTypeValidation",
+      nameOf(getAuthenticationTypeValidation),
       "GET",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Get a Authentication Type Validation",
-      s"""Get a Authentication Type Validation by operation_id.
+      "Get an Authentication Type Validation",
+      s"""Get an Authentication Type Validation by operation_id.
          |
          |""",
       EmptyBody,
       JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
       List(
-        $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -6374,8 +6392,7 @@ trait APIMethods400 {
       case "management" :: "authentication-type-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, callContext)
+            (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, cc.callContext)
           } yield {
             (authenticationTypeValidation, HttpCode.`200`(callContext))
           }
@@ -6383,9 +6400,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getAllAuthenticationTypeValidation,
+      getAllAuthenticationTypeValidations,
       implementedInApiVersion,
-      "getAllAuthenticationTypeValidation",
+      nameOf(getAllAuthenticationTypeValidations),
       "GET",
       "/management/authentication-type-validations",
       "Get all Authentication Type Validations",
@@ -6404,17 +6421,40 @@ trait APIMethods400 {
       Some(List(canGetAuthenticationTypeValidation)))
 
 
-    lazy val getAllAuthenticationTypeValidation: OBPEndpoint = {
-      case "management" :: "authentication-type-validations" :: Nil JsonGet _ => {
+    lazy val getAllAuthenticationTypeValidations: OBPEndpoint = {
+      case ("management" | "endpoints") :: "authentication-type-validations" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (authenticationTypeValidations, callContext) <- NewStyle.function.getAuthenticationTypeValidations(callContext)
+            (authenticationTypeValidations, callContext) <- NewStyle.function.getAuthenticationTypeValidations(cc.callContext)
           } yield {
             (ListResult("authentication_types_validations", authenticationTypeValidations), HttpCode.`200`(callContext))
           }
       }
     }
+
+    private val authenticationTypeValidationRequiresRole: Boolean = APIUtil.getPropsAsBoolValue("read_authentication_type_validation_requires_role", false)
+    lazy val getAllAuthenticationTypeValidationsPublic = getAllAuthenticationTypeValidations
+
+    staticResourceDocs += ResourceDoc(
+      getAllAuthenticationTypeValidationsPublic,
+      implementedInApiVersion,
+      nameOf(getAllAuthenticationTypeValidationsPublic),
+      "GET",
+      "/endpoints/authentication-type-validations",
+      "Get all Authentication Type Validations - public",
+      s"""Get all Authentication Type Validations - public.
+         |
+         |""",
+      EmptyBody,
+      ListResult("authentication_types_validations",List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))),
+      (if (authenticationTypeValidationRequiresRole) List($UserNotLoggedIn) else Nil)
+        ::: List(
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      None)
 
   }
 }

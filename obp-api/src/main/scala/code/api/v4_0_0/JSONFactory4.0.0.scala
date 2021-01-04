@@ -547,7 +547,7 @@ case class JsonSchemaV400(
     maxLength: Int,
     examples: List[String]
   )
-case class JsonValidationV400(operationId: String, jsonSchema: JsonSchemaV400)
+case class JsonValidationV400(operation_id: String, json_schema: JsonSchemaV400)
 // Validation related END
 
 
