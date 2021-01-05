@@ -5892,12 +5892,11 @@ trait APIMethods400 {
       "Get My Api Collection By Name",
       s"""Get Api Collection By API_COLLECTION_NAME.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(false)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -5924,12 +5923,11 @@ trait APIMethods400 {
       "Get Api Collection By Id",
       s"""Get Api Collection By Id.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(false)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -5957,12 +5955,11 @@ trait APIMethods400 {
       "Get Api Collections",
       s"""Get Api Collections.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(false)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionJson400,
       List(
-        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -6100,12 +6097,11 @@ trait APIMethods400 {
       "Get My Api Collection Endpoint",
       s"""Get Api Collection Endpoint By API_COLLECTION_NAME and OPERATION_ID.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(false)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionEndpointJson400,
       List(
-        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -6137,13 +6133,12 @@ trait APIMethods400 {
       "Get Api Collection Endpoints",
       s"""Get Api Collection Endpoints By API_COLLECTION_ID.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(false)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionEndpointsJson400,
       List(
         $UserNotLoggedIn,
-        UserNotFoundByUserId,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
@@ -6153,8 +6148,7 @@ trait APIMethods400 {
       case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: Nil JsonGet _ => {
         cc =>
           for {
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
-            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollection.apiCollectionId, callContext)
+            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollectionId, Some(cc))
           } yield {
             (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
           }
