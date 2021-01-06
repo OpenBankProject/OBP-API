@@ -9,11 +9,11 @@ import net.liftweb.util.SimpleInjector
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json
 
-object ValidationProvider extends SimpleInjector {
+object JsonSchemaValidationProvider extends SimpleInjector {
 
   val validationProvider = new Inject(buildOne _) {}
 
-  def buildOne: MappedValidationProvider.type = MappedValidationProvider
+  def buildOne: MappedJsonSchemaValidationProvider.type = MappedJsonSchemaValidationProvider
 }
 
 case class JsonValidation(operationId: String, jsonSchema: String) extends JsonAble {
@@ -22,7 +22,7 @@ case class JsonValidation(operationId: String, jsonSchema: String) extends JsonA
     ("operation_id", operationId) ~ ("json_schema", json.parse(jsonSchema))
 }
 
-trait ValidationProvider {
+trait JsonSchemaValidationProvider {
 
   def getByOperationId(operationId: String): Box[JsonValidation]
 

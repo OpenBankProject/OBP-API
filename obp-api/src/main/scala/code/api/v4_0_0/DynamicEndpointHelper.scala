@@ -97,9 +97,9 @@ object DynamicEndpointHelper extends RestHelper {
      * path parameters: /banks/{bankId}/users/{userId} bankId and userId corresponding key to value
      * role is current endpoint required entitlement
      * @param r HttpRequest
-     * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, mockResponseCode->mockResponseBody)
+     * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
      */
-    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, Option[(Int, JValue)])] = {
+    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)])] = {
       val partPath = r.path.partPath
       if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))
         None
@@ -143,7 +143,7 @@ object DynamicEndpointHelper extends RestHelper {
             val Some(role::_) = doc.roles
             body(r).toOption
               .orElse(Some(JNothing))
-              .map(zson => (s"""$serverUrl$url""", zson, akkaHttpMethod, r.params, pathParams, role, mockResponse))
+              .map(zson => (s"""$serverUrl$url""", zson, akkaHttpMethod, r.params, pathParams, role, doc.operationId, mockResponse))
           }
 
       }

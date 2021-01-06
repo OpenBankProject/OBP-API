@@ -1,5 +1,6 @@
 package code.api.builder.PaymentInitiationServicePISApi
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.sepaCreditTransfersBerlinGroupV13
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancelPaymentResponseLinks, LinkHrefJson, UpdatePaymentPsuDataJson, createCancellationTransactionRequestJson}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil._
@@ -505,19 +506,7 @@ In these cases, first an authorisation sub-resource has to be generated followin
 $additionalInstructions
 
 """,
-       json.parse("""{
-                     "debtorAccount": {
-                       "iban": "ibanstring"
-                     },
-                    "instructedAmount": {
-                     "currency": "EUR",
-                     "amount": "1234"
-                    },
-                    "creditorAccount": {
-                    "iban": "ibanstring"
-                    },
-                    "creditorName": "70charname"
-                    }"""),
+       sepaCreditTransfersBerlinGroupV13,
        json.parse(s"""{
                       "transactionStatus": "RCVD",
                       "paymentId": "1234-wertiq-983",
@@ -546,8 +535,8 @@ $additionalInstructions
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
 
-             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers ", 400, callContext) {
-               json.extract[SepaCreditTransfers]
+             transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 ", 400, callContext) {
+               json.extract[SepaCreditTransfersBerlinGroupV13]
              }
 
              transDetailsSerialized <- NewStyle.function.tryons (s"$UnknownError Can not serialize in request Json ", 400, callContext){write(transDetailsJson)(Serialization.formats(NoTypeHints))}
@@ -602,6 +591,7 @@ $additionalInstructions
                      None,
                      None,
                      None,
+                     Some(transDetailsJson),
                      callContext
                    ) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                  } yield (createdTransactionRequest, callContext)

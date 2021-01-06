@@ -25,13 +25,13 @@ class RemotedataRateLimitingActor extends Actor with ObpActorHelper with MdcLogg
       logger.debug(s"getAllByConsumerId($consumerId, $date)")
       mapper.getAllByConsumerId(consumerId, date) pipeTo sender
       
-    case cc.getByConsumerId(consumerId: String, date: Option[Date]) =>
-      logger.debug(s"getByConsumerId($consumerId, $date)")
-      mapper.getByConsumerId(consumerId, date) pipeTo sender
+    case cc.getByConsumerId(consumerId: String, apiVersion: String, apiName: String, date: Option[Date]) =>
+      logger.debug(s"getByConsumerId($consumerId, $apiVersion, $apiName, $date)")
+      mapper.getByConsumerId(consumerId, apiVersion, apiName, date) pipeTo sender
 
-    case cc.createOrUpdateConsumerCallLimits(id: String, fromDate: Date, toDate: Date,perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]) =>
-      logger.debug(s"createOrUpdateConsumerCallLimits($id, $fromDate, $toDate, ${perSecond.getOrElse("None")}, ${perMinute.getOrElse("None")}, ${perHour.getOrElse("None")}, ${perDay.getOrElse("None")}, ${perWeek.getOrElse("None")}, ${perMonth.getOrElse("None")})")
-      mapper.createOrUpdateConsumerCallLimits(id, fromDate, toDate, perSecond, perMinute, perHour, perDay, perWeek, perMonth) pipeTo sender
+    case cc.createOrUpdateConsumerCallLimits(id: String, fromDate: Date, toDate: Date, apiVersion: Option[String], apiName: Option[String], bankId: Option[String],perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]) =>
+      logger.debug(s"createOrUpdateConsumerCallLimits($id, $fromDate, $toDate, ${apiVersion.getOrElse("None")}, ${apiName.getOrElse("None")}, ${bankId.getOrElse("None")}, ${perSecond.getOrElse("None")}, ${perMinute.getOrElse("None")}, ${perHour.getOrElse("None")}, ${perDay.getOrElse("None")}, ${perWeek.getOrElse("None")}, ${perMonth.getOrElse("None")})")
+      mapper.createOrUpdateConsumerCallLimits(id, fromDate, toDate, apiVersion, apiName, bankId, perSecond, perMinute, perHour, perDay, perWeek, perMonth) pipeTo sender
       
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

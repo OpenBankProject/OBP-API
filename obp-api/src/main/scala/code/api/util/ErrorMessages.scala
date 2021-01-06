@@ -316,6 +316,8 @@ object ErrorMessages {
   val ApiCollectionEndpointAlreadyExisting = "OBP-30085: The ApiCollectionEndpoint is already Existing."
   val ApiCollectionAlreadyExisting = "OBP-30086: The ApiCollection is already Existing."
 
+  val DoubleEntryTransactionNotFound = "OBP-30087: Double Entry Transaction not found."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -413,6 +415,7 @@ object ErrorMessages {
   val ConsumerNotFound = "OBP-35022: The Consumer cannot be found by logged in user."
   val ConsentDoesNotMatchUser = "OBP-35023: The Consent does not match a valid User."
   val ConsentUserAlreadyAdded = "OBP-35024: The Consent's User is already added."
+  val ConsentUpdateStatusError = "OBP-35025: The Consent's status cannot be updated."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -447,13 +450,17 @@ object ErrorMessages {
   val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
   val CannotUpdatePSUData = s"OBP-40024: Cannot Update PSU Data for payment initiation due to transaction request is not in status: ${INITIATED}."
   val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}, ${CANCELLATION_PENDING} or ${COMPLETED}."
-  val InvalidValidation = "OBP-40026: Invalid json schema. "
-  val ValidationNotFound = "OBP-40027: Validation not found, please specify valid query parameter. "
-  val ValidationDeleteError = "OBP-40028: Could not delete the Validation. "
-  val ValidationOperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
-  val ValidationJsonSchemaIllegal = "OBP-40030: Incorrect json-schema Format. "
+  val JsonSchemaIllegal = "OBP-40026: Incorrect json-schema Format. "
+  val JsonSchemaValidationNotFound = "OBP-40027: JSON Schema Validation not found, please specify valid query parameter. "
+  val ValidationDeleteError = "OBP-40028: Could not delete the JSON Schema Validation. "
+  val OperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
+
   val CannotStartTheAuthorisationProcessForTheCancellation = s"OBP-40031: Cannot start the authorisation process for the cancellation of the addressed payment due to transaction request is not in status: ${CANCELLATION_PENDING}."
 
+  val AuthenticationTypeNameIllegal= s"OBP-40030: AuthenticationType name not correct. "
+  val AuthenticationTypeValidationNotFound = "OBP-40032: AuthenticationTypeValidation not found, please specify valid query parameter. "
+  val AuthenticationTypeValidationDeleteError = "OBP-40033: Could not delete the AuthenticationTypeValidation. "
+  val AuthenticationTypeIllegal = "OBP-40034: Current request authentication type is illegal. "
 
 
   // Exceptions (OBP-50XXX)

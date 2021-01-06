@@ -6,7 +6,7 @@ import code.api.util.ErrorMessages.TooManyRequests
 import code.api.util.RateLimitingJson.CallLimit
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
-import net.liftweb.common.{Box, Empty}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Props
 import redis.clients.jedis.Jedis
 
@@ -299,13 +299,18 @@ object RateLimitingUtil extends MdcLoggable {
       case Some(cc) =>
         cc.rateLimiting match {
           case Some(rl) => // Authorized access
+            val rateLimitingKey = 
+              rl.consumer_id + 
+              rl.api_name.getOrElse("") + 
+              rl.api_version.getOrElse("") + 
+              rl.bank_id.getOrElse("")
             val checkLimits = List(
-              underConsumerLimits(rl.consumer_id, PER_SECOND, rl.per_second),
-              underConsumerLimits(rl.consumer_id, PER_MINUTE, rl.per_minute),
-              underConsumerLimits(rl.consumer_id, PER_HOUR, rl.per_hour),
-              underConsumerLimits(rl.consumer_id, PER_DAY, rl.per_day),
-              underConsumerLimits(rl.consumer_id, PER_WEEK, rl.per_week),
-              underConsumerLimits(rl.consumer_id, PER_MONTH, rl.per_month)
+              underConsumerLimits(rateLimitingKey, PER_SECOND, rl.per_second),
+              underConsumerLimits(rateLimitingKey, PER_MINUTE, rl.per_minute),
+              underConsumerLimits(rateLimitingKey, PER_HOUR, rl.per_hour),
+              underConsumerLimits(rateLimitingKey, PER_DAY, rl.per_day),
+              underConsumerLimits(rateLimitingKey, PER_WEEK, rl.per_week),
+              underConsumerLimits(rateLimitingKey, PER_MONTH, rl.per_month)
             )
             checkLimits match {
               case x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: Nil if x1 == false =>
@@ -322,12 +327,12 @@ object RateLimitingUtil extends MdcLoggable {
                 (fullBoxOrException(Empty ~> APIFailureNewStyle(composeMsgAuthorizedAccess(PER_MONTH, rl.per_month), 429, exceededRateLimit(rl, PER_MONTH))), userAndCallContext._2)
               case _ =>
                 val incrementCounters = List (
-                  incrementConsumerCounters(rl.consumer_id, PER_SECOND, rl.per_second),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(rl.consumer_id, PER_MINUTE, rl.per_minute),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(rl.consumer_id, PER_HOUR, rl.per_hour),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(rl.consumer_id, PER_DAY, rl.per_day),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(rl.consumer_id, PER_WEEK, rl.per_week),  // Responses other than the 429 status code MUST be stored by a cache.
-                  incrementConsumerCounters(rl.consumer_id, PER_MONTH, rl.per_month)  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rateLimitingKey, PER_SECOND, rl.per_second),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rateLimitingKey, PER_MINUTE, rl.per_minute),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rateLimitingKey, PER_HOUR, rl.per_hour),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rateLimitingKey, PER_DAY, rl.per_day),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rateLimitingKey, PER_WEEK, rl.per_week),  // Responses other than the 429 status code MUST be stored by a cache.
+                  incrementConsumerCounters(rateLimitingKey, PER_MONTH, rl.per_month)  // Responses other than the 429 status code MUST be stored by a cache.
                 )
                 incrementCounters match {
                   case first :: _ :: _ :: _ :: _ :: _ :: Nil if first._1 > 0 =>

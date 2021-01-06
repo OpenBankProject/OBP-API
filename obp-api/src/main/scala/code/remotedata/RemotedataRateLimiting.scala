@@ -23,20 +23,23 @@ object RemotedataRateLimiting extends ObpActorInit with RateLimitingProviderTrai
     (actor ? cc.getAllByConsumerId(consumerId, date)).mapTo[List[RateLimiting]]
   }
   
-  def getByConsumerId(consumerId: String, date: Option[Date] = None): Future[Box[RateLimiting]] = {
-    (actor ? cc.getByConsumerId(consumerId, date)).mapTo[Box[RateLimiting]]
+  def getByConsumerId(consumerId: String, apiVersion: String, apiName: String, date: Option[Date] = None): Future[Box[RateLimiting]] = {
+    (actor ? cc.getByConsumerId(consumerId, apiVersion, apiName, date)).mapTo[Box[RateLimiting]]
   }
 
   def createOrUpdateConsumerCallLimits(id: String,
                                        from_date: Date,
                                        to_date: Date,
+                                       apiVersion: Option[String],
+                                       apiName: Option[String],
+                                       bankId: Option[String],
                                        perSecond: Option[String],
                                        perMinute: Option[String],
                                        perHour: Option[String],
                                        perDay: Option[String],
                                        perWeek: Option[String],
                                        perMonth: Option[String]): Future[Box[RateLimiting]] =
-    (actor ? cc.createOrUpdateConsumerCallLimits(id, from_date, to_date, perSecond, perMinute, perHour, perDay, perWeek, perMonth)).mapTo[Box[RateLimiting]]
+    (actor ? cc.createOrUpdateConsumerCallLimits(id, from_date, to_date, apiVersion, apiName, bankId, perSecond, perMinute, perHour, perDay, perWeek, perMonth)).mapTo[Box[RateLimiting]]
 
 
 

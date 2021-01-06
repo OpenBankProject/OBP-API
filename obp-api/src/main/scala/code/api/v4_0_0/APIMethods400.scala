@@ -24,12 +24,14 @@ import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
+import code.api.v4_0_0.JSONFactory400.createCallsLimitJson
 import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccountRequestJsonV310, CustomerWithAttributesJsonV310, JSONFactory310}
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createNewCoreBankAccountJson}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
@@ -38,6 +40,7 @@ import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
+import code.ratelimiting.RateLimitingDI
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
@@ -57,7 +60,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.http.Req
+import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization.write
@@ -146,6 +149,71 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      callsLimit,
+      implementedInApiVersion,
+      nameOf(callsLimit),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/call-limits",
+      "Set Calls Limit for a Consumer",
+      s"""
+         |Set the API call limits for a Consumer:
+         |
+         |Per Second
+         |Per Minute
+         |Per Hour
+         |Per Week
+         |Per Month
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      callLimitPostJsonV400,
+      callLimitPostJsonV400,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        InvalidConsumerId,
+        ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles,
+        UpdateConsumerError,
+        UnknownError
+      ),
+      List(apiTagConsumer, apiTagNewStyle),
+      Some(List(canSetCallLimits)))
+
+    lazy val callsLimit : OBPEndpoint = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "call-limits" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <-  authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canSetCallLimits, callContext)
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CallLimitPostJsonV400 ", 400, callContext) {
+              json.extract[CallLimitPostJsonV400]
+            }
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
+              consumerId,
+              postJson.from_date,
+              postJson.to_date,
+              postJson.api_version,
+              postJson.api_name,
+              postJson.bank_id,
+              Some(postJson.per_second_call_limit),
+              Some(postJson.per_minute_call_limit),
+              Some(postJson.per_hour_call_limit),
+              Some(postJson.per_day_call_limit),
+              Some(postJson.per_week_call_limit),
+              Some(postJson.per_month_call_limit)) map {
+              unboxFullOrFail(_, callContext, UpdateConsumerError)
+            }
+          } yield {
+            (createCallsLimitJson(rateLimiting), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getBanks,
@@ -206,6 +274,50 @@ trait APIMethods400 {
             (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(ibanJson.address, cc.callContext)
           } yield {
             (JSONFactory400.createIbanCheckerJson(ibanChecker), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getDoubleEntryTransaction,
+      implementedInApiVersion,
+      nameOf(getDoubleEntryTransaction),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/double-entry-transaction",
+      "Get Double Entry Transaction",
+      s"""Get Double Entry Transaction
+         |
+         |This endpoint can be used to see the double entry transactions. It returns the `bank_id`, `account_id` and `transaction_id`
+         |for the debit end the credit transaction. The other side account can be a settlement account or an OBP account.
+         |
+         |The endpoint also provide the `transaction_request` object which contains the `bank_id`, `account_id` and
+         |`transaction_request_id` of the transaction request at the origin of the transaction. Please note that if none
+         |transaction request is at the origin of the transaction, the `transaction_request` object will be `null`.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      doubleEntryTransactionJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetDoubleEntryTransactionAtOneBank))
+    )
+
+    lazy val getDoubleEntryTransaction : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "double-entry-transaction" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
+            (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, cc.callContext)
+          } yield {
+            (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
           }
       }
     }
@@ -731,9 +843,7 @@ trait APIMethods400 {
                     json.extract[TransactionRequestBodyRefundJsonV400]
                   }
 
-                  // TODO : create transaction request attributes to store those data somewhere else than in the description
                   transactionId = TransactionId(transactionRequestBodyRefundJson.refund.transaction_id)
-                  refundReasonCode = transactionRequestBodyRefundJson.refund.reason_code
 
                   (fromAccount, toAccount, transaction, callContext) <- transactionRequestBodyRefundJson.to match {
                     case Some(refundRequestTo) if refundRequestTo.account_id.isDefined && refundRequestTo.bank_id.isDefined =>
@@ -780,8 +890,8 @@ trait APIMethods400 {
 //                    !((transaction.description.toString contains(" Refund to ")) && (transaction.description.toString contains(" and transaction_id(")))
 //                  }
 
-                  //we add the extra info (counterparty name + transaction_id + reason_code) for this special Refund endpoint.
-                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName} - Reason code : ${refundReasonCode}"
+                  //we add the extra info (counterparty name + transaction_id) for this special Refund endpoint.
+                  newDescription = s"${transactionRequestBodyRefundJson.description} - Refund for transaction_id: (${transactionId.value}) to ${transaction.otherAccount.counterpartyName}"
 
                   //This is the refund endpoint, the original fromAccount is the `toAccount` which will receive money.
                   refundToAccount = fromAccount
@@ -799,7 +909,35 @@ trait APIMethods400 {
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
+                    None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
+
+                  _ <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                    bankId = bankId,
+                    transactionRequestId = createdTransactionRequest.id,
+                    transactionRequestAttributeId = None,
+                    name = "original_transaction_id",
+                    attributeType = TransactionRequestAttributeType.withName("STRING"),
+                    value = transactionId.value,
+                    callContext = callContext
+                  )
+
+                  refundReasonCode = transactionRequestBodyRefundJson.refund.reason_code
+                  _ <- if (refundReasonCode.nonEmpty) {
+                    NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                      bankId = bankId,
+                      transactionRequestId = createdTransactionRequest.id,
+                      transactionRequestAttributeId = None,
+                      name = "refund_reason_code",
+                      attributeType = TransactionRequestAttributeType.withName("STRING"),
+                      value = refundReasonCode,
+                      callContext = callContext)
+                  } else Future.successful()
+
+                  (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(refundFromAccount, refundToAccount, createdTransactionRequest, callContext)
+                  _ <- Future(Connector.connector.vend.saveTransactionRequestStatusImpl(createdTransactionRequest.id, newTransactionRequestStatus.toString))
+                  createdTransactionRequest <- Future(createdTransactionRequest.copy(status = newTransactionRequestStatus.toString))
+
                 } yield (createdTransactionRequest, callContext)
               }
               case ACCOUNT | SANDBOX_TAN => {
@@ -826,6 +964,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
@@ -854,6 +993,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_WEB_FORM.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     None,
                     callContext) //in ACCOUNT, ChargePolicy set default "SHARED"
                 } yield (createdTransactionRequest, callContext)
@@ -889,6 +1029,7 @@ trait APIMethods400 {
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
 
@@ -923,6 +1064,7 @@ trait APIMethods400 {
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     transDetailsSEPAJson.reasons.map(_.map(_.transform)),
+                    None,
                     callContext)
                 } yield (createdTransactionRequest, callContext)
               }
@@ -946,6 +1088,7 @@ trait APIMethods400 {
                     sharedChargePolicy.toString,
                     Some(OTP_VIA_API.toString),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
                     None,
                     callContext)
                 } yield
@@ -1075,9 +1218,7 @@ trait APIMethods400 {
             (transactionRequest, callContext) <- challengeAnswerJson.answer match {
               // If the challenge answer is `REJECT` - Currently only to Reject a SEPA transaction request REFUND
               case "REJECT" =>
-                val transactionRequest = existingTransactionRequest.copy(status = TransactionRequestStatus.REJECTED.toString,
-                  body = existingTransactionRequest.body.copy(description =
-                    s"${existingTransactionRequest.body.description} - Reject reason code : ${challengeAnswerJson.reason_code.getOrElse("")} - Reject additional information : ${challengeAnswerJson.additional_information.getOrElse("")}"))
+                val transactionRequest = existingTransactionRequest.copy(status = TransactionRequestStatus.REJECTED.toString)
                 for {
                   (fromAccount, toAccount, callContext) <- {
                     // If the transaction request comes from the account to debit
@@ -1098,9 +1239,30 @@ trait APIMethods400 {
                       } yield (fromAccount, toAccount, callContext)
                     }
                   }
+                  rejectReasonCode = challengeAnswerJson.reason_code.getOrElse("")
+                  _ <- if (rejectReasonCode.nonEmpty) {
+                    NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                      bankId = bankId,
+                      transactionRequestId = transactionRequest.id,
+                      transactionRequestAttributeId = None,
+                      name = "reject_reason_code",
+                      attributeType = TransactionRequestAttributeType.withName("STRING"),
+                      value = rejectReasonCode,
+                      callContext = callContext)
+                  } else Future.successful()
+                  rejectAdditionalInformation = challengeAnswerJson.additional_information.getOrElse("")
+                  _ <- if (rejectAdditionalInformation.nonEmpty) {
+                    NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                      bankId = bankId,
+                      transactionRequestId = transactionRequest.id,
+                      transactionRequestAttributeId = None,
+                      name = "reject_additional_information",
+                      attributeType = TransactionRequestAttributeType.withName("STRING"),
+                      value = rejectAdditionalInformation,
+                      callContext = callContext)
+                  } else Future.successful()
                   _ <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
                   _ <- Future(Connector.connector.vend.saveTransactionRequestStatusImpl(transactionRequest.id, transactionRequest.status))
-                  _ <- Future(Connector.connector.vend.saveTransactionRequestDescriptionImpl(transactionRequest.id, transactionRequest.body.description))
                 } yield (transactionRequest, callContext)
               case _ =>
                 for {
@@ -1888,7 +2050,13 @@ trait APIMethods400 {
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonGet req => { cc =>
         val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        for {
+        val isGetAll = StringUtils.isBlank(id)
+        val operationId = if(isGetAll) DynamicEntityHelper.buildGetAllOperationId(entityName)
+                          else DynamicEntityHelper.buildGetOneOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -1904,19 +2072,19 @@ trait APIMethods400 {
             }
           
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, dynamicEntityInfo.bankId), callContext)
-          (box, _) <- if(id==""){
+          (box, _) <- if(isGetAll){
               NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, dynamicEntityInfo.bankId, Some(cc))
             } else{
               NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
             }
           
-          _<- if(id==""){
+          _<- if(isGetAll){
             Future{""}
           } else{
             Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {box.isDefined}
           }
         } yield {
-          val jValue = if(id=="") {
+          val jValue = if(isGetAll) {
             val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
             if (dynamicEntityInfo.bankId.isDefined){
               val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
@@ -1927,13 +2095,13 @@ trait APIMethods400 {
               result
             }
           }else{
-              val sigleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+              val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
               if (dynamicEntityInfo.bankId.isDefined) {
                 val bankIdJobject: JObject = ("bank_id" -> dynamicEntityInfo.bankId.getOrElse(""))
-                val result: JObject = (singleName -> sigleObject)
+                val result: JObject = (singleName -> singleObject)
                 bankIdJobject merge result
               }else{
-                val result: JObject = (singleName -> sigleObject)
+                val result: JObject = (singleName -> singleObject)
                 result
               }
           }
@@ -1943,7 +2111,11 @@ trait APIMethods400 {
         
       case EntityName(bankId, entityName, _, dynamicEntityInfo) JsonPost json -> _ => {cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        for {
+        val operationId = DynamicEntityHelper.buildCreateOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -1960,7 +2132,7 @@ trait APIMethods400 {
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, dynamicEntityInfo.bankId), callContext)
 
           // validate request json payload
-          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEntityHelper.buildOperationId("POST", entityName))
+          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
           _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
             errorMsg.isEmpty
           }
@@ -1980,7 +2152,11 @@ trait APIMethods400 {
       }
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonPut json -> _ => { cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        for {
+        val operationId = DynamicEntityHelper.buildUpdateOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -1997,7 +2173,7 @@ trait APIMethods400 {
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, dynamicEntityInfo.bankId), callContext)
 
           // validate request json payload
-          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEntityHelper.buildOperationId("POST", entityName))
+          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
           _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
             errorMsg.isEmpty
           }
@@ -2020,7 +2196,11 @@ trait APIMethods400 {
         }
       }
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonDelete req => { cc =>
-        for {
+        val operationId = DynamicEntityHelper.buildDeleteOperationId(entityName)
+
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
           (Full(u), callContext) <- authenticatedAccess(cc)
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
@@ -4248,33 +4428,35 @@ trait APIMethods400 {
     }
 
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role, mockResponse) => { cc =>
-        for {
-          (Full(u), callContext) <- authenticatedAccess(cc)
-          _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
+      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse) => { cc =>
+        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        if(authTypeError.isDefined) authTypeError
+        else for {
+            (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
+            _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
 
-          // validate request json payload
-          httpRequestMethod = cc.verb
-          path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
-          errorMsg:Option[String] = JsonSchemaUtil.validateRequest(cc.callContext)(DynamicEndpointHelper.buildOperationId(httpRequestMethod, path))
-          _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
-            errorMsg.isEmpty
-          }
+            // validate request json payload
+            httpRequestMethod = cc.verb
+            path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
+            errorMsg:Option[String] = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
+            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
+              errorMsg.isEmpty
+            }
 
-          (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
-            NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
-          }
-        } yield {
-          box match {
-            case Full(v) =>
-              val code = (v \ "code").asInstanceOf[JInt].num.toInt
-              (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
+            (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
+              NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+            }
+          } yield {
+            box match {
+              case Full(v) =>
+                val code = (v \ "code").asInstanceOf[JInt].num.toInt
+                (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
 
-            case e: Failure =>
-              val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
-              fullBoxOrException[JValue](changedMsgFailure)
-              ??? // will not execute to here, Because the failure message is thrown by upper line.
-          }
+              case e: Failure =>
+                val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
+                fullBoxOrException[JValue](changedMsgFailure)
+                ??? // will not execute to here, Because the failure message is thrown by upper line.
+            }
 
         }
       }
@@ -6224,13 +6406,13 @@ trait APIMethods400 {
     }
     
     staticResourceDocs += ResourceDoc(
-      createValidation,
+      createJsonSchemaValidation,
       implementedInApiVersion,
-      "createValidation",
+      nameOf(createJsonSchemaValidation),
       "POST",
-      "/management/validations/OPERATION_ID",
-      "Create a Validation",
-      s"""Create a Validation.
+      "/management/json-schema-validations/OPERATION_ID",
+      "Create a JSON Schema Validation",
+      s"""Create a JSON Schema Validation.
          |
          |Please supply a json-schema as request body.
          |""",
@@ -6242,27 +6424,27 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagValidation, apiTagNewStyle),
-      Some(List(canCreateValidation)))
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      Some(List(canCreateJsonSchemaValidation)))
 
 
-    lazy val createValidation: OBPEndpoint = {
-      case "management" :: "validations" :: operationId :: Nil JsonPost _ -> _ => {
+    lazy val createJsonSchemaValidation: OBPEndpoint = {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonPost _ -> _ => {
         cc =>
           val Some(httpBody): Option[String] = cc.httpBody
           for {
             (Full(u), callContext) <- SS.user
 
             schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
-            _ <- Helper.booleanToFuture(failMsg = s"$ValidationJsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
               CollectionUtils.isEmpty(schemaErrors)
             }
 
-            (isExists, callContext) <- NewStyle.function.isValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = ValidationOperationIdExistsError) {
+            (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = OperationIdExistsError) {
               !isExists
             }
-            (validation, callContext) <- NewStyle.function.createValidation(JsonValidation(operationId, httpBody), callContext)
+            (validation, callContext) <- NewStyle.function.createJsonSchemaValidation(JsonValidation(operationId, httpBody), callContext)
           } yield {
             (validation, HttpCode.`201`(callContext))
           }
@@ -6270,13 +6452,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      updateValidation,
+      updateJsonSchemaValidation,
       implementedInApiVersion,
-      "updateValidation",
+      nameOf(updateJsonSchemaValidation),
       "PUT",
-      "/management/validations/OPERATION_ID",
-      "Update a Validation",
-      s"""Update a Validation.
+      "/management/json-schema-validations/OPERATION_ID",
+      "Update a JSON Schema Validation",
+      s"""Update a JSON Schema Validation.
          |
          |Please supply a json-schema as request body
          |""",
@@ -6288,27 +6470,27 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagValidation, apiTagNewStyle),
-      Some(List(canUpdateValidation)))
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      Some(List(canUpdateJsonSchemaValidation)))
 
 
-    lazy val updateValidation: OBPEndpoint = {
-      case "management" :: "validations" :: operationId :: Nil JsonPut _ -> _ => {
+    lazy val updateJsonSchemaValidation: OBPEndpoint = {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonPut _ -> _ => {
         cc =>
           val Some(httpBody): Option[String] = cc.httpBody
           for {
             (Full(u), callContext) <- SS.user
 
             schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
-            _ <- Helper.booleanToFuture(failMsg = s"$ValidationJsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
               CollectionUtils.isEmpty(schemaErrors)
             }
 
-            (isExists, callContext) <- NewStyle.function.isValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = ValidationNotFound) {
+            (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = JsonSchemaValidationNotFound) {
               isExists
             }
-            (validation, callContext) <- NewStyle.function.updateValidation(operationId, httpBody, callContext)
+            (validation, callContext) <- NewStyle.function.updateJsonSchemaValidation(operationId, httpBody, callContext)
           } yield {
             (validation, HttpCode.`200`(callContext))
           }
@@ -6316,13 +6498,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      deleteValidation,
+      deleteJsonSchemaValidation,
       implementedInApiVersion,
-      "deleteValidation",
+      nameOf(deleteJsonSchemaValidation),
       "DELETE",
-      "/management/validations/OPERATION_ID",
-      "Delete a Validation",
-      s"""Delete a Validation by operation_id.
+      "/management/json-schema-validations/OPERATION_ID",
+      "Delete a JSON Schema Validation",
+      s"""Delete a JSON Schema Validation by operation_id.
          |
          |""",
       EmptyBody,
@@ -6333,22 +6515,22 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagValidation, apiTagNewStyle),
-      Some(List(canDeleteValidation)))
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      Some(List(canDeleteJsonSchemaValidation)))
 
 
-    lazy val deleteValidation: OBPEndpoint = {
-      case "management" :: "validations" :: operationId :: Nil JsonDelete _ => {
+    lazy val deleteJsonSchemaValidation: OBPEndpoint = {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonDelete _ => {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
 
-            (isExists, callContext) <- NewStyle.function.isValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = ValidationNotFound) {
+            (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = JsonSchemaValidationNotFound) {
               isExists
             }
 
-            (deleteResult, callContext) <- NewStyle.function.deleteValidation(operationId, callContext)
+            (deleteResult, callContext) <- NewStyle.function.deleteJsonSchemaValidation(operationId, callContext)
           } yield {
             (deleteResult, HttpCode.`200`(callContext))
           }
@@ -6356,33 +6538,29 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getValidation,
+      getJsonSchemaValidation,
       implementedInApiVersion,
-      "getValidation",
+      nameOf(getJsonSchemaValidation),
       "GET",
-      "/management/validations/OPERATION_ID",
-      "Get a Validation",
-      s"""Get a Validation by operation_id.
+      "/management/json-schema-validations/OPERATION_ID",
+      "Get a JSON Schema Validation",
+      s"""Get a JSON Schema Validation by operation_id.
          |
          |""",
       EmptyBody,
       responseJsonSchema,
       List(
-        $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagValidation, apiTagNewStyle),
-      Some(List(canGetValidation)))
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      Some(List(canGetJsonSchemaValidation)))
 
-
-    lazy val getValidation: OBPEndpoint = {
-      case "management" :: "validations" :: operationId :: Nil JsonGet _ => {
+    lazy val getJsonSchemaValidation: OBPEndpoint = {
+      case "management" :: "json-schema-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (validation, callContext) <- NewStyle.function.getValidationByOperationId(operationId, callContext)
+            (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, cc.callContext)
           } yield {
             (validation, HttpCode.`200`(callContext))
           }
@@ -6390,39 +6568,280 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getAllValidation,
+      getAllJsonSchemaValidations,
       implementedInApiVersion,
-      "getAllValidation",
+      nameOf(getAllJsonSchemaValidations),
       "GET",
-      "/management/validations",
-      "Get all Validations",
-      s"""Get all Validations.
+      "/management/json-schema-validations",
+      "Get all JSON Schema Validations",
+      s"""Get all JSON Schema Validations.
          |
          |""",
       EmptyBody,
-      responseJsonSchema::Nil,
+      ListResult("json_schema_validations", responseJsonSchema::Nil),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagValidation, apiTagNewStyle),
-      Some(List(canGetValidation)))
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      Some(List(canGetJsonSchemaValidation)))
 
 
-    lazy val getAllValidation: OBPEndpoint = {
-      case "management" :: "validations" :: Nil JsonGet _ => {
+    lazy val getAllJsonSchemaValidations: OBPEndpoint = {
+      case ("management" | "endpoints") :: "json-schema-validations" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (validations, callContext) <- NewStyle.function.getValidations(callContext)
+            (jsonSchemaValidations, callContext) <- NewStyle.function.getJsonSchemaValidations(cc.callContext)
           } yield {
-            (validations, HttpCode.`200`(callContext))
+            (ListResult("json_schema_validations", jsonSchemaValidations), HttpCode.`200`(callContext))
           }
       }
     }
 
+    private val jsonSchemaValidationRequiresRole: Boolean = APIUtil.getPropsAsBoolValue("read_json_schema_validation_requires_role", false)
+    lazy val getAllJsonSchemaValidationsPublic = getAllJsonSchemaValidations
+
+    staticResourceDocs += ResourceDoc(
+      getAllJsonSchemaValidationsPublic,
+      implementedInApiVersion,
+      nameOf(getAllJsonSchemaValidationsPublic),
+      "GET",
+      "/endpoints/json-schema-validations",
+      "Get all JSON Schema Validations - public",
+      s"""Get all JSON Schema Validations - public.
+         |
+         |""",
+      EmptyBody,
+      ListResult("json_schema_validations", responseJsonSchema::Nil),
+      (if (jsonSchemaValidationRequiresRole) List($UserNotLoggedIn) else Nil)
+        ::: List(
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      None)
+
+
+    // auth type validation related endpoints
+    private val allowedAuthTypes = AuthenticationType.values.filterNot(AuthenticationType.Anonymous==)
+    staticResourceDocs += ResourceDoc(
+      createAuthenticationTypeValidation,
+      implementedInApiVersion,
+      nameOf(createAuthenticationTypeValidation),
+      "POST",
+      "/management/authentication-type-validations/OPERATION_ID",
+      "Create an Authentication Type Validation",
+      s"""Create an Authentication Type Validation.
+         |
+         |Please supply allowed authentication types.
+         |""",
+      allowedAuthTypes,
+      JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      Some(List(canCreateAuthenticationTypeValidation)))
+
+
+    lazy val createAuthenticationTypeValidation: OBPEndpoint = {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonPost jArray -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+
+            authTypes <- NewStyle.function.tryons(s"$AuthenticationTypeNameIllegal Allowed Authentication Type names: ${allowedAuthTypes.mkString("[", ", ", "]")}", 400, cc.callContext) {
+              jArray.extract[List[AuthenticationType]]
+            }
+
+            (isExists, callContext) <- NewStyle.function.isAuthenticationTypeValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = OperationIdExistsError) {
+              !isExists
+            }
+            (authenticationTypeValidation, callContext) <- NewStyle.function.createAuthenticationTypeValidation(JsonAuthTypeValidation(operationId, authTypes), callContext)
+          } yield {
+            (authenticationTypeValidation, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAuthenticationTypeValidation,
+      implementedInApiVersion,
+      nameOf(updateAuthenticationTypeValidation),
+      "PUT",
+      "/management/authentication-type-validations/OPERATION_ID",
+      "Update an Authentication Type Validation",
+      s"""Update an Authentication Type Validation.
+         |
+         |Please supply allowed authentication types.
+         |""",
+      allowedAuthTypes,
+      JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      Some(List(canUpdateAuthenticationTypeValidation)))
+
+
+    lazy val updateAuthenticationTypeValidation: OBPEndpoint = {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonPut jArray -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+
+            authTypes <- NewStyle.function.tryons(s"$AuthenticationTypeNameIllegal Allowed AuthenticationType names: ${allowedAuthTypes.mkString("[", ", ", "]")}", 400, cc.callContext) {
+              jArray.extract[List[AuthenticationType]]
+            }
+
+            (isExists, callContext) <- NewStyle.function.isAuthenticationTypeValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = AuthenticationTypeValidationNotFound) {
+              isExists
+            }
+            (authenticationTypeValidation, callContext) <- NewStyle.function.updateAuthenticationTypeValidation(operationId, authTypes, callContext)
+          } yield {
+            (authenticationTypeValidation, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteAuthenticationTypeValidation,
+      implementedInApiVersion,
+      nameOf(deleteAuthenticationTypeValidation),
+      "DELETE",
+      "/management/authentication-type-validations/OPERATION_ID",
+      "Delete an Authentication Type Validation",
+      s"""Delete an Authentication Type Validation by operation_id.
+         |
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      Some(List(canDeleteAuthenticationValidation)))
+
+
+    lazy val deleteAuthenticationTypeValidation: OBPEndpoint = {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+
+            (isExists, callContext) <- NewStyle.function.isAuthenticationTypeValidationExists(operationId, callContext)
+            _ <- Helper.booleanToFuture(failMsg = AuthenticationTypeValidationNotFound) {
+              isExists
+            }
+
+            (deleteResult, callContext) <- NewStyle.function.deleteAuthenticationTypeValidation(operationId, callContext)
+          } yield {
+            (deleteResult, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAuthenticationTypeValidation,
+      implementedInApiVersion,
+      nameOf(getAuthenticationTypeValidation),
+      "GET",
+      "/management/authentication-type-validations/OPERATION_ID",
+      "Get an Authentication Type Validation",
+      s"""Get an Authentication Type Validation by operation_id.
+         |
+         |""",
+      EmptyBody,
+      JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      Some(List(canGetAuthenticationTypeValidation)))
+
+
+    lazy val getAuthenticationTypeValidation: OBPEndpoint = {
+      case "management" :: "authentication-type-validations" :: operationId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, cc.callContext)
+          } yield {
+            (authenticationTypeValidation, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllAuthenticationTypeValidations,
+      implementedInApiVersion,
+      nameOf(getAllAuthenticationTypeValidations),
+      "GET",
+      "/management/authentication-type-validations",
+      "Get all Authentication Type Validations",
+      s"""Get all Authentication Type Validations.
+         |
+         |""",
+      EmptyBody,
+      ListResult("authentication_types_validations",List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      Some(List(canGetAuthenticationTypeValidation)))
+
+
+    lazy val getAllAuthenticationTypeValidations: OBPEndpoint = {
+      case ("management" | "endpoints") :: "authentication-type-validations" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (authenticationTypeValidations, callContext) <- NewStyle.function.getAuthenticationTypeValidations(cc.callContext)
+          } yield {
+            (ListResult("authentication_types_validations", authenticationTypeValidations), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    private val authenticationTypeValidationRequiresRole: Boolean = APIUtil.getPropsAsBoolValue("read_authentication_type_validation_requires_role", false)
+    lazy val getAllAuthenticationTypeValidationsPublic = getAllAuthenticationTypeValidations
+
+    staticResourceDocs += ResourceDoc(
+      getAllAuthenticationTypeValidationsPublic,
+      implementedInApiVersion,
+      nameOf(getAllAuthenticationTypeValidationsPublic),
+      "GET",
+      "/endpoints/authentication-type-validations",
+      "Get all Authentication Type Validations - public",
+      s"""Get all Authentication Type Validations - public.
+         |
+         |""",
+      EmptyBody,
+      ListResult("authentication_types_validations",List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))),
+      (if (authenticationTypeValidationRequiresRole) List($UserNotLoggedIn) else Nil)
+        ::: List(
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      None)
 
   }
 }

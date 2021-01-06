@@ -1253,6 +1253,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
 
+  override def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId,
+                                              callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
+    Future(
+      DoubleEntryBookTransaction.find(
+          By(DoubleEntryBookTransaction.DebitTransactionBankId, bankId.value),
+          By(DoubleEntryBookTransaction.DebitTransactionAccountId, accountId.value),
+          By(DoubleEntryBookTransaction.DebitTransactionId, transactionId.value)
+        ).or(DoubleEntryBookTransaction.find(
+        By(DoubleEntryBookTransaction.CreditTransactionBankId, bankId.value),
+        By(DoubleEntryBookTransaction.CreditTransactionAccountId, accountId.value),
+        By(DoubleEntryBookTransaction.CreditTransactionId, transactionId.value)
+      ))
+    ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+  }
+
   override def makePaymentV400(transactionRequest: TransactionRequest,
                                reasons: Option[List[TransactionRequestReason]],
                                callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
@@ -4154,6 +4169,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
                                             reasons: Option[List[TransactionRequestReason]],
+                                            berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {
@@ -4279,9 +4295,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
               newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-              (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
-              _ <- Future(saveTransactionRequestStatusImpl(transactionRequest.id, newTransactionRequestStatus.toString).openOrThrowException(attemptedToOpenAnEmptyBox))
-              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge, status = newTransactionRequestStatus.toString))
+              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
             } yield {
               (transactionRequest, callContext)
             }

@@ -212,7 +212,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mBody_Description extends MappedString(this, 2000)
   // This is the details / body of the request (contains all fields in the body)
   // Note:this need to be a longer string, defaults is 2000, maybe not enough
-  object mDetails extends MappedString(this, 2000)
+  object mDetails extends MappedText(this)
 
   //fromAccount fields
   object mFrom_BankId extends UUIDString(this)
@@ -242,7 +242,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
 
   def toTransactionRequest : Option[TransactionRequest] = {
   
-    val details = mDetails.get
+    val details = mDetails.toString
   
     val parsedDetails = json.parse(details)
   
