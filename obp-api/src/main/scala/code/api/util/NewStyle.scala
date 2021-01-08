@@ -28,9 +28,14 @@ import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
+import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
+import code.apicollectionendpoint.{MappedApiCollectionEndpointsProvider, ApiCollectionEndpointTrait}
+import code.apicollection.{MappedApiCollectionsProvider, ApiCollectionTrait}
 import code.model.dataAccess.BankAccountRouting
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
+import code.users.Users
+import code.util.Helper
 import code.util.{Helper, JsonSchemaUtil}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -2639,6 +2644,85 @@ object NewStyle {
       Consent.checkUKConsent(user, callContext)
     } map { fullBoxOrException(_) }
 
+
+    def getApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionById(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) "), callContext)
+      }
+    }
+
+    def getApiCollectionByUserIdAndCollectionName(userId : String, apiCollectionName : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(userId, apiCollectionName)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_NAME. Current API_COLLECTION_NAME($apiCollectionName) "), callContext)
+      }
+    }
+
+    def getApiCollectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
+    }
+    
+    def createApiCollection(
+      userId: String,
+      apiCollectionName: String,
+      isSharable: Boolean,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.createApiCollection(
+        userId: String,
+        apiCollectionName: String,
+        isSharable: Boolean)
+      ) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
+      }
+    }
+
+    def getUserByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[User] = {
+      Users.users.vend.getUserByUserIdFuture(userId) map {
+        x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current USER_ID($userId) "),callContext)
+      }
+    }
+
+    def deleteApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedApiCollectionsProvider.deleteApiCollectionById(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionError Current API_COLLECTION_ID($apiCollectionId) "), callContext)
+      }
+    }
+
+    def createApiCollectionEndpoint(
+      apiCollectionId: String,
+      operationId: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.createApiCollectionEndpoint(
+        apiCollectionId: String,
+        operationId: String
+      )) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiCollectionEndpointError), callContext)
+      }
+    }
+
+    def getApiCollectionEndpointById(apiCollectionEndpointId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointById(apiCollectionEndpointId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Please specify a valid value for API_COLLECTION_ENDPOINT_ID. " +
+          s"Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId) "), callContext)
+      }
+    }
+
+    def getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId, operationId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Current API_COLLECTION_ID($apiCollectionId) and OPERATION_ID($operationId) "), callContext)
+      }
+    }
+
+    def getApiCollectionEndpoints(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionEndpointTrait]] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionId), callContext)
+    }
+
+    def deleteApiCollectionEndpointById(apiCollectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedApiCollectionEndpointsProvider.deleteApiCollectionEndpointById(apiCollectionEndpointById)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionEndpointError Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointById) "), callContext)
+      }
+    }
 
     def createJsonSchemaValidation(validation: JsonValidation, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
       Future {

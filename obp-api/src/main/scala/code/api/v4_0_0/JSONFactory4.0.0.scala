@@ -43,6 +43,8 @@ import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
+import code.apicollectionendpoint.ApiCollectionEndpointTrait
+import code.apicollection.ApiCollectionTrait
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
@@ -530,6 +532,34 @@ case class ChallengeAnswerJson400 (
                                  additional_information: Option[String] = None
                                )
 
+case class ApiCollectionJson400 (
+  api_collection_id: String,
+  user_id: String,
+  api_collection_name: String,
+  is_sharable: Boolean
+)
+case class ApiCollectionsJson400 (
+  api_collections: List[ApiCollectionJson400] 
+)
+
+case class PostApiCollectionJson400(
+  api_collection_name: String,
+  is_sharable: Boolean
+)
+
+case class ApiCollectionEndpointJson400 (
+  api_collection_endpoint_id: String,
+  api_collection_id: String,
+  operation_id: String
+)
+
+case class ApiCollectionEndpointsJson400(
+  api_collection_endpoints: List[ApiCollectionEndpointJson400]
+)
+
+case class PostApiCollectionEndpointJson400(
+  operation_id: String
+)
 // Validation related START
 case class JsonSchemaV400(
     $schema: String,
@@ -1015,6 +1045,15 @@ object JSONFactory400 {
       )
     )
   }
+
+  def createApiCollectionJsonV400(apiCollection: ApiCollectionTrait) = {
+      ApiCollectionJson400(
+        apiCollection.apiCollectionId,
+        apiCollection.userId,
+        apiCollection.apiCollectionName,
+        apiCollection.isSharable,
+      )
+  }
   def createIbanCheckerJson(iban: IbanChecker): IbanCheckerJsonV400 = {
     val details = iban.details.map(
       i =>
@@ -1065,6 +1104,22 @@ object JSONFactory400 {
         doubleEntryBookTransaction.creditTransactionId.value
       )
     )
+  
+  def createApiCollectionsJsonV400(apiCollections: List[ApiCollectionTrait]) = {
+    ApiCollectionsJson400(apiCollections.map(apiCollection => createApiCollectionJsonV400(apiCollection)))
+  }
+
+  def createApiCollectionEndpointJsonV400(apiCollectionEndpoint: ApiCollectionEndpointTrait) = {
+    ApiCollectionEndpointJson400(
+      apiCollectionEndpoint.apiCollectionEndpointId,
+      apiCollectionEndpoint.apiCollectionId,
+      apiCollectionEndpoint.operationId
+    )
+  }
+
+  def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
+    ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))
+  }
   
 }
 

@@ -70,6 +70,7 @@ object ApiTag {
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
   val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-(Manage)")
   val apiTagManageDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint-(Manage)")
+  val apiTagApiCollection = ResourceDocTag("Api-Collection")
 
   val apiTagDynamic = ResourceDocTag("Dynamic")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
