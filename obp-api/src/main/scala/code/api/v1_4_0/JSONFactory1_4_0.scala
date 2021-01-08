@@ -1,7 +1,8 @@
 package code.api.v1_4_0
 
-import java.util.Date
+import code.api.berlin.group.v1_3.JvalueCaseClass
 
+import java.util.Date
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, PegdownOptions}
@@ -420,7 +421,11 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
 
-    val jsonBodyJValue = decompose(jsonBody)
+    val jsonBodyJValue = jsonBody match {
+      case JvalueCaseClass(jValue) =>
+        jValue
+      case _ => decompose(jsonBody)
+    }
 
     val jsonBodyFields =JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList.sorted
 
