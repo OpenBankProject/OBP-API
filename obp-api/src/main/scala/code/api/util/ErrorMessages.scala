@@ -306,7 +306,17 @@ object ErrorMessages {
 
   val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
 
-  val DoubleEntryTransactionNotFound = "OBP-30079: Double Entry Transaction not found."
+  val ApiCollectionNotFound = "OBP-30079: ApiCollection not found."
+  val CreateApiCollectionError = "OBP-30080: Could not create ApiCollection."
+  val DeleteApiCollectionError = "OBP-30081: Could not delete ApiCollection."
+
+  val ApiCollectionEndpointNotFound = "OBP-30082: ApiCollectionEndpoint not found."
+  val CreateApiCollectionEndpointError = "OBP-30083: Could not create ApiCollectionEndpoint."
+  val DeleteApiCollectionEndpointError = "OBP-30084: Could not delete ApiCollectionEndpoint."
+  val ApiCollectionEndpointAlreadyExisting = "OBP-30085: The ApiCollectionEndpoint is already Existing."
+  val ApiCollectionAlreadyExisting = "OBP-30086: The ApiCollection is already Existing."
+
+  val DoubleEntryTransactionNotFound = "OBP-30087: Double Entry Transaction not found."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

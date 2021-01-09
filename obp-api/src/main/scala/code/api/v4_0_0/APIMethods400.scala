@@ -11,7 +11,7 @@ import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue.{dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample, dynamicEntityRequestBodyExample, dynamicEntityResponseBodyExample}
+import code.api.util.ExampleValue._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.util.migration.Migration
@@ -29,6 +29,8 @@ import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, CreateAccount
 import com.openbankproject.commons.model.ListResult
 import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createNewCoreBankAccountJson}
+import code.apicollection.MappedApiCollectionsProvider
+import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
@@ -6019,9 +6021,394 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
+      createMyApiCollection,
+      implementedInApiVersion,
+      nameOf(createMyApiCollection),
+      "POST",
+      "/my/api-collections",
+      "Create My Api Collection",
+      s"""Create Api Collection for logged in user.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      postApiCollectionJson400,
+      apiCollectionJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val createMyApiCollection: OBPEndpoint = {
+      case "my" :: "api-collections" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionJson400", 400, cc.callContext) {
+              json.extract[PostApiCollectionJson400]
+            }
+            apiCollection <- Future{MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(cc.userId, postJson.api_collection_name)}
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExisting Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.") {
+              apiCollection.isEmpty
+            }
+            (apiCollection, callContext) <- NewStyle.function.createApiCollection(
+              cc.userId,
+              postJson.api_collection_name,
+              postJson.is_sharable,
+              Some(cc)
+            )
+          } yield {
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollectionByName,
+      implementedInApiVersion,
+      nameOf(getMyApiCollectionByName),
+      "GET",
+      "/my/api-collections/API_COLLECTION_NAME",
+      "Get My Api Collection By Name",
+      s"""Get Api Collection By API_COLLECTION_NAME.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionJson400,
+      List(
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getMyApiCollectionByName: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
+          } yield {
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getApiCollectionById,
+      implementedInApiVersion,
+      nameOf(getApiCollectionById),
+      "GET",
+      "/users/USER_ID/api-collections/API_COLLECTION_ID",
+      "Get Api Collection By Id",
+      s"""Get Api Collection By Id.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionJson400,
+      List(
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getApiCollectionById: OBPEndpoint = {
+      case "users" :: userId :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getApiCollections,
+      implementedInApiVersion,
+      nameOf(getApiCollections),
+      "GET",
+      "/users/USER_ID/api-collections",
+      "Get Api Collections",
+      s"""Get Api Collections.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionJson400,
+      List(
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getApiCollections: OBPEndpoint = {
+      case "users" :: userId :: "api-collections" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
+            (apiCollections, callContext) <- NewStyle.function.getApiCollectionsByUserId(userId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollections,
+      implementedInApiVersion,
+      nameOf(getMyApiCollections),
+      "GET",
+      "/my/api-collections",
+      "Get My Api Collections",
+      s"""Get all the apiCollections for logged in user.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionsJson400,
+      List(
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getMyApiCollections: OBPEndpoint = {
+      case "my" :: "api-collections" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollections, callContext) <- NewStyle.function.getApiCollectionsByUserId(cc.userId, Some(cc))
+          } yield {
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMyApiCollection,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollection),
+      "DELETE",
+      "/my/api-collections/API_COLLECTION_ID",
+      "Delete My Api Collection",
+      s"""Delete Api Collection By API_COLLECTION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollection : OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionById(apiCollectionId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createMyApiCollectionEndpoint,
+      implementedInApiVersion,
+      nameOf(createMyApiCollectionEndpoint),
+      "POST",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
+      "Create My Api Collection Endpoint",
+      s"""Create Api Collection Endpoint.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      postApiCollectionEndpointJson400,
+      apiCollectionEndpointJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val createMyApiCollectionEndpoint: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
+              json.extract[PostApiCollectionEndpointJson400]
+            }
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
+            apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ") {
+              apiCollectionEndpoint.isEmpty
+            }
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
+              apiCollection.apiCollectionId,
+              postJson.operation_id,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollectionEndpoint,
+      implementedInApiVersion,
+      nameOf(getMyApiCollectionEndpoint),
+      "GET",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
+      "Get My Api Collection Endpoint",
+      s"""Get Api Collection Endpoint By API_COLLECTION_NAME and OPERATION_ID.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionEndpointJson400,
+      List(
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+    
+    lazy val getMyApiCollectionEndpoint: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(
+              apiCollection.apiCollectionId,
+              operationId, 
+              Some(cc)
+            )
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getApiCollectionEndpoints,
+      implementedInApiVersion,
+      nameOf(getApiCollectionEndpoints),
+      "GET",
+      "/api-collections/API_COLLECTION_ID/api-collection-endpoints",
+      "Get Api Collection Endpoints",
+      s"""Get Api Collection Endpoints By API_COLLECTION_ID.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionEndpointsJson400,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getApiCollectionEndpoints: OBPEndpoint = {
+      case "api-collections" :: apiCollectionId :: "api-collection-endpoints" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollectionId, Some(cc))
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollectionEndpoints,
+      implementedInApiVersion,
+      nameOf(getMyApiCollectionEndpoints),
+      "GET",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
+      "Get My Api Collection Endpoints",
+      s"""Get Api Collection Endpoints By API_COLLECTION_NAME.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionEndpointsJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getMyApiCollectionEndpoints: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints":: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollection.apiCollectionId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteMyApiCollectionEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollectionEndpoint),
+      "DELETE",
+      "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
+      "Delete My Api Collection Endpoint",
+      s"""Delete Api Collection Endpoint By Id
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollectionEndpoint : OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionName :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
       createJsonSchemaValidation,
       implementedInApiVersion,
-      "createJsonSchemaValidation",
+      nameOf(createJsonSchemaValidation),
       "POST",
       "/management/json-schema-validations/OPERATION_ID",
       "Create a JSON Schema Validation",
@@ -6067,7 +6454,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       updateJsonSchemaValidation,
       implementedInApiVersion,
-      "updateJsonSchemaValidation",
+      nameOf(updateJsonSchemaValidation),
       "PUT",
       "/management/json-schema-validations/OPERATION_ID",
       "Update a JSON Schema Validation",
@@ -6113,7 +6500,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       deleteJsonSchemaValidation,
       implementedInApiVersion,
-      "deleteJsonSchemaValidation",
+      nameOf(deleteJsonSchemaValidation),
       "DELETE",
       "/management/json-schema-validations/OPERATION_ID",
       "Delete a JSON Schema Validation",
@@ -6153,7 +6540,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       getJsonSchemaValidation,
       implementedInApiVersion,
-      "getJsonSchemaValidation",
+      nameOf(getJsonSchemaValidation),
       "GET",
       "/management/json-schema-validations/OPERATION_ID",
       "Get a JSON Schema Validation",
@@ -6163,21 +6550,17 @@ trait APIMethods400 {
       EmptyBody,
       responseJsonSchema,
       List(
-        $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
       List(apiTagJsonSchemaValidation, apiTagNewStyle),
       Some(List(canGetJsonSchemaValidation)))
 
-
     lazy val getJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, callContext)
+            (validation, callContext) <- NewStyle.function.getJsonSchemaValidationByOperationId(operationId, cc.callContext)
           } yield {
             (validation, HttpCode.`200`(callContext))
           }
@@ -6185,9 +6568,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getAllJsonSchemaValidation,
+      getAllJsonSchemaValidations,
       implementedInApiVersion,
-      "getAllJsonSchemaValidation",
+      nameOf(getAllJsonSchemaValidations),
       "GET",
       "/management/json-schema-validations",
       "Get all JSON Schema Validations",
@@ -6206,28 +6589,52 @@ trait APIMethods400 {
       Some(List(canGetJsonSchemaValidation)))
 
 
-    lazy val getAllJsonSchemaValidation: OBPEndpoint = {
-      case "management" :: "json-schema-validations" :: Nil JsonGet _ => {
+    lazy val getAllJsonSchemaValidations: OBPEndpoint = {
+      case ("management" | "endpoints") :: "json-schema-validations" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (jsonSchemaValidations, callContext) <- NewStyle.function.getJsonSchemaValidations(callContext)
+            (jsonSchemaValidations, callContext) <- NewStyle.function.getJsonSchemaValidations(cc.callContext)
           } yield {
             (ListResult("json_schema_validations", jsonSchemaValidations), HttpCode.`200`(callContext))
           }
       }
     }
 
+    private val jsonSchemaValidationRequiresRole: Boolean = APIUtil.getPropsAsBoolValue("read_json_schema_validation_requires_role", false)
+    lazy val getAllJsonSchemaValidationsPublic = getAllJsonSchemaValidations
+
+    staticResourceDocs += ResourceDoc(
+      getAllJsonSchemaValidationsPublic,
+      implementedInApiVersion,
+      nameOf(getAllJsonSchemaValidationsPublic),
+      "GET",
+      "/endpoints/json-schema-validations",
+      "Get all JSON Schema Validations - public",
+      s"""Get all JSON Schema Validations - public.
+         |
+         |""",
+      EmptyBody,
+      ListResult("json_schema_validations", responseJsonSchema::Nil),
+      (if (jsonSchemaValidationRequiresRole) List($UserNotLoggedIn) else Nil)
+        ::: List(
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagJsonSchemaValidation, apiTagNewStyle),
+      None)
+
+
     // auth type validation related endpoints
     private val allowedAuthTypes = AuthenticationType.values.filterNot(AuthenticationType.Anonymous==)
     staticResourceDocs += ResourceDoc(
       createAuthenticationTypeValidation,
       implementedInApiVersion,
-      "createAuthenticationTypeValidation",
+      nameOf(createAuthenticationTypeValidation),
       "POST",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Create a Authentication Type Validation",
-      s"""Create a Authentication Type Validation.
+      "Create an Authentication Type Validation",
+      s"""Create an Authentication Type Validation.
          |
          |Please supply allowed authentication types.
          |""",
@@ -6267,11 +6674,11 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       updateAuthenticationTypeValidation,
       implementedInApiVersion,
-      "updateAuthenticationTypeValidation",
+      nameOf(updateAuthenticationTypeValidation),
       "PUT",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Update a Authentication Type Validation",
-      s"""Update a Authentication Type Validation.
+      "Update an Authentication Type Validation",
+      s"""Update an Authentication Type Validation.
          |
          |Please supply allowed authentication types.
          |""",
@@ -6311,11 +6718,11 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       deleteAuthenticationTypeValidation,
       implementedInApiVersion,
-      "deleteAuthenticationTypeValidation",
+      nameOf(deleteAuthenticationTypeValidation),
       "DELETE",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Delete a Authentication Type Validation",
-      s"""Delete a Authentication Type Validation by operation_id.
+      "Delete an Authentication Type Validation",
+      s"""Delete an Authentication Type Validation by operation_id.
          |
          |""",
       EmptyBody,
@@ -6351,18 +6758,16 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       getAuthenticationTypeValidation,
       implementedInApiVersion,
-      "getAuthenticationTypeValidation",
+      nameOf(getAuthenticationTypeValidation),
       "GET",
       "/management/authentication-type-validations/OPERATION_ID",
-      "Get a Authentication Type Validation",
-      s"""Get a Authentication Type Validation by operation_id.
+      "Get an Authentication Type Validation",
+      s"""Get an Authentication Type Validation by operation_id.
          |
          |""",
       EmptyBody,
       JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
       List(
-        $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -6374,8 +6779,7 @@ trait APIMethods400 {
       case "management" :: "authentication-type-validations" :: operationId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, callContext)
+            (authenticationTypeValidation, callContext) <- NewStyle.function.getAuthenticationTypeValidationByOperationId(operationId, cc.callContext)
           } yield {
             (authenticationTypeValidation, HttpCode.`200`(callContext))
           }
@@ -6383,9 +6787,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getAllAuthenticationTypeValidation,
+      getAllAuthenticationTypeValidations,
       implementedInApiVersion,
-      "getAllAuthenticationTypeValidation",
+      nameOf(getAllAuthenticationTypeValidations),
       "GET",
       "/management/authentication-type-validations",
       "Get all Authentication Type Validations",
@@ -6404,17 +6808,40 @@ trait APIMethods400 {
       Some(List(canGetAuthenticationTypeValidation)))
 
 
-    lazy val getAllAuthenticationTypeValidation: OBPEndpoint = {
-      case "management" :: "authentication-type-validations" :: Nil JsonGet _ => {
+    lazy val getAllAuthenticationTypeValidations: OBPEndpoint = {
+      case ("management" | "endpoints") :: "authentication-type-validations" :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
-            (authenticationTypeValidations, callContext) <- NewStyle.function.getAuthenticationTypeValidations(callContext)
+            (authenticationTypeValidations, callContext) <- NewStyle.function.getAuthenticationTypeValidations(cc.callContext)
           } yield {
             (ListResult("authentication_types_validations", authenticationTypeValidations), HttpCode.`200`(callContext))
           }
       }
     }
+
+    private val authenticationTypeValidationRequiresRole: Boolean = APIUtil.getPropsAsBoolValue("read_authentication_type_validation_requires_role", false)
+    lazy val getAllAuthenticationTypeValidationsPublic = getAllAuthenticationTypeValidations
+
+    staticResourceDocs += ResourceDoc(
+      getAllAuthenticationTypeValidationsPublic,
+      implementedInApiVersion,
+      nameOf(getAllAuthenticationTypeValidationsPublic),
+      "GET",
+      "/endpoints/authentication-type-validations",
+      "Get all Authentication Type Validations - public",
+      s"""Get all Authentication Type Validations - public.
+         |
+         |""",
+      EmptyBody,
+      ListResult("authentication_types_validations",List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))),
+      (if (authenticationTypeValidationRequiresRole) List($UserNotLoggedIn) else Nil)
+        ::: List(
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagAuthenticationTypeValidation, apiTagNewStyle),
+      None)
 
   }
 }
