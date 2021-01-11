@@ -281,9 +281,9 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           CoreAccountBalancesJson(
             balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
             balanceType = APIUtil.stringOrNull(x.accountType),
-            lastChangeDateTime=APIUtil.DateWithDayFormat.format(x.lastUpdate),
-            referenceDate =APIUtil.DateWithMsRollback.format(x.lastUpdate),
-            lastCommittedTransaction = "String"
+            lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
+            referenceDate = APIUtil.dateOrNull(x.lastUpdate),
+            lastCommittedTransaction = ""
           )
         CoreAccountJsonV13(
           resourceId = x.accountId.value,
@@ -310,8 +310,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           CoreAccountBalancesJson(
             balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
             balanceType = APIUtil.stringOrNull(x.accountType),
-            lastChangeDateTime=APIUtil.DateWithDayFormat.format(x.lastUpdate),
-            referenceDate =APIUtil.DateWithMsRollback.format(x.lastUpdate),
+            lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
+            referenceDate = APIUtil.dateOrNull(x.lastUpdate),
             lastCommittedTransaction = "String"
           )
         CoreAccountJsonV13(
@@ -378,8 +378,8 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           amount = bankAccount.balance.toString()
         ),
         balanceType = APIUtil.stringOrNull(bankAccount.accountType),
-        lastChangeDateTime = APIUtil.DateWithMsRollback.format(bankAccount.lastUpdate),
-        referenceDate= APIUtil.DateWithDayFormat.format(bankAccount.lastUpdate),
+        lastChangeDateTime = APIUtil.dateOrNull(bankAccount.lastUpdate),
+        referenceDate = APIUtil.dateOrNull(bankAccount.lastUpdate),
         lastCommittedTransaction = "String"
       ) :: Nil
     ) 
