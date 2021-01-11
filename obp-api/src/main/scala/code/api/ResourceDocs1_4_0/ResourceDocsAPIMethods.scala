@@ -1,7 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.UUID.randomUUID
-
 import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
@@ -61,6 +60,29 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
 
+    // avoid repeat execute method getSpecialInstructions, here save the calculate results.
+    private val specialInstructionMap = scala.collection.mutable.Map[String, Option[String]]()
+    // Find any special instructions for partialFunctionName
+    def getSpecialInstructions(partialFunctionName: String):  Option[String] = {
+      specialInstructionMap.getOrElseUpdate(partialFunctionName, {
+        // The files should be placed in a folder called special_instructions_for_resources folder inside the src resources folder
+        // Each file should match a partial function name or it will be ignored.
+        // The format of the file should be mark down.
+        val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
+        logger.debug(s"getSpecialInstructions getting $filename")
+        val source = LiftRules.loadResourceAsString(filename)
+        logger.debug(s"getSpecialInstructions source is $source")
+        source match {
+          case Full(payload) =>
+            logger.debug(s"getSpecialInstructions payload is $payload")
+            Some(payload)
+          case _ =>
+            logger.debug(s"getSpecialInstructions Could not find / load $filename")
+            None
+        }
+      })
+    }
+
     def getResourceDocsList(requestedApiVersion : ApiVersion) : Option[List[ResourceDoc]] =
     {
 
@@ -75,34 +97,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         }
         partialFunctionNames.filter(_ == partialFunctionName).length > 0
       }
-
-
-
-
-
-      // Find any special instructions for partialFunctionName
-      def getSpecialInstructions(partialFunctionName: String): Option[String] = {
-
-        // The files should be placed in a folder called special_instructions_for_resources folder inside the src resources folder
-        // Each file should match a partial function name or it will be ignored.
-        // The format of the file should be mark down.
-        val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
-        logger.debug(s"getSpecialInstructions getting $filename")
-        val source = LiftRules.loadResourceAsString(filename)
-        logger.debug(s"getSpecialInstructions source is $source")
-        val result = source match {
-          case Full(payload) =>
-            logger.debug(s"getSpecialInstructions payload is $payload")
-            Some(payload)
-          case _ =>
-            logger.debug(s"getSpecialInstructions Could not find / load $filename")
-            None
-        }
-        result
-      }
-
-
-
 
 
       // Return a different list of resource docs depending on the version being called.
