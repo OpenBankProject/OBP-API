@@ -4105,8 +4105,7 @@ trait APIMethods310 {
           } yield {
             val definedMethodRoutings = methodRoutings.sortWith(_.methodName < _.methodName)
             val listCommons: List[MethodRoutingCommons] = req.param("active") match {
-              case Full("true") => definedMethodRoutings ++ 
-                  getDefaultMethodRountings(methodRoutings).sortWith(_.methodName < _.methodName)
+              case Full("true") => (getDefaultMethodRountings ++ definedMethodRoutings).sortWith(_.methodName < _.methodName)
               case _ => definedMethodRoutings
             }
             (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
@@ -4115,12 +4114,10 @@ trait APIMethods310 {
     }
 
     /**
-      * get all methodRountings exception saved in DB
-      * @param methodRoutingsInDB saved in DB methodRouting#methodName
+      * get all default methodRountings,  
       * @return all default methodRounting#methodName, those just in mapped connector
       */
-    private def getDefaultMethodRountings(methodRoutingsInDB: List[MethodRoutingT]) = {
-      val methodRountingNamesInDB = methodRoutingsInDB.map(_.methodName).toSet
+    private def getDefaultMethodRountings = {
 
       val methodRegex = """method \S+(?<!\$default\$\d{0,10})""".r.pattern
 
@@ -4129,7 +4126,6 @@ trait APIMethods310 {
         .filter(it => methodRegex.matcher(it.toString).matches())
         .filter(_.asMethod.isPublic)
         .map(_.asMethod)
-        .filter(it => !methodRountingNamesInDB.contains(it.name.toString) && it.overrides.size > 0)
         .map(it => MethodRoutingCommons(
           methodName = it.name.toString,
           connectorName = "mapped",
