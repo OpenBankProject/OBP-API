@@ -4105,7 +4105,7 @@ trait APIMethods310 {
           } yield {
             val definedMethodRoutings = methodRoutings.sortWith(_.methodName < _.methodName)
             val listCommons: List[MethodRoutingCommons] = req.param("active") match {
-              case Full("true") => (getDefaultMethodRountings ++ definedMethodRoutings).sortWith(_.methodName < _.methodName)
+              case Full("true") => (definedMethodRoutings ++ getDefaultMethodRountings ).sortWith(_.methodName < _.methodName)
               case _ => definedMethodRoutings
             }
             (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
