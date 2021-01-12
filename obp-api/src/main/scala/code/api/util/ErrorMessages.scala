@@ -528,7 +528,7 @@ object ErrorMessages {
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
-  val MethodRoutingNameAlreadyUsed = "OBP-70003: Method Routing Name already used."
+  val ExistingMethodRoutingError = "OBP-70003: Method Routing is already existing."
 
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."

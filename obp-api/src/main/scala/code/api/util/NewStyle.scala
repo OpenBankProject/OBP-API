@@ -2073,7 +2073,11 @@ object NewStyle {
           }
 
       val notExists = if(exists) Empty else Full(true)
-      (unboxFullOrFail(notExists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
+      (unboxFullOrFail(notExists, callContext, s"$ExistingMethodRoutingError Please modify the following parameters:" +
+        s"is_bank_id_exact_match(${methodRouting.isBankIdExactMatch}), " +
+        s"method_name(${methodRouting.methodName}), " +
+        s"bank_id_pattern(${methodRouting.bankIdPattern.getOrElse("")})"
+      ), callContext)
     }
     def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
