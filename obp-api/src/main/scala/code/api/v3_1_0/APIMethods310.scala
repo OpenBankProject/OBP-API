@@ -4217,7 +4217,7 @@ trait APIMethods310 {
             }
             connectorName = postedData.connectorName
             methodName = postedData.methodName
-            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName or the connector($connectorName) is not supported for this sandbox. ", failCode=400) {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
