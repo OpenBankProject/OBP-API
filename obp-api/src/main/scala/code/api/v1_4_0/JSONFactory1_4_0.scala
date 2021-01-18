@@ -18,10 +18,11 @@ import net.liftweb.json.{Formats, JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 
-import scala.util.matching.Regex
 import code.util.Helper.MdcLoggable
+import org.apache.commons.lang3.StringUtils
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.regex.Pattern
 
 object JSONFactory1_4_0 extends MdcLoggable{
   implicit def formats: Formats = CustomJsonFormats.formats
@@ -378,7 +379,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   //urlParameters can be /xxx/banks/BANK_ID/accounts/ACCOUNT_ID?some=one
   //List(BANK_ID,ACCOUNT_ID, ...)
-  val regex = """/([A-Z_]+)[/?]""".r
+  val isPathParam = {
+    val pattern = Pattern.compile("[A-Z_]+")
+    (str: String) => pattern.matcher(str).matches()
+  }
   /**
    * prepare the markdown string for each parameter from the URL.
    * @also see the usage from JSONFactory1_4_0Test
@@ -388,11 +392,13 @@ object JSONFactory1_4_0 extends MdcLoggable{
    *         [BANK_ID](/glossary#Bank.bank_id):gh.29.uk
    */
   def prepareUrlParameterDescription(requestUrl: String): String = {
+    val noQueryParamUrl = StringUtils.substringBefore(requestUrl, "?")
     //1rd: get the parameters from URL:
-    val findMatches: Iterator[Regex.Match] = regex.findAllMatchIn(requestUrl)
+    val findMatches = StringUtils.split(noQueryParamUrl, "/")
+      .filter(isPathParam)
 
     if(findMatches.nonEmpty) {
-      val urlParameters: List[String] = findMatches.map(_.group(1)).toList.sorted
+      val urlParameters: List[String] = findMatches.toList.sorted
       val parametersDescription: List[String] = urlParameters.map(prepareDescription)
       parametersDescription.mkString("\n\n\n**URL Parameters:**", "", "\n")
     } else {
