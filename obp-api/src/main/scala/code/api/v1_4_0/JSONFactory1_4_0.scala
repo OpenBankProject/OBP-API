@@ -21,6 +21,8 @@ import net.liftweb.util.StringHelpers
 import scala.util.matching.Regex
 import code.util.Helper.MdcLoggable
 
+import java.util.concurrent.ConcurrentHashMap
+
 object JSONFactory1_4_0 extends MdcLoggable{
   implicit def formats: Formats = CustomJsonFormats.formats
   case class PostCustomerJson(
@@ -365,15 +367,18 @@ object JSONFactory1_4_0 extends MdcLoggable{
    */
   def getExampleFieldValue(parameter: String): String = {
     val exampleValueFieldName = APIUtil.firstCharToLowerCase(StringHelpers.camelify(parameter.toLowerCase).capitalize)+"Example"
-    try {
-      ReflectUtils.getValueByFieldName(ExampleValue, exampleValueFieldName).asInstanceOf[ConnectorField].value
-    } catch {
-      case ex: Throwable => //The ExampleValue are not totally finished, lots of fields are missing here. so we first hide them. and show them in the log
+    ExampleValue.exampleNameToValue.get(exampleValueFieldName) match {
+      case Some(ConnectorField(value, _)) => value
+      case _ =>
+        //The ExampleValue are not totally finished, lots of fields are missing here. so we first hide them. and show them in the log
         logger.error(s"getExampleFieldValue: there is no $exampleValueFieldName variable in ExampleValue object")
-        s"$parameter"
+        parameter
     }
   }
-  
+
+  //urlParameters can be /xxx/banks/BANK_ID/accounts/ACCOUNT_ID?some=one
+  //List(BANK_ID,ACCOUNT_ID, ...)
+  val regex = """/([A-Z_]+)[/?]""".r
   /**
    * prepare the markdown string for each parameter from the URL.
    * @also see the usage from JSONFactory1_4_0Test
@@ -384,19 +389,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
    */
   def prepareUrlParameterDescription(requestUrl: String): String = {
     //1rd: get the parameters from URL:
-    val str = requestUrl
-    //Inside a character class, $ (as well as ^, ., and /) has no special meaning, 
-    // so [/$] matches either a literal / or a literal $ rather than terminating the regex (/) or matching end-of-line ($).
-    // here, I use (/|\z) instead, To match either / or end of content, use (/|\z)
-    val regex = """/([A-Z_]+)(?=(/|\z))""".r
-    val findMatches: Iterator[Regex.Match] = regex.findAllMatchIn(str)
-    //urlParameters can be: List(BANK_ID,ACCOUNT_ID, ...)
-    val urlParameters: List[String] = findMatches.map(_.group(1)).toList.sorted
-    if (urlParameters.length == 0) { //for some endpoints, there is not parameters in the URL, so it can be empty 
-      ""
-    } else {
+    val findMatches: Iterator[Regex.Match] = regex.findAllMatchIn(requestUrl)
+
+    if(findMatches.nonEmpty) {
+      val urlParameters: List[String] = findMatches.map(_.group(1)).toList.sorted
       val parametersDescription: List[String] = urlParameters.map(prepareDescription)
       parametersDescription.mkString("\n\n\n**URL Parameters:**", "", "\n")
+    } else {
+      ""
     }
   }
 
@@ -436,26 +436,30 @@ object JSONFactory1_4_0 extends MdcLoggable{
     jsonFieldsDescription.mkString(jsonTitleType,"","\n")
   }
 
+  private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
+
   def createResourceDocJson(rd: ResourceDoc) : ResourceDocJson = {
+    // if this calculate conversion already happened before, just return that value
+    // if not calculated before, just do conversion
+    createResourceDocJsonMemo.computeIfAbsent(rd, _=>{
+      // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
+      // But we don't want to have to escape underscores (\_) in our documentation
+      // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
+      // We return html rather than markdown to the consumer so they don't have to bother with these questions.
 
-    // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
-    // But we don't want to have to escape underscores (\_) in our documentation
-    // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
-    // We return html rather than markdown to the consumer so they don't have to bother with these questions.
-
-    //Here area some endpoints, which should not be added the description:
-    // 1st: Dynamic entity endpoint, 
-    // 2rd: Dynamic endpoint endpoints,
-    // 3rd: all the user created endpoints,
-    val fieldsDescription = 
-      if(rd.tags.toString.contains("Dynamic-Entity") 
-        ||rd.tags.toString.contains("Dynamic-Endpoint") 
+      //Here area some endpoints, which should not be added the description:
+      // 1st: Dynamic entity endpoint,
+      // 2rd: Dynamic endpoint endpoints,
+      // 3rd: all the user created endpoints,
+      val fieldsDescription =
+      if(rd.tags.toString.contains("Dynamic-Entity")
+        ||rd.tags.toString.contains("Dynamic-Endpoint")
         ||rd.roles.toString.contains("DynamicEntity")
         ||rd.roles.toString.contains("DynamicEntities")
         ||rd.roles.toString.contains("DynamicEndpoint")) {
         ""
       } else{
-        //1st: prepare the description from URL 
+        //1st: prepare the description from URL
         val urlParametersDescription: String = prepareUrlParameterDescription(rd.requestUrl)
         //2rd: get the fields description from the post json body:
         val exampleRequestBodyFieldsDescription =
@@ -468,30 +472,31 @@ object JSONFactory1_4_0 extends MdcLoggable{
         val responseFieldsDescription = prepareJsonFieldDescription(rd.successResponseBody,"response")
         urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }
-    
-    val description = rd.description.stripMargin.trim ++ fieldsDescription
-    
-    ResourceDocJson(
-      operation_id = rd.operationId,
-      request_verb = rd.requestVerb,
-      request_url = rd.requestUrl,
-      summary = rd.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary
-      // Strip the margin character (|) and line breaks and convert from markdown to html
-      description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
-      description_markdown = description,
-      example_request_body = rd.exampleRequestBody,
-      success_response_body = rd.successResponseBody,
-      error_response_bodies = rd.errorResponseBodies,
-      implemented_by = ImplementedByJson(rd.implementedInApiVersion.fullyQualifiedVersion, rd.partialFunctionName), // was rd.implementedInApiVersion.noV
-      tags = rd.tags.map(i => i.tag),
-      typed_request_body = createTypedBody(rd.exampleRequestBody),
-      typed_success_response_body = createTypedBody(rd.successResponseBody),
-      roles = rd.roles,
-      is_featured = rd.isFeatured,
-      special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
-      specified_url = rd.specifiedUrl.getOrElse(""),
-      connector_methods = rd.connectorMethods
+
+      val description = rd.description.stripMargin.trim ++ fieldsDescription
+
+      ResourceDocJson(
+        operation_id = rd.operationId,
+        request_verb = rd.requestVerb,
+        request_url = rd.requestUrl,
+        summary = rd.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary
+        // Strip the margin character (|) and line breaks and convert from markdown to html
+        description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
+        description_markdown = description,
+        example_request_body = rd.exampleRequestBody,
+        success_response_body = rd.successResponseBody,
+        error_response_bodies = rd.errorResponseBodies,
+        implemented_by = ImplementedByJson(rd.implementedInApiVersion.fullyQualifiedVersion, rd.partialFunctionName), // was rd.implementedInApiVersion.noV
+        tags = rd.tags.map(i => i.tag),
+        typed_request_body = createTypedBody(rd.exampleRequestBody),
+        typed_success_response_body = createTypedBody(rd.successResponseBody),
+        roles = rd.roles,
+        is_featured = rd.isFeatured,
+        special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
+        specified_url = rd.specifiedUrl.getOrElse(""),
+        connector_methods = rd.connectorMethods
       )
+    })
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc]) : ResourceDocsJson = {
