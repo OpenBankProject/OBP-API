@@ -411,7 +411,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                   case _ =>
                     val dynamicDocs: Box[JValue] = getResourceDocsObpDynamic(requestedApiVersion, tags, partialFunctions)
                     val staticDocs: Box[JValue] = getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
-                    println()
+
                     for {
                       dDocs <- dynamicDocs
                       sDocs <- staticDocs
