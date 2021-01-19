@@ -60,6 +60,11 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
       requestUrl2Description contains ("[BANK_ID]") should be (true)
       requestUrl2Description contains ("[ACCOUNT_ID]") should be (true)
       requestUrl2Description contains ("[VIEW_ID]") should be (true)
+
+      val requestUrl3 = "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID?date=2020-11-11"
+      val requestUrl3Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl3)
+
+      requestUrl2Description shouldEqual(requestUrl3Description)
     }
 
     scenario("getExampleTitleAndValueTuple should work well") {

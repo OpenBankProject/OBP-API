@@ -29,6 +29,7 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
+import java.util.concurrent.ConcurrentHashMap
 import scala.collection.immutable.{List, Nil}
 
 // JObject creation
@@ -61,10 +62,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
 
     // avoid repeat execute method getSpecialInstructions, here save the calculate results.
-    private val specialInstructionMap = scala.collection.mutable.Map[String, Option[String]]()
+    private val specialInstructionMap = new ConcurrentHashMap[String, Option[String]]()
     // Find any special instructions for partialFunctionName
     def getSpecialInstructions(partialFunctionName: String):  Option[String] = {
-      specialInstructionMap.getOrElseUpdate(partialFunctionName, {
+      specialInstructionMap.computeIfAbsent(partialFunctionName, _ => {
         // The files should be placed in a folder called special_instructions_for_resources folder inside the src resources folder
         // Each file should match a partial function name or it will be ignored.
         // The format of the file should be mark down.
