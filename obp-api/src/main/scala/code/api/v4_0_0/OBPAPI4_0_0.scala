@@ -68,8 +68,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(OBPAPI3_1_0.allResourceDocs,
-                                            Implementations4_0_0.resourceDocs,
-                                            DynamicEntityHelper.doc, DynamicEndpointHelper.doc)
+                                            Implementations4_0_0.resourceDocs)
      .filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
     //TODO exclude two endpoints, after training we need add logic to exclude endpoints
 

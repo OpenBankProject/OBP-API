@@ -7,11 +7,12 @@ import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.{APIUtil, _}
+import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
+import code.api.v4_0_0.{APIMethods400, DynamicEndpointHelper, DynamicEntityHelper, OBPAPI4_0_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ListResult
@@ -200,7 +201,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     // if upload DynamicEntity, will generate corresponding endpoints, when current cache timeout, the new endpoints will be shown.
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
-    val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "5").toInt
+    val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "3600").toInt
 
     /**
      * 
@@ -212,9 +213,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      */
     private def getResourceDocsObpCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
-                                         partialFunctionNames: Option[List[String]],
-                                         contentParam: Option[ContentParam]= None
-    ) : Box[JsonResponse] = {
+                                         partialFunctionNames: Option[List[String]]
+    ) : Box[JValue] = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
        * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -225,46 +225,43 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
           logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersion")
-          val obpResourceDocJson = for {
-            resourceDocs <- getResourceDocsList(requestedApiVersion)
-          } yield {
-            // Filter
-            val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames, contentParam)
-            // Format the data as json
-            val innerJson = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
-            // Return
 
-            /**
-             * replace JValue key: jsonClass --> api_role
-             */
-            def replaceJsonKey(json: JValue): JValue = json transformField {
-              case JField("jsonClass", x) => JField("role", x)
-              case JField("requiresBankId", x) => JField("requires_bank_id", x)
-            }
-
-            /**
-             * This is only used for remove `JvalueCaseClass` in JValue.
-             * @`implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)`
-             * For SwaggerCodeGen-obp, need to change String --> JValue implicitly.
-             * There will introduce the new key `JvalueCaseClass` in JValue.
-             * So in GetResourceDoc API, we need remove it.
-             */
-            def removeJsonKeyAndKeepChildObject(json: JValue): JValue = json transform {
-              case JObject(List(JField("jvalueToCaseclass", JObject(x))))=> JObject(x)
-            }
-
-            /**
-             * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
-             */
-            def replaceJsonValue(json: JValue): JValue = json transformField {
-              case JField("role", JString(x)) => JField("role", JString(x.replace("ApiRole$", "")))
-            }
-            successJsonResponse(replaceJsonValue(replaceJsonKey(removeJsonKeyAndKeepChildObject(Extraction.decompose(innerJson)))))
-          }
-          obpResourceDocJson
+          val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames)
+          resourceDocJson.map(resourceDocsJsonToJsonResponse)
         }
       }
     }
+
+    private def getResourceDocsObpDynamic(requestedApiVersion : ApiVersion,
+                                         resourceDocTags: Option[List[ResourceDocTag]],
+                                         partialFunctionNames: Option[List[String]]
+                                        ): Option[JValue] = {
+      val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc)
+        .map(it => it.specifiedUrl match {
+          case Some(_) => it
+          case _ =>
+            it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+            it
+        })
+        .toList
+      val resourceDocJson = resourceDocsToResourceDocJson(Some(dynamicDocs), resourceDocTags, partialFunctionNames)
+      resourceDocJson.map(resourceDocsJsonToJsonResponse)
+    }
+
+
+
+    private def resourceDocsToResourceDocJson(rd: Option[List[ResourceDoc]],
+                                     resourceDocTags: Option[List[ResourceDocTag]],
+                                     partialFunctionNames: Option[List[String]]): Option[ResourceDocsJson] =
+      for {
+        resourceDocs <- rd
+      } yield {
+        // Filter
+        val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames)
+        // Format the data as json
+        JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
+      }
+
     private val getChineseVersionResourceDocs : Box[JsonResponse] = {
       val stream = getClass().getClassLoader().getResourceAsStream("ResourceDocs/ResourceDocs-Chinese.json")
       val chineseVersion = try {
@@ -351,9 +348,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |
          | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
          |
-         | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic 
+         | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic
          | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
-         | 
+         |
          | You may need some other language resource docs, now we support en and zh , e.g. ?language=zh
          |
          |See the Resource Doc endpoint for more information.
@@ -395,7 +392,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               } yield{
                 hasCanReadResourceDocRole
               }
-            else 
+            else
               Full()//If set resource_docs_requires_role=false, just return the response directly..
 
             (tags, partialFunctions, languageParam, contentParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
@@ -403,7 +400,26 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
             json <- languageParam match {
               case Some(ZH) => getChineseVersionResourceDocs
-              case _ => getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, contentParam)
+              case _ =>
+                contentParam match {
+                  case Some(DYNAMIC) =>
+                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamic(requestedApiVersion, tags, partialFunctions)
+                    dynamicDocs.map(successJsonResponse(_))
+                  case Some(STATIC) =>
+                    val staticDocs: Box[JValue] = getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+                    staticDocs.map(successJsonResponse(_))
+                  case _ =>
+                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamic(requestedApiVersion, tags, partialFunctions)
+                    val staticDocs: Box[JValue] = getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+                    println()
+                    for {
+                      dDocs <- dynamicDocs
+                      sDocs <- staticDocs
+                    } yield {
+                      val mergedJson = dDocs.merge(sDocs)
+                      successJsonResponse(mergedJson)
+                    }
+                }
             }
           } yield {
             json
@@ -455,23 +471,44 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             (resourceDocTags, partialFunctions, languageParam, contentParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
-            json <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
+            staticJson <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
+            dynamicJson <- getResourceDocsSwagger(requestedApiVersionString, resourceDocTags, partialFunctions)
           } yield {
-            json
+            successJsonResponse(staticJson.merge(dynamicJson))
           }
         }
       }
     }
 
 
+    private def getResourceDocsSwaggerCached(requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JValue] = {
+      /**
+       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+       * is just a temporary value field with UUID values in order to prevent any ambiguity.
+       * The real value will be assigned by Macro during compile time at this line of a code:
+       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+       */
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
+          logger.debug(s"Generating Swagger requestedApiVersion is $requestedApiVersionString")
 
+          Box.tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) match {
+            case Full(requestedApiVersion) =>
+              val resourceDocs: Option[List[ResourceDoc]] = getResourceDocsList(requestedApiVersion)
+              getResourceDocsSwagger(requestedApiVersionString, resourceDocTags, partialFunctionNames, resourceDocs)
+            case e =>
+              (e ?~! InvalidApiVersionString).asInstanceOf[Box[JValue]]
+          }
+        }
+      }
+    }
 
-
-
-
-
-
-    private def getResourceDocsSwaggerCached(requestedApiVersionString : String, resourceDocTags: Option[List[ResourceDocTag]], partialFunctionNames: Option[List[String]]) : Box[JsonResponse] = {
+    // if not supply resourceDocs parameter, just get dynamic ResourceDocs swagger
+    private def getResourceDocsSwagger(requestedApiVersionString : String,
+                                       resourceDocTags: Option[List[ResourceDocTag]],
+                                       partialFunctionNames: Option[List[String]],
+                                       resourceDocs: Option[List[ResourceDoc]] = None) : Box[JValue] = {
 
       // build swagger and remove not used definitions
       def buildSwagger(resourceDoc: SwaggerJSONFactory.SwaggerResourceDoc, definitions: json.JValue) = {
@@ -501,66 +538,57 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
         jValue merge usedDefinitions
       }
-      // cache this function with the parameters of the function
-      /**
-       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-       * is just a temporary value field with UUID values in order to prevent any ambiguity.
-       * The real value will be assigned by Macro during compile time at this line of a code:
-       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-       */
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL millisecond) {
-          logger.debug(s"Generating Swagger requestedApiVersion is $requestedApiVersionString")
-          val jsonOut = for {
-            requestedApiVersion <- Full(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
-            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
-            rd <- getResourceDocsList(requestedApiVersion)
-          } yield {
-            // Filter
-            val rdFiltered = ResourceDocsAPIMethodsUtil
-              .filterResourceDocs(rd, resourceDocTags, partialFunctionNames)
-              .map {
-                /**
-                 * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
-                 * So here filter out them.
-                 */
-                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
-                  doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
-                    successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
-                  )
 
-                case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
-                  doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
+      def resourceDocsToJValue(resourceDocs: Option[List[ResourceDoc]]): Box[JValue] = {
+        for {
+          requestedApiVersion <- Box.tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! InvalidApiVersionString
+          _ <- booleanToBox(versionIsAllowed(requestedApiVersion), ApiVersionNotSupported)
+          rd <- resourceDocs
+        } yield {
+          // Filter
+          val rdFiltered = ResourceDocsAPIMethodsUtil
+            .filterResourceDocs(rd, resourceDocTags, partialFunctionNames)
+            .map {
+              /**
+               * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
+               * So here filter out them.
+               */
+              case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
+                doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
+                  successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
+                )
 
-                case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) || 
-                  doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints)
-                  )=>
-                  doc.copy(successResponseBody = ListResult(
-                    "dynamic_endpoints",
-                    List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)
-                  ))
+              case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
+                doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
 
-                case doc =>
-                  doc
-              }
-            // Format the data as json
-            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
-            //Get definitions of objects of success responses
-            val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
-            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered, allSwaggerDefinitionCaseClasses)
-            // Merge both results and return
-            successJsonResponse(buildSwagger(json, jsonAST))
-          }
-          jsonOut
+              case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints)
+                )=>
+                doc.copy(successResponseBody = ListResult(
+                  "dynamic_endpoints",
+                  List(ExampleValue.dynamicEndpointResponseBodyEmptyExample)
+                ))
+
+              case doc =>
+                doc
+            }
+          // Format the data as json
+          val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
+          //Get definitions of objects of success responses
+          val allSwaggerDefinitionCaseClasses = SwaggerDefinitionsJSON.allFields
+          val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered, allSwaggerDefinitionCaseClasses)
+          // Merge both results and return
+          buildSwagger(json, jsonAST)
         }
       }
+
+      resourceDocs match {
+        case docs @Some(_) => resourceDocsToJValue(docs)
+        case _ =>
+          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc).toList
+          resourceDocsToJValue(Some(dynamicDocs))
+      }
     }
-
-
-
-
-
 
     if (Props.devMode) {
       localResourceDocs += ResourceDoc(
@@ -620,6 +648,36 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
   }
 
+  private def resourceDocsJsonToJsonResponse(resourceDocsJson: ResourceDocsJson): JValue = {
+    /**
+     * replace JValue key: jsonClass --> api_role
+     */
+    def replaceJsonKey(json: JValue): JValue = json transformField {
+      case JField("jsonClass", x) => JField("role", x)
+      case JField("requiresBankId", x) => JField("requires_bank_id", x)
+    }
+
+    /**
+     * This is only used for remove `JvalueCaseClass` in JValue.
+     *
+     * @`implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)`
+     *            For SwaggerCodeGen-obp, need to change String --> JValue implicitly.
+     *            There will introduce the new key `JvalueCaseClass` in JValue.
+     *            So in GetResourceDoc API, we need remove it.
+     */
+    def removeJsonKeyAndKeepChildObject(json: JValue): JValue = json transform {
+      case JObject(List(JField("jvalueToCaseclass", JObject(x)))) => JObject(x)
+    }
+
+    /**
+     * replace JValue value: ApiRole$CanCreateUser --> CanCreateUser
+     */
+    def replaceJsonValue(json: JValue): JValue = json transformField {
+      case JField("role", JString(x)) => JField("role", JString(x.replace("ApiRole$", "")))
+    }
+
+    replaceJsonValue(replaceJsonKey(removeJsonKeyAndKeepChildObject(Extraction.decompose(resourceDocsJson)(CustomJsonFormats.formats))))
+  }
 }
 
 object ResourceDocsAPIMethodsUtil extends MdcLoggable{
@@ -719,8 +777,7 @@ so the caller must specify any required filtering by catalog explicitly.
   def filterResourceDocs(
     allResources: List[ResourceDoc], 
     resourceDocTags: Option[List[ResourceDocTag]], 
-    partialFunctionNames: Option[List[String]],
-    contentParam:Option[ContentParam]= None
+    partialFunctionNames: Option[List[String]]
   ) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
@@ -761,16 +818,9 @@ so the caller must specify any required filtering by catalog explicitly.
       // tags param was not mentioned in url or was empty, so return all
       case None => filteredResources3
     }
-
-
-    val filteredResources5: List[ResourceDoc] = contentParam match {
-      case Some(DYNAMIC) => filteredResources4.filter(_.tags.contains(apiTagDynamic))
-      case Some(STATIC) => filteredResources4.filterNot(_.tags.contains(apiTagDynamic))
-      case _ => filteredResources4
-    }
     
 
-    val resourcesToUse = filteredResources5.toSet.toList
+    val resourcesToUse = filteredResources4.toSet.toList
 
 
     logger.debug(s"allResources count is ${allResources.length}")
@@ -778,7 +828,6 @@ so the caller must specify any required filtering by catalog explicitly.
     logger.debug(s"filteredResources2 count is ${filteredResources2.length}")
     logger.debug(s"filteredResources3 count is ${filteredResources3.length}")
     logger.debug(s"filteredResources4 count is ${filteredResources4.length}")
-    logger.debug(s"filteredResources5 count is ${filteredResources5.length}")
     logger.debug(s"resourcesToUse count is ${resourcesToUse.length}")
 
 
