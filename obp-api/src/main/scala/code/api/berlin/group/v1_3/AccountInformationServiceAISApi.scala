@@ -354,14 +354,12 @@ The account-id is constant at least throughout the lifecycle of a given consent.
            for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
-            (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
-            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
+            (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-              u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
             }
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
          }
        }
@@ -1009,10 +1007,9 @@ Give detailed information about the addressed account together with balance info
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createAccountDetailsJson(bankAccount, u), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createAccountDetailsJson(account, u), callContext)
            }
          }
        }
@@ -1060,12 +1057,9 @@ respectively the OAuth2 access token.
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             _ <- Helper.booleanToFuture(failMsg = DefaultBankIdNotSet) {
-               defaultBankId != "DEFAULT_BANK_ID_NOT_SET"
-             }
-             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(bankAccount, u), callContext)
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(account, u), callContext)
            }
        }
      }
