@@ -271,14 +271,7 @@ of the PSU at this ASPSP.
            for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-  
-            bankId = BankId(defaultBankId)
-  
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-  
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-            
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
 
             //If the bankAccount from obp side, there the attributes field should be Empty.
