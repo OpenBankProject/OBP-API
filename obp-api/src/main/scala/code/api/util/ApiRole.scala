@@ -1,15 +1,18 @@
 package code.api.util
 
 import java.util.concurrent.ConcurrentHashMap
-
 import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityHelper}
-import com.openbankproject.commons.util.ReflectUtils
+import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
+import net.liftweb.json.{Formats, JsonAST}
+import net.liftweb.json.JsonDSL._
 
-sealed trait ApiRole{
+sealed trait ApiRole extends JsonAble {
   val requiresBankId: Boolean
   override def toString() = getClass().getSimpleName
 
   def & (apiRole: ApiRole): RoleCombination = RoleCombination(this, apiRole)
+
+  override def toJValue(implicit format: Formats): JsonAST.JValue = ("role", this.toString()) ~ ("requires_bank_id", requiresBankId)
 }
 
 /**
