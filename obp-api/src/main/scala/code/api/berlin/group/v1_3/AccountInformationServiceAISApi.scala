@@ -418,21 +418,10 @@ respectively the OAuth2 access token.
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             _ <- Helper.booleanToFuture(failMsg = DefaultBankIdNotSet) {
-               defaultBankId != "DEFAULT_BANK_ID_NOT_SET"
-             }
-
-             bankId = BankId(defaultBankId)
-
-             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
-             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-
+             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              //The card contains the account object, it mean the card account.
              (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
-
              (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
-              
              //also see `getAccountList` endpoint
              bankAccountsFiltered = accounts.filter(bankAccount => 
                bankAccount.attributes.toList.flatten.find(attribute=> 
@@ -440,7 +429,6 @@ respectively the OAuth2 access token.
                    attribute.`type`.equals("STRING")&&
                  attribute.value.equalsIgnoreCase("card") 
                ).isDefined)
-
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountListJson(bankAccountsFiltered, u), callContext)
            }
