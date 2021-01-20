@@ -562,35 +562,23 @@ Reads account data from a given card account addressed by "account-id".
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
-       case "card-accounts" :: AccountId(account_id):: "transactions" :: Nil JsonGet _ => {
+       case "card-accounts" :: AccountId(accountId):: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-
-             bankId = BankId(defaultBankId)
-
-             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
-             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
-
+             (bankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
+             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
              view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-
              (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-
-             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params) map {
+             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
            }
