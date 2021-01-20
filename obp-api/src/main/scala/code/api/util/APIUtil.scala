@@ -31,6 +31,7 @@ import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
+import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
@@ -46,6 +47,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityHelper}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -1183,6 +1185,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   val dynamicEndpointStub: OBPEndpoint = Functions.doNothing
 
+  object ResourceDoc{
+    private val operationIdToResourceDoc: ConcurrentHashMap[String, ResourceDoc] = new ConcurrentHashMap[String, ResourceDoc]
+
+    def getResourceDocs(operationIds: List[String]): List[ResourceDoc] = {
+      val dynamicDocs = DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc
+      operationIds.collect {
+        case operationId if operationIdToResourceDoc.containsKey(operationId) =>
+          operationIdToResourceDoc.get(operationId)
+        case operationId if dynamicDocs.exists(_.operationId == operationId) =>
+          dynamicDocs.find(_.operationId == operationId).orNull
+      }
+    }
+  }
+  
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1235,6 +1251,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
     val operationId = buildOperationId(implementedInApiVersion, partialFunctionName)
+    
+    // all static ResourceDocs add to ResourceDoc.operationIdToResourceDoc
+    if(!this.tags.contains(ApiTag.apiTagDynamic)) {
+      ResourceDoc.operationIdToResourceDoc.put(operationId, this)
+    }
 
     private var _isEndpointAuthCheck = false
 
