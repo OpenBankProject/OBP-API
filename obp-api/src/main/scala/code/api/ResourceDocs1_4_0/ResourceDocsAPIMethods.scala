@@ -13,6 +13,7 @@ import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.api.v4_0_0.{APIMethods400, DynamicEndpointHelper, DynamicEntityHelper, OBPAPI4_0_0}
+import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ListResult
@@ -370,6 +371,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
          |
          | You may need some other language resource docs, now we support en and zh , e.g. ?language=zh
+         | 
+         | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters. 
          |
          |See the Resource Doc endpoint for more information.
          |
@@ -379,6 +382,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
          |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?language=zh
          |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?content=static,dynamic,all
+         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
          |
          |<ul>
          |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -413,11 +417,17 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             else
               Full()//If set resource_docs_requires_role=false, just return the response directly..
 
-            (tags, partialFunctions, languageParam, contentParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
+            (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
             json <- languageParam match {
               case Some(ZH) => getChineseVersionResourceDocs
+              case _ if(apiCollectionIdParam.isDefined) =>
+                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId.replace("_","."))
+                val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
+                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs)
+                val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
+                resourceDocsJsonJValue.map(successJsonResponse(_))
               case _ =>
                 contentParam match {
                   case Some(DYNAMIC) =>
@@ -486,7 +496,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (resourceDocTags, partialFunctions, languageParam, contentParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
+            (resourceDocTags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             staticJson <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
@@ -721,7 +731,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     case _ => None
   }
 
-  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam], Option[ContentParam]) = {
+  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam], Option[ContentParam], Option[String]) = {
 
     val rawTagsParam = S.param("tags")
 
@@ -783,7 +793,12 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     } yield y
     logger.info(s"content is $contentParam")
 
-    (tags, partialFunctionNames, languageParam, contentParam)
+    val apiCollectionIdParam = for {
+      x <- S.param("api-collection-id")
+    } yield x
+    logger.info(s"apiCollectionIdParam is $apiCollectionIdParam")
+
+    (tags, partialFunctionNames, languageParam, contentParam, apiCollectionIdParam)
   }
 
 
