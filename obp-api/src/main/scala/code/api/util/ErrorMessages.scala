@@ -462,6 +462,8 @@ object ErrorMessages {
   val AuthenticationTypeValidationDeleteError = "OBP-40033: Could not delete the AuthenticationTypeValidation. "
   val AuthenticationTypeIllegal = "OBP-40034: Current request authentication type is illegal. "
 
+  val ForceErrorInvalid = "OBP-40035: Force Error request header is invalid. "
+
 
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
@@ -558,6 +560,16 @@ object ErrorMessages {
   //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
   def getFieldNameByValue(value: String): String =
     fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
+
+  def getValueByNameMatches(predicate: String => Boolean): Option[String] = fieldValueToName.collectFirst {
+    case (key: String, value) if predicate(key) => value
+  }
+
+  // check whether given name is valid errorMessage name
+  val isValidName: String => Boolean = {
+    val pattern = Pattern.compile("""OBP\-\d+:?""")
+    pattern.matcher(_:String).matches()
+  }
 
   /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
   /**

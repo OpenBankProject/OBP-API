@@ -2054,10 +2054,11 @@ trait APIMethods400 {
         val operationId = if(isGetAll) DynamicEntityHelper.buildGetAllOperationId(entityName)
                           else DynamicEntityHelper.buildGetOneOperationId(entityName)
 
-        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        // process before authentication interceptor, get intercept result
+        val authTypeError: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(cc), operationId)
         if(authTypeError.isDefined) authTypeError
         else for {
-          (Full(u), callContext) <- authenticatedAccess(cc)
+          (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
               bankId.equals(dynamicEntityInfo.bankId.get)
@@ -2072,6 +2073,15 @@ trait APIMethods400 {
             }
           
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, dynamicEntityInfo.bankId), callContext)
+
+          // process after authentication interceptor, get intercept result
+          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
+            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
+          })
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+            jsonResponse.isEmpty
+          }
+
           (box, _) <- if(isGetAll){
               NewStyle.function.invokeDynamicConnector(GET_ALL, entityName, None, None, dynamicEntityInfo.bankId, Some(cc))
             } else{
@@ -2113,10 +2123,11 @@ trait APIMethods400 {
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         val operationId = DynamicEntityHelper.buildCreateOperationId(entityName)
 
-        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        // process before authentication interceptor, get intercept result
+        val authTypeError: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(cc), operationId)
         if(authTypeError.isDefined) authTypeError
         else for {
-          (Full(u), callContext) <- authenticatedAccess(cc)
+          (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
               bankId.equals(dynamicEntityInfo.bankId.get)
@@ -2131,10 +2142,12 @@ trait APIMethods400 {
             }
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, dynamicEntityInfo.bankId), callContext)
 
-          // validate request json payload
-          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
-          _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
-            errorMsg.isEmpty
+          // process after authentication interceptor, get intercept result
+          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
+            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
+          })
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+            jsonResponse.isEmpty
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, dynamicEntityInfo.bankId, Some(cc))
@@ -2154,10 +2167,11 @@ trait APIMethods400 {
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         val operationId = DynamicEntityHelper.buildUpdateOperationId(entityName)
 
-        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        // process before authentication interceptor, get intercept result
+        val authTypeError: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(cc), operationId)
         if(authTypeError.isDefined) authTypeError
         else for {
-          (Full(u), callContext) <- authenticatedAccess(cc)
+          (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
               bankId.equals(dynamicEntityInfo.bankId.get)
@@ -2172,10 +2186,12 @@ trait APIMethods400 {
             }
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, dynamicEntityInfo.bankId), callContext)
 
-          // validate request json payload
-          errorMsg = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
-          _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
-            errorMsg.isEmpty
+          // process after authentication interceptor, get intercept result
+          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
+            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
+          })
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+            jsonResponse.isEmpty
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
@@ -2198,10 +2214,11 @@ trait APIMethods400 {
       case EntityName(bankId, entityName, id, dynamicEntityInfo) JsonDelete req => { cc =>
         val operationId = DynamicEntityHelper.buildDeleteOperationId(entityName)
 
-        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        // process before authentication interceptor, get intercept result
+        val authTypeError: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(cc), operationId)
         if(authTypeError.isDefined) authTypeError
         else for {
-          (Full(u), callContext) <- authenticatedAccess(cc)
+          (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
           _ <- Helper.booleanToFuture(s"$InvalidBankIdDynamicEntity Current BANK_ID($bankId)") {
             if(dynamicEntityInfo.bankId.isDefined) //if it is the bank level entity, we need to check the bankId
               bankId.equals(dynamicEntityInfo.bankId.get)
@@ -2215,6 +2232,15 @@ trait APIMethods400 {
               Future{("", callContext)}
             }
           _ <- NewStyle.function.hasEntitlement(dynamicEntityInfo.bankId.getOrElse(""), u.userId, DynamicEntityInfo.canDeleteRole(entityName, dynamicEntityInfo.bankId), callContext)
+
+          // process after authentication interceptor, get intercept result
+          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
+            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
+          })
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+            jsonResponse.isEmpty
+          }
+
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), dynamicEntityInfo.bankId, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
             box.isDefined
@@ -4429,7 +4455,8 @@ trait APIMethods400 {
 
     lazy val dynamicEndpoint: OBPEndpoint = {
       case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse) => { cc =>
-        val authTypeError: Box[JsonResponse] = validateAuthType(operationId, cc)
+        // process before authentication interceptor, get intercept result
+        val authTypeError: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(cc), operationId)
         if(authTypeError.isDefined) authTypeError
         else for {
             (Full(u), callContext) <- authenticatedAccess(cc.copy(operationId = Some(operationId))) // Inject operationId into Call Context. It's used by Rate Limiting.
@@ -4438,9 +4465,13 @@ trait APIMethods400 {
             // validate request json payload
             httpRequestMethod = cc.verb
             path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
-            errorMsg:Option[String] = JsonSchemaUtil.validateRequest(cc.callContext)(operationId)
-            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.InvalidRequestPayload} ${errorMsg.orNull}") {
-              errorMsg.isEmpty
+
+            // process after authentication interceptor, get intercept result
+            jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
+              case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
+            })
+            _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+              jsonResponse.isEmpty
             }
 
             (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread

@@ -42,13 +42,12 @@ import code.util.Helper.MdcLoggable
 import com.alibaba.ttl.TransmittableThreadLocal
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
-import net.liftweb.common._
+import net.liftweb.common.{Box, Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers
-import net.liftweb.common.Box
 
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
@@ -266,14 +265,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       requestHeaders = reqHeaders
     )
 
-    val authTypeError: Option[JsonResponse] = for {
-      resourceDoc <- rd
-      errorMsg <- validateAuthType(resourceDoc.operationId, cc)
-    } yield errorMsg
+    // before authentication interceptor build response
+    val maybeJsonResponse: Box[JsonResponse] = rd.flatMap(it => beforeAuthenticateInterceptResult(Option(cc), it.operationId))
 
-    // current request authType not in allowed authType
-    if(authTypeError.isDefined) {
-      authTypeError.get
+    if(maybeJsonResponse.isDefined) {
+      maybeJsonResponse
     } else if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (APIUtil.hasConsentJWT(reqHeaders)) {
