@@ -474,19 +474,17 @@ This account-id then can be retrieved by the
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
-       case "card-accounts" :: accountId:: "balances" :: Nil JsonGet _ => {
+       case "card-accounts" :: accountId :: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
-             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
-             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
        }
      }
