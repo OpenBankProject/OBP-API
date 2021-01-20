@@ -418,21 +418,10 @@ respectively the OAuth2 access token.
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             _ <- Helper.booleanToFuture(failMsg = DefaultBankIdNotSet) {
-               defaultBankId != "DEFAULT_BANK_ID_NOT_SET"
-             }
-
-             bankId = BankId(defaultBankId)
-
-             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
-             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
-
+             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              //The card contains the account object, it mean the card account.
              (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
-
              (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
-              
              //also see `getAccountList` endpoint
              bankAccountsFiltered = accounts.filter(bankAccount => 
                bankAccount.attributes.toList.flatten.find(attribute=> 
@@ -440,7 +429,6 @@ respectively the OAuth2 access token.
                    attribute.`type`.equals("STRING")&&
                  attribute.value.equalsIgnoreCase("card") 
                ).isDefined)
-
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountListJson(bankAccountsFiltered, u), callContext)
            }
@@ -486,19 +474,17 @@ This account-id then can be retrieved by the
      )
 
      lazy val getCardAccountBalances : OBPEndpoint = {
-       case "card-accounts" :: accountId:: "balances" :: Nil JsonGet _ => {
+       case "card-accounts" :: accountId :: "balances" :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
-             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
-             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
+             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-               u.hasOwnerViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId))
+               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
              }
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(bankAccount), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
        }
      }
@@ -576,35 +562,23 @@ Reads account data from a given card account addressed by "account-id".
      )
 
      lazy val getCardAccountTransactionList : OBPEndpoint = {
-       case "card-accounts" :: AccountId(account_id):: "transactions" :: Nil JsonGet _ => {
+       case "card-accounts" :: AccountId(accountId):: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-
-             bankId = BankId(defaultBankId)
-
-             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
-             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
-
+             (bankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
+             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
              view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
-
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-
              (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-
-             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params) map {
+             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
            }
@@ -918,35 +892,23 @@ The ASPSP might add balance information, if transaction lists without balances a
      )
 
      lazy val getTransactionList : OBPEndpoint = {
-       case "accounts" :: AccountId(account_id):: "transactions" :: Nil JsonGet _ => {
+       case "accounts" :: AccountId(accountId):: "transactions" :: Nil JsonGet _ => {
          cc =>
            for {
-
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
-
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
-
-            bankId = BankId(defaultBankId)
-
-            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-
-            (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, account_id, callContext)
-
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext) 
-
+            (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
+            (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
+            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-
             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-
-            (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankId,bankAccount.accountId), callContext, params) map {
+            (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext, params) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-
             } yield {
               (JSONFactory_BERLIN_GROUP_1_3.createTransactionsJson(bankAccount, transactions, transactionRequests), callContext)
             }
