@@ -571,6 +571,66 @@ object ErrorMessages {
     pattern.matcher(_:String).matches()
   }
 
+  /**
+   * Error message value mapping response statusCode,
+   * Those statusCode is not 400 must add at here.
+   */
+  private val errorToCode: Map[String, Int] = Map(
+    DataImportDisabled -> 403,
+    DynamicEntityNotFoundByDynamicEntityId -> 404,
+    EntityNotFoundByEntityId -> 404,
+    DynamicEndpointNotFoundByDynamicEndpointId -> 404,
+    InvalidRequestPayload -> 401,
+//    NotImplemented -> 501, // 400 or 501
+    TooManyRequests -> 429,
+    ResourceDoesNotExist -> 404,
+    UserNotLoggedIn -> 401,
+    DirectLoginInvalidToken -> 401,
+    InvalidLoginCredentials -> 401,
+    UserNotFoundById -> 404,
+    UserHasMissingRoles -> 403, // or 400
+    InvalidConsumerKey -> 401,
+//    InvalidConsumerCredentials -> 401, // or 400
+    UsernameHasBeenLocked -> 401,
+    UserNoPermissionAccessView -> 403,
+    UserNotSuperAdminOrMissRole -> 403,
+    ConsumerHasMissingRoles -> 403,
+    UserNotFoundByUsername -> 404,
+    ApplicationNotIdentified -> 401,
+    CouldNotExchangeAuthorizationCodeForTokens -> 401,
+    CouldNotSaveOpenIDConnectUser -> 401,
+    InvalidOpenIDConnectState -> 401,
+    CouldNotHandleOpenIDConnectData -> 401,
+    CouldNotValidateIDToken -> 401,
+    BankNotFound -> 404,
+    CustomerNotFound -> 404,
+    CustomerNotFoundByCustomerId -> 404,
+    AccountNotFound -> 404,
+    CounterpartyNotFoundByIban -> 404,
+    BankAccountNotFound -> 404,
+    ConsumerNotFoundByConsumerId -> 404,
+//    TransactionNotFound -> 404, // or 400
+    BankAccountNotFoundByAccountRouting -> 404,
+    BankAccountNotFoundByIban -> 404,
+    AccountRoutingNotFound -> 404,
+    BankAccountNotFoundByAccountId -> 404,
+    DoubleEntryTransactionNotFound -> 404,
+    MeetingApiKeyNotConfigured -> 403,
+    MeetingApiSecretNotConfigured -> 403,
+    EntitlementNotFound -> 404,
+    EntitlementCannotBeDeleted -> 404,
+    ConsentStatusIssue -> 401,
+    ConsentDisabled -> 401,
+    InternalServerError -> 500,
+  )
+
+  /**
+   * get response statusCode by error message, return 400 if error message not exists or have not mapping statusCode
+   * @param errorMsg
+   * @return response statusCode, default is 400
+   */
+  def getCode(errorMsg: String): Int = errorToCode.get(errorMsg).getOrElse(400)
+
   /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
   /**
    * validate method: APIUtil.authorizedAccess

@@ -3679,10 +3679,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case HTTPParam("Response-Code", value::_) => value
         })
 
-        val statusCode = responseCode.getOrElse("400")
         if(forceError.isEmpty) {
           Empty
         } else {
+
           val Some(errorName) = forceError
           val errorNamePrefix = if(errorName.endsWith(":")) errorName else errorName + ":"
           val correlationId = callContext.correlationId
@@ -3690,13 +3690,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           Box tryo {
             if(!ErrorMessages.isValidName(errorName)) {
               createErrorJsonResponse(s"$ForceErrorInvalid Force-Error value not correct: $errorName", 400, correlationId)
-            } else if (!StringUtils.isNumeric(statusCode)){
-              createErrorJsonResponse(s"$ForceErrorInvalid Response-Code value not correct: $statusCode", 400, correlationId)
+            } else if (responseCode.exists(it => !StringUtils.isNumeric(it))){ // Response-Code is not number
+              createErrorJsonResponse(s"$ForceErrorInvalid Response-Code value not correct: ${responseCode.orNull}", 400, correlationId)
             } else if(resourceDoc.isDefined && !resourceDoc.exists(_.errorResponseBodies.exists(_.startsWith(errorNamePrefix)))) {
               createErrorJsonResponse(s"$ForceErrorInvalid Invalid Force Error Code: $errorName", 400, correlationId)
             } else {
-              val errorValue = ErrorMessages.getValueByNameMatches(_.startsWith(errorNamePrefix))
-              createErrorJsonResponse(errorValue.orNull, statusCode.toInt, correlationId)
+              val Some(errorValue) = ErrorMessages.getValueByNameMatches(_.startsWith(errorNamePrefix))
+              val statusCode = responseCode.map(_.toInt).getOrElse(ErrorMessages.getCode(errorValue))
+              createErrorJsonResponse(errorValue, statusCode, correlationId)
             }
           }
         }
