@@ -2921,8 +2921,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       postAPrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias, user1)
       When("the delete request is sent")
       val deleteReply = deleteThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, None)
-      Then("we should get a 400 code")
-      deleteReply.code should equal (400)
+      Then("we should get a 401 code")
+      deleteReply.code should equal (401)
       And("the Private alias should not be null")
       val getReply = getThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterTheDelete : AliasJSON = getReply.body.extract[AliasJSON]
@@ -2938,8 +2938,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       postAPrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias, user1)
       When("the delete request is sent")
       val deleteReply = deleteThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user3)
-      Then("we should get a 400 code")
-      deleteReply.code should equal (400)
+      Then("we should get a 403 code")
+      deleteReply.code should equal (403)
       And("the Private alias should not be null")
       val getReply = getThePrivateAliasForOneCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
       val theAliasAfterTheDelete : AliasJSON = getReply.body.extract[AliasJSON]
