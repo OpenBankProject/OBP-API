@@ -1560,21 +1560,31 @@ trait APIMethods121 {
         "the view does not allow deleting more info",
         "More Info cannot be deleted",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val deleteCounterpartyMoreInfo : OBPEndpoint = {
       //delete more info of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
-            deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting more info" ) {
+              otherBankAccount.metadata.get.addMoreInfo.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.addMoreInfo(other_account_id, "")) map { i =>
+              (unboxFullOrFail(i, callContext, "More Info cannot be deleted", 400), i)
+            }
             if(deleted)
-          } yield noContentJsonResponse
+          } yield {
+            ("", HttpCode.`204`(callContext))
+          }
       }
     }
 
