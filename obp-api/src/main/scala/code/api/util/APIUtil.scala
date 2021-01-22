@@ -3648,15 +3648,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // why not use collectFirst method? because the parameter is PartialFunction, it will calculate twice
     breakable {
       interceptors.foreach(fun => {
-        val maybeResponse = fun(callContext, operationId)
-        if(maybeResponse.isDefined) {
-          jsonResponse = maybeResponse
-          break
+        if(fun.isDefinedAt(callContext, operationId)) {
+          val maybeResponse = fun(callContext, operationId)
+          if(maybeResponse.isDefined) {
+            jsonResponse = maybeResponse
+            break
+          }
         }
       })
     }
     jsonResponse
   }
+
+  private val isEnabledForceError = APIUtil.getPropsAsBoolValue("enable.force_error", false)
 
   val beforeAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
     // add interceptor functions one by one.
@@ -3669,7 +3673,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private val afterAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
     // add interceptor functions one by one.
     {// process force error
-      case (Some(callContext), operationId) =>
+      case (Some(callContext), operationId) if isEnabledForceError =>
         val requestHeaders = callContext.requestHeaders
 
         val forceError = requestHeaders.collectFirst({
