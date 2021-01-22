@@ -21,17 +21,19 @@ trait PropsReset extends BeforeAndAfterAll with BeforeAndAfterEach {
     resetLockedProviders()
   }
 
-  private val lockedProviders: List[Map[String, String]] = {
+  private val lockedProviders: List[Map[String, String]] = getLockedProviders
+
+  private def getLockedProviders = {
     FieldUtils.readDeclaredField(Props, "net$liftweb$util$Props$$lockedProviders", true)
       .asInstanceOf[List[Map[String, String]]]
   }
+
   private def resetLockedProviders(): Unit = {
     FieldUtils.writeDeclaredField(Props, "net$liftweb$util$Props$$lockedProviders", lockedProviders,  true)
   }
 
-  def resetPropsValues(keyValues: (String, String)*): Unit = {
-    val newLockedProviders = keyValues.toMap :: lockedProviders
-
+  def setPropsValues(keyValues: (String, String)*): Unit = {
+    val newLockedProviders = keyValues.toMap :: getLockedProviders
     FieldUtils.writeDeclaredField(Props, "net$liftweb$util$Props$$lockedProviders", newLockedProviders,  true)
   }
 }

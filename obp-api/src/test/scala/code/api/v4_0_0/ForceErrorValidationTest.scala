@@ -42,7 +42,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
   override def beforeEach() = {
     super.beforeEach()
-    resetPropsValues("enable.force-error"->"true")
+    setPropsValues("enable.force-error"->"true")
   }
 
   feature(s"test Force-Error header - Unauthenticated access") {
@@ -180,7 +180,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
-      resetPropsValues("enable.force_error"->"false")
+      setPropsValues("enable.force_error"->"false")
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT <@ user1
@@ -268,7 +268,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
-      resetPropsValues("enable.force_error"->"false")
+      setPropsValues("enable.force_error"->"false")
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
@@ -381,7 +381,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
-      resetPropsValues("enable.force_error"->"false")
+      setPropsValues("enable.force_error"->"false")
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
 
       Then("we create the Customer Attribute ")
@@ -485,7 +485,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
-      resetPropsValues("enable.force_error"->"false")
+      setPropsValues("enable.force_error"->"false")
       addDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
@@ -591,7 +591,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
-      resetPropsValues("enable.force_error"->"false")
+      setPropsValues("enable.force_error"->"false")
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
