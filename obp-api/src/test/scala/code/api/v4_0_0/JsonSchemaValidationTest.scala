@@ -334,8 +334,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId /  "FooBar").POST <@ user1
       val response= makePostRequest(request, wrongFooBar)
-      Then("We should get a 401")
-      response.code should equal(401)
+      Then("We should get a 400")
+      response.code should equal(400)
       val validation = response.body
       val message = (validation \ "message").asInstanceOf[JString].s
 
@@ -366,8 +366,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
       val response= makePostRequest(request, wrongUser)
-      Then("We should get a 401")
-      response.code should equal(401)
+      Then("We should get a 400")
+      response.code should equal(400)
       val validation = response.body
       val message = (validation \ "message").asInstanceOf[JString].s
 

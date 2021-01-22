@@ -55,7 +55,6 @@ object ErrorMessages {
   val InvalidMyDynamicEntityUser = "OBP-09010: DynamicEntity can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Entity` endpoint"
   val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
   
-  val InvalidBankIdDynamicEntity = "OBP-09012: This is a bank level dynamic entity. Please specify a valid value for BANK_ID."
   val InvalidRequestPayload = "OBP-09013: Incorrect request body Format, it should be a valid json that matches Validation rule."
 
 
@@ -561,8 +560,8 @@ object ErrorMessages {
   def getFieldNameByValue(value: String): String =
     fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
 
-  def getValueByNameMatches(predicate: String => Boolean): Option[String] = fieldValueToName.collectFirst {
-    case (key: String, value) if predicate(key) => value
+  def getValueMatches(predicate: String => Boolean): Option[String] = fieldValueToName.collectFirst {
+    case (key: String, _) if predicate(key) => key
   }
 
   // check whether given name is valid errorMessage name
@@ -580,7 +579,6 @@ object ErrorMessages {
     DynamicEntityNotFoundByDynamicEntityId -> 404,
     EntityNotFoundByEntityId -> 404,
     DynamicEndpointNotFoundByDynamicEndpointId -> 404,
-    InvalidRequestPayload -> 401,
 //    NotImplemented -> 501, // 400 or 501
     TooManyRequests -> 429,
     ResourceDoesNotExist -> 404,

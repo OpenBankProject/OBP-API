@@ -421,7 +421,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       
       Then(s"we test the ${startPaymentInitiationCancellationAuthorisation.name}")
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost)
+      val response: APIResponse = makePostRequest(requestPost, "")
       Then("We should get a 200 ")
       org.scalameta.logger.elem(response)
       response.code should equal(200)

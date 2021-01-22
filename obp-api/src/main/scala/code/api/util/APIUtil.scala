@@ -2367,6 +2367,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
       )
       in.onFail {
+        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
+          reply.apply(jsonResponse)
         case Failure(null, e, _) =>
           e.foreach(logger.error("", _))
           val errorResponse = getFilteredOrFullErrorMessage(e)
@@ -2418,6 +2420,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case Failure("Continuation", Full(e), _) if e.isInstanceOf[LiftFlowOfControlException] =>
           val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
           f(reply(_))
+
+        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
+          reply.apply(jsonResponse)
 
         case Failure(null, e, _) =>
           e.foreach(logger.error("", _))
@@ -2708,12 +2713,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           .flatMap(v => afterAuthenticateInterceptResult(callContext, v.operationId)) // request payload validation error message
 
         interceptResult match {
-          case Some(JsonResponseExtractor(message, code)) =>
-            val apiFailure: APIFailureNewStyle = APIFailureNewStyle(message, code, callContext.map(_.toLight))
-
-            val failure = ParamFailure(message, apiFailure)
-
-            (fullBoxOrException(failure), callContext)
+          case Some(jsonResponse) =>
+            throw JsonResponseException(jsonResponse)
           case _ => it
         }
     }
@@ -3588,7 +3589,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   val currentYear = Calendar.getInstance.get(Calendar.YEAR).toString
 
-
   /**
    * validate whether current request's auth type is legal
    * @param operationId
@@ -3695,7 +3695,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             } else if(resourceDoc.isDefined && !resourceDoc.exists(_.errorResponseBodies.exists(_.startsWith(errorNamePrefix)))) {
               createErrorJsonResponse(s"$ForceErrorInvalid Invalid Force Error Code: $errorName", 400, correlationId)
             } else {
-              val Some(errorValue) = ErrorMessages.getValueByNameMatches(_.startsWith(errorNamePrefix))
+              val Some(errorValue) = ErrorMessages.getValueMatches(_.startsWith(errorNamePrefix))
               val statusCode = responseCode.map(_.toInt).getOrElse(ErrorMessages.getCode(errorValue))
               createErrorJsonResponse(errorValue, statusCode, correlationId)
             }
@@ -3708,7 +3708,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         JsonSchemaUtil.validateRequest(cc)(operationId) match {
           case Some(errorMsg) =>
             Box tryo (
-              createErrorJsonResponse(s"${ErrorMessages.InvalidRequestPayload} $errorMsg", 401, callContext.correlationId)
+              createErrorJsonResponse(s"${ErrorMessages.InvalidRequestPayload} $errorMsg", 400, callContext.correlationId)
               )
           case _ => Empty
         }
