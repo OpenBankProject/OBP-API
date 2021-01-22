@@ -54,7 +54,7 @@ class StandingOrderTest extends V400ServerSetup {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / bankId / "accounts" / bankAccount.id / "standing-order").POST
-      val response400 = makePostRequest(request400)
+      val response400 = makePostRequest(request400, "")
       Then("We should get a 401")
       response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)

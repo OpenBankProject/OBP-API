@@ -909,3 +909,6 @@ outboundAdapterCallContext.generalContext
 ## Mirror request headers to response
 # mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
 
+### enable or disable the feature of send "Force-Error" header, default value is false
+enable.force_error=false
+
