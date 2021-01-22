@@ -2703,20 +2703,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x =>
         refreshUserIfRequired(x._1,x._2)
         x
-    } map {
-      it =>
-      val callContext = it._2
-
-        val interceptResult: Option[JsonResponse] = callContext.flatMap(_.resourceDocument)
-          .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
-          .filter(v => !v.roles.exists(_.nonEmpty))                        // no roles required, this endpoint only do authentication
-          .flatMap(v => afterAuthenticateInterceptResult(callContext, v.operationId)) // request payload validation error message
-
-        interceptResult match {
-          case Some(jsonResponse) =>
-            throw JsonResponseException(jsonResponse)
-          case _ => it
-        }
     }
   }
 
@@ -2732,6 +2718,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         cc.resourceDocument.map(_.partialFunctionName) match {
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)
+        }
+    }  map {
+      it =>
+        val callContext = it._2
+
+        val interceptResult: Option[JsonResponse] = callContext.flatMap(_.resourceDocument)
+          .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
+          .filter(v => !v.roles.exists(_.nonEmpty))                        // no roles required, this endpoint only do authentication
+          .flatMap(v => afterAuthenticateInterceptResult(callContext, v.operationId)) // request payload validation error message
+
+        interceptResult match {
+          case Some(jsonResponse) =>
+            throw JsonResponseException(jsonResponse)
+          case _ => it
         }
     }
   }
