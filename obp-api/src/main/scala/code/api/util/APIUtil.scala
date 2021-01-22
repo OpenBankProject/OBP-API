@@ -3662,6 +3662,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private val isEnabledForceError = APIUtil.getPropsAsBoolValue("enable.force_error", false)
 
+  /**
+   * is Force-Error enabled or not, because test mode need modify this props, the Test mode read from Props every time
+   * @return
+   */
+  private def enableForceError = Props.mode match {
+    case Props.RunModes.Test =>
+      APIUtil.getPropsAsBoolValue("enable.force_error", false)
+    case _ => isEnabledForceError
+  }
+
   val beforeAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
     // add interceptor functions one by one.
     // validate auth type
@@ -3673,7 +3683,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private val afterAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
     // add interceptor functions one by one.
     {// process force error
-      case (Some(callContext), operationId) if isEnabledForceError =>
+      case (Some(callContext), operationId) if enableForceError =>
         val requestHeaders = callContext.requestHeaders
 
         val forceError = requestHeaders.collectFirst({

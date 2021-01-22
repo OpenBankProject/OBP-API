@@ -8,14 +8,14 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations2_2_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
-import code.setup.APIResponse
+import code.setup.{APIResponse, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.{JInt, JString}
+import net.liftweb.json.{JInt, JString, prettyRender}
 import org.scalatest.Tag
 
-class ForceErrorValidationTest extends V400ServerSetup {
+class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
   /**
    * Test tags
@@ -39,6 +39,11 @@ class ForceErrorValidationTest extends V400ServerSetup {
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val view = randomOwnerViewPermalinkViaEndpoint(bankId, bankAccount)
+
+  override def beforeEach() = {
+    super.beforeEach()
+    resetPropsValues("enable.force-error"->"true")
+  }
 
   feature(s"test Force-Error header - Unauthenticated access") {
     scenario(s"We will call the endpoint $ApiEndpointCreateFx without authentication", VersionOfApi) {
@@ -173,6 +178,22 @@ class ForceErrorValidationTest extends V400ServerSetup {
       message should be(UserHasMissingRoles)
       code shouldEqual 444
     }
+
+    scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+      resetPropsValues("enable.force_error"->"false")
+      addEntitlement(canCreateFxRate, bankId)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT <@ user1
+      val response = makePutRequest(request, correctFx, ("Force-Error", "OBP-20006"))
+      Then("We should not get a 400")
+      response.code should not equal(403)
+      val validation = response.body
+
+      val responseBody = prettyRender(validation)
+
+      responseBody should not contain UserHasMissingRoles
+      responseBody should not contain "403"
+    }
   }
 
   //////// not auto validate endpoint
@@ -244,6 +265,22 @@ class ForceErrorValidationTest extends V400ServerSetup {
 
       message should be(UserHasMissingRoles)
       code shouldEqual 444
+    }
+
+    scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+      resetPropsValues("enable.force_error"->"false")
+      addEntitlement(canCreateCustomer, bankId)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
+      val response = makePostRequest(request, "", ("Force-Error", "OBP-20006"))
+      Then("We should not get a 403")
+      response.code should not equal(403)
+      val validation = response.body
+      val message = (validation \ "message").asInstanceOf[JString].s
+      val code = (validation \ "code").asInstanceOf[JInt].num.toInt
+
+      message should not be(UserHasMissingRoles)
+      code should not be(403)
     }
   }
   //////// auto validate endpoint
@@ -342,8 +379,30 @@ class ForceErrorValidationTest extends V400ServerSetup {
       message should be(UserHasMissingRoles)
       code shouldEqual 444
     }
+
+    scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+      resetPropsValues("enable.force_error"->"false")
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+
+      Then("we create the Customer Attribute ")
+      val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
+
+      When("We make a request v4.0.0")
+      addEntitlement(canGetCustomerAttributeAtOneBank, bankId)
+      val request = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / customerAttributeId).GET <@ (user1)
+      val response = makeGetRequest(request, List("Force-Error" -> "OBP-20006"))
+      Then("We should not get a 403")
+      response.code should not equal(403)
+      val validation = response.body
+
+      val responseBody = prettyRender(validation)
+
+      responseBody should not contain UserHasMissingRoles
+      responseBody should not contain "403"
+    }
   }
 
+  ////// dynamic entity
   feature(s"test dynamic entity endpoints Force-Error, version $VersionOfApi - authenticated access") {
     scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error have wrong format header", VersionOfApi) {
       addDynamicEntity()
@@ -423,6 +482,24 @@ class ForceErrorValidationTest extends V400ServerSetup {
 
       message should be(UserHasMissingRoles)
       code shouldEqual 444
+    }
+
+    scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+      resetPropsValues("enable.force_error"->"false")
+      addDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"))
+      Then("We should not get a 403")
+      response.code should not  equal(403)
+      val validation = response.body
+
+      val responseBody = prettyRender(validation)
+
+      responseBody should not contain UserHasMissingRoles
+      responseBody should not contain "403"
     }
   }
   /////// dynamic endpoints
@@ -511,6 +588,25 @@ class ForceErrorValidationTest extends V400ServerSetup {
 
       message should be(UserHasMissingRoles)
       code shouldEqual 444
+    }
+
+    scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+      resetPropsValues("enable.force_error"->"false")
+      addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
+      addDynamicEndpoints()
+      addStringEntitlement("CanCreateDynamicEndpoint_User469")
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val response = makePostRequest(request, correctUser, ("Force-Error" -> "OBP-20006"))
+      Then("We should not get a 403")
+      response.code should not equal(403)
+      val validation = response.body
+
+      val responseBody = prettyRender(validation)
+
+      responseBody should not contain UserHasMissingRoles
+      responseBody should not contain "403"
     }
   }
 
