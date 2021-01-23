@@ -42,7 +42,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
   override def beforeEach() = {
     super.beforeEach()
-    setPropsValues("enable.force-error"->"true")
+    setPropsValues("enable.force_error"->"true")
   }
 
   feature(s"test Force-Error header - Unauthenticated access") {
