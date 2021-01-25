@@ -1844,21 +1844,31 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       List(UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle)) // Tag general then specific for consistent sorting
 
     lazy val deleteCounterpartyImageUrl : OBPEndpoint = {
       //delete image url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
-            deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting an image url" ) {
+              otherBankAccount.metadata.get.addImageURL.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.addImageURL(other_account_id, "")) map { i =>
+              (unboxFullOrFail(i, callContext, "URL cannot be deleted", 400), i)
+            }
             if(deleted)
-          } yield noContentJsonResponse
+          } yield {
+            ("", HttpCode.`204`(callContext))
+          }
       }
     }
 
