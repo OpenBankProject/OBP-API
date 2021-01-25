@@ -6079,7 +6079,7 @@ trait APIMethods400 {
       EmptyBody,
       apiCollectionJson400,
       List(
-        UserNotFoundByUserId,
+        $UserNotLoggedIn,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
@@ -6175,6 +6175,7 @@ trait APIMethods400 {
       EmptyBody,
       apiCollectionsJson400,
       List(
+        $UserNotLoggedIn,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
@@ -6207,7 +6208,6 @@ trait APIMethods400 {
       Full(true),
       List(
         $UserNotLoggedIn,
-        UserNotFoundByUserId,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
@@ -6284,7 +6284,7 @@ trait APIMethods400 {
       EmptyBody,
       apiCollectionEndpointJson400,
       List(
-        UserNotFoundByUserId,
+        $UserNotLoggedIn,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
