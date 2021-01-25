@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
-import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{EntitlementAndScopeStatus, JsonResponseExtractor, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_2_1.OBPAPI1_2_1.Implementations1_2_1
@@ -28,15 +28,13 @@ import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
-import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
-import code.apicollectionendpoint.{MappedApiCollectionEndpointsProvider, ApiCollectionEndpointTrait}
-import code.apicollection.{MappedApiCollectionsProvider, ApiCollectionTrait}
+import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
+import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.model.dataAccess.BankAccountRouting
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper
-import code.util.{Helper, JsonSchemaUtil}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -49,9 +47,8 @@ import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, Cu
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{JObject, JValue}
+import net.liftweb.json.{JNothing, JNull, JObject, JString, JValue, JInt, JField, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -59,8 +56,10 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
 import scala.reflect.runtime.universe.MethodSymbol
-import code.validation.{JsonValidation, JsonSchemaValidationProvider}
+import code.validation.{JsonSchemaValidationProvider, JsonValidation}
+import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
+import code.api.JsonResponseException
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -734,27 +733,20 @@ object NewStyle {
      * as check entitlement methods return map parameter,
      * do request payload validation with json-schema
      * @param callContext callContext
-     * @param checkFull whether check result is Full, for hasXXEntitlement that return Future[Box[Unit]], the value should be true
      * @param boxResult hasXXEntitlement method return value, if validation fail, return fail box or throw exception for Future type
      * @tparam T
      * @return
      */
-    private def validateRequestPayload[T](callContext: Option[CallContext], checkFull: Boolean = false)(boxResult: Box[T]): Box[T] = {
-      val validationResult: Option[String] = callContext.flatMap(_.resourceDocument)
+    private def validateRequestPayload[T](callContext: Option[CallContext])(boxResult: Box[T]): Box[T] = {
+      val interceptResult: Option[JsonResponse] = callContext.flatMap(_.resourceDocument)
         .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
-        .flatMap(v => JsonSchemaUtil.validateRequest(callContext)(v.operationId)) // request payload validation error message
+        .flatMap(v => afterAuthenticateInterceptResult(callContext, v.operationId)) // request payload validation error message
 
-      if(boxResult.isEmpty || validationResult.isEmpty) {
+      if(boxResult.isEmpty || interceptResult.isEmpty) {
         boxResult
       } else {
-        val Some(errorMsg) = validationResult
-        val errorInfo = s"${ErrorMessages.InvalidRequestPayload} $errorMsg"
-        val apiFailure = APIFailureNewStyle(errorInfo, 401, callContext.map(_.toLight))
-
-        checkFull match {
-          case true => fullBoxOrException(ParamFailure(errorInfo, apiFailure))
-          case _ => ParamFailure(errorInfo, apiFailure)
-        }
+        val Some(jsonResponse) = interceptResult
+        throw JsonResponseException(jsonResponse)
       }
     }
 
@@ -764,7 +756,7 @@ object NewStyle {
 
       Helper.booleanToFuture(errorInfo) {
         APIUtil.hasEntitlement(bankId, userId, role)
-      } map validateRequestPayload(callContext, true)
+      } map validateRequestPayload(callContext)
     }
     // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
     def ownEntitlement(bankId: String, userId: String, role: ApiRole,callContext: Option[CallContext], errorMsg: String = ""): Box[Unit] = {
@@ -777,7 +769,7 @@ object NewStyle {
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
-      } map validateRequestPayload(callContext, true)
+      } map validateRequestPayload(callContext)
 
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles, callContext)

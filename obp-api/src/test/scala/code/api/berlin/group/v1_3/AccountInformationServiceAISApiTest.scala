@@ -216,7 +216,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
         Then(s"We test the $startConsentAuthorisation")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
-        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation)
+        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, "")
         responseStartConsentAuthorisation.code should be (201)
         responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].scaStatus should be ("received")
       }
@@ -240,7 +240,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   
         Then(s"We test the $startConsentAuthorisation")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
-        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation)
+        val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, "")
         responseStartConsentAuthorisation.code should be (201)
         responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].scaStatus should be ("received")
 

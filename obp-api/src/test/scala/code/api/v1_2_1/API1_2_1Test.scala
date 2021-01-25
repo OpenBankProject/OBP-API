@@ -347,7 +347,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   def grantUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
     val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(consumerAndToken)
-    makePostRequest(request)
+    makePostRequest(request, "")
   }
 
   def grantUserAccessToViews(bankId : String, accountId : String, userId : String, viewIds : List[String], consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {

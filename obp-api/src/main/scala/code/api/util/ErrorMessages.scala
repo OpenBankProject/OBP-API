@@ -55,7 +55,6 @@ object ErrorMessages {
   val InvalidMyDynamicEntityUser = "OBP-09010: DynamicEntity can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Entity` endpoint"
   val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
   
-  val InvalidBankIdDynamicEntity = "OBP-09012: This is a bank level dynamic entity. Please specify a valid value for BANK_ID."
   val InvalidRequestPayload = "OBP-09013: Incorrect request body Format, it should be a valid json that matches Validation rule."
 
 
@@ -462,6 +461,8 @@ object ErrorMessages {
   val AuthenticationTypeValidationDeleteError = "OBP-40033: Could not delete the AuthenticationTypeValidation. "
   val AuthenticationTypeIllegal = "OBP-40034: Current request authentication type is illegal. "
 
+  val ForceErrorInvalid = "OBP-40035: Force Error request header is invalid. "
+
 
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
@@ -558,6 +559,75 @@ object ErrorMessages {
   //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
   def getFieldNameByValue(value: String): String =
     fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
+
+  def getValueMatches(predicate: String => Boolean): Option[String] = fieldValueToName.collectFirst {
+    case (key: String, _) if predicate(key) => key
+  }
+
+  // check whether given name is valid errorMessage name
+  val isValidName: String => Boolean = {
+    val pattern = Pattern.compile("""OBP\-\d+:?""")
+    pattern.matcher(_:String).matches()
+  }
+
+  /**
+   * Error message value mapping response statusCode,
+   * Those statusCode is not 400 must add at here.
+   */
+  private val errorToCode: Map[String, Int] = Map(
+    DataImportDisabled -> 403,
+    DynamicEntityNotFoundByDynamicEntityId -> 404,
+    EntityNotFoundByEntityId -> 404,
+    DynamicEndpointNotFoundByDynamicEndpointId -> 404,
+//    NotImplemented -> 501, // 400 or 501
+    TooManyRequests -> 429,
+    ResourceDoesNotExist -> 404,
+    UserNotLoggedIn -> 401,
+    DirectLoginInvalidToken -> 401,
+    InvalidLoginCredentials -> 401,
+    UserNotFoundById -> 404,
+    UserHasMissingRoles -> 403, // or 400
+    InvalidConsumerKey -> 401,
+//    InvalidConsumerCredentials -> 401, // or 400
+    UsernameHasBeenLocked -> 401,
+    UserNoPermissionAccessView -> 403,
+    UserNotSuperAdminOrMissRole -> 403,
+    ConsumerHasMissingRoles -> 403,
+    UserNotFoundByUsername -> 404,
+    ApplicationNotIdentified -> 401,
+    CouldNotExchangeAuthorizationCodeForTokens -> 401,
+    CouldNotSaveOpenIDConnectUser -> 401,
+    InvalidOpenIDConnectState -> 401,
+    CouldNotHandleOpenIDConnectData -> 401,
+    CouldNotValidateIDToken -> 401,
+    BankNotFound -> 404,
+    CustomerNotFound -> 404,
+    CustomerNotFoundByCustomerId -> 404,
+    AccountNotFound -> 404,
+    CounterpartyNotFoundByIban -> 404,
+    BankAccountNotFound -> 404,
+    ConsumerNotFoundByConsumerId -> 404,
+//    TransactionNotFound -> 404, // or 400
+    BankAccountNotFoundByAccountRouting -> 404,
+    BankAccountNotFoundByIban -> 404,
+    AccountRoutingNotFound -> 404,
+    BankAccountNotFoundByAccountId -> 404,
+    DoubleEntryTransactionNotFound -> 404,
+    MeetingApiKeyNotConfigured -> 403,
+    MeetingApiSecretNotConfigured -> 403,
+    EntitlementNotFound -> 404,
+    EntitlementCannotBeDeleted -> 404,
+    ConsentStatusIssue -> 401,
+    ConsentDisabled -> 401,
+    InternalServerError -> 500,
+  )
+
+  /**
+   * get response statusCode by error message, return 400 if error message not exists or have not mapping statusCode
+   * @param errorMsg
+   * @return response statusCode, default is 400
+   */
+  def getCode(errorMsg: String): Int = errorToCode.get(errorMsg).getOrElse(400)
 
   /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
   /**
