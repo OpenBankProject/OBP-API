@@ -85,7 +85,7 @@ object Connector extends SimpleInjector {
     "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
     "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
-    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set itin default.props
+    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
     "proxy" -> lazyValue(ConnectorUtils.proxyConnector)
   )
 
