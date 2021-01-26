@@ -76,6 +76,7 @@ object NewStyle {
     (nameOf(Implementations1_2_1.addCounterpartyUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteCounterpartyUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyCorporateLocation), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteCounterpartyPhysicalLocation), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
