@@ -27,30 +27,85 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
     }
     
   }
-  def getByConsumerId(consumerId: String, date: Option[Date] = None): Future[Box[RateLimiting]] = Future {
-    date match {
-      case None =>
-        RateLimiting.find(
-          By(RateLimiting.ConsumerId, consumerId),
-          NullRef(RateLimiting.BankId),
-          NullRef(RateLimiting.ApiVersion),
-          NullRef(RateLimiting.ApiName)
-        )
-      case Some(date) =>
-        RateLimiting.find(
-          By(RateLimiting.ConsumerId, consumerId),
-          NullRef(RateLimiting.BankId),
-          NullRef(RateLimiting.ApiVersion),
-          NullRef(RateLimiting.ApiName),
-          By_<(RateLimiting.FromDate, date),
-          By_>(RateLimiting.ToDate, date)
-        )
+  def getByConsumerId(consumerId: String, 
+                      apiVersion: String, 
+                      apiName: String, 
+                      date: Option[Date] = None): Future[Box[RateLimiting]] = Future {
+    val result = 
+      date match {
+        case None =>
+          RateLimiting.find( // 1st try: Consumer and Version and Name
+            By(RateLimiting.ConsumerId, consumerId),
+            By(RateLimiting.ApiVersion, apiVersion),
+            By(RateLimiting.ApiName, apiName),
+            NullRef(RateLimiting.BankId)
+          ).or(
+            RateLimiting.find( // 2nd try: Consumer and Name
+              By(RateLimiting.ConsumerId, consumerId),
+              By(RateLimiting.ApiName, apiName),
+              NullRef(RateLimiting.BankId),
+              NullRef(RateLimiting.ApiVersion)
+            )
+          ).or(
+            RateLimiting.find( // 3rd try: Consumer and Version
+              By(RateLimiting.ConsumerId, consumerId),
+              By(RateLimiting.ApiVersion, apiVersion),
+              NullRef(RateLimiting.BankId),
+              NullRef(RateLimiting.ApiName)
+            )
+          ).or(
+            RateLimiting.find( // 4th try: Consumer
+              By(RateLimiting.ConsumerId, consumerId),
+              NullRef(RateLimiting.BankId),
+              NullRef(RateLimiting.ApiVersion),
+              NullRef(RateLimiting.ApiName)
+            )
+          )
+        case Some(date) =>
+          RateLimiting.find( // 1st try: Consumer and Version and Name
+            By(RateLimiting.ConsumerId, consumerId),
+            By(RateLimiting.ApiVersion, apiVersion),
+            By(RateLimiting.ApiName, apiName),
+            NullRef(RateLimiting.BankId),
+            By_<(RateLimiting.FromDate, date),
+            By_>(RateLimiting.ToDate, date)
+          ).or(
+            RateLimiting.find( // 2nd try: Consumer and Name
+              By(RateLimiting.ConsumerId, consumerId),
+              By(RateLimiting.ApiName, apiName),
+              NullRef(RateLimiting.BankId),
+              NullRef(RateLimiting.ApiVersion),
+              By_<(RateLimiting.FromDate, date),
+              By_>(RateLimiting.ToDate, date)
+            )
+          ).or(
+            RateLimiting.find( // 3rd try: Consumer and Version
+              By(RateLimiting.ConsumerId, consumerId),
+              By(RateLimiting.ApiVersion, apiVersion),
+              NullRef(RateLimiting.BankId),
+              NullRef(RateLimiting.ApiName),
+              By_<(RateLimiting.FromDate, date),
+              By_>(RateLimiting.ToDate, date)
+            )
+          ).or(
+            RateLimiting.find( // 4th try: Consumer
+              By(RateLimiting.ConsumerId, consumerId),
+              NullRef(RateLimiting.BankId),
+              NullRef(RateLimiting.ApiVersion),
+              NullRef(RateLimiting.ApiName),
+              By_<(RateLimiting.FromDate, date),
+              By_>(RateLimiting.ToDate, date)
+            )
+          )
     }
-    
+    result
   }
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        fromDate: Date,
                                        toDate: Date,
+                                       apiVersion: Option[String],
+                                       apiName: Option[String],
+                                       bankId: Option[String],
                                        perSecond: Option[String],
                                        perMinute: Option[String],
                                        perHour: Option[String],
@@ -86,24 +141,34 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait {
           case Some(v) => c.PerMonthCallLimit(v.toLong)
           case None =>
         }
-        c.BankId(null)
-        c.ApiName(null)
-        c.ApiVersion(null)
+        bankId match {
+          case Some(v) => c.BankId(v)
+          case None => c.BankId(null)
+        }
+        apiName match {
+          case Some(v) => c.ApiName(v)
+          case None => c.ApiName(null)
+        }
+        apiVersion match {
+          case Some(v) => c.ApiVersion(v)
+          case None => c.ApiVersion(null)
+        }
         c.ConsumerId(consumerId)
         c.saveMe()
       }
     }
+    
+    val byConsumerParam = By(RateLimiting.ConsumerId, consumerId)
+    val byBankParam =  if(bankId.isDefined) By(RateLimiting.BankId, bankId.get) else NullRef(RateLimiting.BankId)
+    val byApiVersionParam = if(apiVersion.isDefined) By(RateLimiting.ApiVersion, apiVersion.get) else NullRef(RateLimiting.ApiVersion)
+    val byApiNameParam = if(apiName.isDefined) By(RateLimiting.ApiName, apiName.get) else NullRef(RateLimiting.ApiName)
 
-    val rateLimit = RateLimiting.find(
-      By(RateLimiting.ConsumerId, consumerId),
-      NullRef(RateLimiting.BankId),
-      NullRef(RateLimiting.ApiVersion),
-      NullRef(RateLimiting.ApiName)
-    )
-    rateLimit match {
+    val rateLimit = RateLimiting.find(byConsumerParam, byBankParam, byApiVersionParam, byApiNameParam)
+    val result = rateLimit match {
       case Full(limit) => createRateLimit(limit)
       case _ => createRateLimit(RateLimiting.create)
     }
+    result
   }
 }
 
@@ -136,10 +201,10 @@ class RateLimiting extends RateLimitingTrait with LongKeyedMapper[RateLimiting] 
   object ToDate extends MappedDateTime(this)
 
   def rateLimitingId: String = RateLimitingId.get
-  def apiName: String = ApiName.get
-  def apiVersion: String = ApiVersion.get
-  def consumerId: String = ConsumerId.get
-  def bankId: String = BankId.get
+  def apiName: Option[String] = if(ApiName.get == null || ApiName.get.isEmpty) None else Some(ApiName.get)
+  def apiVersion: Option[String] = if(ApiVersion.get == null || ApiVersion.get.isEmpty) None else Some(ApiVersion.get)
+  def consumerId: String  = ConsumerId.get
+  def bankId: Option[String] = if(BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get)
   def perSecondCallLimit: Long = PerSecondCallLimit.get
   def perMinuteCallLimit: Long = PerMinuteCallLimit.get
   def perHourCallLimit: Long = PerHourCallLimit.get

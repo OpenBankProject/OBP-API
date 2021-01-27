@@ -69,7 +69,7 @@ class FundsAvailableTest extends V310ServerSetup {
 
   def grantUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String) : APIResponse= {
     val request = (baseRequest / "obp" / "v1.2.1" / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(user1)
-    makePostRequest(request)
+    makePostRequest(request, "")
   }
 
   feature("Check available funds v3.1.0 - Unauthorized access")

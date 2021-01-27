@@ -70,12 +70,14 @@ object ApiTag {
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
   val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-(Manage)")
   val apiTagManageDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint-(Manage)")
+  val apiTagApiCollection = ResourceDocTag("Api-Collection")
 
   val apiTagDynamic = ResourceDocTag("Dynamic")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
   val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint")
 
-  val apiTagValidation = ResourceDocTag("Validation")
+  val apiTagJsonSchemaValidation = ResourceDocTag("JSON-Schema-Validation")
+  val apiTagAuthenticationTypeValidation = ResourceDocTag("Authentication-Type-Validation")
 
   // To mark the Berlin Group APIs suggested order of implementation
   val apiTagBerlinGroupM = ResourceDocTag("Berlin-Group-M")

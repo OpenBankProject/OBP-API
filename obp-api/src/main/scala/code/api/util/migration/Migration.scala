@@ -75,6 +75,7 @@ object Migration extends MdcLoggable {
       populateTableBankAccountRouting()
       populateSettlementBankAccounts()
       alterColumnStatusAtTableMappedConsent()
+      alterColumnDetailsAtTableTransactionRequest()
     }
     
     private def dummyScript(): Boolean = {
@@ -216,6 +217,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterColumnStatusAtTableMappedConsent)
       runOnce(name) {
         MigrationOfMappedConsent.alterColumnStatus(name)
+      }
+    }
+    private def alterColumnDetailsAtTableTransactionRequest(): Boolean = {
+      val name = nameOf(alterColumnDetailsAtTableTransactionRequest)
+      runOnce(name) {
+        MigrationOfTransactionRequerst.alterColumnDetails(name)
       }
     }
     

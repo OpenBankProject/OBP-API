@@ -10,7 +10,7 @@ import code.setup.{APIResponse, DefaultUsers}
 import code.transactionrequests.TransactionRequests.{PaymentServiceTypes, TransactionRequestTypes}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import com.openbankproject.commons.model.{ErrorMessage, SepaCreditTransfers}
+import com.openbankproject.commons.model.{ErrorMessage, SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13}
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
@@ -54,7 +54,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       val response: APIResponse = makePostRequest(requestPost, wrongInitiatePaymentJson)
       Then("We should get a 400 ")
       response.code should equal(400)
-      val error = s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfers "
+      val error = s"$InvalidJsonFormat The Json body should be the $SepaCreditTransfersBerlinGroupV13 "
       And("error should be " + error)
       response.body.extract[ErrorMessage].message should startWith (error)
     }
@@ -421,7 +421,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       
       Then(s"we test the ${startPaymentInitiationCancellationAuthorisation.name}")
       val requestPost = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "cancellation-authorisations").POST <@ (user1)
-      val response: APIResponse = makePostRequest(requestPost)
+      val response: APIResponse = makePostRequest(requestPost, "")
       Then("We should get a 200 ")
       org.scalameta.logger.elem(response)
       response.code should equal(200)

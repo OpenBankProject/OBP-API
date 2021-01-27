@@ -31,8 +31,8 @@ import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
+import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -43,10 +43,11 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.NewStyle.HttpCode
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityHelper}
+import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
@@ -60,7 +61,6 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.{Helper, JsonSchemaUtil}
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
-import code.validation.{JsonValidation, ValidationProvider}
 import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
@@ -76,7 +76,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JValue}
+import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
@@ -91,12 +91,12 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
-import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
+import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
@@ -649,6 +649,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => OBPId
     }
 
+  def dateOrNull(date : Date) =
+    if(date == null)
+      null
+    else
+      APIUtil.DateWithMsRollback.format(date)
+  
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
       null
@@ -1178,6 +1184,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   val dynamicEndpointStub: OBPEndpoint = Functions.doNothing
 
+  object ResourceDoc{
+    private val operationIdToResourceDoc: ConcurrentHashMap[String, ResourceDoc] = new ConcurrentHashMap[String, ResourceDoc]
+
+    def getResourceDocs(operationIds: List[String]): List[ResourceDoc] = {
+      val dynamicDocs = DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc
+      operationIds.collect {
+        case operationId if operationIdToResourceDoc.containsKey(operationId) =>
+          operationIdToResourceDoc.get(operationId)
+        case operationId if dynamicDocs.exists(_.operationId == operationId) =>
+          dynamicDocs.find(_.operationId == operationId).orNull
+      }
+    }
+  }
+  
   // Used to document the API calls
   case class ResourceDoc(
                           partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
@@ -1194,7 +1214,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
-                          specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          var specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                         ) {
     // this code block will be merged to constructor.
     {
@@ -1230,6 +1250,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
     val operationId = buildOperationId(implementedInApiVersion, partialFunctionName)
+    
+    // all static ResourceDocs add to ResourceDoc.operationIdToResourceDoc
+    if(!this.tags.contains(ApiTag.apiTagDynamic)) {
+      ResourceDoc.operationIdToResourceDoc.put(operationId, this)
+    }
 
     private var _isEndpointAuthCheck = false
 
@@ -1427,8 +1452,36 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }
       }
 
+
+      val isUrlMatchesResourceDocUrl: List[String] => Boolean = {
+        val urlInDoc = StringUtils.split(this.requestUrl, '/')
+        val indices = urlInDoc.indices
+        // all path parameter indices
+        // whether url part is path parameter, e.g: BAR_ID in the path /obp/v4.0.0/foo/bar/BAR_ID
+        val pathParamIndices = {
+          for {
+            index <- indices
+            urlPart = urlInDoc(index)
+            if urlPart.toUpperCase == urlPart
+          } yield index
+        }.toSet
+
+        (requestUrl: List[String]) => {
+          if (requestUrl == urlInDoc) {
+            true
+          } else {
+            (requestUrl.size == urlInDoc.size) &&
+              indices.forall { index =>
+                val requestUrlPart = requestUrl(index)
+                val docUrlPart = urlInDoc(index)
+                requestUrlPart == docUrlPart || pathParamIndices.contains(index)
+              }
+          }
+        }
+      }
+
       new OBPEndpoint {
-        override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x)
+        override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x) && isUrlMatchesResourceDocUrl(x.path.partPath)
 
         override def apply(req: Req): CallContext => Box[JsonResponse] = {
           val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
@@ -1472,13 +1525,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             } yield {
               val newCallContext = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
 
-              // validate request payload with json-schema
-              val validationMsg: Option[String] = JsonSchemaUtil.validateRequest(callContext)(operationId)
+              // process after authentication interceptor, get intercept result
+              val jsonResponse:Box[JsonResponse] = afterAuthenticateInterceptResult(newCallContext, operationId)
 
-              validationMsg match {
-                case Some(errorMsg) =>
-                  val errorResponse = ErrorMessage(401, s"${ErrorMessages.InvalidRequestPayload} $errorMsg")
-                  (errorResponse, HttpCode.`401`(newCallContext))
+              jsonResponse match {
+                case response @Full(_) =>
+                  // directly return response, not go to endpoint body
+                  (response, newCallContext)
                 case _ =>
                   //pass session and request to endpoint body
                   val boxResponse: Box[JsonResponse] = S.init(request, session.orNull) {
@@ -2335,6 +2388,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
       )
       in.onFail {
+        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
+          reply.apply(jsonResponse)
         case Failure(null, e, _) =>
           e.foreach(logger.error("", _))
           val errorResponse = getFilteredOrFullErrorMessage(e)
@@ -2386,6 +2441,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case Failure("Continuation", Full(e), _) if e.isInstanceOf[LiftFlowOfControlException] =>
           val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
           f(reply(_))
+
+        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
+          reply.apply(jsonResponse)
 
         case Failure(null, e, _) =>
           e.foreach(logger.error("", _))
@@ -2528,25 +2586,31 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     /******************************************************************************************************************
      * This block of code needs to update Call Context with Rate Limiting
-     * Please note that first source is the table RateLimiting and second the table Consumer
+     * Please note that first source is the table RateLimiting and second is the table Consumer
      */
-    def getRateLimiting(consumerId: String): Future[Box[RateLimiting]] = {
+    def getRateLimiting(consumerId: String, version: String, name: String): Future[Box[RateLimiting]] = {
       RateLimitingUtil.useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, Some(new Date()))
+        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, version, name, Some(new Date()))
         case false => Future(Empty)
       }
     }
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
       (user, cc) <- res
       consumer = cc.flatMap(_.consumer)
-      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""))
+      version = cc.map(_.implementedInVersion).getOrElse("None") // Calculate apiVersion  in case of Rate Limiting
+      operationId = cc.flatMap(_.operationId) // Unique Identifier of Dynamic Endpoints
+      // Calculate apiName in case of Rate Limiting
+      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)) // 1st try: function name at resource doc
+        .orElse(operationId) // 2nd try: In case of Dynamic Endpoint we can only use operationId
+        .getOrElse("None") // Not found any unique identifier
+      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""), version, name)
     } yield {
       val limit: Option[CallLimit] = rateLimiting match {
         case Full(rl) => Some(CallLimit(
           rl.consumerId,
-          None,
-          None,
-          None,
+          rl.apiName,
+          rl.apiVersion,
+          rl.bankId,
           rl.perSecondCallLimit,
           rl.perMinuteCallLimit,
           rl.perHourCallLimit,
@@ -2660,22 +2724,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x =>
         refreshUserIfRequired(x._1,x._2)
         x
-    } map {
-      it =>
-      val callContext = it._2
-
-        val validationResult: Option[String] = callContext.flatMap(_.resourceDocument)
-          .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
-          .filter(v => !v.roles.exists(_.nonEmpty))                        // no roles required, this endpoint only do authentication
-          .flatMap(v => JsonSchemaUtil.validateRequest(callContext)(v.operationId)) // request payload validation error message
-
-        validationResult match {
-          case Some(errorMsg) =>
-            val apiFailure = APIFailureNewStyle(s"${ErrorMessages.InvalidRequestPayload} $errorMsg", 401, callContext.map(_.toLight))
-            val failure = ParamFailure(errorMsg, apiFailure)
-            (fullBoxOrException(failure), callContext)
-          case _ => it
-        }
     }
   }
 
@@ -2691,6 +2739,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         cc.resourceDocument.map(_.partialFunctionName) match {
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)
+        }
+    }  map {
+      it =>
+        val callContext = it._2
+
+        val interceptResult: Option[JsonResponse] = callContext.flatMap(_.resourceDocument)
+          .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
+          .filter(v => !v.roles.exists(_.nonEmpty))                        // no roles required, this endpoint only do authentication
+          .flatMap(v => afterAuthenticateInterceptResult(callContext, v.operationId)) // request payload validation error message
+
+        interceptResult match {
+          case Some(jsonResponse) =>
+            throw JsonResponseException(jsonResponse)
+          case _ => it
         }
     }
   }
@@ -3547,4 +3609,144 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   val currentYear = Calendar.getInstance.get(Calendar.YEAR).toString
+
+  /**
+   * validate whether current request's auth type is legal
+   * @param operationId
+   * @param callContext
+   * @return Full(errorResponse) if validate fail
+   */
+  def validateAuthType(operationId: String, callContext: CallContext): Box[JsonResponse] = {
+    val authType = callContext.authType
+    if (authType == AuthenticationType.Anonymous) {
+      Empty
+    } else {
+      AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId) match {
+        case Full(v) if !v.authTypes.contains(callContext.authType)=>
+          import net.liftweb.json.JsonDSL._
+          val errorMsg = s"""$AuthenticationTypeIllegal allowed authentication types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
+          val errorCode = 400
+          val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
+          val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]
+          // add correlatedId to header
+          val newHeader = (ResponseHeader.`Correlation-Id` -> callContext.correlationId) :: jsonResponse.headers
+          Some(jsonResponse.copy(headers = newHeader))
+        case _ => Empty
+      }
+    }
+  }
+
+  def createErrorJsonResponse(errorMsg: String, errorCode: Int, correlationId: String): JsonResponse = {
+    import net.liftweb.json.JsonDSL._
+    val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
+    val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]
+    // add correlatedId to header
+    val newHeader = (ResponseHeader.`Correlation-Id` -> correlationId) :: jsonResponse.headers
+    jsonResponse.copy(headers = newHeader)
+  }
+
+  object JsonResponseExtractor {
+    def unapply(jsonResponse: JsonResponse): Option[(String, Int)] = jsonResponse match {
+      case JsonResponse(bodyJson, _, _, code) =>
+        val responseBody = bodyJson.toJsCmd
+        (parse(responseBody) \ "message") match {
+          case JString(message) =>
+            Some(message -> code)
+          case _ => Some(responseBody -> code)
+        }
+    }
+  }
+
+
+
+  val afterAuthenticateInterceptResult: (Option[CallContext], String) => Box[JsonResponse] = getInterceptResult(afterAuthenticateInterceptors)
+
+  val beforeAuthenticateInterceptResult: (Option[CallContext], String) => Box[JsonResponse] = getInterceptResult(beforeAuthenticateInterceptors)
+
+  private def getInterceptResult(interceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]])
+                                (callContext: Option[CallContext], operationId: String): Box[JsonResponse] = {
+    var jsonResponse:Box[JsonResponse] = Empty
+    // why not use collectFirst method? because the parameter is PartialFunction, it will calculate twice
+    breakable {
+      interceptors.foreach(fun => {
+        if(fun.isDefinedAt(callContext, operationId)) {
+          val maybeResponse = fun(callContext, operationId)
+          if(maybeResponse.isDefined) {
+            jsonResponse = maybeResponse
+            break
+          }
+        }
+      })
+    }
+    jsonResponse
+  }
+
+  private val isEnabledForceError = APIUtil.getPropsAsBoolValue("enable.force_error", false)
+
+  /**
+   * is Force-Error enabled or not, because test mode need modify this props, the Test mode read from Props every time
+   * @return
+   */
+  private def enableForceError = Props.mode match {
+    case Props.RunModes.Test =>
+      APIUtil.getPropsAsBoolValue("enable.force_error", false)
+    case _ => isEnabledForceError
+  }
+
+  val beforeAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
+    // add interceptor functions one by one.
+    // validate auth type
+    {
+      case (Some(callContext), operationId) => validateAuthType(operationId, callContext)
+    }
+  )
+
+  private val afterAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
+    // add interceptor functions one by one.
+    {// process force error
+      case (Some(callContext), operationId) if enableForceError =>
+        val requestHeaders = callContext.requestHeaders
+
+        val forceError = requestHeaders.collectFirst({
+          case HTTPParam("Force-Error", value::_) => value
+        })
+        val responseCode = requestHeaders.collectFirst({
+          case HTTPParam("Response-Code", value::_) => value
+        })
+
+        if(forceError.isEmpty) {
+          Empty
+        } else {
+
+          val Some(errorName) = forceError
+          val errorNamePrefix = if(errorName.endsWith(":")) errorName else errorName + ":"
+          val correlationId = callContext.correlationId
+          val resourceDoc = callContext.resourceDocument
+          Box tryo {
+            if(!ErrorMessages.isValidName(errorName)) {
+              createErrorJsonResponse(s"$ForceErrorInvalid Force-Error value not correct: $errorName", 400, correlationId)
+            } else if (responseCode.exists(it => !StringUtils.isNumeric(it))){ // Response-Code is not number
+              createErrorJsonResponse(s"$ForceErrorInvalid Response-Code value not correct: ${responseCode.orNull}", 400, correlationId)
+            } else if(resourceDoc.isDefined && !resourceDoc.exists(_.errorResponseBodies.exists(_.startsWith(errorNamePrefix)))) {
+              createErrorJsonResponse(s"$ForceErrorInvalid Invalid Force Error Code: $errorName", 400, correlationId)
+            } else {
+              val Some(errorValue) = ErrorMessages.getValueMatches(_.startsWith(errorNamePrefix))
+              val statusCode = responseCode.map(_.toInt).getOrElse(ErrorMessages.getCode(errorValue))
+              createErrorJsonResponse(errorValue, statusCode, correlationId)
+            }
+          }
+        }
+    },
+    { // validate with json-schema
+      case (cc@Some(callContext), operationId) =>
+        // validate request payload with json-schema
+        JsonSchemaUtil.validateRequest(cc)(operationId) match {
+          case Some(errorMsg) =>
+            Box tryo (
+              createErrorJsonResponse(s"${ErrorMessages.InvalidRequestPayload} $errorMsg", 400, callContext.correlationId)
+              )
+          case _ => Empty
+        }
+    }
+  )
 }

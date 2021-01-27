@@ -55,7 +55,6 @@ object ErrorMessages {
   val InvalidMyDynamicEntityUser = "OBP-09010: DynamicEntity can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Entity` endpoint"
   val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
   
-  val InvalidBankIdDynamicEntity = "OBP-09012: This is a bank level dynamic entity. Please specify a valid value for BANK_ID."
   val InvalidRequestPayload = "OBP-09013: Incorrect request body Format, it should be a valid json that matches Validation rule."
 
 
@@ -306,6 +305,18 @@ object ErrorMessages {
 
   val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
 
+  val ApiCollectionNotFound = "OBP-30079: ApiCollection not found."
+  val CreateApiCollectionError = "OBP-30080: Could not create ApiCollection."
+  val DeleteApiCollectionError = "OBP-30081: Could not delete ApiCollection."
+
+  val ApiCollectionEndpointNotFound = "OBP-30082: ApiCollectionEndpoint not found."
+  val CreateApiCollectionEndpointError = "OBP-30083: Could not create ApiCollectionEndpoint."
+  val DeleteApiCollectionEndpointError = "OBP-30084: Could not delete ApiCollectionEndpoint."
+  val ApiCollectionEndpointAlreadyExisting = "OBP-30085: The ApiCollectionEndpoint is already Existing."
+  val ApiCollectionAlreadyExisting = "OBP-30086: The ApiCollection is already Existing."
+
+  val DoubleEntryTransactionNotFound = "OBP-30087: Double Entry Transaction not found."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -438,13 +449,19 @@ object ErrorMessages {
   val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
   val CannotUpdatePSUData = s"OBP-40024: Cannot Update PSU Data for payment initiation due to transaction request is not in status: ${INITIATED}."
   val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}, ${CANCELLATION_PENDING} or ${COMPLETED}."
-  val InvalidValidation = "OBP-40026: Invalid json schema. "
-  val ValidationNotFound = "OBP-40027: Validation not found, please specify valid query parameter. "
-  val ValidationDeleteError = "OBP-40028: Could not delete the Validation. "
-  val ValidationOperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
-  val ValidationJsonSchemaIllegal = "OBP-40030: Incorrect json-schema Format. "
+  val JsonSchemaIllegal = "OBP-40026: Incorrect json-schema Format. "
+  val JsonSchemaValidationNotFound = "OBP-40027: JSON Schema Validation not found, please specify valid query parameter. "
+  val ValidationDeleteError = "OBP-40028: Could not delete the JSON Schema Validation. "
+  val OperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
+
   val CannotStartTheAuthorisationProcessForTheCancellation = s"OBP-40031: Cannot start the authorisation process for the cancellation of the addressed payment due to transaction request is not in status: ${CANCELLATION_PENDING}."
 
+  val AuthenticationTypeNameIllegal= s"OBP-40030: AuthenticationType name not correct. "
+  val AuthenticationTypeValidationNotFound = "OBP-40032: AuthenticationTypeValidation not found, please specify valid query parameter. "
+  val AuthenticationTypeValidationDeleteError = "OBP-40033: Could not delete the AuthenticationTypeValidation. "
+  val AuthenticationTypeIllegal = "OBP-40034: Current request authentication type is illegal. "
+
+  val ForceErrorInvalid = "OBP-40035: Force Error request header is invalid. "
 
 
   // Exceptions (OBP-50XXX)
@@ -512,7 +529,7 @@ object ErrorMessages {
   // MethodRouting Exceptions (OBP-7XXXX)
   val InvalidBankIdRegex = "OBP-70001: Incorrect regex for bankIdPattern."
   val MethodRoutingNotFoundByMethodRoutingId = "OBP-70002: MethodRouting not found. Please specify a valid value for method_routing_id."
-  val MethodRoutingNameAlreadyUsed = "OBP-70003: Method Routing Name already used."
+  val ExistingMethodRoutingError = "OBP-70003: Method Routing is already existing."
 
   // Cascade Deletion Exceptions (OBP-8XXXX)
   val CouldNotDeleteCascade = "OBP-80001: Could not delete cascade."
@@ -542,6 +559,75 @@ object ErrorMessages {
   //  getFildNameByValue("OBP-30107: Invalid User Id.") return InvalidUserId
   def getFieldNameByValue(value: String): String =
     fieldValueToName.getOrElse(value, throw new IllegalArgumentException(s"ErrorMessages not exists field value is: $value"))
+
+  def getValueMatches(predicate: String => Boolean): Option[String] = fieldValueToName.collectFirst {
+    case (key: String, _) if predicate(key) => key
+  }
+
+  // check whether given name is valid errorMessage name
+  val isValidName: String => Boolean = {
+    val pattern = Pattern.compile("""OBP\-\d+:?""")
+    pattern.matcher(_:String).matches()
+  }
+
+  /**
+   * Error message value mapping response statusCode,
+   * Those statusCode is not 400 must add at here.
+   */
+  private val errorToCode: Map[String, Int] = Map(
+    DataImportDisabled -> 403,
+    DynamicEntityNotFoundByDynamicEntityId -> 404,
+    EntityNotFoundByEntityId -> 404,
+    DynamicEndpointNotFoundByDynamicEndpointId -> 404,
+//    NotImplemented -> 501, // 400 or 501
+    TooManyRequests -> 429,
+    ResourceDoesNotExist -> 404,
+    UserNotLoggedIn -> 401,
+    DirectLoginInvalidToken -> 401,
+    InvalidLoginCredentials -> 401,
+    UserNotFoundById -> 404,
+    UserHasMissingRoles -> 403, // or 400
+    InvalidConsumerKey -> 401,
+//    InvalidConsumerCredentials -> 401, // or 400
+    UsernameHasBeenLocked -> 401,
+    UserNoPermissionAccessView -> 403,
+    UserNotSuperAdminOrMissRole -> 403,
+    ConsumerHasMissingRoles -> 403,
+    UserNotFoundByUsername -> 404,
+    ApplicationNotIdentified -> 401,
+    CouldNotExchangeAuthorizationCodeForTokens -> 401,
+    CouldNotSaveOpenIDConnectUser -> 401,
+    InvalidOpenIDConnectState -> 401,
+    CouldNotHandleOpenIDConnectData -> 401,
+    CouldNotValidateIDToken -> 401,
+    BankNotFound -> 404,
+    CustomerNotFound -> 404,
+    CustomerNotFoundByCustomerId -> 404,
+    AccountNotFound -> 404,
+    CounterpartyNotFoundByIban -> 404,
+    BankAccountNotFound -> 404,
+    ConsumerNotFoundByConsumerId -> 404,
+//    TransactionNotFound -> 404, // or 400
+    BankAccountNotFoundByAccountRouting -> 404,
+    BankAccountNotFoundByIban -> 404,
+    AccountRoutingNotFound -> 404,
+    BankAccountNotFoundByAccountId -> 404,
+    DoubleEntryTransactionNotFound -> 404,
+    MeetingApiKeyNotConfigured -> 403,
+    MeetingApiSecretNotConfigured -> 403,
+    EntitlementNotFound -> 404,
+    EntitlementCannotBeDeleted -> 404,
+    ConsentStatusIssue -> 401,
+    ConsentDisabled -> 401,
+    InternalServerError -> 500,
+  )
+
+  /**
+   * get response statusCode by error message, return 400 if error message not exists or have not mapping statusCode
+   * @param errorMsg
+   * @return response statusCode, default is 400
+   */
+  def getCode(errorMsg: String): Int = errorToCode.get(errorMsg).getOrElse(400)
 
   /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
   /**

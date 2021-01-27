@@ -1,10 +1,10 @@
 package code.api.util
 
 import java.util.{Date, UUID}
-
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
+import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
@@ -12,6 +12,7 @@ import code.customer.CustomerX
 import code.model.{Consumer, _}
 import code.views.Views
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
@@ -21,7 +22,7 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.List
 
 case class CallContext(
-                       gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!  
+                       gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
                        gatewayLoginResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
@@ -31,10 +32,11 @@ case class CallContext(
                        startTime: Option[Date] = Some(Helpers.now),
                        endTime: Option[Date] = None,
                        correlationId: String = "",
-                       sessionId: Option[String] = None, //Only this value must be used for cache key !!!   
+                       sessionId: Option[String] = None, //Only this value must be used for cache key !!!
                        url: String = "",
                        verb: String = "",
                        implementedInVersion: String = "",
+                       operationId: Option[String] = None, // Dynamic Endpoint Unique Identifier. Important for Rate Limiting.
                        authReqHeaderField: Box[String] = Empty,
                        directLoginParams: Map[String, String] = Map(),
                        oAuthParams: Map[String, String] = Map(),
@@ -64,17 +66,17 @@ case class CallContext(
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))
       authViews<- tryo(
         for{
-          view <- views   
+          view <- views
           (account, callContext )<- code.bankconnectors.LocalMappedConnector.getBankAccountLegacy(view.bankId, view.accountId, Some(this)) ?~! {BankAccountNotFound}
           internalCustomers = createAuthInfoCustomersJson(account.customerOwners.toList)
           internalUsers = createAuthInfoUsersJson(account.userOwners.toList)
           viewBasic = ViewBasic(view.viewId.value, view.name, view.description)
           accountBasic =  AccountBasic(
-            account.accountId.value, 
-            account.accountRoutings, 
+            account.accountId.value,
+            account.accountRoutings,
             internalCustomers.customers,
             internalUsers.users)
-        }yield 
+        }yield
           AuthView(viewBasic, accountBasic)
       )
     } yield{
@@ -93,7 +95,7 @@ case class CallContext(
     }}.openOr(OutboundAdapterCallContext( //For anonymousAccess endpoints, there are no user info
       this.correlationId,
       this.sessionId))
-  
+
   def toLight: CallContextLight = {
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
@@ -110,6 +112,7 @@ case class CallContext(
       url = this.url,
       verb = this.verb,
       implementedInVersion = this.implementedInVersion,
+      operationId = this.operationId,
       httpCode = this.httpCode,
       httpBody = this.httpBody,
       authReqHeaderField = this.authReqHeaderField.toOption,
@@ -139,6 +142,35 @@ case class CallContext(
   def loggedInUser: User = user.openOrThrowException(UserNotLoggedIn)
   // for endpoint body convenient get cc.callContext
   def callContext: Option[CallContext] = Option(this)
+
+  def authType: AuthenticationType = {
+    if(hasGatewayHeader(authReqHeaderField)) {
+      GatewayLogin
+    } else if(hasDirectLoginHeader(authReqHeaderField)) {
+      DirectLogin
+    } else if(hasAnOAuthHeader(authReqHeaderField)) {
+      AuthenticationType.`OAuth1.0a`
+    //↓ have no client certificate, the request should contains Google or Yahoo id token OIDC way
+    } else if(hasAnOAuth2Header(authReqHeaderField) && APIUtil.`getPSD2-CERT`(requestHeaders).isEmpty) {
+      OAuth2_OIDC
+    } else if(hasAnOAuth2Header(authReqHeaderField)) {
+      OAuth2_OIDC_FAPI
+    } else {
+      Anonymous
+    }
+  }
+}
+
+sealed trait AuthenticationType extends EnumValue
+object AuthenticationType extends OBPEnumeration[AuthenticationType]{
+  object DirectLogin extends AuthenticationType
+  object `OAuth1.0a` extends AuthenticationType {
+    override def toString: String = "OAuth1.0a"
+  }
+  object GatewayLogin extends AuthenticationType
+  object OAuth2_OIDC extends AuthenticationType
+  object OAuth2_OIDC_FAPI extends AuthenticationType
+  object Anonymous extends AuthenticationType
 }
 
 case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None,
@@ -155,6 +187,7 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             url: String = "",
                             verb: String = "",
                             implementedInVersion: String = "",
+                            operationId: Option[String] = None,
                             httpCode: Option[Int] = None,
                             httpBody: Option[String] = None,
                             authReqHeaderField: Option[String] = None,

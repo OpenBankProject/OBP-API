@@ -2,12 +2,11 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.cache.Caching
-import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{EntitlementAndScopeStatus, JsonResponseExtractor, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.v1_2_1.OBPAPI1_2_1.Implementations1_2_1
@@ -15,9 +14,9 @@ import code.api.v1_4_0.OBPAPI1_4_0.Implementations1_4_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_2_0
-import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo, TransactionRequestReasonJsonV400}
+import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityInfo}
+import code.authtypevalidation.{AuthenticationTypeValidationProvider, JsonAuthTypeValidation}
 import code.bankconnectors.Connector
-import code.bankconnectors.rest.RestConnector_vMar2019
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consumer.Consumers
 import com.openbankproject.commons.model.DirectDebitTrait
@@ -29,10 +28,13 @@ import com.openbankproject.commons.model.FXRate
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
-import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction}
+import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
+import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
+import code.model.dataAccess.BankAccountRouting
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
-import code.util.{Helper, JsonSchemaUtil}
+import code.users.Users
+import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
 import code.webhook.AccountWebhook
@@ -45,9 +47,8 @@ import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, Cu
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{JObject, JValue}
+import net.liftweb.json.{JNothing, JNull, JObject, JString, JValue, JInt, JField, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -55,16 +56,32 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
 import scala.reflect.runtime.universe.MethodSymbol
-import code.validation.{JsonValidation, ValidationProvider}
+import code.validation.{JsonSchemaValidationProvider, JsonValidation}
+import net.liftweb.http.JsonResponse
+import net.liftweb.util.Props
+import code.api.JsonResponseException
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCounterpartyUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateCounterpartyUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addCounterpartyOpenCorporatesUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateCounterpartyOpenCorporatesUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.addOtherAccountPrivateAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateCounterpartyPrivateAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.updateAccountLabel), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addImageForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteImageForViewOnTransaction), ApiVersion.v1_2_1.toString),
@@ -714,27 +731,20 @@ object NewStyle {
      * as check entitlement methods return map parameter,
      * do request payload validation with json-schema
      * @param callContext callContext
-     * @param checkFull whether check result is Full, for hasXXEntitlement that return Future[Box[Unit]], the value should be true
      * @param boxResult hasXXEntitlement method return value, if validation fail, return fail box or throw exception for Future type
      * @tparam T
      * @return
      */
-    private def validateRequestPayload[T](callContext: Option[CallContext], checkFull: Boolean = false)(boxResult: Box[T]): Box[T] = {
-      val validationResult: Option[String] = callContext.flatMap(_.resourceDocument)
+    private def validateRequestPayload[T](callContext: Option[CallContext])(boxResult: Box[T]): Box[T] = {
+      val interceptResult: Option[JsonResponse] = callContext.flatMap(_.resourceDocument)
         .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
-        .flatMap(v => JsonSchemaUtil.validateRequest(callContext)(v.operationId)) // request payload validation error message
+        .flatMap(v => afterAuthenticateInterceptResult(callContext, v.operationId)) // request payload validation error message
 
-      if(boxResult.isEmpty || validationResult.isEmpty) {
+      if(boxResult.isEmpty || interceptResult.isEmpty) {
         boxResult
       } else {
-        val Some(errorMsg) = validationResult
-        val errorInfo = s"${ErrorMessages.InvalidRequestPayload} $errorMsg"
-        val apiFailure = APIFailureNewStyle(errorInfo, 401, callContext.map(_.toLight))
-
-        checkFull match {
-          case true => fullBoxOrException(ParamFailure(errorInfo, apiFailure))
-          case _ => ParamFailure(errorInfo, apiFailure)
-        }
+        val Some(jsonResponse) = interceptResult
+        throw JsonResponseException(jsonResponse)
       }
     }
 
@@ -744,7 +754,7 @@ object NewStyle {
 
       Helper.booleanToFuture(errorInfo) {
         APIUtil.hasEntitlement(bankId, userId, role)
-      } map validateRequestPayload(callContext, true)
+      } map validateRequestPayload(callContext)
     }
     // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
     def ownEntitlement(bankId: String, userId: String, role: ApiRole,callContext: Option[CallContext], errorMsg: String = ""): Box[Unit] = {
@@ -757,7 +767,7 @@ object NewStyle {
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
-      } map validateRequestPayload(callContext, true)
+      } map validateRequestPayload(callContext)
 
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles, callContext)
@@ -855,6 +865,7 @@ object NewStyle {
                                       challengeType: Option[String],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
+                                      berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
                                       callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
     {
       Connector.connector.vend.createTransactionRequestv400(
@@ -869,6 +880,7 @@ object NewStyle {
         challengeType: Option[String],
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
+        berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
         callContext: Option[CallContext]
       ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetTransactionRequests210", 400), i._2)
@@ -1094,6 +1106,11 @@ object NewStyle {
     def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
       Connector.connector.vend.saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForSaveDoubleEntryBookTransaction ", 400), i._2)
+      }
+
+    def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
       }
 
     def cancelPaymentV400(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[CancelPayment] = {
@@ -2048,7 +2065,11 @@ object NewStyle {
           }
 
       val notExists = if(exists) Empty else Full(true)
-      (unboxFullOrFail(notExists, callContext, s"$MethodRoutingNameAlreadyUsed"), callContext)
+      (unboxFullOrFail(notExists, callContext, s"$ExistingMethodRoutingError Please modify the following parameters:" +
+        s"is_bank_id_exact_match(${methodRouting.isBankIdExactMatch}), " +
+        s"method_name(${methodRouting.methodName}), " +
+        s"bank_id_pattern(${methodRouting.bankIdPattern.getOrElse("")})"
+      ), callContext)
     }
     def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
@@ -2299,7 +2320,10 @@ object NewStyle {
       (boxedDynamicEntity, callContext)
     }
 
-    private[this] val dynamicEntityTTL = APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "0").toInt
+    private[this] val dynamicEntityTTL = {
+      if(Props.testMode) 0
+      else APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "30").toInt
+    }
 
     def getDynamicEntities(): List[DynamicEntityT] = {
       import scala.concurrent.duration._
@@ -2621,43 +2645,160 @@ object NewStyle {
     } map { fullBoxOrException(_) }
 
 
-    def createValidation(validation: JsonValidation, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+    def getApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionById(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) "), callContext)
+      }
+    }
+
+    def getApiCollectionByUserIdAndCollectionName(userId : String, apiCollectionName : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(userId, apiCollectionName)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_NAME. Current API_COLLECTION_NAME($apiCollectionName) "), callContext)
+      }
+    }
+
+    def getApiCollectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
+      Future(MappedApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
+    }
+    
+    def createApiCollection(
+      userId: String,
+      apiCollectionName: String,
+      isSharable: Boolean,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.createApiCollection(
+        userId: String,
+        apiCollectionName: String,
+        isSharable: Boolean)
+      ) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
+      }
+    }
+
+    def getUserByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[User] = {
+      Users.users.vend.getUserByUserIdFuture(userId) map {
+        x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current USER_ID($userId) "),callContext)
+      }
+    }
+
+    def deleteApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedApiCollectionsProvider.deleteApiCollectionById(apiCollectionId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionError Current API_COLLECTION_ID($apiCollectionId) "), callContext)
+      }
+    }
+
+    def createApiCollectionEndpoint(
+      apiCollectionId: String,
+      operationId: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.createApiCollectionEndpoint(
+        apiCollectionId: String,
+        operationId: String
+      )) map {
+        i => (unboxFullOrFail(i, callContext, CreateApiCollectionEndpointError), callContext)
+      }
+    }
+
+    def getApiCollectionEndpointById(apiCollectionEndpointId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointById(apiCollectionEndpointId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Please specify a valid value for API_COLLECTION_ENDPOINT_ID. " +
+          s"Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId) "), callContext)
+      }
+    }
+
+    def getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId, operationId)) map {
+        i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Current API_COLLECTION_ID($apiCollectionId) and OPERATION_ID($operationId) "), callContext)
+      }
+    }
+
+    def getApiCollectionEndpoints(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionEndpointTrait]] = {
+      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionId), callContext)
+    }
+
+    def deleteApiCollectionEndpointById(apiCollectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Future(MappedApiCollectionEndpointsProvider.deleteApiCollectionEndpointById(apiCollectionEndpointById)) map {
+        i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionEndpointError Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointById) "), callContext)
+      }
+    }
+
+    def createJsonSchemaValidation(validation: JsonValidation, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
       Future {
-        val newValidation = ValidationProvider.validationProvider.vend.create(validation)
-        val errorMsg = s"$InvalidValidation Can not create Validation in the backend. "
+        val newValidation = JsonSchemaValidationProvider.validationProvider.vend.create(validation)
+        val errorMsg = s"$UnknownError Can not create JSON Schema Validation in the backend. "
         (unboxFullOrFail(newValidation, callContext, errorMsg, 400), callContext)
       }
 
-    def updateValidation(operationId: String, jsonschema: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+    def updateJsonSchemaValidation(operationId: String, jsonschema: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
       Future {
-        val updatedValidation = ValidationProvider.validationProvider.vend.update(JsonValidation(operationId, jsonschema))
-        val errorMsg = s"$InvalidValidation Can not update Validation in the backend. "
+        val updatedValidation = JsonSchemaValidationProvider.validationProvider.vend.update(JsonValidation(operationId, jsonschema))
+        val errorMsg = s"$UnknownError Can not update JSON Schema Validation in the backend. "
         (unboxFullOrFail(updatedValidation, callContext, errorMsg, 400), callContext)
       }
 
-    def getValidations(callContext: Option[CallContext]): OBPReturnType[List[JsonValidation]] =
+    def getJsonSchemaValidations(callContext: Option[CallContext]): OBPReturnType[List[JsonValidation]] =
       Future {
-        val validations: List[JsonValidation] = ValidationProvider.validationProvider.vend.getAll()
+        val validations: List[JsonValidation] = JsonSchemaValidationProvider.validationProvider.vend.getAll()
         validations -> callContext
       }
 
-    def getValidationByOperationId(operationId: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
+    def getJsonSchemaValidationByOperationId(operationId: String, callContext: Option[CallContext]): OBPReturnType[JsonValidation] =
       Future {
-        val validation = ValidationProvider.validationProvider.vend.getByOperationId(operationId)
-        (unboxFullOrFail(validation, callContext, ValidationNotFound, 400), callContext)
+        val validation = JsonSchemaValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        (unboxFullOrFail(validation, callContext, JsonSchemaValidationNotFound, 400), callContext)
       }
 
-    def deleteValidation(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def deleteJsonSchemaValidation(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result = ValidationProvider.validationProvider.vend.deleteByOperationId(operationId)
+        val result = JsonSchemaValidationProvider.validationProvider.vend.deleteByOperationId(operationId)
         (unboxFullOrFail(result, callContext, ValidationDeleteError, 400), callContext)
       }
 
-    def isValidationExists(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonSchemaValidationExists(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result = ValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        val result = JsonSchemaValidationProvider.validationProvider.vend.getByOperationId(operationId)
         (result.isDefined, callContext)
       }
 
+    // authTypeValidation related functions
+    def createAuthenticationTypeValidation(AuthTypeValidation: JsonAuthTypeValidation, callContext: Option[CallContext]): OBPReturnType[JsonAuthTypeValidation] =
+      Future {
+        val newAuthTypeValidation = AuthenticationTypeValidationProvider.validationProvider.vend.create(AuthTypeValidation)
+        val errorMsg = s"$UnknownError Can not create Authentication Type Validation in the backend. "
+        (unboxFullOrFail(newAuthTypeValidation, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateAuthenticationTypeValidation(operationId: String, authTypes: List[AuthenticationType], callContext: Option[CallContext]): OBPReturnType[JsonAuthTypeValidation] =
+      Future {
+        val updatedAuthTypeValidation = AuthenticationTypeValidationProvider.validationProvider.vend.update(JsonAuthTypeValidation(operationId, authTypes))
+        val errorMsg = s"$UnknownError Can not update Authentication Type Validation in the backend. "
+        (unboxFullOrFail(updatedAuthTypeValidation, callContext, errorMsg, 400), callContext)
+      }
+
+    def getAuthenticationTypeValidations(callContext: Option[CallContext]): OBPReturnType[List[JsonAuthTypeValidation]] =
+      Future {
+        val AuthTypeValidations: List[JsonAuthTypeValidation] = AuthenticationTypeValidationProvider.validationProvider.vend.getAll()
+        AuthTypeValidations -> callContext
+      }
+
+    def getAuthenticationTypeValidationByOperationId(operationId: String, callContext: Option[CallContext]): OBPReturnType[JsonAuthTypeValidation] =
+      Future {
+        val AuthTypeValidation = AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        (unboxFullOrFail(AuthTypeValidation, callContext, AuthenticationTypeValidationNotFound, 400), callContext)
+      }
+
+    def deleteAuthenticationTypeValidation(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result = AuthenticationTypeValidationProvider.validationProvider.vend.deleteByOperationId(operationId)
+        (unboxFullOrFail(result, callContext, AuthenticationTypeValidationDeleteError, 400), callContext)
+      }
+
+    def isAuthenticationTypeValidationExists(operationId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result = AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId)
+        (result.isDefined, callContext)
+      }
   }
 }

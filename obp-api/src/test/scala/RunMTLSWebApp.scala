@@ -108,7 +108,7 @@ object RunMTLSWebApp extends App {
   context.setWar(s"${basePath}src/main/webapp")
 
   // rename JSESSIONID, avoid conflict with other project when start two project at local
-  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP")
+  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP_API")
 
   server.setHandler(context)
 

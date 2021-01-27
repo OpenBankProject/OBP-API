@@ -748,7 +748,7 @@ object SwaggerJSONFactory extends MdcLoggable {
           JField(name, v) <- jFields
         } yield s""" "$name": ${buildSwaggerSchema(JsonUtils.getType(v), v)} """
 
-        val requiredFields = if (jFields.isEmpty) "" else  jFields.map(_.name).map(name => s""" "$name" """).mkString("[", ",", "]")
+        val requiredFields = if (jFields.isEmpty) "[]" else  jFields.map(_.name).map(name => s""" "$name" """).mkString("[", ",", "]")
 
         s""" {"type":"object", "properties": { ${allFields.mkString(",")} }, "required": $requiredFields }"""
 

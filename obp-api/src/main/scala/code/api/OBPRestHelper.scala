@@ -28,7 +28,6 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.URLDecoder
-
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
@@ -43,7 +42,7 @@ import code.util.Helper.MdcLoggable
 import com.alibaba.ttl.TransmittableThreadLocal
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
-import net.liftweb.common._
+import net.liftweb.common.{Box, Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
 import net.liftweb.json.Extraction
@@ -53,6 +52,7 @@ import net.liftweb.util.Helpers
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.math.Ordering
+import scala.util.control.NoStackTrace
 
 trait APIFailure{
   val msg : String
@@ -105,6 +105,22 @@ object ApiVersionHolder {
     threadLocal.remove()
     apiVersion
   }
+}
+
+/**
+ * any place throw this exception will send back the JsonResponse,
+ * This is helpful if you want send back given error message and status code
+ * @param jsonResponse
+ */
+case class JsonResponseException(jsonResponse: JsonResponse) extends RuntimeException with NoStackTrace {
+  /**
+   *
+   * @param errorMsg error message
+   * @param errorCode response error code and status code
+   * @param correlationId this value can be got from callContext
+   */
+  def this(errorMsg: String, errorCode: Int, correlationId: String) =
+    this(createErrorJsonResponse(errorMsg: String, errorCode: Int, correlationId: String))
 }
 
 trait OBPRestHelper extends RestHelper with MdcLoggable {
@@ -265,7 +281,13 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       ipAddress = remoteIpAddress,
       requestHeaders = reqHeaders
     )
-    if(newStyleEndpoints(rd)) {
+
+    // before authentication interceptor build response
+    val maybeJsonResponse: Box[JsonResponse] = rd.flatMap(it => beforeAuthenticateInterceptResult(Option(cc), it.operationId))
+
+    if(maybeJsonResponse.isDefined) {
+      maybeJsonResponse
+    } else if(newStyleEndpoints(rd)) {
       fn(cc)
     } else if (APIUtil.hasConsentJWT(reqHeaders)) {
       val (usr, callContext) =  Consent.applyRulesOldStyle(APIUtil.getConsentJWT(reqHeaders), cc)
@@ -370,7 +392,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
             ApiVersionHolder.setApiVersion(version)
             val value = function(callContext)
             ApiVersionHolder.removeApiVersion()
-            value
+            value match {
+              case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
+                Full(jsonResponse)
+              case v => v
+            }
           }
         }
       }
@@ -429,7 +455,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req) = {
           //Wraps the partial function with some logging
-          handler(r)
+          try {
+            handler(r)
+          } catch {
+            case JsonResponseException(jsonResponse) =>
+              Full(jsonResponse)
+          }
         }
         def isDefinedAt(r : Req) = handler.isDefinedAt(r)
       }

@@ -4,7 +4,7 @@ import java.nio.charset.Charset
 import java.util.{Set => JSet}
 
 import code.api.util.CallContext
-import code.validation.{JsonValidation, ValidationProvider}
+import code.validation.{JsonValidation, JsonSchemaValidationProvider}
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.google.common.hash.Hashing
 import com.networknt.schema.{JsonSchema, JsonSchemaFactory, SpecVersionDetector, ValidationMessage}
@@ -45,7 +45,7 @@ object JsonSchemaUtil {
     for {
       _ <- callContext.filter(it => it.verb == "POST" || it.verb == "PUT")
       requestBody <- callContext.flatMap(_.httpBody)
-      JsonValidation(_, jsonSchema) <- ValidationProvider.validationProvider.vend.getByOperationId(operationIdBuilder)
+      JsonValidation(_, jsonSchema) <- JsonSchemaValidationProvider.validationProvider.vend.getByOperationId(operationIdBuilder)
       errorSet = JsonSchemaUtil.validateJson(jsonSchema, requestBody)
       if CollectionUtils.isNotEmpty(errorSet)
       errorInfo = StringUtils.join(errorSet, "; ")
