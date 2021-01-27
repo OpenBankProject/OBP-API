@@ -1032,20 +1032,23 @@ trait APIMethods121 {
       emptyObjectJson,
       otherAccountMetadataJSON,
       List(UserNotLoggedIn, UnknownError, "the view does not allow metadata access"),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val getOtherAccountMetadata : OBPEndpoint = {
       //get metadata of one other account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
           } yield {
-            val metadataJson = JSONFactory.createOtherAccountMetaDataJSON(metadata)
-            successJsonResponse(Extraction.decompose(metadataJson))
+            val metadataJson = JSONFactory.createOtherAccountMetaDataJSON(otherBankAccount.metadata.get)
+            (metadataJson, HttpCode.`200`(callContext))
           }
       }
     }
