@@ -86,6 +86,7 @@ object NewStyle {
     (nameOf(Implementations1_2_1.deleteCounterpartyPrivateAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getOtherAccountPrivateAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateAccountLabel), ApiVersion.v1_2_1.toString),
