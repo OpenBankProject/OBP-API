@@ -122,7 +122,6 @@ class MappedClassNameTest extends FeatureSpec {
       !oldMappedTypeNames.contains(typeName) &&
       mapperClazz.isAssignableFrom(Class.forName(typeName, false, mapperClazz.getClassLoader))
   }.toSet
-
   feature("Validate New Entity name and column name") {
 
     scenario(s"new entity names start with Mapped should be empty", ClassTag) {
@@ -141,7 +140,6 @@ class MappedClassNameTest extends FeatureSpec {
               val wrongFileNames = clazz.getDeclaredFields.map(_.getName)
                 .filter(it => it.endsWith("$module") && it.charAt(0) == 'm' && it.charAt(1).isUpper)
                 .map(StringUtils.substringBeforeLast(_, "$module"))
-
               clazz.getName -> wrongFileNames
           }.toMap.filter(_._2.nonEmpty)
 

@@ -288,49 +288,57 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     if( missingParams.size != 0 )
     {
       message = "the following parameters are missing : " + missingParams.mkString(", ")
+      logger.error(s"validator missingParams error: $message ")
       httpCode = 400
     }
     //no parameter exists more than one times
     else if (duplicatedParameters)
     {
       message = "Duplicated oauth protocol parameters"
+      logger.error(s"validator duplicatedParameters error: $message ")
       httpCode = 400
     }
     //valid OAuth
     else if(!supportedOAuthVersion(parameters.get(VersionName)))
     {
       message = "OAuth version not supported"
+      logger.error(s"validator supportedOAuthVersion error: $message ")
       httpCode = 400
     }
     //supported signature method
     else if (!supportedSignatureMethod(parameters.get(SignatureMethodName).get))
     {
       message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
+      logger.error(s"validator supportedSignatureMethod error: $message ")
       httpCode = 400
     }
     //check if the application is registered and active
     else if(! APIUtil.registeredApplication(parameters.get("oauth_consumer_key").get))
     {
-      logger.error("application: " + parameters.get("oauth_consumer_key").get + " not found")
       message = ErrorMessages.InvalidConsumerCredentials
+      logger.error("application: " + parameters.get("oauth_consumer_key").get + " not found")
+      logger.error(s"validator registeredApplication error: $message ")
       httpCode = 401
     }
     //valid timestamp
     else if(! wrongTimestamp(parameters.get(TimestampName)).isEmpty)
     {
       message = wrongTimestamp(parameters.get(TimestampName)).get
+      logger.error(s"validator wrongTimestamp error: $message ")
       httpCode = 400
     }
     //unused nonce
     else if (alreadyUsedNonce(parameters))
     {
       message = "Nonce already used"
+      logger.error(s"validator alreadyUsedNonce error: $message ")
       httpCode = 401
     }
     //In the case OAuth authorization token request, check if the token is still valid and the verifier is correct
     else if(requestType=="authorizationToken" && !validToken(parameters.get(TokenName).get, parameters.get(VerifierName).get))
     {
       message = "Invalid or expired request token: " + parameters.get(TokenName).get
+      logger.error(s"validator validToken error: $message ")
       httpCode = 401
     }
     //In the case protected resource access request, check if the token is still valid
@@ -340,18 +348,20 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     )
     {
       message = "Invalid or expired access token: " + parameters.get(TokenName).get
+      logger.error(s"validator validToken2 error: $message ")
       httpCode = 401
     }
     //checking if the signature is correct
     else if(! verifySignature(parameters, httpMethod, urlParams, sUri))
     {
       message = "Invalid signature"
+      logger.error(s"validator verifySignature error: $message ")
       httpCode = 401
     }
     else
       httpCode = 200
     if(message.nonEmpty)
-      logger.error("error message : " + message)
+      logger.error("OBP oauth1.0.scala says - validator: " + message)
 
     (httpCode, message, parameters)
   }
@@ -560,24 +570,28 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       if(missingParams.size != 0)
       {
         message = "the following parameters are missing : " + missingParams.mkString(", ")
+        logger.error(s"validator missingParams error: $message ")
         httpCode = 400
       }
       //no parameter exists more than one times
       else if (duplicatedParameters(sRequest))
       {
         message = "Duplicated oauth protocol parameters"
+        logger.error(s"validator duplicatedParameters error: $message ")
         httpCode = 400
       }
       //valid OAuth
       else if(!supportedOAuthVersion(parameters.get(VersionName)))
       {
         message = "OAuth version not supported"
+        logger.error(s"validator supportedOAuthVersion error: $message ")
         httpCode = 400
       }
       //supported signature method
       else if (!supportedSignatureMethod(parameters.get(SignatureMethodName).get))
       {
         message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
+        logger.error(s"validator supportedSignatureMethod error: $message ")
         httpCode = 400
       }
       //check if the application is registered and active
@@ -585,43 +599,49 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
       {
         logger.error("application: " + parameters.get("oauth_consumer_key").get + " not found")
         message = ErrorMessages.InvalidConsumerCredentials
+        logger.error(s"validator registeredApplication error: $message ")
         httpCode = 401
       }
       //valid timestamp
       else if(! wrongTimestamp(parameters.get(TimestampName)).isEmpty)
       {
         message = wrongTimestamp(parameters.get(TimestampName)).get
+        logger.error(s"validator wrongTimestamp error: $message ")
         httpCode = 400
       }
       //unused nonce
       else if (alreadyUsedNonce)
       {
         message = "Nonce already used"
+        logger.error(s"validator alreadyUsedNonce error: $message ")
         httpCode = 401
       }
       //In the case OAuth authorization token request, check if the token is still valid and the verifier is correct
       else if(!validToken)
       {
         message = "Invalid or expired request token: " + parameters.get(TokenName).get
+        logger.error(s"validator validToken error: $message ")
         httpCode = 401
       }
       //In the case protected resource access request, check if the token is still valid
       else if (!validToken2)
       {
         message = "Invalid or expired access token: " + parameters.get(TokenName).get
+        logger.error(s"validator validToken2 error: $message ")
         httpCode = 401
       }
       //checking if the signature is correct
       else if(! verifySignature(parameters, httpMethod, urlParams, sUri))
       {
         message = "Invalid signature"
+        logger.error(s"validator verifySignature error: $message ")
         httpCode = 401
       }
       else
         httpCode = 200
 
       if(message.nonEmpty)
-        logger.error("OBP oauth1.0.scala says : " + message)
+        logger.error("OBP oauth1.0.scala - validatorFuture says : " + message)
 
       (httpCode, message, parameters)
     }

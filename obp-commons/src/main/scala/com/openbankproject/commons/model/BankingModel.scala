@@ -210,23 +210,23 @@ trait BankAccount{
 //This class is used for propagate the BankAccount as the parameters over different methods.
 case class BankAccountInMemory(
   //BankAccount Trait
-  bankId: BankId,
-  accountId: AccountId,
-  accountType: String,
-  balance: BigDecimal,
-  currency: String,
-  name: String,
-  lastUpdate: Date,
-  accountHolder: String,
-  label: String,
-  accountRoutingScheme: String,
-  accountRoutingAddress: String,
-  branchId: String,
-  swift_bic: Option[String],
-  iban: Option[String],
-  number: String,
+  bankId: BankId = BankId(""),
+  accountId: AccountId = AccountId(""),
+  accountType: String = "",
+  balance: BigDecimal = 0,
+  currency: String = "",
+  name: String = "",
+  lastUpdate: Date = new Date(),
+  accountHolder: String = "",
+  label: String = "",
+  accountRoutingScheme: String = "",
+  accountRoutingAddress: String = "",
+  branchId: String = "",
+  swift_bic: Option[String] = None,
+  iban: Option[String] = None,
+  number: String = "",
   accountRoutings: List[AccountRouting],
-  accountRules: List[AccountRule]
+  accountRules: List[AccountRule] = Nil
 ) extends BankAccount
 
 /*
@@ -297,6 +297,9 @@ object AmountOfMoney extends Converter[AmountOfMoneyTrait, AmountOfMoney]
 case class Iban(
   iban: String
 )
+case class IbanAddress(
+  address: String
+)
 case class IbanChecker(
                  isValid: Boolean,
                  details: Option[IbanDetails]
@@ -362,6 +365,7 @@ case class AccountsBalances(
 
 case class AccountHeld(
   id: String,
+  label: String,
   bankId: String,
   number: String,
   accountRoutings: List[AccountRouting]

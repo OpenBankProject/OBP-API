@@ -225,6 +225,7 @@ object ConnectorBuilderUtil {
     "getAdapterInfo",
     "getChallengeThreshold",
     "getChargeLevel",
+    "getChargeLevelC2",
     "createChallenge",
     "getBank",
     "getBanks",
@@ -247,6 +248,7 @@ object ConnectorBuilderUtil {
     "updatePhysicalCard",
     "makePaymentv210",
     "makePaymentV400",
+    "cancelPaymentV400",
     "createTransactionRequestv210",
     "getTransactionRequests210",
     "getTransactionRequestImpl",
@@ -363,8 +365,10 @@ object ConnectorBuilderUtil {
     "createChallengesC2",
     "getChallenge",
     "getChallengesByTransactionRequestId",
+    "getChallengesByConsentId",
     "validateAndCheckIbanNumber",
-    "validateChallengeAnswerC2"
+    "validateChallengeAnswerC2",
+    "getCounterpartyByIbanAndBankAccountId",
   ).distinct
 
   /**

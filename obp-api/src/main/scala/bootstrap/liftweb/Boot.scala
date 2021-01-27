@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package bootstrap.liftweb
 
 import java.io.{File, FileInputStream}
+import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
 
 import code.CustomerDependants.MappedCustomerDependant
@@ -47,12 +48,13 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
-import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
+import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
+import code.consumer.Consumers
 import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
@@ -82,7 +84,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric}
 import code.migration.MigrationScriptLog
-import code.model._
+import code.model.{Consumer, _}
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.obp.grpc.HelloWorldServer
@@ -101,21 +103,23 @@ import code.taxresidence.MappedTaxResidence
 import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
+import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.util.Helper
 import code.util.Helper.MdcLoggable
+import code.util.{Helper, HydraUtil}
+import code.validation.Validation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
-import com.openbankproject.commons.util.{ApiVersion, Functions}
 import com.openbankproject.commons.util.Functions.Implicits._
+import com.openbankproject.commons.util.{ApiVersion, Functions}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -602,8 +606,8 @@ class Boot extends MdcLoggable {
     Migration.database.executeScripts()
 
     // export one Connector's methods as endpoints, it is just for develop
-    APIUtil.getPropsValue("connector.name.export.as.endpoint").foreach { connectorName =>
-      // validate whether "connector.name.export.as.endpoint" have set a correct value
+    APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
+      // validate whether "connector.name.export.as.endpoints" have set a correct value
       APIUtil.getPropsValue("connector") match {
         case Full("star") =>
           val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
@@ -613,13 +617,13 @@ class Boot extends MdcLoggable {
           val allSupportedConnectors: List[String] = Connector.nameToConnector.keys.toList
             .filter(it => starConnectorTypes.exists(it.startsWith(_)))
 
-          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoint=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
+          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoints=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
 
         case _ if connectorName == "mapped" =>
           Functions.doNothing
 
         case Full(connector) =>
-          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoint=$connector, but current it is $connectorName")
+          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoints=$connector, but current it is $connectorName")
       }
 
       ConnectorEndpoints.registerConnectorEndpoints
@@ -665,8 +669,27 @@ class Boot extends MdcLoggable {
       
     }
 
+    ApiWarnings.logWarningsRegardingProperties()
+
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
+
+    if(HydraUtil.mirrorConsumerInHydra) {
+      createHydraClients()
+    }
+  }
+  // create Hydra client if exists active consumer but missing Hydra client
+  def createHydraClients() = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    // exists hydra clients id
+    val oAuth2ClientIds = HydraUtil.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
+      .map[String](_.getClientId)
+      .collect(Collectors.toSet())
+
+    Consumers.consumers.vend.getConsumersFuture().foreach{ consumers =>
+      consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
+        .foreach(HydraUtil.createHydraClient(_))
+    }
   }
 
   def schemifyAll() = {
@@ -779,7 +802,7 @@ class Boot extends MdcLoggable {
 
 object ToSchemify {
   // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
-  val modelsRemotedata = List(
+  val modelsRemotedata: List[MetaMapper[_]] = List(
     AccountAccess,
     ViewDefinition,
     ResourceUser,
@@ -799,6 +822,7 @@ object ToSchemify {
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
+    TransactionRequestAttribute,
     MappedMetric,
     MapperAccountHolders,
     MappedEntitlement,
@@ -824,7 +848,7 @@ object ToSchemify {
   )
 
   // The following tables are accessed directly via Mapper / JDBC
-  val models = List(
+  val models: List[MetaMapper[_]] = List(
     AuthUser,
     Admin,
     MappedBank,
@@ -868,7 +892,8 @@ object ToSchemify {
     AccountIdMapping,
     DirectDebit,
     StandingOrder,
-    MappedUserRefreshes
+    MappedUserRefreshes,
+    Validation
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

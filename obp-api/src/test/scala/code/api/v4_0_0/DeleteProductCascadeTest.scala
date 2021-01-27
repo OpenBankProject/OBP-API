@@ -70,7 +70,7 @@ class DeleteProductCascadeTest extends V400ServerSetup {
 
       val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
         .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"), product_code = product.code,
-        account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(10))))
+        account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
       createAccountViaEndpoint(testBankId, addAccountJson, user1)
 
       When("We grant the role")

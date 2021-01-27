@@ -50,7 +50,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
 
         addEntitlement(bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, resourceUser3.userId, canCreateAnyTransactionRequest)
+        val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser3.userId, canCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -287,7 +287,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //check that we created a new transaction (since no challenge)
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transactions").GET <@(user1)
-        response = makeGetRequest(request, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+        response = makeGetRequest(request, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
@@ -386,7 +386,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         addEntitlement(bankId2.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
 
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, resourceUser3.userId, canCreateAnyTransactionRequest)
+        val hasEntitlement = APIUtil.hasEntitlement(bankId2.value, resourceUser3.userId, canCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -551,7 +551,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //check that we created a new transaction (since no challenge)
         request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transactions").GET <@(user1)
-        response = makeGetRequest(request, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+        response = makeGetRequest(request, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
@@ -586,7 +586,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //check that we created a new transaction (since no challenge)
         request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / toAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transactions").GET <@(user1)
-        response = makeGetRequest(request, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+        response = makeGetRequest(request, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
@@ -989,7 +989,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //check that we created a new transaction (since no challenge)
         request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transactions").GET <@(user1)
-        response = makeGetRequest(request, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+        response = makeGetRequest(request, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
@@ -1024,7 +1024,7 @@ class TransactionRequestsTest extends V200ServerSetup with DefaultUsers {
         //check that we created a new transaction
         request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / toAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transactions").GET <@(user1)
-        response = makeGetRequest(request, List(("from_date", APIUtil.DateWithMsForFilteringFromDateString),("to_date", APIUtil.DateWithMsForFilteringEndDateString)))
+        response = makeGetRequest(request, List(("from_date", APIUtil.DefaultFromDateString),("to_date", APIUtil.DefaultToDateString)))
 
         Then("we should get a 200 ok code")
         response.code should equal(200)

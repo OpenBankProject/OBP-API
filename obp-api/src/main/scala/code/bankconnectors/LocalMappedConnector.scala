@@ -9,6 +9,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant.{INCOMING_ACCOUNT_ID, OUTGOING_ACCOUNT_ID}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
@@ -29,6 +30,7 @@ import code.context.{UserAuthContextProvider, UserAuthContextUpdateProvider}
 import code.customer._
 import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
+import code.database.authorisation.Authorisations
 import code.directdebit.DirectDebits
 import code.fx.fx.TTL
 import code.fx.{MappedFXRate, fx}
@@ -55,6 +57,7 @@ import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
 import code.transaction.MappedTransaction
 import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
+import code.transactionRequestAttribute.TransactionRequestAttributeX
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
@@ -236,6 +239,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )
       challengeId.toList
     }
+
+    Authorisations.authorisationProvider.vend.createAuthorization(
+      transactionRequestId.getOrElse(""),
+      consentId.getOrElse(""),
+      AuthenticationType.SMS_OTP.toString,
+      "",
+      ScaStatus.received.toString,
+      "12345" // TODO Implement SMS sending
+    )
+    
     (Full(challenges.flatten), callContext)
   }
 
@@ -325,7 +338,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
-    Future {(Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId), callContext)}
+    Future {(Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId), callContext)}  
+  
+  override def getChallengesByConsentId(consentId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] =
+    Future {(Challenges.ChallengeProvider.vend.getChallengesByConsentId(consentId), callContext)}
 
 
   override def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = 
@@ -346,6 +362,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                               transactionRequestType: String,
                               currency: String,
                               callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = Future {
+    val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
+    val chargeLevel = BigDecimal(APIUtil.getPropsValue(propertyName, "0.0001"))
+    logger.debug(s"transactionRequests_charge_level is $chargeLevel")
+
+    // TODO constrain this to supported currencies.
+    //    val chargeLevelCurrency = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
+    //    logger.debug(s"chargeLevelCurrency is $chargeLevelCurrency")
+    //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
+    //    val convertedThreshold = fx.convert(chargeLevel, rate)
+    //    logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+
+    (Full(AmountOfMoney(currency, chargeLevel.toString)), callContext)
+  }
+
+  override def getChargeLevelC2(bankId: BankId,
+                                accountId: AccountId,
+                                viewId: ViewId,
+                                userId: String,
+                                username: String,
+                                transactionRequestType: String,
+                                currency: String,
+                                amount: String,
+                                toAccountRouting: List[AccountRouting],
+                                customAttributes: List[CustomAttribute],
+                                callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = Future {
     val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
     val chargeLevel = BigDecimal(APIUtil.getPropsValue(propertyName, "0.0001"))
     logger.debug(s"transactionRequests_charge_level is $chargeLevel")
@@ -726,6 +767,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .map(account =>
           AccountHeld(
             account.accountId.value,
+            account.label,
             account.bankId.value,
             stringOrNull(account.number),
             account.accountRoutings))
@@ -1080,6 +1122,83 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     CardAttributeX.cardAttributeProvider.vend.getCardAttributesFromProvider(cardId: String) map {
       (_, callContext)
     }
+  }
+
+  override def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
+                                                           callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributesFromProvider(
+      transactionRequestId: TransactionRequestId
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestAttributes(bankId: BankId,
+                                               transactionRequestId: TransactionRequestId,
+                                               callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributes(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
+                                                              transactionRequestId: TransactionRequestId,
+                                                              viewId: ViewId,
+                                                              callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributesCanBeSeenOnView(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId,
+      viewId: ViewId
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestAttributeById(
+      transactionRequestAttributeId: String
+    ).map((_, callContext))
+  }
+
+  override def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]],
+                                                             callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.getTransactionRequestIdsByAttributeNameValues(
+      bankId: BankId,
+      params: Map[String, List[String]]
+    ).map((_, callContext))
+  }
+
+  override def createOrUpdateTransactionRequestAttribute(bankId: BankId,
+                                                         transactionRequestId: TransactionRequestId,
+                                                         transactionRequestAttributeId: Option[String],
+                                                         name: String,
+                                                         attributeType: TransactionRequestAttributeType.Value,
+                                                         value: String,
+                                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.createOrUpdateTransactionRequestAttribute(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId,
+      transactionRequestAttributeId: Option[String],
+      name: String,
+      attributeType: TransactionRequestAttributeType.Value,
+      value: String
+    ).map((_, callContext))
+  }
+
+  override def createTransactionRequestAttributes(bankId: BankId,
+                                                  transactionRequestId: TransactionRequestId,
+                                                  transactionRequestAttributes: List[TransactionRequestAttributeTrait],
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.createTransactionRequestAttributes(
+      bankId: BankId,
+      transactionRequestId: TransactionRequestId,
+      transactionRequestAttributes: List[TransactionRequestAttributeTrait]
+    ).map((_, callContext))
+  }
+
+  override def deleteTransactionRequestAttribute(transactionRequestAttributeId: String,
+                                                 callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    TransactionRequestAttributeX.transactionRequestAttributeProvider.vend.deleteTransactionRequestAttribute(
+      transactionRequestAttributeId: String
+    ).map((_, callContext))
   }
 
   /**
@@ -1482,6 +1601,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     } yield {
       mappedTransaction.theTransactionId
     }
+  }
+  
+  override def cancelPaymentV400(transactionId: TransactionId,
+                                 callContext: Option[CallContext]): OBPReturnType[Box[CancelPayment]] = Future {
+    (Full(CancelPayment(true, Some(true))), callContext)
   }
 
   /*
@@ -3113,6 +3237,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   }
+  override def getAccountAttributesByAccountsCanBeSeenOnView(accounts: List[BankIdAccountId],
+                                                             viewId: ViewId,
+                                                             callContext: Option[CallContext]
+                                                            ): OBPReturnType[Box[List[AccountAttribute]]] = {
+    AccountAttributeX.accountAttributeProvider.vend.getAccountAttributesByAccountsCanBeSeenOnView(
+      accounts,
+      viewId) map {
+      (_, callContext)
+    }
+  }
+  override def getTransactionAttributesByTransactionsCanBeSeenOnView(bankId: BankId,
+                                                                     transactionIds: List[TransactionId],
+                                                                     viewId: ViewId,
+                                                                     callContext: Option[CallContext]
+                                                                    ): OBPReturnType[Box[List[TransactionAttribute]]] = {
+    TransactionAttributeX.transactionAttributeProvider.vend.getTransactionsAttributesCanBeSeenOnView(
+      bankId,
+      transactionIds,
+      viewId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateCustomerAttribute(
                                                 bankId: BankId,
@@ -4022,7 +4168,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         BigDecimal(transactionRequestCommonBody.value.amount)
       }
       status <- getStatus(challengeThresholdAmount, transactionRequestCommonBodyAmount, transactionRequestType: TransactionRequestType)
-      (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext) map { i =>
+      (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevelC2(
+        BankId(fromAccount.bankId.value), 
+        AccountId(fromAccount.accountId.value), 
+        viewId, 
+        initiator.userId, 
+        initiator.name, 
+        transactionRequestType.value,
+        transactionRequestCommonBody.value.currency,
+        transactionRequestCommonBody.value.amount,
+        toAccount.accountRoutings,
+        Nil,
+        callContext
+      ) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChargeLevel ", 400), i._2)
       }
 
@@ -4453,7 +4611,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             body.to_sepa_credit_transfers.get
           }
           toAccountIban = toSepaCreditTransfers.creditorAccount.iban
-          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+          (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,

@@ -1,12 +1,20 @@
 package code.DynamicEndpoint
 
-import code.api.util.CustomJsonFormats
+import java.util.UUID.randomUUID
+
+import code.api.cache.Caching
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.MappedUUID
+import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
+import scala.concurrent.duration.DurationInt
+
 object MappedDynamicEndpointProvider extends DynamicEndpointProvider with CustomJsonFormats{
+  val dynamicEndpointTTL : Int = APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "0").toInt
+
   override def create(userId: String, swaggerString: String): Box[DynamicEndpointT] = {
     tryo{DynamicEndpoint.create.UserId(userId).SwaggerString(swaggerString).saveMe()}
   }
@@ -16,7 +24,13 @@ object MappedDynamicEndpointProvider extends DynamicEndpointProvider with Custom
 
   override def get(dynamicEndpointId: String): Box[DynamicEndpointT] = DynamicEndpoint.find(By(DynamicEndpoint.DynamicEndpointId, dynamicEndpointId))
 
-  override def getAll(): List[DynamicEndpointT] = DynamicEndpoint.findAll()
+  override def getAll(): List[DynamicEndpointT] = {
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    CacheKeyFromArguments.buildCacheKey {
+      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (dynamicEndpointTTL second) {
+        DynamicEndpoint.findAll()
+      }}
+  }
   
   override def getDynamicEndpointsByUserId(userId: String): List[DynamicEndpointT] = DynamicEndpoint.findAll(By(DynamicEndpoint.UserId, userId))
 

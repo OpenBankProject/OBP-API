@@ -31,8 +31,10 @@ import java.net.URI
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, JwtUtil}
 import code.consumer.Consumers
+import code.consumer.Consumers.consumers
 import code.loginattempts.LoginAttempt
 import code.model.Consumer
+import code.util.HydraUtil._
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
@@ -42,8 +44,11 @@ import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
+import org.apache.commons.lang3.StringUtils
+import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.mapAsJavaMapConverter
 
 /**
 * This object provides the API calls necessary to third party applications
@@ -72,7 +77,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         } else if (Yahoo.isIssuer(value)) {
           Yahoo.applyRules(value, cc)
         } else {
-          MITREId.applyRules(value, cc)
+          Hydra.applyRules(value, cc)
         }
       case false =>
         (Failure(Oauth2IsNotAllowed), Some(cc))
@@ -90,7 +95,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         } else if (Yahoo.isIssuer(value)) {
           Yahoo.applyRulesFuture(value, cc)
         } else {
-          MITREId.applyRulesFuture(value, cc)
+          Hydra.applyRulesFuture(value, cc)
         }
       case false =>
         Future((Failure(Oauth2IsNotAllowed), Some(cc)))
@@ -98,12 +103,17 @@ object OAuth2Login extends RestHelper with MdcLoggable {
   }
 
   
-  object MITREId {
+  object Hydra {
     def validateAccessToken(accessToken: String): Box[JWTClaimsSet] = {
       APIUtil.getPropsValue("oauth2.jwk_set.url") match {
         case Full(url) =>
-          val mitreIdUrl = url.toLowerCase().split(",").toList.head
-          JwtUtil.validateAccessToken(accessToken, mitreIdUrl)
+          val validationList = for (item <- url.toLowerCase().split(",").toList) yield {
+            JwtUtil.validateAccessToken(accessToken, item)
+          }
+          validationList.filter(_.isDefined).size > 0 match {
+            case true => validationList.filter(_.isDefined).head
+            case false => validationList.head
+          }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) =>
@@ -112,43 +122,68 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           Failure(Oauth2ThereIsNoUrlOfJwkSet)
       }
     }
-    def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
-      validateAccessToken(value) match {
-        case Full(_) =>
-          val username = JwtUtil.getSubject(value).getOrElse("")
-          LoginAttempt.userIsLocked(username) match {
-            case true => (Failure(UsernameHasBeenLocked), Some(cc))
-            case false => (Users.users.vend.getUserByUserName(username), Some(cc))
-          }
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          (ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc))
-        case Failure(msg, t, c) =>
-          (Failure(msg, t, c), Some(cc))
-        case _ =>
-          (Failure(Oauth2IJwtCannotBeVerified), Some(cc))
-      }
-    }
-    def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = {
-      validateAccessToken(value) match {
-        case Full(_) =>
-          val username = JwtUtil.getSubject(value).getOrElse("")
-          for {
-            user <- Users.users.vend.getUserByUserNameFuture(username)
-          } yield {
-            LoginAttempt.userIsLocked(username) match {
-              case true => (Failure(UsernameHasBeenLocked), Some(cc))
-              case false => (user, Some(cc))
-            }
-          }
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          Future((ParamFailure(a, b, c, apiFailure : APIFailure), Some(cc)))
-        case Failure(msg, t, c) =>
-          Future((Failure(msg, t, c), Some(cc)))
-        case _ =>
-          Future((Failure(Oauth2IJwtCannotBeVerified), Some(cc)))
-      }
-    }
     
+    def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null);
+      var consumer: Box[Consumer] = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
+
+      // check access token binding with client certificate
+      {
+        if(consumer.isEmpty) {
+          return (Failure(Oauth2TokenHaveNoConsumer), Some(cc.copy(consumer = Failure(Oauth2TokenHaveNoConsumer))))
+        }
+        val clientCert = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
+        clientCert.filter(StringUtils.isNotBlank).foreach {cert =>
+          val foundConsumer = consumer.orNull
+          val certInConsumer = foundConsumer.clientCertificate.get
+          if(StringUtils.isBlank(certInConsumer)) {
+            foundConsumer.clientCertificate.set(cert)
+            consumer = Full(foundConsumer.saveMe())
+            val clientId = foundConsumer.key.get
+            // update hydra client client_certificate
+            val oAuth2Client = hydraAdmin.getOAuth2Client(clientId)
+            val clientMeta = oAuth2Client.getMetadata.asInstanceOf[java.util.Map[String, AnyRef]]
+            if(clientMeta == null) {
+              oAuth2Client.setMetadata(Map("client_certificate" -> cert).asJava)
+            } else {
+              clientMeta.put("client_certificate", cert)
+            }
+            // hydra update client endpoint have bug, So here delete and create to do update
+            hydraAdmin.deleteOAuth2Client(clientId)
+            hydraAdmin.createOAuth2Client(oAuth2Client)
+          } else if(stringNotEq(certInConsumer, cert)) {
+            return (Failure(Oauth2TokenMatchCertificateFail), Some(cc.copy(consumer = Failure(Oauth2TokenMatchCertificateFail))))
+          }
+        }
+      }
+
+      if (introspectOAuth2Token.getActive) {
+        val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
+        user match {
+          case Full(u) =>
+            LoginAttempt.userIsLocked(u.name) match {
+              case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
+              case false => (Full(u), Some(cc.copy(consumer = consumer)))
+            }
+          case _ => (user, Some(cc.copy(consumer = consumer)))
+        }
+      } else {
+        (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
+      }
+    }
+    def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {
+      applyRules(value, cc)
+    }
+
+    /**
+     * check whether two string equal, ignore line break type
+     * @param str1
+     * @param str2
+     * @return true if two string are different
+     */
+    private def stringNotEq(str1: String, str2: String): Boolean =
+      str1.trim != str2.trim &&
+        str1.trim.replace("\r\n", "\n") != str2.trim.replace("\r\n", "\n")
   }
   
   trait OAuth2Util {

@@ -1,19 +1,18 @@
 package code.api.v4_0_0
 
-import code.api.Constant
-import com.openbankproject.commons.model.{AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanCreateAccountAttributeAtOneBank
 import code.api.util.ErrorMessages.{BankAccountNotFoundByAccountRouting, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.v2_0_0.{BasicAccountJSON, BasicAccountsJSON}
-import code.api.v3_1_0.{AccountAttributeResponseJson, CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
+import code.api.util.{APIUtil, ApiRole}
+import code.api.v2_0_0.BasicAccountJSON
+import code.api.v3_1_0.{CreateAccountResponseJsonV310, PostPutProductJsonV310, ProductJsonV310}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
@@ -41,7 +40,7 @@ class AccountTest extends V400ServerSetup {
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
   lazy val addAccountJsonOtherUser = SwaggerDefinitionsJSON.createAccountRequestJsonV310
     .copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
-      account_routings = List(AccountRoutingJsonV121(Random.nextString(4), Random.nextString(4))))
+      account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
   lazy val getAccountByRoutingJson = SwaggerDefinitionsJSON.bankAccountRoutingJson
   
   
@@ -318,6 +317,17 @@ class AccountTest extends V400ServerSetup {
       responseIncorrectBank.code should equal(404)
       responseIncorrectBank.body.extract[ErrorMessage].message contains BankAccountNotFoundByAccountRouting should be (true)
 
+    }
+  }
+
+  feature(s"test ${ApiEndpoint3.name}") {
+    scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
+      Given("The test bank and test accounts")
+      val requestGet = (v4_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+
+      val responseGet = makeGetRequest(requestGet)
+      responseGet.code should equal(200)
+      responseGet.body.extract[AccountsBalancesJsonV400].accounts.size > 0 should be (true)
     }
   }
   

@@ -114,7 +114,7 @@ trait APIMethods210 {
             u <- cc.user ?~! UserNotLoggedIn
             allowDataImportProp <- APIUtil.getPropsValue("allow_sandbox_data_import") ~> APIFailure(DataImportDisabled, 403)
             _ <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure(DataImportDisabled, 403)
-            _ <- booleanToBox(hasEntitlement("", u.userId, canCreateSandbox), s"$UserHasMissingRoles $CanCreateSandbox")
+            _ <- NewStyle.function.ownEntitlement("", u.userId, canCreateSandbox, cc.callContext)
             _ <- OBPDataImport.importer.vend.importData(importData)
           } yield {
             successJsonResponse(Extraction.decompose(successMessage), 201)
@@ -796,7 +796,7 @@ trait APIMethods210 {
                                   canGetEntitlementsForAnyUserAtAnyBank::
                                   Nil
             allowedEntitlementsTxt = UserHasMissingRoles + allowedEntitlements.mkString(" or ")
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(bankId.value, loggedInUser.userId, allowedEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(bankId.value, loggedInUser.userId, allowedEntitlements, callContext)
             entitlements <- NewStyle.function.getEntitlementsByUserId(userId, callContext)
           }
           yield {
@@ -842,7 +842,8 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConsumers), UserHasMissingRoles + CanGetConsumers)
+            _ <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canGetConsumers, cc.callContext)
+
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong)
           } yield {
@@ -879,7 +880,7 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canGetConsumers), UserHasMissingRoles + CanGetConsumers )
+            _ <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canGetConsumers, cc.callContext)
             consumers <- Some(Consumer.findAll())
           } yield {
             // Format the data as json
@@ -918,8 +919,8 @@ trait APIMethods210 {
             u <- cc.user ?~! UserNotLoggedIn
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! InvalidJsonFormat
             _ <- putData.enabled match {
-              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.canEnableConsumers), UserHasMissingRoles + CanEnableConsumers )
-              case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.canDisableConsumers),UserHasMissingRoles + CanDisableConsumers )
+              case true  => NewStyle.function.ownEntitlement("", u.userId, ApiRole.canEnableConsumers, cc.callContext)
+              case false => NewStyle.function.ownEntitlement("", u.userId, ApiRole.canDisableConsumers, cc.callContext)
             }
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.toLong)
             updatedConsumer <- Consumers.consumers.vend.updateConsumer(consumer.id.get, None, None, Some(putData.enabled), None, None, None, None, None, None) ?~! "Cannot update Consumer"
@@ -1044,9 +1045,7 @@ trait APIMethods210 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = UserHasMissingRoles + CanGetAnyUser) {
-              hasEntitlement("", u.userId, ApiRole.canGetAnyUser)
-            }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             queryParams <- unboxFullAndWrapIntoFuture{ createQueriesByHttpParams(callContext.get.requestHeaders) }
             users <- Users.users.vend.getAllUsersF(queryParams)
           } yield {
@@ -1097,7 +1096,7 @@ trait APIMethods210 {
             u <- cc.user ?~! UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
             postedData <- tryo {json.extract[TransactionTypeJsonV200]} ?~! InvalidJsonFormat
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateTransactionType) == true,InsufficientAuthorisationToCreateTransactionType)
+            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canCreateTransactionType, callContext, InsufficientAuthorisationToCreateTransactionType)
             returnTranscationType <- TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)
           } yield {
             successJsonResponse(Extraction.decompose(returnTranscationType))
@@ -1354,11 +1353,7 @@ trait APIMethods210 {
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! InvalidJsonFormat
-            _ <- booleanToBox(
-              hasAllEntitlements(bankId.value, u.userId, createCustomerEntitlementsRequiredForSpecificBank)
-                ||
-                hasAllEntitlements("", u.userId, createCustomerEntitlementsRequiredForAnyBank),
-              s"$UserHasMissingRoles$createCustomeEntitlementsRequiredText")
+            _ <- NewStyle.function.hasAllEntitlements(bankId.value, u.userId, createCustomerEntitlementsRequiredForSpecificBank, createCustomerEntitlementsRequiredForAnyBank, callContext)
             _ <- tryo(assert(CustomerX.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
             customer_user <- UserX.findByUserId(user_id) ?~! UserNotFoundById
@@ -1499,7 +1494,7 @@ trait APIMethods210 {
             u <- cc.user ?~ UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
             branchJsonPutV210 <- tryo {json.extract[BranchJsonPutV210]} ?~! InvalidJsonFormat
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canUpdateBranch) == true, s"$UserHasMissingRoles $canUpdateBranch")
+            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canUpdateBranch, callContext)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
             // branchPost <- toBranchJsonPost(branchId, branchJsonPutV210)
 
@@ -1541,7 +1536,7 @@ trait APIMethods210 {
             u <- cc.user ?~ UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
             branchJsonPostV210 <- tryo {json.extract[BranchJsonPostV210]} ?~! InvalidJsonFormat
-            _ <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true, InsufficientAuthorisationToCreateBranch)
+            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canCreateBranch, cc.callContext, InsufficientAuthorisationToCreateBranch)
             branch <- transformToBranch(branchJsonPostV210)
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
@@ -1581,11 +1576,10 @@ trait APIMethods210 {
         cc =>
           for {
             u <- cc.user ?~ UserNotLoggedIn
-            _ <- booleanToBox(
-              hasEntitlement("", u.userId, ApiRole.canUpdateConsumerRedirectUrl) || APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false),
-              UserHasMissingRoles + CanUpdateConsumerRedirectUrl
-            )
-            postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
+            _ <- if(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)) Full(Unit)
+                  else NewStyle.function.ownEntitlement("", u.userId, ApiRole.canUpdateConsumerRedirectUrl, cc.callContext)
+
+              postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! InvalidConsumerId 
             consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdToLong) ?~! {ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it

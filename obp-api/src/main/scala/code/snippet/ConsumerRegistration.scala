@@ -26,30 +26,41 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.snippet
 
+import java.util
+
 import code.api.DirectLogin
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages, X509}
 import code.consumer.Consumers
-import code.model._
 import code.model.dataAccess.AuthUser
+import code.model.{Consumer, _}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Empty, Failure, Full}
+import code.util.HydraUtil
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
-import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import org.apache.commons.lang3.StringUtils
+import org.codehaus.jackson.map.ObjectMapper
 
-import scala.collection.immutable.ListMap
-
+import scala.collection.immutable.{List, ListMap}
+import scala.jdk.CollectionConverters.seqAsJavaListConverter
+import scala.xml.{Text, Unparsed}
 
 class ConsumerRegistration extends MdcLoggable {
 
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")
+  private object requestUriVar extends RequestVar("")
   private object authenticationURLVar extends RequestVar("")
   private object appTypeVar extends RequestVar[AppType](AppType.Web)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
   private object appType extends RequestVar("Web")
+  private object clientCertificateVar extends RequestVar("")
+  private object signingAlgVar extends RequestVar("")
+  private object jwksUriVar extends RequestVar("")
+  private object jwksVar extends RequestVar("")
   private object submitButtonDefenseFlag extends RequestVar("")
 
 
@@ -69,6 +80,11 @@ class ConsumerRegistration extends MdcLoggable {
   def registerForm = {
 
     val appTypes = List((AppType.Web.toString, AppType.Web.toString), (AppType.Mobile.toString, AppType.Mobile.toString))
+    val signingAlgs = List(
+      "ES256", "ES384", "ES512",
+      //Hydra support alg: RS256, RS384, RS512, PS256, PS384, PS512, ES256, ES384 and ES512
+      "RS256", "RS384", "RS512", "PS256", "PS384", "PS512"
+      ).map(it => it -> it)
 
     def submitButtonDefense: Unit = {
       submitButtonDefenseFlag("true")
@@ -80,12 +96,25 @@ class ConsumerRegistration extends MdcLoggable {
 
     def register = {
       "form" #> {
-          "#appType" #> SHtml.select(appTypes, Empty, appType(_)) &
-          "#appName" #> SHtml.text(nameVar.is, nameVar(_)) & 
+          "#appType" #> SHtml.select(appTypes, Box!! appType.is, appType(_)) &
+          "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
+          "#redirect_url_label *" #> {
+            if (HydraUtil.integrateWithHydra) "Redirect URL" else "Redirect URL (Optional)"
+          } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
-          "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
+          "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) & {
+            if(HydraUtil.integrateWithHydra) {
+              "#app-client_certificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_))&
+              "#app-request_uri" #> SHtml.text(requestUriVar, requestUriVar(_)) &
+              "#app-signing_alg" #> SHtml.select(signingAlgs, Box!! signingAlgVar.is, signingAlgVar(_)) &
+              "#app-jwks_uri" #> SHtml.text(jwksUriVar, jwksUriVar(_)) &
+              "#app-jwks" #> SHtml.textarea(jwksVar, jwksVar(_))
+            } else {
+              ".oauth2_fields" #> ""
+            }
+          } &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#register-consumer-success" #> ""
@@ -94,7 +123,41 @@ class ConsumerRegistration extends MdcLoggable {
     def showResults(consumer : Consumer) = {
       val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
       val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
+      val jwksUri = jwksUriVar.is
+      val jwks = jwksVar.is
+      val jwsAlg = signingAlgVar.is
+      var jwkPrivateKey: String = s"Please change this value to ${if(StringUtils.isNotBlank(jwksUri)) "jwks_uri" else "jwks"} corresponding private key"
+      if(HydraUtil.integrateWithHydra) {
+        HydraUtil.createHydraClient(consumer, oAuth2Client => {
+          val signingAlg = signingAlgVar.is
 
+          oAuth2Client.setTokenEndpointAuthMethod("private_key_jwt")
+          oAuth2Client.setTokenEndpointAuthSigningAlg(signingAlg)
+          oAuth2Client.setRequestObjectSigningAlg(signingAlg)
+
+          def toJson(jwksJson: String) =
+            new ObjectMapper().readValue(jwksJson, classOf[util.Map[String, _]])
+
+          val requestUri = requestUriVar.is
+          if(StringUtils.isAllBlank(jwksUri, jwks)) {
+            val(privateKey, publicKey) = HydraUtil.createJwk(signingAlg)
+            jwkPrivateKey = privateKey
+            val jwksJson = s"""{"keys": [$publicKey]}"""
+            val jwksMap = toJson(jwksJson)
+            oAuth2Client.setJwks(jwksMap)
+          } else if(StringUtils.isNotBlank(jwks)){
+            val jwksMap = toJson(jwks)
+            oAuth2Client.setJwks(jwksMap)
+          } else if(StringUtils.isNotBlank(jwksUri)){
+            oAuth2Client.setJwksUri(jwksUri)
+          }
+
+          if(StringUtils.isNotBlank(requestUri)) {
+            oAuth2Client.setRequestUris(List(requestUri).asJava)
+          }
+          oAuth2Client
+        })
+      }
       val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
         "webui_register_consumer_success_message_webpage", 
         "Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.")
@@ -104,8 +167,12 @@ class ConsumerRegistration extends MdcLoggable {
       "#app-name *" #> consumer.name.get &
       "#app-redirect-url *" #> consumer.redirectURL &
       "#app-user-authentication-url *" #> consumer.userAuthenticationURL &
-      "#app-type *" #> consumer.appType.get.toString &
+      "#app-type *" #> consumer.appType.get &
       "#app-description *" #> consumer.description.get &
+      "#client_certificate *" #> {
+        if (StringUtils.isBlank(consumer.clientCertificate.get)) Text("None")
+        else Unparsed(consumer.clientCertificate.get)
+      } &
       "#app-developer *" #> consumer.developerEmail.get &
       "#auth-key *" #> consumer.key.get &
       "#secret-key *" #> consumer.secret.get &
@@ -114,7 +181,37 @@ class ConsumerRegistration extends MdcLoggable {
       "#directlogin-endpoint a *" #> urlDirectLoginEndpoint &
       "#directlogin-endpoint a [href]" #> urlDirectLoginEndpoint &
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
-      "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl &
+      "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl & {
+        if(HydraUtil.integrateWithHydra) {
+          "#hydra-client-info-title *" #>"OAuth2" &
+          "#admin_url *" #> HydraUtil.hydraAdminUrl &
+            "#client_id *" #> {consumer.key.get} &
+            "#redirect_uri *" #> consumer.redirectURL.get &
+            {
+                val requestUri = requestUriVar.is
+                if(StringUtils.isBlank(requestUri)) "#oauth2_request_uri *" #> ""
+                else "#request_uri_value" #> requestUri
+            } &
+            "#client_scope" #> {
+              val lastIndex = HydraUtil.hydraConsents.length - 1
+              HydraUtil.hydraConsents.zipWithIndex.map { kv =>
+                  ".client-scope-value *" #> {
+                    val (scope, index) = kv
+                    if(index == lastIndex) {
+                      scope
+                    } else {
+                      s"$scope,\\"
+                    }
+                  }
+              }
+            } &
+            "#client_jws_alg" #> Unparsed(jwsAlg) &
+            "#jwk_private_key" #> Unparsed(jwkPrivateKey)
+        } else {
+          "#hydra-client-info-title *" #> "" &
+            "#hydra-client-info *" #> ""
+        }
+      } &
       "#register-consumer-input" #> "" & {
         val hasDummyUsers = getWebUiPropsValue("webui_dummy_user_logins", "").nonEmpty
         val isShowDummyUserTokens = getWebUiPropsValue("webui_show_dummy_user_tokens", "false").toBoolean
@@ -161,6 +258,10 @@ class ConsumerRegistration extends MdcLoggable {
       errors.filter(errorMessage => (errorMessage.contains("description") || errorMessage.contains("Description"))).map(errorMessage => S.error("consumer-registration-app-description-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("email")|| errorMessage.contains("Email"))).map(errorMessage => S.error("consumer-registration-app-developer-error", errorMessage))
       errors.filter(errorMessage => (errorMessage.contains("redirect")|| errorMessage.contains("Redirect"))).map(errorMessage => S.error("consumer-registration-app-redirect-url-error", errorMessage))
+      errors.filter(errorMessage => errorMessage.contains("request_uri")).map(errorMessage => S.error("consumer-registration-app-request_uri-error", errorMessage))
+      errors.filter(errorMessage => StringUtils.containsAny(errorMessage, "signing_alg", "jwks_uri", "jwks"))
+        .map(errorMessage => S.error("consumer-registration-app-signing_jwks-error", errorMessage))
+      errors.filter(errorMessage => errorMessage.contains("certificate")).map(errorMessage => S.error("consumer-registration-app-client_certificate-error", errorMessage))
       //Here show not field related errors to the general part.
       val unknownErrors: Seq[String] = errors
         .filterNot(errorMessage => (errorMessage.contains("name") || errorMessage.contains("Name")))
@@ -193,6 +294,12 @@ class ConsumerRegistration extends MdcLoggable {
 
       def withNameOpt(s: String): Option[AppType] = Some(AppType.valueOf(s))
 
+      val clientCertificate = clientCertificateVar.is
+      val requestUri = requestUriVar.is
+      val signingAlg = signingAlgVar.is
+      val jwksUri = jwksUriVar.is
+      val jwks = jwksVar.is
+
       val appTypeSelected = withNameOpt(appType.is)
       logger.debug("appTypeSelected: " + appTypeSelected)
       nameVar.set(nameVar.is)
@@ -201,9 +308,33 @@ class ConsumerRegistration extends MdcLoggable {
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
-      if(submitButtonDefenseFlag.isEmpty)
+      requestUriVar.set(requestUri)
+      clientCertificateVar.set(clientCertificate)
+      signingAlgVar.set(signingAlg)
+      jwksUriVar.set(jwksUri)
+      jwksVar.set(jwks)
+
+      val oauth2ParamError: CssSel = if(HydraUtil.integrateWithHydra) {
+        if(StringUtils.isBlank(redirectionURLVar.is) || Consumer.redirectURLRegex.findFirstIn(redirectionURLVar.is).isEmpty) {
+          showErrorsForDescription("The 'Redirect URL' should be a valid url !")
+        } else if(StringUtils.isNotBlank(requestUri) && !requestUri.matches("""^https?://(www.)?\S+?(:\d{2,6})?\S*$""")) {
+          showErrorsForDescription("The 'request_uri' should be a valid url !")
+        } else if(StringUtils.isNotBlank(jwksUri) && !jwksUri.matches("""^https?://(www.)?\S+?(:\d{2,6})?\S*$""")) {
+          showErrorsForDescription("The 'jwks_uri' should be a valid url !")
+        } else if(StringUtils.isBlank(signingAlg)) {
+          showErrorsForDescription("The 'signing_alg' should not be empty!")
+        } else if(StringUtils.isNoneBlank(jwksUri, jwks)) {
+          showErrorsForDescription("The 'jwks_uri' and 'jwks' should not have value at the same time!")
+        } else if (StringUtils.isNotBlank(clientCertificate) && X509.validate(clientCertificate) != Full(true)) {
+          showErrorsForDescription("The 'client certificate' should be a valid certificate, pleas copy whole crt file content !")
+        } else null
+      } else null
+
+      if(oauth2ParamError != null) {
+        oauth2ParamError
+      } else if(submitButtonDefenseFlag.isEmpty) {
         showErrorsForDescription("The 'Register' button random name has been modified !")
-      else{
+      } else{
         val consumer = Consumers.consumers.vend.createConsumer(
           Some(Helpers.randomString(40).toLowerCase),
           Some(Helpers.randomString(40).toLowerCase),
@@ -213,10 +344,12 @@ class ConsumerRegistration extends MdcLoggable {
           Some(descriptionVar.is),
           Some(devEmailVar.is),
           Some(redirectionURLVar.is),
-          Some(AuthUser.getCurrentResourceUserUserId))
+          Some(AuthUser.getCurrentResourceUserUserId),
+          Some(clientCertificate))
         logger.debug("consumer: " + consumer)
         consumer match {
-          case Full(x) => showRegistrationResults(x)
+          case Full(x) =>
+            showRegistrationResults(x)
           case Failure(msg, _, _) => showValidationErrors(msg.split(";").toList)
           case _ => showUnknownErrors(List(ErrorMessages.UnknownError))
         }
@@ -252,7 +385,7 @@ class ConsumerRegistration extends MdcLoggable {
       val registrationMessage = s"Thank you for registering a Consumer on $thisApiInstance. \n" +
         s"Email: ${registered.developerEmail.get} \n" +
         s"App name: ${registered.name.get} \n" +
-        s"App type: ${registered.appType.get.toString} \n" +
+        s"App type: ${registered.appType.get} \n" +
         s"App description: ${registered.description.get} \n" +
         s"Consumer Key: ${consumerKeyOrMessage} \n" +
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
@@ -297,7 +430,7 @@ class ConsumerRegistration extends MdcLoggable {
       val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
       		s"Email: ${registered.developerEmail.get} \n" +
       		s"App name: ${registered.name.get} \n" +
-      		s"App type: ${registered.appType.get.toString} \n" +
+      		s"App type: ${registered.appType.get} \n" +
       		s"App description: ${registered.description.get}"
 
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com

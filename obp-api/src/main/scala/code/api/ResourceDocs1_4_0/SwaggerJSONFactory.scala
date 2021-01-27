@@ -236,7 +236,6 @@ object SwaggerJSONFactory extends MdcLoggable {
     *   exampleRequestBody: JValue, 
     *   successResponseBody: JValue, 
     *   errorResponseBodies: List[JValue], 
-    *   catalogs: Catalogs,
     *   tags: List[ResourceDocTag]
     * )
     * 

@@ -150,7 +150,8 @@ case class ConsumerPostJSON(app_name: String,
                             redirect_url: String,
                             created_by_user_id: String,
                             enabled: Boolean,
-                            created: Date
+                            created: Date,
+                            clientCertificate: String
                            )
 
 case class ConsumersJson(list: List[ConsumerJSON])

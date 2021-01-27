@@ -59,6 +59,7 @@ object ApiTag {
   val apiTagDocumentation = ResourceDocTag("Documentation")
   val apiTagBerlinGroup = ResourceDocTag("Berlin-Group")
   val apiTagUKOpenBanking = ResourceDocTag("UKOpenBanking")
+  val apiTagMXOpenFinance = ResourceDocTag("MXOpenFinance")
   val apiTagApiBuilder = ResourceDocTag("API-Builder")
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagNewStyle = ResourceDocTag("New-Style")
@@ -67,8 +68,14 @@ object ApiTag {
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
+  val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-(Manage)")
+  val apiTagManageDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint-(Manage)")
+
+  val apiTagDynamic = ResourceDocTag("Dynamic")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
-  val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoints-(Manage)")
+  val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint")
+
+  val apiTagValidation = ResourceDocTag("Validation")
 
   // To mark the Berlin Group APIs suggested order of implementation
   val apiTagBerlinGroupM = ResourceDocTag("Berlin-Group-M")

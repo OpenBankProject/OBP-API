@@ -50,9 +50,7 @@ import scala.xml.{Elem, NodeSeq, Text}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
-import org.apache.logging.log4j.core.util.UuidUtil
-import sh.ory.hydra.{ApiClient, Configuration}
-import sh.ory.hydra.api.{AdminApi, PublicApi}
+import code.util.HydraUtil._
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
 
@@ -936,22 +934,7 @@ def restoreSomeSessions(): Unit = {
     // val currentUrl = S.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     def checkInternalRedirectAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
-      val loginChallengeBox = S.param("login_challenge")
-        .filter(StringUtils.isNotBlank(_))
-      if(loginWithHydra && loginChallengeBox.isDefined) {
-        val challenge = loginChallengeBox.orNull
-        val acceptLoginRequest = new AcceptLoginRequest()
-        acceptLoginRequest.setSubject(user.email.get)
-        acceptLoginRequest.remember(false)
-        acceptLoginRequest.rememberFor(3600)
-        val response = hydraAdmin.acceptLoginRequest(challenge, acceptLoginRequest)
-        val redirectTo = response.getRedirectTo
-        logUserIn(user, () => {
-          S.notice(S.?("logged.in"))
-          preLoginState()
-          S.redirectTo(redirectTo)
-        })
-      } else if (Helper.isValidInternalRedirectUrl(redirect)) {
+      if (Helper.isValidInternalRedirectUrl(redirect)) {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()
@@ -1064,15 +1047,20 @@ def restoreSomeSessions(): Unit = {
       scala.xml.XML.loadString(loginSubmitButton(loginButtonText, loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
     }
 
-    // login with hydra, but direct to login page, need redirect to hydra
-//    if(AuthUser.loginWithHydra && S.param("login_challenge").isEmpty) {
-//      val state = urlEncode(UuidUtil.getTimeBasedUuid.toString)
-//      val scope = hydraClientScope.mkString("+")
-//      return S.redirectTo(s"$hydraPublicUrl/oauth2/auth?client_id=$hydraClientId&response_type=code&state=$state&scope=openid+offline")
-//    }
     val bind =
           "submit" #> insertSubmitButton
    bind(loginXhtml)
+  }
+
+  override def logout = {
+    logoutCurrentUser
+    S.request match {
+      case Full(a) =>  a.param("redirect") match {
+        case Full(customRedirect) => S.redirectTo(customRedirect)
+        case _ => S.redirectTo(homePage)
+      }
+      case _ => S.redirectTo(homePage)
+    }
   }
   
   
@@ -1254,41 +1242,5 @@ def restoreSomeSessions(): Unit = {
     }
 
     innerSignup
-  }
-
-  val loginWithHydra = APIUtil.getPropsAsBoolValue("login_with_hydra", false)
-
-  lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
-    .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
-    .replaceFirst("/$", "")
-
-  lazy val hydraClientId = APIUtil.getPropsValue("hydra_client_id")
-    .openOrThrowException("If props login_with_hydra is true, hydra_client_id value should not be blank")
-
-  lazy val hydraClientScope = APIUtil.getPropsValue("hydra_client_scope")
-    .openOrThrowException("If props login_with_hydra is true, hydra_client_scope value should not be blank")
-    .trim.split("""\s*,\s*""")
-
-  lazy val hydraAdmin = {
-    val hydraAdminUrl = APIUtil.getPropsValue("hydra_admin_url")
-      .openOrThrowException("If props login_with_hydra is true, hydra_admin_url value should not be blank")
-    val defaultClient = Configuration.getDefaultApiClient
-    defaultClient.setBasePath(hydraAdminUrl)
-    new AdminApi(defaultClient)
-  }
-
- lazy val hydraPublic = {
-      val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
-        .openOrThrowException("If props login_with_hydra is true, hydra_public_url value should not be blank")
-      val apiClient = new ApiClient
-      apiClient.setBasePath(hydraPublicUrl)
-
-      new PublicApi(apiClient)
-  }
-
-  override def logout: Nothing = {
-    // TODO do logout logic for hydra way.
-    println("do logout")
-    super.logout
   }
 }

@@ -56,6 +56,7 @@ object ErrorMessages {
   val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
   
   val InvalidBankIdDynamicEntity = "OBP-09012: This is a bank level dynamic entity. Please specify a valid value for BANK_ID."
+  val InvalidRequestPayload = "OBP-09013: Incorrect request body Format, it should be a valid json that matches Validation rule."
 
 
   // General messages (OBP-10XXX)
@@ -83,6 +84,7 @@ object ErrorMessages {
   val InvalidConnectorMethodName = "OBP-10022: Incorrect Connector method name."
   val InvalidOutBoundMapping = "OBP-10031: Incorrect outBoundMapping Format, it should be a json structure."
   val InvalidInBoundMapping = "OBP-10032: Incorrect inBoundMapping Format, it should be a json structure."
+  val invalidIban = "OBP-10033: Invalid IBAN."
   val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
   val ResourceDoesNotExist = "OBP-10405: Resource does not exist."
@@ -171,6 +173,7 @@ object ErrorMessages {
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
   // OAuth 2
+  val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
   val Oauth2IsNotAllowed = "OBP-20201: OAuth2 is not allowed at this instance."
   val Oauth2IJwtCannotBeVerified = "OBP-20202: OAuth2's Access Token cannot be verified."
   val Oauth2ThereIsNoUrlOfJwkSet = "OBP-20203: There is no an URL of OAuth 2.0 server's JWK set, published at a well-known URL."
@@ -179,7 +182,8 @@ object ErrorMessages {
   val Oauth2BadJOSEException = "OBP-20206: Bad JSON Object Signing and Encryption (JOSE) exception. The ID token is invalid or expired. "
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
-  val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
+  val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
+  val Oauth2TokenMatchCertificateFail = "OBP-20210: The token linked with a different client certificate. "
 
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
@@ -299,7 +303,9 @@ object ErrorMessages {
   val BankAccountNotFoundByIban = "OBP-30074: Bank Account not found. Please specify a valid value for iban."
   val AccountRoutingNotFound = "OBP-30075: Account routing not found, Please specify valid values for account routing scheme and address"
   val BankAccountNotFoundByAccountId = "OBP-30076: Bank Account not found. Please specify a valid value for ACCOUNT_ID."
-  
+
+  val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -397,6 +403,7 @@ object ErrorMessages {
   val ConsumerNotFound = "OBP-35022: The Consumer cannot be found by logged in user."
   val ConsentDoesNotMatchUser = "OBP-35023: The Consent does not match a valid User."
   val ConsentUserAlreadyAdded = "OBP-35024: The Consent's User is already added."
+  val ConsentUpdateStatusError = "OBP-35025: The Consent's status cannot be updated."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -428,6 +435,16 @@ object ErrorMessages {
   val TransactionRequestStatusNotInitiatedOrPendingOrForwarded = s"OBP-40020: Transaction Request Status is not ${INITIATED} or ${NEXT_CHALLENGE_PENDING} or ${FORWARDED}."
   val InvalidChallengeTransactionRequestId = "OBP-40021: Invalid Challenge PaymentId or TRANSACTION_REQUEST_ID. "
   val InvalidChallengeChallengeId = "OBP-40022: Invalid ChallengeId. "
+  val TransactionRequestCannotBeCancelled = "OBP-40023: Transaction Request cannot be cancelled. "
+  val CannotUpdatePSUData = s"OBP-40024: Cannot Update PSU Data for payment initiation due to transaction request is not in status: ${INITIATED}."
+  val CannotUpdatePSUDataCancellation = s"OBP-40025: Cannot Update PSU Data for payment initiation cancellation due to transaction request is not in status: ${INITIATED}, ${CANCELLATION_PENDING} or ${COMPLETED}."
+  val InvalidValidation = "OBP-40026: Invalid json schema. "
+  val ValidationNotFound = "OBP-40027: Validation not found, please specify valid query parameter. "
+  val ValidationDeleteError = "OBP-40028: Could not delete the Validation. "
+  val ValidationOperationIdExistsError = "OBP-40029: OPERATION_ID already exists. Please specify different values for OPERATION_ID. "
+  val ValidationJsonSchemaIllegal = "OBP-40030: Incorrect json-schema Format. "
+  val CannotStartTheAuthorisationProcessForTheCancellation = s"OBP-40031: Cannot start the authorisation process for the cancellation of the addressed payment due to transaction request is not in status: ${CANCELLATION_PENDING}."
+
 
 
   // Exceptions (OBP-50XXX)
@@ -469,6 +486,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForMissingRequiredValues = "OBP-50214: Connector return the data, but the data has missing required values."
   val InvalidConnectorResponseForCreateChallenge = "OBP-50215: Connector did not return the set of challenge we requested."
   val InvalidConnectorResponseForSaveDoubleEntryBookTransaction = "OBP-50216: The Connector did not return a valid response for saving double-entry transaction."
+  val InvalidConnectorResponseForCancelPayment = "OBP-50217: Connector did not return the transaction we requested."
 
 
   // Adapter Exceptions (OBP-6XXXX)

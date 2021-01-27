@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole._
+import code.api.util.ApiRole.{canCreateBranch, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{BankAccountNotFound, _}
 import code.api.util.NewStyle.HttpCode
@@ -443,7 +443,7 @@ trait APIMethods220 {
               bank.id.length > 5,s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.")
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             consumer <- cc.consumer ?~! ErrorMessages.InvalidConsumerCredentials
-            _ <- hasEntitlementAndScope("", u.userId, consumer.id.get.toString,  canCreateBank)
+            _ <- NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString,  canCreateBank, cc.callContext)
             success <- Connector.connector.vend.createOrUpdateBank(
               bank.id,
               bank.full_name,
@@ -467,8 +467,6 @@ trait APIMethods220 {
     // Create Branch
     val createBranchEntitlementsRequiredForSpecificBank = CanCreateBranch :: Nil
     val createBranchEntitlementsRequiredForAnyBank = CanCreateBranchAtAnyBank :: Nil
-    val createBranchEntitlementsRequiredText = UserHasMissingRoles + createBranchEntitlementsRequiredForSpecificBank.mkString(" and ") + " entitlements are required OR " + createBranchEntitlementsRequiredForAnyBank.mkString(" and ")
-
 
     // TODO Put the RequiredEntitlements and AlternativeRequiredEntitlements in the Resource Doc and use that in the Partial Function?
 
@@ -502,10 +500,8 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, canCreateBranch) == true
-              ||
-              hasEntitlement("", u.userId, canCreateBranchAtAnyBank)
-              , createBranchEntitlementsRequiredText)
+            canCreateBranch <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, canCreateBranch::Nil, canCreateBranchAtAnyBank::Nil, callContext)
+
             branchJsonV220 <- tryo {json.extract[BranchJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             branch <- transformV220ToBranch(branchJsonV220)
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
@@ -520,8 +516,6 @@ trait APIMethods220 {
     val createAtmEntitlementsRequiredForSpecificBank = canCreateAtm ::  Nil
     val createAtmEntitlementsRequiredForAnyBank = canCreateAtmAtAnyBank ::  Nil
 
-    val createAtmEntitlementsRequiredText = UserHasMissingRoles + createAtmEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createAtmEntitlementsRequiredForAnyBank.mkString(" and ")
-
     resourceDocs += ResourceDoc(
       createAtm,
       implementedInApiVersion,
@@ -531,7 +525,7 @@ trait APIMethods220 {
       "Create ATM",
       s"""Create ATM for the Bank.
           |
-         |${authenticationRequiredMessage(true) }
+          |${authenticationRequiredMessage(true) }
           |
           |""",
       atmJsonV220,
@@ -554,10 +548,7 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            canCreateAtm <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank) == true
-              ||
-              hasAllEntitlements("", u.userId, createAtmEntitlementsRequiredForAnyBank),
-              createAtmEntitlementsRequiredText)
+            _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank, createAtmEntitlementsRequiredForAnyBank, callContext)
             atmJson <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             atm <- JSONFactory220.transformToAtmFromV220(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
             success <- Connector.connector.vend.createOrUpdateAtm(atm)
@@ -572,8 +563,6 @@ trait APIMethods220 {
 
     val createProductEntitlementsRequiredForSpecificBank = canCreateProduct ::  Nil
     val createProductEntitlementsRequiredForAnyBank = canCreateProductAtAnyBank ::  Nil
-
-    val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createProductEntitlementsRequiredForAnyBank.mkString(" and ")
 
     resourceDocs += ResourceDoc(
       createProduct,
@@ -607,11 +596,8 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            _ <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createProductEntitlementsRequiredForSpecificBank) == true
-              ||
-              hasAllEntitlements("", u.userId, createProductEntitlementsRequiredForAnyBank),
-              createProductEntitlementsRequiredText)
-            product <- tryo {json.extract[ProductJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, createProductEntitlementsRequiredForSpecificBank, createProductEntitlementsRequiredForAnyBank, callContext)
+              product <- tryo {json.extract[ProductJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateProduct(
                 bankId = product.bank_id,
                 code = product.code,
@@ -637,8 +623,6 @@ trait APIMethods220 {
 
     val createFxEntitlementsRequiredForSpecificBank = canCreateFxRate ::  Nil
     val createFxEntitlementsRequiredForAnyBank = canCreateFxRateAtAnyBank ::  Nil
-
-    val createFxEntitlementsRequiredText = UserHasMissingRoles + createFxEntitlementsRequiredForSpecificBank.mkString(" and ") + " OR " + createFxEntitlementsRequiredForAnyBank.mkString(" and ")
 
     resourceDocs += ResourceDoc(
       createFx,
@@ -684,11 +668,8 @@ trait APIMethods220 {
           for {
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            canCreateFx <- booleanToBox(hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank) == true
-              ||
-              hasAllEntitlements("", u.userId, createFxEntitlementsRequiredForAnyBank),
-              createFxEntitlementsRequiredText)
-            fx <- tryo {json.extract[FXRateJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank, createFxEntitlementsRequiredForAnyBank, callContext)
+              fx <- tryo {json.extract[FXRateJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             success <- Connector.connector.vend.createOrUpdateFXRate(
               bankId = fx.bank_id,
               fromCurrencyCode = fx.from_currency_code,
@@ -776,9 +757,9 @@ trait APIMethods220 {
               isValidID(accountId.value)
             }
 
-            _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
-              hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
-            }
+            _ <- if(userIdAccountOwner == loggedInUserId) Future.successful(Full(Unit))
+                 else NewStyle.function.hasEntitlement(bankId.value, loggedInUserId, canCreateAccount, callContext, s"${UserHasMissingRoles} $canCreateAccount or create account for self")
+
             initialBalanceAsString = createAccountJson.balance.amount
             accountType = createAccountJson.`type`
             accountLabel = createAccountJson.label
@@ -937,7 +918,10 @@ trait APIMethods220 {
         "redirecturl",
         "createdby",
         true,
-        new Date()
+        new Date(),
+        """-----BEGIN CERTIFICATE-----
+          |client_certificate_content
+          |-----END CERTIFICATE-----""".stripMargin
       ),
       ConsumerPostJSON(
         "Some app name",
@@ -947,7 +931,10 @@ trait APIMethods220 {
         "Some redirect url",
         "Created by UUID",
         true,
-        new Date()
+        new Date(),
+        """-----BEGIN CERTIFICATE-----
+          |client_certificate_content
+          |-----END CERTIFICATE-----""".stripMargin
       ),
       List(
         UserNotLoggedIn,
@@ -964,8 +951,8 @@ trait APIMethods220 {
         cc =>
           for {
             u <- cc.user ?~! UserNotLoggedIn
-            _ <- booleanToBox(hasEntitlement("", u.userId, ApiRole.canCreateConsumer), UserHasMissingRoles + CanCreateConsumer )
-            postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
+            _ <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canCreateConsumer, cc.callContext)
+              postedJson <- tryo {json.extract[ConsumerPostJSON]} ?~! InvalidJsonFormat
             consumer <- Consumers.consumers.vend.createConsumer(Some(generateUUID()),
                                                                 Some(generateUUID()),
                                                                 Some(postedJson.enabled),
@@ -974,7 +961,8 @@ trait APIMethods220 {
                                                                 Some(postedJson.description),
                                                                 Some(postedJson.developer_email),
                                                                 Some(postedJson.redirect_url),
-                                                                Some(u.userId)
+                                                                Some(u.userId),
+                                                                Some(postedJson.clientCertificate)
                                                                )
           } yield {
             // Format the data as json

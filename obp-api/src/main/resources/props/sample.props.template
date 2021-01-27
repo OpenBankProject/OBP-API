@@ -62,8 +62,12 @@ connector=mapped
 ## webui props cache time-to-live in seconds
 #webui.props.cache.ttl.seconds=20
 
-## DynamicEntity cache time-to-live in seconds
-#dynamicEntity.cache.ttl.seconds=20
+## DynamicEntity cache time-to-live in seconds, default is 30
+dynamicEntity.cache.ttl.seconds=30
+## DynamicEndpoint cache time-to-live in seconds, default is 30
+dynamicEndpoint.cache.ttl.seconds=30
+## Validation cache time-to-live in seconds, default is 30
+validation.cache.ttl.seconds=30
 
 ## swagger file should not generated for every request, this is a time-to-live in seconds for the generated swagger of OBP api,
 ## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.
@@ -749,6 +753,8 @@ database_messages_scheduler_interval=3600
 # consents.allowed=true
 # consumer_validation_method_for_consent=CONSUMER_KEY_VALUE
 # consents.max_time_to_live=3600
+# In case isn't defined default value is "false"
+# consents.sca.enabled=true
 # ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
@@ -870,16 +876,19 @@ outboundAdapterCallContext.generalContext
 ## (1) if: connector=star, the connector should match props value of 'starConnector_supported_types'
 ## (2) else: connector name should be the same as props value of connector, e.g: connector=rest_vMar2019, then the connector should must also be rest_vMar2019
 ## example:
-#connector.name.export.as.endpoint=stored_procedure_vDec2019
+#connector.name.export.as.endpoints=stored_procedure_vDec2019
 # ------------------------------------------------------------------------------------------
 
 # ------------------------------ Hydra oauth2 props ------------------------------
-## if login_with_hydra set to true, all other props must not be empty
-#login_with_hydra=true
+## if integrate_with_hydra set to true, all other props must not be empty
+#integrate_with_hydra=true
 #hydra_public_url=http://127.0.0.1:4444
 #hydra_admin_url=http://127.0.0.1:4445
-#hydra_client_id=auth-code-client
-#hydra_client_scope=openid,offline
+#hydra_consents=ReadAccountsBasic,ReadAccountsDetail,ReadBalances,ReadTransactionsBasic,ReadTransactionsDebits,ReadTransactionsDetail
+## check the oauth2.jwk_set.url props, it must contains jwks.json that locate in ${hydra_public_url}/.well-known/jwks.json
+##oauth2.jwk_set.url=http://localhost:4444/.well-known/jwks.json,https://www.googleapis.com/oauth2/v3/certs
+## whether create hydra client when create consumer, default is false
+#mirror_consumer_in_hydra=true
 # ------------------------------ Hydra oauth2 props end ------------------------------
 
 # ------------------------------ default entitlements ------------------------------
@@ -891,3 +900,4 @@ outboundAdapterCallContext.generalContext
 
 ## Mirror request headers to response
 # mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
+

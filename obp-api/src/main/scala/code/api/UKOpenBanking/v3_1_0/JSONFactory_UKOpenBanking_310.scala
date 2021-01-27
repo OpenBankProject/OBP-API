@@ -5,8 +5,8 @@ import java.util.Date
 import code.api.Constant
 import code.api.util.APIUtil.DateWithDayExampleObject
 import code.api.util.CustomJsonFormats
-import code.model.{ModeratedBankAccount, ModeratedTransaction}
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, BankAccount, TransactionRequest}
+import code.model.{ModeratedBankAccount, ModeratedBankAccountCore, ModeratedTransaction}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, AmountOfMoneyJsonV121, BankAccount, BankId, TransactionAttribute, TransactionId, TransactionRequest, View}
 import net.liftweb.json.JsonAST.JObject
 
 import scala.collection.immutable.List
@@ -21,18 +21,24 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
   )
   case class AccountUKV310(
                       AccountId: String,
+                      Status: String = "",
+                      StatusUpdateDateTime: String,
                       Currency: String,
                       AccountType: String,
                       AccountSubType: String,
-                      Nickname: String,
+                      AccountIndicator: String,
+                      OnboardingType: Option[String],
+                      Nickname: Option[String],
+                      OpeningDate: Option[String],
+                      MaturityDate: Option[String],
                       Account: List[AccountInner],
-                      Servicer: ServicerUKV310
+                      Servicer: Option[ServicerUKV310]
                     )
   case class AccountInner(
                            SchemeName: List[String],
                            Identification: String,
-                           Name: String,
-                           SecondaryIdentification: String,
+                           Name: Option[String] = None,
+                           SecondaryIdentification: Option[String] = None, 
                          )
 
   case class LinksV310(
@@ -89,8 +95,8 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
   )
   
   case class MerchantDetailsJson(
-    MerchantName: String = "String",
-    MerchantCategoryCode : String = "String"
+    MerchantName: Option[String] = None,
+    MerchantCategoryCode : Option[String] = None
   )
   
   case class PostalAddressJson(
@@ -139,7 +145,7 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
     CardInstrument: CardInstrumentJson,
     SupplementaryData:String = "",//Empty object {}. not sure what does it mean 
     Balance: BalanceUKOpenBankingJson,
-    MerchantDetails: MerchantDetailsJson = MerchantDetailsJson(),
+    MerchantDetails: Option[MerchantDetailsJson] = None,
     CreditorAgent:AgentJson = AgentJson(),
     CreditorAccount:TransactionInnerAccountJson = TransactionInnerAccountJson(),
     DebtorAgent:AgentJson= AgentJson(),
@@ -208,24 +214,54 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
     Risk: String
   )
 
-  def createAccountsListJSON(accounts: List[BankAccount]): AccountsUKV310 = {
+  def createAccountsListJSON(accounts : List[(BankAccount, View)],
+    moderatedAttributes: List[AccountAttribute]
+  ): AccountsUKV310 = {
+
+    def getServicer(account: (BankAccount, View)): Option[ServicerUKV310] = {
+      account._2.viewId.value match {
+        case Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          val schemeName = accountAttributeValue("Servicer_SchemeName", account._1.bankId, account._1.accountId, moderatedAttributes)
+          val identification = accountAttributeValue("Servicer_Identification", account._1.bankId, account._1.accountId, moderatedAttributes)
+          val result = ServicerUKV310(
+            SchemeName = List(schemeName),
+            Identification = identification
+          )
+          if (schemeName != null || identification != null) Some(result) else None
+        case _ =>
+          None
+      }
+    }
+
+    def getAccountDetails(account: (BankAccount, View)): Option[AccountInner] = {
+      account._2.viewId.value match {
+        case Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID =>
+          account._1.accountRoutings.headOption.map(e =>
+            AccountInner(
+              SchemeName = List(e.scheme),
+              Identification = e.address,
+            )
+          )
+        case _ =>
+          None
+      }
+    }
+    
     val list = accounts.map(
-      x => AccountUKV310(
-        AccountId = x.accountId.value,
-        Currency = x.currency,
-        AccountType = x.accountType,
-        AccountSubType = x.accountType,
-        Nickname = x.label,
-        List(AccountInner(
-          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
-          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
-          Name = x.label,
-          SecondaryIdentification=""
-        )),
-        ServicerUKV310(
-          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
-          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
-        )
+      account => AccountUKV310(
+        AccountId = account._1.accountId.value,
+        Status = accountAttributeValue("Status", account._1.bankId, account._1.accountId, moderatedAttributes),
+        StatusUpdateDateTime = accountAttributeValue("StatusUpdateDateTime", account._1.bankId, account._1.accountId, moderatedAttributes),
+        Currency = account._1.currency,
+        AccountType = account._1.accountType,
+        AccountSubType = accountAttributeValue("AccountSubType", account._1.bankId, account._1.accountId, moderatedAttributes),
+        AccountIndicator = accountAttributeValue("AccountIndicator", account._1.bankId, account._1.accountId, moderatedAttributes),
+        OnboardingType = accountAttributeOptValue("OnboardingType", account._1.bankId, account._1.accountId, moderatedAttributes),
+        Nickname = Some(account._1.label),
+        OpeningDate = accountAttributeOptValue("OpeningDate", account._1.bankId, account._1.accountId, moderatedAttributes),
+        MaturityDate = accountAttributeOptValue("MaturityDate", account._1.bankId, account._1.accountId, moderatedAttributes),
+        getAccountDetails(account).toList,
+        Servicer = getServicer(account)
       )
     )
     AccountsUKV310(
@@ -244,9 +280,31 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
       )
     )
   }
-  
+  private def accountAttributeOptValue(name: String,
+    bankId: BankId,
+    accountId: AccountId,
+    list: List[AccountAttribute]): Option[String] =
+    list.filter(e => e.name == name && e.bankId == bankId && e.accountId == accountId).headOption.map(_.value)
+  private def accountAttributeValue(name: String,
+    bankId: BankId,
+    accountId: AccountId,
+    list: List[AccountAttribute]): String =
+    accountAttributeOptValue(name, bankId, accountId, list).getOrElse(null)
+
+  private def transactionAttributeOptValue(name: String,
+    bankId: BankId,
+    transactionId: TransactionId,
+    list: List[TransactionAttribute]): Option[String] =
+    list.filter(e => e.name == name && e.bankId == bankId && e.transactionId == transactionId).headOption.map(_.value)
+
+  private def transactionAttributeValue(name: String,
+    bankId: BankId,
+    transactionId: TransactionId,
+    list: List[TransactionAttribute]): String =
+    transactionAttributeOptValue(name, bankId, transactionId, list).getOrElse(null)
+
   def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonUKV310 = {
-    val accountId = transactions.head.bankAccount.get.accountId.value
+    val accountId = transactions.headOption.map(_.bankAccount.get.accountId.value).orNull
     val transactionsInnerJson = transactions.map(
       transaction=>TransactionInnerJson(
         accountId,
@@ -266,7 +324,7 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
           ExchangeRate = 0,
           ContractIdentification = "string",
           QuotationDate = new Date(),
-          InstructedAmount = AmountOfMoneyJsonV121(transaction.bankAccount.map(_.currency).flatten.getOrElse(""),"")), 
+          InstructedAmount = AmountOfMoneyJsonV121(transaction.bankAccount.map(_.currency).flatten.getOrElse(""),"")),
         BankTransactionCode = BankTransactionCodeJson("",""),
         ProprietaryBankTransactionCode = TransactionCodeJson("Transfer", "AlphaBank"),
         CardInstrument = CardInstrumentJson(),
@@ -296,56 +354,92 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
       )
     )
   }
+  
+  def createTransactionsJsonNew(
+    bankId: BankId,
+    moderatedTransactions: List[ModeratedTransaction],
+    attributes: List[TransactionAttribute],
+    view: View
+  ) : TransactionsJsonUKV310 = {
+    val accountId = moderatedTransactions.headOption.map(_.bankAccount.get.accountId.value).orNull
 
-  def createAccountJSON(accounts: List[BankAccount]) = {
-    val list = accounts.map(
-      x => AccountUKV310(
-        AccountId = x.accountId.value,
-        Currency = x.currency,
-        AccountType = x.accountType,
-        AccountSubType = x.accountType,
-        Nickname = x.label,
-        List(AccountInner(
-          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
-          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
-          Name = x.name,
-          SecondaryIdentification ="String"
-        )),
-        ServicerUKV310(
-          SchemeName = List(x.accountRoutings.headOption.map(_.scheme).getOrElse("")),
-          Identification = x.accountRoutings.headOption.map(_.address).getOrElse(""),
-        )
+    def getMerchantDetails(moderatedTransaction: ModeratedTransaction) = {
+      view.viewId.value match {
+        case Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+          val merchantName = transactionAttributeOptValue("MerchantDetails_MerchantName", bankId, moderatedTransaction.id, attributes)
+          val merchantCategoryCode = transactionAttributeOptValue("MerchantDetails_CategoryCode", bankId, moderatedTransaction.id, attributes)
+          val result = MerchantDetailsJson(
+            MerchantName = merchantName,
+            MerchantCategoryCode = merchantCategoryCode
+          )
+          if (merchantName.isDefined || merchantCategoryCode.isDefined) Some(result) else None
+        case _ => None
+      }
+    }
+    
+    val transactionsInnerJson = moderatedTransactions.map(
+      moderatedTransaction=>TransactionInnerJson(
+        accountId,
+        moderatedTransaction.id.value,
+        TransactionReference = moderatedTransaction.description.getOrElse(""),
+        Amount = AmountOfMoneyJsonV121(
+          currency = moderatedTransaction.currency.getOrElse("") ,
+          amount= moderatedTransaction.amount.getOrElse(BigDecimal(0)).toString()),
+        BookingDateTime = moderatedTransaction.startDate.get,
+        ValueDateTime = moderatedTransaction.finishDate.get,
+        ChargeAmount = AmountOfMoneyJsonV121(moderatedTransaction.currency.getOrElse(""),"0"),
+        TransactionInformation = moderatedTransaction.description.getOrElse(""),
+        CurrencyExchange = CurrencyExchangeJson(
+          SourceCurrency = moderatedTransaction.bankAccount.map(_.currency).flatten.getOrElse(""),
+          TargetCurrency = "",//No currency in the otherBankAccount,
+          UnitCurrency = "",
+          ExchangeRate = 0,
+          ContractIdentification = "string",
+          QuotationDate = new Date(),
+          InstructedAmount = AmountOfMoneyJsonV121(moderatedTransaction.bankAccount.map(_.currency).flatten.getOrElse(""),"")), 
+        BankTransactionCode = BankTransactionCodeJson("",""),
+        ProprietaryBankTransactionCode = TransactionCodeJson("Transfer", "AlphaBank"),
+        CardInstrument = CardInstrumentJson(),
+        Balance =BalanceUKOpenBankingJson(
+          Amount = AmountOfMoneyJsonV121(
+            currency = moderatedTransaction.currency.getOrElse(""),
+            amount = moderatedTransaction.balance
+          ),
+          CreditDebitIndicator = "Credit",
+          Type = "InterimBooked"
+        ),
+        MerchantDetails = getMerchantDetails(moderatedTransaction)
       )
     )
-    AccountsUKV310(
-      Data = AccountList(list),
+    TransactionsJsonUKV310(
+      Data = TransactionsInnerJson(transactionsInnerJson),
       Links = LinksV310(
-        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId,
-        s"${Constant.HostName}/open-banking/v3.1/accounts/" + list.head.AccountId),
-      Meta = MetaUKV310(
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions",
+        Constant.HostName + s"/open-banking/v3.1/accounts/${accountId}/transactions"
+      ),
+      Meta = MetaInnerJson(
         TotalPages = 1,
-        FirstAvailableDateTime = new Date(),
-        LastAvailableDateTime = new Date()
+        FirstAvailableDateTime = DateWithDayExampleObject,
+        LastAvailableDateTime = DateWithDayExampleObject
       )
     )
   }
-  
-  def createAccountBalanceJSON(moderatedAccount : ModeratedBankAccount) = {
+  def createAccountBalanceJSON(moderatedAccount : ModeratedBankAccountCore) = {
     val accountId = moderatedAccount.accountId.value
     
     val dataJson = DataJsonUKV310(
       List(BalanceJsonUKV310(
         AccountId = accountId,
-        Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance),
+        Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""), moderatedAccount.balance.getOrElse("")),
         CreditDebitIndicator = "Credit",
         Type = "ClosingAvailable",
         DateTime = null,
         CreditLine = List(CreditLineJson(
           Included = true,
-          Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""),moderatedAccount.balance),
+          Amount = AmountOfMoneyJsonV121(moderatedAccount.currency.getOrElse(""),moderatedAccount.balance.getOrElse("")),
           Type = "Pre-Agreed"
         )))))
     

@@ -1,7 +1,7 @@
 package code.api.v2_1_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanUpdateConsumerRedirectUrl
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNoPermissionUpdateConsumer}
 import code.setup.DefaultUsers
@@ -44,7 +44,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
 
       Then("We add entitlement to user2")
       addEntitlement("", resourceUser2.userId, CanUpdateConsumerRedirectUrl.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement("", resourceUser2.userId, ApiRole.canUpdateConsumerRedirectUrl)
+      val hasEntitlement = APIUtil.hasEntitlement("", resourceUser2.userId, ApiRole.canUpdateConsumerRedirectUrl)
       hasEntitlement should equal(true)
 
       When("We make the request Update Redirect Url for a Consumer")
@@ -66,7 +66,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
 
       Then("We add entitlement to user1")
       addEntitlement("", resourceUser1.userId, CanUpdateConsumerRedirectUrl.toString)
-      val hasEntitlement = code.api.util.APIUtil.hasEntitlement("", resourceUser1.userId, ApiRole.canUpdateConsumerRedirectUrl)
+      val hasEntitlement = APIUtil.hasEntitlement("", resourceUser1.userId, ApiRole.canUpdateConsumerRedirectUrl)
       hasEntitlement should equal(true)
 
       When("We make the request Update Redirect Url for a Consumer")

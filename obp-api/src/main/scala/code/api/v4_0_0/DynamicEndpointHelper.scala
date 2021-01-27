@@ -8,8 +8,8 @@ import java.util.{Date, UUID}
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody}
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
+import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
 import com.openbankproject.commons.util.ApiVersion
@@ -24,8 +24,8 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
-import net.liftweb.json.{Formats, JValue}
 import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject}
+import net.liftweb.json.{Formats, JValue}
 import net.liftweb.util.{StringHelpers, ThreadGlobal}
 import org.apache.commons.collections4.MapUtils
 import org.apache.commons.io.FileUtils
@@ -44,6 +44,7 @@ object DynamicEndpointHelper extends RestHelper {
    * dynamic endpoints url prefix
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
+  private val implementedInApiVersion = ApiVersion.v4_0_0
 
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
@@ -168,7 +169,7 @@ object DynamicEndpointHelper extends RestHelper {
     }
 
   private def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String): DynamicEndpointInfo = {
-    val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagApi, apiTagNewStyle)
+    val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagApi, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic)
 
     val serverUrl = {
       val servers = openAPI.getServers
@@ -182,11 +183,9 @@ object DynamicEndpointHelper extends RestHelper {
       (path, pathItem) <- paths
       (method: HttpMethod, op: Operation) <- pathItem.readOperationsMap.asScala
     } yield {
-      val implementedInApiVersion = ApiVersion.v4_0_0
-
-      val partialFunctionName: String = s"$method-$path".replaceAll("\\W", "_")
+      val partialFunctionName: String = buildPartialFunctionName(method.name(), path)
       val requestVerb: String = method.name()
-      val requestUrl: String = buildRequestUrl(path)
+      val requestUrl: String = buildRequestUrl(path, urlPrefix)
       val summary: String = Option(pathItem.getSummary)
         .filter(StringUtils.isNotBlank)
         .getOrElse(buildSummary(openAPI, method, op, path))
@@ -285,14 +284,6 @@ object DynamicEndpointHelper extends RestHelper {
   private val PathParamRegx = """\{(.+?)\}""".r
   private val WordBoundPattern = Pattern.compile("(?<=[a-z0-9])(?=[A-Z])|-")
 
-  private def buildRequestUrl(path: String): String = {
-    val url = StringUtils.split(s"$urlPrefix/$path", "/")
-    url.map {
-      case PathParamRegx(param) => WordBoundPattern.matcher(param).replaceAll("_").toUpperCase()
-      case v => v
-    }.mkString("/", "/", "")
-  }
-
   def parseSwaggerContent(content: String): OpenAPI = {
     val tempSwaggerFile = File.createTempFile("temp", ".swagger")
     FileUtils.write(tempSwaggerFile, content, Charset.forName("utf-8"))
@@ -302,6 +293,31 @@ object DynamicEndpointHelper extends RestHelper {
       tempSwaggerFile.deleteOnExit()
     }
     openAPI
+  }
+
+  private def buildRequestUrl(path: String, prefix: String = ""): String = {
+    val url = StringUtils.split(s"$prefix/$path", "/")
+    url.map {
+      case PathParamRegx(param) => WordBoundPattern.matcher(param).replaceAll("_").toUpperCase()
+      case v => v
+    }.mkString("/", "/", "")
+  }
+
+  private def buildPartialFunctionName(httpMethod: String, path: String) = {
+    val noQueryParamPath = path match {
+      case p if path.contains("/?") => StringUtils.substringBefore(p, "/?")
+      case p if path.contains("?") => StringUtils.substringBefore(p, "?")
+      case p => p
+    }
+    val noExpressionPath = buildRequestUrl(noQueryParamPath) // replace expression to upper case, e.g: /abc/{helloWorld}/good -> /abc/{HELLO_WORLD}/good
+                            .substring(1)        // remove the started character '/'
+
+    s"dynamicEndpoint_${httpMethod}_$noExpressionPath".replaceAll("\\W", "_")
+  }
+
+  def buildOperationId(httpMethod: String, path: String): String = {
+    val partialFunctionName = buildPartialFunctionName(httpMethod, path)
+    APIUtil.buildOperationId(implementedInApiVersion, partialFunctionName)
   }
 
   def doc: ArrayBuffer[ResourceDoc] = {

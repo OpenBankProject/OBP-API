@@ -3,19 +3,17 @@ package code.bankconnectors
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.DynamicEndpoint.DynamicEndpointT
+import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.attributedefinition.AttributeDefinition
-import code.api.{APIFailure, APIFailureNewStyle}
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
-import code.atms.Atms
+import code.api.{APIFailure, APIFailureNewStyle}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
@@ -23,26 +21,28 @@ import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
-import code.branches.Branches.Branch
-import com.openbankproject.commons.model.DirectDebitTrait
-import com.openbankproject.commons.model.FXRate
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.model.toUserExtended
 import code.standingorders.StandingOrderTrait
+import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
-import code.transactionrequests.TransactionRequests
-import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import code.users.Users
 import code.util.Helper._
-import com.openbankproject.commons.util.JsonUtils
 import code.views.Views
-import com.openbankproject.commons.model.enums.{AccountAttributeType, AttributeCategory, AttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, DynamicEntityOperation, ProductAttributeType, TransactionAttributeType, TransactionRequestStatus}
-import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, UserAuthContext, UserAuthContextUpdate, _}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums._
+import com.openbankproject.commons.model.{AccountApplication, Bank, CounterpartyTrait, CustomerAddress, DirectDebitTrait, FXRate, Product, ProductCollection, ProductCollectionItem, TaxResidence, TransactionRequestStatus, TransactionRequestTypeCharge, UserAuthContext, UserAuthContextUpdate, _}
+import com.openbankproject.commons.util.Functions.lazyValue
+import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
+import net.liftweb.common._
+import net.liftweb.json
 import net.liftweb.json.{Formats, JObject, JValue}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
@@ -50,20 +50,11 @@ import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.ReflectUtils
-import com.openbankproject.commons.util.Functions.lazyValue
-import net.liftweb.json
-
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.math.{BigDecimal, BigInt}
-import scala.util.Random
 import scala.reflect.runtime.universe.{MethodSymbol, typeOf}
-import _root_.akka.http.scaladsl.model.HttpMethod
-import code.transactionChallenge.MappedExpectedChallengeAnswer
-import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, InBoundTrait, ProductCollectionItemsTree}
-import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import scala.util.Random
 
 /*
 So we can switch between different sources of resources e.g.
@@ -363,6 +354,19 @@ trait Connector extends MdcLoggable {
       callContext:Option[CallContext]
     )
 
+  //Gets current charge level for transaction request
+  def getChargeLevelC2(bankId: BankId,
+                       accountId: AccountId,
+                       viewId: ViewId,
+                       userId: String,
+                       username: String,
+                       transactionRequestType: String,
+                       currency: String,
+                       amount: String,
+                       toAccountRoutings: List[AccountRouting],
+                       customAttributes: List[CustomAttribute],
+                       callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   // Initiate creating a challenge for transaction request and returns an id of the challenge
   def createChallenge(bankId: BankId, 
                       accountId: AccountId, 
@@ -403,6 +407,8 @@ trait Connector extends MdcLoggable {
   ): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getChallengesByTransactionRequestId(transactionRequestId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getChallengesByConsentId(consentId: String, callContext:  Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getChallenge(challengeId: String, callContext:  Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
   
@@ -1328,7 +1334,7 @@ trait Connector extends MdcLoggable {
             body.to_sepa_credit_transfers.get
           }
           toAccountIban = toSepaCreditTransfers.creditorAccount.iban
-          (toAccount, callContext) <- NewStyle.function.getBankAccountByIban(toAccountIban, callContext)
+          (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
           (createdTransactionId, callContext) <- NewStyle.function.makePaymentv210(
             fromAccount,
             toAccount,
@@ -1708,6 +1714,11 @@ trait Connector extends MdcLoggable {
                       callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = Future {
     Failure(setUnimplementedError)
   }
+  
+  def cancelPaymentV400(transactionId: TransactionId,
+                        callContext: Option[CallContext]): OBPReturnType[Box[CancelPayment]] = Future {
+    (Failure(setUnimplementedError), callContext)
+  }
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2021,6 +2032,19 @@ trait Connector extends MdcLoggable {
                                                   ): OBPReturnType[Box[List[AccountAttribute]]] = 
     Future{(Failure(setUnimplementedError), callContext)}
 
+  def getAccountAttributesByAccountsCanBeSeenOnView(accounts: List[BankIdAccountId],
+                                                    viewId: ViewId,
+                                                    callContext: Option[CallContext]
+                                                   ): OBPReturnType[Box[List[AccountAttribute]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getTransactionAttributesByTransactionsCanBeSeenOnView(bankId: BankId,
+                                                            transactionIds: List[TransactionId],
+                                                            viewId: ViewId,
+                                                            callContext: Option[CallContext]
+                                                           ): OBPReturnType[Box[List[TransactionAttribute]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
   def getCustomerAttributes(
     bankId: BankId,
     customerId: CustomerId,
@@ -2085,6 +2109,40 @@ trait Connector extends MdcLoggable {
   def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributesFromProvider(transactionRequestId: TransactionRequestId,
+                                                  callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributes(bankId: BankId,
+                                      transactionRequestId: TransactionRequestId,
+                                      callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributesCanBeSeenOnView(bankId: BankId,
+                                                     transactionRequestId: TransactionRequestId,
+                                                     viewId: ViewId,
+                                                     callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestAttributeById(transactionRequestAttributeId: String,
+                                         callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]],
+                                                    callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateTransactionRequestAttribute(bankId: BankId,
+                                                transactionRequestId: TransactionRequestId,
+                                                transactionRequestAttributeId: Option[String],
+                                                name: String,
+                                                attributeType: TransactionRequestAttributeType.Value,
+                                                value: String,
+                                                callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestAttributeTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createTransactionRequestAttributes(bankId: BankId,
+                                         transactionRequestId: TransactionRequestId,
+                                         transactionRequestAttributes: List[TransactionRequestAttributeTrait],
+                                         callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionRequestAttributeTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def deleteTransactionRequestAttribute(transactionRequestAttributeId: String,
+                                        callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def createAccountApplication(
                                 productCode: ProductCode,

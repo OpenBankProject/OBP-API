@@ -2,7 +2,7 @@ package code.api.v4_0_0
 
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagNewStyle}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagDynamic, apiTagDynamicEndpoint, apiTagNewStyle}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, ExampleValue, NewStyle}
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
@@ -37,6 +37,7 @@ object EntityName {
 }
 
 object DynamicEntityHelper {
+  private val implementedInApiVersion = ApiVersion.v4_0_0
 
   def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
 
@@ -109,14 +110,14 @@ object DynamicEntityHelper {
     val resourceDocUrl = if(bankId.isDefined)  s"/banks/BANK_ID/$entityName" else  s"/$entityName"
 
     val endPoint = APIUtil.dynamicEndpointStub
-    val implementedInApiVersion = ApiVersion.v4_0_0
+
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiTag: ResourceDocTag = fun(splitName, entityName)
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"get${entityName}List",
+      s"dynamicEntity_get${entityName}List",
       "GET",
       s"$resourceDocUrl",
       s"Get $splitName List",
@@ -140,13 +141,13 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole))
     )
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"getSingle$entityName",
+      s"dynamicEntity_getSingle$entityName",
       "GET",
       s"$resourceDocUrl/$idNameInUrl",
       s"Get $splitName by id",
@@ -166,14 +167,14 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole))
     )
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"create$entityName",
+      buildPartialFunctionName("POST", entityName),
       "POST",
       s"$resourceDocUrl",
       s"Create new $splitName",
@@ -195,14 +196,14 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole))
       )
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"update$entityName",
+      buildPartialFunctionName("PUT", entityName),
       "PUT",
       s"$resourceDocUrl/$idNameInUrl",
       s"Update $splitName",
@@ -224,14 +225,14 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole))
     )
 
     resourceDocs += ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"delete$entityName",
+      s"dynamicEntity_delete$entityName",
       "DELETE",
       s"$resourceDocUrl/$idNameInUrl",
       s"Delete $splitName by id",
@@ -250,11 +251,22 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle),
+      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole))
     )
 
     resourceDocs
+  }
+
+  def buildPartialFunctionName(httpRequestMethod: String, entityName: String): String = httpRequestMethod match {
+    case "POST" => s"dynamicEntity_create$entityName"
+    case "PUT" => s"dynamicEntity_update$entityName"
+    case _ => throw new IllegalArgumentException(s"""the parameter httpRequestMethod must be "POST" or "PUT", current value is $httpRequestMethod""")
+  }
+
+  def buildOperationId(httpRequestMethod: String, entityName: String): String = {
+    val partialFunctionName = buildPartialFunctionName(httpRequestMethod, entityName)
+    APIUtil.buildOperationId(implementedInApiVersion, partialFunctionName)
   }
 
   private def methodRoutingExample(entityName: String) =

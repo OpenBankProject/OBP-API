@@ -27,32 +27,29 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
-import java.time.{ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
 
-import code.api.JSONFactoryGateway.PayloadOfJwtJSON
-import code.api.util.APIUtil._
-import code.api.util.APIUtil.{DateWithMsFormat, DefaultFromDate, DefaultToDate}
-import code.api.util._
+import code.api.util.APIUtil.{DateWithMsFormat, DefaultFromDate, DefaultToDate, _}
 import code.api.util.ErrorMessages._
-import code.bankconnectors._
-import code.util.Helper.MdcLoggable
+import code.api.util._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
-class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
+class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen {
   
-  val startDateString = DateWithMsForFilteringFromDateString
+  val startDateString = DefaultFromDateString
   val startDateStringWrongFormat = "Wrong Date Format"
-  val endDateString = DateWithMsForFilteringEndDateString
+  val endDateString = DefaultToDateString
   val endDateStringWrongFormat = "Wrong Date Format"
   val inputStringDateFormat = DateWithMsFormat
-  val startDateObject: Date = DefaultFromDate
-  val endDateObject: Date = DefaultToDate
-
-
+  val DefaultFromDateString = APIUtil.DefaultFromDateString
+  val DefaultToDateString = APIUtil.DefaultToDateString
+  val startDateObject: Date = DateWithMsFormat.parse(DefaultFromDateString)
+  val endDateObject: Date = DateWithMsFormat.parse(DefaultToDateString)
+  ZonedDateTime.now(ZoneId.of("UTC"))
 
   feature("test APIUtil.dateRangesOverlap method") {
     
@@ -397,11 +394,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
   {
     val RetrunDefaultParams = Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
     
-    scenario(s"test the correct case1: empty list for httpParams") 
+    scenario(s"test the correct case1: with default parameters") 
     {
       val ExpectResult = RetrunDefaultParams 
       
-      val httpParams: List[HTTPParam] = List.empty[HTTPParam]
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString"))
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
@@ -412,7 +412,11 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
         Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending)
                   ,OBPFromDate(startDateObject),OBPToDate(endDateObject),
                   OBPAnon(true)))
-      val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("anon", "true")
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
@@ -423,7 +427,12 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
         Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending),
              OBPFromDate(startDateObject),OBPToDate(endDateObject),
              OBPAnon(true),OBPConsumerId("1")))
-      val httpParams: List[HTTPParam] = List(HTTPParam("anon", "true"), HTTPParam("consumer_id", "1"))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("anon", "true"), 
+        HTTPParam("consumer_id", "1")
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
     }
@@ -439,6 +448,8 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
                   OBPExcludeAppNames(List("TrainApp", "BusApp")), OBPExcludeUrlPatterns(List("%/obp/v1.2.1%")),
                   OBPExcludeImplementedByPartialFunctions(List("getBank", "getAccounts"))))
       val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
         HTTPParam("anon", "true"), 
         HTTPParam("consumer_id", "1"), 
         HTTPParam("user_id", "2"), 
@@ -487,14 +498,22 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     
     scenario(s"test the wrong case: wrong values - duration (wrongValue) in HTTPParam") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("duration", List("wrongValue")))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("duration", List("wrongValue"))
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue.toString contains FilterDurationFormatError should be (true)
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
-      val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("true")))
+      val httpParams: List[HTTPParam] = List(
+        HTTPParam("from_date",List(s"$DefaultFromDateString")),
+        HTTPParam("to_date",List(s"$DefaultToDateString")),
+        HTTPParam("wrongName", List("true"))
+      )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (RetrunDefaultParams)
     }
@@ -583,5 +602,19 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with MdcL
     APIUtil.firstCharToLowerCase(null) should be ("")
     APIUtil.firstCharToLowerCase("aaaa") should be ("aaaa")
   }
-  
+
+  /**
+   * should add the follow to test.default.props
+   * ## should be "hello_foo_bar__good luck__"
+   * hello.world=hello_${foo.bar}__good ${greeting.${compose.exp}}__
+   * foo.bar=foo_bar
+   * compose.exp=word
+   * greeting.word=luck
+   */
+  feature("test APIUtil.getPropsValue support expression") {
+    ignore("currently not add the test props value to test.default.props file, when start this test, just add the values those in the comment") {
+      APIUtil.getPropsValue("hello.world") should be("hello_foo_bar__good luck__")
+    }
+  }
+
 }

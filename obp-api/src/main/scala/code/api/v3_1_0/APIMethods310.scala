@@ -1214,9 +1214,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
 
-            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank) {
-              hasAtLeastOneEntitlement(bankId.value, u.userId,  canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil)
-            }
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil, callContext)
 
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV310 "
@@ -1690,9 +1688,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg =  UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank) {
-              hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank)
-            }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, canGetEntitlementsForAnyUserAtAnyBank, callContext)
             roleName = APIUtil.getHttpRequestUrlParam(cc.url, "role")
             entitlements <- Entitlement.entitlement.vend.getEntitlementsByRoleFuture(roleName) map {
               connectorEmptyResponse(_, callContext)
@@ -2484,7 +2480,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostPutProductJsonV310 "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3015,7 +3011,7 @@ trait APIMethods310 {
             allowedEntitlements = canDeleteBranch ::canDeleteBranchAtAnyBank:: Nil
             allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)(bankId.value, u.userId, allowedEntitlements)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)(bankId.value, u.userId, allowedEntitlements, callContext)
             (branch, callContext) <- NewStyle.function.getBranch(bankId, branchId, callContext)
             (result, callContext) <- NewStyle.function.deleteBranch(branch, callContext)
           } yield {
@@ -3239,7 +3235,7 @@ trait APIMethods310 {
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
-          val (resourceDocTags, partialFunctions, languageParam) = ResourceDocsAPIMethodsUtil.getParams()
+          val (resourceDocTags, partialFunctions, languageParam, contentParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
@@ -5362,9 +5358,9 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
               isValidID(accountId.value)
             }
-            _ <- Helper.booleanToFuture(s"${UserHasMissingRoles} $canCreateAccount or create account for self") {
-              hasEntitlement(bankId.value, loggedInUserId, canCreateAccount) || userIdAccountOwner == loggedInUserId
-            }
+            _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(Unit))
+                else NewStyle.function.hasEntitlement(bankId.value, loggedInUserId, canCreateAccount, callContext, s"${UserHasMissingRoles} $canCreateAccount or create account for self")
+
             initialBalanceAsString = createAccountJson.balance.amount
             accountType = createAccountJson.product_code
             accountLabel = createAccountJson.label
@@ -5910,8 +5906,8 @@ trait APIMethods310 {
               json.extract[PutEnabledJSON]
             }
             _ <- putData.enabled match {
-              case true  => Helper.booleanToFuture(UserHasMissingRoles + CanEnableConsumers)(hasEntitlement("", u.userId, ApiRole.canEnableConsumers))
-              case false => Helper.booleanToFuture(UserHasMissingRoles + CanDisableConsumers)(hasEntitlement("", u.userId, ApiRole.canDisableConsumers))
+              case true  => NewStyle.function.hasEntitlement("", u.userId, ApiRole.canEnableConsumers, callContext)
+              case false => NewStyle.function.hasEntitlement("", u.userId, ApiRole.canDisableConsumers, callContext)
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
             updatedConsumer <- Future {

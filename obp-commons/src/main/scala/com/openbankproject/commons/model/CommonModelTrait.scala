@@ -124,6 +124,12 @@ case class CardAttributeCommons(
 
 object CardAttributeCommons extends Converter[CardAttribute, CardAttributeCommons]
 
+case class CustomAttribute(
+  name: String,
+  attributeType: AttributeType.Value,
+  value: String
+)
+
 trait AtmT {
   def atmId: AtmId
   def bankId: BankId
@@ -452,6 +458,15 @@ trait TransactionRequestReasonsTrait {
   def amount: String
   def currency: String
   def description: String
+}
+
+trait TransactionRequestAttributeTrait {
+  def bankId: BankId
+  def transactionRequestId: TransactionRequestId
+  def transactionRequestAttributeId: String
+  def attributeType: TransactionRequestAttributeType.Value
+  def name: String
+  def value: String
 }
 
 trait DirectDebitTrait {
