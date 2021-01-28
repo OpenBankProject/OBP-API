@@ -132,6 +132,7 @@ object NewStyle {
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_1_0.getMetrics), ApiVersion.v2_1_0.toString),
+    (nameOf(Implementations2_1_0.getTransactionRequestTypesSupportedByBank), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getMessageDocs), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
