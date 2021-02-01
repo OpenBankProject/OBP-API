@@ -43,7 +43,6 @@ import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.NewStyle.HttpCode
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
@@ -77,7 +76,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JValue}
+import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
@@ -94,10 +93,10 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.lang3.StringUtils
 
-import java.util.regex.Pattern
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
+import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
@@ -1526,13 +1525,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             } yield {
               val newCallContext = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
 
-              // validate request payload with json-schema
-              val validationMsg: Option[String] = JsonSchemaUtil.validateRequest(callContext)(operationId)
+              // process after authentication interceptor, get intercept result
+              val jsonResponse:Box[JsonResponse] = afterAuthenticateInterceptResult(newCallContext, operationId)
 
-              validationMsg match {
-                case Some(errorMsg) =>
-                  val errorResponse = ErrorMessage(401, s"${ErrorMessages.InvalidRequestPayload} $errorMsg")
-                  (errorResponse, HttpCode.`401`(newCallContext))
+              jsonResponse match {
+                case response @Full(_) =>
+                  // directly return response, not go to endpoint body
+                  (response, newCallContext)
                 case _ =>
                   //pass session and request to endpoint body
                   val boxResponse: Box[JsonResponse] = S.init(request, session.orNull) {
@@ -2389,6 +2388,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         t => logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
       )
       in.onFail {
+        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
+          reply.apply(jsonResponse)
         case Failure(null, e, _) =>
           e.foreach(logger.error("", _))
           val errorResponse = getFilteredOrFullErrorMessage(e)
@@ -2440,6 +2441,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case Failure("Continuation", Full(e), _) if e.isInstanceOf[LiftFlowOfControlException] =>
           val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
           f(reply(_))
+
+        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
+          reply.apply(jsonResponse)
 
         case Failure(null, e, _) =>
           e.foreach(logger.error("", _))
@@ -2720,22 +2724,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x =>
         refreshUserIfRequired(x._1,x._2)
         x
-    } map {
-      it =>
-      val callContext = it._2
-
-        val validationResult: Option[String] = callContext.flatMap(_.resourceDocument)
-          .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
-          .filter(v => !v.roles.exists(_.nonEmpty))                        // no roles required, this endpoint only do authentication
-          .flatMap(v => JsonSchemaUtil.validateRequest(callContext)(v.operationId)) // request payload validation error message
-
-        validationResult match {
-          case Some(errorMsg) =>
-            val apiFailure = APIFailureNewStyle(s"${ErrorMessages.InvalidRequestPayload} $errorMsg", 401, callContext.map(_.toLight))
-            val failure = ParamFailure(errorMsg, apiFailure)
-            (fullBoxOrException(failure), callContext)
-          case _ => it
-        }
     }
   }
 
@@ -2751,6 +2739,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         cc.resourceDocument.map(_.partialFunctionName) match {
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)
+        }
+    }  map {
+      it =>
+        val callContext = it._2
+
+        val interceptResult: Option[JsonResponse] = callContext.flatMap(_.resourceDocument)
+          .filter(v => v.isNotEndpointAuthCheck)                           // endpoint not do auth check automatic
+          .filter(v => !v.roles.exists(_.nonEmpty))                        // no roles required, this endpoint only do authentication
+          .flatMap(v => afterAuthenticateInterceptResult(callContext, v.operationId)) // request payload validation error message
+
+        interceptResult match {
+          case Some(jsonResponse) =>
+            throw JsonResponseException(jsonResponse)
+          case _ => it
         }
     }
   }
@@ -3608,7 +3610,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   val currentYear = Calendar.getInstance.get(Calendar.YEAR).toString
 
-
   /**
    * validate whether current request's auth type is legal
    * @param operationId
@@ -3634,4 +3635,118 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
   }
+
+  def createErrorJsonResponse(errorMsg: String, errorCode: Int, correlationId: String): JsonResponse = {
+    import net.liftweb.json.JsonDSL._
+    val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
+    val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]
+    // add correlatedId to header
+    val newHeader = (ResponseHeader.`Correlation-Id` -> correlationId) :: jsonResponse.headers
+    jsonResponse.copy(headers = newHeader)
+  }
+
+  object JsonResponseExtractor {
+    def unapply(jsonResponse: JsonResponse): Option[(String, Int)] = jsonResponse match {
+      case JsonResponse(bodyJson, _, _, code) =>
+        val responseBody = bodyJson.toJsCmd
+        (parse(responseBody) \ "message") match {
+          case JString(message) =>
+            Some(message -> code)
+          case _ => Some(responseBody -> code)
+        }
+    }
+  }
+
+
+
+  val afterAuthenticateInterceptResult: (Option[CallContext], String) => Box[JsonResponse] = getInterceptResult(afterAuthenticateInterceptors)
+
+  val beforeAuthenticateInterceptResult: (Option[CallContext], String) => Box[JsonResponse] = getInterceptResult(beforeAuthenticateInterceptors)
+
+  private def getInterceptResult(interceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]])
+                                (callContext: Option[CallContext], operationId: String): Box[JsonResponse] = {
+    var jsonResponse:Box[JsonResponse] = Empty
+    // why not use collectFirst method? because the parameter is PartialFunction, it will calculate twice
+    breakable {
+      interceptors.foreach(fun => {
+        if(fun.isDefinedAt(callContext, operationId)) {
+          val maybeResponse = fun(callContext, operationId)
+          if(maybeResponse.isDefined) {
+            jsonResponse = maybeResponse
+            break
+          }
+        }
+      })
+    }
+    jsonResponse
+  }
+
+  private val isEnabledForceError = APIUtil.getPropsAsBoolValue("enable.force_error", false)
+
+  /**
+   * is Force-Error enabled or not, because test mode need modify this props, the Test mode read from Props every time
+   * @return
+   */
+  private def enableForceError = Props.mode match {
+    case Props.RunModes.Test =>
+      APIUtil.getPropsAsBoolValue("enable.force_error", false)
+    case _ => isEnabledForceError
+  }
+
+  val beforeAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
+    // add interceptor functions one by one.
+    // validate auth type
+    {
+      case (Some(callContext), operationId) => validateAuthType(operationId, callContext)
+    }
+  )
+
+  private val afterAuthenticateInterceptors: List[PartialFunction[(Option[CallContext], String), Box[JsonResponse]]] = List(
+    // add interceptor functions one by one.
+    {// process force error
+      case (Some(callContext), operationId) if enableForceError =>
+        val requestHeaders = callContext.requestHeaders
+
+        val forceError = requestHeaders.collectFirst({
+          case HTTPParam("Force-Error", value::_) => value
+        })
+        val responseCode = requestHeaders.collectFirst({
+          case HTTPParam("Response-Code", value::_) => value
+        })
+
+        if(forceError.isEmpty) {
+          Empty
+        } else {
+
+          val Some(errorName) = forceError
+          val errorNamePrefix = if(errorName.endsWith(":")) errorName else errorName + ":"
+          val correlationId = callContext.correlationId
+          val resourceDoc = callContext.resourceDocument
+          Box tryo {
+            if(!ErrorMessages.isValidName(errorName)) {
+              createErrorJsonResponse(s"$ForceErrorInvalid Force-Error value not correct: $errorName", 400, correlationId)
+            } else if (responseCode.exists(it => !StringUtils.isNumeric(it))){ // Response-Code is not number
+              createErrorJsonResponse(s"$ForceErrorInvalid Response-Code value not correct: ${responseCode.orNull}", 400, correlationId)
+            } else if(resourceDoc.isDefined && !resourceDoc.exists(_.errorResponseBodies.exists(_.startsWith(errorNamePrefix)))) {
+              createErrorJsonResponse(s"$ForceErrorInvalid Invalid Force Error Code: $errorName", 400, correlationId)
+            } else {
+              val Some(errorValue) = ErrorMessages.getValueMatches(_.startsWith(errorNamePrefix))
+              val statusCode = responseCode.map(_.toInt).getOrElse(ErrorMessages.getCode(errorValue))
+              createErrorJsonResponse(errorValue, statusCode, correlationId)
+            }
+          }
+        }
+    },
+    { // validate with json-schema
+      case (cc@Some(callContext), operationId) =>
+        // validate request payload with json-schema
+        JsonSchemaUtil.validateRequest(cc)(operationId) match {
+          case Some(errorMsg) =>
+            Box tryo (
+              createErrorJsonResponse(s"${ErrorMessages.InvalidRequestPayload} $errorMsg", 400, callContext.correlationId)
+              )
+          case _ => Empty
+        }
+    }
+  )
 }

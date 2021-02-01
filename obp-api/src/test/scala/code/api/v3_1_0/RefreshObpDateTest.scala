@@ -52,7 +52,7 @@ class RefreshUserTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val userId = resourceUser1.userId
       val request310 = (v3_1_0_Request / "users" / userId /"refresh").POST <@(user1)
-      val response310 = makePostRequest(request310)
+      val response310 = makePostRequest(request310, "")
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanRefreshUser)
@@ -66,7 +66,7 @@ class RefreshUserTest extends V310ServerSetup {
       When("We make a request v3.1.0")
       val userId = resourceUser1.userId
       val request310 = (v3_1_0_Request / "users" / userId /"refresh").POST <@(user1)
-      val response310 = makePostRequest(request310)
+      val response310 = makePostRequest(request310, "")
       Then("We should get a 201")
       response310.code should equal(201)
       response310.body.extract[RefreshUserJson]
