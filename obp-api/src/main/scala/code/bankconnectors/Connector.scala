@@ -86,7 +86,8 @@ object Connector extends SimpleInjector {
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
     "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
     // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set itin default.props
-    "proxy" -> lazyValue(ConnectorUtils.proxyConnector)
+    "proxy" -> lazyValue(ConnectorUtils.proxyConnector),
+    "internal" -> lazyValue(InternalConnector.instance)
   )
 
   def getConnectorInstance(connectorVersion: String): Connector = {
@@ -172,7 +173,7 @@ trait Connector extends MdcLoggable {
    *  3. no override
    *  4. is not $default$
    */
-  private lazy val connectorMethods: Map[String, MethodSymbol] = {
+  protected lazy val connectorMethods: Map[String, MethodSymbol] = {
     val tp = typeOf[Connector]
     val result = tp.decls
       .withFilter(_.isPublic)
@@ -191,7 +192,7 @@ trait Connector extends MdcLoggable {
    * current connector instance implemented Connector method,
    * methodName to method
    */
-  lazy val implementedMethods: Map[String, MethodSymbol] = {
+  protected lazy val implementedMethods: Map[String, MethodSymbol] = {
     val tp = ReflectUtils.getType(this)
     val result = tp.members
         .withFilter(_.isPublic)
@@ -207,6 +208,8 @@ trait Connector extends MdcLoggable {
         }.toMap
     connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
+
+  lazy val callableMethods: Map[String, MethodSymbol] = implementedMethods
 
   protected implicit def boxToTuple[T](box: Box[(T, Option[CallContext])]): (Box[T], Option[CallContext]) =
     (box.map(_._1), box.flatMap(_._2))

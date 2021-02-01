@@ -2522,7 +2522,7 @@ object NewStyle {
     }
 
     def getConnectorMethod(connectorName: String, methodName: String): Option[MethodSymbol] = {
-      getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
+      getConnectorByName(connectorName).flatMap(_.callableMethods.get(methodName))
     }
 
     def createDynamicEndpoint(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
