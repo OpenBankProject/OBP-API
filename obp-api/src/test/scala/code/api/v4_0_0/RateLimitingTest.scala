@@ -242,7 +242,9 @@ class RateLimitingTest extends V400ServerSetup {
 
         // Set Rate Limiting in case of a Dynamic Endpoint
         val operationId = "OBPv4.0.0-dynamicEndpoint_GET_user_USERNAME"
-        val response01 = setRateLimiting(user1, callLimitJsonHour.copy(api_name = Some(operationId)))
+        val apiName = "dynamicEndpoint_GET_user_USERNAME"
+        val apiVersion = "v4.0.0"
+        val response01 = setRateLimiting(user1, callLimitJsonHour.copy(api_name = Some(apiName), api_version = Some(apiVersion)))
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -257,7 +259,7 @@ class RateLimitingTest extends V400ServerSetup {
         makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(429)
 
         // Revert Rate Limiting to initial state in case of a Dynamic Endpoint
-        val response02 = setRateLimiting(user1, callLimitJsonInitial.copy(api_name = Some(operationId)))
+        val response02 = setRateLimiting(user1, callLimitJsonInitial.copy(api_name = Some(apiName), api_version = Some(apiVersion)))
         Then("We should get a 200")
         response02.code should equal(200)
 
