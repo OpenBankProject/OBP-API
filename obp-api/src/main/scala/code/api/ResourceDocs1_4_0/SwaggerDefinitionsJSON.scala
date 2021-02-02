@@ -20,6 +20,7 @@ import code.api.v4_0_0.{APIInfoJson400, AccountBalanceJsonV400, AccountTagJSON, 
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
+import code.internalconnector.{JsonInternalConnector, JsonInternalConnectorMethodBody}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -4058,6 +4059,9 @@ object SwaggerDefinitionsJSON {
 
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
+  
+  val jsonInternalConnector  = JsonInternalConnector(Some(""),"","")
+  val jsonInternalConnectorMethodBody  = JsonInternalConnectorMethodBody("")
   
   //The common error or success format.
   //Just some helper format to use in Json 
