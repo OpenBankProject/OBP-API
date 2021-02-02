@@ -1,7 +1,6 @@
 package code.api.v4_0_0
 
 import java.util.Date
-
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -32,11 +31,11 @@ import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, InternalConnector}
 import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
-import code.internalconnector.{JsonInternalConnector, JsonInternalConnectorMethodBody}
+import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -6858,140 +6857,150 @@ trait APIMethods400 {
       None)
 
     staticResourceDocs += ResourceDoc(
-      createInternalConnector,
+      createConnectorMethod,
       implementedInApiVersion,
-      nameOf(createInternalConnector),
+      nameOf(createConnectorMethod),
       "POST",
-      "/management/internal-connectors",
-      "Create Internal Connector",
+      "/management/connector-methods",
+      "Create Connector Method",
       s"""Create an internal connector.
          |""",
-      jsonInternalConnector.copy(internalConnectorId=None),
-      jsonInternalConnector,
+      jsonConnectorMethod.copy(internal_connector_id=None),
+      jsonConnectorMethod,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagInternalConnector, apiTagNewStyle),
-      Some(List(canCreateInternalConnector)))
+      List(apiTagConnectorMethod, apiTagNewStyle),
+      Some(List(canCreateConnectorMethod)))
 
-    lazy val createInternalConnector: OBPEndpoint = {
-      case "management" :: "internal-connectors" :: Nil JsonPost json -> _ => {
+    lazy val createConnectorMethod: OBPEndpoint = {
+      case "management" :: "connector-methods" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            jsonInternalConnector <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonInternalConnector", 400, cc.callContext) {
-              json.extract[JsonInternalConnector]
+            jsonConnectorMethod <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonConnectorMethod", 400, cc.callContext) {
+              json.extract[JsonConnectorMethod]
             }
             
-            (isExists, callContext) <- NewStyle.function.isJsonInternalConnectorNameExists(jsonInternalConnector.methodName, Some(cc))
-            _ <- Helper.booleanToFuture(failMsg = s"$InternalConnectorAlreadyExists Please use a different method_name(${jsonInternalConnector.methodName})") {
+            (isExists, callContext) <- NewStyle.function.isJsonConnectorMethodNameExists(jsonConnectorMethod.method_name, Some(cc))
+            _ <- Helper.booleanToFuture(failMsg = s"$ConnectorMethodAlreadyExists Please use a different method_name(${jsonConnectorMethod.method_name})") {
               (!isExists)
             }
+            connectorMethod = InternalConnector.createFunction(jsonConnectorMethod.method_name, jsonConnectorMethod.decodedMethodBody)
+            errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
+            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+              connectorMethod.isDefined
+            }
             
-            (internalConnector, callContext) <- NewStyle.function.createJsonInternalConnector(jsonInternalConnector, callContext)
+            (connectorMethod, callContext) <- NewStyle.function.createJsonConnectorMethod(jsonConnectorMethod, callContext)
           } yield {
-            (internalConnector, HttpCode.`201`(callContext))
+            (connectorMethod, HttpCode.`201`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      updateInternalConnector,
+      updateConnectorMethod,
       implementedInApiVersion,
-      nameOf(updateInternalConnector),
+      nameOf(updateConnectorMethod),
       "PUT",
-      "/management/internal-connectors/INTERNAL_CONNECTOR_ID",
-      "Update Internal Connector",
+      "/management/connector-methods/CONNECTOR_METHOD_ID",
+      "Update Connector Method",
       s"""Update an internal connector.
          |""",
-      jsonInternalConnectorMethodBody,
-      jsonInternalConnector,
+      jsonConnectorMethodMethodBody,
+      jsonConnectorMethod,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagInternalConnector, apiTagNewStyle),
-      Some(List(canUpdateInternalConnector)))
+      List(apiTagConnectorMethod, apiTagNewStyle),
+      Some(List(canUpdateConnectorMethod)))
 
-    lazy val updateInternalConnector: OBPEndpoint = {
-      case "management" :: "internal-connectors" :: internalConnectorId :: Nil JsonPut json -> _ => {
+    lazy val updateConnectorMethod: OBPEndpoint = {
+      case "management" :: "connector-methods" :: connectorMethodId :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            connectorMethodBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonInternalConnector", 400, cc.callContext) {
-              json.extract[JsonInternalConnectorMethodBody]
+            connectorMethodBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonConnectorMethod", 400, cc.callContext) {
+              json.extract[JsonConnectorMethodMethodBody]
             }
 
-            (internalConnector, callContext) <- NewStyle.function.getJsonInternalConnectorById(internalConnectorId, cc.callContext)
-            
-            (internalConnector, callContext) <- NewStyle.function.updateJsonInternalConnector(internalConnectorId, connectorMethodBody.methodBody, callContext)
+            (cm, callContext) <- NewStyle.function.getJsonConnectorMethodById(connectorMethodId, cc.callContext)
+
+            connectorMethod = InternalConnector.createFunction(cm.method_name, connectorMethodBody.decodedMethodBody)
+            errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
+            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+              connectorMethod.isDefined
+            }
+            (connectorMethod, callContext) <- NewStyle.function.updateJsonConnectorMethod(connectorMethodId, connectorMethodBody.method_body, callContext)
           } yield {
-            (internalConnector, HttpCode.`200`(callContext))
+            (connectorMethod, HttpCode.`200`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      getInternalConnector,
+      getConnectorMethod,
       implementedInApiVersion,
-      nameOf(getInternalConnector),
+      nameOf(getConnectorMethod),
       "GET",
-      "/management/internal-connectors/INTERNAL_CONNECTOR_ID",
-      "Get Internal Connector by Id",
-      s"""Get an internal connector by INTERNAL_CONNECTOR_ID.
+      "/management/connector-methods/CONNECTOR_METHOD_ID",
+      "Get Connector Method by Id",
+      s"""Get an internal connector by CONNECTOR_METHOD_ID.
          |
          |""",
       EmptyBody,
-      jsonInternalConnector,
+      jsonConnectorMethod,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagInternalConnector, apiTagNewStyle),
-      Some(List(canGetInternalConnector)))
+      List(apiTagConnectorMethod, apiTagNewStyle),
+      Some(List(canGetConnectorMethod)))
 
-    lazy val getInternalConnector: OBPEndpoint = {
-      case "management" :: "internal-connectors" :: internalConnectorId :: Nil JsonGet _ => {
+    lazy val getConnectorMethod: OBPEndpoint = {
+      case "management" :: "connector-methods" :: connectorMethodId :: Nil JsonGet _ => {
         cc =>
           for {
-            (internalConnector, callContext) <- NewStyle.function.getJsonInternalConnectorById(internalConnectorId, cc.callContext)
+            (connectorMethod, callContext) <- NewStyle.function.getJsonConnectorMethodById(connectorMethodId, cc.callContext)
           } yield {
-            (internalConnector, HttpCode.`200`(callContext))
+            (connectorMethod, HttpCode.`200`(callContext))
           }
       }
     }
 
     staticResourceDocs += ResourceDoc(
-      getAllInternalConnectors,
+      getAllConnectorMethods,
       implementedInApiVersion,
-      nameOf(getAllInternalConnectors),
+      nameOf(getAllConnectorMethods),
       "GET",
-      "/management/internal-connectors",
-      "Get all Internal Connectors",
-      s"""Get all Internal Connectors.
+      "/management/connector-methods",
+      "Get all Connector Methods",
+      s"""Get all Connector Methods.
          |
          |""",
       EmptyBody,
-      ListResult("internal_connectors", jsonInternalConnector::Nil),
+      ListResult("connectors_methods", jsonConnectorMethod::Nil),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagInternalConnector, apiTagNewStyle),
-      Some(List(canGetAllInternalConnectors)))
+      List(apiTagConnectorMethod, apiTagNewStyle),
+      Some(List(canGetAllConnectorMethods)))
 
-    lazy val getAllInternalConnectors: OBPEndpoint = {
-      case "management" :: "internal-connectors" :: Nil JsonGet _ => {
+    lazy val getAllConnectorMethods: OBPEndpoint = {
+      case "management" :: "connector-methods" :: Nil JsonGet _ => {
         cc =>
           for {
-            (internalConnectors, callContext) <- NewStyle.function.getJsonInternalConnectors(cc.callContext)
+            (connectorMethods, callContext) <- NewStyle.function.getJsonConnectorMethods(cc.callContext)
           } yield {
-            (ListResult("internal_connectors", internalConnectors), HttpCode.`200`(callContext))
+            (ListResult("connector_methods", connectorMethods), HttpCode.`200`(callContext))
           }
       }
     }

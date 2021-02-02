@@ -98,7 +98,7 @@ import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
 import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apicollection.ApiCollection
-import code.internalconnector.InternalConnector
+import code.connectormethod.ConnectorMethod
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -901,7 +901,7 @@ object ToSchemify {
     ApiCollectionEndpoint,
     JsonSchemaValidation,
     AuthenticationTypeValidation,
-    InternalConnector
+    ConnectorMethod
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

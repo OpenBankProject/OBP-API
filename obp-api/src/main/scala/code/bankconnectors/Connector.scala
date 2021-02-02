@@ -85,7 +85,7 @@ object Connector extends SimpleInjector {
     "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
     "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
-    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set itin default.props
+    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
     "proxy" -> lazyValue(ConnectorUtils.proxyConnector),
     "internal" -> lazyValue(InternalConnector.instance)
   )
@@ -209,7 +209,7 @@ trait Connector extends MdcLoggable {
     connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
 
-  lazy val callableMethods: Map[String, MethodSymbol] = implementedMethods
+  def callableMethods: Map[String, MethodSymbol] = implementedMethods
 
   protected implicit def boxToTuple[T](box: Box[(T, Option[CallContext])]): (Box[T], Option[CallContext]) =
     (box.map(_._1), box.flatMap(_._2))

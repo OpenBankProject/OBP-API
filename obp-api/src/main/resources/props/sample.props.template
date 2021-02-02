@@ -74,9 +74,9 @@ validation.cache.ttl.seconds=34
 ## AuthTypeValidation cache time-to-live in seconds, should set a no 0 value at product environment, default is 36, the value is 0 at test environment
 ## no 0 value will cause new validation will works after that seconds
 authTypeValidation.cache.ttl.seconds=36
-## InternalConnector cache time-to-live in seconds, should set a no 0 value at product environment, default is 40, the value is 0 at test environment
-## no 0 value will cause new InternalConnector will works after that seconds
-internalConnector.cache.ttl.seconds=40
+## ConnectorMethod cache time-to-live in seconds, should set a no 0 value at product environment, default is 40, the value is 0 at test environment
+## no 0 value will cause new ConnectorMethod will works after that seconds
+connectorMethod.cache.ttl.seconds=40
 
 ## swagger file should not generated for every request, this is a time-to-live in seconds for the generated swagger of OBP api,
 ## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.

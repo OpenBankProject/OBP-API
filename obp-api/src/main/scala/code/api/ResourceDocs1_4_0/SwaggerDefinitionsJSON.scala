@@ -20,7 +20,7 @@ import code.api.v4_0_0.{APIInfoJson400, AccountBalanceJsonV400, AccountTagJSON, 
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
-import code.internalconnector.{JsonInternalConnector, JsonInternalConnectorMethodBody}
+import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -4059,19 +4059,10 @@ object SwaggerDefinitionsJSON {
 
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
-  
-  val jsonInternalConnector  = JsonInternalConnector(Some(""),"getBanks","%7B%0A%20%20%20%20%20%20%20%20import%20com." +
-    "openbankproject.commons.dto.%7BOutBoundGetBanks%20%3D%3E%20OutBound%2C%20InBoundGetBanks%20%3D%3E%20InBound%7D%0A%20%" +
-    "20%20%20%20%20%20%20val%20url%20%3D%20getUrl%28callContext%2C%20%22getBanks%22%29%0A%20%20%20%20%20%20%20%20val%20req%" +
-    "20%3D%20OutBound%28callContext.map%28_.toOutboundAdapterCallContext%29.orNull%20%29%0A%20%20%20%20%20%20%20%20val%20" +
-    "result%3A%20OBPReturnType%5BBox%5BList%5BBankCommons%5D%5D%5D%20%3D%20sendRequest%5BInBound%5D%28url%2C%20HttpMethods." +
-    "POST%2C%20req%2C%20callContext%29.map%28convertToTuple%28callContext%29%29%0A%20%20%20%20%20%20%20%20result%0A%20%20%7D")
-  val jsonInternalConnectorMethodBody  = JsonInternalConnectorMethodBody("%7B%0A%20%20%20%20%20%20%20%20import%20com." +
-    "openbankproject.commons.dto.%7BInBoundGetBanks%20%3D%3E%20InBound%2C%20OutBoundGetBanks%20%3D%3E%20OutBound%7D%20%" +
-    "20%0A%20%20%20%20%20%20%20%20val%20req%20%3D%20OutBound%28callContext.map%28_.toOutboundAdapterCallContext%29.orNull" +
-    "%29%0A%20%20%20%20%20%20%20%20val%20response%3A%20Future%5BBox%5BInBound%5D%5D%20%3D%20sendRequest%5BInBound%5D%28%2" +
-    "2obp_get_banks%22%2C%20req%2C%20callContext%29%0A%20%20%20%20%20%20%20%20response.map%28convertToTuple%5BList%5BBank" +
-    "Commons%5D%5D%28callContext%29%29%20%20%20%20%20%20%20%20%0A%20%20%7D")
+
+  private val getBankMethodBody = "%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%20%20%20%20%20%20%29"
+  val jsonConnectorMethod  = JsonConnectorMethod(Some(""),"getBank", getBankMethodBody)
+  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(getBankMethodBody)
   
   //The common error or success format.
   //Just some helper format to use in Json 

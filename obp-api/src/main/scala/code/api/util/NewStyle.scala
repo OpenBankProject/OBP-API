@@ -60,7 +60,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
-import code.internalconnector.{InternalConnectorProvider, JsonInternalConnector}
+import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -2803,42 +2803,42 @@ object NewStyle {
       }
 
 
-    def createJsonInternalConnector(internalConnector: JsonInternalConnector, callContext: Option[CallContext]): OBPReturnType[JsonInternalConnector] =
+    def createJsonConnectorMethod(connectorMethod: JsonConnectorMethod, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
       Future {
-        val newInternalConnector = InternalConnectorProvider.provider.vend.create(internalConnector)
-        val errorMsg = s"$UnknownError Can not create Internal Connector in the backend. "
+        val newInternalConnector = ConnectorMethodProvider.provider.vend.create(connectorMethod)
+        val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
-    def updateJsonInternalConnector(internalConnectorId: String, connectorMethodBody: String, callContext: Option[CallContext]): OBPReturnType[JsonInternalConnector] =
+    def updateJsonConnectorMethod(connectorMethodId: String, connectorMethodBody: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
       Future {
-        val updatedInternalConnector = InternalConnectorProvider.provider.vend.update(internalConnectorId, connectorMethodBody)
-        val errorMsg = s"$UnknownError Can not update Internal Connector in the backend. "
-        (unboxFullOrFail(updatedInternalConnector, callContext, errorMsg, 400), callContext)
+        val updatedConnectorMethod = ConnectorMethodProvider.provider.vend.update(connectorMethodId, connectorMethodBody)
+        val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
+        (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
-    def isJsonInternalConnectorExists(internalConnectorId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonConnectorMethodExists(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result =  InternalConnectorProvider.provider.vend.getById(internalConnectorId)
+        val result =  ConnectorMethodProvider.provider.vend.getById(connectorMethodId)
         (result.isDefined, callContext)
       }
 
-    def isJsonInternalConnectorNameExists(internalConnectorName: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonConnectorMethodNameExists(connectorMethodName: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result =  InternalConnectorProvider.provider.vend.getByMethodNameWithoutCache(internalConnectorName)
+        val result =  ConnectorMethodProvider.provider.vend.getByMethodNameWithoutCache(connectorMethodName)
         (result.isDefined, callContext)
       }
     
-    def getJsonInternalConnectors(callContext: Option[CallContext]): OBPReturnType[List[JsonInternalConnector]] =
+    def getJsonConnectorMethods(callContext: Option[CallContext]): OBPReturnType[List[JsonConnectorMethod]] =
       Future {
-        val internalConnectors: List[JsonInternalConnector] = InternalConnectorProvider.provider.vend.getAll()
-        internalConnectors -> callContext
+        val connectorMethods: List[JsonConnectorMethod] = ConnectorMethodProvider.provider.vend.getAll()
+        connectorMethods -> callContext
       }
 
-    def getJsonInternalConnectorById(internalConnectorId: String, callContext: Option[CallContext]): OBPReturnType[JsonInternalConnector] =
+    def getJsonConnectorMethodById(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
       Future {
-        val internalConnector = InternalConnectorProvider.provider.vend.getById(internalConnectorId)
-        (unboxFullOrFail(internalConnector, callContext, s"$InternalConnectorNotFound Current INTERNAL_CONNECTOR_ID(${internalConnectorId})", 400), callContext)
+        val connectorMethod = ConnectorMethodProvider.provider.vend.getById(connectorMethodId)
+        (unboxFullOrFail(connectorMethod, callContext, s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID(${connectorMethodId})", 400), callContext)
       }
 
   }
