@@ -4060,8 +4060,18 @@ object SwaggerDefinitionsJSON {
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
   
-  val jsonInternalConnector  = JsonInternalConnector(Some(""),"","")
-  val jsonInternalConnectorMethodBody  = JsonInternalConnectorMethodBody("")
+  val jsonInternalConnector  = JsonInternalConnector(Some(""),"getBanks","%7B%0A%20%20%20%20%20%20%20%20import%20com." +
+    "openbankproject.commons.dto.%7BOutBoundGetBanks%20%3D%3E%20OutBound%2C%20InBoundGetBanks%20%3D%3E%20InBound%7D%0A%20%" +
+    "20%20%20%20%20%20%20val%20url%20%3D%20getUrl%28callContext%2C%20%22getBanks%22%29%0A%20%20%20%20%20%20%20%20val%20req%" +
+    "20%3D%20OutBound%28callContext.map%28_.toOutboundAdapterCallContext%29.orNull%20%29%0A%20%20%20%20%20%20%20%20val%20" +
+    "result%3A%20OBPReturnType%5BBox%5BList%5BBankCommons%5D%5D%5D%20%3D%20sendRequest%5BInBound%5D%28url%2C%20HttpMethods." +
+    "POST%2C%20req%2C%20callContext%29.map%28convertToTuple%28callContext%29%29%0A%20%20%20%20%20%20%20%20result%0A%20%20%7D")
+  val jsonInternalConnectorMethodBody  = JsonInternalConnectorMethodBody("%7B%0A%20%20%20%20%20%20%20%20import%20com." +
+    "openbankproject.commons.dto.%7BInBoundGetBanks%20%3D%3E%20InBound%2C%20OutBoundGetBanks%20%3D%3E%20OutBound%7D%20%" +
+    "20%0A%20%20%20%20%20%20%20%20val%20req%20%3D%20OutBound%28callContext.map%28_.toOutboundAdapterCallContext%29.orNull" +
+    "%29%0A%20%20%20%20%20%20%20%20val%20response%3A%20Future%5BBox%5BInBound%5D%5D%20%3D%20sendRequest%5BInBound%5D%28%2" +
+    "2obp_get_banks%22%2C%20req%2C%20callContext%29%0A%20%20%20%20%20%20%20%20response.map%28convertToTuple%5BList%5BBank" +
+    "Commons%5D%5D%28callContext%29%29%20%20%20%20%20%20%20%20%0A%20%20%7D")
   
   //The common error or success format.
   //Just some helper format to use in Json 
