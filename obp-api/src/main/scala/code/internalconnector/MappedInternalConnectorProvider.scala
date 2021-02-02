@@ -20,14 +20,19 @@ object MappedAuthTypeValidationProvider extends InternalConnectorProvider {
 
   override def getById(internalConnectorId: String): Box[JsonInternalConnector] = InternalConnector
     .find(By(InternalConnector.InternalConnectorId, internalConnectorId))
-    .map(it => JsonInternalConnector(it.InternalConnectorId.get, it.MethodName.get, it.MethodBody.get))
+    .map(it => JsonInternalConnector(Some(it.InternalConnectorId.get), it.MethodName.get, it.MethodBody.get))
 
-  override def getByMethodName(methodName: String): Box[JsonInternalConnector] = {
+  override def getByMethodNameWithoutCache(methodName: String): Box[JsonInternalConnector] = {
+    InternalConnector.find(By(InternalConnector.MethodName, methodName))
+      .map(it => JsonInternalConnector(Some(it.InternalConnectorId.get), it.MethodName.get, it.MethodBody.get))
+  }
+  
+  override def getByMethodNameWithCache(methodName: String): Box[JsonInternalConnector] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getInternalConnectorTTL second) {
         InternalConnector.find(By(InternalConnector.MethodName, methodName))
-          .map(it => JsonInternalConnector(it.InternalConnectorId.get, it.MethodName.get, it.MethodBody.get))
+          .map(it => JsonInternalConnector(Some(it.InternalConnectorId.get), it.MethodName.get, it.MethodBody.get))
       }}
   }
   override def getAll(): List[JsonInternalConnector] = {
@@ -35,28 +40,26 @@ object MappedAuthTypeValidationProvider extends InternalConnectorProvider {
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getInternalConnectorTTL second) {
         InternalConnector.findAll()
-          .map(it => JsonInternalConnector(it.InternalConnectorId.get, it.MethodName.get, it.MethodBody.get))
+          .map(it => JsonInternalConnector(Some(it.InternalConnectorId.get), it.MethodName.get, it.MethodBody.get))
       }}
   }
 
   override def create(entity: JsonInternalConnector): Box[JsonInternalConnector]=
     tryo {
       InternalConnector.create
-      .InternalConnectorId(entity.internalConnectorId)
+      .InternalConnectorId(APIUtil.generateUUID())
       .MethodName(entity.methodName)
       .MethodBody(entity.methodBody)
       .saveMe()
-    }.map(it => JsonInternalConnector(it.InternalConnectorId.get, it.MethodName.get, it.MethodBody.get))
+    }.map(it => JsonInternalConnector(Some(it.InternalConnectorId.get), it.MethodName.get, it.MethodBody.get))
 
 
-  override def update(entity: JsonInternalConnector): Box[JsonInternalConnector] = {
-    InternalConnector.find(By(InternalConnector.InternalConnectorId, entity.internalConnectorId)) match {
+  override def update(internalConnectorId: String, connectorMethodBody: String): Box[JsonInternalConnector] = {
+    InternalConnector.find(By(InternalConnector.InternalConnectorId, internalConnectorId)) match {
       case Full(v) =>
         tryo {
-          v.MethodName(entity.methodName)
-            .MethodBody(entity.methodBody)
-            .saveMe()
-        }.map(it => JsonInternalConnector(it.InternalConnectorId.get, it.MethodName.get, it.MethodBody.get))
+          v.MethodBody(connectorMethodBody).saveMe()
+        }.map(it => JsonInternalConnector(Some(internalConnectorId), it.MethodName.get, it.MethodBody.get))
       case _ => Empty
     }
   }

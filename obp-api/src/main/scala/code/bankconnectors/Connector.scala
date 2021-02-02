@@ -22,6 +22,7 @@ import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.fx.fx.TTL
+import code.internalconnector.InternalConnector
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.model.toUserExtended
@@ -86,8 +87,8 @@ object Connector extends SimpleInjector {
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
     "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
     // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
-    "proxy" -> lazyValue(ConnectorUtils.proxyConnector),
-    "internal" -> lazyValue(InternalConnector.instance)
+    "proxy" -> lazyValue(ConnectorUtils.proxyConnector)//,
+//    "internal" -> lazyValue(InternalConnector.instance)
   )
 
   def getConnectorInstance(connectorVersion: String): Connector = {

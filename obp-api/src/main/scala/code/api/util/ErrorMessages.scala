@@ -463,6 +463,9 @@ object ErrorMessages {
 
   val ForceErrorInvalid = "OBP-40035: Force Error request header is invalid. "
 
+  val InternalConnectorNotFound = "OBP-40036: InternalConnector not found, please specify valid INTERNAL_CONNECTOR_ID."
+  val InternalConnectorAlreadyExists = "OBP-40037: InternalConnector already exists."
+
 
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."

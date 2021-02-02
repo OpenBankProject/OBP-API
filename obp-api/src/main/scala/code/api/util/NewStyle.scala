@@ -48,7 +48,7 @@ import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{JNothing, JNull, JObject, JString, JValue, JInt, JField, _}
+import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -60,6 +60,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.internalconnector.{InternalConnectorProvider, JsonInternalConnector}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -2800,5 +2801,45 @@ object NewStyle {
         val result = AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId)
         (result.isDefined, callContext)
       }
+
+
+    def createJsonInternalConnector(internalConnector: JsonInternalConnector, callContext: Option[CallContext]): OBPReturnType[JsonInternalConnector] =
+      Future {
+        val newInternalConnector = InternalConnectorProvider.provider.vend.create(internalConnector)
+        val errorMsg = s"$UnknownError Can not create Internal Connector in the backend. "
+        (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateJsonInternalConnector(internalConnectorId: String, connectorMethodBody: String, callContext: Option[CallContext]): OBPReturnType[JsonInternalConnector] =
+      Future {
+        val updatedInternalConnector = InternalConnectorProvider.provider.vend.update(internalConnectorId, connectorMethodBody)
+        val errorMsg = s"$UnknownError Can not update Internal Connector in the backend. "
+        (unboxFullOrFail(updatedInternalConnector, callContext, errorMsg, 400), callContext)
+      }
+
+    def isJsonInternalConnectorExists(internalConnectorId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  InternalConnectorProvider.provider.vend.getById(internalConnectorId)
+        (result.isDefined, callContext)
+      }
+
+    def isJsonInternalConnectorNameExists(internalConnectorName: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  InternalConnectorProvider.provider.vend.getByMethodNameWithoutCache(internalConnectorName)
+        (result.isDefined, callContext)
+      }
+    
+    def getJsonInternalConnectors(callContext: Option[CallContext]): OBPReturnType[List[JsonInternalConnector]] =
+      Future {
+        val internalConnectors: List[JsonInternalConnector] = InternalConnectorProvider.provider.vend.getAll()
+        internalConnectors -> callContext
+      }
+
+    def getJsonInternalConnectorById(internalConnectorId: String, callContext: Option[CallContext]): OBPReturnType[JsonInternalConnector] =
+      Future {
+        val internalConnector = InternalConnectorProvider.provider.vend.getById(internalConnectorId)
+        (unboxFullOrFail(internalConnector, callContext, s"$InternalConnectorNotFound Current INTERNAL_CONNECTOR_ID(${internalConnectorId})", 400), callContext)
+      }
+
   }
 }
