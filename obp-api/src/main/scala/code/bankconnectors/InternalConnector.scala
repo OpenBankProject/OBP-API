@@ -109,8 +109,15 @@ object InternalConnector {
    * @param code
    * @return compiled function or Failure
    */
-  private def compile(code: String) = {
-    val tree = toolBox.parse(code)
+  private def compile(code: String): Box[Any] = {
+
+    val tree = try {
+      toolBox.parse(code)
+    } catch {
+      case e: ToolBoxError =>
+        return Failure(e.message)
+    }
+
     try {
       val func: () => Any = toolBox.compile(tree)
       Box.tryo(func())
