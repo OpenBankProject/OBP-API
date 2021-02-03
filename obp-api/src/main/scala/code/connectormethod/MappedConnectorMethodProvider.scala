@@ -47,8 +47,8 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
     tryo {
       ConnectorMethod.create
       .ConnectorMethodId(APIUtil.generateUUID())
-      .MethodName(entity.method_name)
-      .MethodBody(entity.method_body)
+      .MethodName(entity.methodName)
+      .MethodBody(entity.methodBody)
       .saveMe()
     }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get))
 
