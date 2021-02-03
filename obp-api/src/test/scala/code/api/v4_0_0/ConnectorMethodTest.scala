@@ -214,19 +214,21 @@ class ConnectorMethodTest extends V400ServerSetup {
     scenario("We create a ConnectorMethod -- call the method, it should response correct result", VersionOfApi) {
       When("We make create a ConnectorMethod")
       val methodBody =
-        """      Future.successful(
-          |        Full((BankCommons(
-          |          BankId("Hello_bank_id"),
-          |          "shortName:" + bankId.value,
-          |          "fullName:" + bankId.value,
-          |          "logoUrl value",
-          |          "websiteUrl value",
-          |          "bankRoutingScheme value",
-          |          "bankRoutingAddress value",
-          |          "swiftBic value",
-          |          "nationalIdentifier value"
-          |        ), callContext))
-          |      )""".stripMargin
+        """
+          |Future.successful(
+          |  Full((BankCommons(
+          |    BankId("Hello_bank_id"),
+          |    "shortName:" + bankId.value,
+          |    "fullName:" + bankId.value,
+          |    "logoUrl value",
+          |    "websiteUrl value",
+          |    "bankRoutingScheme value",
+          |    "bankRoutingAddress value",
+          |    "swiftBic value",
+          |    "nationalIdentifier value"
+          |  ), callContext))
+          |)
+          |""".stripMargin
       val encodedMethodBody = URLEncoder.encode(methodBody, "UTF-8")
       ConnectorMethodProvider.provider.vend.create(JsonConnectorMethod(Some("Hello_bank_id"), "getBank", encodedMethodBody))
       val connectorMethod = InternalConnector.instance

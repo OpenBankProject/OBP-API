@@ -6861,6 +6861,8 @@ trait APIMethods400 {
       "/management/connector-methods",
       "Create Connector Method",
       s"""Create an internal connector.
+         |
+         |The method_body is Encoded URL-encoded format String
          |""",
       jsonConnectorMethod.copy(internalConnectorId=None),
       jsonConnectorMethod,
@@ -6906,6 +6908,8 @@ trait APIMethods400 {
       "/management/connector-methods/CONNECTOR_METHOD_ID",
       "Update Connector Method",
       s"""Update an internal connector.
+         |
+         |The method_body is Encoded URL-encoded format String
          |""",
       jsonConnectorMethodMethodBody,
       jsonConnectorMethod,

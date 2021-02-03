@@ -92,9 +92,7 @@ object InternalConnector {
                         |def $methodName $signature = {
                         |  $importStatements
                         |
-                        | return {
-                        |    $methodBody
-                        |  }
+                        |  $methodBody
                         |}
                         |
                         |$methodName _
