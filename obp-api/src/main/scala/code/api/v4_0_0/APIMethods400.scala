@@ -6864,7 +6864,7 @@ trait APIMethods400 {
          |
          |The method_body is URL-encoded format String
          |""",
-      jsonConnectorMethod.copy(internalConnectorId=None),
+      jsonConnectorMethod.copy(connectorMethodId=None),
       jsonConnectorMethod,
       List(
         $UserNotLoggedIn,
