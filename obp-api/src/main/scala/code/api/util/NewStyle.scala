@@ -48,7 +48,7 @@ import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{JNothing, JNull, JObject, JString, JValue, JInt, JField, _}
+import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -60,6 +60,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -2522,7 +2523,7 @@ object NewStyle {
     }
 
     def getConnectorMethod(connectorName: String, methodName: String): Option[MethodSymbol] = {
-      getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
+      getConnectorByName(connectorName).flatMap(_.callableMethods.get(methodName))
     }
 
     def createDynamicEndpoint(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
@@ -2800,5 +2801,45 @@ object NewStyle {
         val result = AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId)
         (result.isDefined, callContext)
       }
+
+
+    def createJsonConnectorMethod(connectorMethod: JsonConnectorMethod, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
+      Future {
+        val newInternalConnector = ConnectorMethodProvider.provider.vend.create(connectorMethod)
+        val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
+        (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateJsonConnectorMethod(connectorMethodId: String, connectorMethodBody: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
+      Future {
+        val updatedConnectorMethod = ConnectorMethodProvider.provider.vend.update(connectorMethodId, connectorMethodBody)
+        val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
+        (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
+      }
+
+    def isJsonConnectorMethodExists(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  ConnectorMethodProvider.provider.vend.getById(connectorMethodId)
+        (result.isDefined, callContext)
+      }
+
+    def isJsonConnectorMethodNameExists(connectorMethodName: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  ConnectorMethodProvider.provider.vend.getByMethodNameWithoutCache(connectorMethodName)
+        (result.isDefined, callContext)
+      }
+    
+    def getJsonConnectorMethods(callContext: Option[CallContext]): OBPReturnType[List[JsonConnectorMethod]] =
+      Future {
+        val connectorMethods: List[JsonConnectorMethod] = ConnectorMethodProvider.provider.vend.getAll()
+        connectorMethods -> callContext
+      }
+
+    def getJsonConnectorMethodById(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
+      Future {
+        val connectorMethod = ConnectorMethodProvider.provider.vend.getById(connectorMethodId)
+        (unboxFullOrFail(connectorMethod, callContext, s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID(${connectorMethodId})", 400), callContext)
+      }
+
   }
 }

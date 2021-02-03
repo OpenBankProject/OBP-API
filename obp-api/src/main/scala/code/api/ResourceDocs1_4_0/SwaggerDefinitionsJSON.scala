@@ -20,6 +20,7 @@ import code.api.v4_0_0.{APIInfoJson400, AccountBalanceJsonV400, AccountTagJSON, 
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
+import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -4058,6 +4059,11 @@ object SwaggerDefinitionsJSON {
 
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
+
+  // the reason of declared as def instead of val: avoid be scanned by allFields field
+  private def getBankMethodBody = "%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%20%20%20%20%20%20%29"
+  val jsonConnectorMethod  = JsonConnectorMethod(Some(""),"getBank", getBankMethodBody)
+  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(getBankMethodBody)
   
   //The common error or success format.
   //Just some helper format to use in Json 
