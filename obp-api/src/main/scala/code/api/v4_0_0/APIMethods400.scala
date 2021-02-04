@@ -70,6 +70,7 @@ import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.Date
 
+import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 
 import scala.collection.immutable.{List, Nil}
@@ -7182,8 +7183,140 @@ trait APIMethods400 {
           }
       }
     }
-    
-    
+
+    staticResourceDocs += ResourceDoc(
+      createDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(createDynamicMessageDoc),
+      "POST",
+      "/management/dynamic-message-docs",
+      "Create Dynamic MessageDoc",
+      s"""Create a Dynamic MessageDoc.
+         |""",
+      jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
+      jsonDynamicMessageDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canCreateDynamicMessageDoc)))
+
+    lazy val createDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "dynamic-message-docs" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            jsonDynamicMessageDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicMessageDoc]
+            }
+
+            (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(jsonDynamicMessageDoc, cc.callContext)
+          } yield {
+            (dynamicMessageDoc, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(updateDynamicMessageDoc),
+      "PUT",
+      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "Update Dynamic MessageDoc",
+      s"""Update a Dynamic MessageDoc.
+         |""",
+      jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
+      jsonDynamicMessageDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canUpdateDynamicMessageDoc)))
+
+    lazy val updateDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            dynamicMessageDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicMessageDoc]
+            }
+
+            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)
+
+            (dynamicMessageDoc, callContext) <- NewStyle.function.updateJsonDynamicMessageDoc(dynamicMessageDocBody.copy(dynamicMessageDocId=Some(dynamicMessageDocId)), callContext)
+          } yield {
+            (dynamicMessageDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(getDynamicMessageDoc),
+      "GET",
+      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "Get Dynamic MessageDoc by Id",
+      s"""Get a Dynamic Message Doc by DYNAMIC-MESSAGE-DOC-ID.
+         |
+         |""",
+      EmptyBody,
+      jsonDynamicMessageDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canGetDynamicMessageDoc)))
+
+    lazy val getDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicMessageDoc, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)
+          } yield {
+            (dynamicMessageDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllDynamicMessageDocs,
+      implementedInApiVersion,
+      nameOf(getAllDynamicMessageDocs),
+      "GET",
+      "/management/dynamic-message-docs",
+      "Get all Dynamic Message Docs",
+      s"""Get all Dynamic Message Docs.
+         |
+         |""",
+      EmptyBody,
+      ListResult("dynamic-message-docs", jsonDynamicMessageDoc::Nil),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canGetAllDynamicMessageDocs)))
+
+    lazy val getAllDynamicMessageDocs: OBPEndpoint = {
+      case "management" :: "dynamic-message-docs" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicMessageDocs, callContext) <- NewStyle.function.getJsonDynamicMessageDocs(cc.callContext)
+          } yield {
+            (ListResult("dynamic-message-docs", dynamicMessageDocs), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
   }
 }

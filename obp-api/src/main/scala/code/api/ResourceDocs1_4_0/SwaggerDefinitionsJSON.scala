@@ -21,6 +21,7 @@ import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginSt
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
+import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
@@ -4083,6 +4084,21 @@ object SwaggerDefinitionsJSON {
     specialInstructions = specialInstructionsExample.value,
     specifiedUrl = specifiedUrlExample.value 
   )
+  
+  val jsonDynamicMessageDoc = JsonDynamicMessageDoc(
+    dynamicMessageDocId = Some(dynamicMessageDocIdExample.value),
+    process = processExample.value,
+    messageFormat = messageFormatExample.value,
+    description = descriptionExample.value,
+    outboundTopic = outboundTopicExample.value,
+    inboundTopic = inboundTopicExample.value,
+    exampleOutboundMessage = exampleOutboundMessageExample.value,
+    exampleInboundMessage = exampleInboundMessageExample.value,
+    outboundAvroSchema = outboundAvroSchemaExample.value,
+    inboundAvroSchema = inboundAvroSchemaExample.value,
+    adapterImplementation = adapterImplementationExample.value
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

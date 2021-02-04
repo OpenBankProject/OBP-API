@@ -62,6 +62,7 @@ import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
+import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 
 object NewStyle {
@@ -2885,6 +2886,44 @@ object NewStyle {
       Future {
         val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(dynamicResourceDocId)
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocDeleteError Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
+      }
+
+    def createJsonDynamicMessageDoc(dynamicMessageDoc: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+      Future {
+        val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(dynamicMessageDoc)
+        val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
+        (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateJsonDynamicMessageDoc(entity: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+      Future {
+        val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(entity: JsonDynamicMessageDoc)
+        val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
+        (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
+      }
+
+    def isJsonDynamicMessageDocExists(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  DynamicMessageDocProvider.provider.vend.getById(dynamicMessageDocId)
+        (result.isDefined, callContext)
+      }
+
+    def getJsonDynamicMessageDocs(callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicMessageDoc]] =
+      Future {
+        val dynamicMessageDocs: List[JsonDynamicMessageDoc] = DynamicMessageDocProvider.provider.vend.getAll()
+        dynamicMessageDocs -> callContext
+      }
+
+    def getJsonDynamicMessageDocById(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+      Future {
+        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.getById(dynamicMessageDocId)
+        (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocNotFound Current DYNAMIC_RESOURCE_DOC_ID(${dynamicMessageDocId})", 400), callContext)
+      }
+
+    def deleteJsonDynamicMessageDocById(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.deleteById(dynamicMessageDocId)
+        (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocDeleteError", 400), callContext)
       }
     
   }

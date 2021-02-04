@@ -470,6 +470,10 @@ object ErrorMessages {
   val DynamicResourceDocNotFound = "OBP-40040: DynamicResourceDoc not found, please specify valid DYNAMIC_RESOURCE_DOC_ID. "
   val DynamicResourceDocDeleteError = "OBP-40041: DynamicResourceDoc can not be deleted. "
 
+  val DynamicMessageDocAlreadyExists = "OBP-40042: DynamicMessageDoc already exists."
+  val DynamicMessageDocNotFound = "OBP-40043: DynamicMessageDoc not found, please specify valid DYNAMIC_MESSAGE_DOC_ID. "
+  val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc can not be deleted. "
+
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

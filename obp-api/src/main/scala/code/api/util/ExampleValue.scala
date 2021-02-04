@@ -419,6 +419,15 @@ object ExampleValue {
   
   lazy val specifiedUrlExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.specifiedUrl", specifiedUrlExample)
+
+  lazy val dynamicMessageDocIdExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicMessageDoc.dynamicMessageDocId", dynamicMessageDocIdExample)
+
+  lazy val outboundAvroSchemaExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicMessageDoc.outboundAvroSchema", outboundAvroSchemaExample)
+
+  lazy val inboundAvroSchemaExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicMessageDoc.inboundAvroSchema", inboundAvroSchemaExample)
   
   lazy val canSeeImagesExample = ConnectorField("true",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_images", canSeeImagesExample)

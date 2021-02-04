@@ -18,8 +18,8 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
     else APIUtil.getPropsValue(s"dynamicMessageDoc.cache.ttl.seconds", "40").toInt
   }
 
-  override def getById(dynamicMessageDocId: String): Box[JsonDynamicMessageDoc] = DynamicMessageDoc
-    .find(By(DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId))
+  override def getById(dynamicMessageDocId: String): Box[JsonDynamicMessageDoc] = 
+    DynamicMessageDoc.find(By(DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId))
     .map(DynamicMessageDoc.getJsonDynamicMessageDoc)
 
   
@@ -35,7 +35,7 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
   override def create(entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]=
     tryo {
       DynamicMessageDoc.create
-        .DynamicMessageDocId(entity.dynamicMessageDocId.getOrElse(""))
+        .DynamicMessageDocId(APIUtil.generateUUID())
         .Process(entity.process)
         .MessageFormat(entity.messageFormat)
         .Description(entity.description)
