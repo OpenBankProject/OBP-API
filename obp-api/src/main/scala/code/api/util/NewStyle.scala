@@ -2817,13 +2817,13 @@ object NewStyle {
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
-    def isJsonConnectorMethodExists(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def connectorMethodExists(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
         val result =  ConnectorMethodProvider.provider.vend.getById(connectorMethodId)
         (result.isDefined, callContext)
       }
 
-    def isJsonConnectorMethodNameExists(connectorMethodName: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def connectorMethodNameExists(connectorMethodName: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
         val result =  ConnectorMethodProvider.provider.vend.getByMethodNameWithoutCache(connectorMethodName)
         (result.isDefined, callContext)

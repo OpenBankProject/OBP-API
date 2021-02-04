@@ -6883,7 +6883,7 @@ trait APIMethods400 {
               json.extract[JsonConnectorMethod]
             }
             
-            (isExists, callContext) <- NewStyle.function.isJsonConnectorMethodNameExists(jsonConnectorMethod.methodName, Some(cc))
+            (isExists, callContext) <- NewStyle.function.connectorMethodNameExists(jsonConnectorMethod.methodName, Some(cc))
             _ <- Helper.booleanToFuture(failMsg = s"$ConnectorMethodAlreadyExists Please use a different method_name(${jsonConnectorMethod.methodName})") {
               (!isExists)
             }

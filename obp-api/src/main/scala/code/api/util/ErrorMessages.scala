@@ -465,7 +465,7 @@ object ErrorMessages {
 
   val ConnectorMethodNotFound = "OBP-40036: ConnectorMethod not found, please specify valid CONNECTOR_METHOD_ID. "
   val ConnectorMethodAlreadyExists = "OBP-40037: ConnectorMethod already exists. "
-  val ConnectorMethodBodyCompileFail = "OBP-40038: ConnectorMethod methodBody is illegal scala code, compile fail. "
+  val ConnectorMethodBodyCompileFail = "OBP-40038: ConnectorMethod methodBody is illegal scala code, compilation failed. "
 
 
   // Exceptions (OBP-50XXX)
