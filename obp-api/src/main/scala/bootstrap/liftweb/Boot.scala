@@ -99,6 +99,8 @@ import code.scope.{MappedScope, MappedUserScope}
 import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apicollection.ApiCollection
 import code.connectormethod.ConnectorMethod
+import code.dynamicMessageDoc.DynamicMessageDoc
+import code.dynamicResourceDoc.DynamicResourceDoc
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -123,7 +125,6 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
-
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -901,7 +902,9 @@ object ToSchemify {
     ApiCollectionEndpoint,
     JsonSchemaValidation,
     AuthenticationTypeValidation,
-    ConnectorMethod
+    ConnectorMethod,
+    DynamicResourceDoc,
+    DynamicMessageDoc
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

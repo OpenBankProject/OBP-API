@@ -39,6 +39,8 @@ case class JsonDynamicResourceDoc(
 trait DynamicResourceDocProvider {
 
   def getById(dynamicResourceDocId: String): Box[JsonDynamicResourceDoc]
+  def getByVerbAndUrl(requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc]
+  
   def getAll(): List[JsonDynamicResourceDoc]
 
   def create(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]

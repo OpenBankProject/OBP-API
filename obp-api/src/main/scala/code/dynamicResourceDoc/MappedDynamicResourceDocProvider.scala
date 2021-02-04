@@ -22,6 +22,9 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     .find(By(DynamicResourceDoc.DynamicResourceDocId, dynamicResourceDocId))
     .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
+  override def getByVerbAndUrl(requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc] = DynamicResourceDoc
+    .find(By(DynamicResourceDoc.RequestVerb, requestVerb), By(DynamicResourceDoc.RequestUrl, requestUrl))
+    .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
   
   override def getAll(): List[JsonDynamicResourceDoc] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
@@ -49,6 +52,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       .Tags(entity.tags)
       .Roles(entity.roles)
       .IsFeatured(entity.isFeatured)
+      .ConnectorMethodBody(entity.connectorMethodBody)
       .saveMe()
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
@@ -70,6 +74,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
             .Tags(entity.tags)
             .Roles(entity.roles)
             .IsFeatured(entity.isFeatured)
+            .ConnectorMethodBody(entity.connectorMethodBody)
             .saveMe()
         }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
       case _ => Empty

@@ -4,7 +4,7 @@ import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{logoutLinkV400, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, logoutLinkV400, _}
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -68,8 +68,10 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.util.Date
+
+import code.dynamicResourceDoc.JsonDynamicResourceDoc
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -7005,6 +7007,183 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      createDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(createDynamicResourceDoc),
+      "POST",
+      "/management/dynamic-resource-docs",
+      "Create Dynamic Resource Doc",
+      s"""Create a Dynamic Resource Doc.
+         |
+         |The connector_method_body is URL-encoded format String
+         |""",
+      jsonDynamicResourceDoc.copy(dynamicResourceDocId=None),
+      jsonDynamicResourceDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canCreateDynamicResourceDoc)))
+
+    lazy val createDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            jsonDynamicResourceDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+            }
+
+            (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.requestUrl, Some(cc))
+            _ <- Helper.booleanToFuture(failMsg = s"$DynamicResourceDocAlreadyExists The combination of request_url(${jsonDynamicResourceDoc.requestUrl}) and request_verb(${jsonDynamicResourceDoc.requestVerb}) must be unique") {
+              (!isExists)
+            }
+
+            (dynamicResourceDoc, callContext) <- NewStyle.function.createJsonDynamicResourceDoc(jsonDynamicResourceDoc, callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(updateDynamicResourceDoc),
+      "PUT",
+      "/management/dynamic-resource-docs/DYNAMIC-RESOURCE-DOC-ID",
+      "Update Dynamic Resource Doc",
+      s"""Update a Dynamic Resource Doc.
+         |
+         |The connector_method_body is URL-encoded format String
+         |""",
+      jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+      jsonDynamicResourceDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canUpdateDynamicResourceDoc)))
+
+    lazy val updateDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            dynamicResourceDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+            }
+
+            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
+
+            (dynamicResourceDoc, callContext) <- NewStyle.function.updateJsonDynamicResourceDoc(dynamicResourceDocBody, callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(deleteDynamicResourceDoc),
+      "DELETE",
+      "/management/dynamic-resource-docs/DYNAMIC-RESOURCE-DOC-ID",
+      "Delete Dynamic Resource Doc",
+      s"""Delete a Dynamic Resource Doc.
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canDeleteDynamicResourceDoc)))
+
+    lazy val deleteDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicResourceDocById(dynamicResourceDocId, callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(getDynamicResourceDoc),
+      "GET",
+      "/management/dynamic-resource-docs/DYNAMIC-RESOURCE-DOC-ID",
+      "Get Dynamic Resource Doc by Id",
+      s"""Get a Dynamic Resource Doc by DYNAMIC-RESOURCE-DOC-ID.
+         |
+         |""",
+      EmptyBody,
+      jsonDynamicResourceDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canGetDynamicResourceDoc)))
+
+    lazy val getDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicResourceDoc, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllDynamicResourceDocs,
+      implementedInApiVersion,
+      nameOf(getAllDynamicResourceDocs),
+      "GET",
+      "/management/dynamic-resource-docs",
+      "Get all Dynamic Resource Docs",
+      s"""Get all Dynamic Resource Docs.
+         |
+         |""",
+      EmptyBody,
+      ListResult("dynamic-resource-docs", jsonDynamicResourceDoc::Nil),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canGetAllDynamicResourceDocs)))
+
+    lazy val getAllDynamicResourceDocs: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicResourceDocs, callContext) <- NewStyle.function.getJsonDynamicResourceDocs(cc.callContext)
+          } yield {
+            (ListResult("dynamic-resource-docs", dynamicResourceDocs), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
 
   }
 }

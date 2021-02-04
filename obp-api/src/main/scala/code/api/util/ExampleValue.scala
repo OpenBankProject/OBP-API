@@ -370,6 +370,56 @@ object ExampleValue {
   lazy val htmlExample = ConnectorField("html format content","the content is displayed in HTML format")
   glossaryItems += makeGlossaryItem("html", htmlExample)
 
+
+  lazy val connectorMethodIdExample = ConnectorField("ace0352a-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the connector method on this OBP instance, can be used in all cache. ")
+  glossaryItems += makeGlossaryItem("ConnectorMethod.connectorMethodId", connectorMethodIdExample)
+
+  lazy val methodBodyExample = ConnectorField("%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%" +
+    "28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20" +
+    "%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%2" +
+    "0%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%2" +
+    "0%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%" +
+    "20%20%20%20%20%20%29", 
+    "the URL-encoded format String, the original code is the OBP connector method body.")
+  glossaryItems += makeGlossaryItem("ConnectorMethod.methodBody", methodBodyExample)
+  
+  lazy val dynamicResourceDocIdExample = ConnectorField("vce035ca-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the dynamic Resource Doc on this OBP instance, can be used in all cache. ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.dynamicResourceDocId", dynamicResourceDocIdExample)
+  
+  lazy val partialFunctionExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunction", partialFunctionExample)
+  
+  lazy val implementedInApiVersionExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.implementedInApiVersion", implementedInApiVersionExample)
+  
+  lazy val partialFunctionNameExample = ConnectorField("getBanks", "partial function name")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunctionName", partialFunctionNameExample)
+  
+  lazy val requestVerbExample = ConnectorField("GET", "This is the HTTP methods, eg: GET, POST, PUT, DELETE ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.requestVerb", requestVerbExample)
+  
+  lazy val requestUrlExample = ConnectorField("/obp/v4.0.0/banks", "The URL of the endpoint.")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.requestUrl", requestUrlExample)
+  
+  lazy val exampleRequestBodyExample = ConnectorField(NoExampleProvided, "the json string of the request body.")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.exampleRequestBody", exampleRequestBodyExample)
+  
+  lazy val successResponseBodyExample = ConnectorField(NoExampleProvided, "the json string of the success response body.")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.successResponseBody", successResponseBodyExample)
+  
+  lazy val errorResponseBodiesExample = ConnectorField("OBP-50000: Unknown Error.", "The possible error messages of the endpoint. ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.errorResponseBodies", errorResponseBodiesExample)
+  
+  
+  lazy val isFeaturedExample = ConnectorField("false", "if this  is featured or not ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.isFeatured", isFeaturedExample)
+  
+  lazy val specialInstructionsExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.specialInstructions", specialInstructionsExample)
+  
+  lazy val specifiedUrlExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.specifiedUrl", specifiedUrlExample)
+  
   lazy val canSeeImagesExample = ConnectorField("true",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_images", canSeeImagesExample)
 

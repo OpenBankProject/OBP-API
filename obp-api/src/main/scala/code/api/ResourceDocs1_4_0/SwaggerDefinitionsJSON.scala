@@ -21,6 +21,7 @@ import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginSt
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
+import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -4060,11 +4061,28 @@ object SwaggerDefinitionsJSON {
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
 
-  // the reason of declared as def instead of val: avoid be scanned by allFields field
-  private def getBankMethodBody = "%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%20%20%20%20%20%20%29"
-  val jsonConnectorMethod  = JsonConnectorMethod(Some(""),"getBank", getBankMethodBody)
-  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(getBankMethodBody)
+  val jsonConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", methodBodyExample.value)
+  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(methodBodyExample.value)
   
+  val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
+    dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
+    connectorMethodBody = methodBodyExample.value,
+    partialFunction = partialFunctionExample.value,
+    implementedInApiVersion = implementedInApiVersionExample.value,
+    partialFunctionName = partialFunctionNameExample.value,
+    requestVerb = requestVerbExample.value, 
+    requestUrl = requestUrlExample.value, 
+    summary = summaryExample.value, 
+    description = descriptionExample.value, 
+    exampleRequestBody = exampleRequestBodyExample.value, 
+    successResponseBody = successResponseBodyExample.value, 
+    errorResponseBodies = errorResponseBodiesExample.value, 
+    tags = tagsExample.value, 
+    roles = rolesExample.value, 
+    isFeatured = false, 
+    specialInstructions = specialInstructionsExample.value,
+    specifiedUrl = specifiedUrlExample.value 
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

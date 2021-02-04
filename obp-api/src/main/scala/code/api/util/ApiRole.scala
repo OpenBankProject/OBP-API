@@ -662,6 +662,21 @@ object ApiRole {
   
   case class CanGetAllConnectorMethods(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAllConnectorMethods = CanGetAllConnectorMethods()
+  
+  case class CanCreateDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateDynamicResourceDoc = CanCreateDynamicResourceDoc()
+
+  case class CanUpdateDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateDynamicResourceDoc = CanUpdateDynamicResourceDoc()
+
+  case class CanGetDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicResourceDoc = CanGetDynamicResourceDoc()
+
+  case class CanGetAllDynamicResourceDocs(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllDynamicResourceDocs = CanGetAllDynamicResourceDocs()
+
+  case class CanDeleteDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteDynamicResourceDoc = CanDeleteDynamicResourceDoc()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

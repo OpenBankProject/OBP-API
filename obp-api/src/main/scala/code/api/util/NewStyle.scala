@@ -2,6 +2,7 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
@@ -61,6 +62,7 @@ import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
+import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -2841,5 +2843,49 @@ object NewStyle {
         (unboxFullOrFail(connectorMethod, callContext, s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID(${connectorMethodId})", 400), callContext)
       }
 
+    def isJsonDynamicResourceDocExists(requestVerb : String, requestUrl : String,  callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result = DynamicResourceDocProvider.provider.vend.getByVerbAndUrl(requestVerb, requestUrl)
+        (result.isDefined, callContext)
+      }
+
+    def createJsonDynamicResourceDoc(dynamicResourceDoc: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+      Future {
+        val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(dynamicResourceDoc)
+        val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
+        (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateJsonDynamicResourceDoc(entity: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+      Future {
+        val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(entity: JsonDynamicResourceDoc)
+        val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
+        (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
+      }
+
+    def isJsonDynamicResourceDocExists(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  DynamicResourceDocProvider.provider.vend.getById(dynamicResourceDocId)
+        (result.isDefined, callContext)
+      }
+
+    def getJsonDynamicResourceDocs(callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicResourceDoc]] =
+      Future {
+        val dynamicResourceDocs: List[JsonDynamicResourceDoc] = DynamicResourceDocProvider.provider.vend.getAll()
+        dynamicResourceDocs -> callContext
+      }
+
+    def getJsonDynamicResourceDocById(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+      Future {
+        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.getById(dynamicResourceDocId)
+        (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocNotFound Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
+      }
+
+    def deleteJsonDynamicResourceDocById(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(dynamicResourceDocId)
+        (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocDeleteError Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
+      }
+    
   }
 }
