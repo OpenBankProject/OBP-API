@@ -463,6 +463,10 @@ object ErrorMessages {
 
   val ForceErrorInvalid = "OBP-40035: Force Error request header is invalid. "
 
+  val ConnectorMethodNotFound = "OBP-40036: ConnectorMethod not found, please specify valid CONNECTOR_METHOD_ID. "
+  val ConnectorMethodAlreadyExists = "OBP-40037: ConnectorMethod already exists. "
+  val ConnectorMethodBodyCompileFail = "OBP-40038: ConnectorMethod methodBody is illegal scala code, compile fail. "
+
 
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."

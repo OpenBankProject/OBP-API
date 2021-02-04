@@ -81,7 +81,7 @@ object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
     val clazz = Class.forName(s"com.openbankproject.commons.dto.InBound${connectorMethod.capitalize}")
     implicit val inboundMainFest: Manifest[InBoundTrait[_]] = ManifestFactory.classType[InBoundTrait[_]](clazz)
 
-    connector.implementedMethods.get(connectorMethod) match {
+    connector.callableMethods.get(connectorMethod) match {
       case None => Future.failed(new IllegalArgumentException(s"Outbound instance $outbound have no corresponding method in the ${connector.getClass.getSimpleName}"))
       case Some(method) =>
         val nameToValue = outbound.nameToValue.toMap
