@@ -1032,20 +1032,23 @@ trait APIMethods121 {
       emptyObjectJson,
       otherAccountMetadataJSON,
       List(UserNotLoggedIn, UnknownError, "the view does not allow metadata access"),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val getOtherAccountMetadata : OBPEndpoint = {
       //get metadata of one other account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
           } yield {
-            val metadataJson = JSONFactory.createOtherAccountMetaDataJSON(metadata)
-            successJsonResponse(Extraction.decompose(metadataJson))
+            val metadataJson = JSONFactory.createOtherAccountMetaDataJSON(otherBankAccount.metadata.get)
+            (metadataJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -1271,21 +1274,26 @@ trait APIMethods121 {
         "the view does not allow private alias access",
         UnknownError
       ),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val getOtherAccountPrivateAlias : OBPEndpoint = {
       //get private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            alias <- Box(metadata.privateAlias) ?~ {"the view " + viewId + "does not allow private alias access"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a private alias" ) {
+              otherBankAccount.metadata.get.privateAlias.isDefined
+            }
           } yield {
-            val aliasJson = JSONFactory.createAliasJSON(alias)
-            successJsonResponse(Extraction.decompose(aliasJson))
+            val aliasJson = JSONFactory.createAliasJSON(otherBankAccount.metadata.get.privateAlias.get)
+            (aliasJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -1414,21 +1422,31 @@ trait APIMethods121 {
         "the view does not allow deleting the private alias",
         "Alias cannot be deleted",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val deleteCounterpartyPrivateAlias : OBPEndpoint = {
       //delete private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
-            added <- Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "") ?~ {"Alias cannot be deleted"}
-            if(added)
-          } yield noContentJsonResponse
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a private alias" ) {
+              otherBankAccount.metadata.get.addPrivateAlias.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "")) map { i =>
+              (unboxFullOrFail(i, callContext, "Alias cannot be deleted", 400), i)
+            }
+            if(deleted)
+          } yield {
+            ("", HttpCode.`204`(callContext))
+          }
       }
     }
 
@@ -1550,21 +1568,31 @@ trait APIMethods121 {
         "the view does not allow deleting more info",
         "More Info cannot be deleted",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val deleteCounterpartyMoreInfo : OBPEndpoint = {
       //delete more info of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
-            deleted <- Counterparties.counterparties.vend.addMoreInfo(other_account_id, "") ?~ {"More Info cannot be deleted"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting more info" ) {
+              otherBankAccount.metadata.get.addMoreInfo.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.addMoreInfo(other_account_id, "")) map { i =>
+              (unboxFullOrFail(i, callContext, "More Info cannot be deleted", 400), i)
+            }
             if(deleted)
-          } yield noContentJsonResponse
+          } yield {
+            ("", HttpCode.`204`(callContext))
+          }
       }
     }
 
@@ -1824,21 +1852,31 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       List(UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle)) // Tag general then specific for consistent sorting
 
     lazy val deleteCounterpartyImageUrl : OBPEndpoint = {
       //delete image url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
-            deleted <- Counterparties.counterparties.vend.addImageURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting an image url" ) {
+              otherBankAccount.metadata.get.addImageURL.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.addImageURL(other_account_id, "")) map { i =>
+              (unboxFullOrFail(i, callContext, "URL cannot be deleted", 400), i)
+            }
             if(deleted)
-          } yield noContentJsonResponse
+          } yield {
+            ("", HttpCode.`204`(callContext))
+          }
       }
     }
 
@@ -1958,21 +1996,31 @@ trait APIMethods121 {
         "the view does not allow deleting an open corporate url",
         "URL cannot be deleted",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val deleteCounterpartyOpenCorporatesUrl : OBPEndpoint = {
       //delete open corporate url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonDelete _ => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
-            deleted <- Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "") ?~ {"URL cannot be deleted"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting an open corporate url" ) {
+              otherBankAccount.metadata.get.addOpenCorporatesURL.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "")) map { i =>
+              (unboxFullOrFail(i, callContext, "URL cannot be deleted", 400), i)
+            }
             if(deleted)
-          } yield noContentJsonResponse
+          } yield {
+            ("", HttpCode.`204`(callContext))
+          }
       }
     }
 
@@ -2080,24 +2128,32 @@ trait APIMethods121 {
         "Corporate Location cannot be deleted",
         "Delete not completed",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val deleteCounterpartyCorporateLocation : OBPEndpoint = {
       //delete corporate location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonDelete _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            deleted <- Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id) ?~ {"Corporate Location cannot be deleted"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a Corporate Location" ) {
+              otherBankAccount.metadata.get.deleteCorporateLocation.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id)) map { i =>
+              (unboxFullOrFail(i, callContext, "Corporate Location cannot be deleted", 400), i)
+            }
+            _ <- Helper.booleanToFuture(failMsg = "Delete not completed" ) {
+              deleted
+            }
           } yield {
-            if(deleted)
-              noContentJsonResponse
-            else
-              errorJsonResponse("Delete not completed")
+            ("", HttpCode.`204`(callContext))
           }
       }
     }
@@ -2209,24 +2265,32 @@ trait APIMethods121 {
         "Physical Location cannot be deleted",
         "Delete not completed",
         UnknownError),
-      List(apiTagCounterpartyMetaData, apiTagCounterparty))
+      List(apiTagCounterpartyMetaData, apiTagCounterparty, apiTagNewStyle))
 
     lazy val deleteCounterpartyPhysicalLocation : OBPEndpoint = {
       //delete physical location of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonDelete _ => {
         cc =>
           for {
-            u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
-            otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
-            metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
-            deleted <- Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id) ?~ {"Physical Location cannot be deleted"}
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+              otherBankAccount.metadata.isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a Physical Location" ) {
+              otherBankAccount.metadata.get.deletePhysicalLocation.isDefined
+            }
+            (deleted, _) <- Future(Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id)) map { i =>
+              (unboxFullOrFail(i, callContext, "Physical Location cannot be deleted", 400), i)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"Delete not completed" ) {
+              deleted
+            }
           } yield {
-            if(deleted)
-              noContentJsonResponse
-            else
-              errorJsonResponse("Delete not completed")
+            ("", HttpCode.`204`(callContext))
           }
       }
     }
