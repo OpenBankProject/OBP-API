@@ -27,8 +27,7 @@ object InternalConnector {
   }
 
   // (methodName,methodBody) -> dynamic method function
-  // connector methods count is 230, make the initialCapacity a little bigger
-  private val dynamicMethods = new ConcurrentHashMap[(String, String), Any](300)
+  private val dynamicMethods = new ConcurrentHashMap[(String, String), Any]()
 
   private val intercept:MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
     val methodName = method.getName
@@ -59,7 +58,7 @@ object InternalConnector {
         case func: Function18[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15), args.apply(16), args.apply(17))
         case func: Function19[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15), args.apply(16), args.apply(17), args.apply(18))
         case func: Function20[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15), args.apply(16), args.apply(17), args.apply(18), args.apply(19))
-        case null => throw new IllegalStateException(s"InternalConnector have no method $methodName, it should not be called on InternalConnector")
+        case null => throw new IllegalStateException(s"InternalConnector has no method $methodName, it should not be called on InternalConnector")
         case _ => throw new IllegalStateException(s"InternalConnector have not correct method: $methodName")
       }
       result.asInstanceOf[AnyRef]
@@ -99,7 +98,7 @@ object InternalConnector {
                         |""".stripMargin
 
         compile(method)
-      case None => Failure(s"method name $methodName not exists in Connector")
+      case None => Failure(s"method name $methodName does not exist in the Connector")
     }
 
   /**
@@ -136,7 +135,7 @@ object InternalConnector {
   private def callableMethods: Map[String, MethodSymbol] = {
     val dynamicMethods: Map[String, MethodSymbol] = ConnectorMethodProvider.provider.vend.getAll().map {
       case JsonConnectorMethod(_, methodName, _) =>
-        methodName -> Box(methodNameToSymbols.get(methodName)).openOrThrowException(s"method name $methodName not exists in Connector")
+        methodName -> Box(methodNameToSymbols.get(methodName)).openOrThrowException(s"method name $methodName does not exist in the Connector")
     } toMap
 
     dynamicMethods
