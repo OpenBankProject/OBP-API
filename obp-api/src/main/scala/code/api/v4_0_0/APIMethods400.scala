@@ -7083,7 +7083,7 @@ trait APIMethods400 {
 
             (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
 
-            (dynamicResourceDoc, callContext) <- NewStyle.function.updateJsonDynamicResourceDoc(dynamicResourceDocBody, callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.updateJsonDynamicResourceDoc(dynamicResourceDocBody.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`200`(callContext))
           }
@@ -7314,6 +7314,38 @@ trait APIMethods400 {
             (dynamicMessageDocs, callContext) <- NewStyle.function.getJsonDynamicMessageDocs(cc.callContext)
           } yield {
             (ListResult("dynamic-message-docs", dynamicMessageDocs), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(deleteDynamicMessageDoc),
+      "DELETE",
+      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "Delete Dynamic Message Doc",
+      s"""Delete a Dynamic Message Doc.
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canDeleteDynamicMessageDoc)))
+
+    lazy val deleteDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(dynamicMessageDocId, callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`204`(callContext))
           }
       }
     }

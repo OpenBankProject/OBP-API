@@ -2853,14 +2853,14 @@ object NewStyle {
     def createJsonDynamicResourceDoc(dynamicResourceDoc: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
         val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(dynamicResourceDoc)
-        val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
+        val errorMsg = s"$UnknownError Can not create Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
     def updateJsonDynamicResourceDoc(entity: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
         val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(entity: JsonDynamicResourceDoc)
-        val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
+        val errorMsg = s"$UnknownError Can not update Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
@@ -2891,14 +2891,14 @@ object NewStyle {
     def createJsonDynamicMessageDoc(dynamicMessageDoc: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
         val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(dynamicMessageDoc)
-        val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
+        val errorMsg = s"$UnknownError Can not create Dynamic Message Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
     def updateJsonDynamicMessageDoc(entity: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
         val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(entity: JsonDynamicMessageDoc)
-        val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
+        val errorMsg = s"$UnknownError Can not update Dynamic Message Doc  in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
