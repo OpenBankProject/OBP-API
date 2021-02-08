@@ -46,6 +46,7 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
         .OutboundAvroSchema(entity.outboundAvroSchema)
         .InboundAvroSchema(entity.inboundAvroSchema)
         .AdapterImplementation(entity.adapterImplementation)
+        .MethodBody(entity.methodBody)
         .saveMe()
     }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
 
@@ -65,6 +66,7 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
             .OutboundAvroSchema(entity.outboundAvroSchema)
             .InboundAvroSchema(entity.inboundAvroSchema)
             .AdapterImplementation(entity.adapterImplementation)
+            .MethodBody(entity.methodBody)
             .saveMe()
         }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
       case _ => Empty

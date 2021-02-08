@@ -24,7 +24,8 @@ case class JsonDynamicMessageDoc(
   exampleInboundMessage: String, 
   outboundAvroSchema: String, 
   inboundAvroSchema: String,
-  adapterImplementation: String
+  adapterImplementation: String,
+  methodBody: String
 ) extends JsonFieldReName
 
 trait DynamicMessageDocProvider {

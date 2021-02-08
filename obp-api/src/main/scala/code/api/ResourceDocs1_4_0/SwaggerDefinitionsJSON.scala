@@ -4096,7 +4096,8 @@ object SwaggerDefinitionsJSON {
     exampleInboundMessage = exampleInboundMessageExample.value,
     outboundAvroSchema = outboundAvroSchemaExample.value,
     inboundAvroSchema = inboundAvroSchemaExample.value,
-    adapterImplementation = adapterImplementationExample.value
+    adapterImplementation = adapterImplementationExample.value,
+    methodBody = methodBodyExample.value
   )
   
   //The common error or success format.

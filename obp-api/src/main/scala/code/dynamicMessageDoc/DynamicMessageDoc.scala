@@ -19,6 +19,7 @@ class DynamicMessageDoc extends LongKeyedMapper[DynamicMessageDoc] with IdPK {
   object OutboundAvroSchema extends MappedString(this, 255)   
   object InboundAvroSchema extends MappedString(this, 255)   
   object AdapterImplementation  extends MappedString(this, 255)   
+  object MethodBody  extends MappedText(this)
 }
 
 
@@ -35,6 +36,7 @@ object DynamicMessageDoc extends DynamicMessageDoc with LongKeyedMetaMapper[Dyna
     exampleInboundMessage = dynamicMessageDoc.ExampleInboundMessage.get,
     outboundAvroSchema = dynamicMessageDoc.OutboundAvroSchema.get,
     inboundAvroSchema = dynamicMessageDoc.InboundAvroSchema.get,
-    adapterImplementation = dynamicMessageDoc.AdapterImplementation.get
+    adapterImplementation = dynamicMessageDoc.AdapterImplementation.get,
+    methodBody = dynamicMessageDoc.MethodBody.get,
   )
 }
