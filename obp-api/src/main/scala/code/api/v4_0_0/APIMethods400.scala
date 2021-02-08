@@ -7190,8 +7190,8 @@ trait APIMethods400 {
       nameOf(createDynamicMessageDoc),
       "POST",
       "/management/dynamic-message-docs",
-      "Create Dynamic MessageDoc",
-      s"""Create a Dynamic MessageDoc.
+      "Create Dynamic Message Doc",
+      s"""Create a Dynamic Message Doc.
          |""",
       jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
       jsonDynamicMessageDoc,
@@ -7225,8 +7225,8 @@ trait APIMethods400 {
       nameOf(updateDynamicMessageDoc),
       "PUT",
       "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
-      "Update Dynamic MessageDoc",
-      s"""Update a Dynamic MessageDoc.
+      "Update Dynamic Message Doc",
+      s"""Update a Dynamic Message Doc.
          |""",
       jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
       jsonDynamicMessageDoc,
@@ -7262,7 +7262,7 @@ trait APIMethods400 {
       nameOf(getDynamicMessageDoc),
       "GET",
       "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
-      "Get Dynamic MessageDoc by Id",
+      "Get Dynamic Message Doc by Id",
       s"""Get a Dynamic Message Doc by DYNAMIC-MESSAGE-DOC-ID.
          |
          |""",
