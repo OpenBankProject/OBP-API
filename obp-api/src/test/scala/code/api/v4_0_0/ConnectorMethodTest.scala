@@ -116,7 +116,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       val connectorMethods = connectorMethodsJsonGetAll(0)
       (connectorMethods \ "method_name").values.toString should equal (postConnectorMethod.methodName)
       (connectorMethods \ "method_body").values.toString should equal (postConnectorMethod.methodBody)
-      (connectorMethods \ "internal_connector_id").values.toString should be (connectorMethodJsonGet400.connectorMethodId.get)
+      (connectorMethods \ "connector_method_id").values.toString should be (connectorMethodJsonGet400.connectorMethodId.get)
 
 
       Then(s"we test the $ApiEndpoint4")

@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import code.api.util.DynamicUtil.compileScalaCode
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Failure}
@@ -7,9 +8,7 @@ import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import org.apache.commons.lang3.StringUtils
 
 import java.lang.reflect.Method
-import java.util.concurrent.ConcurrentHashMap
 import scala.reflect.runtime.universe.{MethodSymbol, TermSymbol, typeOf}
-import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 object InternalConnector {
 
@@ -25,9 +24,6 @@ object InternalConnector {
     // you can create method at here and copy the method body to create `ConnectorMethod`, but never keep the code
     // in this object, you must make sure this object is empty.
   }
-
-  // (methodName,methodBody) -> dynamic method function
-  private val dynamicMethods = new ConcurrentHashMap[(String, String), Any]()
 
   private val intercept:MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
     val methodName = method.getName
@@ -67,16 +63,10 @@ object InternalConnector {
 
   private def getFunction(methodName: String) = {
     ConnectorMethodProvider.provider.vend.getByMethodNameWithCache(methodName) map {
-      case v @ JsonConnectorMethod(_, _, methodBody) =>
-         dynamicMethods.computeIfAbsent(
-           methodName -> methodBody,
-           _ => createFunction(methodName, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail, method name $methodName")
-         )
+      case v :JsonConnectorMethod =>
+        createFunction(methodName, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail, method name $methodName")
     }
   }
-
-  private val toolBox = scala.reflect.runtime.currentMirror.mkToolBox()
-//  private val toolBox = runtimeMirror(getClass.getClassLoader).mkToolBox()
 
   /**
    * dynamic create function
@@ -97,40 +87,11 @@ object InternalConnector {
                         |$methodName _
                         |""".stripMargin
 
-        compile(method)
+        compileScalaCode(method)
       case None => Failure(s"method name $methodName does not exist in the Connector")
     }
 
-  /**
-   * toolBox have bug that first compile fail, second or later compile success.
-   * @param code
-   * @return compiled function or Failure
-   */
-  private def compile(code: String): Box[Any] = {
 
-    val tree = try {
-      toolBox.parse(code)
-    } catch {
-      case e: ToolBoxError =>
-        return Failure(e.message)
-    }
-
-    try {
-      val func: () => Any = toolBox.compile(tree)
-      Box.tryo(func())
-    } catch {
-      case _: ToolBoxError =>
-        // try compile again
-        try {
-          val func: () => Any = toolBox.compile(tree)
-          Box.tryo(func())
-        } catch {
-          case e: ToolBoxError =>
-            Failure(e.message)
-        }
-    }
-
-  }
 
   private def callableMethods: Map[String, MethodSymbol] = {
     val dynamicMethods: Map[String, MethodSymbol] = ConnectorMethodProvider.provider.vend.getAll().map {
