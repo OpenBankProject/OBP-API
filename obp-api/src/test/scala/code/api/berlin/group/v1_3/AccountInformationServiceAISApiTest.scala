@@ -5,9 +5,13 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
+import code.api.util.ExampleValue
+import code.model.dataAccess.BankAccountRouting
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.json.Serialization.write
+import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
@@ -126,10 +130,28 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   feature(s"BG v1.3 - $createConsent") {
     scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val postJsonBody = APIMethods_AccountInformationServiceAISApi
-        .resourceDocs
-        .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-        .head.exampleRequestBody.asInstanceOf[PostConsentJson]
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val acountRoutingIban = accountsRoutingIban.head
+      val postJsonBody = PostConsentJson(
+        access = ConsentAccessJson(
+          accounts = Option(List( ConsentAccessAccountsJson(
+            iban = Some(acountRoutingIban.accountRouting.address),
+            bban = None,
+            pan = None,
+            maskedPan = None,
+            msisdn = None,
+            currency = None,
+          ))),
+          balances = None,
+          transactions = None,
+          availableAccounts = None,
+          allPsd2 = None
+        ),
+        recurringIndicator = true,
+        validUntil = "2020-12-31",
+        frequencyPerDay = 4,
+        combinedServiceIndicator = false
+      )
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -144,10 +166,28 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   feature(s"BG v1.3 - $createConsent and $deleteConsent") {
     scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val postJsonBody = APIMethods_AccountInformationServiceAISApi
-        .resourceDocs
-        .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-        .head.exampleRequestBody.asInstanceOf[PostConsentJson]
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val acountRoutingIban = accountsRoutingIban.head
+      val postJsonBody = PostConsentJson(
+        access = ConsentAccessJson(
+          accounts = Option(List( ConsentAccessAccountsJson(
+            iban = Some(acountRoutingIban.accountRouting.address),
+            bban = None,
+            pan = None,
+            maskedPan = None,
+            msisdn = None,
+            currency = None,
+          ))),
+          balances = None,
+          transactions = None,
+          availableAccounts = None,
+          allPsd2 = None
+        ),
+        recurringIndicator = true,
+        validUntil = "2020-12-31",
+        frequencyPerDay = 4,
+        combinedServiceIndicator = false
+      )
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -171,10 +211,28 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   feature(s"BG v1.3 - $createConsent and $getConsentInformation and $getConsentStatus") {
     scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val postJsonBody = APIMethods_AccountInformationServiceAISApi
-        .resourceDocs
-        .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-        .head.exampleRequestBody.asInstanceOf[PostConsentJson]
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val acountRoutingIban = accountsRoutingIban.head
+      val postJsonBody = PostConsentJson(
+        access = ConsentAccessJson(
+          accounts = Option(List( ConsentAccessAccountsJson(
+            iban = Some(acountRoutingIban.accountRouting.address),
+            bban = None,
+            pan = None,
+            maskedPan = None,
+            msisdn = None,
+            currency = None,
+          ))),
+          balances = None,
+          transactions = None,
+          availableAccounts = None,
+          allPsd2 = None
+        ),
+        recurringIndicator = true,
+        validUntil = "2020-12-31",
+        frequencyPerDay = 4,
+        combinedServiceIndicator = false
+      )
       val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -201,10 +259,28 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
     feature(s"BG v1.3 - ${startConsentAuthorisation.name} ") {
       scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisation) {
-        val postJsonBody = APIMethods_AccountInformationServiceAISApi
-          .resourceDocs
-          .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-          .head.exampleRequestBody.asInstanceOf[PostConsentJson] 
+        val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+        val acountRoutingIban = accountsRoutingIban.head
+        val postJsonBody = PostConsentJson(
+          access = ConsentAccessJson(
+            accounts = Option(List( ConsentAccessAccountsJson(
+              iban = Some(acountRoutingIban.accountRouting.address),
+              bban = None,
+              pan = None,
+              maskedPan = None,
+              msisdn = None,
+              currency = None,
+            ))),
+            balances = None,
+            transactions = None,
+            availableAccounts = None,
+            allPsd2 = None
+          ),
+          recurringIndicator = true,
+          validUntil = "2020-12-31",
+          frequencyPerDay = 4,
+          combinedServiceIndicator = false
+        )
         val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
         val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
 
@@ -225,10 +301,28 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
     feature(s"BG v1.3 - ${startConsentAuthorisation.name} and ${getConsentAuthorisation.name} and ${getConsentScaStatus.name} and ${updateConsentsPsuData.name}") {
       scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisation) {
-        val postJsonBody = APIMethods_AccountInformationServiceAISApi
-          .resourceDocs
-          .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.createConsent)
-          .head.exampleRequestBody.asInstanceOf[PostConsentJson]
+        val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+        val acountRoutingIban = accountsRoutingIban.head
+        val postJsonBody = PostConsentJson(
+          access = ConsentAccessJson(
+            accounts = Option(List( ConsentAccessAccountsJson(
+              iban = Some(acountRoutingIban.accountRouting.address),
+              bban = None,
+              pan = None,
+              maskedPan = None,
+              msisdn = None,
+              currency = None,
+            ))),
+            balances = None,
+            transactions = None,
+            availableAccounts = None,
+            allPsd2 = None
+          ),
+          recurringIndicator = true,
+          validUntil = "2020-12-31",
+          frequencyPerDay = 4,
+          combinedServiceIndicator = false
+        )
         val requestPost = (V1_3_BG / "consents" ).POST <@ (user1)
         val response: APIResponse = makePostRequest(requestPost, write(postJsonBody))
   

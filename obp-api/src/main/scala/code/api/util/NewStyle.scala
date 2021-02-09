@@ -302,6 +302,13 @@ object NewStyle {
       }
     }
 
+    def getBankAccountsByIban(ibans : List[String], callContext: Option[CallContext]) : OBPReturnType[List[BankAccount]] = {
+      Future.sequence(ibans.map( iban =>
+        Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
+          (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
+        }  
+      )).map(t => (t.map(_._1), callContext))
+    }
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
