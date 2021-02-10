@@ -46,7 +46,6 @@ object DynamicUtil {
     compiledResult.map(_.asInstanceOf[T])
   }
 
-
   /**
    * 
    * @param methodName the method name
@@ -82,7 +81,6 @@ object DynamicUtil {
     }
     result.asInstanceOf[AnyRef]
   }
-
 
   /**
    * common import statements those are used by compiler
@@ -133,5 +131,4 @@ object DynamicUtil {
       |import scala.concurrent.{Await, Future}
       |import com.openbankproject.commons.dto._
       |""".stripMargin
-  
 }

@@ -21,7 +21,7 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = JsonSerializers.commonFormats + JsonAbleSerializer
+  val formats: Formats = JsonSerializers.commonFormats + PrimaryDataBodySerializer
 
   val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless ++ JsonSerializers.serializers
 
@@ -125,7 +125,7 @@ object OptionalFieldSerializer extends Serializer[AnyRef] {
 }
 
 
-object JsonAbleSerializer extends Serializer[PrimaryDataBody[_]] {
+object PrimaryDataBodySerializer extends Serializer[PrimaryDataBody[_]] {
   private val IntervalClass = classOf[Product]
 
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
