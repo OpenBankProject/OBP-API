@@ -6,8 +6,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Failure}
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import org.apache.commons.lang3.StringUtils
-
 import java.lang.reflect.Method
+import code.api.util.DynamicUtil
 import scala.reflect.runtime.universe.{MethodSymbol, TermSymbol, typeOf}
 
 object InternalConnector {
@@ -32,32 +32,8 @@ object InternalConnector {
     } else if (methodName.contains("$default$")) {
       method.invoke(connector, args:_*)
     } else {
-       val result = getFunction(methodName).orNull match {
-        case func: Function0[AnyRef] => func()
-        case func: Function1[AnyRef,AnyRef]  => func(args.head)
-        case func: Function2[AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1))
-        case func: Function3[AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2))
-        case func: Function4[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3))
-        case func: Function5[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4))
-        case func: Function6[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5))
-        case func: Function7[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6))
-        case func: Function8[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7))
-        case func: Function9[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8))
-        case func: Function10[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9))
-        case func: Function11[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10))
-        case func: Function12[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11))
-        case func: Function13[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12))
-        case func: Function14[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13))
-        case func: Function15[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14))
-        case func: Function16[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15))
-        case func: Function17[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15), args.apply(16))
-        case func: Function18[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15), args.apply(16), args.apply(17))
-        case func: Function19[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15), args.apply(16), args.apply(17), args.apply(18))
-        case func: Function20[AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef,AnyRef]  => func(args.head, args.apply(1), args.apply(2), args.apply(3), args.apply(4), args.apply(5), args.apply(6), args.apply(7), args.apply(8), args.apply(9), args.apply(10), args.apply(11), args.apply(12), args.apply(13), args.apply(14), args.apply(15), args.apply(16), args.apply(17), args.apply(18), args.apply(19))
-        case null => throw new IllegalStateException(s"InternalConnector has no method $methodName, it should not be called on InternalConnector")
-        case _ => throw new IllegalStateException(s"InternalConnector have not correct method: $methodName")
-      }
-      result.asInstanceOf[AnyRef]
+       val function = getFunction(methodName)
+       DynamicUtil.executeFunction(methodName, function, args)
     }
   }
 
@@ -79,7 +55,7 @@ object InternalConnector {
       case Some(signature) =>
         val method = s"""
                         |def $methodName $signature = {
-                        |  $importStatements
+                        |  ${DynamicUtil.importStatements}
                         |
                         |  $methodBody
                         |}
@@ -116,56 +92,5 @@ object InternalConnector {
       val methodSignature = StringUtils.substringBeforeLast(signature, returnType) + ":" + returnType
       methodName -> methodSignature
   }
-
-  /**
-   * common import statements those are used by connector method body
-   */
-  private val importStatements =
-    """
-      |import java.net.{ConnectException, URLEncoder, UnknownHostException}
-      |import java.util.Date
-      |import java.util.UUID.randomUUID
-      |
-      |import _root_.akka.stream.StreamTcpException
-      |import akka.http.scaladsl.model.headers.RawHeader
-      |import akka.http.scaladsl.model.{HttpProtocol, _}
-      |import akka.util.ByteString
-      |import code.api.APIFailureNewStyle
-      |import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
-      |import code.api.cache.Caching
-      |import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
-      |import code.api.util.ErrorMessages._
-      |import code.api.util.ExampleValue._
-      |import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-      |import code.api.v4_0_0.MockResponseHolder
-      |import code.bankconnectors._
-      |import code.bankconnectors.vJune2017.AuthInfo
-      |import code.customer.internalMapping.MappedCustomerIdMappingProvider
-      |import code.kafka.KafkaHelper
-      |import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-      |import code.util.AkkaHttpClient._
-      |import code.util.Helper.MdcLoggable
-      |import com.openbankproject.commons.dto.{InBoundTrait, _}
-      |import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
-      |import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, DynamicEntityOperation, ProductAttributeType}
-      |import com.openbankproject.commons.model.{ErrorMessage, TopicTrait, _}
-      |import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
-      |// import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
-      |import net.liftweb.common.{Box, Empty, _}
-      |import net.liftweb.json
-      |import net.liftweb.json.Extraction.decompose
-      |import net.liftweb.json.JsonDSL._
-      |import net.liftweb.json.JsonParser.ParseException
-      |import net.liftweb.json.{JValue, _}
-      |import net.liftweb.util.Helpers.tryo
-      |import org.apache.commons.lang3.StringUtils
-      |
-      |import scala.collection.immutable.List
-      |import scala.collection.mutable.ArrayBuffer
-      |import scala.concurrent.duration._
-      |import scala.concurrent.{Await, Future}
-      |import com.openbankproject.commons.dto._
-      |""".stripMargin
-
 }
 

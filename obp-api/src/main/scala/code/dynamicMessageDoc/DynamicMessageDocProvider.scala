@@ -1,5 +1,6 @@
 package code.dynamicMessageDoc
 
+import java.net.URLDecoder
 import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
@@ -26,11 +27,14 @@ case class JsonDynamicMessageDoc(
   inboundAvroSchema: String,
   adapterImplementation: String,
   methodBody: String
-) extends JsonFieldReName
+) extends JsonFieldReName{
+  def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
+}
 
 trait DynamicMessageDocProvider {
 
   def getById(dynamicMessageDocId: String): Box[JsonDynamicMessageDoc]
+  def getByProcess(process: String): Box[JsonDynamicMessageDoc]
   def getAll(): List[JsonDynamicMessageDoc]
 
   def create(entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]

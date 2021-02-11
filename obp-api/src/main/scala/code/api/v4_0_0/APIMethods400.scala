@@ -28,7 +28,7 @@ import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
-import code.bankconnectors.{Connector, InternalConnector}
+import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
@@ -7208,11 +7208,19 @@ trait APIMethods400 {
       case "management" :: "dynamic-message-docs" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            jsonDynamicMessageDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
+            dynamicMessageDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
             }
-
-            (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(jsonDynamicMessageDoc, cc.callContext)
+            (dynamicMessageDocExisted, callContext) <- NewStyle.function.isJsonDynamicMessageDocExists(dynamicMessageDoc.process, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$DynamicMessageDocAlreadyExists The json body process(${dynamicMessageDoc.process}) already exists") {
+              (!dynamicMessageDocExisted)
+            }
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDoc.process, dynamicMessageDoc.decodedMethodBody)
+            errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
+            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+              connectorMethod.isDefined
+            }
+            (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(dynamicMessageDoc, callContext)
           } yield {
             (dynamicMessageDoc, HttpCode.`201`(callContext))
           }
@@ -7246,9 +7254,12 @@ trait APIMethods400 {
             dynamicMessageDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
             }
-
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDocBody.process, dynamicMessageDocBody.decodedMethodBody)
+            errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
+            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+              connectorMethod.isDefined
+            }
             (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)
-
             (dynamicMessageDoc, callContext) <- NewStyle.function.updateJsonDynamicMessageDoc(dynamicMessageDocBody.copy(dynamicMessageDocId=Some(dynamicMessageDocId)), callContext)
           } yield {
             (dynamicMessageDoc, HttpCode.`200`(callContext))

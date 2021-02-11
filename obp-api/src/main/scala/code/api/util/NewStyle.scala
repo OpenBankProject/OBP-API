@@ -2911,9 +2911,9 @@ object NewStyle {
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
-    def isJsonDynamicMessageDocExists(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonDynamicMessageDocExists(process: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result =  DynamicMessageDocProvider.provider.vend.getById(dynamicMessageDocId)
+        val result =  DynamicMessageDocProvider.provider.vend.getByProcess(process)
         (result.isDefined, callContext)
       }
 

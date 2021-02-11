@@ -1476,7 +1476,7 @@ object ExampleValue {
   lazy val otherAccountSecondaryRoutingSchemeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("other_account_secondary_routing_scheme", otherAccountSecondaryRoutingSchemeExample)
 
-  lazy val processExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val processExample = ConnectorField("obp.getBank","The format must be obp.xxxx, 'obp.' is the prefix, xxx will be the connector method name")
   glossaryItems += makeGlossaryItem("process", processExample)
 
   lazy val otherBranchRoutingSchemeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)

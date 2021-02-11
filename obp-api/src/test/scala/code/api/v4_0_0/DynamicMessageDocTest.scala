@@ -71,7 +71,8 @@ class DynamicMessageDocTest extends V400ServerSetup {
 
       lazy val postDynamicMessageDoc = SwaggerDefinitionsJSON.jsonDynamicMessageDoc.copy(dynamicMessageDocId = None)
 
-      val response = makePostRequest(request, write(postDynamicMessageDoc))
+      val postBody = write(postDynamicMessageDoc)
+      val response = makePostRequest(request, postBody)
       Then("We should get a 201")
       response.code should equal(201)
 

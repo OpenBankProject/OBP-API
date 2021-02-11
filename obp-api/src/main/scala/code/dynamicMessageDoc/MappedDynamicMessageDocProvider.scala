@@ -22,6 +22,10 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
     DynamicMessageDoc.find(By(DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId))
     .map(DynamicMessageDoc.getJsonDynamicMessageDoc)
 
+  override def getByProcess(process: String): Box[JsonDynamicMessageDoc] = 
+    DynamicMessageDoc.find(By(DynamicMessageDoc.Process, process))
+    .map(DynamicMessageDoc.getJsonDynamicMessageDoc)
+
   
   override def getAll(): List[JsonDynamicMessageDoc] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
