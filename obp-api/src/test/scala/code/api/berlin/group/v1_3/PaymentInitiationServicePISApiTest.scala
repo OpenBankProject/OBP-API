@@ -45,7 +45,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |  "amount": "1234"
            |},
            |"creditorAccount": {
-           |  "iban": "123"
+           |  "iban": "DE75512108001245126199"
            |},
            |"creditorName": "70charname"
             }""".stripMargin
@@ -69,7 +69,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            |  "amount": "-1234"
            |},
            |"creditorAccount": {
-           |  "iban": "12321"
+           |  "iban": "DE75512108001245126199"
            |},
            |"creditorName": "70charname"
             }""".stripMargin
