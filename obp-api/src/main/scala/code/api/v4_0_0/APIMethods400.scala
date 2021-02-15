@@ -249,7 +249,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(ibanChecker),
       "POST",
-      "/account/check/scheme/IBAN",
+      "/account/check/scheme/iban",
       "Validate and check IBAN number",
       """Validate and check IBAN number for errors
         |
@@ -261,7 +261,7 @@ trait APIMethods400 {
     )
 
     lazy val ibanChecker: OBPEndpoint = {
-      case "account" :: "check" :: "scheme" :: "IBAN" :: Nil JsonPost json -> _ => {
+      case "account" :: "check" :: "scheme" :: "iban" :: Nil JsonPost json -> _ => {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(ibanCheckerPostJsonV400))}"
           for {
