@@ -61,7 +61,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |     "code": 123123,
         |     "street":{"road": "gongbin", "number": 123}
         |   }],
-        |   "street": {"name": "hongqi", "width": 12.11}
+        |   "street": {"name": "hongqi", "width": 12.11},
         |   "_optional_fields_": ["age", "weight", "address"]
         |}
         |""".stripMargin
@@ -69,8 +69,8 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val expectedCaseClass =
     """case class AddressStreetJsonClass(road: String, number: Long)
       |case class AddressJsonClass(name: String, code: Long, street: AddressStreetJsonClass)
-      |case class StreetJsonClass(name: String, width: BigDecimal)
-      |case class RootJsonClass(name: String, age: Option[Long], isMarried: Boolean, weight: Option[BigDecimal], `class`: String, `def`: Long, email: List[String], address: Option[List[AddressJsonClass]], street: StreetJsonClass)""".stripMargin
+      |case class StreetJsonClass(name: String, width: Double)
+      |case class RootJsonClass(name: String, age: Option[java.lang.Long], isMarried: Boolean, weight: Option[java.lang.Double], `class`: String, `def`: Long, email: List[String], address: Option[List[AddressJsonClass]], street: StreetJsonClass)""".stripMargin
 
     val generatedCaseClass = toCaseClass(zson)
 
@@ -98,7 +98,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
           |   "weight": 21.43
           | }
           |]""".stripMargin
-      val expectedCaseClass = """case class RootItemJsonClass(name: String, weight: BigDecimal)
+      val expectedCaseClass = """case class RootItemJsonClass(name: String, weight: Double)
                                 | type RootJsonClass = List[RootItemJsonClass]""".stripMargin
 
       val generatedCaseClass = toCaseClass(listObjectJson)

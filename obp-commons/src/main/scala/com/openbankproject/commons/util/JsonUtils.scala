@@ -672,28 +672,22 @@ object JsonUtils {
 
   private val optionalFieldName = "_optional_fields_"
 
+  // if Option[Boolean], Option[Double], Option[Long] will lost type argument when do deserialize with lift-json: Option[Object]
+  // this will make generated scala code can't extract json to this object, So use java.lang.Xxx for these type in Option.
   private def toScalaTypeName(jValue: JValue, isOptional: Boolean = false) = jValue match {
-    case _: JBool => if(isOptional) "Option[Boolean]" else "Boolean"
-    case _: JString => if(isOptional) "Option[String]" else "String"
-    case _: JDouble  => if(isOptional) "Option[BigDecimal]" else "BigDecimal"
-    case  _: JInt => if(isOptional) "Option[Long]" else "Long"
-    case _: JObject => if(isOptional) "Option[AnyRef]" else "AnyRef"
-    case _: JArray => if(isOptional) "Option[List[Any]]" else "List[Any]"
+    case _: JBool if isOptional   => "Option[java.lang.Boolean]"
+    case _: JBool                 =>  "Boolean"
+    case _: JDouble if isOptional => "Option[java.lang.Double]"
+    case _: JDouble               => "Double"
+    case  _: JInt if isOptional   => "Option[java.lang.Long]"
+    case  _: JInt                 => "Long"
+    case _: JString if isOptional => "Option[String]"
+    case _: JString => "String"
+    case _: JObject if isOptional => "Option[AnyRef]"
+    case _: JObject               =>  "AnyRef"
+    case _: JArray if isOptional  => "Option[List[Any]]"
+    case _: JArray                => "List[Any]"
     case null | JNull | JNothing => throw new IllegalArgumentException(s"Json value must not be null")
-  }
-
-  private def getJArrayItemTypeName(values: List[JValue], fieldName: String): String = {
-    values match {
-      case JBool(_) :: _ => "List[Boolean]"
-      case JString(_)  :: _ => "List[String]"
-      case JDouble(_) :: _  => "List[BigDecimal]"
-      case JInt(_) :: _ => "List[Long]"
-      case JObject(_) :: _ => s"List[${fieldName.capitalize}JsonClass]"
-      case JArray(arr) :: _ =>
-        val itemType = getJArrayItemTypeName(arr, fieldName)
-        s"List[List[$itemType]]"
-      case (null | JNull | JNothing) :: _ => throw new IllegalArgumentException(s"Fields $fieldName have null item, items should not be null")
-    }
   }
 
   /**
@@ -775,7 +769,7 @@ object JsonUtils {
     jvalue match {
       case _: JBool => "type RootJsonClass = Boolean"
       case _: JString  => "type RootJsonClass = String"
-      case _: JDouble => "type RootJsonClass = BigDecimal"
+      case _: JDouble => "type RootJsonClass = Double"
       case _: JInt => "type RootJsonClass = Long"
       case jObject: JObject =>
         validateJArray(jObject)
@@ -788,7 +782,7 @@ object JsonUtils {
         def buildArrayType(jArray: JArray):String = jArray.arr.head match {
             case _: JBool => "List[Boolean]"
             case _: JString  => "List[String]"
-            case _: JDouble => "List[BigDecimal]"
+            case _: JDouble => "List[Double]"
             case _: JInt => "List[Long]"
             case v: JObject =>
               val itemsType = jObjectToCaseClass(v, "RootItem")
@@ -839,21 +833,20 @@ object JsonUtils {
         s"$escapedFieldsName: $fieldType"
 
       case JField(name, arr: JArray) if name != optionalFieldName =>
-
+        val isOption: Boolean = optionalFields.contains(name)
         def buildArrayType(jArray: JArray): String = jArray.arr.head match {
-          case _: JBool => "List[Boolean]"
+          case _: JBool    => "List[java.lang.Boolean]"
+          case _: JDouble  => "List[java.lang.Double]"
+          case _: JInt     => "List[java.lang.Long]"
           case _: JString  => "List[String]"
-          case _: JDouble => "List[BigDecimal]"
-          case _: JInt => "List[Long]"
-          case _: JObject => s"List[${toCaseClassName(name)}]"
+          case _: JObject  => s"List[${toCaseClassName(name)}]"
 
           case v: JArray =>
             val nestedItmType = buildArrayType(v)
             s"List[$nestedItmType]"
         }
 
-        val fieldType = if (optionalFields.contains(name)) s"Option[${buildArrayType(arr)}]"
-        else buildArrayType(arr)
+        val fieldType = if (isOption) s"Option[${buildArrayType(arr)}]" else buildArrayType(arr)
 
         val escapedFieldsName = reservedToEscaped.getOrElse(name, name)
         s"$escapedFieldsName: $fieldType"
