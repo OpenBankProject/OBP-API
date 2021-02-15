@@ -93,7 +93,7 @@ package object bankconnectors extends MdcLoggable {
       case "star" => throw new IllegalStateException(s"Props of connector.start.methodName.$methodName, value should not be 'star'")
       case name => Connector.getConnectorInstance(name)
     }
-    val methodSymbol = connector.implementedMethods.get(methodName).map(_.alternatives) match {
+    val methodSymbol = connector.callableMethods.get(methodName).map(_.alternatives) match {
       case Some(m::Nil) if m.isMethod => m.asMethod
       case _ =>
         findMethodByArgs(connector, methodName, args:_*)

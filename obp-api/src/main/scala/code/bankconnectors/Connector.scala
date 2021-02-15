@@ -85,8 +85,9 @@ object Connector extends SimpleInjector {
     "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),
     "stored_procedure_vDec2019" -> lazyValue(StoredProcedureConnector_vDec2019),
-    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set itin default.props
-    "proxy" -> lazyValue(ConnectorUtils.proxyConnector)
+    // this proxy connector only for unit test, can set connector=proxy in test.default.props, but never set it in default.props
+    "proxy" -> lazyValue(ConnectorUtils.proxyConnector),
+    "internal" -> lazyValue(InternalConnector.instance)
   )
 
   def getConnectorInstance(connectorVersion: String): Connector = {
@@ -172,7 +173,7 @@ trait Connector extends MdcLoggable {
    *  3. no override
    *  4. is not $default$
    */
-  private lazy val connectorMethods: Map[String, MethodSymbol] = {
+  protected lazy val connectorMethods: Map[String, MethodSymbol] = {
     val tp = typeOf[Connector]
     val result = tp.decls
       .withFilter(_.isPublic)
@@ -191,7 +192,7 @@ trait Connector extends MdcLoggable {
    * current connector instance implemented Connector method,
    * methodName to method
    */
-  lazy val implementedMethods: Map[String, MethodSymbol] = {
+  protected lazy val implementedMethods: Map[String, MethodSymbol] = {
     val tp = ReflectUtils.getType(this)
     val result = tp.members
         .withFilter(_.isPublic)
@@ -207,6 +208,8 @@ trait Connector extends MdcLoggable {
         }.toMap
     connectorMethods ++ result // result put after ++ to make sure methods of Connector's subtype be kept when name conflict.
   }
+
+  def callableMethods: Map[String, MethodSymbol] = implementedMethods
 
   protected implicit def boxToTuple[T](box: Box[(T, Option[CallContext])]): (Box[T], Option[CallContext]) =
     (box.map(_._1), box.flatMap(_._2))
@@ -483,6 +486,7 @@ trait Connector extends MdcLoggable {
   def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
+  def getAccountRoutingsByScheme(bankId: Option[BankId], scheme : String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = Future{(Failure(setUnimplementedError),callContext)}
   def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRouting, Option[CallContext])]= Failure(setUnimplementedError)
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[BankAccount]]]= Future{(Failure(setUnimplementedError), callContext)}

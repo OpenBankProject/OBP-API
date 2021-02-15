@@ -134,6 +134,8 @@ As a last option, an ASPSP might in addition accept a command with access rights
                new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
              }
              
+             _ <- NewStyle.function.getBankAccountsByIban(consentJson.access.accounts.getOrElse(Nil).map(_.iban.getOrElse("")), callContext)
+             
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
                u,
                recurringIndicator = consentJson.recurringIndicator,

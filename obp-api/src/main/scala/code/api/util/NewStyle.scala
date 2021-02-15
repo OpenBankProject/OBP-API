@@ -48,7 +48,7 @@ import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{JNothing, JNull, JObject, JString, JValue, JInt, JField, _}
+import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -60,25 +60,34 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getOtherAccountMetadata), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteCounterpartyUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyCorporateLocation), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyPhysicalLocation), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyImageUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyOpenCorporatesUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyOpenCorporatesUrl), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyOpenCorporatesUrl), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addOtherAccountPrivateAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyPrivateAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.deleteCounterpartyPrivateAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.deleteCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getOtherAccountPrivateAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.updateAccountLabel), ApiVersion.v1_2_1.toString),
@@ -120,6 +129,7 @@ object NewStyle {
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_1_0.getMetrics), ApiVersion.v2_1_0.toString),
+    (nameOf(Implementations2_1_0.getTransactionRequestTypesSupportedByBank), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_2_0.config), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getMessageDocs), ApiVersion.v2_2_0.toString),
     (nameOf(Implementations2_2_0.getViewsForBankAccount), ApiVersion.v2_2_0.toString),
@@ -280,12 +290,25 @@ object NewStyle {
       }
     }
 
+    def getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]) : OBPReturnType[List[BankAccountRouting]] = {
+      Connector.connector.vend.getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$AccountRoutingNotFound Current scheme is $scheme, current bankId is $bankId", 404 ), i._2)
+      }
+    }
+
     def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByAccountId Current account_id is $accountId", 404 ), i._2)
       }
     }
 
+    def getBankAccountsByIban(ibans : List[String], callContext: Option[CallContext]) : OBPReturnType[List[BankAccount]] = {
+      Future.sequence(ibans.map( iban =>
+        Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
+          (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
+        }  
+      )).map(t => (t.map(_._1), callContext))
+    }
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
@@ -2522,7 +2545,7 @@ object NewStyle {
     }
 
     def getConnectorMethod(connectorName: String, methodName: String): Option[MethodSymbol] = {
-      getConnectorByName(connectorName).flatMap(_.implementedMethods.get(methodName))
+      getConnectorByName(connectorName).flatMap(_.callableMethods.get(methodName))
     }
 
     def createDynamicEndpoint(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
@@ -2800,5 +2823,45 @@ object NewStyle {
         val result = AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId)
         (result.isDefined, callContext)
       }
+
+
+    def createJsonConnectorMethod(connectorMethod: JsonConnectorMethod, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
+      Future {
+        val newInternalConnector = ConnectorMethodProvider.provider.vend.create(connectorMethod)
+        val errorMsg = s"$UnknownError Can not create Connector Method in the backend. "
+        (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
+      }
+
+    def updateJsonConnectorMethod(connectorMethodId: String, connectorMethodBody: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
+      Future {
+        val updatedConnectorMethod = ConnectorMethodProvider.provider.vend.update(connectorMethodId, connectorMethodBody)
+        val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
+        (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
+      }
+
+    def isJsonConnectorMethodExists(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  ConnectorMethodProvider.provider.vend.getById(connectorMethodId)
+        (result.isDefined, callContext)
+      }
+
+    def isJsonConnectorMethodNameExists(connectorMethodName: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Future {
+        val result =  ConnectorMethodProvider.provider.vend.getByMethodNameWithoutCache(connectorMethodName)
+        (result.isDefined, callContext)
+      }
+    
+    def getJsonConnectorMethods(callContext: Option[CallContext]): OBPReturnType[List[JsonConnectorMethod]] =
+      Future {
+        val connectorMethods: List[JsonConnectorMethod] = ConnectorMethodProvider.provider.vend.getAll()
+        connectorMethods -> callContext
+      }
+
+    def getJsonConnectorMethodById(connectorMethodId: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
+      Future {
+        val connectorMethod = ConnectorMethodProvider.provider.vend.getById(connectorMethodId)
+        (unboxFullOrFail(connectorMethod, callContext, s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID(${connectorMethodId})", 400), callContext)
+      }
+
   }
 }

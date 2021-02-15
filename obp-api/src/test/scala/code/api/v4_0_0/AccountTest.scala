@@ -35,6 +35,7 @@ class AccountTest extends V400ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.addAccount))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getPrivateAccountsAtOneBank))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAccountByAccountRouting))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getAccountsByAccountRoutingRegex))
 
   lazy val testBankId = testBankId1
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
@@ -316,6 +317,87 @@ class AccountTest extends V400ServerSetup {
       Then("We should get a 404 with an error message")
       responseIncorrectBank.code should equal(404)
       responseIncorrectBank.body.extract[ErrorMessage].message contains BankAccountNotFoundByAccountRouting should be (true)
+
+    }
+  }
+
+  feature(s"test $ApiEndpoint6 - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST
+      val postBody = getAccountByRoutingJson.copy(account_routing = AccountRoutingJsonV121("AccountNumber", "123456789-[A-Z]{3}"))
+      val response400 = makePostRequest(request400, write())
+      Then("We should get a 401")
+      response400.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+
+  feature(s"test $ApiEndpoint6 - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint6, VersionOfApi) {
+      Given("We create an account with account routings")
+
+      val accountRoutingSchemeTest = "AccountNumber"
+      val accountRoutingAddressTest = "123456789-EUR"
+
+      val accountRoutingAddressRegex = "123456789-[A-Z]{3}".r
+
+      val createdAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+        .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR", "0"),
+          account_routings = List(
+            AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressTest)
+          ))
+
+      createAccountViaEndpoint(testBankId.value, createdAccountJson, user1)
+
+
+      When("We make a request to get the account with a matching routing address regex without specifying bankId")
+      val getAccountByRoutingWithNoBankJson = getAccountByRoutingJson.copy(bank_id = None, AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressRegex.regex))
+
+      val requestNoBank = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST <@ (user1)
+      val responseNoBank = makePostRequest(requestNoBank, write(getAccountByRoutingWithNoBankJson))
+
+      Then("We should get a 200 and check the response body")
+      responseNoBank.code should equal(200)
+      val accounts = responseNoBank.body.extract[ModeratedAccountsJSON400]
+      accounts.accounts.length should be (1)
+      accounts.accounts.head.account_routings.find(_.scheme == "AccountNumber").map(_.address)
+        .map(accountRoutingAddressRegex.findFirstIn(_).isDefined) should be(Some(true))
+
+      When("We make a request to get the account with a matching routing address regex with specifying correct bankId")
+      val getAccountByRoutingWithBankJson = getAccountByRoutingJson.copy(Some(testBankId.value), AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressRegex.regex))
+
+      val requestWithBank = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST <@ (user1)
+      val responseWithBank = makePostRequest(requestWithBank, write(getAccountByRoutingWithBankJson))
+
+      Then("We should get a 200 and check the response body")
+      responseWithBank.code should equal(200)
+      val accounts2 = responseWithBank.body.extract[ModeratedAccountsJSON400]
+      accounts2.accounts.head.account_routings.find(_.scheme == "AccountNumber").map(_.address)
+        .map(accountRoutingAddressRegex.findFirstIn(_).isDefined) should be(Some(true))
+
+
+      When("We make a request to get the account a matching routing address regex with specifying incorrect bankId")
+      val getAccountByRoutingIncorrectBankJson = getAccountByRoutingJson.copy(Some(testBankId2.value), AccountRoutingJsonV121(accountRoutingSchemeTest, accountRoutingAddressRegex.regex))
+
+      val requestIncorrectBank = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST <@ (user1)
+      val responseIncorrectBank = makePostRequest(requestIncorrectBank, write(getAccountByRoutingIncorrectBankJson))
+
+      Then("We should get a 200 with an empty response")
+      responseIncorrectBank.code should equal(200)
+      responseIncorrectBank.body.extract[ModeratedAccountsJSON400].accounts should be(List.empty)
+
+
+      When("We make a request to get the account with an non-matching routing address regex")
+      val getAccountByRoutingIncorrectRouting = getAccountByRoutingJson.copy(bank_id = None, account_routing = AccountRoutingJsonV121("AccountNumber", "123456789-[A-Z]{4}"))
+
+      val requestIncorrectRouting = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST <@ (user1)
+      val responseIncorrectRouting = makePostRequest(requestIncorrectRouting, write(getAccountByRoutingIncorrectRouting))
+
+      Then("We should get a 200 with an empty response")
+      responseIncorrectBank.code should equal(200)
+      responseIncorrectBank.body.extract[ModeratedAccountsJSON400].accounts should be(List.empty)
 
     }
   }

@@ -1,7 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
-
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
@@ -16,10 +15,11 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountBalanceJsonV400, AccountTagJSON, AccountTagsJSON, AccountsBalancesJsonV400, ApiCollectionEndpointJson400, ApiCollectionEndpointsJson400, ApiCollectionJson400, ApiCollectionsJson400, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, AttributeJsonV400, BalanceJsonV400, BankAccountRoutingJson, BankJson400, BanksJson400, CallLimitPostJsonV400, ChallengeAnswerJson400, ChallengeJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, DoubleEntryTransactionJson, EnergySource400, HostedAt400, HostedBy400, IbanCheckerJsonV400, IbanDetailsJsonV400, JsonSchemaV400, JsonValidationV400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedCoreAccountJsonV400, ModeratedFirehoseAccountJsonV400, ModeratedFirehoseAccountsJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostApiCollectionEndpointJson400, PostApiCollectionJson400, PostCounterpartyJson400, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostRevokeGrantAccountAccessJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, Properties, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionBankAccountJson, TransactionRequestAttributeJsonV400, TransactionRequestAttributeResponseJson, TransactionRequestAttributesResponseJson, TransactionRequestBankAccountJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestRefundFrom, TransactionRequestRefundTo, TransactionRequestWithChargeJSON400, UpdateAccountJsonV400, UserLockStatusJson, When, XxxId}
+import code.api.v4_0_0.{APIInfoJson400, AccountBalanceJsonV400, AccountTagJSON, AccountTagsJSON, AccountsBalancesJsonV400, ApiCollectionEndpointJson400, ApiCollectionEndpointsJson400, ApiCollectionJson400, ApiCollectionsJson400, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, AttributeJsonV400, BalanceJsonV400, BankAccountRoutingJson, BankJson400, BanksJson400, CallLimitPostJsonV400, ChallengeAnswerJson400, ChallengeJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, DoubleEntryTransactionJson, EnergySource400, HostedAt400, HostedBy400, IbanCheckerJsonV400, IbanDetailsJsonV400, JsonSchemaV400, JsonValidationV400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedAccountsJSON400, ModeratedCoreAccountJsonV400, ModeratedFirehoseAccountJsonV400, ModeratedFirehoseAccountsJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostApiCollectionEndpointJson400, PostApiCollectionJson400, PostCounterpartyJson400, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostRevokeGrantAccountAccessJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, Properties, RefundJson, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionBankAccountJson, TransactionRequestAttributeJsonV400, TransactionRequestAttributeResponseJson, TransactionRequestAttributesResponseJson, TransactionRequestBankAccountJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestRefundFrom, TransactionRequestRefundTo, TransactionRequestWithChargeJSON400, UpdateAccountJsonV400, UserLockStatusJson, When, XxxId}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
+import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.sandbox.SandboxData
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -3671,6 +3671,10 @@ object SwaggerDefinitionsJSON {
     tags = List(accountTagJSON)
   )
 
+  val moderatedAccountsJSON400 = ModeratedAccountsJSON400(
+    accounts = List(moderatedAccountJSON400)
+  )
+
   val historicalTransactionAccountJsonV310 = HistoricalTransactionAccountJsonV310(
     bank_id = Some(bankIdExample.value),
     account_id = Some(accountIdExample.value),
@@ -4058,6 +4062,11 @@ object SwaggerDefinitionsJSON {
 
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
+
+  // the reason of declared as def instead of val: avoid be scanned by allFields field
+  private def getBankMethodBody = "%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%20%20%20%20%20%20%29"
+  val jsonConnectorMethod  = JsonConnectorMethod(Some(""),"getBank", getBankMethodBody)
+  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(getBankMethodBody)
   
   //The common error or success format.
   //Just some helper format to use in Json 

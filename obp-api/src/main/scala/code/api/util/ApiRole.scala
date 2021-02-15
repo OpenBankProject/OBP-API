@@ -651,6 +651,18 @@ object ApiRole {
   case class CanGetAuthenticationTypeValidation(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAuthenticationTypeValidation = CanGetAuthenticationTypeValidation()
 
+  case class CanCreateConnectorMethod(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateConnectorMethod = CanCreateConnectorMethod()
+
+  case class CanGetConnectorMethod(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetConnectorMethod = CanGetConnectorMethod()
+
+  case class CanUpdateConnectorMethod(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateConnectorMethod = CanUpdateConnectorMethod()
+  
+  case class CanGetAllConnectorMethods(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllConnectorMethods = CanGetAllConnectorMethods()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{

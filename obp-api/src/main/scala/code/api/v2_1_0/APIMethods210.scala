@@ -139,7 +139,7 @@ trait APIMethods210 {
       emptyObjectJson,
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagTransactionRequest, apiTagBank))
+      List(apiTagTransactionRequest, apiTagBank, apiTagNewStyle))
 
 
     lazy val getTransactionRequestTypesSupportedByBank: OBPEndpoint = {
@@ -147,18 +147,20 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "transaction-request-types" :: Nil JsonGet _ => {
         cc =>
           for {
-            u <- if(getTransactionRequestTypesIsPublic)
-              Box(Some(1))
-            else
-              cc.user ?~! UserNotLoggedIn
-            (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
+            (_, callContext) <- getTransactionRequestTypesIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
-            transactionRequestTypes <- tryo(APIUtil.getPropsValue("transactionRequests_supported_types", ""))
+            transactionRequestTypes <- Future {
+              APIUtil.getPropsValue("transactionRequests_supported_types", "")
+            }
           } yield {
             // Format the data as json
             val json = JSONFactory210.createTransactionRequestTypeJSON(transactionRequestTypes.split(",").toList)
             // Return
-            successJsonResponse(Extraction.decompose(json))
+            (json, HttpCode.`200`(callContext))
           }
       }
     }
