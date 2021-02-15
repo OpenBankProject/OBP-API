@@ -351,7 +351,8 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
+              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)) ||
+              u.hasReadAccountsBerlinGroupViewAccess(BankIdAccountId(account.bankId, account.accountId))
             }
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
@@ -483,7 +484,8 @@ This account-id then can be retrieved by the
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
+               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)) ||
+               u.hasReadAccountsBerlinGroupViewAccess(BankIdAccountId(account.bankId, account.accountId))
              }
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))

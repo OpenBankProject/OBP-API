@@ -379,7 +379,7 @@ object Consent {
           case Full(jsonAsString) =>
             try {
               val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-              checkConsent(consent, consentId, calContext) match { // Check is it Consent-JWT expired
+              checkConsent(consent, storedConsent.jsonWebToken, calContext) match { // Check is it Consent-JWT expired
                 case (Full(true)) => // OK
                   applyConsentRules(consent)
                 case failure@Failure(_, _, _) => // Handled errors
@@ -503,7 +503,7 @@ object Consent {
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
-          view_id = "owner"
+          view_id = Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
         )
       }
     }
