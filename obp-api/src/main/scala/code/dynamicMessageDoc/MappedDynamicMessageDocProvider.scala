@@ -7,8 +7,9 @@ import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-
 import java.util.UUID.randomUUID
+import code.util.Helper
+
 import scala.concurrent.duration.DurationInt
 
 object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
@@ -45,8 +46,8 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
         .Description(entity.description)
         .OutboundTopic(entity.outboundTopic)
         .InboundTopic(entity.inboundTopic)
-        .ExampleOutboundMessage(entity.exampleOutboundMessage)
-        .ExampleInboundMessage(entity.exampleInboundMessage)
+        .ExampleOutboundMessage(Helper.prettyJson(entity.exampleOutboundMessage))
+        .ExampleInboundMessage(Helper.prettyJson(entity.exampleInboundMessage))
         .OutboundAvroSchema(entity.outboundAvroSchema)
         .InboundAvroSchema(entity.inboundAvroSchema)
         .AdapterImplementation(entity.adapterImplementation)
@@ -65,8 +66,8 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
             .Description(entity.description)
             .OutboundTopic(entity.outboundTopic)
             .InboundTopic(entity.inboundTopic)
-            .ExampleOutboundMessage(entity.exampleOutboundMessage)
-            .ExampleInboundMessage(entity.exampleInboundMessage)
+            .ExampleOutboundMessage(Helper.prettyJson(entity.exampleOutboundMessage))
+            .ExampleInboundMessage(Helper.prettyJson(entity.exampleInboundMessage))
             .OutboundAvroSchema(entity.outboundAvroSchema)
             .InboundAvroSchema(entity.inboundAvroSchema)
             .AdapterImplementation(entity.adapterImplementation)

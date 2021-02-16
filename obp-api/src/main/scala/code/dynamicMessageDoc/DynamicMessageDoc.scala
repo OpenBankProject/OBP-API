@@ -1,6 +1,7 @@
 package code.dynamicMessageDoc
 
 import code.util.UUIDString
+import net.liftweb.json
 import net.liftweb.mapper._
 import scala.collection.immutable.List
 
@@ -32,8 +33,8 @@ object DynamicMessageDoc extends DynamicMessageDoc with LongKeyedMetaMapper[Dyna
     description = dynamicMessageDoc.Description.get,
     outboundTopic = dynamicMessageDoc.OutboundTopic.get,
     inboundTopic = dynamicMessageDoc.InboundTopic.get,
-    exampleOutboundMessage = dynamicMessageDoc.ExampleOutboundMessage.get,
-    exampleInboundMessage = dynamicMessageDoc.ExampleInboundMessage.get,
+    exampleOutboundMessage = json.parse(dynamicMessageDoc.ExampleOutboundMessage.get),
+    exampleInboundMessage = json.parse(dynamicMessageDoc.ExampleInboundMessage.get),
     outboundAvroSchema = dynamicMessageDoc.OutboundAvroSchema.get,
     inboundAvroSchema = dynamicMessageDoc.InboundAvroSchema.get,
     adapterImplementation = dynamicMessageDoc.AdapterImplementation.get,

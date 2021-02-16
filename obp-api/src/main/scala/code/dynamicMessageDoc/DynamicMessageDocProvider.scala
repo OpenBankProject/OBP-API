@@ -3,6 +3,7 @@ package code.dynamicMessageDoc
 import java.net.URLDecoder
 import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.common.Box
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
@@ -21,8 +22,8 @@ case class JsonDynamicMessageDoc(
   description: String, 
   outboundTopic: String, 
   inboundTopic: String, 
-  exampleOutboundMessage: String, 
-  exampleInboundMessage: String, 
+  exampleOutboundMessage: JValue, 
+  exampleInboundMessage: JValue, 
   outboundAvroSchema: String, 
   inboundAvroSchema: String,
   adapterImplementation: String,

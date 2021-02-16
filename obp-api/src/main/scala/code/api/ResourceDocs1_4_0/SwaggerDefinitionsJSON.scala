@@ -32,6 +32,7 @@ import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_P
 import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType}
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
+import net.liftweb.json
 
 import scala.collection.immutable.List
 
@@ -4092,8 +4093,8 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value,
     outboundTopic = outboundTopicExample.value,
     inboundTopic = inboundTopicExample.value,
-    exampleOutboundMessage = exampleOutboundMessageExample.value,
-    exampleInboundMessage = exampleInboundMessageExample.value,
+    exampleOutboundMessage = json.parse(exampleOutboundMessageExample.value),
+    exampleInboundMessage = json.parse(exampleInboundMessageExample.value),
     outboundAvroSchema = outboundAvroSchemaExample.value,
     inboundAvroSchema = inboundAvroSchemaExample.value,
     adapterImplementation = adapterImplementationExample.value,

@@ -228,7 +228,7 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 404)
       }
     }
-    def getBanks(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
+    def getBanks(callContext: Option[CallContext]) : Future[(List[Bank], Option[CallContext])] = {
       Connector.connector.vend.getBanks(callContext: Option[CallContext]) map {
         connectorEmptyResponse(_, callContext)
       }

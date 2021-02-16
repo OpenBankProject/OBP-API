@@ -534,7 +534,7 @@ object ExampleValue {
   lazy val ownersExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("owners", ownersExample)
 
-  lazy val exampleInboundMessageExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val exampleInboundMessageExample = ConnectorField("{}", "This is the json object.")
   glossaryItems += makeGlossaryItem("example_inbound_message", exampleInboundMessageExample)
 
   lazy val nationalIdentifierExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1683,7 +1683,7 @@ object ExampleValue {
   lazy val actualDateExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("actual_date", actualDateExample)
 
-  lazy val exampleOutboundMessageExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val exampleOutboundMessageExample = ConnectorField("{}","this will the json object")
   glossaryItems += makeGlossaryItem("example_outbound_message", exampleOutboundMessageExample)
 
   lazy val canDeleteWhereTagExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
