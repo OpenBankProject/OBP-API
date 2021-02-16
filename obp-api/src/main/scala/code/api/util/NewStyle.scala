@@ -293,12 +293,25 @@ object NewStyle {
       }
     }
 
+    def getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]) : OBPReturnType[List[BankAccountRouting]] = {
+      Connector.connector.vend.getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$AccountRoutingNotFound Current scheme is $scheme, current bankId is $bankId", 404 ), i._2)
+      }
+    }
+
     def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByAccountId Current account_id is $accountId", 404 ), i._2)
       }
     }
 
+    def getBankAccountsByIban(ibans : List[String], callContext: Option[CallContext]) : OBPReturnType[List[BankAccount]] = {
+      Future.sequence(ibans.map( iban =>
+        Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
+          (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)
+        }  
+      )).map(t => (t.map(_._1), callContext))
+    }
     def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
       Connector.connector.vend.getBankAccountByIban(iban : String, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByIban Current IBAN is $iban", 404 ), i._2)

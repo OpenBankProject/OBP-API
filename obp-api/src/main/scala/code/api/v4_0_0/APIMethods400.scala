@@ -2875,6 +2875,86 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
+      getAccountsByAccountRoutingRegex,
+      implementedInApiVersion,
+      nameOf(getAccountsByAccountRoutingRegex),
+      "POST",
+      "/management/accounts/account-routing-regex-query",
+      "Get Accounts by Account Routing Regex",
+      """This endpoint returns an array of accounts matching the provided routing scheme and the routing address regex.
+        |
+        |The `bank_id` field is optional.
+        |
+        |Example of account routing scheme: `IBAN`, `OBP`, `AccountNumber`, ...
+        |Example of account routing address regex: `DE175.*`, `55897106215-[A-Z]{3}`, ...
+        |
+        |This endpoint can be used to retrieve multiples accounts matching a same account routing address pattern.
+        |For example, if you want to link multiple accounts having different currencies, you can create an account
+        |with `123456789-EUR` as Account Number and an other account with `123456789-USD` as Account Number.
+        |So we can identify the Account Number as `123456789`, so to get all the accounts with the same account number
+        |and the different currencies, we can use this body in the request :
+        |
+        |```
+        |{
+        |   "bank_id": "BANK_ID",
+        |   "account_routing": {
+        |       "scheme": "AccountNumber",
+        |       "address": "123456789-[A-Z]{3}"
+        |   }
+        |}
+        |```
+        |
+        |This request will returns the accounts matching the routing address regex (`123456789-EUR` and `123456789-USD`).
+        |
+        |""".stripMargin,
+      bankAccountRoutingJson,
+      moderatedAccountsJSON400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError),
+      List(apiTagAccount, apiTagNewStyle),
+    )
+    lazy val getAccountsByAccountRoutingRegex : OBPEndpoint = {
+      case "management" :: "accounts" :: "account-routing-regex-query" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $accountRoutingJsonV121"
+          for {
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[BankAccountRoutingJson]
+            }
+
+            (accountRoutings, callContext) <- NewStyle.function.getAccountRoutingsByScheme(postJson.bank_id.map(BankId(_)),
+              postJson.account_routing.scheme, cc.callContext)
+
+            accountRoutingAddressRegex = postJson.account_routing.address.r
+            filteredAccountRoutings = accountRoutings.filter(accountRouting =>
+              accountRoutingAddressRegex.findFirstIn(accountRouting.accountRouting.address).isDefined)
+
+            user @Full(u) = cc.user
+
+            accountsJson <- Future.sequence(filteredAccountRoutings.map(accountRouting => for {
+              (account, callContext) <- NewStyle.function.getBankAccount(accountRouting.bankId, accountRouting.accountId, callContext)
+              view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), callContext)
+              moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, user, callContext)
+              (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccount(
+                account.bankId,
+                account.accountId,
+                callContext: Option[CallContext])
+              availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(cc.user.openOrThrowException("Exception user"), BankIdAccountId(account.bankId, account.accountId))
+              viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
+              tags = Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(view.viewId)
+            } yield createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags)
+            ))
+          } yield {
+            (ModeratedAccountsJSON400(accountsJson), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       getBankAccountsBalances,
       implementedInApiVersion,
       nameOf(getBankAccountsBalances),

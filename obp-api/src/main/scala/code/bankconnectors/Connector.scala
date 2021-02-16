@@ -486,6 +486,7 @@ trait Connector extends MdcLoggable {
   def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
+  def getAccountRoutingsByScheme(bankId: Option[BankId], scheme : String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = Future{(Failure(setUnimplementedError),callContext)}
   def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRouting, Option[CallContext])]= Failure(setUnimplementedError)
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[BankAccount]]]= Future{(Failure(setUnimplementedError), callContext)}

@@ -185,6 +185,10 @@ case class ModeratedAccountJSON400(
                                     tags: List[AccountTagJSON]
                                   )
 
+case class ModeratedAccountsJSON400(
+                                     accounts: List[ModeratedAccountJSON400]
+                                   )
+
 case class AccountTagJSON(
                            id : String,
                            value : String,
