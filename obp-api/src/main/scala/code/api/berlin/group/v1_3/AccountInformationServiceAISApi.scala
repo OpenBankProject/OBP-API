@@ -3,6 +3,7 @@ package code.api.builder.AccountInformationServiceAISApi
 import java.text.SimpleDateFormat
 
 import code.api.APIFailureNewStyle
+import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
@@ -12,14 +13,12 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiTag, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
-import code.database.authorisation.Authorisations
 import code.model._
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
@@ -59,6 +58,13 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
     lazy val newStyleEndpoints: List[(String, String)] = resourceDocs.map {
       rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
     }.toList
+
+
+    private def checkAccountAccess(viewId: ViewId, u: User, account: BankAccount) = {
+      Helper.booleanToFuture(failMsg = NoViewReadAccountsBerlinGroup + "userId : " + u.userId + ". account : " + account.accountId) {
+        u.hasViewAccess(BankIdAccountId(account.bankId, account.accountId), viewId)
+      }
+    }
             
      resourceDocs += ResourceDoc(
        createConsent,
@@ -350,10 +356,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)) ||
-              u.hasReadAccountsBerlinGroupViewAccess(BankIdAccountId(account.bankId, account.accountId))
-            }
+            _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -483,10 +486,7 @@ This account-id then can be retrieved by the
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)) ||
-               u.hasReadAccountsBerlinGroupViewAccess(BankIdAccountId(account.bankId, account.accountId))
-             }
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -967,6 +967,7 @@ Give detailed information about the addressed account together with balance info
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createAccountDetailsJson(account, u), callContext)
            }
@@ -1017,6 +1018,7 @@ respectively the OAuth2 access token.
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(account, u), callContext)
            }
