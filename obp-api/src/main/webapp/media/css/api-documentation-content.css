@@ -14,13 +14,13 @@
     margin-bottom: 10px;
 }
 .container #api_documentation_content h1 {
-    weight: lighter;
+    font-weight: lighter;
     margin-top: 72px;
     margin-bottom: 48px;
 }
 
 .container #api_documentation_content h3 {
-    weight: lighter;
+    font-weight: lighter;
     margin-top:48px;
     margin-bottom:32px;
 }

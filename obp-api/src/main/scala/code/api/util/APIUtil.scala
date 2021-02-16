@@ -212,6 +212,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     getConsentJWT(requestHeaders).isDefined
   }
 
+  /**
+   * Purpose of this helper function is to get the Consent-ID value from a Request Headers.
+   * @return the Consent-ID value from a Request Header as a String
+   */
+  def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-ID`).toList match {
+      case x :: Nil => Some(x.values.mkString(", "))
+      case _ => None
+    }
+  }
+  def `hasConsent-ID`(requestHeaders: List[HTTPParam]): Boolean = {
+    `getConsent-ID`(requestHeaders).isDefined
+  }
+
   def registeredApplication(consumerKey: String): Boolean = {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
       case Full(application) => application.isActive.get
@@ -2524,7 +2538,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val remoteIpAddress = getRemoteIpAddress()
     val res =
-      if (APIUtil.hasConsentJWT(reqHeaders)) {
+      if (APIUtil.`hasConsent-ID`(reqHeaders)) {
+        Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
+      } else if (APIUtil.hasConsentJWT(reqHeaders)) {
         Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
       } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
         getUserFromOAuthHeaderFuture(cc)

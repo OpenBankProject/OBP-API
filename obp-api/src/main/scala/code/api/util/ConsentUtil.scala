@@ -349,6 +349,70 @@ object Consent {
       case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
       case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
     }
+  }
+
+
+  private def hasBerlinGroupConsentInternal(consentId: String, calContext: CallContext): Future[Box[User]] = {
+    implicit val dateFormats = CustomJsonFormats.formats
+
+    def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
+      // 1. Get or Create a User
+      getOrCreateUser(consent.sub, consent.iss, None, None) map {
+        case (Full(user)) =>
+          // 2. Assign entitlements to the User
+          addEntitlements(user, consent) match {
+            case (Full(user)) =>
+              // 3. Assign views to the User
+              grantAccessToViews(user, consent)
+            case everythingElse =>
+              everythingElse
+          }
+        case _ =>
+          Failure("Cannot create or get the user based on: " + consentId)
+      }
+    }
+
+    // 1st we need to find a Consent via the field MappedConsent.consentId
+    Consents.consentProvider.vend.getConsentByConsentId(consentId) match { 
+      case Full(storedConsent) =>
+        JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
+          case Full(jsonAsString) =>
+            try {
+              val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
+              checkConsent(consent, storedConsent.jsonWebToken, calContext) match { // Check is it Consent-JWT expired
+                case (Full(true)) => // OK
+                  applyConsentRules(consent)
+                case failure@Failure(_, _, _) => // Handled errors
+                  Future(failure)
+                case _ => // Unexpected errors
+                  Future(Failure(ErrorMessages.ConsentCheckExpiredIssue))
+              }
+            } catch { // Possible exceptions
+              case e: ParseException => Future(Failure("ParseException: " + e.getMessage))
+              case e: MappingException => Future(Failure("MappingException: " + e.getMessage))
+              case e: Exception => Future(Failure("parsing failed: " + e.getMessage))
+            }
+          case failure@Failure(_, _, _) =>
+            Future(failure)
+          case _ =>
+            Future(Failure("Cannot extract data from: " + consentId))
+        }
+      case failure@Failure(_, _, _) =>
+        Future(failure)
+      case _ =>
+        Future(Failure(ErrorMessages.ConsentNotFound + s" ($consentId)"))
+    }
+  }
+  private def hasBerlinGroupConsent(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+    hasBerlinGroupConsentInternal(consentId, callContext) map (result => (result, Some(callContext)))
+  }
+  def applyBerlinGroupRules(consentId: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+    val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
+    (consentId, allowed) match {
+      case (Some(consentId), true) => hasBerlinGroupConsent(consentId, callContext)
+      case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
+      case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
+    }
   }  
   def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
@@ -439,7 +503,7 @@ object Consent {
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
           account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
-          view_id = "owner"
+          view_id = Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
         )
       }
     }

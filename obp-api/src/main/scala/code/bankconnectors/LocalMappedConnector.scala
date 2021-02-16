@@ -85,6 +85,8 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import org.iban4j
+import org.iban4j.{CountryCode, IbanFormat}
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -121,8 +123,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ), callContext))
   
   override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future {
-    // TODO Implement IBAN Checker
-    (Full(IbanChecker(true, None)), callContext)
+    import org.iban4j.CountryCode
+    import org.iban4j.Iban
+    import org.iban4j.IbanFormat
+    import org.iban4j.IbanFormatException
+    import org.iban4j.IbanUtil
+    import org.iban4j.InvalidCheckDigitException
+    import org.iban4j.UnsupportedCountryException
+
+    // Validate Iban 
+    try { // 1st try
+      IbanUtil.validate(iban) // IBAN as String: "DE89370400440532013000"
+      (Full(IbanChecker(true, None)), callContext) // valid
+    } catch {
+      case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
+      // invalid
+        try { // 2nd try
+          IbanUtil.validate(iban, IbanFormat.Default) // IBAN as formatted String: "DE89 3704 0044 0532 0130 00"
+          (Full(IbanChecker(true, None)), callContext) // valid
+        } catch {
+          case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
+            (Full(IbanChecker(false, None)), callContext) // invalid
+        }
+    }
   }
 
   // Gets current challenge level for transaction request

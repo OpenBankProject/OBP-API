@@ -6,7 +6,7 @@ import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 
 object CallingStoredProcedureReturningResultSet extends MdcLoggable {
-  lazy val conn = DriverManager.getConnection(dbUrl, user, password)
+  lazy val conn = DriverManager.getConnection(dbUrl, mySqlUser, mySqlPassword)
   /**
     * MySQL stored procedure:
     * CREATE DEFINER=`root`@`localhost` PROCEDURE `authuser`(IN rate INT)
@@ -15,10 +15,9 @@ object CallingStoredProcedureReturningResultSet extends MdcLoggable {
     * END
     */
     
-  // db.url=jdbc:mysql://localhost:3306/testdb8?user=root&password=kalina2016&useSSL=false&serverTimezone=UTC&nullNamePatternMatchesAll=true
   val dbUrl: String = APIUtil.getPropsValue("db.url", "jdbc:mysql://localhost:3306/testdb8?useSSL=false")
-  val user: String = "root"
-  val password: String = "kalina2016"
+  val mySqlUser: String = "YOUR_MSSQL_USER"
+  val mySqlPassword: String = "YOUR_MYSQL_PASSWORD"
 
   def main(args: Array[String]): Unit = {
     try {
