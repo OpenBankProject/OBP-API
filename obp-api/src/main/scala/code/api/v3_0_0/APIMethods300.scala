@@ -44,6 +44,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import code.api.v2_0_0.AccountsHelper._
 import code.api.v4_0_0.JSONFactory400
+import code.model
 import com.openbankproject.commons.dto.CustomerAndAttribute
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.JField
@@ -713,7 +714,7 @@ trait APIMethods300 {
               unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
             }
             //Note: error handling and messages for getTransactionParams are in the sub method
-            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, BankIdAccountId(bankId, accountId), callContext, params) map {
+            (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, callContext, params) map {
               connectorEmptyResponse(_, callContext)
             }
             moderatedTansactionsWithAttributes <- Future.sequence(transactions.map(transaction =>

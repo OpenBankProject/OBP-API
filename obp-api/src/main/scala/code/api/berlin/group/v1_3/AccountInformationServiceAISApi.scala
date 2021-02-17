@@ -13,6 +13,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiTag, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
+import code.model
 import code.model._
 import code.util.Helper
 import code.views.Views
@@ -281,24 +282,6 @@ of the PSU at this ASPSP.
             _ <- passesPsd2Aisp(callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
-
-            //If the bankAccount from obp side, there the attributes field should be Empty.
-
-            //If it comes from core banking, then we need to filter out the card accounts.
-
-            //eg: the following is a card account, can not be showed in this response. 
-            //    "attributes": [
-            //    {
-            //      "name": "CashAccountTypeCode",
-            //      "type": "STRING",
-            //      "value": "CARD"
-            //    },
-            //    {
-            //      "name": "STATUS",
-            //      "type": "STRING",
-            //      "value": "ACTIVE"
-            //    }
-            //    ]
             bankAccountsFiltered = accounts.filter(bankAccount =>
               bankAccount.attributes.toList.flatten.find(attribute =>
                 attribute.name.equals("CashAccountTypeCode")&&
@@ -426,7 +409,7 @@ respectively the OAuth2 access token.
              _ <- passesPsd2Aisp(callContext)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              //The card contains the account object, it mean the card account.
-             (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
+             (_, callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
              (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
              //also see `getAccountList` endpoint
              bankAccountsFiltered = accounts.filter(bankAccount => 
@@ -580,7 +563,7 @@ Reads account data from a given card account addressed by "account-id".
              (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext, params) map {
+             (transactions, callContext) <- model.toBankAccountExtended(bankAccount).getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
            } yield {
@@ -910,7 +893,7 @@ The ASPSP might add balance information, if transaction lists without balances a
             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext, params) map {
+            (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             } yield {
