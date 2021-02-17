@@ -795,7 +795,7 @@ of the "Read Transaction List" call within the _links subfield.
              (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
              (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
              view <- NewStyle.function.checkViewAccessAndReturnView(ViewId("owner"), BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), Some(user), callContext)
-             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(BankId(defaultBankId), AccountId(accountId), TransactionId(transactionId), view, Some(user), callContext) map {
+             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, Some(user), callContext) map {
                unboxFullOrFail(_, callContext, GetTransactionsException)
              }
            } yield {

@@ -395,7 +395,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     else
       viewNotAllowed(view)
   }
-  final def moderatedTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
+  final def moderatedTransactionFuture(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
     if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
