@@ -236,7 +236,17 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       returnValue should be (OBPFromDate(DefaultFromDate))
     }
   }
-  
+
+  implicit val dateOrdering = new Ordering[OBPToDate] {
+    override def compare(x: OBPToDate, y: OBPToDate): Int = if (x.value.after(y.value)) {
+      1
+    } else if(y.value.after(x.value)) {
+      -1
+    } else {
+      0
+    }
+  }
+
   feature("test APIUtil.getToDate method") 
   {
     scenario(s"test the correct case") 
@@ -257,15 +267,29 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
+
+      val startTime = OBPToDate(DefaultToDate)
+
       val returnValue = getToDate(httpParams)
-      returnValue should be (OBPToDate(DefaultToDate))
+      returnValue shouldBe a[Full[OBPToDate]]
+
+      val currentTime = OBPToDate(DefaultToDate)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
+
+      val startTime = OBPToDate(DefaultToDate)
+
       val returnValue = getToDate(httpParams)
-      returnValue should be (OBPToDate(DefaultToDate))
+      returnValue shouldBe a[Full[OBPToDate]]
+
+      val currentTime = OBPToDate(DefaultToDate)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
   }
   
