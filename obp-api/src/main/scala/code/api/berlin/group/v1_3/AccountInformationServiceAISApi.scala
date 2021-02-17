@@ -788,13 +788,14 @@ of the "Read Transaction List" call within the _links subfield.
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
-       case "accounts" :: accountId:: "transactions" :: transactionId :: Nil JsonGet _ => {
+       case "accounts" :: accountId :: "transactions" :: transactionId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(user), callContext) <- authenticatedAccess(cc)
-             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
-             (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
-             view <- NewStyle.function.checkViewAccessAndReturnView(ViewId("owner"), BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), Some(user), callContext)
+             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
+             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(user), callContext)
              (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, Some(user), callContext) map {
                unboxFullOrFail(_, callContext, GetTransactionsException)
              }
@@ -886,7 +887,9 @@ The ASPSP might add balance information, if transaction lists without balances a
             _ <- passesPsd2Aisp(callContext)
             (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+            bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }

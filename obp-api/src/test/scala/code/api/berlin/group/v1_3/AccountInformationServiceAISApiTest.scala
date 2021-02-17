@@ -24,6 +24,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   object getBalances extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getBalances))
 
   object getTransactionList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getTransactionList))
+  
+  object getTransactionDetails extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getTransactionDetails))
 
   object getCardAccountTransactionList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getCardAccountTransactionList))
 
@@ -120,8 +122,22 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
   feature(s"BG v1.3 - $getTransactionList") {
     scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionList) {
-      val testBankId = testAccountId1
-      val requestGet = (V1_3_BG / "accounts" /testBankId.value/ "transactions").GET <@ (user1)
+      val testAccountId = testAccountId1
+
+      val requestGetFailed = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
+      val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
+      Then("We should get a 403 ")
+      responseGetFailed.code should equal(403)
+      
+      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+      val requestGet = (V1_3_BG / "accounts" /testAccountId1.value/ "transactions").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
 
       Then("We should get a 200 ")
@@ -129,6 +145,40 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       response.body.extract[TransactionsJsonV13].account.iban should not be ("")
       response.body.extract[TransactionsJsonV13].transactions.booked.length >0 should be (true)
       response.body.extract[TransactionsJsonV13].transactions.pending.length >0 should be (true)
+    }
+  }
+
+  feature(s"BG v1.3 - $getTransactionDetails") {
+    scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionDetails, getTransactionList) {
+      val testAccountId = testAccountId1
+
+      val requestGetFailed = (V1_3_BG / "accounts" / testAccountId.value / "transactions" / "whatever").GET <@ (user1)
+      val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
+      Then("We should get a 403 ")
+      responseGetFailed.code should equal(403)
+      
+      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+      val requestGet = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
+      val response: APIResponse = makeGetRequest(requestGet)
+
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      response.body.extract[TransactionsJsonV13].account.iban should not be ("")
+      response.body.extract[TransactionsJsonV13].transactions.booked.length > 0 should be (true)
+      response.body.extract[TransactionsJsonV13].transactions.pending.length > 0 should be (true)
+      val transactionId = response.body.extract[TransactionsJsonV13].transactions.booked.head.transactionId
+
+      val requestGet2 = (V1_3_BG / "accounts" / testAccountId.value / "transactions" / transactionId).GET <@ (user1)
+      val response2: APIResponse = makeGetRequest(requestGet2)
+      response2.code should equal(200)
+      response2.body.extract[SingleTransactionJsonV13].value.transactionsDetails.transactionId should be (transactionId)
     }
   }
 
