@@ -725,7 +725,7 @@ object JsonUtils {
     }
   }
 
-  private def getNestedJObjects(jObject: JObject): List[String] = {
+  private def getNestedJObjects(jObject: JObject, typeNamePrefix: String): List[String] = {
     val nestedObjects = collectField(jObject) {
       case (JField(_, _: JObject), _) => true
       case (JField(_, JArray((_: JObject) :: _)), _) => true
@@ -741,18 +741,18 @@ object JsonUtils {
 
     val subTypes: List[String] = nestedObjects collect {
       case (JField(name, v: JObject), path) =>
-        jObjectToCaseClass(v, name, getParentFiledName(path))
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
       case (JField(name, JArray((v: JObject) :: _)), path) =>
-        jObjectToCaseClass(v, name, getParentFiledName(path))
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
       case (JField(name, JArray(JArray((v: JObject) :: _) :: _)), path) =>
-        jObjectToCaseClass(v, name, getParentFiledName(path))
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
       case (JField(name, JArray(JArray(JArray((v: JObject) :: _) :: _) :: _)), path) =>
-        jObjectToCaseClass(v, name, getParentFiledName(path))
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
       case (JField(name, JArray(JArray(JArray(JArray((v: JObject) :: _) :: _) :: _) :: _)), path) =>
-        jObjectToCaseClass(v, name, getParentFiledName(path))
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
       case (JField(name, JArray(JArray(JArray(JArray(JArray((v: JObject) :: _) :: _) :: _) :: _) :: _)), path) =>
-        jObjectToCaseClass(v, name, getParentFiledName(path))
-      case (JField(name, JArray(JArray(JArray(JArray(JArray(JArray(_ :: _) :: _) :: _) :: _) :: _) :: _)), path) =>
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
+      case (JField(_, JArray(JArray(JArray(JArray(JArray(JArray(_ :: _) :: _) :: _) :: _) :: _) :: _)), path) =>
         throw new IllegalArgumentException(s"Json field $path have too much nested level, max nested level be supported is 5.")
     } toList
 
@@ -764,16 +764,16 @@ object JsonUtils {
    * @param jvalue
    * @return case class string
    */
-  def toCaseClasses(jvalue: JValue): String = {
+  def toCaseClasses(jvalue: JValue, typeNamePrefix: String = ""): String = {
     validateJArray(jvalue)
     jvalue match {
-      case _: JBool => "type RootJsonClass = Boolean"
-      case _: JString  => "type RootJsonClass = String"
-      case _: JDouble => "type RootJsonClass = Double"
-      case _: JInt => "type RootJsonClass = Long"
+      case _: JBool     => s"type ${typeNamePrefix}RootJsonClass = Boolean"
+      case _: JString   => s"type ${typeNamePrefix}RootJsonClass = String"
+      case _: JDouble   => s"type ${typeNamePrefix}RootJsonClass = Double"
+      case _: JInt      => s"type ${typeNamePrefix}RootJsonClass = Long"
       case jObject: JObject =>
         validateJArray(jObject)
-        val allDefinitions = getNestedJObjects(jObject) :+ jObjectToCaseClass(jObject)
+        val allDefinitions = getNestedJObjects(jObject, typeNamePrefix) :+ jObjectToCaseClass(jObject, typeNamePrefix)
         allDefinitions mkString "\n"
 
       case jArray: JArray =>
@@ -785,9 +785,9 @@ object JsonUtils {
             case _: JDouble => "List[Double]"
             case _: JInt => "List[Long]"
             case v: JObject =>
-              val itemsType = jObjectToCaseClass(v, "RootItem")
+              val itemsType = jObjectToCaseClass(v, typeNamePrefix, "RootItem")
               s"""$itemsType
-                 |List[RootItemJsonClass]
+                 |List[${typeNamePrefix}RootItemJsonClass]
                  |""".stripMargin
             case v: JArray =>
               val nestedItmType = buildArrayType(v)
@@ -802,7 +802,7 @@ object JsonUtils {
               nestedItmType.replaceAll("(^|.*\\s+)(.+)\\s*$", "$1List[$2]")
           }
         // add type alias for last row
-        buildArrayType(jArray).replaceAll("(^|.*\\s+)(.+)\\s*$", "$1 type RootJsonClass = $2")
+        buildArrayType(jArray).replaceAll("(^|.*\\s+)(.+)\\s*$", s"$$1 type ${typeNamePrefix}RootJsonClass = $$2")
 
       case null | JNull | JNothing => throw new IllegalArgumentException(s"null value json can't generate case class")
     }
@@ -810,7 +810,7 @@ object JsonUtils {
   }
 
 
-  private def jObjectToCaseClass(jObject: JObject, fieldName: String = "", parentFieldName: String = ""): String =  {
+  private def jObjectToCaseClass(jObject: JObject, typeNamePrefix: String, fieldName: String = "", parentFieldName: String = ""): String =  {
     val JObject(fields) = jObject
     val optionalFields = (jObject \ optionalFieldName) match {
       case JArray(arr) if arr.forall(_.isInstanceOf[JString]) =>
@@ -819,7 +819,7 @@ object JsonUtils {
       case _ => throw new IllegalArgumentException(s"Filed $optionalFieldName of $fieldName should be an array of String")
     }
 
-    def toCaseClassName(name: String) = s"${fieldName.capitalize}${name.capitalize}JsonClass"
+    def toCaseClassName(name: String) = s"$typeNamePrefix${fieldName.capitalize}${name.capitalize}JsonClass"
 
     val currentCaseClass: String = fields collect {
       case JField(name, v) if isBasicType(v) =>
@@ -850,7 +850,7 @@ object JsonUtils {
 
         val escapedFieldsName = reservedToEscaped.getOrElse(name, name)
         s"$escapedFieldsName: $fieldType"
-    } mkString(s"case class ${parentFieldName.capitalize}${if(fieldName.isEmpty) "Root" else fieldName.capitalize}JsonClass(", ", ", ")")
+    } mkString(s"case class $typeNamePrefix${parentFieldName.capitalize}${if(fieldName.isEmpty) "Root" else fieldName.capitalize}JsonClass(", ", ", ")")
 
     currentCaseClass
   }
