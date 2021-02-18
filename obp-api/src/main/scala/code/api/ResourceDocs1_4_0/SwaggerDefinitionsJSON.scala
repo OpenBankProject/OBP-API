@@ -4073,7 +4073,6 @@ object SwaggerDefinitionsJSON {
     dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
     connectorMethodBody = methodBodyExample.value,
     partialFunction = partialFunctionExample.value,
-    implementedInApiVersion = implementedInApiVersionExample.value,
     partialFunctionName = partialFunctionNameExample.value,
     requestVerb = requestVerbExample.value, 
     requestUrl = requestUrlExample.value, 
@@ -4083,10 +4082,7 @@ object SwaggerDefinitionsJSON {
     successResponseBody = successResponseBodyExample.value, 
     errorResponseBodies = errorResponseBodiesExample.value, 
     tags = tagsExample.value, 
-    roles = rolesExample.value, 
-    isFeatured = false, 
-    specialInstructions = specialInstructionsExample.value,
-    specifiedUrl = specifiedUrlExample.value 
+    roles = rolesExample.value
   )
   
   val jsonDynamicMessageDoc = JsonDynamicMessageDoc(

@@ -15,6 +15,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
 
   private val getDynamicResourceDocTTL : Int = {
     if(Props.testMode) 0
+    else if(Props.devMode) 10
     else APIUtil.getPropsValue(s"dynamicResourceDoc.cache.ttl.seconds", "40").toInt
   }
 
@@ -26,12 +27,12 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     .find(By(DynamicResourceDoc.RequestVerb, requestVerb), By(DynamicResourceDoc.RequestUrl, requestUrl))
     .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
   
-  override def getAll(): List[JsonDynamicResourceDoc] = {
+  override def getAllAndConvert[T: Manifest](transform: JsonDynamicResourceDoc => T): List[T] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicResourceDocTTL second) {
         DynamicResourceDoc.findAll()
-          .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+          .map(doc => transform(DynamicResourceDoc.getJsonDynamicResourceDoc(doc)))
       }}
   }
 
@@ -40,7 +41,6 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       DynamicResourceDoc.create
       .DynamicResourceDocId(APIUtil.generateUUID())
       .PartialFunction(entity.partialFunction)
-      .ImplementedInApiVersion(entity.implementedInApiVersion)
       .PartialFunctionName(entity.partialFunctionName)
       .RequestVerb(entity.requestVerb)
       .RequestUrl(entity.requestUrl)
@@ -51,7 +51,6 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       .ErrorResponseBodies(entity.errorResponseBodies)
       .Tags(entity.tags)
       .Roles(entity.roles)
-      .IsFeatured(entity.isFeatured)
       .ConnectorMethodBody(entity.connectorMethodBody)
       .saveMe()
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
@@ -62,7 +61,6 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       case Full(v) =>
         tryo {
           v.PartialFunction(entity.partialFunction)
-            .ImplementedInApiVersion(entity.implementedInApiVersion)
             .PartialFunctionName(entity.partialFunctionName)
             .RequestVerb(entity.requestVerb)
             .RequestUrl(entity.requestUrl)
@@ -73,7 +71,6 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
             .ErrorResponseBodies(entity.errorResponseBodies)
             .Tags(entity.tags)
             .Roles(entity.roles)
-            .IsFeatured(entity.isFeatured)
             .ConnectorMethodBody(entity.connectorMethodBody)
             .saveMe()
         }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)

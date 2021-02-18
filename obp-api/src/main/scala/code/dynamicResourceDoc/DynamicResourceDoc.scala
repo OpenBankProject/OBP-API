@@ -10,7 +10,6 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
   
   object DynamicResourceDocId extends UUIDString(this)
   object PartialFunction extends MappedString(this, 255)
-  object ImplementedInApiVersion extends MappedString(this, 255)
   object PartialFunctionName extends MappedString(this, 255)
   object RequestVerb extends MappedString(this, 255)
   object RequestUrl extends MappedString(this, 255)
@@ -21,9 +20,6 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
   object ErrorResponseBodies extends MappedString(this, 255) 
   object Tags extends MappedString(this, 255)
   object Roles extends MappedString(this, 255)
-  object IsFeatured extends MappedBoolean(this)
-  object SpecialInstructions extends MappedString(this, 255)
-  object SpecifiedUrl extends MappedString(this, 255) 
   object ConnectorMethodBody extends MappedText(this)
 
 }
@@ -35,7 +31,6 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     dynamicResourceDocId = Some(dynamicResourceDoc.DynamicResourceDocId.get),
     connectorMethodBody = dynamicResourceDoc.ConnectorMethodBody.get,
     partialFunction = dynamicResourceDoc.PartialFunction.get,
-    implementedInApiVersion = dynamicResourceDoc.ImplementedInApiVersion.get,
     partialFunctionName = dynamicResourceDoc.PartialFunctionName.get,
     requestVerb = dynamicResourceDoc.RequestVerb.get,
     requestUrl = dynamicResourceDoc.RequestUrl.get,
@@ -45,10 +40,7 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     successResponseBody = dynamicResourceDoc.SuccessResponseBody.get,
     errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
     tags = dynamicResourceDoc.Tags.get,
-    roles = dynamicResourceDoc.Roles.get,
-    isFeatured = dynamicResourceDoc.IsFeatured.get,
-    specialInstructions = dynamicResourceDoc.SpecialInstructions.get,
-    specifiedUrl = dynamicResourceDoc.SpecialInstructions.get
+    roles = dynamicResourceDoc.Roles.get
   )
 }
 

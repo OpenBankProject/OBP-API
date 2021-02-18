@@ -18,8 +18,7 @@ case class JsonDynamicResourceDoc(
   dynamicResourceDocId: Option[String],
   connectorMethodBody: String,
   partialFunction: String, 
-  implementedInApiVersion: String, 
-  partialFunctionName: String, 
+  partialFunctionName: String,
   requestVerb: String, 
   requestUrl: String, 
   summary: String, 
@@ -28,10 +27,7 @@ case class JsonDynamicResourceDoc(
   successResponseBody: String,
   errorResponseBodies: String,
   tags: String,
-  roles: String,
-  isFeatured: Boolean,
-  specialInstructions: String,
-  specifiedUrl: String
+  roles: String
 ) extends JsonFieldReName{
   def decodedMethodBody: String = URLDecoder.decode(connectorMethodBody, "UTF-8")
 }
@@ -41,7 +37,9 @@ trait DynamicResourceDocProvider {
   def getById(dynamicResourceDocId: String): Box[JsonDynamicResourceDoc]
   def getByVerbAndUrl(requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc]
   
-  def getAll(): List[JsonDynamicResourceDoc]
+  def getAll(): List[JsonDynamicResourceDoc] = getAllAndConvert(identity)
+
+  def getAllAndConvert[T: Manifest](transform: JsonDynamicResourceDoc => T): List[T]
 
   def create(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
   def update(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
