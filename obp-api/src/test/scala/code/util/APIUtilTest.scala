@@ -204,7 +204,17 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       returnValue should be (Full(OBPDescending))
     }
   }
-  
+
+  implicit val fromDateOrdering = new Ordering[OBPFromDate] {
+    override def compare(x: OBPFromDate, y: OBPFromDate): Int = if (x.value.after(y.value)) {
+      1
+    } else if(y.value.after(x.value)) {
+      -1
+    } else {
+      0
+    }
+  }
+
   feature("test APIUtil.getFromDate method") 
   {
     scenario(s"test the correct case") 
@@ -222,22 +232,32 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       returnValue.toString contains FilterDateFormatError should be (true)
     }
     
-    scenario(s"test the wrong case: wrong name (wrongName) in HTTPParam") 
+    scenario("test the wrong case: wrong name (wrongName) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
+      val startTime = OBPFromDate(DefaultFromDate)
       val returnValue = getFromDate(httpParams)
-      returnValue should be (OBPFromDate(DefaultFromDate))
+      returnValue shouldBe a[Full[OBPFromDate]]
+
+      val currentTime = OBPFromDate(DefaultFromDate)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
     
-    scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
+    scenario("test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
+      val startTime = OBPFromDate(DefaultFromDate)
       val returnValue = getFromDate(httpParams)
-      returnValue should be (OBPFromDate(DefaultFromDate))
+      returnValue shouldBe a[Full[OBPFromDate]]
+
+      val currentTime = OBPFromDate(DefaultFromDate)
+      val beWithinTolerance = be  >= startTime and be <= currentTime
+      returnValue.orNull should beWithinTolerance
     }
   }
 
-  implicit val dateOrdering = new Ordering[OBPToDate] {
+  implicit val toDateOrdering = new Ordering[OBPToDate] {
     override def compare(x: OBPToDate, y: OBPToDate): Int = if (x.value.after(y.value)) {
       1
     } else if(y.value.after(x.value)) {
