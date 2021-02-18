@@ -168,8 +168,9 @@ object ErrorMessages {
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
   val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
   val CouldNotGetUserLockStatus = "OBP-20059: Could not get the lock status of the user."
-  val NoViewReadAccountsBerlinGroup = s"OBP-20019: User does not have access to $SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID view. "
-  
+  val NoViewReadAccountsBerlinGroup = s"OBP-20060: User does not have access to the view $SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID."
+  val NoAccountAccessOnView = "OBP-20061: Current user does not have access to the view "
+
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 

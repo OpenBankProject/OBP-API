@@ -6,7 +6,7 @@ import code.api.APIFailureNewStyle
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
-import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
+import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
@@ -62,7 +62,7 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
 
 
     private def checkAccountAccess(viewId: ViewId, u: User, account: BankAccount) = {
-      Helper.booleanToFuture(failMsg = NoViewReadAccountsBerlinGroup + "userId : " + u.userId + ". account : " + account.accountId) {
+      Helper.booleanToFuture(failMsg = NoViewReadAccountsBerlinGroup + " userId : " + u.userId + ". account : " + account.accountId, 403) {
         u.hasViewAccess(BankIdAccountId(account.bankId, account.accountId), viewId)
       }
     }
@@ -554,9 +554,11 @@ Reads account data from a given card account addressed by "account-id".
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             (bankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
+             (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
              (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
+             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
@@ -795,7 +797,7 @@ of the "Read Transaction List" call within the _links subfield.
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
              bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
-             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(user), callContext)
+             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(user), callContext)
              (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, Some(user), callContext) map {
                unboxFullOrFail(_, callContext, GetTransactionsException)
              }
@@ -889,7 +891,7 @@ The ASPSP might add balance information, if transaction lists without balances a
             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
             bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(u), callContext)
+            view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }

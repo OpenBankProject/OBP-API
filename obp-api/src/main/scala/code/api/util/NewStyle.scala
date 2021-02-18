@@ -410,6 +410,13 @@ object NewStyle {
         unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
       }
     }
+    def checkAccountAccessAndGetView(viewId : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
+      Future{
+        APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, user)
+      } map {
+        unboxFullOrFail(_, callContext, s"$NoAccountAccessOnView ${viewId.value}", 403)
+      }
+    }
     def checkViewsAccessAndReturnView(firstView : ViewId, secondView : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
       Future{
         APIUtil.checkViewAccessAndReturnView(firstView, bankAccountId, user).or(
