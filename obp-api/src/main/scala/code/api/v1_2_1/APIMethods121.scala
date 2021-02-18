@@ -99,7 +99,7 @@ trait APIMethods121 {
     for {
       (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
       view: View <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext)
-      (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(bankId, accountId, transactionID, view, user, callContext) map {
+      (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(transactionID, view, user, callContext) map {
         unboxFullOrFail(_, callContext, GetTransactionsException)
       }
       metadata <- Future(moderatedTransaction.metadata) map {

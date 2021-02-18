@@ -78,9 +78,9 @@ case class UserExtended(val user: User) extends MdcLoggable {
   final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
     checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId).isDefined
   }
-  final def hasReadAccountsBerlinGroupViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
+  final def hasViewAccess(bankIdAccountId: BankIdAccountId, viewId: ViewId): Boolean = {
     APIUtil.checkViewAccessAndReturnView(
-      ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), 
+      viewId, 
       bankIdAccountId, Some(this.user)
     ).isDefined
   }

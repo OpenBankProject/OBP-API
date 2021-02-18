@@ -1,14 +1,15 @@
 package code.api.berlin.group.v1_3
 
-import com.openbankproject.commons.model.ErrorMessage
+import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
-import code.api.util.ExampleValue
-import code.model.dataAccess.BankAccountRouting
+import code.api.v4_0_0.PostViewJsonV400
+import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
@@ -23,6 +24,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   object getBalances extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getBalances))
 
   object getTransactionList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getTransactionList))
+  
+  object getTransactionDetails extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getTransactionDetails))
 
   object getCardAccountTransactionList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getCardAccountTransactionList))
 
@@ -77,6 +80,15 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val requestGetAccounts = (V1_3_BG / "accounts").GET <@ (user1)
       val responseGetAccounts = makeGetRequest(requestGetAccounts)
       val accountId = responseGetAccounts.body.extract[CoreAccountsJsonV13].accounts.map(_.resourceId).headOption.getOrElse("")
+
+      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, accountId)).map(_.bankId.value).getOrElse("")
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        accountId,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
       
       val requestGet = (V1_3_BG / "accounts" / accountId).GET <@ (user1)
       val response = makeGetRequest(requestGet)
@@ -89,8 +101,23 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
   feature(s"BG v1.3 - $getBalances") {
     scenario("Authentication User, test succeed", BerlinGroupV1_3, getBalances) {
-      val testBankId = testAccountId1
-      val requestGet = (V1_3_BG / "accounts" /testBankId.value/ "balances").GET <@ (user1)
+      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId1.value)).map(_.bankId.value).getOrElse("")
+      
+      Then("We should get a 403 ")
+      val requestGetFailed = (V1_3_BG / "accounts" / testAccountId1.value / "balances").GET <@ (user1)
+      val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
+      responseGetFailed.code should equal(403)
+      responseGetFailed.body.extract[ErrorMessage].message should startWith(NoViewReadAccountsBerlinGroup)
+      
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId1.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+      
+      val requestGet = (V1_3_BG / "accounts" / testAccountId1.value / "balances").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
 
       Then("We should get a 200 ")
@@ -102,8 +129,23 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
   feature(s"BG v1.3 - $getTransactionList") {
     scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionList) {
-      val testBankId = testAccountId1
-      val requestGet = (V1_3_BG / "accounts" /testBankId.value/ "transactions").GET <@ (user1)
+      val testAccountId = testAccountId1
+
+      val requestGetFailed = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
+      val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
+      Then("We should get a 403 ")
+      responseGetFailed.code should equal(403)
+      responseGetFailed.body.extract[ErrorMessage].message should startWith(NoAccountAccessOnView)
+      
+      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+      val requestGet = (V1_3_BG / "accounts" /testAccountId1.value/ "transactions").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
 
       Then("We should get a 200 ")
@@ -114,12 +156,61 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
     }
   }
 
-  feature(s"BG v1.3 - $getCardAccountTransactionList") {
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, getCardAccountTransactionList) {
-      val testBankId = testAccountId1
-      val requestGet = (V1_3_BG / "card-accounts" /testBankId.value/ "transactions").GET <@ (user1)
+  feature(s"BG v1.3 - $getTransactionDetails") {
+    scenario("Authentication User, test succeed", BerlinGroupV1_3, getTransactionDetails, getTransactionList) {
+      val testAccountId = testAccountId1
+
+      val requestGetFailed = (V1_3_BG / "accounts" / testAccountId.value / "transactions" / "whatever").GET <@ (user1)
+      val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
+      Then("We should get a 403 ")
+      responseGetFailed.code should equal(403)
+      responseGetFailed.body.extract[ErrorMessage].message should startWith(NoAccountAccessOnView)
+      
+      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+      val requestGet = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
 
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      response.body.extract[TransactionsJsonV13].account.iban should not be ("")
+      response.body.extract[TransactionsJsonV13].transactions.booked.length > 0 should be (true)
+      response.body.extract[TransactionsJsonV13].transactions.pending.length > 0 should be (true)
+      val transactionId = response.body.extract[TransactionsJsonV13].transactions.booked.head.transactionId
+
+      val requestGet2 = (V1_3_BG / "accounts" / testAccountId.value / "transactions" / transactionId).GET <@ (user1)
+      val response2: APIResponse = makeGetRequest(requestGet2)
+      response2.code should equal(200)
+      response2.body.extract[SingleTransactionJsonV13].value.transactionsDetails.transactionId should be (transactionId)
+    }
+  }
+
+  feature(s"BG v1.3 - $getCardAccountTransactionList") {
+    scenario("Authentication User, test succeed", BerlinGroupV1_3, getCardAccountTransactionList) {
+      val testAccountId = testAccountId1
+      val requestGetFailed = (V1_3_BG / "card-accounts" / testAccountId.value / "transactions").GET <@ (user1)
+      val responseGetFailed: APIResponse = makeGetRequest(requestGetFailed)
+      Then("We should get a 403 ")
+      responseGetFailed.code should equal(403)
+      responseGetFailed.body.extract[ErrorMessage].message should startWith(NoAccountAccessOnView)
+
+      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, testAccountId.value)).map(_.bankId.value).getOrElse("")
+      grantUserAccessToViewViaEndpoint(
+        bankId,
+        testAccountId.value,
+        resourceUser1.userId,
+        user1,
+        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+      )
+
+      val requestGet = (V1_3_BG / "card-accounts" / testAccountId.value / "transactions").GET <@ (user1)
+      val response: APIResponse = makeGetRequest(requestGet)
       Then("We should get a 200 ")
       response.code should equal(200)
       response.body.extract[CardTransactionsJsonV13].cardAccount.maskedPan.length >0 should be (true)
@@ -350,18 +441,6 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         val responseGetConsentScaStatus = makeGetRequest(requestGetConsentScaStatus)
         responseGetConsentScaStatus.code should be (200)
         responseGetConsentScaStatus.body.extract[ScaStatusJsonV13].scaStatus should be ("received")
-/*
-        Then(s"We test the $updateConsentsPsuData")
-        val updateConsentsPsuDataJsonBody = APIMethods_AccountInformationServiceAISApi
-          .resourceDocs
-          .filter( _.partialFunction == APIMethods_AccountInformationServiceAISApi.updateConsentsPsuData)
-          .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
-          .jvalueToCaseclass.extract[PostConsentJson]
-        val requestUpdateConsentsPsuData = (V1_3_BG / "consents"/consentId /"authorisations"/ authorisationId).PUT <@ (user1)
-        val responseUpdateConsentsPsuData = makePutRequest(requestUpdateConsentsPsuData, write(updateConsentsPsuDataJsonBody))
-        responseUpdateConsentsPsuData.code should be (200)
-        responseUpdateConsentsPsuData.body.extract[PostConsentResponseJson].consentStatus should be ("received")
-        */
       }
     }  
 
