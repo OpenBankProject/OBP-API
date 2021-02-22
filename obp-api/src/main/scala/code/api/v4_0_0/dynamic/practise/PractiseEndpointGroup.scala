@@ -24,7 +24,7 @@ object PractiseEndpointGroup extends EndpointGroup{
     PractiseEndpoint.requestUrl,
     "A test endpoint",
     s"""A test endpoint.
-       | only available in development mode
+       |Just for debug method body of dynamic resource doc
        |""",
     StringBody("Any request body"),
     StringBody("Any response body"),

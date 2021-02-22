@@ -7,7 +7,6 @@ import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
-import net.liftweb.util.Props
 import org.apache.commons.lang3.StringUtils
 
 import java.net.URLDecoder
@@ -15,11 +14,7 @@ import scala.collection.immutable.List
 import scala.util.control.Breaks.{break, breakable}
 
 object DynamicEndpoints {
-  private var endpointGroup: List[EndpointGroup] = DynamicResourceDocs :: Nil
-
-  if (Props.devMode) {
-    endpointGroup = PractiseEndpointGroup :: endpointGroup
-  }
+  private val endpointGroup: List[EndpointGroup] = PractiseEndpointGroup :: DynamicResourceDocs :: Nil
 
   private def findEndpoint(req: Req): Option[OBPEndpoint] = {
     var foundEndpoint: Option[OBPEndpoint] = None
