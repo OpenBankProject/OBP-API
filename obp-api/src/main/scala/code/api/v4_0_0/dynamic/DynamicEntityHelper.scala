@@ -1,10 +1,10 @@
-package code.api.v4_0_0
+package code.api.v4_0_0.dynamic
 
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagDynamic, apiTagDynamicEndpoint, apiTagNewStyle}
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiTag, ExampleValue, NewStyle}
+import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._

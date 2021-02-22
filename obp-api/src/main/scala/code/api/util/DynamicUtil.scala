@@ -1,5 +1,8 @@
 package code.api.util
-import net.liftweb.common.{Box, Failure}
+import com.openbankproject.commons.util.JsonUtils
+import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.json.{JObject, JValue, prettyRender}
+
 import java.util.concurrent.ConcurrentHashMap
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
@@ -80,6 +83,30 @@ object DynamicUtil {
       case _ => throw new IllegalStateException(s"$methodName can not be called here.")
     }
     result.asInstanceOf[AnyRef]
+  }
+
+  def toCaseObject(jValue: JValue): Product = {
+    val caseClasses = JsonUtils.toCaseClasses(jValue)
+    val code =
+      s"""
+         | $caseClasses
+         |
+         | // throws exception: net.liftweb.json.MappingException:
+         | //No usable value for name
+         | //Did not find value which can be converted into java.lang.String
+         |
+         |implicit val formats = code.api.util.CustomJsonFormats.formats
+         |(jValue: net.liftweb.json.JsonAST.JValue) => {
+         |  jValue.extract[RootJsonClass]
+         |}
+         |""".stripMargin
+    val fun: Box[JValue => Product] = DynamicUtil.compileScalaCode(code)
+    fun match {
+      case Full(func) => func.apply(jValue)
+      case Failure(msg: String, exception: Box[Throwable], _) =>
+        throw exception.getOrElse(new RuntimeException(msg))
+      case _ => throw new RuntimeException(s"Json extract to case object fail, json: \n ${prettyRender(jValue)}")
+    }
   }
 
   /**

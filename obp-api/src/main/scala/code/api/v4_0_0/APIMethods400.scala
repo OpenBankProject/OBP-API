@@ -23,8 +23,10 @@ import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
-import code.api.v4_0_0.DynamicEndpointHelper.DynamicReq
+import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
+import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
+import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
@@ -68,11 +70,13 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-import java.util.Date
 
+import java.util.Date
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 
+import java.net.URLEncoder
+import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -7119,6 +7123,10 @@ trait APIMethods400 {
               json.extract[JsonDynamicResourceDoc]
             }
 
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
+              Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
+            }
+
             (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.requestUrl, Some(cc))
             _ <- Helper.booleanToFuture(failMsg = s"$DynamicResourceDocAlreadyExists The combination of request_url(${jsonDynamicResourceDoc.requestUrl}) and request_verb(${jsonDynamicResourceDoc.requestVerb}) must be unique") {
               (!isExists)
@@ -7159,6 +7167,10 @@ trait APIMethods400 {
           for {
             dynamicResourceDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
+              Set("POST", "PUT", "GET", "DELETE").contains(dynamicResourceDocBody.requestVerb)
             }
 
             (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
@@ -7260,6 +7272,48 @@ trait APIMethods400 {
             (dynamicResourceDocs, callContext) <- NewStyle.function.getJsonDynamicResourceDocs(cc.callContext)
           } yield {
             (ListResult("dynamic-resource-docs", dynamicResourceDocs), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      buildDynamicEndpointTemplate,
+      implementedInApiVersion,
+      nameOf(buildDynamicEndpointTemplate),
+      "POST",
+      "/management/dynamic-resource-docs/endpoint-code",
+      "Create Dynamic Resource Doc endpoint code",
+      s"""Create a Dynamic Resource Doc endpoint code.
+         |
+         |copy the response and past to ${nameOf(PractiseEndpoint)}, So you can have the benifit of
+         |auto compilation and debug
+         |""",
+      jsonResourceDocFragment,
+      jsonCodeTemplate,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      None)
+
+    lazy val buildDynamicEndpointTemplate: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: "endpoint-code" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            resourceDocFragment <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ResourceDocFragment", 400, cc.callContext) {
+              json.extract[ResourceDocFragment]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
+               Set("POST", "PUT", "GET", "DELETE").contains(resourceDocFragment.requestVerb)
+            }
+
+            code = DynamicEndpointCodeGenerator.buildTemplate(resourceDocFragment)
+
+          } yield {
+            ("code" -> URLEncoder.encode(code, "UTF-8"), HttpCode.`201`(cc.callContext))
           }
       }
     }

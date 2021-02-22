@@ -92,7 +92,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   "List json" should "generate correct case class" taggedAs FunctionsTag in {
     {
       val listIntJson = """[1,2,3]"""
-      val expectedCaseClass = """ type RootJsonClass = List[Long]"""
 
       toCaseClass(listIntJson) should be(""" type RootJsonClass = List[Long]""")
       toCaseClass(listIntJson, "Response") should be(""" type ResponseRootJsonClass = List[Long]""")

@@ -1,7 +1,6 @@
 package code.entitlement
 
-
-import code.api.v4_0_0.DynamicEntityInfo
+import code.api.v4_0_0.dynamic.DynamicEntityInfo
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.Box
 import net.liftweb.mapper._

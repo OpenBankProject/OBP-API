@@ -15,21 +15,21 @@ object DynamicResourceDocProvider extends SimpleInjector {
 }
 
 case class JsonDynamicResourceDoc(
-  dynamicResourceDocId: Option[String],
-  connectorMethodBody: String,
-  partialFunction: String, 
-  partialFunctionName: String,
-  requestVerb: String, 
-  requestUrl: String, 
-  summary: String, 
-  description: String, 
-  exampleRequestBody: String, 
-  successResponseBody: String,
-  errorResponseBodies: String,
-  tags: String,
-  roles: String
+   dynamicResourceDocId: Option[String],
+   methodBody: String,
+   partialFunction: String,
+   partialFunctionName: String,
+   requestVerb: String,
+   requestUrl: String,
+   summary: String,
+   description: String,
+   exampleRequestBody: String,
+   successResponseBody: String,
+   errorResponseBodies: String,
+   tags: String,
+   roles: String
 ) extends JsonFieldReName{
-  def decodedMethodBody: String = URLDecoder.decode(connectorMethodBody, "UTF-8")
+  def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }
 
 trait DynamicResourceDocProvider {

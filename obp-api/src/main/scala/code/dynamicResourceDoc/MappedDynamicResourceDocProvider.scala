@@ -51,7 +51,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       .ErrorResponseBodies(entity.errorResponseBodies)
       .Tags(entity.tags)
       .Roles(entity.roles)
-      .ConnectorMethodBody(entity.connectorMethodBody)
+      .MethodBody(entity.methodBody)
       .saveMe()
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
@@ -71,7 +71,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
             .ErrorResponseBodies(entity.errorResponseBodies)
             .Tags(entity.tags)
             .Roles(entity.roles)
-            .ConnectorMethodBody(entity.connectorMethodBody)
+            .MethodBody(entity.methodBody)
             .saveMe()
         }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
       case _ => Empty

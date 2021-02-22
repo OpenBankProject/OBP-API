@@ -20,7 +20,7 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
   object ErrorResponseBodies extends MappedString(this, 255) 
   object Tags extends MappedString(this, 255)
   object Roles extends MappedString(this, 255)
-  object ConnectorMethodBody extends MappedText(this)
+  object MethodBody extends MappedText(this)
 
 }
 
@@ -29,7 +29,7 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
   override def dbIndexes: List[BaseIndex[DynamicResourceDoc]] = UniqueIndex(DynamicResourceDocId) :: UniqueIndex(RequestUrl,RequestVerb) :: super.dbIndexes
   def getJsonDynamicResourceDoc(dynamicResourceDoc: DynamicResourceDoc) = JsonDynamicResourceDoc(
     dynamicResourceDocId = Some(dynamicResourceDoc.DynamicResourceDocId.get),
-    connectorMethodBody = dynamicResourceDoc.ConnectorMethodBody.get,
+    methodBody = dynamicResourceDoc.MethodBody.get,
     partialFunction = dynamicResourceDoc.PartialFunction.get,
     partialFunctionName = dynamicResourceDoc.PartialFunctionName.get,
     requestVerb = dynamicResourceDoc.RequestVerb.get,

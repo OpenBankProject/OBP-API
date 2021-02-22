@@ -1,10 +1,4 @@
-package code.api.v4_0_0
-
-import java.io.File
-import java.nio.charset.Charset
-import java.util
-import java.util.regex.Pattern
-import java.util.{Date, UUID}
+package code.api.v4_0_0.dynamic
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -31,6 +25,11 @@ import org.apache.commons.collections4.MapUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 
+import java.io.File
+import java.nio.charset.Charset
+import java.util
+import java.util.regex.Pattern
+import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
 import scala.collection.mutable

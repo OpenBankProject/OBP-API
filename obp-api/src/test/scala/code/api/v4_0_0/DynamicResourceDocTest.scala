@@ -78,7 +78,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val dynamicResourceDoc = response.body.extract[JsonDynamicResourceDoc]
 
       dynamicResourceDoc.dynamicResourceDocId shouldNot be (null)
-      dynamicResourceDoc.connectorMethodBody should be (postDynamicResourceDoc.connectorMethodBody)
+      dynamicResourceDoc.methodBody should be (postDynamicResourceDoc.methodBody)
       dynamicResourceDoc.partialFunction should be (postDynamicResourceDoc.partialFunction)
       dynamicResourceDoc.partialFunctionName  should be (postDynamicResourceDoc.partialFunctionName)
       dynamicResourceDoc.requestVerb  should be (postDynamicResourceDoc.requestVerb)
@@ -102,7 +102,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val dynamicResourceDocJsonGet400 = responseGet.body.extract[JsonDynamicResourceDoc]
 
       dynamicResourceDoc.dynamicResourceDocId shouldNot be (postDynamicResourceDoc.dynamicResourceDocId)
-      dynamicResourceDoc.connectorMethodBody should be (postDynamicResourceDoc.connectorMethodBody)
+      dynamicResourceDoc.methodBody should be (postDynamicResourceDoc.methodBody)
       dynamicResourceDoc.partialFunction should be (postDynamicResourceDoc.partialFunction)
       dynamicResourceDoc.partialFunctionName  should be (postDynamicResourceDoc.partialFunctionName)
       dynamicResourceDoc.requestVerb  should be (postDynamicResourceDoc.requestVerb)
@@ -130,7 +130,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val dynamicResourceDocs = dynamicResourceDocsJsonGetAll(0)
       
       (dynamicResourceDocs \ "dynamic_resource_doc_id").values.toString should equal (dynamicResourceDoc.dynamicResourceDocId.get)
-      (dynamicResourceDocs \ "connector_method_body").values.toString should equal (postDynamicResourceDoc.connectorMethodBody)
+      (dynamicResourceDocs \ "connector_method_body").values.toString should equal (postDynamicResourceDoc.methodBody)
       (dynamicResourceDocs \ "partial_function").values.toString should equal (postDynamicResourceDoc.partialFunction)
       (dynamicResourceDocs \ "partial_function_name").values.toString should equal (postDynamicResourceDoc.partialFunctionName)
       (dynamicResourceDocs \ "request_verb").values.toString should equal (postDynamicResourceDoc.requestVerb)
