@@ -1,11 +1,13 @@
 package code.api.util
 
+import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
 import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
 import code.api.{Constant, RequestHeader}
 import code.bankconnectors.Connector
+import code.consent
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -371,31 +373,62 @@ object Consent {
           Failure("Cannot create or get the user based on: " + consentId)
       }
     }
+    
+    def checkFrequencyPerDay(storedConsent: consent.Consent) = {
+      def isSameDay(date1: Date, date2: Date): Boolean = {
+        val fmt = new SimpleDateFormat("yyyyMMdd")
+        fmt.format(date1).equals(fmt.format(date2))
+      }
+      var usesSoFarTodayCounter = storedConsent.usesSoFarTodayCounter
+      storedConsent.recurringIndicator match {
+        case false => // The consent is for one access to the account data
+          if(usesSoFarTodayCounter == 0) // Maximum value is "1".
+            (true, 0) // All good
+          else 
+            (false, 1) // Exceeded rate limit
+        case true => // The consent is for recurring access to the account data
+          if(!isSameDay(storedConsent.usesSoFarTodayCounterUpdatedAt, new Date())) {
+            usesSoFarTodayCounter = 0 // Reset counter
+          }
+          if(usesSoFarTodayCounter < storedConsent.frequencyPerDay)
+            (true, usesSoFarTodayCounter) // All good
+          else
+            (false, storedConsent.frequencyPerDay) // Exceeded rate limit
+      }
+    }
 
     // 1st we need to find a Consent via the field MappedConsent.consentId
-    Consents.consentProvider.vend.getConsentByConsentId(consentId) match { 
+    Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
       case Full(storedConsent) =>
-        JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
-          case Full(jsonAsString) =>
-            try {
-              val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-              checkConsent(consent, storedConsent.jsonWebToken, calContext) match { // Check is it Consent-JWT expired
-                case (Full(true)) => // OK
-                  applyConsentRules(consent)
-                case failure@Failure(_, _, _) => // Handled errors
-                  Future(failure)
-                case _ => // Unexpected errors
-                  Future(Failure(ErrorMessages.ConsentCheckExpiredIssue))
+        // This function MUST be called only once per call. I.e. it's date dependent
+        val (canBeUsed, currentCounterState) = checkFrequencyPerDay(storedConsent)
+        if(canBeUsed) {
+          JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
+            case Full(jsonAsString) =>
+              try {
+                val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
+                checkConsent(consent, storedConsent.jsonWebToken, calContext) match { // Check is it Consent-JWT expired
+                  case (Full(true)) => // OK
+                    // Update MappedConsent.usesSoFarTodayCounter field
+                    Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
+                    applyConsentRules(consent)
+                  case failure@Failure(_, _, _) => // Handled errors
+                    Future(failure)
+                  case _ => // Unexpected errors
+                    Future(Failure(ErrorMessages.ConsentCheckExpiredIssue))
+                }
+              } catch { // Possible exceptions
+                case e: ParseException => Future(Failure("ParseException: " + e.getMessage))
+                case e: MappingException => Future(Failure("MappingException: " + e.getMessage))
+                case e: Exception => Future(Failure("parsing failed: " + e.getMessage))
               }
-            } catch { // Possible exceptions
-              case e: ParseException => Future(Failure("ParseException: " + e.getMessage))
-              case e: MappingException => Future(Failure("MappingException: " + e.getMessage))
-              case e: Exception => Future(Failure("parsing failed: " + e.getMessage))
-            }
-          case failure@Failure(_, _, _) =>
-            Future(failure)
-          case _ =>
-            Future(Failure("Cannot extract data from: " + consentId))
+            case failure@Failure(_, _, _) =>
+              Future(failure)
+            case _ =>
+              Future(Failure("Cannot extract data from: " + consentId))
+          }
+        } else {
+          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"))
         }
       case failure@Failure(_, _, _) =>
         Future(failure)
