@@ -379,19 +379,19 @@ object Consent {
         val fmt = new SimpleDateFormat("yyyyMMdd")
         fmt.format(date1).equals(fmt.format(date2))
       }
-      var frequencyPerDayCounter = storedConsent.frequencyPerDayCounter
+      var usesSoFarTodayCounter = storedConsent.usesSoFarTodayCounter
       storedConsent.recurringIndicator match {
         case false => // The consent is for one access to the account data
-          if(frequencyPerDayCounter == 0) // Maximum value is "1".
+          if(usesSoFarTodayCounter == 0) // Maximum value is "1".
             (true, 0) // All good
           else 
             (false, 1) // Exceeded rate limit
         case true => // The consent is for recurring access to the account data
-          if(!isSameDay(storedConsent.frequencyPerDayCounterUpdatedAt, new Date())) {
-            frequencyPerDayCounter = 0 // Reset counter
+          if(!isSameDay(storedConsent.usesSoFarTodayCounterUpdatedAt, new Date())) {
+            usesSoFarTodayCounter = 0 // Reset counter
           }
-          if(frequencyPerDayCounter < storedConsent.frequencyPerDay)
-            (true, frequencyPerDayCounter) // All good
+          if(usesSoFarTodayCounter < storedConsent.frequencyPerDay)
+            (true, usesSoFarTodayCounter) // All good
           else
             (false, storedConsent.frequencyPerDay) // Exceeded rate limit
       }
@@ -409,7 +409,7 @@ object Consent {
                 val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
                 checkConsent(consent, storedConsent.jsonWebToken, calContext) match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
-                    // Update MappedConsent.frequencyPerDayCounter field
+                    // Update MappedConsent.usesSoFarTodayCounter field
                     Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
                     applyConsentRules(consent)
                   case failure@Failure(_, _, _) => // Handled errors

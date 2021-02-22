@@ -90,13 +90,13 @@ object MappedConsentProvider extends ConsentProvider {
         .mApiStandard(apiStandard.getOrElse(null))
         .saveMe()
     }}
-  override def updateBerlinGroupConsent(consentId: String, 
-                                        frequencyPerDayCounter: Int) ={
+  override def updateBerlinGroupConsent(consentId: String,
+                                        usesSoFarTodayCounter: Int) ={
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
         tryo(consent
-          .mFrequencyPerDayCounter(frequencyPerDayCounter)
-          .mFrequencyPerDayCounterUpdatedAt(now)
+          .mUsesSoFarTodayCounter(usesSoFarTodayCounter)
+          .mUsesSoFarTodayCounterUpdatedAt(now)
           .saveMe()
         )
       case Empty =>
@@ -233,8 +233,8 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mRecurringIndicator extends MappedBoolean(this)
   object mValidUntil extends MappedDate(this)
   object mFrequencyPerDay extends MappedInt(this)
-  object mFrequencyPerDayCounter extends MappedInt(this)
-  object mFrequencyPerDayCounterUpdatedAt extends MappedDateTime(this)
+  object mUsesSoFarTodayCounter extends MappedInt(this)
+  object mUsesSoFarTodayCounterUpdatedAt extends MappedDateTime(this)
   object mCombinedServiceIndicator extends MappedBoolean(this)
   object mLastActionDate extends MappedDate(this)
 
@@ -259,8 +259,8 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   override def recurringIndicator: Boolean = mRecurringIndicator.get
   override def validUntil = mValidUntil.get
   override def frequencyPerDay = mFrequencyPerDay.get
-  override def frequencyPerDayCounter = mFrequencyPerDayCounter.get
-  override def frequencyPerDayCounterUpdatedAt = mFrequencyPerDayCounterUpdatedAt.get
+  override def usesSoFarTodayCounter = mUsesSoFarTodayCounter.get
+  override def usesSoFarTodayCounterUpdatedAt = mUsesSoFarTodayCounterUpdatedAt.get
   override def combinedServiceIndicator = mCombinedServiceIndicator.get
   override def lastActionDate = mLastActionDate.get
 

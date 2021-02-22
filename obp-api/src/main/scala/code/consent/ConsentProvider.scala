@@ -31,8 +31,8 @@ trait ConsentProvider {
     apiStandard: Option[String],
     apiVersion: Option[String]): Box[Consent]  
   def updateBerlinGroupConsent(
-    consentId: String,
-    frequencyPerDayCounter: Int): Box[Consent]
+                                consentId: String,
+                                usesSoFarTodayCounter: Int): Box[Consent]
 
   def saveUKConsent(
     user: Option[User],
@@ -116,14 +116,14 @@ trait Consent {
    */
   def frequencyPerDay : Int  
   /**
-   * frequencyPerDayCounter*	frequencyPerDayCounter integer
+   * usesSoFarTodayCounter*	usesSoFarTodayCounter integer
    * This field indicates the current frequency for an access.
    */
-  def frequencyPerDayCounter : Int  
+  def usesSoFarTodayCounter : Int  
   /**
    * This field indicates the update time of the current frequency for an access.
    */
-  def frequencyPerDayCounterUpdatedAt : Date
+  def usesSoFarTodayCounterUpdatedAt : Date
   /**
    * combinedServiceIndicator* 	boolean                                                               
    * example: false                                                                                    
