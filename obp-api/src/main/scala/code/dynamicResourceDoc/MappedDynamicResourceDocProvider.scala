@@ -40,7 +40,6 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     tryo {
       DynamicResourceDoc.create
       .DynamicResourceDocId(APIUtil.generateUUID())
-      .PartialFunction(entity.partialFunction)
       .PartialFunctionName(entity.partialFunctionName)
       .RequestVerb(entity.requestVerb)
       .RequestUrl(entity.requestUrl)
@@ -60,8 +59,7 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, entity.dynamicResourceDocId.getOrElse(""))) match {
       case Full(v) =>
         tryo {
-          v.PartialFunction(entity.partialFunction)
-            .PartialFunctionName(entity.partialFunctionName)
+          v.PartialFunctionName(entity.partialFunctionName)
             .RequestVerb(entity.requestVerb)
             .RequestUrl(entity.requestUrl)
             .Summary(entity.summary)

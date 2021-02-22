@@ -1,10 +1,15 @@
 package code.dynamicResourceDoc
 
 import com.openbankproject.commons.model.JsonFieldReName
+import com.openbankproject.commons.util.JsonAble
 import net.liftweb.common.Box
+import net.liftweb.json
+import net.liftweb.json.JsonAST.JNothing
+import net.liftweb.json.{Formats, JValue, JsonAST}
 import net.liftweb.util.SimpleInjector
-import java.net.URLDecoder
+import org.apache.commons.lang3.StringUtils
 
+import java.net.URLDecoder
 import scala.collection.immutable.List
 
 object DynamicResourceDocProvider extends SimpleInjector {
@@ -17,7 +22,6 @@ object DynamicResourceDocProvider extends SimpleInjector {
 case class JsonDynamicResourceDoc(
    dynamicResourceDocId: Option[String],
    methodBody: String,
-   partialFunction: String,
    partialFunctionName: String,
    requestVerb: String,
    requestUrl: String,
@@ -28,8 +32,27 @@ case class JsonDynamicResourceDoc(
    errorResponseBodies: String,
    tags: String,
    roles: String
-) extends JsonFieldReName{
+) extends JsonFieldReName with JsonAble{
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
+
+  override def toJValue(implicit format: Formats): JsonAST.JValue = {
+    import net.liftweb.json.JsonDSL._
+    val requestBody:JValue = if(StringUtils.isBlank(exampleRequestBody)) JNothing else json.parse(exampleRequestBody)
+    val responseBody:JValue = if(StringUtils.isBlank(successResponseBody)) JNothing else json.parse(successResponseBody)
+
+      ("dynamic_resource_doc_id" -> dynamicResourceDocId) ~
+        ("request_verb" -> requestVerb) ~
+        ("request_url" -> requestUrl) ~
+        ("example_request_body" -> requestBody) ~
+        ("success_response_body" -> responseBody) ~
+        ("partial_function_name" -> partialFunctionName) ~
+        ("error_response_bodies" -> errorResponseBodies) ~
+        ("summary" -> summary) ~
+        ("description" -> description) ~
+        ("tags" -> tags) ~
+        ("roles" -> roles) ~
+        ("method_body" -> methodBody)
+  }
 }
 
 trait DynamicResourceDocProvider {

@@ -16,16 +16,16 @@ import scala.concurrent.Future
  */
 object PractiseEndpoint extends DynamicCompileEndpoint {
   // all request case classes
-  case class RequestRootJsonClass(name: String, age: Long)
+  case class RequestRootJsonClass(name: String, age: Long, hobby: Option[List[String]])
 
 
   // all response case classes
-  case class ResponseRootJsonClass(person_id: String, name: String, age: Long)
+  case class ResponseRootJsonClass(my_user_id: String, name: String, age: Long, hobby: Option[List[String]])
 
 
   // request method
   val requestMethod = "POST"
-  val requestUrl = "/person/PERSON_ID"
+  val requestUrl = "/my_user/MY_USER_ID"
 
   // copy the whole method body as "dynamicResourceDoc" method body
   override protected def process(callContext: CallContext, request: Req): Box[JsonResponse] = {
@@ -39,7 +39,7 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
     // the request path is /hello/banks/bank_x/world
     //pathParams.get("BANK_ID") will get Option("bank_x") value
     val pathParams = getPathParams(callContext, request)
-    val personId = pathParams("PERSON_ID")
+    val myUserId = pathParams("MY_USER_ID")
 
 
     val requestEntity = request.json match {
@@ -56,9 +56,10 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
 
 
     // please add business logic here
-    val responseBody:ResponseRootJsonClass = ResponseRootJsonClass(s"pathValue_$personId", requestEntity.name, requestEntity.age)
+    val responseBody:ResponseRootJsonClass = ResponseRootJsonClass(s"${myUserId}_from_path", requestEntity.name, requestEntity.age, requestEntity.hobby)
     Future.successful {
       (responseBody, HttpCode.`200`(callContext.callContext))
     }
   }
+
 }

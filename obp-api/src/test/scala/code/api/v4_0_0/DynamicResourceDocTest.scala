@@ -79,7 +79,6 @@ class DynamicResourceDocTest extends V400ServerSetup {
 
       dynamicResourceDoc.dynamicResourceDocId shouldNot be (null)
       dynamicResourceDoc.methodBody should be (postDynamicResourceDoc.methodBody)
-      dynamicResourceDoc.partialFunction should be (postDynamicResourceDoc.partialFunction)
       dynamicResourceDoc.partialFunctionName  should be (postDynamicResourceDoc.partialFunctionName)
       dynamicResourceDoc.requestVerb  should be (postDynamicResourceDoc.requestVerb)
       dynamicResourceDoc.requestUrl  should be (postDynamicResourceDoc.requestUrl)
@@ -103,7 +102,6 @@ class DynamicResourceDocTest extends V400ServerSetup {
 
       dynamicResourceDoc.dynamicResourceDocId shouldNot be (postDynamicResourceDoc.dynamicResourceDocId)
       dynamicResourceDoc.methodBody should be (postDynamicResourceDoc.methodBody)
-      dynamicResourceDoc.partialFunction should be (postDynamicResourceDoc.partialFunction)
       dynamicResourceDoc.partialFunctionName  should be (postDynamicResourceDoc.partialFunctionName)
       dynamicResourceDoc.requestVerb  should be (postDynamicResourceDoc.requestVerb)
       dynamicResourceDoc.requestUrl  should be (postDynamicResourceDoc.requestUrl)
@@ -131,7 +129,6 @@ class DynamicResourceDocTest extends V400ServerSetup {
       
       (dynamicResourceDocs \ "dynamic_resource_doc_id").values.toString should equal (dynamicResourceDoc.dynamicResourceDocId.get)
       (dynamicResourceDocs \ "connector_method_body").values.toString should equal (postDynamicResourceDoc.methodBody)
-      (dynamicResourceDocs \ "partial_function").values.toString should equal (postDynamicResourceDoc.partialFunction)
       (dynamicResourceDocs \ "partial_function_name").values.toString should equal (postDynamicResourceDoc.partialFunctionName)
       (dynamicResourceDocs \ "request_verb").values.toString should equal (postDynamicResourceDoc.requestVerb)
       (dynamicResourceDocs \ "request_url").values.toString should equal (postDynamicResourceDoc.requestUrl)

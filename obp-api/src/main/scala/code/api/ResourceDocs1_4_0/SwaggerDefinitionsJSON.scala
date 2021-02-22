@@ -4073,7 +4073,6 @@ object SwaggerDefinitionsJSON {
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
     dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
     methodBody = methodBodyExample.value,
-    partialFunction = partialFunctionExample.value,
     partialFunctionName = partialFunctionNameExample.value,
     requestVerb = requestVerbExample.value, 
     requestUrl = requestUrlExample.value, 

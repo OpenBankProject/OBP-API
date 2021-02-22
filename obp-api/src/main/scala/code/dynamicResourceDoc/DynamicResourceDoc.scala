@@ -9,7 +9,6 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
   override def getSingleton = DynamicResourceDoc
   
   object DynamicResourceDocId extends UUIDString(this)
-  object PartialFunction extends MappedString(this, 255)
   object PartialFunctionName extends MappedString(this, 255)
   object RequestVerb extends MappedString(this, 255)
   object RequestUrl extends MappedString(this, 255)
@@ -30,7 +29,6 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
   def getJsonDynamicResourceDoc(dynamicResourceDoc: DynamicResourceDoc) = JsonDynamicResourceDoc(
     dynamicResourceDocId = Some(dynamicResourceDoc.DynamicResourceDocId.get),
     methodBody = dynamicResourceDoc.MethodBody.get,
-    partialFunction = dynamicResourceDoc.PartialFunction.get,
     partialFunctionName = dynamicResourceDoc.PartialFunctionName.get,
     requestVerb = dynamicResourceDoc.RequestVerb.get,
     requestUrl = dynamicResourceDoc.RequestUrl.get,
