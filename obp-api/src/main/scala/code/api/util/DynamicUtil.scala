@@ -129,7 +129,7 @@ object DynamicUtil {
       |import code.api.util.ErrorMessages._
       |import code.api.util.ExampleValue._
       |import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-      |import code.api.v4_0_0.MockResponseHolder
+      |import code.api.v4_0_0.dynamic.MockResponseHolder
       |import code.bankconnectors._
       |import code.bankconnectors.vJune2017.AuthInfo
       |import code.customer.internalMapping.MappedCustomerIdMappingProvider
