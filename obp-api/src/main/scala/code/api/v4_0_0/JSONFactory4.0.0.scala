@@ -625,7 +625,7 @@ case class ResourceDocFragment(
                                 requestVerb: String,
                                 requestUrl: String,
                                 exampleRequestBody: Option[JValue],
-                                successResponseBody: Option[JValue],
+                                successResponseBody: Option[JValue]
                            ) extends JsonFieldReName
 
 object JSONFactory400 {

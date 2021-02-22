@@ -7,6 +7,7 @@ import com.openbankproject.commons.util.JsonUtils
 import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
 import net.liftweb.json.{JArray, JObject}
 import org.apache.commons.lang3.ArrayUtils
+import net.liftweb.json
 
 object DynamicEndpointCodeGenerator {
 
@@ -41,7 +42,7 @@ object DynamicEndpointCodeGenerator {
          |""".stripMargin
     } else ""
 
-    def requestEnityExp(str:String) =
+    def requestEntityExp(str:String) =
       s"""    val requestEntity = request.json match {
       |        case Full(zson) =>
       |          try {
@@ -56,11 +57,11 @@ object DynamicEndpointCodeGenerator {
       |""".stripMargin
 
     val requestEntity = fragment.exampleRequestBody match {
-      case Some(JBool(_)) => requestEnityExp("Boolean")
-      case Some(JInt(_)) => requestEnityExp("Long")
-      case Some(JDouble(_)) => requestEnityExp("Double")
-      case Some(JString(_)) => requestEnityExp("String")
-      case Some(JObject(_)) | Some(JArray(_)) => requestEnityExp("RequestRootJsonClass")
+      case Some(JBool(_)) => requestEntityExp("Boolean")
+      case Some(JInt(_)) => requestEntityExp("Long")
+      case Some(JDouble(_)) => requestEntityExp("Double")
+      case Some(JString(_)) => requestEntityExp("String")
+      case Some(JObject(_)) | Some(JArray(_)) => requestEntityExp("RequestRootJsonClass")
       case _ => ""
     }
 
@@ -100,5 +101,47 @@ object DynamicEndpointCodeGenerator {
       |    }
       |  }
       |""".stripMargin
+  }
+
+  def buildTemplate(requestVerb: String,
+                    requestUrl: String,
+                    exampleRequestBody: Option[String],
+                    successResponseBody: Option[String]): String = {
+
+    buildTemplate(
+      ResourceDocFragment(requestVerb, requestUrl,
+        exampleRequestBody.map(json.parse(_)),
+        successResponseBody.map(json.parse(_))
+      )
+    )
+  }
+
+  /**
+   *  by call this main method, you can create dynamic resource doc method body
+   * @param args
+   */
+  def main(args: Array[String]): Unit = {
+
+    val requestVerb = "POST"
+    val requestUrl = "/person/PERSON_ID"
+
+    val requestBody =
+      """
+        |{
+        | "name": "Jhon",
+        | "age": 11
+        |}
+        |""".stripMargin
+    val responseBoy =
+      """
+        |{
+        | "person_id": "person_id_value",
+        | "name": "Jhon",
+        | "age": 11
+        |}
+        |""".stripMargin
+
+    val generatedCode = buildTemplate(requestVerb, requestUrl, Option(requestBody), Option(responseBoy))
+    println(generatedCode)
   }
 }
