@@ -7124,6 +7124,23 @@ trait APIMethods400 {
               json.extract[JsonDynamicResourceDoc]
             }
 
+            _ <- NewStyle.function.tryons(s"$InvalidJsonFormat The field 'example_request_body' should be a json or empty String", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+              val requestBody = jsonDynamicResourceDoc.exampleRequestBody
+
+              if(StringUtils.isNotBlank(requestBody)) {
+                net.liftweb.json.parse(requestBody)
+              }
+            }
+            _ <- NewStyle.function.tryons(s"$InvalidJsonFormat The field 'success_response_body' should be a json or empty String", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+              val responseBody = jsonDynamicResourceDoc.successResponseBody
+
+              if(StringUtils.isNotBlank(responseBody)) {
+                net.liftweb.json.parse(responseBody)
+              }
+            }
+
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
               Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
             }
@@ -7176,6 +7193,22 @@ trait APIMethods400 {
           for {
             dynamicResourceDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
+            }
+            _ <- NewStyle.function.tryons(s"$InvalidJsonFormat The field 'example_request_body' should be a json or empty String", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+              val requestBody = dynamicResourceDocBody.exampleRequestBody
+
+              if(StringUtils.isNotBlank(requestBody)) {
+                net.liftweb.json.parse(requestBody)
+              }
+            }
+            _ <- NewStyle.function.tryons(s"$InvalidJsonFormat The field 'success_response_body' should be a json or empty String", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+              val responseBody = dynamicResourceDocBody.successResponseBody
+
+              if(StringUtils.isNotBlank(responseBody)) {
+                net.liftweb.json.parse(responseBody)
+              }
             }
 
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {

@@ -28,14 +28,15 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{DynamicResourceDocAlreadyExists, UserHasMissingRoles, DynamicResourceDocNotFound}
-import code.api.util.{ApiRole}
+import code.api.util.ErrorMessages.{DynamicResourceDocAlreadyExists, DynamicResourceDocNotFound, UserHasMissingRoles}
+import code.api.util.ApiRole
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
-import code.dynamicResourceDoc.{JsonDynamicResourceDoc}
+import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{ErrorMessage}
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.json
 import net.liftweb.json.JArray
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
@@ -84,11 +85,15 @@ class DynamicResourceDocTest extends V400ServerSetup {
       dynamicResourceDoc.requestUrl  should be (postDynamicResourceDoc.requestUrl)
       dynamicResourceDoc.summary  should be (postDynamicResourceDoc.summary)
       dynamicResourceDoc.description  should be (postDynamicResourceDoc.description)
-      dynamicResourceDoc.exampleRequestBody  should be (postDynamicResourceDoc.exampleRequestBody)
-      dynamicResourceDoc.successResponseBody should be (postDynamicResourceDoc.successResponseBody)
       dynamicResourceDoc.errorResponseBodies should be (postDynamicResourceDoc.errorResponseBodies)
       dynamicResourceDoc.tags should be (postDynamicResourceDoc.tags)
 
+      {
+        val requestBody = postDynamicResourceDoc.exampleRequestBody
+        json.parse(dynamicResourceDoc.exampleRequestBody) should be(json.parse(requestBody))
+        val responseBody = postDynamicResourceDoc.successResponseBody
+        json.parse(dynamicResourceDoc.successResponseBody) should be(json.parse(responseBody))
+      }
 
       Then(s"we test the $ApiEndpoint2")
       val requestGet = (v4_0_0_Request / "management" / "dynamic-resource-docs" / {dynamicResourceDoc.dynamicResourceDocId.getOrElse("")}).GET <@ (user1)
@@ -107,11 +112,15 @@ class DynamicResourceDocTest extends V400ServerSetup {
       dynamicResourceDoc.requestUrl  should be (postDynamicResourceDoc.requestUrl)
       dynamicResourceDoc.summary  should be (postDynamicResourceDoc.summary)
       dynamicResourceDoc.description  should be (postDynamicResourceDoc.description)
-      dynamicResourceDoc.exampleRequestBody  should be (postDynamicResourceDoc.exampleRequestBody)
-      dynamicResourceDoc.successResponseBody should be (postDynamicResourceDoc.successResponseBody)
       dynamicResourceDoc.errorResponseBodies should be (postDynamicResourceDoc.errorResponseBodies)
       dynamicResourceDoc.tags should be (postDynamicResourceDoc.tags)
 
+      {
+        val requestBody = postDynamicResourceDoc.exampleRequestBody
+        json.parse(dynamicResourceDoc.exampleRequestBody) should be(json.parse(requestBody))
+        val responseBody = postDynamicResourceDoc.successResponseBody
+        json.parse(dynamicResourceDoc.successResponseBody) should be(json.parse(responseBody))
+      }
 
       Then(s"we test the $ApiEndpoint3")
       val requestGetAll = (v4_0_0_Request / "management" / "dynamic-resource-docs").GET <@ (user1)
@@ -128,16 +137,16 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val dynamicResourceDocs = dynamicResourceDocsJsonGetAll(0)
       
       (dynamicResourceDocs \ "dynamic_resource_doc_id").values.toString should equal (dynamicResourceDoc.dynamicResourceDocId.get)
-      (dynamicResourceDocs \ "connector_method_body").values.toString should equal (postDynamicResourceDoc.methodBody)
       (dynamicResourceDocs \ "partial_function_name").values.toString should equal (postDynamicResourceDoc.partialFunctionName)
       (dynamicResourceDocs \ "request_verb").values.toString should equal (postDynamicResourceDoc.requestVerb)
       (dynamicResourceDocs \ "request_url").values.toString should equal (postDynamicResourceDoc.requestUrl)
       (dynamicResourceDocs \ "summary").values.toString should equal (postDynamicResourceDoc.summary)
       (dynamicResourceDocs \ "description").values.toString should equal (postDynamicResourceDoc.description)
-      (dynamicResourceDocs \ "example_request_body").values.toString should equal (postDynamicResourceDoc.exampleRequestBody)
-      (dynamicResourceDocs \ "success_response_body").values.toString should equal (postDynamicResourceDoc.successResponseBody)
+      (dynamicResourceDocs \ "example_request_body") should equal (json.parse(postDynamicResourceDoc.exampleRequestBody))
+      (dynamicResourceDocs \ "success_response_body") should equal (json.parse(postDynamicResourceDoc.successResponseBody))
       (dynamicResourceDocs \ "error_response_bodies").values.toString should equal (postDynamicResourceDoc.errorResponseBodies)
       (dynamicResourceDocs \ "tags").values.toString should equal (postDynamicResourceDoc.tags)
+      (dynamicResourceDocs \ "method_body").values.toString should equal (postDynamicResourceDoc.methodBody)
 
 
       Then(s"we test the $ApiEndpoint4")
@@ -187,9 +196,6 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val response = makePostRequest(request, write(postDynamicResourceDoc))
       Then("We should get a 201")
       response.code should equal(201)
-
-      val dynamicResourceDoc = response.body.extract[JsonDynamicResourceDoc]
-
 
       Then(s"we test the $ApiEndpoint1 with the same methodName")
 
