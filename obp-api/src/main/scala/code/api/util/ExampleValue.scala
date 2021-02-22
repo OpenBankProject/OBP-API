@@ -2,6 +2,7 @@ package code.api.util
 
 
 import code.api.util.APIUtil.parseDate
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UserHasMissingRoles, UserNotLoggedIn, UnknownError}
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
@@ -407,7 +408,7 @@ object ExampleValue {
   lazy val successResponseBodyExample = ConnectorField(NoExampleProvided, "the json string of the success response body.")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.successResponseBody", successResponseBodyExample)
   
-  lazy val errorResponseBodiesExample = ConnectorField("OBP-50000: Unknown Error.", "The possible error messages of the endpoint. ")
+  lazy val errorResponseBodiesExample = ConnectorField(s"$UnknownError,$UserNotLoggedIn,$UserHasMissingRoles,$InvalidJsonFormat", "The possible error messages of the endpoint. ")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.errorResponseBodies", errorResponseBodiesExample)
   
   

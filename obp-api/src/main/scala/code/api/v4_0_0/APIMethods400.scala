@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
-import code.api.ChargePolicy
+import code.api.{ChargePolicy, JsonResponseException}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, logoutLinkV400, _}
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
@@ -26,7 +26,7 @@ import code.api.v3_1_0._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
 import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
+import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
@@ -77,6 +77,7 @@ import code.dynamicResourceDoc.JsonDynamicResourceDoc
 
 import java.net.URLEncoder
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -7127,6 +7128,14 @@ trait APIMethods400 {
               Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
             }
 
+            _ = try {
+              CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+            } catch {
+              case e: Exception =>
+                val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
+                throw JsonResponseException(jsonResponse)
+            }
+
             (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.requestUrl, Some(cc))
             _ <- Helper.booleanToFuture(failMsg = s"$DynamicResourceDocAlreadyExists The combination of request_url(${jsonDynamicResourceDoc.requestUrl}) and request_verb(${jsonDynamicResourceDoc.requestVerb}) must be unique") {
               (!isExists)
@@ -7171,6 +7180,14 @@ trait APIMethods400 {
 
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
               Set("POST", "PUT", "GET", "DELETE").contains(dynamicResourceDocBody.requestVerb)
+            }
+
+            _ = try {
+              CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+            } catch {
+              case e: Exception =>
+                val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
+                throw JsonResponseException(jsonResponse)
             }
 
             (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)

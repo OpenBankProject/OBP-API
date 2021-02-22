@@ -1,15 +1,16 @@
 package code.api.v4_0_0.dynamic
 
-import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, ResourceDoc, StringBody}
+import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.{CallContext, DynamicUtil}
-import code.api.v4_0_0.dynamic.practise.PractiseEndpointGroup
-import net.liftweb.common.Box
+import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
 import net.liftweb.util.Props
 import org.apache.commons.lang3.StringUtils
 
+import java.net.URLDecoder
 import scala.collection.immutable.List
 import scala.util.control.Breaks.{break, breakable}
 
@@ -84,10 +85,55 @@ trait EndpointGroup {
 }
 
 case class CompiledObjects(exampleRequestBody:String, successResponseBody: String, methodBody: String) {
+  val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
   val requestBody = toCaseObject(exampleRequestBody)
   val successResponse = toCaseObject(successResponseBody)
 
-  val partialFunction: OBPEndpoint = ???
+  val partialFunction: OBPEndpoint = {
+
+    val requestExample = if (!requestBody.isInstanceOf[PrimaryDataBody[_]]) {
+      Option(json.parse(exampleRequestBody))
+    } else None
+
+    val responseExample = if (!successResponse.isInstanceOf[PrimaryDataBody[_]]) {
+      Option(json.parse(successResponseBody))
+    } else None
+
+    val (requestBodyCaseClasses, responseBodyCaseClasses) = DynamicEndpointCodeGenerator.buildCaseClasses(requestExample, responseExample)
+
+    val code =
+      s"""
+         |import code.api.util.APIUtil.errorJsonResponse
+         |import code.api.util.CallContext
+         |import code.api.util.ErrorMessages.{InvalidJsonFormat, InvalidRequestPayload}
+         |import code.api.util.NewStyle.HttpCode
+         |import code.api.v4_0_0.dynamic.DynamicCompileEndpoint
+         |import net.liftweb.common.{Box, EmptyBox, Full}
+         |import net.liftweb.http.{JsonResponse, Req}
+         |import net.liftweb.json.MappingException
+         |
+         |import scala.concurrent.Future
+         |
+         |$requestBodyCaseClasses
+         |
+         |$responseBodyCaseClasses
+         |
+         |(new DynamicCompileEndpoint {
+         |    override protected def process(callContext: CallContext, request: Req): Box[JsonResponse] = {
+         |       $decodedMethodBody
+         |    }
+         |}).endpoint
+         |
+         |""".stripMargin
+    val endpointMethod = DynamicUtil.compileScalaCode[OBPEndpoint](code)
+
+    endpointMethod match {
+      case Full(func) => func
+      case Failure(msg: String, exception: Box[Throwable], _) =>
+        throw exception.getOrElse(new RuntimeException(msg))
+      case _ => throw new RuntimeException("compiled code return nothing")
+    }
+  }
 
   private def toCaseObject(str: String): Product = {
      if (StringUtils.isBlank(str)) {
@@ -101,7 +147,6 @@ case class CompiledObjects(exampleRequestBody:String, successResponseBody: Strin
          case v => DynamicUtil.toCaseObject(v)
        }
      }
-
   }
 }
 

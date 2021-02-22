@@ -4,10 +4,10 @@ import code.api.util.APIUtil.ResourceDoc
 import code.api.v4_0_0.ResourceDocFragment
 import com.google.common.base.CaseFormat
 import com.openbankproject.commons.util.JsonUtils
-import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
-import net.liftweb.json.{JArray, JObject}
-import org.apache.commons.lang3.ArrayUtils
 import net.liftweb.json
+import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
+import net.liftweb.json.{JArray, JObject, JValue}
+import org.apache.commons.lang3.ArrayUtils
 
 object DynamicEndpointCodeGenerator {
 
@@ -26,21 +26,7 @@ object DynamicEndpointCodeGenerator {
         |""".stripMargin
     } else ""
 
-    val requestBodyCaseClasses = if(fragment.exampleRequestBody.exists(it => it.isInstanceOf[JObject] || it.isInstanceOf[JArray]) &&
-      (fragment.requestVerb == "POST" || fragment.requestVerb == "PUT")) {
-      val Some(requestBody) = fragment.exampleRequestBody
-      s"""  // all request case classes
-         |  ${JsonUtils.toCaseClasses(requestBody, "Request")}
-         |""".stripMargin
-    } else ""
-
-    val responseBodyCaseClasses = if(fragment.successResponseBody.exists(it => it.isInstanceOf[JObject] || it.isInstanceOf[JArray]) &&
-      (fragment.requestVerb == "POST" || fragment.requestVerb == "PUT")) {
-      val Some(responseBody) = fragment.successResponseBody
-      s"""  // all response case classes
-         |  ${JsonUtils.toCaseClasses(responseBody, "Response")}
-         |""".stripMargin
-    } else ""
+    val (requestBodyCaseClasses, responseBodyCaseClasses) = buildCaseClasses(fragment.exampleRequestBody, fragment.successResponseBody)
 
     def requestEntityExp(str:String) =
       s"""    val requestEntity = request.json match {
@@ -114,6 +100,24 @@ object DynamicEndpointCodeGenerator {
         successResponseBody.map(json.parse(_))
       )
     )
+  }
+
+  def buildCaseClasses(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue]): (String, String) = {
+    val requestBodyCaseClasses = if(exampleRequestBody.exists(it => it.isInstanceOf[JObject] || it.isInstanceOf[JArray])) {
+      val Some(requestBody) = exampleRequestBody
+      s"""  // all request case classes
+         |  ${JsonUtils.toCaseClasses(requestBody, "Request")}
+         |""".stripMargin
+    } else ""
+
+    val responseBodyCaseClasses = if(successResponseBody.exists(it => it.isInstanceOf[JObject] || it.isInstanceOf[JArray])) {
+      val Some(responseBody) = successResponseBody
+      s"""  // all response case classes
+         |  ${JsonUtils.toCaseClasses(responseBody, "Response")}
+         |""".stripMargin
+    } else ""
+
+    (requestBodyCaseClasses, responseBodyCaseClasses)
   }
 
   /**

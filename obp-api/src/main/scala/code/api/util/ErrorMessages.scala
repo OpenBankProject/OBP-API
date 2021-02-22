@@ -473,7 +473,7 @@ object ErrorMessages {
   val DynamicMessageDocAlreadyExists = "OBP-40042: DynamicMessageDoc already exists."
   val DynamicMessageDocNotFound = "OBP-40043: DynamicMessageDoc not found, please specify valid DYNAMIC_MESSAGE_DOC_ID. "
   val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc can not be deleted. "
-
+  val DynamicCodeCompileFail = "OBP-40045: The code to do compile is illegal scala code, compilation failed. "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
