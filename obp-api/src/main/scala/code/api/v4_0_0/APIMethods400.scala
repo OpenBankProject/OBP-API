@@ -7497,7 +7497,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
       Some(List(canDeleteDynamicMessageDoc)))
 
     lazy val deleteDynamicMessageDoc: OBPEndpoint = {
