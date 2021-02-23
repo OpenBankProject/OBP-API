@@ -136,6 +136,15 @@ As a last option, an ASPSP might in addition accept a command with access rights
                json.extract[PostConsentJson]
              }
 
+             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayError) {
+               consentJson.frequencyPerDay > 0
+             }
+
+             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayMustBeOneError) {
+               consentJson.recurringIndicator == true ||
+                 (consentJson.recurringIndicator == false && consentJson.frequencyPerDay == 1)
+             }
+
              failMsg = s"$InvalidDateFormat Current `validUntil` field is ${consentJson.validUntil}. Please use this format ${DateWithDayFormat.toPattern}!"
              validUntil <- NewStyle.function.tryons(failMsg, 400, callContext) {
                new SimpleDateFormat(DateWithDay).parse(consentJson.validUntil)
