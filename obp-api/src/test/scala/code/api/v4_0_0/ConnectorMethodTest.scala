@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2019, TESOBE GmbH
+Copyright (C) 2011-2021, TESOBE GmbH
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -83,11 +83,11 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       connectorMethod.methodName should be (postConnectorMethod.methodName)
       connectorMethod.methodBody should be (postConnectorMethod.methodBody)
-      connectorMethod.internalConnectorId shouldNot be (null)
+      connectorMethod.connectorMethodId shouldNot be (null)
 
 
       Then(s"we test the $ApiEndpoint2")
-      val requestGet = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.internalConnectorId.getOrElse("")}).GET <@ (user1)
+      val requestGet = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).GET <@ (user1)
 
 
       val responseGet = makeGetRequest(requestGet)
@@ -98,7 +98,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       connectorMethodJsonGet400.methodName should be (postConnectorMethod.methodName)
       connectorMethodJsonGet400.methodBody should be (postConnectorMethod.methodBody)
-      connectorMethod.internalConnectorId should be (connectorMethodJsonGet400.internalConnectorId)
+      connectorMethod.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
 
 
       Then(s"we test the $ApiEndpoint3")
@@ -116,11 +116,11 @@ class ConnectorMethodTest extends V400ServerSetup {
       val connectorMethods = connectorMethodsJsonGetAll(0)
       (connectorMethods \ "method_name").values.toString should equal (postConnectorMethod.methodName)
       (connectorMethods \ "method_body").values.toString should equal (postConnectorMethod.methodBody)
-      (connectorMethods \ "internal_connector_id").values.toString should be (connectorMethodJsonGet400.internalConnectorId.get)
+      (connectorMethods \ "connector_method_id").values.toString should be (connectorMethodJsonGet400.connectorMethodId.get)
 
 
       Then(s"we test the $ApiEndpoint4")
-      val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.internalConnectorId.getOrElse("")}).PUT <@ (user1)
+      val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).PUT <@ (user1)
 
       lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonConnectorMethodMethodBody
 
@@ -136,7 +136,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       connectorMethodJsonGetAfterUpdated.methodBody should be (postConnectorMethodMethodBody.methodBody)
       connectorMethodJsonGetAfterUpdated.methodName should be (connectorMethodJsonGet400.methodName)
-      connectorMethodJsonGetAfterUpdated.internalConnectorId should be (connectorMethodJsonGet400.internalConnectorId)
+      connectorMethodJsonGetAfterUpdated.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
     }
   }
 
@@ -159,7 +159,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       connectorMethod.methodName should be (postConnectorMethod.methodName)
       connectorMethod.methodBody should be (postConnectorMethod.methodBody)
-      connectorMethod.internalConnectorId shouldNot be (null)
+      connectorMethod.connectorMethodId shouldNot be (null)
 
 
       Then(s"we test the $ApiEndpoint1 with the same methodName")

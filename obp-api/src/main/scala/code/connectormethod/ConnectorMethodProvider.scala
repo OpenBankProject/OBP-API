@@ -13,7 +13,7 @@ object ConnectorMethodProvider extends SimpleInjector {
   def buildOne: MappedConnectorMethodProvider.type = MappedConnectorMethodProvider
 }
 
-case class JsonConnectorMethod(internalConnectorId: Option[String], methodName: String, methodBody: String) extends JsonFieldReName{
+case class JsonConnectorMethod(connectorMethodId: Option[String], methodName: String, methodBody: String) extends JsonFieldReName{
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }
 

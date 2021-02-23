@@ -501,7 +501,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
         checkFormat(fieldExample.isInstanceOf[JString], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' field should be type ${DynamicEntityFieldType.string}")
         checkFormat(ReferenceType.isLegalReferenceValue(fieldTypeName, fieldExample.asInstanceOf[JString].s), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'example' is illegal format.")
       } else {
-        // if go to here, means add new field type, but not supply corresponding value validation, that means a bug nead fix to avoid throw the follow Exception
+        // if go to here, means add new field type, but not supply corresponding value validation, that means a bug need fix to avoid throw the follow Exception
         throw new RuntimeException(s"DynamicEntity $entityName's field $fieldName, type is $fieldTypeName, this type is not do validation.")
       }
 

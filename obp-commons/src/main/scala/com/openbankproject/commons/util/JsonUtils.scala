@@ -1,14 +1,14 @@
 package com.openbankproject.commons.util
 
-import java.util.{Date, Objects}
-
+import com.openbankproject.commons.util.Functions.Implicits._
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Diff, JNothing, JNull}
-import org.apache.commons.lang3.StringUtils
+import net.liftweb.json.{Diff, JDouble, JInt, JNothing, JNull, JString}
+import org.apache.commons.lang3.{StringUtils, Validate}
 
+import java.util.Objects
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.typeOf
 
@@ -245,6 +245,43 @@ object JsonUtils {
    */
   def transformField(jValue: JValue)(f: PartialFunction[(JField, String), JField]): JValue = mapField(jValue) { (field, path) =>
     if (f.isDefinedAt(field, path)) f(field, path) else field
+  }
+
+  /**
+   * peek all nested fields, call callback function for every field
+   * @param jValue
+   * @param f
+   * @return Unit
+   */
+  def peekField(jValue: JValue)(f: (JField, String) => Unit): Unit = {
+    def buildPath(parentPath: String, currentFieldName: String): String =
+      if(parentPath == "") currentFieldName else s"$parentPath.$currentFieldName"
+
+    def rec(v: JValue, path: String): Unit = v match {
+      case JObject(l) => l.foreach { field =>
+          rec(field.value, buildPath(path, field.name))
+          f(field, path)
+        }
+
+      case JArray(l) => l.foreach(rec(_, path))
+      case v => v // do nothing, just placeholder
+    }
+    rec(jValue, "")
+  }
+
+  /**
+   * according predicate function to collect all fulfill fields
+   * @param jValue
+   * @param predicate
+   * @return JField to field path
+   */
+  def collectField(jValue: JValue)(predicate: (JField, String) => Boolean): List[(JField, String)] = {
+    val fields = scala.collection.mutable.ListBuffer[(JField, String)]()
+    peekField(jValue) { (field, path) =>
+      if(predicate(field, path))
+        fields += field -> path
+    }
+    fields.toList
   }
 
   /**
@@ -612,5 +649,209 @@ object JsonUtils {
     buffer -= "$outer" // removed the nest class references
     buffer.toMap
   }
-  
+
+
+  /**
+   * is jValue type of JBool|JString|JDouble|JInt
+   * @param jValue
+   * @return true if jValue is type of JBool|JString|JDouble|JInt
+   */
+  def isBasicType(jValue: JValue) = jValue match {
+    case JBool(_) | JString(_) | JDouble(_) | JInt(_) => true
+    case _ => false
+  }
+
+  // scala reserved word mapping escaped string: "class" -> "`class`"
+  private val reservedToEscaped =
+    List("abstract", "case", "catch", "class", "def", "do", "else", "extends", "false",
+      "final", "finally", "for", "forSome", "if", "implicit", "import", "lazy", "match",
+      "new", "null", "object", "override", "package", "private", "protected", "return",
+      "sealed", "super", "this", "throw", "trait", "try", "true", "type", "val", "var",
+      "while", "with", "yield")
+      .toMapByValue(it => s"`$it`")
+
+  private val optionalFieldName = "_optional_fields_"
+
+  // if Option[Boolean], Option[Double], Option[Long] will lost type argument when do deserialize with lift-json: Option[Object]
+  // this will make generated scala code can't extract json to this object, So use java.lang.Xxx for these type in Option.
+  private def toScalaTypeName(jValue: JValue, isOptional: Boolean = false) = jValue match {
+    case _: JBool if isOptional   => "Option[java.lang.Boolean]"
+    case _: JBool                 =>  "Boolean"
+    case _: JDouble if isOptional => "Option[java.lang.Double]"
+    case _: JDouble               => "Double"
+    case  _: JInt if isOptional   => "Option[java.lang.Long]"
+    case  _: JInt                 => "Long"
+    case _: JString if isOptional => "Option[String]"
+    case _: JString => "String"
+    case _: JObject if isOptional => "Option[AnyRef]"
+    case _: JObject               =>  "AnyRef"
+    case _: JArray if isOptional  => "Option[List[Any]]"
+    case _: JArray                => "List[Any]"
+    case null | JNull | JNothing => throw new IllegalArgumentException(s"Json value must not be null")
+  }
+
+  /**
+   * validate any nested array type field have the same structure, and not empty, and have not null item
+   * @param void
+   */
+  private def validateJArray(jvalue: JValue): Unit = {
+    if(jvalue.isInstanceOf[JArray]) {
+      val rootJson: JObject = "" -> jvalue
+      validateJArray(rootJson)
+    } else {
+      peekField(jvalue) {
+        case (jField @ JField(fieldName, JArray(arr)), path) =>
+          val fullFieldName = if(StringUtils.isBlank(path)) fieldName else s"$path.$fieldName"
+          // not empty and none item is null
+          Validate.isTrue(arr.nonEmpty, s"Json $fullFieldName should not be empty array.")
+          Validate.isTrue(arr.notExists(it => it == JNull || it == JNothing), s" Array json $fullFieldName should not contains null item.")
+          if(arr.size > 1) {
+            arr match {
+              case JBool(_) :: tail => Validate.isTrue(tail.forall(_.isInstanceOf[JBool]), s"All the items of Json $fullFieldName should be Boolean type.")
+              case JString(_) :: tail => Validate.isTrue(tail.forall(_.isInstanceOf[JString]), s"All the items of Json $fullFieldName should be String type.")
+              case JDouble(_) :: tail  => Validate.isTrue(tail.forall(_.isInstanceOf[JDouble]), s"All the items of Json $fullFieldName should be number type.")
+              case JInt(_) :: tail => Validate.isTrue(tail.forall(_.isInstanceOf[JInt]), s"All the items of Json $fullFieldName should be integer type.")
+              case (head: JObject) :: tail =>
+                Validate.isTrue(tail.forall(_.isInstanceOf[JObject]), s"All the items of Json $fullFieldName should be object type.")
+                def fieldNameToType(jObject: JObject) = jObject.obj.map(it => it.name -> getType(it.value)).toMap
+                val headFieldNameToType = fieldNameToType(head)
+                val allItemsHaveSameStructure = tail.map(it => fieldNameToType(it.asInstanceOf[JObject])).forall(headFieldNameToType ==)
+                Validate.isTrue(allItemsHaveSameStructure, s"All the items of Json $fullFieldName should the same structure.")
+              case JArray(_) :: tail => Validate.isTrue(tail.forall(_.isInstanceOf[JArray]), s"All the items of Json $fullFieldName should be array type.")
+            }
+          }
+        case v => v  // do nothing, just as place holder
+      }
+    }
+  }
+
+  private def getNestedJObjects(jObject: JObject, typeNamePrefix: String): List[String] = {
+    val nestedObjects = collectField(jObject) {
+      case (JField(_, _: JObject), _) => true
+      case (JField(_, JArray((_: JObject) :: _)), _) => true
+      case (JField(_, JArray((_: JArray) :: _)), _) => true
+      case _ => false
+    }
+
+    def getParentFiledName(path: String) = path match {
+      case v if v.contains('.') =>
+        StringUtils.substringAfterLast(path, ".")
+      case v => v
+    }
+
+    val subTypes: List[String] = nestedObjects collect {
+      case (JField(name, v: JObject), path) =>
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
+      case (JField(name, JArray((v: JObject) :: _)), path) =>
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
+      case (JField(name, JArray(JArray((v: JObject) :: _) :: _)), path) =>
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
+      case (JField(name, JArray(JArray(JArray((v: JObject) :: _) :: _) :: _)), path) =>
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
+      case (JField(name, JArray(JArray(JArray(JArray((v: JObject) :: _) :: _) :: _) :: _)), path) =>
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
+      case (JField(name, JArray(JArray(JArray(JArray(JArray((v: JObject) :: _) :: _) :: _) :: _) :: _)), path) =>
+        jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
+      case (JField(_, JArray(JArray(JArray(JArray(JArray(JArray(_ :: _) :: _) :: _) :: _) :: _) :: _)), path) =>
+        throw new IllegalArgumentException(s"Json field $path have too much nested level, max nested level be supported is 5.")
+    } toList
+
+    subTypes
+  }
+
+  /**
+   * generate case class string according json structure
+   * @param jvalue
+   * @return case class string
+   */
+  def toCaseClasses(jvalue: JValue, typeNamePrefix: String = ""): String = {
+    validateJArray(jvalue)
+    jvalue match {
+      case _: JBool     => s"type ${typeNamePrefix}RootJsonClass = Boolean"
+      case _: JString   => s"type ${typeNamePrefix}RootJsonClass = String"
+      case _: JDouble   => s"type ${typeNamePrefix}RootJsonClass = Double"
+      case _: JInt      => s"type ${typeNamePrefix}RootJsonClass = Long"
+      case jObject: JObject =>
+        validateJArray(jObject)
+        val allDefinitions = getNestedJObjects(jObject, typeNamePrefix) :+ jObjectToCaseClass(jObject, typeNamePrefix)
+        allDefinitions mkString "\n"
+
+      case jArray: JArray =>
+        validateJArray(jvalue)
+
+        def buildArrayType(jArray: JArray):String = jArray.arr.head match {
+            case _: JBool => "List[Boolean]"
+            case _: JString  => "List[String]"
+            case _: JDouble => "List[Double]"
+            case _: JInt => "List[Long]"
+            case v: JObject =>
+              val itemsType = jObjectToCaseClass(v, typeNamePrefix, "RootItem")
+              s"""$itemsType
+                 |List[${typeNamePrefix}RootItemJsonClass]
+                 |""".stripMargin
+            case v: JArray =>
+              val nestedItmType = buildArrayType(v)
+              // replace the last row to List[Xxx], e.g:
+              /*
+                case class Foo(i:Int)
+                Foo
+                -->
+                case class Foo(i:Int)
+                List[Foo]
+               */
+              nestedItmType.replaceAll("(^|.*\\s+)(.+)\\s*$", "$1List[$2]")
+          }
+        // add type alias for last row
+        buildArrayType(jArray).replaceAll("(^|.*\\s+)(.+)\\s*$", s"$$1 type ${typeNamePrefix}RootJsonClass = $$2")
+
+      case null | JNull | JNothing => throw new IllegalArgumentException(s"null value json can't generate case class")
+    }
+
+  }
+
+
+  private def jObjectToCaseClass(jObject: JObject, typeNamePrefix: String, fieldName: String = "", parentFieldName: String = ""): String =  {
+    val JObject(fields) = jObject
+    val optionalFields = (jObject \ optionalFieldName) match {
+      case JArray(arr) if arr.forall(_.isInstanceOf[JString]) =>
+        arr.map(_.asInstanceOf[JString].s).toSet
+      case JNull | JNothing => Set.empty[String]
+      case _ => throw new IllegalArgumentException(s"Filed $optionalFieldName of $fieldName should be an array of String")
+    }
+
+    def toCaseClassName(name: String) = s"$typeNamePrefix${fieldName.capitalize}${name.capitalize}JsonClass"
+
+    val currentCaseClass: String = fields collect {
+      case JField(name, v) if isBasicType(v) =>
+        val escapedFieldsName = reservedToEscaped.getOrElse(name, name)
+        val fieldType = toScalaTypeName(v, optionalFields.contains(name))
+        s"$escapedFieldsName: $fieldType"
+
+      case JField(name, _: JObject) =>
+        val escapedFieldsName = reservedToEscaped.getOrElse(name, name)
+        val fieldType = if (optionalFields.contains(name)) s"Option[${toCaseClassName(name)}]" else toCaseClassName(name)
+        s"$escapedFieldsName: $fieldType"
+
+      case JField(name, arr: JArray) if name != optionalFieldName =>
+        val isOption: Boolean = optionalFields.contains(name)
+        def buildArrayType(jArray: JArray): String = jArray.arr.head match {
+          case _: JBool    => "List[java.lang.Boolean]"
+          case _: JDouble  => "List[java.lang.Double]"
+          case _: JInt     => "List[java.lang.Long]"
+          case _: JString  => "List[String]"
+          case _: JObject  => s"List[${toCaseClassName(name)}]"
+
+          case v: JArray =>
+            val nestedItmType = buildArrayType(v)
+            s"List[$nestedItmType]"
+        }
+
+        val fieldType = if (isOption) s"Option[${buildArrayType(arr)}]" else buildArrayType(arr)
+
+        val escapedFieldsName = reservedToEscaped.getOrElse(name, name)
+        s"$escapedFieldsName: $fieldType"
+    } mkString(s"case class $typeNamePrefix${parentFieldName.capitalize}${if(fieldName.isEmpty) "Root" else fieldName.capitalize}JsonClass(", ", ", ")")
+
+    currentCaseClass
+  }
 }

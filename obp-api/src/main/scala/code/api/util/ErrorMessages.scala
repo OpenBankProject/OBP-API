@@ -468,9 +468,15 @@ object ErrorMessages {
 
   val ConnectorMethodNotFound = "OBP-40036: ConnectorMethod not found, please specify valid CONNECTOR_METHOD_ID. "
   val ConnectorMethodAlreadyExists = "OBP-40037: ConnectorMethod already exists. "
-  val ConnectorMethodBodyCompileFail = "OBP-40038: ConnectorMethod methodBody is illegal scala code, compile fail. "
+  val ConnectorMethodBodyCompileFail = "OBP-40038: ConnectorMethod methodBody is illegal scala code, compilation failed. "
+  val DynamicResourceDocAlreadyExists = "OBP-40039: DynamicResourceDoc already exists."
+  val DynamicResourceDocNotFound = "OBP-40040: DynamicResourceDoc not found, please specify valid DYNAMIC_RESOURCE_DOC_ID. "
+  val DynamicResourceDocDeleteError = "OBP-40041: DynamicResourceDoc can not be deleted. "
 
-
+  val DynamicMessageDocAlreadyExists = "OBP-40042: DynamicMessageDoc already exists."
+  val DynamicMessageDocNotFound = "OBP-40043: DynamicMessageDoc not found, please specify valid DYNAMIC_MESSAGE_DOC_ID. "
+  val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc can not be deleted. "
+  val DynamicCodeCompileFail = "OBP-40045: The code to do compile is illegal scala code, compilation failed. "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

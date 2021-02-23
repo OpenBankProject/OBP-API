@@ -12,7 +12,8 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.v4_0_0.{APIMethods400, DynamicEndpointHelper, DynamicEntityHelper, OBPAPI4_0_0}
+import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
+import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -237,7 +238,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]]
                                         ): Option[JValue] = {
-      val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc)
+      val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
         .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
         .map(it => it.specifiedUrl match {
           case Some(_) => it
@@ -613,7 +614,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       resourceDocs match {
         case docs @Some(_) => resourceDocsToJValue(docs)
         case _ =>
-          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc).toList
+          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
           resourceDocsToJValue(Some(dynamicDocs))
       }
     }
