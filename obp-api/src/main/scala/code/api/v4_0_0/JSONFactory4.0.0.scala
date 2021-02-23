@@ -27,7 +27,6 @@
 package code.api.v4_0_0
 
 import java.util.Date
-
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
@@ -50,7 +49,9 @@ import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import com.openbankproject.commons.model.{DirectDebitTrait, _}
+import com.openbankproject.commons.util.JsonAble
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json.{Extraction, Formats, JValue, JsonAST}
 
 import scala.collection.immutable.List
 
@@ -619,6 +620,13 @@ case class TransactionBankAccountJson(
                                   account_id: String,
                                   transaction_id: String
                                   )
+
+case class ResourceDocFragment(
+                                requestVerb: String,
+                                requestUrl: String,
+                                exampleRequestBody: Option[JValue],
+                                successResponseBody: Option[JValue]
+                           ) extends JsonFieldReName
 
 object JSONFactory400 {
 

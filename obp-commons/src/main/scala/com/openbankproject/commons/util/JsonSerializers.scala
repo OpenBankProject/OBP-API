@@ -40,9 +40,15 @@ object JsonAble {
   def unapply(jsonAble: JsonAble)(implicit format: Formats): Option[JValue] = Option(jsonAble).map(_.toJValue)
 }
 
-object JsonAbleSerializer extends Serializer[JsonAble] {
+trait ObpSerializer[T] extends Serializer[T] {
+  override final def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), T] = Functions.doNothing
+}
 
-  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), JsonAble] = Functions.doNothing
+trait ObpDeSerializer[T] extends Serializer[T] {
+  override final def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = Functions.doNothing
+}
+
+object JsonAbleSerializer extends ObpSerializer[JsonAble] {
 
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case JsonAble(jValue) => jValue
@@ -70,7 +76,7 @@ object EnumValueSerializer extends Serializer[EnumValue] {
  * deSerialize trait or abstract type json, this Serializer should always put at formats chain first, e.g:
  * DefaultFormats + AbstractTypeDeserializer + ...others
  */
-object AbstractTypeDeserializer extends Serializer[AnyRef] {
+object AbstractTypeDeserializer extends ObpDeSerializer[AnyRef] {
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), AnyRef] = {
     case (TypeInfo(clazz, _), json) if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz) =>
@@ -79,12 +85,9 @@ object AbstractTypeDeserializer extends Serializer[AnyRef] {
       implicit val manifest = ManifestFactory.classType[AnyRef](commonClass)
       json.extract[AnyRef](format, manifest)
   }
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
-
 }
 
-object SimpleEnumDeserializer extends Serializer[SimpleEnum] {
+object SimpleEnumDeserializer extends ObpDeSerializer[SimpleEnum] {
   private val simpleEnumClazz = classOf[SimpleEnum]
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), SimpleEnum] = {
     case (TypeInfo(clazz, _), json) if simpleEnumClazz.isAssignableFrom(clazz) =>
@@ -94,8 +97,6 @@ object SimpleEnumDeserializer extends Serializer[SimpleEnum] {
         .asInstanceOf[SimpleEnumCollection[SimpleEnum]]
         .valueOf(enumValue)
   }
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
 }
 
 object BigDecimalSerializer extends Serializer[BigDecimal] {
@@ -113,15 +114,13 @@ object BigDecimalSerializer extends Serializer[BigDecimal] {
   }
 }
 
-object StringDeserializer extends Serializer[String] {
+object StringDeserializer extends ObpDeSerializer[String] {
   private val IntervalClass = classOf[String]
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), String] = {
     case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JString] =>
       compactRender(json)
   }
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
 }
 
 /**
@@ -255,7 +254,7 @@ object FiledRenameSerializer extends Serializer[JsonFieldReName] {
 /**
  * make tolerate for missing required constructor parameters
  */
-object JNothingSerializer extends Serializer[Any] {
+object JNothingSerializer extends ObpDeSerializer[Any] {
 
   // This field is just a tag to declare all the missing fields are added, to avoid check missing field repeatedly
   val addedMissingFields = "addedMissingFieldsThisFieldIsJustBeTag"
@@ -288,9 +287,6 @@ object JNothingSerializer extends Serializer[Any] {
       Extraction.extract(newJValue, typeInfo)
     }
   }
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
-
 
   private[this] def unapply(arg: (TypeInfo, JValue))(implicit formats: Formats): Option[(TypeInfo, JValue, Map[String, Class[_]])] =  {
     val (TypeInfo(clazz, _), jValue) = arg
@@ -413,7 +409,7 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
 /**
  * serialize DB Mapped object to JValue
  */
-object MapperSerializer extends Serializer[Mapper[_]] {
+object MapperSerializer extends ObpSerializer[Mapper[_]] {
   /**
    * `call by name` method names those defined in Mapper trait.
    */
@@ -437,9 +433,6 @@ object MapperSerializer extends Serializer[Mapper[_]] {
       }).toMap
       json.Extraction.decompose(map)
   }
-
-
-  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), Mapper[_]] = Functions.doNothing
 }
 
 @scala.annotation.meta.field

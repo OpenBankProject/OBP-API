@@ -3,23 +3,23 @@ package code.api.builder.AccountInformationServiceAISApi
 import java.text.SimpleDateFormat
 
 import code.api.APIFailureNewStyle
+import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
-import code.api.util.APIUtil.{defaultBankId, passesPsd2Aisp, _}
+import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{ApiTag, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
-import code.database.authorisation.Authorisations
+import code.model
 import code.model._
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
 import net.liftweb.common.Full
 import net.liftweb.http.js.JE.JsRaw
@@ -59,6 +59,13 @@ object APIMethods_AccountInformationServiceAISApi extends RestHelper {
     lazy val newStyleEndpoints: List[(String, String)] = resourceDocs.map {
       rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
     }.toList
+
+
+    private def checkAccountAccess(viewId: ViewId, u: User, account: BankAccount) = {
+      Helper.booleanToFuture(failMsg = NoViewReadAccountsBerlinGroup + " userId : " + u.userId + ". account : " + account.accountId, 403) {
+        u.hasViewAccess(BankIdAccountId(account.bankId, account.accountId), viewId)
+      }
+    }
             
      resourceDocs += ResourceDoc(
        createConsent,
@@ -275,24 +282,6 @@ of the PSU at this ASPSP.
             _ <- passesPsd2Aisp(callContext)
             availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
             (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
-
-            //If the bankAccount from obp side, there the attributes field should be Empty.
-
-            //If it comes from core banking, then we need to filter out the card accounts.
-
-            //eg: the following is a card account, can not be showed in this response. 
-            //    "attributes": [
-            //    {
-            //      "name": "CashAccountTypeCode",
-            //      "type": "STRING",
-            //      "value": "CARD"
-            //    },
-            //    {
-            //      "name": "STATUS",
-            //      "type": "STRING",
-            //      "value": "ACTIVE"
-            //    }
-            //    ]
             bankAccountsFiltered = accounts.filter(bankAccount =>
               bankAccount.attributes.toList.flatten.find(attribute =>
                 attribute.name.equals("CashAccountTypeCode")&&
@@ -350,9 +339,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
-            }
+            _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -422,7 +409,7 @@ respectively the OAuth2 access token.
              _ <- passesPsd2Aisp(callContext)
              availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
              //The card contains the account object, it mean the card account.
-             (cards,callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
+             (_, callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
              (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
              //also see `getAccountList` endpoint
              bankAccountsFiltered = accounts.filter(bankAccount => 
@@ -482,9 +469,7 @@ This account-id then can be retrieved by the
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
-               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
-             }
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -569,16 +554,18 @@ Reads account data from a given card account addressed by "account-id".
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
-             (bankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
+             (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
              (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
+             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
              (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext, params) map {
+             (transactions, callContext) <- model.toBankAccountExtended(bankAccount).getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
            } yield {
@@ -803,14 +790,15 @@ of the "Read Transaction List" call within the _links subfield.
      )
 
      lazy val getTransactionDetails : OBPEndpoint = {
-       case "accounts" :: accountId:: "transactions" :: transactionId :: Nil JsonGet _ => {
+       case "accounts" :: accountId :: "transactions" :: transactionId :: Nil JsonGet _ => {
          cc =>
            for {
              (Full(user), callContext) <- authenticatedAccess(cc)
-             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
-             (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountId), callContext)
-             view <- NewStyle.function.checkViewAccessAndReturnView(ViewId("owner"), BankIdAccountId(BankId(defaultBankId), AccountId(accountId)), Some(user), callContext)
-             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(BankId(defaultBankId), AccountId(accountId), TransactionId(transactionId), view, Some(user), callContext) map {
+             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
+             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(user), callContext)
+             (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, Some(user), callContext) map {
                unboxFullOrFail(_, callContext, GetTransactionsException)
              }
            } yield {
@@ -901,14 +889,16 @@ The ASPSP might add balance information, if transaction lists without balances a
             _ <- passesPsd2Aisp(callContext)
             (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-            view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
+            viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+            bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
+            view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, BankIdAccountId(bankAccount.bankId,bankAccount.accountId), callContext, params) map {
+            (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             } yield {
@@ -965,6 +955,7 @@ Give detailed information about the addressed account together with balance info
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createAccountDetailsJson(account, u), callContext)
            }
@@ -1015,6 +1006,7 @@ respectively the OAuth2 access token.
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountDetailsJson(account, u), callContext)
            }

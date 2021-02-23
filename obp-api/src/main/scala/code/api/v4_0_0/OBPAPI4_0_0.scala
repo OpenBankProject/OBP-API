@@ -38,6 +38,7 @@ import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
+import code.api.v4_0_0.dynamic.DynamicEndpoints
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
@@ -86,6 +87,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
   oauthServe(apiPrefix{Implementations4_0_0.dynamicEndpoint}, None)
+  oauthServe(apiPrefix{DynamicEndpoints.dynamicEndpoint}, None)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

@@ -1105,13 +1105,13 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext) 
-            (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(bankId, accountId, transactionId, view, user, callContext) map {
+            (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(transactionId, view, user, callContext) map {
               unboxFullOrFail(_, callContext, GetTransactionsException)
             }
             (transactionAttributes, callContext) <- NewStyle.function.getTransactionAttributes(
               bankId,
               transactionId,
-              cc.callContext: Option[CallContext])
+              callContext: Option[CallContext])
           } yield {
             (JSONFactory300.createTransactionJSON(moderatedTransaction, transactionAttributes), HttpCode.`200`(callContext))
           }

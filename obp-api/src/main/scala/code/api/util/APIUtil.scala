@@ -41,12 +41,13 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.sandbox.SandboxApiCalls
+import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
-import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityHelper}
+import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -210,6 +211,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
   def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
     getConsentJWT(requestHeaders).isDefined
+  }
+
+  /**
+   * Purpose of this helper function is to get the Consent-ID value from a Request Headers.
+   * @return the Consent-ID value from a Request Header as a String
+   */
+  def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-ID`).toList match {
+      case x :: Nil => Some(x.values.mkString(", "))
+      case _ => None
+    }
+  }
+  def `hasConsent-ID`(requestHeaders: List[HTTPParam]): Boolean = {
+    `getConsent-ID`(requestHeaders).isDefined
   }
 
   def registeredApplication(consumerKey: String): Boolean = {
@@ -1180,7 +1195,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   case class JArrayBody(value: JArray) extends PrimaryDataBody[JArray]
 
   /**
-   * Any dynamic endpoint'ResourceDoc, it's partialFunction should set this stub endpoint.
+   * Any dynamic endpoint's ResourceDoc, it's partialFunction should set this stub endpoint.
    */
   val dynamicEndpointStub: OBPEndpoint = Functions.doNothing
 
@@ -1188,7 +1203,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private val operationIdToResourceDoc: ConcurrentHashMap[String, ResourceDoc] = new ConcurrentHashMap[String, ResourceDoc]
 
     def getResourceDocs(operationIds: List[String]): List[ResourceDoc] = {
-      val dynamicDocs = DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc
+      val dynamicDocs = DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs
       operationIds.collect {
         case operationId if operationIdToResourceDoc.containsKey(operationId) =>
           operationIdToResourceDoc.get(operationId)
@@ -1196,6 +1211,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           dynamicDocs.find(_.operationId == operationId).orNull
       }
     }
+
+    /**
+     * check whether url part is path variable
+     * @param urlFragment
+     * @return e.g: the url is /abc/ABC_ID/hello, ABC_ID is path variable
+     */
+    def isPathVariable(urlFragment: String) = urlFragment == urlFragment.toUpperCase()
+
+    def findPathVariableNames(url: String) = StringUtils.split(url, '/')
+      .filter(isPathVariable(_))
   }
   
   // Used to document the API calls
@@ -1328,17 +1353,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     private val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
 
-    private val requestUrlBankId = requestUrlPartPath.indexOf("BANK_ID")
-    private val requestUrlAccountId = requestUrlPartPath.indexOf("ACCOUNT_ID")
-    private val requestUrlViewId = requestUrlPartPath.indexOf("VIEW_ID")
-
     private val isNeedCheckAuth = errorResponseBodies.contains($UserNotLoggedIn)
     private val isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty
-    private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlBankId != -1
+    private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlPartPath.contains("BANK_ID")
     private val isNeedCheckAccount = errorResponseBodies.contains($BankAccountNotFound) &&
-      requestUrlBankId != -1 && requestUrlAccountId != -1
+      requestUrlPartPath.contains("BANK_ID") && requestUrlPartPath.contains("ACCOUNT_ID")
     private val isNeedCheckView = errorResponseBodies.contains($UserNoPermissionAccessView) &&
-      requestUrlBankId != -1 && requestUrlAccountId != -1 && requestUrlViewId != -1
+      requestUrlPartPath.contains("BANK_ID") && requestUrlPartPath.contains("ACCOUNT_ID") && requestUrlPartPath.contains("VIEW_ID")
+
+    private val reversedRequestUrl = requestUrlPartPath.reverse
+    def getPathParams(url: List[String]): Map[String, String] =
+      reversedRequestUrl.zip(url.reverse) collect {
+        case pair @(k, _) if isPathVariable(k) => pair
+      } toMap
 
     /**
      * According errorResponseBodies whether contains UserNotLoggedIn and UserHasMissingRoles do validation.
@@ -1355,29 +1382,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      */
     def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
       _isEndpointAuthCheck = true
-
-      def getIds(url: List[String]): (Option[BankId], Option[AccountId], Option[ViewId]) = {
-        val apiPrefixLength = url.size - requestUrlPartPath.size
-
-        val bankId = if (requestUrlBankId != -1) {
-          url.lift(apiPrefixLength + requestUrlBankId).map(BankId(_))
-        } else {
-          None
-        }
-        val accountId = if (bankId.isDefined && requestUrlAccountId != -1) {
-          url.lift(apiPrefixLength + requestUrlAccountId).map(AccountId(_))
-        } else {
-          None
-        }
-
-        val viewId = if (accountId.isDefined && requestUrlViewId != -1) {
-          url.lift(apiPrefixLength + requestUrlViewId).map(ViewId(_))
-        } else {
-          None
-        }
-
-        (bankId, accountId, viewId)
-      }
 
       def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
         if (isNeedCheckAuth) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
@@ -1455,39 +1459,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       val isUrlMatchesResourceDocUrl: List[String] => Boolean = {
         val urlInDoc = StringUtils.split(this.requestUrl, '/')
-        val indices = urlInDoc.indices
-        // all path parameter indices
-        // whether url part is path parameter, e.g: BAR_ID in the path /obp/v4.0.0/foo/bar/BAR_ID
-        val pathParamIndices = {
-          for {
-            index <- indices
-            urlPart = urlInDoc(index)
-            if urlPart.toUpperCase == urlPart
-          } yield index
-        }.toSet
+        val pathVariableNames = findPathVariableNames(this.requestUrl)
 
         (requestUrl: List[String]) => {
           if (requestUrl == urlInDoc) {
             true
           } else {
             (requestUrl.size == urlInDoc.size) &&
-              indices.forall { index =>
-                val requestUrlPart = requestUrl(index)
-                val docUrlPart = urlInDoc(index)
-                requestUrlPart == docUrlPart || pathParamIndices.contains(index)
+            urlInDoc.zip(requestUrl).forall {
+                case (k, v) =>
+                  k == v || pathVariableNames.contains(k)
               }
           }
         }
       }
 
       new OBPEndpoint {
-        override def isDefinedAt(x: Req): Boolean = obpEndpoint.isDefinedAt(x) && isUrlMatchesResourceDocUrl(x.path.partPath)
+        override def isDefinedAt(x: Req): Boolean =
+          obpEndpoint.isDefinedAt(x) && isUrlMatchesResourceDocUrl(x.path.partPath)
 
         override def apply(req: Req): CallContext => Box[JsonResponse] = {
           val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
 
-
-          val (bankId, accountId, viewId) = getIds(req.path.partPath)
+          val pathParams = getPathParams(req.path.partPath)
+          val bankId = pathParams.get("BANK_ID").map(BankId(_))
+          val accountId = pathParams.get("ACCOUNT_ID").map(AccountId(_))
+          val viewId = pathParams.get("VIEW_ID").map(ViewId(_))
 
           val request: Box[Req] = S.request
           val session: Box[LiftSession] = S.session
@@ -2524,7 +2521,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val remoteIpAddress = getRemoteIpAddress()
     val res =
-      if (APIUtil.hasConsentJWT(reqHeaders)) {
+      if (APIUtil.`hasConsent-ID`(reqHeaders)) {
+        Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
+      } else if (APIUtil.hasConsentJWT(reqHeaders)) {
         Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
       } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
         getUserFromOAuthHeaderFuture(cc)
