@@ -5,7 +5,7 @@ import code.api.util.{CallContext, DynamicUtil}
 import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.json
+import net.liftweb.json.{JNothing, JValue}
 import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
 import org.apache.commons.lang3.StringUtils
 
@@ -79,7 +79,7 @@ trait EndpointGroup {
   }
 }
 
-case class CompiledObjects(exampleRequestBody:String, successResponseBody: String, methodBody: String) {
+case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String) {
   val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
   val requestBody = toCaseObject(exampleRequestBody)
   val successResponse = toCaseObject(successResponseBody)
@@ -87,11 +87,11 @@ case class CompiledObjects(exampleRequestBody:String, successResponseBody: Strin
   val partialFunction: OBPEndpoint = {
 
     val requestExample = if (!requestBody.isInstanceOf[PrimaryDataBody[_]]) {
-      Option(json.parse(exampleRequestBody))
+      exampleRequestBody
     } else None
 
     val responseExample = if (!successResponse.isInstanceOf[PrimaryDataBody[_]]) {
-      Option(json.parse(successResponseBody))
+      successResponseBody
     } else None
 
     val (requestBodyCaseClasses, responseBodyCaseClasses) = DynamicEndpointCodeGenerator.buildCaseClasses(requestExample, responseExample)
@@ -130,11 +130,11 @@ case class CompiledObjects(exampleRequestBody:String, successResponseBody: Strin
     }
   }
 
-  private def toCaseObject(str: String): Product = {
-     if (StringUtils.isBlank(str)) {
+  private def toCaseObject(jValue: Option[JValue]): Product = {
+     if (jValue.isEmpty || jValue.exists(JNothing ==)) {
       EmptyBody
      } else {
-       json.parse(str) match {
+       jValue.orNull match {
          case JBool(b) => BooleanBody(b)
          case JInt(l) => LongBody(l.toLong)
          case JDouble(d) => DoubleBody(d)

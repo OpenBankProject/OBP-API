@@ -375,7 +375,7 @@ object ExampleValue {
   lazy val connectorMethodIdExample = ConnectorField("ace0352a-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the connector method on this OBP instance, can be used in all cache. ")
   glossaryItems += makeGlossaryItem("ConnectorMethod.connectorMethodId", connectorMethodIdExample)
 
-  lazy val methodBodyExample = ConnectorField("%20%20%20%20val%20Some(resourceDoc)%20%3D%20callContext.resourceDocument%0A%20%20%20%20" +
+  lazy val dynamicResourceDocMethodBodyExample = ConnectorField("%20%20%20%20val%20Some(resourceDoc)%20%3D%20callContext.resourceDocument%0A%20%20%20%20" +
     "val%20hasRequestBody%20%3D%20request.body.isDefined%0A%0A%20%20%20%20%2F%2F%20get%20Path%20Parameters%2C%20example%3A%0A%20%20%20" +
     "%20%2F%2F%20if%20the%20requestUrl%20of%20resourceDoc%20is%20%2Fhello%2Fbanks%2FBANK_ID%2Fworld%0A%20%20%20%20%2F%2F%20the%20reque" +
     "st%20path%20is%20%2Fhello%2Fbanks%2Fbank_x%2Fworld%0A%20%20%20%20%2F%2FpathParams.get(%22BANK_ID%22)%20will%20get%20Option(%22bank" +
@@ -390,7 +390,16 @@ object ExampleValue {
     "h%22%2C%20requestEntity.name%2C%20requestEntity.age%2C%20requestEntity.hobby)%0A%20%20%20%20Future.successful%20%7B%0A%20%20%20%20" +
     "%20%20(responseBody%2C%20HttpCode.%60200%60(callContext.callContext))%0A%20%20%20%20%7D",
     "the URL-encoded format String, the original code is the OBP connector method body.")
-  glossaryItems += makeGlossaryItem("ConnectorMethod.methodBody", methodBodyExample)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.methodBody", dynamicResourceDocMethodBodyExample)
+
+  lazy val connectorMethodBodyExample = ConnectorField("%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%" +
+    "28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20" +
+    "%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%2" +
+    "0%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%2" +
+    "0%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%" +
+    "20%20%20%20%20%20%29",
+    "the URL-encoded format String, the original code is the OBP connector method body.")
+  glossaryItems += makeGlossaryItem("DynamicConnectorMethod.methodBody", connectorMethodBodyExample)
   
   lazy val dynamicResourceDocIdExample = ConnectorField("vce035ca-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the dynamic Resource Doc on this OBP instance, can be used in all cache. ")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.dynamicResourceDocId", dynamicResourceDocIdExample)

@@ -37,14 +37,13 @@ object DynamicConnector {
   {
     //messageDoc.process is a bit different with the methodName, we need tweak the format of it:
     //eg: process("obp.getBank") ==> methodName("getBank")
-    val methodName = process.replaceFirst("obp.","")
     val method = s"""
                     |${DynamicUtil.importStatements}
-                    |def $methodName(args: Array[AnyRef], callContext: Option[CallContext]): Future[Box[(AnyRef, Option[CallContext])]] = {
+                    |def func(args: Array[AnyRef], callContext: Option[CallContext]): Future[Box[(AnyRef, Option[CallContext])]] = {
                     |  $methodBody
                     |}
                     |
-                    |$methodName _
+                    |func _
                     |""".stripMargin
     compileScalaCode(method)
   }

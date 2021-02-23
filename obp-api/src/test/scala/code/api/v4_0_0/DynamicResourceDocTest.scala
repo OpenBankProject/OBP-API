@@ -88,12 +88,8 @@ class DynamicResourceDocTest extends V400ServerSetup {
       dynamicResourceDoc.errorResponseBodies should be (postDynamicResourceDoc.errorResponseBodies)
       dynamicResourceDoc.tags should be (postDynamicResourceDoc.tags)
 
-      {
-        val requestBody = postDynamicResourceDoc.exampleRequestBody
-        json.parse(dynamicResourceDoc.exampleRequestBody) should be(json.parse(requestBody))
-        val responseBody = postDynamicResourceDoc.successResponseBody
-        json.parse(dynamicResourceDoc.successResponseBody) should be(json.parse(responseBody))
-      }
+      dynamicResourceDoc.exampleRequestBody should be(postDynamicResourceDoc.exampleRequestBody)
+      dynamicResourceDoc.successResponseBody should be(postDynamicResourceDoc.successResponseBody)
 
       Then(s"we test the $ApiEndpoint2")
       val requestGet = (v4_0_0_Request / "management" / "dynamic-resource-docs" / {dynamicResourceDoc.dynamicResourceDocId.getOrElse("")}).GET <@ (user1)
@@ -115,12 +111,8 @@ class DynamicResourceDocTest extends V400ServerSetup {
       dynamicResourceDoc.errorResponseBodies should be (postDynamicResourceDoc.errorResponseBodies)
       dynamicResourceDoc.tags should be (postDynamicResourceDoc.tags)
 
-      {
-        val requestBody = postDynamicResourceDoc.exampleRequestBody
-        json.parse(dynamicResourceDoc.exampleRequestBody) should be(json.parse(requestBody))
-        val responseBody = postDynamicResourceDoc.successResponseBody
-        json.parse(dynamicResourceDoc.successResponseBody) should be(json.parse(responseBody))
-      }
+      dynamicResourceDoc.exampleRequestBody should be(postDynamicResourceDoc.exampleRequestBody)
+      dynamicResourceDoc.successResponseBody should be(postDynamicResourceDoc.successResponseBody)
 
       Then(s"we test the $ApiEndpoint3")
       val requestGetAll = (v4_0_0_Request / "management" / "dynamic-resource-docs").GET <@ (user1)
@@ -142,8 +134,8 @@ class DynamicResourceDocTest extends V400ServerSetup {
       (dynamicResourceDocs \ "request_url").values.toString should equal (postDynamicResourceDoc.requestUrl)
       (dynamicResourceDocs \ "summary").values.toString should equal (postDynamicResourceDoc.summary)
       (dynamicResourceDocs \ "description").values.toString should equal (postDynamicResourceDoc.description)
-      (dynamicResourceDocs \ "example_request_body") should equal (json.parse(postDynamicResourceDoc.exampleRequestBody))
-      (dynamicResourceDocs \ "success_response_body") should equal (json.parse(postDynamicResourceDoc.successResponseBody))
+      (dynamicResourceDocs \ "example_request_body") should equal (postDynamicResourceDoc.exampleRequestBody.orNull)
+      (dynamicResourceDocs \ "success_response_body") should equal (postDynamicResourceDoc.successResponseBody.orNull)
       (dynamicResourceDocs \ "error_response_bodies").values.toString should equal (postDynamicResourceDoc.errorResponseBodies)
       (dynamicResourceDocs \ "tags").values.toString should equal (postDynamicResourceDoc.tags)
       (dynamicResourceDocs \ "method_body").values.toString should equal (postDynamicResourceDoc.methodBody)

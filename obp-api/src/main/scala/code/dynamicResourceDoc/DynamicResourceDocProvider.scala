@@ -27,32 +27,13 @@ case class JsonDynamicResourceDoc(
    requestUrl: String,
    summary: String,
    description: String,
-   exampleRequestBody: String,
-   successResponseBody: String,
+   exampleRequestBody: Option[JValue],
+   successResponseBody: Option[JValue],
    errorResponseBodies: String,
    tags: String,
    roles: String
-) extends JsonFieldReName with JsonAble{
+) extends JsonFieldReName {
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
-
-  override def toJValue(implicit format: Formats): JsonAST.JValue = {
-    import net.liftweb.json.JsonDSL._
-    val requestBody:JValue = if(StringUtils.isBlank(exampleRequestBody)) JNothing else json.parse(exampleRequestBody)
-    val responseBody:JValue = if(StringUtils.isBlank(successResponseBody)) JNothing else json.parse(successResponseBody)
-
-      ("dynamic_resource_doc_id" -> dynamicResourceDocId) ~
-        ("request_verb" -> requestVerb) ~
-        ("request_url" -> requestUrl) ~
-        ("example_request_body" -> requestBody) ~
-        ("success_response_body" -> responseBody) ~
-        ("partial_function_name" -> partialFunctionName) ~
-        ("error_response_bodies" -> errorResponseBodies) ~
-        ("summary" -> summary) ~
-        ("description" -> description) ~
-        ("tags" -> tags) ~
-        ("roles" -> roles) ~
-        ("method_body" -> methodBody)
-  }
 }
 
 trait DynamicResourceDocProvider {

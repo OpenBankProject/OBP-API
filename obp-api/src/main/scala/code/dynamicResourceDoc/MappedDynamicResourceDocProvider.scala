@@ -4,6 +4,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -38,6 +39,9 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
 
   override def create(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]=
     tryo {
+      val requestBody = entity.exampleRequestBody.map(json.compactRender(_)).orNull
+      val responseBody = entity.successResponseBody.map(json.compactRender(_)).orNull
+
       DynamicResourceDoc.create
       .DynamicResourceDocId(APIUtil.generateUUID())
       .PartialFunctionName(entity.partialFunctionName)
@@ -45,8 +49,8 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
       .RequestUrl(entity.requestUrl)
       .Summary(entity.summary)
       .Description(entity.description)
-      .ExampleRequestBody(entity.exampleRequestBody)
-      .SuccessResponseBody(entity.successResponseBody)
+      .ExampleRequestBody(requestBody)
+      .SuccessResponseBody(responseBody)
       .ErrorResponseBodies(entity.errorResponseBodies)
       .Tags(entity.tags)
       .Roles(entity.roles)
@@ -59,13 +63,15 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, entity.dynamicResourceDocId.getOrElse(""))) match {
       case Full(v) =>
         tryo {
+          val requestBody = entity.exampleRequestBody.map(json.compactRender(_)).orNull
+          val responseBody = entity.successResponseBody.map(json.compactRender(_)).orNull
           v.PartialFunctionName(entity.partialFunctionName)
             .RequestVerb(entity.requestVerb)
             .RequestUrl(entity.requestUrl)
             .Summary(entity.summary)
             .Description(entity.description)
-            .ExampleRequestBody(entity.exampleRequestBody)
-            .SuccessResponseBody(entity.successResponseBody)
+            .ExampleRequestBody(requestBody)
+            .SuccessResponseBody(responseBody)
             .ErrorResponseBodies(entity.errorResponseBodies)
             .Tags(entity.tags)
             .Roles(entity.roles)

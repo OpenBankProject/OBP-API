@@ -4067,19 +4067,19 @@ object SwaggerDefinitionsJSON {
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
 
-  val jsonConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", methodBodyExample.value)
-  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(methodBodyExample.value)
+  val jsonConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyExample.value)
+  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyExample.value)
   
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
     dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
-    methodBody = methodBodyExample.value,
+    methodBody = dynamicResourceDocMethodBodyExample.value,
     partialFunctionName = partialFunctionNameExample.value,
     requestVerb = requestVerbExample.value, 
     requestUrl = requestUrlExample.value, 
     summary = summaryExample.value, 
     description = descriptionExample.value, 
-    exampleRequestBody = exampleRequestBodyExample.value, 
-    successResponseBody = successResponseBodyExample.value, 
+    exampleRequestBody = Option(json.parse(exampleRequestBodyExample.value)),
+    successResponseBody = Option(json.parse(successResponseBodyExample.value)),
     errorResponseBodies = errorResponseBodiesExample.value, 
     tags = tagsExample.value, 
     roles = rolesExample.value
@@ -4097,7 +4097,7 @@ object SwaggerDefinitionsJSON {
     outboundAvroSchema = outboundAvroSchemaExample.value,
     inboundAvroSchema = inboundAvroSchemaExample.value,
     adapterImplementation = adapterImplementationExample.value,
-    methodBody = methodBodyExample.value
+    methodBody = connectorMethodBodyExample.value
   )
 
   val jsonResourceDocFragment = ResourceDocFragment(

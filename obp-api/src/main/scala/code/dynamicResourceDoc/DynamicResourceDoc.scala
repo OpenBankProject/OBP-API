@@ -1,7 +1,10 @@
 package code.dynamicResourceDoc
 
 import code.util.UUIDString
+import net.liftweb.json
 import net.liftweb.mapper._
+import org.apache.commons.lang3.StringUtils
+
 import scala.collection.immutable.List
 
 class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
@@ -34,8 +37,8 @@ object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[Dy
     requestUrl = dynamicResourceDoc.RequestUrl.get,
     summary = dynamicResourceDoc.Summary.get,
     description = dynamicResourceDoc.Description.get,
-    exampleRequestBody = dynamicResourceDoc.ExampleRequestBody.get,
-    successResponseBody = dynamicResourceDoc.SuccessResponseBody.get,
+    exampleRequestBody = Option(dynamicResourceDoc.ExampleRequestBody.get).filter(StringUtils.isNotBlank).map(json.parse),
+    successResponseBody = Option(dynamicResourceDoc.SuccessResponseBody.get).filter(StringUtils.isNotBlank).map(json.parse),
     errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
     tags = dynamicResourceDoc.Tags.get,
     roles = dynamicResourceDoc.Roles.get
