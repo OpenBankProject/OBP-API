@@ -413,7 +413,7 @@ object ExampleValue {
   lazy val partialFunctionNameExample = ConnectorField("getBanks", "partial function name")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunctionName", partialFunctionNameExample)
   
-  lazy val requestVerbExample = ConnectorField("GET", "This is the HTTP methods, eg: GET, POST, PUT, DELETE ")
+  lazy val requestVerbExample = ConnectorField("POST", "This is the HTTP methods, eg: GET, POST, PUT, DELETE ")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.requestVerb", requestVerbExample)
   
   lazy val requestUrlExample = ConnectorField("/my_user/MY_USER_ID", "The URL of the endpoint.")

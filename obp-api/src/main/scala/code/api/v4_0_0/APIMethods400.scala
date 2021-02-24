@@ -7123,11 +7123,15 @@ trait APIMethods400 {
             jsonDynamicResourceDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
             }
-
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
               Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
             }
-
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+              (jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(requestBody)) => requestBody == JNothing
+                case _ => true
+              }
+            }
             _ = try {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
             } catch {
@@ -7180,6 +7184,13 @@ trait APIMethods400 {
 
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
               Set("POST", "PUT", "GET", "DELETE").contains(dynamicResourceDocBody.requestVerb)
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+              (dynamicResourceDocBody.requestVerb, dynamicResourceDocBody.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(requestBody)) => requestBody == JNothing
+                case _ => true
+              }
             }
 
             _ = try {
@@ -7325,6 +7336,13 @@ trait APIMethods400 {
             }
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
                Set("POST", "PUT", "GET", "DELETE").contains(resourceDocFragment.requestVerb)
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+              (resourceDocFragment.requestVerb, resourceDocFragment.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(requestBody)) => requestBody == JNothing
+                case _ => true
+              }
             }
 
             code = DynamicEndpointCodeGenerator.buildTemplate(resourceDocFragment)
