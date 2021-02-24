@@ -7128,7 +7128,10 @@ trait APIMethods400 {
             }
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
               (jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.exampleRequestBody) match {
-                case ("GET" | "DELETE", Some(requestBody)) => requestBody == JNothing
+                case ("GET" | "DELETE", Some(JString(s))) =>
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) =>
+                  requestBody == JNothing
                 case _ => true
               }
             }
@@ -7188,7 +7191,10 @@ trait APIMethods400 {
 
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
               (dynamicResourceDocBody.requestVerb, dynamicResourceDocBody.exampleRequestBody) match {
-                case ("GET" | "DELETE", Some(requestBody)) => requestBody == JNothing
+                case ("GET" | "DELETE", Some(JString(s))) =>
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) =>
+                  requestBody == JNothing
                 case _ => true
               }
             }
@@ -7340,7 +7346,10 @@ trait APIMethods400 {
 
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
               (resourceDocFragment.requestVerb, resourceDocFragment.exampleRequestBody) match {
-                case ("GET" | "DELETE", Some(requestBody)) => requestBody == JNothing
+                case ("GET" | "DELETE", Some(JString(s))) =>
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) =>
+                  requestBody == JNothing
                 case _ => true
               }
             }
