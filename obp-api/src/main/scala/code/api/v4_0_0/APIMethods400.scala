@@ -7320,7 +7320,7 @@ trait APIMethods400 {
       "Create Dynamic Resource Doc endpoint code",
       s"""Create a Dynamic Resource Doc endpoint code.
          |
-         |copy the response and past to ${nameOf(PractiseEndpoint)}, So you can have the benifit of
+         |copy the response and past to ${nameOf(PractiseEndpoint)}, So you can have the benefits of
          |auto compilation and debug
          |""",
       jsonResourceDocFragment,

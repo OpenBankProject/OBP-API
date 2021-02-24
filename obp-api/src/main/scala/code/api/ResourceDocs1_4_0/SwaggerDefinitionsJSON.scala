@@ -4101,10 +4101,10 @@ object SwaggerDefinitionsJSON {
   )
 
   val jsonResourceDocFragment = ResourceDocFragment(
-    "POST",
-    "/abc/ABC_ID/hello/HELLO_ID",
-    Some(json.parse("""{"name": "Jhon", "age": 12}""")),
-    Some(json.parse("""{"entity_id": "xxx_id_value", "name": "Jhon", "age": 12}"""))
+    requestVerbExample.value,
+    requestUrlExample.value,
+    exampleRequestBody = Option(json.parse(exampleRequestBodyExample.value)),
+    successResponseBody = Option(json.parse(successResponseBodyExample.value))
   )
 
   val jsonCodeTemplate = "code" -> URLEncoder.encode("""println("hello")""", "UTF-8")
