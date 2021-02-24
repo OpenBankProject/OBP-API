@@ -412,6 +412,9 @@ object ExampleValue {
   
   lazy val partialFunctionNameExample = ConnectorField("getBanks", "partial function name")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunctionName", partialFunctionNameExample)
+
+  lazy val dynamicResourceDocPartialFunctionNameExample = ConnectorField("createUser", "partial function name")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunctionName", dynamicResourceDocPartialFunctionNameExample)
   
   lazy val requestVerbExample = ConnectorField("POST", "This is the HTTP methods, eg: GET, POST, PUT, DELETE ")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.requestVerb", requestVerbExample)
@@ -921,7 +924,7 @@ object ExampleValue {
   lazy val perMonthCallLimitExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("per_month_call_limit", perMonthCallLimitExample)
 
-  lazy val rolesExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val rolesExample = ConnectorField("CanCreateMyUser","Entitlements are used to grant System or Bank level roles to Users ")
   glossaryItems += makeGlossaryItem("roles", rolesExample)
 
   lazy val categoryExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1197,7 +1200,7 @@ object ExampleValue {
   lazy val counterpartyExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("counterparty", counterpartyExample)
 
-  lazy val tagsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val tagsExample = ConnectorField("Create-My-User","OBP uses the tags to group the endpoints, the relevant endpoints can share the same tag. ")
   glossaryItems += makeGlossaryItem("tags", tagsExample)
 
   lazy val perHourExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1995,6 +1998,9 @@ object ExampleValue {
   lazy val descriptionExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("description", descriptionExample)
 
+  lazy val dynamicResourceDocdescriptionExample = ConnectorField("Create one User", "the description for this endpoint")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.description", dynamicResourceDocdescriptionExample)
+
   lazy val canDeleteCommentExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_delete_comment", canDeleteCommentExample)
 
@@ -2025,6 +2031,8 @@ object ExampleValue {
   lazy val summaryExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("summary", summaryExample)
 
+  lazy val dynamicResourceDocSummaryExample = ConnectorField("Create My User","The summary of this endpoint")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.summary", dynamicResourceDocSummaryExample)
 
 
   //------------------------------------------------------------
