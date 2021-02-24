@@ -7,7 +7,7 @@ import com.openbankproject.commons.util.JsonUtils
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
 import net.liftweb.json.{JArray, JObject, JValue}
-import org.apache.commons.lang3.ArrayUtils
+import org.apache.commons.lang3.{ArrayUtils, StringUtils}
 
 object DynamicEndpointCodeGenerator {
 
@@ -46,7 +46,7 @@ object DynamicEndpointCodeGenerator {
       case Some(JBool(_)) => requestEntityExp("Boolean")
       case Some(JInt(_)) => requestEntityExp("Long")
       case Some(JDouble(_)) => requestEntityExp("Double")
-      case Some(JString(_)) => requestEntityExp("String")
+      case Some(JString(s)) if StringUtils.isNotBlank(s) => requestEntityExp("String")
       case Some(JObject(_)) | Some(JArray(_)) => requestEntityExp("RequestRootJsonClass")
       case _ => ""
     }
