@@ -17,6 +17,23 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup {
 
   private val apiVersion : ScannedApiVersion = ApiVersion.v4_0_0
 
+  /**
+   * this is a function, convert JsonDynamicResourceDoc => ResourceDoc
+   * 
+   * the core difference between JsonDynamicResourceDoc and ResourceDoc are the following:
+   * 
+   * 1st: JsonDynamicResourceDoc.methodBody <---vs---> ResourceDoc no methodBody
+   * 
+   * 2rd: JsonDynamicResourceDoc.exampleRequestBody : Option[JValue] <---vs---> ResourceDoc.exampleRequestBody: scala.Product
+   * 
+   * 3rd: JsonDynamicResourceDoc no partialFunction <---vs---> partialFunction: OBPEndpoint
+   * 
+   * ....
+   * 
+   * We need to prepare the ResourceDoc fields from JsonDynamicResourceDoc.
+   * @CompiledObjects also see this class,
+   * 
+   */
   private val toResourceDoc: JsonDynamicResourceDoc => ResourceDoc = { dynamicDoc =>
     val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody)
     ResourceDoc(
