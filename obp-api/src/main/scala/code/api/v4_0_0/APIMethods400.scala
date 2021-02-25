@@ -7128,10 +7128,10 @@ trait APIMethods400 {
             }
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""") {
               (jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.exampleRequestBody) match {
-                case ("GET" | "DELETE", Some(JString(s))) =>
+                case ("GET" | "DELETE", Some(JString(s))) => //we support the empty string "" here
                   StringUtils.isBlank(s)
-                case ("GET" | "DELETE", Some(requestBody)) =>
-                  requestBody == JNothing
+                case ("GET" | "DELETE", Some(requestBody)) => // we add the guard, we forbid any json objects in GET/DELETE request body.
+                  requestBody == JNothing 
                 case _ => true
               }
             }
