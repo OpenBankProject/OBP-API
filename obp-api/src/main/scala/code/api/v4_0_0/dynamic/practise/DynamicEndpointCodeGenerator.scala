@@ -102,6 +102,19 @@ object DynamicEndpointCodeGenerator {
     )
   }
 
+  /**
+   *  also see @com.openbankproject.commons.util.JsonUtils#toCaseClasses 
+   *  it will generate the following case class strings:
+   *  
+   * // all request case classes
+   * // case class RequestRootJsonClass(name: String, age: Long)
+   * // all response case classes
+   * // case class ResponseRootJsonClass(person_id: String, name: String, age: Long)
+   *
+   * @param exampleRequestBody : Option[JValue]
+   * @param successResponseBody: Option[JValue]
+   * @return
+   */
   def buildCaseClasses(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue]): (String, String) = {
     val requestBodyCaseClasses = if(exampleRequestBody.exists(it => it.isInstanceOf[JObject] || it.isInstanceOf[JArray])) {
       val Some(requestBody) = exampleRequestBody

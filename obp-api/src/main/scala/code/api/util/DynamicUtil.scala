@@ -85,6 +85,12 @@ object DynamicUtil {
     result.asInstanceOf[AnyRef]
   }
 
+  /**
+   * this method will create a object from the JValue.
+   * from JValue --> Case Class String -->  DynamicUtil.compileScalaCode(code) --> object 
+   * @param jValue
+   * @return 
+   */
   def toCaseObject(jValue: JValue): Product = {
     val caseClasses = JsonUtils.toCaseClasses(jValue)
     val code =

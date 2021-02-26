@@ -98,24 +98,45 @@ trait EndpointGroup {
   }
 }
 
+/**
+ * This class will generate the ResourceDoc class fields(requestBody: Product, successResponse: Product and partialFunction: OBPEndpoint) 
+ * by parameters: JValues and Strings.
+ * successResponseBody: Option[JValue] --> toCaseObject(from JValue --> Scala code --> DynamicUtil.compileScalaCode --> generate the object.
+ * methodBody: String --> prepare the template api level scala code --> DynamicUtil.compileScalaCode --> generate the api level code.
+ * 
+ * @param exampleRequestBody exampleRequestBody from the post json body, it is JValue here.
+ * @param successResponseBody successResponseBody from the post json body,it is JValue here.
+ * @param methodBody it is url-encoded string for the api level code.
+ */
 case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String) {
   val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
-  val requestBody = exampleRequestBody match {
+  val requestBody: Product = exampleRequestBody match {
+      //this case means, we accept the empty string "" from json post body, we need to map it to None.
     case Some(JString(s)) if StringUtils.isBlank(s) => toCaseObject(None)
+     // Here we will generate the object by the JValue (exampleRequestBody)
     case _ => toCaseObject(exampleRequestBody)
   }
-  val successResponse = toCaseObject(successResponseBody)
+  val successResponse: Product = toCaseObject(successResponseBody)
 
   val partialFunction: OBPEndpoint = {
 
-    val requestExample = if (!requestBody.isInstanceOf[PrimaryDataBody[_]]) {
-      exampleRequestBody
-    } else None
+    //If the requestBody is PrimaryDataBody, return None. otherwise, return the exampleRequestBody:Option[JValue]
+    // In side OBP resourceDoc, requestBody and successResponse must be Product type，
+    // both can not be the primitive type: `boolean， string， kong， int， long， double` and List. 
+    // PrimaryDataBody is used for OBP mapping these types.
+    // Note: List and object will generate the `Case class`, `case class` must not be PrimaryDataBody. only these two 
+    // possibilities: case class or PrimaryDataBody
+    val requestExample: Option[JValue] = if (requestBody.isInstanceOf[PrimaryDataBody[_]]) {
+      None 
+    } else exampleRequestBody
 
-    val responseExample = if (!successResponse.isInstanceOf[PrimaryDataBody[_]]) {
-      successResponseBody
-    } else None
+    val responseExample: Option[JValue] = if (successResponse.isInstanceOf[PrimaryDataBody[_]]) {
+      None 
+    } else successResponseBody
 
+    //  buildCaseClasses --> will generate the following case classes string, which are used for the scala template code.
+    // case class RequestRootJsonClass(name: String, age: Long)
+    // case class ResponseRootJsonClass(person_id: String, name: String, age: Long)
     val (requestBodyCaseClasses, responseBodyCaseClasses) = DynamicEndpointCodeGenerator.buildCaseClasses(requestExample, responseExample)
 
     val code =
