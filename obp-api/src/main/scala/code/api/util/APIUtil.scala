@@ -1146,6 +1146,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // So create the EmptyClassJson to set the empty JValue "{}"
   case class EmptyClassJson(jsonString: String ="{}")
 
+  /**
+   *  PrimaryDataBody is used to make the following ResourceDoc.exampleRequestBody and ResourceDoc.successResponseBody to
+   *  support the primitive types(String, Int, Boolean....)
+   *  also see@ case class ResourceDoc -> exampleRequestBody: scala.Product and successResponseBody: scala.Product
+   *  It is `product` type, not support the primitive scala types.
+   *  
+   *  following are some usages eg: 
+   *  1st: we support empty string for `Create Dynamic Resource Doc` endpoint, json body.example_request_body = "",
+   *  2rd: Swagger file use Boolean as response body. 
+   *  .....
+   *  
+   *  
+   * Here are the sub-classes of PrimaryDataBody, they can be used for scala.Product type.
+   * JArrayBody in APIUtil$ (code.api.util)
+   * FloatBody in APIUtil$ (code.api.util)
+   * IntBody in APIUtil$ (code.api.util)
+   * DoubleBody in APIUtil$ (code.api.util)
+   * BigDecimalBody in APIUtil$ (code.api.util)
+   * BooleanBody in APIUtil$ (code.api.util)
+   * StringBody in APIUtil$ (code.api.util)
+   * LongBody in APIUtil$ (code.api.util)
+   * BigIntBody in APIUtil$ (code.api.util)
+   * EmptyBody$ in APIUtil$ (code.api.util)
+   *
+   * @tparam T
+   */
   sealed abstract class PrimaryDataBody[T] extends JsonAble {
     def value: T
 

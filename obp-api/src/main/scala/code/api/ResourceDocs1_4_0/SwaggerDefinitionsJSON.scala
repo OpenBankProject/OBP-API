@@ -4073,11 +4073,11 @@ object SwaggerDefinitionsJSON {
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
     dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
     methodBody = dynamicResourceDocMethodBodyExample.value,
-    partialFunctionName = partialFunctionNameExample.value,
+    partialFunctionName = dynamicResourceDocPartialFunctionNameExample.value,
     requestVerb = requestVerbExample.value, 
     requestUrl = requestUrlExample.value, 
-    summary = summaryExample.value, 
-    description = descriptionExample.value, 
+    summary = dynamicResourceDocSummaryExample.value, 
+    description = dynamicResourceDocdescriptionExample.value, 
     exampleRequestBody = Option(json.parse(exampleRequestBodyExample.value)),
     successResponseBody = Option(json.parse(successResponseBodyExample.value)),
     errorResponseBodies = errorResponseBodiesExample.value, 
@@ -4101,10 +4101,10 @@ object SwaggerDefinitionsJSON {
   )
 
   val jsonResourceDocFragment = ResourceDocFragment(
-    "POST",
-    "/abc/ABC_ID/hello/HELLO_ID",
-    Some(json.parse("""{"name": "Jhon", "age": 12}""")),
-    Some(json.parse("""{"entity_id": "xxx_id_value", "name": "Jhon", "age": 12}"""))
+    requestVerbExample.value,
+    requestUrlExample.value,
+    exampleRequestBody = Option(json.parse(exampleRequestBodyExample.value)),
+    successResponseBody = Option(json.parse(successResponseBodyExample.value))
   )
 
   val jsonCodeTemplate = "code" -> URLEncoder.encode("""println("hello")""", "UTF-8")

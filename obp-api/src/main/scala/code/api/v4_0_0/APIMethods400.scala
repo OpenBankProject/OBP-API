@@ -4311,7 +4311,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
@@ -4362,7 +4362,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoint)))
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
@@ -4401,7 +4401,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
@@ -4434,7 +4434,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEndpoint)))
 
     lazy val deleteDynamicEndpoint : OBPEndpoint = {
@@ -4466,7 +4466,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle)
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMyDynamicEndpoints: OBPEndpoint = {
@@ -4499,7 +4499,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
     )
 
     lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
@@ -7126,11 +7126,11 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
               Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
             }
-            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""") {
               (jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.exampleRequestBody) match {
-                case ("GET" | "DELETE", Some(JString(s))) =>
+                case ("GET" | "DELETE", Some(JString(s))) => //we support the empty string "" here
                   StringUtils.isBlank(s)
-                case ("GET" | "DELETE", Some(requestBody)) =>
+                case ("GET" | "DELETE", Some(requestBody)) => //we add the guard, we forbid any json objects in GET/DELETE request body.
                   requestBody == JNothing
                 case _ => true
               }
@@ -7320,7 +7320,7 @@ trait APIMethods400 {
       "Create Dynamic Resource Doc endpoint code",
       s"""Create a Dynamic Resource Doc endpoint code.
          |
-         |copy the response and past to ${nameOf(PractiseEndpoint)}, So you can have the benifit of
+         |copy the response and past to ${nameOf(PractiseEndpoint)}, So you can have the benefits of
          |auto compilation and debug
          |""",
       jsonResourceDocFragment,

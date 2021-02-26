@@ -71,6 +71,7 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       |""".stripMargin
   }
   val zson2 = """{"road": "gongbin", "number": 123}"""
+  val zson3 = """[{"road": "gongbin", "number": 123}]"""
 
   def buildFunction(jsonStr: String): String => Any = {
     val caseClasses = JsonUtils.toCaseClasses(json.parse(jsonStr))
@@ -97,12 +98,22 @@ class DynamicUtilTest extends FlatSpec with Matchers {
 
     val func = buildFunction(zson)
     val func2 = buildFunction(zson2)
+    val func3 = buildFunction(zson3)
     val value1 = func.apply(zson)
     val value2 = func2.apply(zson2)
+    val value3 = func2.apply(zson3)
+    
 
     ReflectUtils.getNestedField(value1.asInstanceOf[AnyRef], "street", "name") should be ("hongqi")
     ReflectUtils.getField(value1.asInstanceOf[AnyRef], "weight") shouldEqual Some(12.11)
     ReflectUtils.getField(value2.asInstanceOf[AnyRef], "number") shouldEqual (123)
+    ReflectUtils.getField(value3.asInstanceOf[AnyRef], "number") shouldEqual (123)
+  }
 
+  "DynamicUtil.toCaseObject method" should "return correct object" taggedAs DynamicUtilsTag in {
+    
+    val jValueZson2  = json.parse(zson2)
+    val zson2Object: Product = DynamicUtil.toCaseObject(jValueZson2)
+    zson2Object.isInstanceOf[Product] should be (true)
   }
 }
