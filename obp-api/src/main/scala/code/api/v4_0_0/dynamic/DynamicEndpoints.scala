@@ -14,7 +14,7 @@ import scala.collection.immutable.List
 import scala.util.control.Breaks.{break, breakable}
 
 object DynamicEndpoints {
-  private val endpointGroup: List[EndpointGroup] = PractiseEndpointGroup :: DynamicResourceDocs :: Nil
+  private val endpointGroup: List[EndpointGroup] = PractiseEndpointGroup :: DynamicResourceDocsGroup :: Nil
 
   private def findEndpoint(req: Req): Option[OBPEndpoint] = {
     var foundEndpoint: Option[OBPEndpoint] = None

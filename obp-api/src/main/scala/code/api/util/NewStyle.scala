@@ -2353,7 +2353,7 @@ object NewStyle {
     }
 
     private[this] val dynamicEntityTTL = {
-      if(Props.testMode) 0
+      if(Props.testMode || Props.devMode) 0
       else APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "30").toInt
     }
 
