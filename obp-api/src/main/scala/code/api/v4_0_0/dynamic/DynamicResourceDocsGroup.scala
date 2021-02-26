@@ -8,7 +8,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 
-object DynamicResourceDocs extends EndpointGroup {
+object DynamicResourceDocsGroup extends EndpointGroup {
   override lazy val urlPrefix: String = APIUtil.getPropsValue("url.prefix.dynamic.resourceDoc", "dynamic-resource-doc")
 
 
@@ -22,7 +22,7 @@ object DynamicResourceDocs extends EndpointGroup {
     ResourceDoc(
       partialFunction = compiledObjects.partialFunction, //connectorMethodBody
       implementedInApiVersion = apiVersion,
-      partialFunctionName = dynamicDoc.summary.replaceAll("\\W", "_"),
+      partialFunctionName = dynamicDoc.partialFunctionName + "_" + (dynamicDoc.requestVerb + dynamicDoc.requestUrl).hashCode,
       requestVerb = dynamicDoc.requestVerb,
       requestUrl = dynamicDoc.requestUrl,
       summary = dynamicDoc.summary,

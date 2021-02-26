@@ -14,7 +14,7 @@ import scala.collection.immutable.List
 import scala.util.control.Breaks.{break, breakable}
 
 object DynamicEndpoints {
-  private val endpointGroup: List[EndpointGroup] = PractiseEndpointGroup :: DynamicResourceDocs :: Nil
+  private val endpointGroup: List[EndpointGroup] = PractiseEndpointGroup :: DynamicResourceDocsGroup :: Nil
 
   private def findEndpoint(req: Req): Option[OBPEndpoint] = {
     var foundEndpoint: Option[OBPEndpoint] = None
@@ -81,7 +81,10 @@ trait EndpointGroup {
 
 case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String) {
   val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
-  val requestBody = toCaseObject(exampleRequestBody)
+  val requestBody = exampleRequestBody match {
+    case Some(JString(s)) if StringUtils.isBlank(s) => toCaseObject(None)
+    case _ => toCaseObject(exampleRequestBody)
+  }
   val successResponse = toCaseObject(successResponseBody)
 
   val partialFunction: OBPEndpoint = {
