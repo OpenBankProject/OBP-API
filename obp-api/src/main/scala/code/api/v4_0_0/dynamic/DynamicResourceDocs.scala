@@ -22,7 +22,7 @@ object DynamicResourceDocs extends EndpointGroup {
     ResourceDoc(
       partialFunction = compiledObjects.partialFunction, //connectorMethodBody
       implementedInApiVersion = apiVersion,
-      partialFunctionName = dynamicDoc.summary.replaceAll("\\W", "_"),
+      partialFunctionName = dynamicDoc.partialFunctionName + "_" + (dynamicDoc.requestVerb + dynamicDoc.requestUrl).hashCode,
       requestVerb = dynamicDoc.requestVerb,
       requestUrl = dynamicDoc.requestUrl,
       summary = dynamicDoc.summary,
