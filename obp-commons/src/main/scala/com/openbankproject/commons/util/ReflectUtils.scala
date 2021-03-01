@@ -113,6 +113,20 @@ object ReflectUtils {
    * @return the field value of obj
    */
   def getField(obj: AnyRef, fieldName: String): Any = operateField[Any](obj, fieldName)(Functions.doNothingFn)
+  /**
+   * get given object nested field value
+   * @param obj
+   * @param fieldName field name
+   * @return the field value of obj
+   */
+  def getNestedField(obj: AnyRef, rootField: String, nestedFields: String*): Any = {
+    nestedFields.foldLeft(getField(obj, rootField)) { (parentObject, field) =>
+      assert(parentObject != null, s"Can't read `$field` value from null.")
+      assert(parentObject.isInstanceOf[AnyRef], s"Value $parentObject must be AnyRef type.")
+
+      getField(parentObject.asInstanceOf[AnyRef], field)
+    }
+  }
 
   /**
    * according object name get corresponding field value
@@ -618,12 +632,14 @@ object ReflectUtils {
     tp.typeSymbol.isClass && !tp.typeSymbol.asClass.isTrait match {
     case false => Map.empty[String, ru.Type]
     case true => {
-      getPrimaryConstructor(tp)
+      import scala.collection.immutable.ListMap
+      val paramNameToTypeList = getPrimaryConstructor(tp)
         .paramLists
         .headOption
         .getOrElse(Nil)
         .map(it => (it.name.toString, it.info))
-        .toMap
+
+      ListMap(paramNameToTypeList:_*)
     }
   }
   /**

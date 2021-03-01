@@ -38,6 +38,7 @@ import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
+import code.api.v4_0_0.dynamic.DynamicEndpoints
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
@@ -86,6 +87,16 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
   oauthServe(apiPrefix{Implementations4_0_0.dynamicEndpoint}, None)
+  /**
+   * Here is the place where we register the dynamicEndpoint, all the dynamic resource docs endpoints are here.    
+   * Actually, we only register one endpoint for all the dynamic resource docs endpoints.                          
+   * For Liftweb, it just need to handle one endpoint,                                                             
+   *  all the router functionalities are in OBP code.                                                              
+   *  details: please also check code/api/v4_0_0/dynamic/DynamicEndpoints.findEndpoint method                      
+   * NOTE: this must be the last one endpoint to register into Liftweb                                             
+   * Because firstly, Liftweb should look for the static endpoints --> then the dynamic ones.                      
+   */
+  oauthServe(apiPrefix{DynamicEndpoints.dynamicEndpoint}, None)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

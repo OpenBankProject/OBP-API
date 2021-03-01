@@ -21,7 +21,7 @@ trait CustomJsonFormats {
 
 object CustomJsonFormats {
 
-  val formats: Formats = JsonSerializers.commonFormats + JsonAbleSerializer
+  val formats: Formats = JsonSerializers.commonFormats + PrimaryDataBodySerializer + ToStringDeSerializer + TupleSerializer
 
   val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless ++ JsonSerializers.serializers
 
@@ -37,10 +37,9 @@ object CustomJsonFormats {
 }
 
 
-object OptionalFieldSerializer extends Serializer[AnyRef] {
+object OptionalFieldSerializer extends ObpSerializer[AnyRef] {
   private val typedOptionalPathRegx = "(.+?):(.+)".r
   private val memo = new Memo[universe.Type, List[String]]()
-  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), AnyRef] = Functions.doNothing
   private lazy val propsOutboundOptionalFields =
       APIUtil.getPropsValue("outbound.optional.fields", "")
         .split("""\s*,\s*""").filterNot(StringUtils.isBlank).toList
@@ -125,10 +124,8 @@ object OptionalFieldSerializer extends Serializer[AnyRef] {
 }
 
 
-object JsonAbleSerializer extends Serializer[PrimaryDataBody[_]] {
+object PrimaryDataBodySerializer extends ObpDeSerializer[PrimaryDataBody[_]] {
   private val IntervalClass = classOf[Product]
-
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = Functions.doNothing
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), PrimaryDataBody[_]] = {
     case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JObject] => json match {
@@ -140,5 +137,28 @@ object JsonAbleSerializer extends Serializer[PrimaryDataBody[_]] {
       case v: JArray => JArrayBody(v)
       case x => throw new MappingException("Can't convert " + x + " to PrimaryDataBody")
     }
+  }
+}
+
+/**
+ * deserialize jvalue to string, even if jvalue is not JString type, it can deserialize successfully.
+ */
+object ToStringDeSerializer extends ObpDeSerializer[String] {
+  private val IntervalClass = classOf[String]
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), String] = {
+    case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JString] && json != JNothing =>
+      compactRender(json)
+  }
+}
+
+/**
+ * deserialize jvalue to string, even if jvalue is not JString type, it can deserialize successfully.
+ */
+object TupleSerializer extends ObpSerializer[(String, Any)] {
+  import net.liftweb.json.JsonDSL._
+  override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
+    case (name: String, value: Any) =>
+      name -> json.Extraction.decompose(value)
   }
 }

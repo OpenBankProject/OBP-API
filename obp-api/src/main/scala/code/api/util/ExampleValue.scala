@@ -2,6 +2,7 @@ package code.api.util
 
 
 import code.api.util.APIUtil.parseDate
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UserHasMissingRoles, UserNotLoggedIn, UnknownError}
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
@@ -370,6 +371,85 @@ object ExampleValue {
   lazy val htmlExample = ConnectorField("html format content","the content is displayed in HTML format")
   glossaryItems += makeGlossaryItem("html", htmlExample)
 
+
+  lazy val connectorMethodIdExample = ConnectorField("ace0352a-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the connector method on this OBP instance, can be used in all cache. ")
+  glossaryItems += makeGlossaryItem("ConnectorMethod.connectorMethodId", connectorMethodIdExample)
+
+  lazy val dynamicResourceDocMethodBodyExample = ConnectorField("%20%20%20%20val%20Some(resourceDoc)%20%3D%20callContext.resourceDocument%0A%20%20%20%20" +
+    "val%20hasRequestBody%20%3D%20request.body.isDefined%0A%0A%20%20%20%20%2F%2F%20get%20Path%20Parameters%2C%20example%3A%0A%20%20%20" +
+    "%20%2F%2F%20if%20the%20requestUrl%20of%20resourceDoc%20is%20%2Fhello%2Fbanks%2FBANK_ID%2Fworld%0A%20%20%20%20%2F%2F%20the%20reque" +
+    "st%20path%20is%20%2Fhello%2Fbanks%2Fbank_x%2Fworld%0A%20%20%20%20%2F%2FpathParams.get(%22BANK_ID%22)%20will%20get%20Option(%22bank" +
+    "_x%22)%20value%0A%20%20%20%20val%20pathParams%20%3D%20getPathParams(callContext%2C%20request)%0A%20%20%20%20val%20myUserId%20%3D%2" +
+    "0pathParams(%22MY_USER_ID%22)%0A%0A%0A%20%20%20%20val%20requestEntity%20%3D%20request.json%20match%20%7B%0A%20%20%20%20%20%20case%" +
+    "20Full(zson)%20%3D%3E%0A%20%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20%20%20zson.extract%5BRequestRootJsonClass%5D%0" +
+    "A%20%20%20%20%20%20%20%20%7D%20catch%20%7B%0A%20%20%20%20%20%20%20%20%20%20case%20e%3A%20MappingException%20%3D%3E%0A%20%20%20%20%" +
+    "20%20%20%20%20%20%20%20return%20Full(errorJsonResponse(s%22%24InvalidJsonFormat%20%24%7Be.msg%7D%22))%0A%20%20%20%20%20%20%20%20%7" +
+    "D%0A%20%20%20%20%20%20case%20_%3A%20EmptyBox%20%3D%3E%0A%20%20%20%20%20%20%20%20return%20Full(errorJsonResponse(s%22%24InvalidRequ" +
+    "estPayload%20Current%20request%20has%20no%20payload%22))%0A%20%20%20%20%7D%0A%0A%0A%20%20%20%20%2F%2F%20please%20add%20business%20" +
+    "logic%20here%0A%20%20%20%20val%20responseBody%3AResponseRootJsonClass%20%3D%20ResponseRootJsonClass(s%22%24%7BmyUserId%7D_from_pat" +
+    "h%22%2C%20requestEntity.name%2C%20requestEntity.age%2C%20requestEntity.hobby)%0A%20%20%20%20Future.successful%20%7B%0A%20%20%20%20" +
+    "%20%20(responseBody%2C%20HttpCode.%60200%60(callContext.callContext))%0A%20%20%20%20%7D",
+    "the URL-encoded format String, the original code is the OBP connector method body.")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.methodBody", dynamicResourceDocMethodBodyExample)
+
+  lazy val connectorMethodBodyExample = ConnectorField("%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%" +
+    "28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20" +
+    "%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%2" +
+    "0%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%2" +
+    "0%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%" +
+    "20%20%20%20%20%20%29",
+    "the URL-encoded format String, the original code is the OBP connector method body.")
+  glossaryItems += makeGlossaryItem("DynamicConnectorMethod.methodBody", connectorMethodBodyExample)
+  
+  lazy val dynamicResourceDocIdExample = ConnectorField("vce035ca-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the dynamic Resource Doc on this OBP instance, can be used in all cache. ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.dynamicResourceDocId", dynamicResourceDocIdExample)
+  
+  lazy val partialFunctionExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunction", partialFunctionExample)
+  
+  lazy val implementedInApiVersionExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.implementedInApiVersion", implementedInApiVersionExample)
+  
+  lazy val partialFunctionNameExample = ConnectorField("getBanks", "partial function name")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunctionName", partialFunctionNameExample)
+
+  lazy val dynamicResourceDocPartialFunctionNameExample = ConnectorField("createUser", "partial function name")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.partialFunctionName", dynamicResourceDocPartialFunctionNameExample)
+  
+  lazy val requestVerbExample = ConnectorField("POST", "This is the HTTP methods, eg: GET, POST, PUT, DELETE ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.requestVerb", requestVerbExample)
+  
+  lazy val requestUrlExample = ConnectorField("/my_user/MY_USER_ID", "The URL of the endpoint.")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.requestUrl", requestUrlExample)
+  
+  lazy val exampleRequestBodyExample = ConnectorField("""{"name": "Jhon", "age": 12, "hobby": ["coding"],"_optional_fields_": ["hobby"]}""", "the json string of the request body.")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.exampleRequestBody", exampleRequestBodyExample)
+  
+  lazy val successResponseBodyExample = ConnectorField("""{"my_user_id": "some_id_value", "name": "Jhon", "age": 12, "hobby": ["coding"],"_optional_fields_": ["hobby"]}""".stripMargin, "the json string of the success response body.")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.successResponseBody", successResponseBodyExample)
+  
+  lazy val errorResponseBodiesExample = ConnectorField(s"$UnknownError,$UserNotLoggedIn,$UserHasMissingRoles,$InvalidJsonFormat", "The possible error messages of the endpoint. ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.errorResponseBodies", errorResponseBodiesExample)
+  
+  
+  lazy val isFeaturedExample = ConnectorField("false", "if this  is featured or not ")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.isFeatured", isFeaturedExample)
+  
+  lazy val specialInstructionsExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.specialInstructions", specialInstructionsExample)
+  
+  lazy val specifiedUrlExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.specifiedUrl", specifiedUrlExample)
+
+  lazy val dynamicMessageDocIdExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicMessageDoc.dynamicMessageDocId", dynamicMessageDocIdExample)
+
+  lazy val outboundAvroSchemaExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicMessageDoc.outboundAvroSchema", outboundAvroSchemaExample)
+
+  lazy val inboundAvroSchemaExample =  ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("DynamicMessageDoc.inboundAvroSchema", inboundAvroSchemaExample)
+  
   lazy val canSeeImagesExample = ConnectorField("true",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_images", canSeeImagesExample)
 
@@ -475,7 +555,7 @@ object ExampleValue {
   lazy val ownersExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("owners", ownersExample)
 
-  lazy val exampleInboundMessageExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val exampleInboundMessageExample = ConnectorField("{}", "This is the json object.")
   glossaryItems += makeGlossaryItem("example_inbound_message", exampleInboundMessageExample)
 
   lazy val nationalIdentifierExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -844,7 +924,7 @@ object ExampleValue {
   lazy val perMonthCallLimitExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("per_month_call_limit", perMonthCallLimitExample)
 
-  lazy val rolesExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val rolesExample = ConnectorField("CanCreateMyUser","Entitlements are used to grant System or Bank level roles to Users ")
   glossaryItems += makeGlossaryItem("roles", rolesExample)
 
   lazy val categoryExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1120,7 +1200,7 @@ object ExampleValue {
   lazy val counterpartyExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("counterparty", counterpartyExample)
 
-  lazy val tagsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val tagsExample = ConnectorField("Create-My-User","OBP uses the tags to group the endpoints, the relevant endpoints can share the same tag. ")
   glossaryItems += makeGlossaryItem("tags", tagsExample)
 
   lazy val perHourExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1417,7 +1497,7 @@ object ExampleValue {
   lazy val otherAccountSecondaryRoutingSchemeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("other_account_secondary_routing_scheme", otherAccountSecondaryRoutingSchemeExample)
 
-  lazy val processExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val processExample = ConnectorField("obp.getBank","The format must be obp.xxxx, 'obp.' is the prefix, xxx will be the connector method name")
   glossaryItems += makeGlossaryItem("process", processExample)
 
   lazy val otherBranchRoutingSchemeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1624,7 +1704,7 @@ object ExampleValue {
   lazy val actualDateExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("actual_date", actualDateExample)
 
-  lazy val exampleOutboundMessageExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val exampleOutboundMessageExample = ConnectorField("{}","this will the json object")
   glossaryItems += makeGlossaryItem("example_outbound_message", exampleOutboundMessageExample)
 
   lazy val canDeleteWhereTagExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1918,6 +1998,9 @@ object ExampleValue {
   lazy val descriptionExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("description", descriptionExample)
 
+  lazy val dynamicResourceDocdescriptionExample = ConnectorField("Create one User", "the description for this endpoint")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.description", dynamicResourceDocdescriptionExample)
+
   lazy val canDeleteCommentExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_delete_comment", canDeleteCommentExample)
 
@@ -1948,6 +2031,8 @@ object ExampleValue {
   lazy val summaryExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("summary", summaryExample)
 
+  lazy val dynamicResourceDocSummaryExample = ConnectorField("Create My User","The summary of this endpoint")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.summary", dynamicResourceDocSummaryExample)
 
 
   //------------------------------------------------------------

@@ -26,7 +26,6 @@ Berlin 13359, Germany
 import java.net.{ConnectException, URLEncoder, UnknownHostException}
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.stream.StreamTcpException
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{HttpProtocol, _}
@@ -38,7 +37,7 @@ import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, 
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-import code.api.v4_0_0.MockResponseHolder
+import code.api.v4_0_0.dynamic.MockResponseHolder
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider

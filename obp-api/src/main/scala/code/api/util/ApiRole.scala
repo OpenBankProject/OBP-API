@@ -1,7 +1,7 @@
 package code.api.util
 
 import java.util.concurrent.ConcurrentHashMap
-import code.api.v4_0_0.{DynamicEndpointHelper, DynamicEntityHelper}
+import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper}
 import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
 import net.liftweb.json.{Formats, JsonAST}
 import net.liftweb.json.JsonDSL._
@@ -662,6 +662,36 @@ object ApiRole {
   
   case class CanGetAllConnectorMethods(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAllConnectorMethods = CanGetAllConnectorMethods()
+  
+  case class CanCreateDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateDynamicResourceDoc = CanCreateDynamicResourceDoc()
+
+  case class CanUpdateDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateDynamicResourceDoc = CanUpdateDynamicResourceDoc()
+
+  case class CanGetDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicResourceDoc = CanGetDynamicResourceDoc()
+
+  case class CanGetAllDynamicResourceDocs(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllDynamicResourceDocs = CanGetAllDynamicResourceDocs()
+
+  case class CanDeleteDynamicResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteDynamicResourceDoc = CanDeleteDynamicResourceDoc()
+
+  case class CanCreateDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateDynamicMessageDoc = CanCreateDynamicMessageDoc()
+
+  case class CanUpdateDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateDynamicMessageDoc = CanUpdateDynamicMessageDoc()
+
+  case class CanGetDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicMessageDoc = CanGetDynamicMessageDoc()
+
+  case class CanGetAllDynamicMessageDocs(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllDynamicMessageDocs = CanGetAllDynamicMessageDocs()
+
+  case class CanDeleteDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteDynamicMessageDoc = CanDeleteDynamicMessageDoc()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
