@@ -516,14 +516,13 @@ object Consent {
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
 
-  def createBerlinGroupConsentJWT(user: User,
+  def createBerlinGroupConsentJWT(user: Option[User],
                                   consent: PostConsentJson,
                                   secret: String,
                                   consentId: String,
                                   consumerId: Option[String],
                                   validUntil: Option[Date]): Future[String] = {
 
-    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = validUntil match {
       case Some(date) => date.getTime() / 1000
@@ -543,10 +542,10 @@ object Consent {
 
     Future.sequence(listOfFutures) map { views =>
       val json = ConsentJWT(
-        createdByUserId = user.userId,
+        createdByUserId = user.map(_.userId).getOrElse(""),
         sub = APIUtil.generateUUID(),
         iss = Constant.HostName,
-        aud = consumerId.getOrElse(currentConsumerId),
+        aud = consumerId.getOrElse(""),
         jti = consentId,
         iat = currentTimeInSeconds,
         nbf = currentTimeInSeconds,

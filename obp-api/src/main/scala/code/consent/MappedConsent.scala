@@ -69,7 +69,7 @@ object MappedConsentProvider extends ConsentProvider {
     }
   }
   override def createBerlinGroupConsent(
-    user: User,
+    user: Option[User],
     recurringIndicator: Boolean,
     validUntil: Date,
     frequencyPerDay: Int,
@@ -79,7 +79,7 @@ object MappedConsentProvider extends ConsentProvider {
     tryo {
       MappedConsent
         .create
-        .mUserId(user.userId)
+        .mUserId(user.map(_.userId).getOrElse(null))
         .mStatus(ConsentStatus.RECEIVED.toString)
         .mRecurringIndicator(recurringIndicator)
         .mValidUntil(validUntil)

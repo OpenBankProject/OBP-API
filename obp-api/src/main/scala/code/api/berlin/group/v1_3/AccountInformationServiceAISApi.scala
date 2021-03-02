@@ -21,7 +21,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -129,8 +129,12 @@ As a last option, an ASPSP might in addition accept a command with access rights
        case "consents" :: Nil JsonPost json -> _  =>  {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc)
+             (consumer, callContext) <- applicationAccess(cc)
              _ <- passesPsd2Aisp(callContext)
+             createdByUser: Option[User] <- callContext.map(_.user).getOrElse(Empty) match {
+               case Full(user) => Future(Some(user))
+               case _ => Future(None)
+             }
              failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                json.extract[PostConsentJson]
@@ -153,7 +157,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
              _ <- NewStyle.function.getBankAccountsByIban(consentJson.access.accounts.getOrElse(Nil).map(_.iban.getOrElse("")), callContext)
              
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
-               u,
+               createdByUser,
                recurringIndicator = consentJson.recurringIndicator,
                validUntil = validUntil,
                frequencyPerDay = consentJson.frequencyPerDay,
@@ -165,11 +169,11 @@ As a last option, an ASPSP might in addition accept a command with access rights
              }
              consentJWT <-
              Consent.createBerlinGroupConsentJWT(
-               u,
+               createdByUser,
                consentJson,
                createdConsent.secret,
                createdConsent.consentId,
-               None,
+               consumer.map(_.consumerId.get),
                Some(validUntil)
              )
              _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
