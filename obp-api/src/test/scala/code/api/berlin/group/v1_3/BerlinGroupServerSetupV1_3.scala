@@ -31,6 +31,7 @@ trait BerlinGroupServerSetupV1_3 extends ServerSetupWithTestData {
     val postJson = PostAccountAccessJsonV400(userId, postBody)
     val request = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "account-access" / "grant").POST <@ (consumerAndToken)
     val response = makePostRequest(request, write(postJson))
+    org.scalameta.logger.elem(response)
     Then("We should get a 201 and check the response body")
     response.code should equal(201)
     response.body.extract[ViewJsonV300]

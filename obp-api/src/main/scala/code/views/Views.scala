@@ -78,7 +78,7 @@ trait Views {
   def availableViewsForAccount(bankAccountId : BankIdAccountId) : List[View]
   
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess])
-  def privateViewsUserCanAccess(user: User, viewId: ViewId): (List[View], List[AccountAccess])
+  def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess])
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View]
   
@@ -89,9 +89,9 @@ trait Views {
     )
   }
   final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
-  final def getPrivateBankAccounts(user : User, viewId: ViewId) : List[BankIdAccountId] =  privateViewsUserCanAccess(user, viewId)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
+  final def getPrivateBankAccounts(user : User, viewIds: List[ViewId]) : List[BankIdAccountId] =  privateViewsUserCanAccess(user, viewIds)._2.map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct 
   final def getPrivateBankAccountsFuture(user : User) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user)}
-  final def getPrivateBankAccountsFuture(user : User, viewId: ViewId) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, viewId)}
+  final def getPrivateBankAccountsFuture(user : User, viewIds: List[ViewId]) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, viewIds)}
   final def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId] = getPrivateBankAccounts(user).filter(_.bankId == bankId).distinct
   final def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, bankId)}
   
@@ -142,7 +142,7 @@ class RemotedataViewsCaseClasses {
   case class availableViewsForAccount(bankAccountId: BankIdAccountId)
   case class viewsUserCanAccess(user: User)
   case class privateViewsUserCanAccess(user: User)
-  case class privateViewsUserCanAccessViaViewId(user: User, viewId: ViewId)
+  case class privateViewsUserCanAccessViaViewId(user: User, viewIds: List[ViewId])
   case class privateViewsUserCanAccessAtBank(user: User, bankId: BankId)
   case class privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId)
   case class getAllFirehoseAccounts(bank: Bank, user : User)

@@ -6,8 +6,9 @@ import code.actorsystem.ObpActorHelper
 import code.util.Helper.MdcLoggable
 import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import com.openbankproject.commons.model._
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+
+import scala.collection.immutable.List
 
 class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -112,9 +113,9 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("privateViewsUserCanAccess(" + user +")")
       sender ! (mapper.privateViewsUserCanAccess(user: User))
       
-    case cc.privateViewsUserCanAccessViaViewId(user: User, viewId: ViewId) =>
-      logger.debug("privateViewsUserCanAccess1(" + user + ", " +  viewId + ")")
-      sender ! (mapper.privateViewsUserCanAccess(user: User, viewId: ViewId))
+    case cc.privateViewsUserCanAccessViaViewId(user: User, viewIds: List[ViewId]) =>
+      logger.debug("privateViewsUserCanAccess1(" + user + ", " +  viewIds + ")")
+      sender ! (mapper.privateViewsUserCanAccess(user: User, viewIds: List[ViewId]))
       
     case cc.privateViewsUserCanAccessAtBank(user: User, bankId: BankId) =>
       logger.debug("privateViewsUserCanAccess(" + user + ", " + bankId + ")")
