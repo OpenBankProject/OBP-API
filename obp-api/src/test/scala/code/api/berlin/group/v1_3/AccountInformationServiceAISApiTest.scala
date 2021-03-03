@@ -9,7 +9,7 @@ import code.api.v4_0_0.PostViewJsonV400
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.{AccountId, BankId, ErrorMessage}
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
@@ -62,7 +62,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 200 ")
       response.code should equal(200)
-      response.body.extract[CoreAccountsJsonV13].accounts.length > 1 should be (true)
+      response.body.extract[CoreAccountsJsonV13].accounts.length == 0 should be (true)
     }
   }
   
@@ -77,11 +77,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
     }
 
     scenario("Authentication User, test succeed", BerlinGroupV1_3, readAccountDetails) {
-      val requestGetAccounts = (V1_3_BG / "accounts").GET <@ (user1)
-      val responseGetAccounts = makeGetRequest(requestGetAccounts)
-      val accountId = responseGetAccounts.body.extract[CoreAccountsJsonV13].accounts.map(_.resourceId).headOption.getOrElse("")
-
-      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, accountId)).map(_.bankId.value).getOrElse("")
+      val (bankId, accountId) = MappedBankAccount.findAll().headOption.map(i => (i.bankId.value,i.accountId.value)).getOrElse(("", ""))
       grantUserAccessToViewViaEndpoint(
         bankId,
         accountId,
