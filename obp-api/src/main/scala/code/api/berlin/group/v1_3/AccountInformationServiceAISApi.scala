@@ -2,8 +2,8 @@ package code.api.builder.AccountInformationServiceAISApi
 
 import java.text.SimpleDateFormat
 
-import code.api.APIFailureNewStyle
-import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
+import code.api.{APIFailureNewStyle}
+import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil.{passesPsd2Aisp, _}
@@ -353,7 +353,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
-            _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
+            _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account)
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -483,7 +483,7 @@ This account-id then can be retrieved by the
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -809,7 +809,7 @@ of the "Read Transaction List" call within the _links subfield.
            for {
              (Full(user), callContext) <- authenticatedAccess(cc)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
              bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
              view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(user), callContext)
              (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, Some(user), callContext) map {
@@ -903,7 +903,7 @@ The ASPSP might add balance information, if transaction lists without balances a
             _ <- passesPsd2Aisp(callContext)
             (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-            viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+            viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
             bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {

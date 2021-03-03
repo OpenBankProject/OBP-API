@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import code.api.Constant
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
@@ -20,6 +21,8 @@ trait BerlinGroupServerSetupV1_3 extends ServerSetupWithTestData {
     super.beforeEach()
     // Create necessary system views for APIs of Berlin Group)
     Views.views.vend.getOrCreateSystemView(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+    Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID)
+    Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
   }
 
   def grantUserAccessToViewViaEndpoint(bankId: String,

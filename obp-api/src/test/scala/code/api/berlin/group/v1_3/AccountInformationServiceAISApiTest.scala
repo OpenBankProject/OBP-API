@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import code.api.Constant
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
@@ -110,7 +111,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         testAccountId1.value,
         resourceUser1.userId,
         user1,
-        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, is_system = true)
       )
       
       val requestGet = (V1_3_BG / "accounts" / testAccountId1.value / "balances").GET <@ (user1)
@@ -139,7 +140,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         testAccountId.value,
         resourceUser1.userId,
         user1,
-        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
       )
       val requestGet = (V1_3_BG / "accounts" /testAccountId1.value/ "transactions").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
@@ -168,7 +169,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         testAccountId.value,
         resourceUser1.userId,
         user1,
-        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
       )
       val requestGet = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
