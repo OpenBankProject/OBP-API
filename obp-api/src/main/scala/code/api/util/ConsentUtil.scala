@@ -231,18 +231,23 @@ object Consent {
   }
 
   private def grantAccessToViews(user: User, consent: ConsentJWT): Box[User] = {
+    for {
+      view <- consent.views
+    } yield {
+      val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
+      Views.views.vend.revokeAccess(viewIdBankIdAccountId, user)
+    }
     val result = 
       for {
         view <- consent.views
       } yield {
         val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
-        Views.views.vend.revokeAccess(viewIdBankIdAccountId, user)
-        Views.views.vend.grantAccessToCustomView(viewIdBankIdAccountId, user)
         Views.views.vend.systemView(ViewId(view.view_id)) match {
           case Full(systemView) =>
             Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
           case _ => 
             // It's not system view
+            Views.views.vend.grantAccessToCustomView(viewIdBankIdAccountId, user)
         }
         "Added"
       }

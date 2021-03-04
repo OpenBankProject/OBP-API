@@ -84,6 +84,8 @@ object MappedConsentProvider extends ConsentProvider {
         .mRecurringIndicator(recurringIndicator)
         .mValidUntil(validUntil)
         .mFrequencyPerDay(frequencyPerDay)
+        .mUsesSoFarTodayCounter(0)
+        .mUsesSoFarTodayCounterUpdatedAt(new Date())
         .mCombinedServiceIndicator(combinedServiceIndicator)
         .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
         .mApiVersion(apiVersion.getOrElse(null))
