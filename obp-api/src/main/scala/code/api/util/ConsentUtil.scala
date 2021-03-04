@@ -530,7 +530,7 @@ object Consent {
     }
     
     // 1. Add views
-    val listOfFutures: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
+    val accounts: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
       Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
@@ -539,8 +539,26 @@ object Consent {
         )
       }
     }
+    val balances: List[Future[ConsentView]] = consent.access.balances.getOrElse(Nil) map { account =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        ConsentView(
+          bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
+          account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
+          view_id = Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID
+        )
+      }
+    }
+    val transactions: List[Future[ConsentView]] = consent.access.transactions.getOrElse(Nil) map { account =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        ConsentView(
+          bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
+          account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
+          view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
+        )
+      }
+    }
 
-    Future.sequence(listOfFutures) map { views =>
+    Future.sequence(accounts ::: balances ::: transactions) map { views =>
       val json = ConsentJWT(
         createdByUserId = user.map(_.userId).getOrElse(""),
         sub = APIUtil.generateUUID(),
