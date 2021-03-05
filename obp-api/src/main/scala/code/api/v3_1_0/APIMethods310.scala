@@ -4221,7 +4221,12 @@ trait APIMethods310 {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              //If connectorName = "internal", it mean the dynamic connector methods.
+              //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
+              if(connectorName == "internal")
+                NewStyle.function.getConnectorMethod("mapped", methodName).isDefined
+              else
+                NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4320,7 +4325,12 @@ trait APIMethods310 {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              //If connectorName = "internal", it mean the dynamic connector methods.
+              //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
+              if(connectorName == "internal")
+                NewStyle.function.getConnectorMethod("mapped", methodName).isDefined
+              else
+                NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 
