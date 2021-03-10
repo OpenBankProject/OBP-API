@@ -3457,8 +3457,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def getScaMethodAtInstance(transactionType: String): Full[SCA] = {
-    val propsName = transactionType + "_OTP_INSTRUCTION_TRANSPORT"
+  def getScaMethodAtInstance(transactionRequestType: String): Full[SCA] = {
+    val propsName = transactionRequestType + "_OTP_INSTRUCTION_TRANSPORT"
+    APIUtil.getPropsValue(propsName).map(_.toUpperCase()) match {
+      case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
+      case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS_OTP.toString() => Full(StrongCustomerAuthentication.SMS_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.CHIP_OTP.toString() => Full(StrongCustomerAuthentication.CHIP_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PHOTO_OTP.toString() => Full(StrongCustomerAuthentication.PHOTO_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PUSH_OTP.toString() => Full(StrongCustomerAuthentication.PUSH_OTP)
+      case _ => Full(StrongCustomerAuthentication.SMS)
+    }
+  }
+  
+  def getSuggestedDefaultScaMethod(): Full[SCA] = {
+    val propsName = "suggested_default_sca_method"
     APIUtil.getPropsValue(propsName).map(_.toUpperCase()) match {
       case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
       case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)

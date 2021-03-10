@@ -2,7 +2,7 @@ package code.api.builder.AccountInformationServiceAISApi
 
 import java.text.SimpleDateFormat
 
-import code.api.{APIFailureNewStyle}
+import code.api.APIFailureNewStyle
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
@@ -10,7 +10,7 @@ import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ApiTag, Consent, ExampleValue, NewStyle}
+import code.api.util.{APIUtil, ApiTag, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.model
@@ -1088,7 +1088,7 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
                List(u.userId),
                ChallengeType.BERLINGROUP_CONSENT,
                None,
-               Some(StrongCustomerAuthentication.SMS),
+               getSuggestedDefaultScaMethod(),
                Some(StrongCustomerAuthenticationStatus.received),
                Some(consentId),
                None,
