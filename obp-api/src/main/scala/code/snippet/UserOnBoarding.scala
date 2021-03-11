@@ -27,11 +27,11 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.{InvalidJsonFormat}
-import code.api.util.{CustomJsonFormats}
+import code.api.util.ErrorMessages.InvalidJsonFormat
+import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.v3_1_0.{APIMethods310, UserAuthContextUpdateJson}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Full}
+import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{PostRequest, RequestVar, S, SHtml}
 import net.liftweb.json.Formats
@@ -44,12 +44,14 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
   protected implicit override def formats: Formats = CustomJsonFormats.formats
 
 
-  private object identifierKey extends RequestVar("CUSTOMER_NUMBER")
+  //This key can be set from props, the default in obp code is CUSTOMER_NUMBER
+  private object identifierKey extends RequestVar(APIUtil.getPropsValue("default_auth_context_update_request_key", "CUSTOMER_NUMBER"))
   private object identifierValue extends RequestVar("123456")
   private object otpValue extends RequestVar("123456")
 
 
   def addUserAuthContextUpdateRequest = {
+    identifierKey.set(S.param("key").openOr(identifierKey.get))
     "#identifier-key" #> SHtml.textElem(identifierKey) &
       "#identifier-value" #> SHtml.textElem(identifierValue)  &
       "type=submit" #> SHtml.onSubmitUnit(addUserAuthContextUpdateRequestProcess)
