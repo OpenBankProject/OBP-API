@@ -23,7 +23,7 @@ trait ConsentProvider {
   def revoke(consentId: String): Box[MappedConsent]
   def checkAnswer(consentId: String, challenge: String): Box[MappedConsent]
   def createBerlinGroupConsent(
-    user: User,
+    user: Option[User],
     recurringIndicator: Boolean,
     validUntil: Date,
     frequencyPerDay: Int,

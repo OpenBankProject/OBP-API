@@ -69,7 +69,7 @@ object MappedConsentProvider extends ConsentProvider {
     }
   }
   override def createBerlinGroupConsent(
-    user: User,
+    user: Option[User],
     recurringIndicator: Boolean,
     validUntil: Date,
     frequencyPerDay: Int,
@@ -79,11 +79,13 @@ object MappedConsentProvider extends ConsentProvider {
     tryo {
       MappedConsent
         .create
-        .mUserId(user.userId)
+        .mUserId(user.map(_.userId).getOrElse(null))
         .mStatus(ConsentStatus.RECEIVED.toString)
         .mRecurringIndicator(recurringIndicator)
         .mValidUntil(validUntil)
         .mFrequencyPerDay(frequencyPerDay)
+        .mUsesSoFarTodayCounter(0)
+        .mUsesSoFarTodayCounterUpdatedAt(new Date())
         .mCombinedServiceIndicator(combinedServiceIndicator)
         .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
         .mApiVersion(apiVersion.getOrElse(null))
