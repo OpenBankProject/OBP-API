@@ -920,3 +920,8 @@ enable.force_error=false
 # In case is not defined default value is SMS
 # Possible values: SMS, EMAIL, DUMMY, SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP
 # suggested_default_sca_method=DUMMY
+
+
+## This props is used for the User Onboard page, we can have the default identifier key.
+## The different banks may have different identifiers for their customers, eg: CUSTOMER_NUMBER, TAX_ID, PASSPORT_NUMBER ...
+default_auth_context_update_request_key=CUSTOMER_NUMBER

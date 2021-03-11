@@ -343,6 +343,23 @@ $(document).ready(function() {
 	}else{
 		registerConsumerError.parent().addClass('hide');
 	}
-	
+
+	var addUserAuthContextUpdateRequestError = $('#add-user-auth-context-update-request-div #identifier-error');
+	var addUserAuthContextIdentifierKeyDiv = $('#add-user-auth-context-update-request-div #identifier-key');
+	var addUserAuthContextIdentifierValueDiv = $('#add-user-auth-context-update-request-div #identifier-value');
+	if (addUserAuthContextUpdateRequestError.length > 0 && addUserAuthContextUpdateRequestError.html().length > 0) {
+		addUserAuthContextUpdateRequestError.parent().removeClass('hide');
+		addUserAuthContextIdentifierValueDiv.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		addUserAuthContextIdentifierKeyDiv.css("border","1px solid #A8000B").css("background","#F9F2F3")
+	}
+
+
+	var confirmUserAuthContextUpdateRequestError = $('#confirm-user-auth-context-update-request-div #otp-value-error');
+	var confirmUserAuthContextOtpValueDiv = $('#confirm-user-auth-context-update-request-div #otp-value');
+	if (confirmUserAuthContextUpdateRequestError.length > 0 && confirmUserAuthContextUpdateRequestError.html().length > 0) {
+		confirmUserAuthContextUpdateRequestError.parent().removeClass('hide');
+		confirmUserAuthContextOtpValueDiv.css("border","1px solid #A8000B").css("background","#F9F2F3")
+	}
+
 	showIndicatorCookiePage('cookies-consent');
 });

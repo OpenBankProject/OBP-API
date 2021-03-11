@@ -658,7 +658,7 @@ import net.liftweb.util.Helpers._
   
   override def signupXhtml (user:AuthUser) =  {
     <div id="signup" tabindex="-1">
-      <form method="post" action={S.uri}>
+      <form method="post" action={S.uriAndQueryString.getOrElse(S.uri)}>
           <h1>{signupFormTitle}</h1>
           {legalNoticeDiv}
           <div id="signup-general-error" class="alert alert-danger hide"><span data-lift="Msg?id=error"/></div>
@@ -1217,7 +1217,14 @@ def restoreSomeSessions(): Unit = {
               loginRedirect(Empty)
               url
             case _ =>
-              homePage
+              //if the register page url (user_mgt/sign_up?after-signup=link-to-customer) contains the parameter 
+              //after-signup=link-to-customer,then it will redirect to the on boarding customer page.
+              S.params("after-signup") match { 
+                case url if (url.nonEmpty && url.head.equals("link-to-customer")) =>
+                  "/add-user-auth-context-update-request"
+                case _ =>
+                  homePage
+            }
           }
           if (Helper.isValidInternalRedirectUrl(redir.toString)) {
             actionsAfterSignup(theUser, () => {
