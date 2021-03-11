@@ -916,3 +916,7 @@ outboundAdapterCallContext.generalContext
 ### enable or disable the feature of send "Force-Error" header, default value is false
 enable.force_error=false
 
+# Suggested default SCA method
+# In case is not defined default value is SMS
+# Possible values: SMS, EMAIL, DUMMY, SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP
+# suggested_default_sca_method=DUMMY

@@ -33,6 +33,8 @@ object Constant extends MdcLoggable {
   final val SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID = "ReadTransactionsDetail"
   // Berlin Group
   final val SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID = "ReadAccountsBerlinGroup"
+  final val SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID = "ReadBalancesBerlinGroup"
+  final val SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID = "ReadTransactionsBerlinGroup"
 
   //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
   final val INCOMING_ACCOUNT_ID= "OBP_DEFAULT_INCOMING_ACCOUNT_ID"    

@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import code.api.Constant
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
@@ -9,7 +10,7 @@ import code.api.v4_0_0.PostViewJsonV400
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.{AccountId, BankId, ErrorMessage}
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
@@ -62,7 +63,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
 
       Then("We should get a 200 ")
       response.code should equal(200)
-      response.body.extract[CoreAccountsJsonV13].accounts.length > 1 should be (true)
+      response.body.extract[CoreAccountsJsonV13].accounts.length == 0 should be (true)
     }
   }
   
@@ -77,11 +78,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
     }
 
     scenario("Authentication User, test succeed", BerlinGroupV1_3, readAccountDetails) {
-      val requestGetAccounts = (V1_3_BG / "accounts").GET <@ (user1)
-      val responseGetAccounts = makeGetRequest(requestGetAccounts)
-      val accountId = responseGetAccounts.body.extract[CoreAccountsJsonV13].accounts.map(_.resourceId).headOption.getOrElse("")
-
-      val bankId = MappedBankAccount.find(By(MappedBankAccount.theAccountId, accountId)).map(_.bankId.value).getOrElse("")
+      val (bankId, accountId) = MappedBankAccount.findAll().headOption.map(i => (i.bankId.value,i.accountId.value)).getOrElse(("", ""))
       grantUserAccessToViewViaEndpoint(
         bankId,
         accountId,
@@ -114,7 +111,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         testAccountId1.value,
         resourceUser1.userId,
         user1,
-        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, is_system = true)
       )
       
       val requestGet = (V1_3_BG / "accounts" / testAccountId1.value / "balances").GET <@ (user1)
@@ -143,7 +140,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         testAccountId.value,
         resourceUser1.userId,
         user1,
-        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
       )
       val requestGet = (V1_3_BG / "accounts" /testAccountId1.value/ "transactions").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
@@ -172,7 +169,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         testAccountId.value,
         resourceUser1.userId,
         user1,
-        PostViewJsonV400(view_id = SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, is_system = true)
+        PostViewJsonV400(view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, is_system = true)
       )
       val requestGet = (V1_3_BG / "accounts" / testAccountId.value / "transactions").GET <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)

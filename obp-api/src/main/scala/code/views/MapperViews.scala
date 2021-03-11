@@ -485,7 +485,14 @@ object MapperViews extends Views with MdcLoggable {
     ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
     val privateViews  = accountAccesses.map(_.view_fk.obj).flatten.distinct
     (privateViews, accountAccesses)
-  }  
+  }
+  def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess]) ={
+    val accountAccesses = AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      ByList(AccountAccess.view_id, viewIds.map(_.value))
+    ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
+    PrivateViewsUserCanAccessCommon(accountAccesses)
+  }
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) ={
     val accountAccesses = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),

@@ -148,7 +148,7 @@ object Consent {
 
   private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, calContext: CallContext): Box[Boolean] = {
     Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
-      case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString =>
+      case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString | c.mStatus == ConsentStatus.VALID.toString =>
         verifyHmacSignedJwt(consentIdAsJwt, c) match {
           case true =>
             (System.currentTimeMillis / 1000) match {
@@ -231,18 +231,23 @@ object Consent {
   }
 
   private def grantAccessToViews(user: User, consent: ConsentJWT): Box[User] = {
+    for {
+      view <- consent.views
+    } yield {
+      val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
+      Views.views.vend.revokeAccess(viewIdBankIdAccountId, user)
+    }
     val result = 
       for {
         view <- consent.views
       } yield {
         val viewIdBankIdAccountId = ViewIdBankIdAccountId(ViewId(view.view_id), BankId(view.bank_id), AccountId(view.account_id))
-        Views.views.vend.revokeAccess(viewIdBankIdAccountId, user)
-        Views.views.vend.grantAccessToCustomView(viewIdBankIdAccountId, user)
         Views.views.vend.systemView(ViewId(view.view_id)) match {
           case Full(systemView) =>
             Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
           case _ => 
             // It's not system view
+            Views.views.vend.grantAccessToCustomView(viewIdBankIdAccountId, user)
         }
         "Added"
       }
@@ -516,14 +521,13 @@ object Consent {
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
 
-  def createBerlinGroupConsentJWT(user: User,
+  def createBerlinGroupConsentJWT(user: Option[User],
                                   consent: PostConsentJson,
                                   secret: String,
                                   consentId: String,
                                   consumerId: Option[String],
                                   validUntil: Option[Date]): Future[String] = {
 
-    lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = validUntil match {
       case Some(date) => date.getTime() / 1000
@@ -531,7 +535,7 @@ object Consent {
     }
     
     // 1. Add views
-    val listOfFutures: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
+    val accounts: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
       Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
         ConsentView(
           bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
@@ -540,13 +544,31 @@ object Consent {
         )
       }
     }
+    val balances: List[Future[ConsentView]] = consent.access.balances.getOrElse(Nil) map { account =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        ConsentView(
+          bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
+          account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
+          view_id = Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID
+        )
+      }
+    }
+    val transactions: List[Future[ConsentView]] = consent.access.transactions.getOrElse(Nil) map { account =>
+      Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
+        ConsentView(
+          bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
+          account_id = bankAccount._1.map(_.accountId.value).getOrElse(""),
+          view_id = Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID
+        )
+      }
+    }
 
-    Future.sequence(listOfFutures) map { views =>
+    Future.sequence(accounts ::: balances ::: transactions) map { views =>
       val json = ConsentJWT(
-        createdByUserId = user.userId,
+        createdByUserId = user.map(_.userId).getOrElse(""),
         sub = APIUtil.generateUUID(),
         iss = Constant.HostName,
-        aud = consumerId.getOrElse(currentConsumerId),
+        aud = consumerId.getOrElse(""),
         jti = consentId,
         iat = currentTimeInSeconds,
         nbf = currentTimeInSeconds,
