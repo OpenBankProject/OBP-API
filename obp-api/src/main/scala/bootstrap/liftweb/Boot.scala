@@ -500,7 +500,9 @@ class Boot extends MdcLoggable {
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
           OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
-          Menu.i("INTRODUCTION") / "introduction"
+          Menu.i("INTRODUCTION") / "introduction",
+          Menu.i("add-user-auth-context-update-request") / "add-user-auth-context-update-request",
+          Menu.i("confirm-user-auth-context-update-request") / "confirm-user-auth-context-update-request"
     ) ++ accountCreation ++ Admin.menus
 
     def sitemapMutators = AuthUser.sitemapMutator
