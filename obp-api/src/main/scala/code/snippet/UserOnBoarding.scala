@@ -31,6 +31,7 @@ import code.api.util.ErrorMessages.InvalidJsonFormat
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.api.v3_1_0.{APIMethods310, UserAuthContextUpdateJson}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.UserAuthContextUpdateStatus
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{PostRequest, RequestVar, S, SHtml}
@@ -82,7 +83,16 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
   private def confirmUserAuthContextUpdateRequestProcess() ={
     callConfirmUserAuthContextUpdateRequest match {
       case Left(error) => S.error("otp-value-error",error._1)
-      case Right(success) => S.redirectTo("/")
+      case Right(response) => {
+        tryo {json.parse(response).extract[UserAuthContextUpdateJson]} match {
+          case Full(userAuthContextUpdateJson) if (userAuthContextUpdateJson.status.equals(UserAuthContextUpdateStatus.ACCEPTED)) =>
+            S.redirectTo("/")
+          case Full(userAuthContextUpdateJson) => 
+            S.error("otp-value-error",s"Current SCA status is ${userAuthContextUpdateJson.status}. Please double check OTP value.")
+          case _ => S.error("otp-value-error",s"$InvalidJsonFormat The Json body should be the $UserAuthContextUpdateJson. " +
+            s"Please check `Create User Auth Context Update Request` endpoint separately! ")
+        }
+      }
     }
   }
 
