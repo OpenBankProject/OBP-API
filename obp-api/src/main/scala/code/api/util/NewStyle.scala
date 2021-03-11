@@ -2953,6 +2953,12 @@ object NewStyle {
         val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.deleteById(dynamicMessageDocId)
         (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocDeleteError", 400), callContext)
       }
+
+    def validateUserAuthContextUpdateRequest(bankId: String, userId: String, key: String, value: String, scaMethod: String, callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
+      Connector.connector.vend.validateUserAuthContextUpdateRequest(bankId, userId, key, value, scaMethod, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
     
   }
 }

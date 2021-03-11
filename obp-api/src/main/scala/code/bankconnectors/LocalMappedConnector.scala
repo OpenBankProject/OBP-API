@@ -4843,4 +4843,40 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //    : we call that method only when we set external authentication and provider is not OBP-API
   override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = Failure("")
 
+
+  override def validateUserAuthContextUpdateRequest(
+    bankId: String,
+    userId: String,
+    key: String,
+    value: String,
+    scaMethod: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[UserAuthContextUpdate]] = {
+    for{
+      _ <- Helper.booleanToFuture(s"$InvalidAuthContextUpdateRequestKey. Current Sandbox only support key == CUSTOMER_NUMBER"){
+        key.equals("CUSTOMER_NUMBER")
+      }
+      //1st: check if the customer is existing 
+      (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(value, BankId(bankId), callContext)
+      //2rd: if the customer is existing, we can create the userAuthContextUpdateChallenge
+      (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(userId, key, value, callContext)
+      //3rd: send the challenge to the user.
+      _ <- Future{
+        scaMethod match {
+          case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
+            val params = PlainMailBodyType(userAuthContextUpdate.challenge) :: List(To(customer.email))
+            Mailer.sendMail(
+            From("challenge@tesobe.com"),
+            Subject("Challenge request"),
+            params :_*
+            )
+          case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+          case _ => // Not handled
+        }
+      }
+    } yield{
+      (Full(userAuthContextUpdate), callContext)
+    }
+  }
+
 }

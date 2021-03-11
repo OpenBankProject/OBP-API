@@ -2343,4 +2343,26 @@ trait Connector extends MdcLoggable {
 
   def deleteCustomerAttribute(customerAttributeId: String,
                            callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+
+
+  /**
+   * this method is used to validate the UserAuthContextUpdateRequest. OBP will do the followings in connector level:
+   * 1st: check if the `real` bank customer is existing to search for this key-value pair. If not found, we will throw exception.
+   *    if it is `CUSTOMERB_NUMBER: 1234`,then we will check the customer by customer_number. 
+   *    if it is `PASSPORT_NUMBER:1234`, then we will check the customer by passport_number. 
+   * 2rd: create the UserAuthContextUpdateRequestChallenge  
+   * 
+   * 3rd: send the Challenge to the user by email/phone .....
+   * 
+   * @return
+   */
+  def validateUserAuthContextUpdateRequest(
+    bankId: String,
+    userId: String,
+    key: String,
+    value: String,
+    scaMethod: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[UserAuthContextUpdate]] = Future{(Failure(setUnimplementedError), callContext)}
+
 }
