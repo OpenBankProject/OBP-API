@@ -85,7 +85,7 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
       case Left(error) => S.error("otp-value-error",error._1)
       case Right(response) => {
         tryo {json.parse(response).extract[UserAuthContextUpdateJson]} match {
-          case Full(userAuthContextUpdateJson) if (userAuthContextUpdateJson.status.equals(UserAuthContextUpdateStatus.ACCEPTED)) =>
+          case Full(userAuthContextUpdateJson) if (userAuthContextUpdateJson.status.equals(UserAuthContextUpdateStatus.ACCEPTED.toString)) =>
             S.redirectTo("/")
           case Full(userAuthContextUpdateJson) => 
             S.error("otp-value-error",s"Current SCA status is ${userAuthContextUpdateJson.status}. Please double check OTP value.")
