@@ -2084,7 +2084,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
+            (availableAccounts, callContext) <- NewStyle.function.getAccountsHeld(bankId, u, callContext)
             (accounts, callContext) <- NewStyle.function.getBankAccountsHeldFuture(availableAccounts.toList, callContext)
 
             accountHelds <- getFilteredCoreAccounts(availableAccounts.toList, req, callContext).map { it =>

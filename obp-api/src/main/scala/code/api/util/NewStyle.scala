@@ -1703,10 +1703,14 @@ object NewStyle {
         }
       }
 
-    def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] =
-    {
+    def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] = {
       Connector.connector.vend.getBankAccountsHeld(bankIdAccountIds, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Cannot ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
+      }
+    }
+    def getAccountsHeld(bankId: BankId, user: User, callContext: Option[CallContext]): OBPReturnType[List[BankIdAccountId]] = {
+      Connector.connector.vend.getAccountsHeld(bankId, user, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Cannot ${nameOf(getAccountsHeld(bankId, user, callContext))} in the backend. ", 400), i._2)
       }
     }
 
