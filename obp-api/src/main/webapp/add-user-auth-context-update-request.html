@@ -31,10 +31,12 @@ Berlin 13359, Germany
     <div id="add-user-auth-context-update-request-div" data-lift="UserOnBoarding.addUserAuthContextUpdateRequest">
         <form method="post">
             <div class="form-group">
-                <h3>Please enter your identifier:</h3>
-                <div>It can be any key value pairs to map the bank side customer and obp side user.
-                    eg:CUSTOMER_NUMBER:12345
-                </div>
+                <h3>Please enter your (Customer Number) </h3>
+                <p>(i.e.<br>
+                    key=CUSTOMER_NUMBER -> Customer Number<br>
+                    key=TAX_ID -> Tax Id<br>
+                    etc.)
+                </p>
                 <br>
                 <input class="form-control" id="identifier-key" type="text"
                        value="DEFAULT_AUTH_CONTEXT_UPDATE_REQUEST_KEY" tabindex="0"
