@@ -35,6 +35,7 @@ import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{InBoundTrait, _}
@@ -6371,10 +6372,10 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
 
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](procedureName: String, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
-    this.convertToReference(outBound)
+    Helper.convertToReference(outBound)
     Future{
       StoredProcedureUtils.callProcedure[T](procedureName, outBound)
-    }.map(convertToId(_)) recoverWith {
+    }.map(Helper.convertToId(_)) recoverWith {
       case e: Exception => Future(Failure(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}"))
     }
   }
@@ -6392,80 +6393,6 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     case _ => callContext
   }
 
-  /**
-   * helper function to convert customerId and accountId in a given instance
-   * @param obj
-   * @param customerIdConverter customerId converter, to or from customerReference
-   * @param accountIdConverter accountId converter, to or from accountReference
-   * @tparam T type of instance
-   * @return modified instance
-   */
-  private def convertId[T](obj: T, customerIdConverter: String=> String, accountIdConverter: String=> String): T = {
-    //1st: We must not convert when connector == mapped. this will ignore the implicitly_convert_ids props.
-    //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true`
-
-    def isCustomerId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-        ownerType =:= typeOf[CustomerId] ||
-        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= typeOf[String]) ||
-        (ownerType <:< typeOf[Customer] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
-      }
-
-    def isAccountId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-        ownerType <:< typeOf[AccountId] ||
-        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])
-        (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
-      }
-
-    if(APIUtil.getPropsValue("connector","mapped") != "mapped" && APIUtil.getPropsAsBoolValue("implicitly_convert_ids",false)){
-      ReflectUtils.resetNestedFields(obj){
-        case (fieldName, fieldType, fieldValue: String, ownerType) if isCustomerId(fieldName, fieldType, fieldValue, ownerType) => customerIdConverter(fieldValue)
-        case (fieldName, fieldType, fieldValue: String, ownerType) if isAccountId(fieldName, fieldType, fieldValue, ownerType) => accountIdConverter(fieldValue)
-      }
-      obj
-    } else
-      obj
-  }
-
-  /**
-   * convert given instance nested CustomerId to customerReference, AccountId to accountReference
-   * @param obj
-   * @tparam T type of instance
-   * @return modified instance
-   */
-  def convertToReference[T](obj: T): T = {
-    import code.api.util.ErrorMessages.{CustomerNotFoundByCustomerId, InvalidAccountIdFormat}
-    def customerIdConverter(customerId: String): String = MappedCustomerIdMappingProvider
-      .getCustomerPlainTextReference(CustomerId(customerId))
-      .openOrThrowException(s"$CustomerNotFoundByCustomerId the invalid customerId is $customerId")
-    def accountIdConverter(accountId: String): String = MappedAccountIdMappingProvider
-      .getAccountPlainTextReference(AccountId(accountId))
-      .openOrThrowException(s"$InvalidAccountIdFormat the invalid accountId is $accountId")
-    convertId[T](obj, customerIdConverter, accountIdConverter)
-  }
-
-  /**
-   * convert given instance nested customerReference to CustomerId, accountReference to AccountId
-   * @param obj
-   * @tparam T type of instance
-   * @return modified instance
-   */
-  def convertToId[T](obj: T): T = {
-    import code.api.util.ErrorMessages.{CustomerNotFoundByCustomerId, InvalidAccountIdFormat}
-    def customerIdConverter(customerReference: String): String = MappedCustomerIdMappingProvider
-      .getOrCreateCustomerId(customerReference)
-      .map(_.value)
-      .openOrThrowException(s"$CustomerNotFoundByCustomerId the invalid customerReference is $customerReference")
-    def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
-      .getOrCreateAccountId(accountReference)
-      .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    if(obj.isInstanceOf[EmptyBox]) {
-        obj
-    } else {
-      convertId[T](obj, customerIdConverter, accountIdConverter)
-    }
-  }
 }
 object StoredProcedureConnector_vDec2019 extends StoredProcedureConnector_vDec2019
 

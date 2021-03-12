@@ -44,6 +44,7 @@ import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.kafka.KafkaHelper
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.util.AkkaHttpClient._
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.dto.{InBoundTrait, _}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -9343,7 +9344,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
-    this.convertToReference(outBound)
+    Helper.convertToReference(outBound)
     val methodRouting = MethodRoutingHolder.methodRouting
     val inBoundMapping = methodRouting.flatMap(_.getInBoundMapping)
     val outBoundMapping = methodRouting.flatMap(_.getOutBoundMapping)
@@ -9380,7 +9381,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           case e: EmptyBox => e
         }
       }
-    }.map(convertToId(_)) recoverWith {
+    }.map(Helper.convertToId(_)) recoverWith {
       //Can not catch the `StreamTcpException` here, so I used the contains to show the error.
       case e: Exception if (e.getMessage.contains(s"$httpRequestTimeout seconds")) => Future.failed(new Exception(s"$AdapterTimeOurError Please Check Adapter Side, the response should be returned to OBP-Side in $httpRequestTimeout seconds. Details: ${e.getMessage}", e))
       case e: Exception => Future.failed(new Exception(s"$AdapterUnknownError Please Check Adapter Side! Details: ${e.getMessage}", e))
@@ -9472,44 +9473,6 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       obj
   }
 
-  /**
-   * convert given instance nested CustomerId to customerReference, AccountId to accountReference
-   * @param obj
-   * @tparam T type of instance
-   * @return modified instance
-   */
-  def convertToReference[T](obj: T): T = {
-    import code.api.util.ErrorMessages.{CustomerNotFoundByCustomerId, InvalidAccountIdFormat}
-    def customerIdConverter(customerId: String): String = MappedCustomerIdMappingProvider
-      .getCustomerPlainTextReference(CustomerId(customerId))
-      .openOrThrowException(s"$CustomerNotFoundByCustomerId the invalid customerId is $customerId")
-    def accountIdConverter(accountId: String): String = MappedAccountIdMappingProvider
-      .getAccountPlainTextReference(AccountId(accountId))
-      .openOrThrowException(s"$InvalidAccountIdFormat the invalid accountId is $accountId")
-    convertId[T](obj, customerIdConverter, accountIdConverter)
-  }
-
-  /**
-   * convert given instance nested customerReference to CustomerId, accountReference to AccountId
-   * @param obj
-   * @tparam T type of instance
-   * @return modified instance
-   */
-  def convertToId[T](obj: T): T = {
-    import code.api.util.ErrorMessages.{CustomerNotFoundByCustomerId, InvalidAccountIdFormat}
-    def customerIdConverter(customerReference: String): String = MappedCustomerIdMappingProvider
-      .getOrCreateCustomerId(customerReference)
-      .map(_.value)
-      .openOrThrowException(s"$CustomerNotFoundByCustomerId the invalid customerReference is $customerReference")
-    def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
-      .getOrCreateAccountId(accountReference)
-      .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    if(obj.isInstanceOf[EmptyBox]) {
-      obj
-    } else {
-      convertId[T](obj, customerIdConverter, accountIdConverter)
-    }
-  }
 }
 
 object RestConnector_vMar2019 extends RestConnector_vMar2019
