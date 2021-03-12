@@ -31,17 +31,10 @@ Berlin 13359, Germany
     <div id="add-user-auth-context-update-request-div" data-lift="UserOnBoarding.addUserAuthContextUpdateRequest">
         <form method="post">
             <div class="form-group">
-                <h3>Please enter your (Customer Number) </h3>
-                <p>(i.e.<br>
-                    key=CUSTOMER_NUMBER -> Customer Number<br>
-                    key=TAX_ID -> Tax Id<br>
-                    etc.)
-                </p>
-                <br>
-                <input class="form-control" id="identifier-key" type="text"
+                <h3 id="add-user-auth-context-update-request-form-title">Please enter your Customer Number:  </h3>
+                <input class="form-control hide" id="identifier-key" type="text"
                        value="DEFAULT_AUTH_CONTEXT_UPDATE_REQUEST_KEY" tabindex="0"
                        autocomplete="off" aria-label="Identifier Key">
-                <br>
                 <input class="form-control" id="identifier-value" type="text" value="123456" tabindex="0"
                        autocomplete="off" aria-label="Identifier Value"/>
 
