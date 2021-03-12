@@ -3771,21 +3771,9 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
-            (_, callContext) <- NewStyle.function.findByUserId(user.userId, callContext)
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.value, bankId, callContext)
-            (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(user.userId, postedData.key, postedData.value, callContext)
+            (userAuthContextUpdate, callContext) <- NewStyle.function.validateUserAuthContextUpdateRequest(bankId.value, user.userId, postedData.key, postedData.value, scaMethod, callContext)
           } yield {
-            scaMethod match {
-              case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-                val params = PlainMailBodyType(userAuthContextUpdate.challenge) :: List(To(customer.email))
-                Mailer.sendMail(
-                  From("challenge@tesobe.com"),
-                  Subject("Challenge request"),
-                  params :_*
-                )
-              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
-              case _ => // Not handled
-            }
+
             (JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`201`(callContext))
           }
       }

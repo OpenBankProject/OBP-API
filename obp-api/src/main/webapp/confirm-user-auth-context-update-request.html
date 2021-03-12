@@ -31,8 +31,9 @@ Berlin 13359, Germany
     <div id="confirm-user-auth-context-update-request-div" data-lift="UserOnBoarding.confirmUserAuthContextUpdateRequest">
         <form class="login" method="post">
             <div class="form-group">
-                <h3>Please provide the OTP: </h3>
-                <div>You maybe get an message from your phone or email, it depends on your bank. eg: 123</div>
+                <h3>Please enter the One Time Password (OTP) that we just sent to you</h3>
+                <p>Please check your phone or email for the value to enter.<br>
+                    i.e. in the user-auth-context-update-request page we only need one visible field which is for the value. the key form field should be hidden. the key goes into the text.</p>
                 <input class="form-control" id="otp-value" type="text" value="123" tabindex="0" autofocus
                        autocomplete="off" aria-label="One Time Password"/>
                 <div id="otp-value-error-div" class="alert alert-danger hide">
