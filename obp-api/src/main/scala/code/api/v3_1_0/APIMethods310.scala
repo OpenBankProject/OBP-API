@@ -3650,10 +3650,6 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents",
       "Get Consents",
       s"""
-         |$generalObpConsentText
-         |
-         |
-         |
          |This endpoint gets the Consents that the current User created.
         |
         |${authenticationRequiredMessage(true)}
@@ -3689,9 +3685,6 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
       s"""
-        |$generalObpConsentText
-        |
-        |
         |Revoke Consent for current user specified by CONSENT_ID
         |
         |
