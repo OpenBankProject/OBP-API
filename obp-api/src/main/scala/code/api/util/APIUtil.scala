@@ -77,7 +77,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JString, JValue}
+import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
@@ -92,11 +92,13 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
+import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
+import scala.util.Either
 import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
@@ -3788,4 +3790,55 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }
     }
   )
+
+  /**
+   * call an endpoint method
+   * @param endpoint endpoint method
+   * @param endpointPartPath endpoint method url slices, it is for endpoint the first case expression
+   * @param requestType http request method
+   * @param requestBody http request body
+   * @param addlParams append request parameters
+   * @return result of call endpoint method
+   */
+  def callEndpoint(endpoint: OBPEndpoint, endpointPartPath: List[String], requestType: RequestType, requestBody: String = "", addlParams: Map[String, String] = Map.empty): Either[(String, Int), String] = {
+    val req: Req = S.request.openOrThrowException("no request object can be extract.")
+    val pathOrigin = req.path
+    val forwardPath = pathOrigin.copy(partPath = endpointPartPath)
+
+    val body = Full(BodyOrInputStream(IOUtils.toInputStream(requestBody)))
+
+    val paramCalcInfo = ParamCalcInfo(req.paramNames, req._params, Nil, body)
+    val newRequest = new Req(forwardPath, req.contextPath, requestType, Full("application/json"), req.request, req.nanoStart, req.nanoEnd, false, () => paramCalcInfo, addlParams)
+
+    val user = AuthUser.getCurrentUser
+    val result = tryo {
+      endpoint(newRequest)(CallContext(user = user))
+    }
+
+    val func: ((=> LiftResponse) => Unit) => Unit = result match {
+      case Failure("Continuation", Full(continueException), _) => ReflectUtils.getCallByNameValue(continueException, "f").asInstanceOf[((=> LiftResponse) => Unit) => Unit]
+      case _ => null
+    }
+
+    val future = new LAFuture[LiftResponse]
+    val satisfyFutureFunction: (=> LiftResponse) => Unit = liftResponse => future.satisfy(liftResponse)
+    func(satisfyFutureFunction)
+
+    val timeoutOfEndpointMethod = 60 * 1000L // endpoint is async, but html template must not async, So here need wait for endpoint value.
+
+    future.get(timeoutOfEndpointMethod) match {
+      case Full(JsonResponse(jsExp, _, _, code)) if (code.toString.startsWith("20")) => Right(jsExp.toJsCmd)
+      case Full(JsonResponse(jsExp, _, _, code)) => {
+        val message = json.parse(jsExp.toJsCmd)
+          .asInstanceOf[JObject]
+          .obj
+          .find(_.name == "message")
+          .map(_.value.asInstanceOf[JString].s)
+          .getOrElse("")
+        Left((message, code))
+      }
+      case Empty => Left((FutureTimeoutException, 500))
+    }
+  }
+
 }

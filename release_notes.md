@@ -3,6 +3,9 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+11/03/2021    ae211dd9      Added props: default_auth_context_update_request_key, default is CUSTOMER_NUMBER.
+                            This props is used for the User Onboard page, we can have the default identifier key.
+                            The different banks may have different identifiers for their customers, eg: CUSTOMER_NUMBER, TAX_ID...
 20/09/2020    609d4e77      Added props: entitlement_list_1 and new_user_entitlement_list . default is empty.
                             we can grant the default roles to the new validated user, eg:
                             entitlement_list_1=[CanGetConfig, CanUseAccountFirehoseAtAnyBank]

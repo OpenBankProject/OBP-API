@@ -321,6 +321,8 @@ object ErrorMessages {
   val ApiCollectionAlreadyExisting = "OBP-30086: The ApiCollection is already Existing."
 
   val DoubleEntryTransactionNotFound = "OBP-30087: Double Entry Transaction not found."
+  
+  val InvalidAuthContextUpdateRequestKey = "OBP-30088: Invalid Auth Context Update Request Key."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

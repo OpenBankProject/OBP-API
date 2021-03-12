@@ -3771,21 +3771,9 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
-            (_, callContext) <- NewStyle.function.findByUserId(user.userId, callContext)
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.value, bankId, callContext)
-            (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(user.userId, postedData.key, postedData.value, callContext)
+            (userAuthContextUpdate, callContext) <- NewStyle.function.validateUserAuthContextUpdateRequest(bankId.value, user.userId, postedData.key, postedData.value, scaMethod, callContext)
           } yield {
-            scaMethod match {
-              case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-                val params = PlainMailBodyType(userAuthContextUpdate.challenge) :: List(To(customer.email))
-                Mailer.sendMail(
-                  From("challenge@tesobe.com"),
-                  Subject("Challenge request"),
-                  params :_*
-                )
-              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
-              case _ => // Not handled
-            }
+
             (JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`201`(callContext))
           }
       }
@@ -4221,7 +4209,12 @@ trait APIMethods310 {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              //If connectorName = "internal", it mean the dynamic connector methods.
+              //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
+              if(connectorName == "internal")
+                NewStyle.function.getConnectorMethod("mapped", methodName).isDefined
+              else
+                NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4320,7 +4313,12 @@ trait APIMethods310 {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              //If connectorName = "internal", it mean the dynamic connector methods.
+              //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
+              if(connectorName == "internal")
+                NewStyle.function.getConnectorMethod("mapped", methodName).isDefined
+              else
+                NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 
