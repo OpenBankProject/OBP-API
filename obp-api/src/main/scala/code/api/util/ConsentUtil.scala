@@ -705,4 +705,19 @@ object Consent {
     }
   }
 
+
+  def filterByBankId(consents: List[MappedConsent], bankId: BankId): List[MappedConsent] = {
+    implicit val formats = CustomJsonFormats.formats
+    val consentsOfBank =
+      consents.filter { consent =>
+        val jsonWebTokenAsCaseClass: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken)
+          .map(parse(_).extract[ConsentJWT])
+        jsonWebTokenAsCaseClass match {
+          case Full(consentJWT) => consentJWT.views.map(_.bank_id).contains(bankId.value)
+          case _ => false
+        }
+      }
+    consentsOfBank
+  }
+
 }
