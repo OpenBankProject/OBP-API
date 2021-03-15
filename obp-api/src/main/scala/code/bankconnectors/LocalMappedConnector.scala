@@ -85,6 +85,8 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import org.iban4j
+import org.iban4j.{CountryCode, IbanFormat}
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -121,8 +123,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ), callContext))
   
   override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future {
-    // TODO Implement IBAN Checker
-    (Full(IbanChecker(true, None)), callContext)
+    import org.iban4j.CountryCode
+    import org.iban4j.Iban
+    import org.iban4j.IbanFormat
+    import org.iban4j.IbanFormatException
+    import org.iban4j.IbanUtil
+    import org.iban4j.InvalidCheckDigitException
+    import org.iban4j.UnsupportedCountryException
+
+    // Validate Iban 
+    try { // 1st try
+      IbanUtil.validate(iban) // IBAN as String: "DE89370400440532013000"
+      (Full(IbanChecker(true, None)), callContext) // valid
+    } catch {
+      case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
+      // invalid
+        try { // 2nd try
+          IbanUtil.validate(iban, IbanFormat.Default) // IBAN as formatted String: "DE89 3704 0044 0532 0130 00"
+          (Full(IbanChecker(true, None)), callContext) // valid
+        } catch {
+          case error@(_: IbanFormatException | _: InvalidCheckDigitException | _: UnsupportedCountryException) =>
+            (Full(IbanChecker(false, None)), callContext) // invalid
+        }
+    }
   }
 
   // Gets current challenge level for transaction request
@@ -634,6 +657,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
           .flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
     }
+  }
+
+  override def getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = {
+    Future {
+      Full(bankId match {
+        case Some(bankId) => BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme))
+        case None => BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, scheme))
+      })
+    }.map((_, callContext))
   }
 
   override def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccountRouting, Option[CallContext])] = {
@@ -1251,6 +1283,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .CreditTransactionId(doubleEntryTransaction.creditTransactionId.value)
       .saveMe())
   ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+  }
+
+  override def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId,
+                                              callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
+    Future(
+      DoubleEntryBookTransaction.find(
+          By(DoubleEntryBookTransaction.DebitTransactionBankId, bankId.value),
+          By(DoubleEntryBookTransaction.DebitTransactionAccountId, accountId.value),
+          By(DoubleEntryBookTransaction.DebitTransactionId, transactionId.value)
+        ).or(DoubleEntryBookTransaction.find(
+        By(DoubleEntryBookTransaction.CreditTransactionBankId, bankId.value),
+        By(DoubleEntryBookTransaction.CreditTransactionAccountId, accountId.value),
+        By(DoubleEntryBookTransaction.CreditTransactionId, transactionId.value)
+      ))
+    ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
 
   override def makePaymentV400(transactionRequest: TransactionRequest,
@@ -4154,6 +4201,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             challengeType: Option[String],
                                             scaMethod: Option[SCA],
                                             reasons: Option[List[TransactionRequestReason]],
+                                            berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {
@@ -4279,9 +4327,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
               newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
-              (newTransactionRequestStatus, callContext) <- NewStyle.function.notifyTransactionRequest(fromAccount, toAccount, transactionRequest, callContext)
-              _ <- Future(saveTransactionRequestStatusImpl(transactionRequest.id, newTransactionRequestStatus.toString).openOrThrowException(attemptedToOpenAnEmptyBox))
-              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge, status = newTransactionRequestStatus.toString))
+              transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
             } yield {
               (transactionRequest, callContext)
             }

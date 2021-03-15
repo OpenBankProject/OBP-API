@@ -20,10 +20,13 @@ object RateLimitingDI extends SimpleInjector {
 trait RateLimitingProviderTrait {
   def getAll(): Future[List[RateLimiting]]
   def getAllByConsumerId(consumerId: String, date: Option[Date] = None): Future[List[RateLimiting]]
-  def getByConsumerId(consumerId: String, date: Option[Date] = None): Future[Box[RateLimiting]]
+  def getByConsumerId(consumerId: String, apiVersion: String, apiName: String, date: Option[Date] = None): Future[Box[RateLimiting]]
   def createOrUpdateConsumerCallLimits(consumerId: String,
                                        fromDate: Date,
                                        toDate: Date,
+                                       apiVersion: Option[String],
+                                       apiName: Option[String],
+                                       bankId: Option[String],
                                        perSecond: Option[String],
                                        perMinute: Option[String],
                                        perHour: Option[String],
@@ -34,10 +37,10 @@ trait RateLimitingProviderTrait {
 
 trait RateLimitingTrait {
   def rateLimitingId: String
-  def apiVersion: String
-  def apiName: String
+  def apiVersion: Option[String]
+  def apiName: Option[String]
   def consumerId: String
-  def bankId: String
+  def bankId: Option[String]
   def perSecondCallLimit: Long
   def perMinuteCallLimit: Long
   def perHourCallLimit: Long
@@ -52,10 +55,13 @@ trait RateLimitingTrait {
 class RemotedataRateLimitingCaseClasses {
   case class getAll()
   case class getAllByConsumerId(consumerId: String, date: Option[Date] = None)
-  case class getByConsumerId(consumerId: String, date: Option[Date] = None)
+  case class getByConsumerId(consumerId: String, apiVersion: String, apiName: String, date: Option[Date] = None)
   case class createOrUpdateConsumerCallLimits(consumerId: String,
                                               from_date: Date,
                                               to_date: Date,
+                                              apiVersion: Option[String],
+                                              apiName: Option[String],
+                                              bankId: Option[String],
                                               perSecond: Option[String],
                                               perMinute: Option[String],
                                               perHour: Option[String],

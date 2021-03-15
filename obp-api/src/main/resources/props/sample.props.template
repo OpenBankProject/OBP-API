@@ -62,12 +62,21 @@ connector=mapped
 ## webui props cache time-to-live in seconds
 #webui.props.cache.ttl.seconds=20
 
-## DynamicEntity cache time-to-live in seconds, default is 30
+## DynamicEntity cache time-to-live in seconds, default is 30, the value is 0 at test environment
+## no 0 value will cause new dynamic entity will be shown after that seconds
 dynamicEntity.cache.ttl.seconds=30
-## DynamicEndpoint cache time-to-live in seconds, default is 30
-dynamicEndpoint.cache.ttl.seconds=30
-## Validation cache time-to-live in seconds, default is 30
-validation.cache.ttl.seconds=30
+## no 0 value will cause new dynamic endpoints will be shown after that seconds, default is 32, the value is 0 at test environment
+## DynamicEndpoint cache time-to-live in seconds, default is 0, should set a no 0 value at product environment
+dynamicEndpoint.cache.ttl.seconds=32
+## Validation cache time-to-live in seconds, should set a no 0 value at product environment, default is 34, the value is 0 at test environment
+## no 0 value will cause new validation will works after that seconds
+validation.cache.ttl.seconds=34
+## AuthTypeValidation cache time-to-live in seconds, should set a no 0 value at product environment, default is 36, the value is 0 at test environment
+## no 0 value will cause new validation will works after that seconds
+authTypeValidation.cache.ttl.seconds=36
+## ConnectorMethod cache time-to-live in seconds, should set a no 0 value at product environment, default is 40, the value is 0 at test environment
+## no 0 value will cause new ConnectorMethod will works after that seconds
+connectorMethod.cache.ttl.seconds=40
 
 ## swagger file should not generated for every request, this is a time-to-live in seconds for the generated swagger of OBP api,
 ## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.
@@ -78,6 +87,8 @@ resourceDocsObp.cache.ttl.seconds=3600
 # the default value is false, so the `Get Resource Docs`/`Get API Glossary` is anonymous as default. 
 resource_docs_requires_role=false
 glossary_requires_role=false
+read_json_schema_validation_requires_role=false
+read_authentication_type_validation_requires_role=false
 
 
 ## enable logging all the database queries in log file
@@ -816,7 +827,8 @@ database_messages_scheduler_interval=3600
                                                     ReadBalances,\
                                                     ReadTransactionsBasic,\
                                                     ReadTransactionsDebits,\
-                                                    ReadTransactionsDetail
+                                                    ReadTransactionsDetail, \
+                                                    ReadAccountsBerlinGroup
 # -----------------------------------------------------------------------------
                       
 
@@ -900,4 +912,7 @@ outboundAdapterCallContext.generalContext
 
 ## Mirror request headers to response
 # mirror_request_headers_to_response=x-fapi-interaction-id,x-jws-signature
+
+### enable or disable the feature of send "Force-Error" header, default value is false
+enable.force_error=false
 

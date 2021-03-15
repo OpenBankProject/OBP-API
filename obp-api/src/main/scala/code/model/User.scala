@@ -78,6 +78,12 @@ case class UserExtended(val user: User) extends MdcLoggable {
   final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
     checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId).isDefined
   }
+  final def hasViewAccess(bankIdAccountId: BankIdAccountId, viewId: ViewId): Boolean = {
+    APIUtil.checkViewAccessAndReturnView(
+      viewId, 
+      bankIdAccountId, Some(this.user)
+    ).isDefined
+  }
 
   def assignedEntitlements : List[Entitlement] = {
     Entitlement.entitlement.vend.getEntitlementsByUserId(userId) match {

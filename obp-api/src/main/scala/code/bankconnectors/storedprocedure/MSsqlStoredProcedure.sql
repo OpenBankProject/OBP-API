@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-12-03T14:42:37Z
+-- auto generated MS sql server procedures script, create on 2020-12-14T14:30:55Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -6408,7 +6408,42 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "description":"no-example-provided"
          }
-       ]
+       ],
+       "berlinGroupPayments":{
+         "endToEndIdentification":"string",
+         "instructionIdentification":"string",
+         "debtorName":"string",
+         "debtorAccount":{
+           "iban":"string"
+         },
+         "debtorId":"string",
+         "ultimateDebtor":"string",
+         "instructedAmount":{
+           "currency":"EUR",
+           "amount":"10.12"
+         },
+         "currencyOfTransfer":"string",
+         "exchangeRateInformation":"string",
+         "creditorAccount":{
+           "iban":"string"
+         },
+         "creditorAgent":"string",
+         "creditorAgentName":"string",
+         "creditorName":"string",
+         "creditorId":"string",
+         "creditorAddress":"string",
+         "creditorNameAndAddress":"string",
+         "ultimateCreditor":"string",
+         "purposeCode":"string",
+         "chargeBearer":"string",
+         "serviceLevel":"string",
+         "remittanceInformationUnstructured":"string",
+         "remittanceInformationUnstructuredArray":"string",
+         "remittanceInformationStructured":"string",
+         "remittanceInformationStructuredArray":"string",
+         "requestedExecutionDate":"string",
+         "requestedExecutionTime":"string"
+       }
      }'
 */
 

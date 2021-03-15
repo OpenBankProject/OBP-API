@@ -16,6 +16,7 @@ import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import net.liftweb.common.Box
 import net.liftweb.mapper.{By, MetaMapper}
 import net.liftweb.util.Helpers._
+import org.iban4j
 
 import scala.util.Random
 
@@ -62,7 +63,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .BankId(bankId.value)
       .AccountId(accountId.value)
       .AccountRoutingScheme(AccountRoutingScheme.IBAN.toString)
-      .AccountRoutingAddress(randomString(20))
+      .AccountRoutingAddress(iban4j.Iban.random().toString())
       .saveMe
     BankAccountRouting.create
       .BankId(bankId.value)

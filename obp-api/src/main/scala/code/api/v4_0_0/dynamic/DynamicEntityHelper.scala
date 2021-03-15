@@ -1,11 +1,11 @@
-package code.api.v4_0_0
+package code.api.v4_0_0.dynamic
 
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
-import code.api.util.ApiTag.{ResourceDocTag, apiTagApi, apiTagDynamic, apiTagDynamicEndpoint, apiTagNewStyle}
+import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiTag, ExampleValue, NewStyle}
-import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import code.api.util._
+import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
@@ -13,27 +13,35 @@ import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.{List, Nil}
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 
 object EntityName {
-//                                         BankId, entityName, id, DynamicEntityInfo
-  def unapply(url: List[String]): Option[(String, String, String, DynamicEntityInfo)] = url match {
+  // unapply result structure: (BankId, entityName, id)
+  def unapply(url: List[String]): Option[(Option[String], String, String)] = url match {
     //no bank:
     //eg: /FooBar21
-    case entityName ::  Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => ("", entityName, "", definitionMap._2))
+    case entityName ::  Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId.isEmpty)
+        .map(_ => (None, entityName, ""))
     //eg: /FooBar21/FOO_BAR21_ID
-    case entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => ("", entityName, id, definitionMap._2))
+    case entityName :: id :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId.isEmpty)
+        .map(_ => (None, entityName, id))
       
     //contains Bank:
     //eg: /Banks/BANK_ID/FooBar21
-    case banks :: bankId :: entityName :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId, entityName, "", definitionMap._2))
+    case "banks" :: bankId :: entityName :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId == Some(bankId))
+        .map(_ => (Some(bankId), entityName, ""))
     //eg: /Banks/BANK_ID/FooBar21/FOO_BAR21_ID
-    case banks :: bankId :: entityName :: id :: Nil => DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName).map(definitionMap => (bankId,entityName, id, definitionMap._2))
+    case "banks" :: bankId :: entityName :: id :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId == Some(bankId))
+        .map(_ => (Some(bankId),entityName, id))
       
     case _ => None
   }
-
 }
 
 object DynamicEntityHelper {
@@ -44,6 +52,11 @@ object DynamicEntityHelper {
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
   def doc: ArrayBuffer[ResourceDoc] = {
+    val docs = operationToResourceDoc.values.toList
+    collection.mutable.ArrayBuffer(docs:_*)
+  }
+
+  def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
 
     // record exists tag names, to avoid duplicated dynamic tag name.
@@ -83,11 +96,9 @@ object DynamicEntityHelper {
       existsTagNames += tagName
       ApiTag(tagName)
     }
-    val fun: DynamicEntityInfo => ArrayBuffer[ResourceDoc] = createDocs(apiTag)
-    val docs: Seq[ResourceDoc] = definitionsMap.values.flatMap(fun).toSeq
-
-
-    collection.mutable.ArrayBuffer(docs:_*)
+    val fun: DynamicEntityInfo => mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = createDocs(apiTag)
+    val docs: Iterable[((DynamicEntityOperation, String), ResourceDoc)] = definitionsMap.values.flatMap(fun)
+    docs.toMap
   }
 
   // TODO the requestBody and responseBody is not correct ref type
@@ -98,7 +109,7 @@ object DynamicEntityHelper {
    * @return all ResourceDoc of given dynamicEntity
    */
   private def createDocs(fun: (String, String) => ResourceDocTag)
-                (dynamicEntityInfo: DynamicEntityInfo): ArrayBuffer[ResourceDoc] = {
+                (dynamicEntityInfo: DynamicEntityInfo): mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
     // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
     val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
@@ -111,13 +122,14 @@ object DynamicEntityHelper {
 
     val endPoint = APIUtil.dynamicEndpointStub
 
-    val resourceDocs = ArrayBuffer[ResourceDoc]()
+    // (operationType, entityName) -> ResourceDoc
+    val resourceDocs = scala.collection.mutable.Map[(DynamicEntityOperation, String),ResourceDoc]()
     val apiTag: ResourceDocTag = fun(splitName, entityName)
 
-    resourceDocs += ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.GET_ALL, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"dynamicEntity_get${entityName}List",
+      buildGetAllFunctionName(entityName),
       "GET",
       s"$resourceDocUrl",
       s"Get $splitName List",
@@ -144,10 +156,10 @@ object DynamicEntityHelper {
       List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole))
     )
-    resourceDocs += ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.GET_ONE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"dynamicEntity_getSingle$entityName",
+      buildGetOneFunctionName(entityName),
       "GET",
       s"$resourceDocUrl/$idNameInUrl",
       s"Get $splitName by id",
@@ -171,10 +183,10 @@ object DynamicEntityHelper {
       Some(List(dynamicEntityInfo.canGetRole))
     )
 
-    resourceDocs += ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.CREATE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildPartialFunctionName("POST", entityName),
+      buildCreateFunctionName(entityName),
       "POST",
       s"$resourceDocUrl",
       s"Create new $splitName",
@@ -200,10 +212,10 @@ object DynamicEntityHelper {
       Some(List(dynamicEntityInfo.canCreateRole))
       )
 
-    resourceDocs += ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.UPDATE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildPartialFunctionName("PUT", entityName),
+      buildUpdateFunctionName(entityName),
       "PUT",
       s"$resourceDocUrl/$idNameInUrl",
       s"Update $splitName",
@@ -229,10 +241,10 @@ object DynamicEntityHelper {
       Some(List(dynamicEntityInfo.canUpdateRole))
     )
 
-    resourceDocs += ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.DELETE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      s"dynamicEntity_delete$entityName",
+      buildDeleteFunctionName(entityName),
       "DELETE",
       s"$resourceDocUrl/$idNameInUrl",
       s"Delete $splitName by id",
@@ -258,16 +270,22 @@ object DynamicEntityHelper {
     resourceDocs
   }
 
-  def buildPartialFunctionName(httpRequestMethod: String, entityName: String): String = httpRequestMethod match {
-    case "POST" => s"dynamicEntity_create$entityName"
-    case "PUT" => s"dynamicEntity_update$entityName"
-    case _ => throw new IllegalArgumentException(s"""the parameter httpRequestMethod must be "POST" or "PUT", current value is $httpRequestMethod""")
+  private def buildCreateFunctionName(entityName: String) = s"dynamicEntity_create$entityName"
+  private def buildUpdateFunctionName(entityName: String) = s"dynamicEntity_update$entityName"
+  private def buildDeleteFunctionName(entityName: String) = s"dynamicEntity_delete$entityName"
+  private def buildGetOneFunctionName(entityName: String) = s"dynamicEntity_getSingle$entityName"
+  private def buildGetAllFunctionName(entityName: String) = s"dynamicEntity_get${entityName}List"
+
+  @inline
+  private def buildOperationId(entityName: String, fun: String => String): String = {
+    APIUtil.buildOperationId(implementedInApiVersion, fun(entityName))
   }
 
-  def buildOperationId(httpRequestMethod: String, entityName: String): String = {
-    val partialFunctionName = buildPartialFunctionName(httpRequestMethod, entityName)
-    APIUtil.buildOperationId(implementedInApiVersion, partialFunctionName)
-  }
+  def buildCreateOperationId(entityName: String) = buildOperationId(entityName, buildCreateFunctionName)
+  def buildUpdateOperationId(entityName: String) = buildOperationId(entityName, buildUpdateFunctionName)
+  def buildDeleteOperationId(entityName: String) = buildOperationId(entityName, buildDeleteFunctionName)
+  def buildGetOneOperationId(entityName: String) = buildOperationId(entityName, buildGetOneFunctionName)
+  def buildGetAllOperationId(entityName: String) = buildOperationId(entityName, buildGetAllFunctionName)
 
   private def methodRoutingExample(entityName: String) =
     s"""

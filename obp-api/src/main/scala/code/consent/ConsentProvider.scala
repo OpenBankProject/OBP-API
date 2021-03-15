@@ -31,12 +31,8 @@ trait ConsentProvider {
     apiStandard: Option[String],
     apiVersion: Option[String]): Box[Consent]  
   def updateBerlinGroupConsent(
-    consentId: String,
-    user: User,
-    recurringIndicator: Boolean,
-    validUntil: Date,
-    frequencyPerDay: Int,
-    combinedServiceIndicator: Boolean): Box[Consent]
+                                consentId: String,
+                                usesSoFarTodayCounter: Int): Box[Consent]
 
   def saveUKConsent(
     user: Option[User],
@@ -118,7 +114,16 @@ trait Consent {
    * The frequency needs to be greater equal to one.
    * If not otherwise agreed bilaterally between TPP and ASPSP, the frequency is less equal to 4.
    */
-  def frequencyPerDay : Int
+  def frequencyPerDay : Int  
+  /**
+   * usesSoFarTodayCounter*	usesSoFarTodayCounter integer
+   * This field indicates the current frequency for an access.
+   */
+  def usesSoFarTodayCounter : Int  
+  /**
+   * This field indicates the update time of the current frequency for an access.
+   */
+  def usesSoFarTodayCounterUpdatedAt : Date
   /**
    * combinedServiceIndicator* 	boolean                                                               
    * example: false                                                                                    

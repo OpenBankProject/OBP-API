@@ -29,7 +29,6 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
-
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -48,6 +47,7 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.atms.MappedAtm
+import code.authtypevalidation.AuthenticationTypeValidation
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
@@ -96,6 +96,11 @@ import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
 import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
+import code.apicollectionendpoint.ApiCollectionEndpoint
+import code.apicollection.ApiCollection
+import code.connectormethod.ConnectorMethod
+import code.dynamicMessageDoc.DynamicMessageDoc
+import code.dynamicResourceDoc.DynamicResourceDoc
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -112,7 +117,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
-import code.validation.Validation
+import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
@@ -654,7 +659,8 @@ class Boot extends MdcLoggable {
           val viewsUKOpenBanking = List(
             SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID, SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
             SYSTEM_READ_BALANCES_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID
+            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
+            SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
           )
           for {
             systemView <- viewSetUKOpenBanking
@@ -893,7 +899,13 @@ object ToSchemify {
     DirectDebit,
     StandingOrder,
     MappedUserRefreshes,
-    Validation
+    ApiCollection,
+    ApiCollectionEndpoint,
+    JsonSchemaValidation,
+    AuthenticationTypeValidation,
+    ConnectorMethod,
+    DynamicResourceDoc,
+    DynamicMessageDoc
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

@@ -6,7 +6,7 @@ import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 
 object PostgreSQLFunctionOutputingSimpleValue  extends MdcLoggable {
-  lazy val conn = DriverManager.getConnection(dbUrl, user, password)
+  lazy val conn = DriverManager.getConnection(dbUrl, databaseUser, databasePassword)
   /**
     * PostgreSQL function
     */
@@ -31,8 +31,8 @@ object PostgreSQLFunctionOutputingSimpleValue  extends MdcLoggable {
                 |  OWNER TO obp;
                 |  """.stripMargin
   val dbUrl: String = APIUtil.getPropsValue("db.url", "jdbc:postgresql://localhost:5432/obp_mapped")
-  val user: String = "obp"
-  val password: String = "f"
+  val databaseUser: String = "YOUR_DATABASE_USER"
+  val databasePassword: String = "YOUR_DATABASE_PASSWORD"
   
   def main(args: Array[String]): Unit = {
     try {

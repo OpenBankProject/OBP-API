@@ -1,10 +1,4 @@
-package code.api.v4_0_0
-
-import java.io.File
-import java.nio.charset.Charset
-import java.util
-import java.util.regex.Pattern
-import java.util.{Date, UUID}
+package code.api.v4_0_0.dynamic
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -31,6 +25,11 @@ import org.apache.commons.collections4.MapUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 
+import java.io.File
+import java.nio.charset.Charset
+import java.util
+import java.util.regex.Pattern
+import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -97,9 +96,9 @@ object DynamicEndpointHelper extends RestHelper {
      * path parameters: /banks/{bankId}/users/{userId} bankId and userId corresponding key to value
      * role is current endpoint required entitlement
      * @param r HttpRequest
-     * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, mockResponseCode->mockResponseBody)
+     * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
      */
-    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, Option[(Int, JValue)])] = {
+    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)])] = {
       val partPath = r.path.partPath
       if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))
         None
@@ -143,7 +142,7 @@ object DynamicEndpointHelper extends RestHelper {
             val Some(role::_) = doc.roles
             body(r).toOption
               .orElse(Some(JNothing))
-              .map(zson => (s"""$serverUrl$url""", zson, akkaHttpMethod, r.params, pathParams, role, mockResponse))
+              .map(zson => (s"""$serverUrl$url""", zson, akkaHttpMethod, r.params, pathParams, role, doc.operationId, mockResponse))
           }
 
       }

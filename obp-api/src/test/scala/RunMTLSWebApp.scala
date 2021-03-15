@@ -40,6 +40,8 @@ import sun.security.provider.X509Factory
 
 object RunMTLSWebApp extends App {
   val servletContextPath = "/"
+  //set run mode value to "development", So the value is true of Props.devMode
+  System.setProperty("run.mode", "development")
 
   {
     val tempHTTPContext = JProxy.newProxyInstance(this.getClass.getClassLoader, Array(classOf[HTTPContext]),
@@ -108,7 +110,7 @@ object RunMTLSWebApp extends App {
   context.setWar(s"${basePath}src/main/webapp")
 
   // rename JSESSIONID, avoid conflict with other project when start two project at local
-  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP")
+  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP_API")
 
   server.setHandler(context)
 

@@ -395,7 +395,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     else
       viewNotAllowed(view)
   }
-  final def moderatedTransactionFuture(bankId: BankId, accountId: AccountId, transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
+  final def moderatedTransactionFuture(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
     if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
@@ -425,8 +425,8 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     }
     else viewNotAllowed(view)
   }
-  final def getModeratedTransactionsFuture(bank: Bank, user : Box[User], view : View, bankIdAccountId: BankIdAccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user)) {
+  final def getModeratedTransactionsFuture(bank: Bank, user : Box[User], view : View, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
+    if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams) map {
           x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
