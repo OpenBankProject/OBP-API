@@ -112,9 +112,11 @@ read_authentication_type_validation_requires_role=false
 #This is the api instance, we create kafka topic based on this number, each instance should have each own id. use it in load balancing + Kafka setup
 #api_instance_id=1
 
+## DEPRECATED
 ## Enable user authentication via kafka
 #kafka.user.authentication=true
 
+## DEPRECATED
 ## Enable user authentication via obpjvm
 #obpjvm.user.authentication=true
 

@@ -877,7 +877,8 @@ case class InboundExternalUser(
                                 azp: Option[String],
                                 email: Option[String],
                                 emailVerified: Option[String],
-                                name: Option[String]
+                                name: Option[String],
+                                userAuthContext: Option[List[BasicUserAuthContext]] = None
                               )
 
 

@@ -27,6 +27,7 @@
 package code.api.v4_0_0
 
 import java.util.Date
+
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
@@ -38,20 +39,20 @@ import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, R
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
 import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300}
-import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
+import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
+import code.apicollection.ApiCollectionTrait
+import code.apicollectionendpoint.ApiCollectionEndpointTrait
+import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
-import code.apicollectionendpoint.ApiCollectionEndpointTrait
-import code.apicollection.ApiCollectionTrait
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import com.openbankproject.commons.model.{DirectDebitTrait, _}
-import com.openbankproject.commons.util.JsonAble
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.{Extraction, Formats, JValue, JsonAST}
+import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
 
@@ -277,6 +278,9 @@ case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
 case class PostRevokeGrantAccountAccessJsonV400(views: List[String])
 case class RevokedJsonV400(revoked: Boolean)
+
+case class ConsentJsonV400(consent_id: String, jwt: String, status: String, api_standard: String, api_version: String)
+case class ConsentsJsonV400(consents: List[ConsentJsonV400])
 
 case class TransactionRequestBodySEPAJsonV400(
                                                value: AmountOfMoneyJsonV121,
@@ -1056,6 +1060,10 @@ object JSONFactory400 {
         )
       )
     )
+  }
+
+  def createConsentsJsonV400(consents: List[MappedConsent]): ConsentsJsonV400= {
+    ConsentsJsonV400(consents.map(c => ConsentJsonV400(c.consentId, c.jsonWebToken, c.status, c.apiStandard, c.apiVersion)))
   }
 
   def createApiCollectionJsonV400(apiCollection: ApiCollectionTrait) = {

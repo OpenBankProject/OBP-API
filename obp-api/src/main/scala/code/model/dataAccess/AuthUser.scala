@@ -33,6 +33,7 @@ import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
+import code.context.UserAuthContextProvider
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -721,6 +722,7 @@ import net.liftweb.util.Helpers._
 
   def getResourceUserId(username: String, password: String): Box[Long] = {
     findUserByUsernameLocally(username) match {
+      // We have a user from the local provider.
       case Full(user) if (user.getProvider() == APIUtil.getPropsValue("hostname","")) =>
         if (
           user.validated_? &&
@@ -754,64 +756,31 @@ import net.liftweb.util.Helpers._
           LoginAttempt.incrementBadLoginAttempts(username)
           Empty
         }
-
+      // We have a user from an external provider.
       case Full(user) if (user.getProvider() != APIUtil.getPropsValue("hostname","")) =>
-          connector match {
-            case Helper.matchAnyKafka() if (
-              (starConnectorSupportedTypes contains("kafka")) 
-                && APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) 
-                && ! LoginAttempt.userIsLocked(username) 
-              ) =>
-                val userId = for { kafkaUser <- getUserFromConnector(username, password)
-                  kafkaUserId <- tryo{kafkaUser.user} } yield {
-                    LoginAttempt.resetBadLoginAttempts(username)
-                    kafkaUserId.get
-                }
-                userId match {
-                  case Full(l:Long) => Full(l)
-                  case _ =>
-                    LoginAttempt.incrementBadLoginAttempts(username)
-                    Empty
-		}
-            case "obpjvm" if (
-              (starConnectorSupportedTypes contains("obpjvm")) 
-                && APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false) 
-                && ! LoginAttempt.userIsLocked(username) 
-              ) =>
-                val userId = for { obpjvmUser <- getUserFromConnector(username, password)
-                  obpjvmUserId <- tryo{obpjvmUser.user} } yield {
-                    LoginAttempt.resetBadLoginAttempts(username)
-                    obpjvmUserId.get
-                }
-                userId match {
-                  case Full(l:Long) => Full(l)
-                  case _ =>
-                    LoginAttempt.incrementBadLoginAttempts(username)
-                    Empty
-              }
-            case Helper.matchAnyStoredProcedure() if (
-              (starConnectorSupportedTypes contains("stored_procedure"))
-                && APIUtil.getPropsAsBoolValue("connector.user.authentication", false) 
-                && !LoginAttempt.userIsLocked(username)
-              ) =>
-                val userId = 
-                  for { 
-                    authUser <- checkExternalUserViaConnector(username, password)
-                    resourceUser <- tryo{authUser.user} 
-                  } yield {
-                    LoginAttempt.resetBadLoginAttempts(username)
-                    resourceUser.get
+        APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
+            case true if !LoginAttempt.userIsLocked(username) =>
+              val userId =
+                for {
+                  authUser <- checkExternalUserViaConnector(username, password)
+                  resourceUser <- tryo {
+                    authUser.user
                   }
-                userId match {
-                  case Full(l:Long) => Full(l)
-                  case _ =>
-                    LoginAttempt.incrementBadLoginAttempts(username)
-                    Empty
+                } yield {
+                  LoginAttempt.resetBadLoginAttempts(username)
+                  resourceUser.get
                 }
-            case _ =>
+              userId match {
+                case Full(l: Long) => Full(l)
+                case _ =>
+                  LoginAttempt.incrementBadLoginAttempts(username)
+                  Empty
+              }
+            case false =>
               LoginAttempt.incrementBadLoginAttempts(username)
               Empty
           }
+      // Everything else.
       case _ =>
         LoginAttempt.incrementBadLoginAttempts(username)
         Empty
@@ -872,10 +841,15 @@ import net.liftweb.util.Helpers._
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.checkExternalUserCredentials(username, password, None) match {
-      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name)) =>
+      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name, userAuthContexts)) =>
         val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
             logger.debug("external user already exists locally, using that one")
+            userAuthContexts match {
+              case Some(authContexts) => // Write user auth context to the database
+                UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(user.userIdAsString, authContexts)
+              case None => // Do nothing
+            }
             user
           case _ => // If not found, create a new user
             // Create AuthUser using fetched data from connector
@@ -887,6 +861,7 @@ import net.liftweb.util.Helpers._
               .username(sub)
               // No need to store password, so store dummy string instead
               .password(generateUUID())
+              // TODO add field stating external password check only.
               .provider(iss)
               .validated(emailVerified.exists(_.equalsIgnoreCase("true")))
               .saveMe()

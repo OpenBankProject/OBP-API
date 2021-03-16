@@ -32,7 +32,7 @@ import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentStatus, Consents}
+import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
@@ -70,12 +70,12 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.util.Date
+
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
-
 import java.net.URLEncoder
+
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 
 import scala.collection.immutable.{List, Nil}
@@ -6087,6 +6087,43 @@ trait APIMethods400 {
           }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      getConsents,
+      implementedInApiVersion,
+      nameOf(getConsents),
+      "GET",
+      "/banks/BANK_ID/my/consents",
+      "Get Consents",
+      s"""
+         |
+         |This endpoint gets the Consents that the current User created.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      consentsJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
+
+    lazy val getConsents: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            consents <- Future(Consents.consentProvider.vend.getConsentsByUser(cc.userId).sortBy(i => (i.creationDateTime, i.apiStandard)).reverse)
+          } yield {
+            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            (JSONFactory400.createConsentsJsonV400(consentsOfBank), HttpCode.`200`(cc))
+          }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       getScannedApiVersions,
