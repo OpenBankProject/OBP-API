@@ -33,6 +33,7 @@ import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
+import code.context.UserAuthContextProvider
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -840,10 +841,15 @@ import net.liftweb.util.Helpers._
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.checkExternalUserCredentials(username, password, None) match {
-      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name)) =>
+      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name, userAuthContext)) =>
         val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
             logger.debug("external user already exists locally, using that one")
+            userAuthContext match {
+              case Some(authContext) => // Write user auth context to the database
+                UserAuthContextProvider.userAuthContextProvider.vend.getOrCreateUserAuthContexts(user.userIdAsString, authContext)
+              case None => // Do nothing
+            }
             user
           case _ => // If not found, create a new user
             // Create AuthUser using fetched data from connector

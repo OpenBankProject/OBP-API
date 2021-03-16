@@ -4,6 +4,9 @@ import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.context.{MappedUserAuthContextProvider, RemotedataUserAuthContextCaseClasses}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.BasicUserAuthContext
+
+import scala.collection.immutable.List
 
 class RemotedataUserAuthContextActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -22,7 +25,11 @@ class RemotedataUserAuthContextActor extends Actor with ObpActorHelper with MdcL
       
     case cc.getUserAuthContextsBox(userId: String) =>
       logger.debug(s"getUserAuthContextsBox($userId)")
-      sender ! (mapper.getUserAuthContextsBox(userId))
+      sender ! (mapper.getUserAuthContextsBox(userId))   
+      
+    case cc.getOrCreateUserAuthContexts(userId: String, userAuthContext: List[BasicUserAuthContext]) =>
+      logger.debug(s"getOrCreateUserAuthContexts($userId, $userAuthContext)")
+      sender ! (mapper.getOrCreateUserAuthContexts(userId, userAuthContext))
       
     case cc.deleteUserAuthContexts(userId: String) =>
       logger.debug(msg=s"deleteUserAuthContexts(${userId})")

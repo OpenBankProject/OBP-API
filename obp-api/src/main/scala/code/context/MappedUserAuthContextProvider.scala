@@ -5,8 +5,10 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.BasicUserAuthContext
+
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLoggable {
@@ -26,6 +28,39 @@ object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLog
   override def getUserAuthContextsBox(userId: String): Box[List[MappedUserAuthContext]] = {
     tryo {
       MappedUserAuthContext.findAll(By(MappedUserAuthContext.mUserId, userId))
+    }
+  }
+  override def getOrCreateUserAuthContexts(userId: String, userAuthContext: List[BasicUserAuthContext]): Box[List[MappedUserAuthContext]] = {
+    val create = userAuthContext.filter( authContext =>
+      MappedUserAuthContext.findAll(
+        By(MappedUserAuthContext.mUserId, userId),
+        By(MappedUserAuthContext.mKey, authContext.key)
+      ).isEmpty
+    )
+    val update = userAuthContext.filterNot( authContext =>
+      MappedUserAuthContext.findAll(
+        By(MappedUserAuthContext.mUserId, userId),
+        By(MappedUserAuthContext.mKey, authContext.key)
+      ).isEmpty
+    )
+    val created = update.map( authContext =>
+      MappedUserAuthContext.findAll(
+        By(MappedUserAuthContext.mUserId, userId),
+        By(MappedUserAuthContext.mKey, authContext.key)
+      ).map( authContext =>
+        authContext.mKey(authContext.key).mValue(authContext.value).saveMe()
+      )
+    ).flatten
+    val updated = create.map( authContext =>
+      MappedUserAuthContext.findAll(
+        By(MappedUserAuthContext.mUserId, userId),
+        By(MappedUserAuthContext.mKey, authContext.key)
+      ).map( authContext =>
+        MappedUserAuthContext.create.mUserId(userId).mKey(authContext.key).mValue(authContext.value).saveMe()
+      )
+    ).flatten
+    tryo {
+      updated ::: created
     }
   }
 
