@@ -96,7 +96,7 @@ object RunMTLSWebApp extends App {
     sslContextFactory.setProtocol("TLSv1.2")
 
     val connector = new ServerConnector(server, new SslConnectionFactory(sslContextFactory, "http/1.1"), new HttpConnectionFactory(https))
-    connector.setPort(8080)
+    connector.setPort(443)
 
     Array(connector)
   }
