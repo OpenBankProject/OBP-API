@@ -841,13 +841,13 @@ import net.liftweb.util.Helpers._
     */
   def checkExternalUserViaConnector(username: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.checkExternalUserCredentials(username, password, None) match {
-      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name, userAuthContext)) =>
+      case Full(InboundExternalUser(aud, exp, iat, iss, sub, azp, email, emailVerified, name, userAuthContexts)) =>
         val user = findUserByUsernameLocally(sub) match { // Check if the external user is already created locally
           case Full(user) if user.validated_? => // Return existing user if found
             logger.debug("external user already exists locally, using that one")
-            userAuthContext match {
-              case Some(authContext) => // Write user auth context to the database
-                UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(user.userIdAsString, authContext)
+            userAuthContexts match {
+              case Some(authContexts) => // Write user auth context to the database
+                UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(user.userIdAsString, authContexts)
               case None => // Do nothing
             }
             user
