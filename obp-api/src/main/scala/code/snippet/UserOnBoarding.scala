@@ -53,6 +53,9 @@ class UserOnBoarding extends MdcLoggable with RestHelper with APIMethods310 {
 
   def addUserAuthContextUpdateRequest = {
     identifierKey.set(S.param("key").openOr(identifierKey.get))
+    // CUSTOMER_NUMBER --> Customer Number
+    val inputValue = identifierKey.get.split("_").map(_.toLowerCase.capitalize).mkString(" ")
+    "#add-user-auth-context-update-request-form-title *" #> s"Please enter your ${inputValue}:" &
     "#identifier-key" #> SHtml.textElem(identifierKey) &
       "#identifier-value" #> SHtml.textElem(identifierValue)  &
       "type=submit" #> SHtml.onSubmitUnit(addUserAuthContextUpdateRequestProcess)
