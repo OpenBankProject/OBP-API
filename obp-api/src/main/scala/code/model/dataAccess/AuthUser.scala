@@ -847,7 +847,7 @@ import net.liftweb.util.Helpers._
             logger.debug("external user already exists locally, using that one")
             userAuthContext match {
               case Some(authContext) => // Write user auth context to the database
-                UserAuthContextProvider.userAuthContextProvider.vend.getOrCreateUserAuthContexts(user.userIdAsString, authContext)
+                UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(user.userIdAsString, authContext)
               case None => // Do nothing
             }
             user

@@ -30,35 +30,32 @@ object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLog
       MappedUserAuthContext.findAll(By(MappedUserAuthContext.mUserId, userId))
     }
   }
-  override def getOrCreateUserAuthContexts(userId: String, userAuthContext: List[BasicUserAuthContext]): Box[List[MappedUserAuthContext]] = {
-    val create = userAuthContext.filter( authContext =>
-      MappedUserAuthContext.findAll(
+  // This function creates or replaces only user auth contexts provided a parameter to this function. (It does not delete other user auth contexts)
+  // For this reason developers are encouraged to use name space in the key.
+  override def createOrUpdateUserAuthContexts(userId: String, userAuthContexts: List[BasicUserAuthContext]): Box[List[MappedUserAuthContext]] = {
+    // Remove duplicates if any
+    val userAuthContextsDistinct = userAuthContexts.distinct
+    // Find the user auth contexts we must create
+    val create = userAuthContextsDistinct.filter( authContext =>
+      MappedUserAuthContext.find(
         By(MappedUserAuthContext.mUserId, userId),
         By(MappedUserAuthContext.mKey, authContext.key)
       ).isEmpty
     )
-    val update = userAuthContext.filterNot( authContext =>
-      MappedUserAuthContext.findAll(
-        By(MappedUserAuthContext.mUserId, userId),
-        By(MappedUserAuthContext.mKey, authContext.key)
-      ).isEmpty
-    )
-    val created = update.map( authContext =>
-      MappedUserAuthContext.findAll(
+    // Find the user auth contexts we must update
+    val update = userAuthContextsDistinct diff create // List(1,2,3,4,5) diff List(4,5) = List(1,2,3)
+
+    val updated = update.flatMap( authContext =>
+      MappedUserAuthContext.find(
         By(MappedUserAuthContext.mUserId, userId),
         By(MappedUserAuthContext.mKey, authContext.key)
       ).map( authContext =>
         authContext.mKey(authContext.key).mValue(authContext.value).saveMe()
       )
-    ).flatten
-    val updated = create.map( authContext =>
-      MappedUserAuthContext.findAll(
-        By(MappedUserAuthContext.mUserId, userId),
-        By(MappedUserAuthContext.mKey, authContext.key)
-      ).map( authContext =>
-        MappedUserAuthContext.create.mUserId(userId).mKey(authContext.key).mValue(authContext.value).saveMe()
-      )
-    ).flatten
+    )
+    val created = create.map( authContext =>
+      MappedUserAuthContext.create.mUserId(userId).mKey(authContext.key).mValue(authContext.value).saveMe()
+    )
     tryo {
       updated ::: created
     }

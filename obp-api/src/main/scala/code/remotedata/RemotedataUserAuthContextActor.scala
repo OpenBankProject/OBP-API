@@ -27,9 +27,9 @@ class RemotedataUserAuthContextActor extends Actor with ObpActorHelper with MdcL
       logger.debug(s"getUserAuthContextsBox($userId)")
       sender ! (mapper.getUserAuthContextsBox(userId))   
       
-    case cc.getOrCreateUserAuthContexts(userId: String, userAuthContext: List[BasicUserAuthContext]) =>
-      logger.debug(s"getOrCreateUserAuthContexts($userId, $userAuthContext)")
-      sender ! (mapper.getOrCreateUserAuthContexts(userId, userAuthContext))
+    case cc.createOrUpdateUserAuthContexts(userId: String, userAuthContexts: List[BasicUserAuthContext]) =>
+      logger.debug(s"createOrUpdateUserAuthContexts($userId, $userAuthContexts)")
+      sender ! (mapper.createOrUpdateUserAuthContexts(userId, userAuthContexts))
       
     case cc.deleteUserAuthContexts(userId: String) =>
       logger.debug(msg=s"deleteUserAuthContexts(${userId})")
