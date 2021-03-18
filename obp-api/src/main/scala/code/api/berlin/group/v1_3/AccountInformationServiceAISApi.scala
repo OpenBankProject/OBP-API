@@ -293,9 +293,8 @@ of the PSU at this ASPSP.
            for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
-            viewIds = List(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID))
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, viewIds)
-            (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+            (availablePrivateAccounts, callContext) <- NewStyle.function.getAccountListOfBerlinGroup(u, callContext)
+            (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
             bankAccountsFiltered = accounts.filter(bankAccount =>
               bankAccount.attributes.toList.flatten.find(attribute =>
                 attribute.name.equals("CashAccountTypeCode")&&

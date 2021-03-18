@@ -2,9 +2,11 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
+import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
 import code.api.util.APIUtil.{EntitlementAndScopeStatus, JsonResponseExtractor, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
@@ -274,10 +276,11 @@ object NewStyle {
       }
     }
     
-    def getPrivateBankAccounts(user : User, viewIds: List[ViewId], callContext: Option[CallContext]): OBPReturnType[List[BankIdAccountId]] = {
+    def getAccountListOfBerlinGroup(user : User, callContext: Option[CallContext]): OBPReturnType[List[BankIdAccountId]] = {
+      val viewIds = List(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID))
       Views.views.vend.getPrivateBankAccountsFuture(user, viewIds) map { i =>
         if(i.isEmpty) {
-          (unboxFullOrFail(Empty, callContext, NoViewReadAccountsBerlinGroup, 404 ), callContext)
+          (unboxFullOrFail(Empty, callContext, NoViewReadAccountsBerlinGroup , 403), callContext)
         } else {
           (i, callContext )
         }
