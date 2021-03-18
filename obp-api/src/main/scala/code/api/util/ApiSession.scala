@@ -1,21 +1,26 @@
 package code.api.util
 
 import java.util.{Date, UUID}
+
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
-import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
+import code.api.util.AuthenticationType._
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
+import code.consent.Consents
 import code.context.UserAuthContextProvider
 import code.customer.CustomerX
 import code.model.{Consumer, _}
+import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
-import net.liftweb.common.{Box, Empty}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonParser.ParseException
+import net.liftweb.json.MappingException
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
@@ -47,8 +52,38 @@ case class CallContext(
                        `X-Rate-Limit-Limit` : Long = -1,
                        `X-Rate-Limit-Remaining` : Long = -1,
                        `X-Rate-Limit-Reset` : Long = -1
-                      ) {
+                      ) extends MdcLoggable {
 
+  private def obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(userId: String): Box[List[UserAuthContext]] = {
+    // Try to find the Auth Context of logged in user
+    UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId) match {
+      case Full(Nil) =>
+        val consentId = APIUtil.`getConsent-ID`(this.requestHeaders).getOrElse("None")
+        // Try to find the Auth Context of the user created Berlin Group Consent
+        Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
+          case Full(storedConsent) =>
+            JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
+              case Full(jsonAsString) =>
+                try {
+                  val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
+                  UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(consent.createdByUserId)
+                } catch { // Possible exceptions
+                  case e: ParseException => Failure("ParseException: " + e.getMessage)
+                  case e: MappingException => Failure("MappingException: " + e.getMessage)
+                  case e: Exception => Failure("parsing failed: " + e.getMessage)
+                }
+              case failure@Failure(_, _, _) => failure
+              case _ => Failure("Cannot extract data from: " + consentId)
+            }
+          case failure@Failure(_, _, _) => failure
+          case _ => // There is no Consent-ID request header
+            logger.debug(ErrorMessages.ConsentNotFound + s" (There is no Consent-ID request header)")
+            Full(Nil)
+        }
+      case everythingElse => everythingElse
+    }
+  }
+  
   //This is only used to connect the back adapter. not useful for sandbox mode.
   def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
     for{
@@ -60,7 +95,7 @@ case class CallContext(
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
-      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+      userAuthContexts <- obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(user.userId)
       basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
       generalContextFromPassThroughHeaders = createBasicUserAuthContextJsonFromCallContext(this)
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))
