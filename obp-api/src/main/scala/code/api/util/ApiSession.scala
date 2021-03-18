@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
-import code.api.util.AuthenticationType._
+import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
 import code.consent.Consents
