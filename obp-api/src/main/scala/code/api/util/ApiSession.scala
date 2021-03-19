@@ -31,6 +31,7 @@ case class CallContext(
                        gatewayLoginResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
+                       consentUserId: Box[String] = Empty,
                        consumer: Box[Consumer] = Empty,
                        ipAddress: String = "",
                        resourceDocument: Option[ResourceDoc] = None,
@@ -54,33 +55,11 @@ case class CallContext(
                        `X-Rate-Limit-Reset` : Long = -1
                       ) extends MdcLoggable {
 
-  private def obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(userId: String): Box[List[UserAuthContext]] = {
+  private def obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(userId: String, consentUserId: String): Box[List[UserAuthContext]] = {
     // Try to find the Auth Context of logged in user
-    UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId) match {
-      case Full(Nil) =>
-        val consentId = APIUtil.`getConsent-ID`(this.requestHeaders).getOrElse("None") // Request Header of Berlin Group
-        // Try to find the Auth Context of the user created Berlin Group Consent
-        Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
-          case Full(storedConsent) =>
-            JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
-              case Full(jsonAsString) =>
-                try {
-                  val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-                  UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(consent.createdByUserId)
-                } catch { // Possible exceptions
-                  case e: ParseException => Failure("ParseException: " + e.getMessage)
-                  case e: MappingException => Failure("MappingException: " + e.getMessage)
-                  case e: Exception => Failure("parsing failed: " + e.getMessage)
-                }
-              case failure@Failure(_, _, _) => failure
-              case _ => Failure("Cannot extract data from: " + consentId)
-            }
-          case failure@Failure(_, _, _) => failure
-          case _ => // There is no Consent-ID request header
-            logger.debug(ErrorMessages.ConsentNotFound + s" (There is no the Consent-ID request header)")
-            Full(Nil)
-        }
-      case everythingElse => everythingElse
+    UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId) orElse {
+      // Try to find the Auth Context of the user created Berlin Group Consent
+      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(consentUserId)
     }
   }
   
@@ -95,7 +74,7 @@ case class CallContext(
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
-      userAuthContexts <- obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(user.userId)
+      userAuthContexts <- obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(user.userId, this.consentUserId.getOrElse("None"))
       basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
       generalContextFromPassThroughHeaders = createBasicUserAuthContextJsonFromCallContext(this)
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))

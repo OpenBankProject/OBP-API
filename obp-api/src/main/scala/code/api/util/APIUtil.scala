@@ -2551,7 +2551,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val remoteIpAddress = getRemoteIpAddress()
     val res =
       if (APIUtil.`hasConsent-ID`(reqHeaders)) {
-        Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
+        Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc) map {
+          x => (x._1, x._2.map(_.copy(consentUserId = x._1.map(_.userId))))
+        }
       } else if (APIUtil.hasConsentJWT(reqHeaders)) {
         Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
       } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
