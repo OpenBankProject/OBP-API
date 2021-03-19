@@ -257,7 +257,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .
               if(APIUtil.isFirst(isFirst)) {
-                AuthUser.updateUserAccountViews(u, accounts)
+                AuthUser.updateUserAccountViews(u, accounts, callContextNew)
               }
               Full((u, Some(getCbsTokens(s).head),callContextNew)) // Return user
             case Empty =>
@@ -309,7 +309,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .
               if(APIUtil.isFirst(isFirst)) {
-                AuthUser.updateUserAccountViews(u, accounts)
+                AuthUser.updateUserAccountViews(u, accounts, callContextNew)
               }
               Full(u, Some(getCbsTokens(s).head), callContextNew) // Return user
             case Empty =>
