@@ -4139,8 +4139,11 @@ trait APIMethods310 {
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
         |* parameters is optional array of key value pairs. You can set some paremeters for this method
         |
-        |note:
+        |note and CAVEAT!:
         |
+        |* bank_id_pattern has to be empty for methods that do not take bank_id as a function parameter, otherwise might get empty result
+        |* methods that aggregate bank objects (e.g. getBankAccountsForUser) have to take any  existing method routings for these objects into consideration
+        |* so if you create e.g. a bank specific method routing for getting an account, make sure that it is also served by endpoints getting ALL accounts for ALL banks
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |
         |If connector name start with rest, parameters can contain "outBoundMapping" and "inBoundMapping", convert OutBound and InBound json structure.
