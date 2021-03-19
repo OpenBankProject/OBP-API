@@ -58,7 +58,7 @@ case class CallContext(
     // Try to find the Auth Context of logged in user
     UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId) match {
       case Full(Nil) =>
-        val consentId = APIUtil.`getConsent-ID`(this.requestHeaders).getOrElse("None")
+        val consentId = APIUtil.`getConsent-ID`(this.requestHeaders).getOrElse("None") // Request Header of Berlin Group
         // Try to find the Auth Context of the user created Berlin Group Consent
         Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
           case Full(storedConsent) =>
@@ -77,7 +77,7 @@ case class CallContext(
             }
           case failure@Failure(_, _, _) => failure
           case _ => // There is no Consent-ID request header
-            logger.debug(ErrorMessages.ConsentNotFound + s" (There is no Consent-ID request header)")
+            logger.debug(ErrorMessages.ConsentNotFound + s" (There is no the Consent-ID request header)")
             Full(Nil)
         }
       case everythingElse => everythingElse
@@ -159,16 +159,6 @@ case class CallContext(
       `X-Rate-Limit-Remaining` = this.`X-Rate-Limit-Remaining`,
       `X-Rate-Limit-Reset` = this.`X-Rate-Limit-Reset`
     )
-  }
-  /**
-    * Purpose of this helper function is to get the Consent-JWT value from a Request Headers.
-    * @return the Consent-JWT value from a Request Header as a String
-    */
-  def getConsentId(): Option[String] = {
-    APIUtil.getConsentJWT(this.requestHeaders)
-  }
-  def hasConsentId(): Boolean = {
-    APIUtil.hasConsentJWT(this.requestHeaders)
   }
 
   // for endpoint body convenient get userId

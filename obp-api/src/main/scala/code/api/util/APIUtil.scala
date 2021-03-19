@@ -217,6 +217,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /**
    * Purpose of this helper function is to get the Consent-ID value from a Request Headers.
+   * This Request Header is related to Berlin Group.
    * @return the Consent-ID value from a Request Header as a String
    */
   def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
