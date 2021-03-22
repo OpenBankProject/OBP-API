@@ -57,7 +57,10 @@ case class CallContext(
 
   private def obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(userId: String, consentUserId: String): Box[List[UserAuthContext]] = {
     // Try to find the Auth Context of logged in user
-    UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId) orElse {
+    val userAuthContext= UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId)
+    if (userAuthContext.isDefined && userAuthContext.head.nonEmpty){
+      userAuthContext
+    } else{
       // Try to find the Auth Context of the user created Berlin Group Consent
       UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(consentUserId)
     }
