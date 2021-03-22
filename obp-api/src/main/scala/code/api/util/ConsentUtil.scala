@@ -304,6 +304,7 @@ object Consent {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
+      val cc = callContext.copy(consentCreatedByUserId = Some(consent.createdByUserId))
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
         case (Full(user)) =>
@@ -311,12 +312,12 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              (grantAccessToViews(user, consent), Some(callContext))
+              (grantAccessToViews(user, consent), Some(cc))
             case everythingElse =>
-              (everythingElse, Some(callContext))
+              (everythingElse, Some(cc))
           }
         case _ =>
-          (Failure("Cannot create or get the user based on: " + consentIdAsJwt), Some(callContext))
+          (Failure("Cannot create or get the user based on: " + consentIdAsJwt), Some(cc))
       }
     }
 
@@ -365,6 +366,7 @@ object Consent {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
+      val cc = callContext.copy(consentCreatedByUserId = Some(consent.createdByUserId))
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
         case (Full(user)) =>
@@ -372,12 +374,12 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              (grantAccessToViews(user, consent), Some(callContext))
+              (grantAccessToViews(user, consent), Some(cc))
             case everythingElse =>
-              (everythingElse, Some(callContext))
+              (everythingElse, Some(cc))
           }
         case _ =>
-          (Failure("Cannot create or get the user based on: " + consentId), Some(callContext))
+          (Failure("Cannot create or get the user based on: " + consentId), Some(cc))
       }
     }
     
