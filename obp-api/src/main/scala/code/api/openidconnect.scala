@@ -181,6 +181,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       Users.users.vend.createResourceUser( // Otherwise create a new one
         provider = issuer,
         providerId = subject,
+        createdByConsentId = None,
         name = getClaim(name = "given_name", idToken = idToken).orElse(subject),
         email = getClaim(name = "email", idToken = idToken),
         userId = None

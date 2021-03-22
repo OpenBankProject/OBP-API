@@ -44,10 +44,10 @@ trait DefaultUsers {
   val defaultProvider = APIUtil.getPropsValue("hostname", "")
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = UserX.createResourceUser(defaultProvider, None, None, None, userId).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser2 = UserX.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser3 = UserX.createResourceUser(defaultProvider, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser4 = UserX.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser1 = UserX.createResourceUser(defaultProvider, None, None, None, None, userId).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser2 = UserX.createResourceUser(defaultProvider, None, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser3 = UserX.createResourceUser(defaultProvider, None, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser4 = UserX.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   // create the tokens in database, we only need token-key and token-secret
   lazy val testToken1 = Tokens.tokens.vend.createToken(
