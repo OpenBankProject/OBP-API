@@ -31,6 +31,7 @@ case class CallContext(
                        gatewayLoginResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
+                       consentCreatedByUserId: Box[String] = Empty,
                        consumer: Box[Consumer] = Empty,
                        ipAddress: String = "",
                        resourceDocument: Option[ResourceDoc] = None,
@@ -73,7 +74,7 @@ case class CallContext(
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
-      userAuthContexts <- obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(user.userId, "None")
+      userAuthContexts <- obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(user.userId, this.consentCreatedByUserId.getOrElse("None"))
       basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
       generalContextFromPassThroughHeaders = createBasicUserAuthContextJsonFromCallContext(this)
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))
