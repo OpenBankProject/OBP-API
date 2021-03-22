@@ -33,7 +33,7 @@ case class ConsentJWT(createdByUserId: String,
                       sub: String, // An identifier for the user, unique among all OBP-API users and never reused
                       iss: String, // The Issuer Identifier for the Issuer of the response.
                       aud: String, // Identifies the audience that this ID token is intended for. It must be one of the OBP-API client IDs of your application. 
-                      jti: String, // (JWT ID) claim provides a unique identifier for the JWT.
+                      jti: String, // (JWT ID) claim provides a unique identifier for the JWT.(OBP use jti as consentId)
                       iat: Long, // The "iat" (issued at) claim identifies the time at which the JWT was issued. Represented in Unix time (integer seconds).
                       nbf: Long, // The "nbf" (not before) claim identifies the time before which the JWT MUST NOT be accepted for processing. Represented in Unix time (integer seconds).
                       exp: Long, // The "exp" (expiration time) claim identifies the expiration time on or after which the JWT MUST NOT be accepted for processing. Represented in Unix time (integer seconds).
@@ -48,7 +48,7 @@ case class ConsentJWT(createdByUserId: String,
       subject=this.sub, 
       issuer=this.iss,
       consumerKey=this.aud, 
-      consentId=this.jti, 
+      consentId=this.jti, //OBP use jti as consentId
       issuedAt=this.iat, 
       validFrom=this.nbf, 
       validTo=this.exp,
@@ -170,19 +170,21 @@ object Consent {
     }
   }
 
-  private def getOrCreateUser(subject: String, issuer: String, name: Option[String], email: Option[String]): Future[Box[User]] = {
+  private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[Box[User]] = {
     Users.users.vend.getOrCreateUserByProviderIdFuture(
       provider = issuer,
       idGivenByProvider = subject,
+      consentId = consentId,
       name = name,
       email = email
     )
   }
-  private def getOrCreateUserOldStyle(subject: String, issuer: String, name: Option[String], email: Option[String]): Box[User] = {
+  private def getOrCreateUserOldStyle(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Box[User] = {
     Users.users.vend.getUserByProviderId(provider = issuer, idGivenByProvider = subject).or { // Find a user
       Users.users.vend.createResourceUser( // Otherwise create a new one
         provider = issuer,
         providerId = Some(subject),
+        createdByConsentId = consentId,
         name = name,
         email = email,
         userId = None
@@ -259,7 +261,7 @@ object Consent {
 
     def applyConsentRules(consent: ConsentJWT): Box[User] = {
       // 1. Get or Create a User
-      getOrCreateUserOldStyle(consent.sub, consent.iss, None, None) match {
+      getOrCreateUserOldStyle(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) match {
         case (Full(user)) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
@@ -303,7 +305,7 @@ object Consent {
 
     def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
       // 1. Get or Create a User
-      getOrCreateUser(consent.sub, consent.iss, None, None) map {
+      getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
         case (Full(user)) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
@@ -365,7 +367,7 @@ object Consent {
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
       val cc = calContext.copy(consentUserId = Some(consent.createdByUserId))
       // 1. Get or Create a User
-      getOrCreateUser(consent.sub, consent.iss, None, None) map {
+      getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
         case (Full(user)) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {

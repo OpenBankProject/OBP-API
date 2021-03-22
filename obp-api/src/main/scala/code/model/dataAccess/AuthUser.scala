@@ -1124,7 +1124,7 @@ def restoreSomeSessions(): Unit = {
     def updateUserAccountViews(user: User, accounts: List[InboundAccount], callContext: Option[CallContext]): Unit = {
     for {
       account <- accounts
-      viewId <- account.viewsToGenerate if(user.userId == callContext.map(_.consentUserId.getOrElse(""))) // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
+      viewId <- account.viewsToGenerate if(user.isOriginalUser) // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
       bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId)))
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)//this method will return both system views and custom views back.
     } yield {
