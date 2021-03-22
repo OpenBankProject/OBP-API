@@ -53,13 +53,17 @@ trait User {
   /**This will return resouceUser primary key: it is a long value !!!
     * This should not be exposed to outside. */
   def userPrimaryKey : UserPrimaryKey
-  /** This will be a UUID for Resource User Docment */
+  /** This will be a UUID for Resource User Document */
   def userId: String
-
   def idGivenByProvider: String
   def provider : String
   def emailAddress : String
   def name : String
+  
+  //this will be consentId which create the user, if the user is created by obp or other approaches, it will be None. 
+  def createdByConsentId: Option[String]
+  def isOriginalUser  = createdByConsentId.isEmpty
+  def isConsentUser  = createdByConsentId.nonEmpty
 }
 
 case class UserPrimaryKey(val value : Long) {

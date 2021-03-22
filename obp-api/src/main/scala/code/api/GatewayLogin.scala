@@ -248,6 +248,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             Users.users.vend.createResourceUser( // Otherwise create a new one
               provider = gateway,
               providerId = Some(username),
+              None,
               name = Some(username),
               email = None,
               userId = None
@@ -257,7 +258,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .
               if(APIUtil.isFirst(isFirst)) {
-                AuthUser.updateUserAccountViews(u, accounts)
+                AuthUser.updateUserAccountViews(u, accounts, callContextNew)
               }
               Full((u, Some(getCbsTokens(s).head),callContextNew)) // Return user
             case Empty =>
@@ -285,6 +286,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   }
   def getOrCreateResourceUserFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(User, Option[String], Option[CallContext])]] = {
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
+    val jti = getFieldFromPayloadJson(jwtPayload, "jti")
+    val consentId = if (jti.isEmpty) None else Some(jti)
     logger.debug("login_user_name: " + username)
     val cbsAndCallContextF = refreshBankAccountsFuture(jwtPayload, callContext)
     for {
@@ -304,12 +307,12 @@ object GatewayLogin extends RestHelper with MdcLoggable {
           }
         case Full((s, accounts, callContextNew)) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
           logger.debug("CBS returned proper response")
-          Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username, name = None, email = None) map {
+          Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username, consentId = consentId, name = None, email = None) map {
             case Full(u) =>
               val isFirst = getFieldFromPayloadJson(jwtPayload, "is_first")
               // Update user account views, only when is_first == true in the GatewayLogin token's payload .
               if(APIUtil.isFirst(isFirst)) {
-                AuthUser.updateUserAccountViews(u, accounts)
+                AuthUser.updateUserAccountViews(u, accounts, callContextNew)
               }
               Full(u, Some(getCbsTokens(s).head), callContextNew) // Return user
             case Empty =>

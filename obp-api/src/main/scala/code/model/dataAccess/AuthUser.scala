@@ -1102,7 +1102,7 @@ def restoreSomeSessions(): Unit = {
     val accounts = Connector.connector.vend.getBankAccountsForUserLegacy(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
     logger.debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
 
-    updateUserAccountViews(user, accounts._1)
+    updateUserAccountViews(user, accounts._1, callContext)
   }
   
   def updateUserAccountViewsFuture(user: User, callContext: Option[CallContext]) = {
@@ -1111,7 +1111,7 @@ def restoreSomeSessions(): Unit = {
         connectorEmptyResponse(_, callContext)
       }
     }yield {
-      updateUserAccountViews(user, accounts)
+      updateUserAccountViews(user, accounts, callContext)
       UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
     }
   }
@@ -1119,12 +1119,12 @@ def restoreSomeSessions(): Unit = {
   /**
     * This is a helper method
     * update the views, accountHolders for OBP side when sign up new remote user
-    *
+    * This method can only be used by the original user(account holder).
     */
-  def updateUserAccountViews(user: User, accounts: List[InboundAccount]): Unit = {
+    def updateUserAccountViews(user: User, accounts: List[InboundAccount], callContext: Option[CallContext]): Unit = {
     for {
       account <- accounts
-      viewId <- account.viewsToGenerate // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
+      viewId <- account.viewsToGenerate if(user.isOriginalUser) // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
       bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId)))
       view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)//this method will return both system views and custom views back.
     } yield {
