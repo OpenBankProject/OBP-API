@@ -293,6 +293,8 @@ class Boot extends MdcLoggable {
         FileUtils.copyDirectory(srcDir, destDir)
       }
     }
+
+    Migration.database.executeScripts()
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
@@ -609,8 +611,7 @@ class Boot extends MdcLoggable {
       }
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
-
-    Migration.database.executeScripts()
+    
 
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>

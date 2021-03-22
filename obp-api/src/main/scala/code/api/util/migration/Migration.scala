@@ -76,6 +76,7 @@ object Migration extends MdcLoggable {
       populateSettlementBankAccounts()
       alterColumnStatusAtTableMappedConsent()
       alterColumnDetailsAtTableTransactionRequest()
+      deleteDuplicatedRowsInTheTableUserAuthContext()
     }
     
     private def dummyScript(): Boolean = {
@@ -223,6 +224,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterColumnDetailsAtTableTransactionRequest)
       runOnce(name) {
         MigrationOfTransactionRequerst.alterColumnDetails(name)
+      }
+    }
+    private def deleteDuplicatedRowsInTheTableUserAuthContext(): Boolean = {
+      val name = nameOf(deleteDuplicatedRowsInTheTableUserAuthContext)
+      runOnce(name) {
+        MigrationOfUserAuthContext.removeDuplicates(name)
       }
     }
     

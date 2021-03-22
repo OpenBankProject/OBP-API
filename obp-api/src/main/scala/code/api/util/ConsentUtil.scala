@@ -300,10 +300,10 @@ object Consent {
     }
   } 
   
-  private def hasConsentInternal(consentIdAsJwt: String, calContext: CallContext): Future[Box[User]] = {
+  private def hasConsentInternal(consentIdAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
-    def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
+    def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
         case (Full(user)) =>
@@ -311,12 +311,12 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              grantAccessToViews(user, consent)
+              (grantAccessToViews(user, consent), Some(callContext))
             case everythingElse =>
-              everythingElse
+              (everythingElse, Some(callContext))
           }
         case _ =>
-          Failure("Cannot create or get the user based on: " + consentIdAsJwt)
+          (Failure("Cannot create or get the user based on: " + consentIdAsJwt), Some(callContext))
       }
     }
 
@@ -324,23 +324,23 @@ object Consent {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-JWT expired
+          checkConsent(consent, consentIdAsJwt, callContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
-              Future(failure)
+              Future(failure, Some(callContext))
             case _ => // Unexpected errors
-              Future(Failure(ErrorMessages.ConsentCheckExpiredIssue))
+              Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(callContext))
           }
         } catch { // Possible exceptions
-          case e: ParseException => Future(Failure("ParseException: " + e.getMessage))
-          case e: MappingException => Future(Failure("MappingException: " + e.getMessage))
-          case e: Exception => Future(Failure("parsing failed: " + e.getMessage))
+          case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(callContext))
+          case e: MappingException => Future(Failure("MappingException: " + e.getMessage), Some(callContext))
+          case e: Exception => Future(Failure("parsing failed: " + e.getMessage), Some(callContext))
         }
       case failure@Failure(_, _, _) =>
-        Future(failure)
+        Future(failure, Some(callContext))
       case _ =>
-        Future(Failure("Cannot extract data from: " + consentIdAsJwt))
+        Future(Failure("Cannot extract data from: " + consentIdAsJwt), Some(callContext))
     }
   }
   
@@ -348,7 +348,7 @@ object Consent {
     (hasConsentInternalOldStyle(consentIdAsJwt, callContext), callContext)
   }  
   private def hasConsent(consentIdAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasConsentInternal(consentIdAsJwt, callContext) map (result => (result, Some(callContext)))
+    hasConsentInternal(consentIdAsJwt, callContext)
   }
   
   def applyRules(consentId: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
@@ -361,10 +361,10 @@ object Consent {
   }
 
 
-  private def hasBerlinGroupConsentInternal(consentId: String, calContext: CallContext): Future[Box[User]] = {
+  private def hasBerlinGroupConsentInternal(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
-    def applyConsentRules(consent: ConsentJWT): Future[Box[User]] = {
+    def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
         case (Full(user)) =>
@@ -372,12 +372,12 @@ object Consent {
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Assign views to the User
-              grantAccessToViews(user, consent)
+              (grantAccessToViews(user, consent), Some(callContext))
             case everythingElse =>
-              everythingElse
+              (everythingElse, Some(callContext))
           }
         case _ =>
-          Failure("Cannot create or get the user based on: " + consentId)
+          (Failure("Cannot create or get the user based on: " + consentId), Some(callContext))
       }
     }
     
@@ -414,37 +414,37 @@ object Consent {
             case Full(jsonAsString) =>
               try {
                 val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-                checkConsent(consent, storedConsent.jsonWebToken, calContext) match { // Check is it Consent-JWT expired
+                checkConsent(consent, storedConsent.jsonWebToken, callContext) match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
                     // Update MappedConsent.usesSoFarTodayCounter field
                     Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
                     applyConsentRules(consent)
                   case failure@Failure(_, _, _) => // Handled errors
-                    Future(failure)
+                    Future(failure, Some(callContext))
                   case _ => // Unexpected errors
-                    Future(Failure(ErrorMessages.ConsentCheckExpiredIssue))
+                    Future(Failure(ErrorMessages.ConsentCheckExpiredIssue), Some(callContext))
                 }
               } catch { // Possible exceptions
-                case e: ParseException => Future(Failure("ParseException: " + e.getMessage))
-                case e: MappingException => Future(Failure("MappingException: " + e.getMessage))
-                case e: Exception => Future(Failure("parsing failed: " + e.getMessage))
+                case e: ParseException => Future(Failure("ParseException: " + e.getMessage), Some(callContext))
+                case e: MappingException => Future(Failure("MappingException: " + e.getMessage), Some(callContext))
+                case e: Exception => Future(Failure("parsing failed: " + e.getMessage), Some(callContext))
               }
             case failure@Failure(_, _, _) =>
-              Future(failure)
+              Future(failure, Some(callContext))
             case _ =>
-              Future(Failure("Cannot extract data from: " + consentId))
+              Future(Failure("Cannot extract data from: " + consentId), Some(callContext))
           }
         } else {
-          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"))
+          Future(Failure(ErrorMessages.TooManyRequests + s" ${RequestHeader.`Consent-ID`}: $consentId"), Some(callContext))
         }
       case failure@Failure(_, _, _) =>
-        Future(failure)
+        Future(failure, Some(callContext))
       case _ =>
-        Future(Failure(ErrorMessages.ConsentNotFound + s" ($consentId)"))
+        Future(Failure(ErrorMessages.ConsentNotFound + s" ($consentId)"), Some(callContext))
     }
   }
   private def hasBerlinGroupConsent(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasBerlinGroupConsentInternal(consentId, callContext) map (result => (result, Some(callContext)))
+    hasBerlinGroupConsentInternal(consentId, callContext)
   }
   def applyBerlinGroupRules(consentId: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
