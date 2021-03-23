@@ -4131,19 +4131,22 @@ trait APIMethods310 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |Explaination of Fields:
+        |Explanation of Fields:
         |
         |* method_name is required String value, current supported value: $supportedConnectorNames
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
-        |* parameters is optional array of key value pairs. You can set some paremeters for this method
+        |* parameters is optional array of key value pairs. You can set some parameters for this method
         |
-        |note:
+        |note and CAVEAT!:
         |
+        |* bank_id_pattern has to be empty for methods that do not take bank_id as a function parameter, otherwise might get empty result
+        |* methods that aggregate bank objects (e.g. getBankAccountsForUser) have to take any  existing method routings for these objects into consideration
+        |* so if you create e.g. a bank specific method routing for getting an account, make sure that it is also served by endpoints getting ALL accounts for ALL banks
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |
-        |If connector name start with rest, parameters can contain "outBoundMapping" and "inBoundMapping", convert OutBound and InBound json structure.
+        |If the connector name starts with rest, parameters can contain "outBoundMapping" and "inBoundMapping", convert OutBound and InBound json structure.
         |for example:
         | outBoundMapping example, convert json from source to target:
         |![Snipaste_outBoundMapping](https://user-images.githubusercontent.com/2577334/75248007-33332e00-580e-11ea-8d2a-d1856035fa24.png)
