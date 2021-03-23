@@ -57,13 +57,13 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       response.body.extract[ErrorMessage].message should startWith(UserNotLoggedIn)
     }
 
-    scenario("Authentication User, test succeed", BerlinGroupV1_3, getAccountList) {
+    scenario("Authentication User, test failed", BerlinGroupV1_3, getAccountList) {
       val requestGet = (V1_3_BG / "accounts").GET <@ (user1)
       val response = makeGetRequest(requestGet)
 
-      Then("We should get a 200 ")
-      response.code should equal(200)
-      response.body.extract[CoreAccountsJsonV13].accounts.length == 0 should be (true)
+      Then("We should get a 403 ")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(NoViewReadAccountsBerlinGroup)
     }
   }
   

@@ -46,20 +46,21 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
-  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Box[User] = {
+  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Box[User] = {
     Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = idGivenByProvider).or { // Find a user
       Users.users.vend.createResourceUser( // Otherwise create a new one
         provider = provider,
         providerId = Some(idGivenByProvider),
+        createdByConsentId = consentId,
         name = name,
         email = email,
         userId = None
       )
     }
   }
-  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Future[Box[User]] = {
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Future[Box[User]] = {
     Future {
-      getOrCreateUserByProviderId(provider, idGivenByProvider, name, email)
+      getOrCreateUserByProviderId(provider, idGivenByProvider,consentId, name, email)
     }
   }
 
@@ -166,12 +167,16 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
-  override def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
+  override def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)
     providerId match {
       case Some(v) => ru.providerId(v)
       case None    =>
+    }
+    createdByConsentId match {
+      case Some(consentId) => ru.CreatedByConsentId(consentId)
+      case None    => ru.CreatedByConsentId(null)
     }
     name match {
       case Some(v) => ru.name_(v)

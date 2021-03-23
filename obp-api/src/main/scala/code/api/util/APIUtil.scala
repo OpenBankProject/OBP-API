@@ -217,6 +217,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /**
    * Purpose of this helper function is to get the Consent-ID value from a Request Headers.
+   * This Request Header is related to Berlin Group.
    * @return the Consent-ID value from a Request Header as a String
    */
   def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
@@ -2549,13 +2550,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val remoteIpAddress = getRemoteIpAddress()
     val res =
-      if (APIUtil.`hasConsent-ID`(reqHeaders)) {
+      if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
-      } else if (APIUtil.hasConsentJWT(reqHeaders)) {
+      } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
         Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
-      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
+      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
         getUserFromOAuthHeaderFuture(cc)
-      } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
+      } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
         for {
           (user, callContext) <- OAuth2Login.getUserFuture(cc)
         } yield {
@@ -2563,8 +2564,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
           (user, callContext)
         }
+      // Direct Login
       } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
+      // Gateway Login
       } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
         APIUtil.getPropsValue("gateway.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature

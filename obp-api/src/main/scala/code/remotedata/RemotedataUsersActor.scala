@@ -38,9 +38,9 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
       logger.debug("getUserByProviderIdFuture(" + provider +"," + idGivenByProvider +")")
       sender ! (mapper.getUserByProviderId(provider, idGivenByProvider))
 
-    case cc.getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) =>
-      logger.debug("getOrCreateUserByProviderIdFuture(" + provider +"," + idGivenByProvider + name + email +")")
-      (mapper.getOrCreateUserByProviderIdFuture(provider, idGivenByProvider, name, email)) pipeTo sender
+    case cc.getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, createdByConsentId: Option[String],name: Option[String], email: Option[String]) =>
+      logger.debug("getOrCreateUserByProviderIdFuture(" + provider +"," + idGivenByProvider +createdByConsentId+ name + email +")")
+      (mapper.getOrCreateUserByProviderIdFuture(provider, idGivenByProvider, createdByConsentId, name, email)) pipeTo sender
 
     case cc.getUserByUserId(userId: String) =>
       logger.debug("getUserByUserId(" + userId +")")
@@ -78,9 +78,9 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
       logger.debug(s"getAllUsersF(queryParams: ($queryParams))")
       sender ! (mapper.getAllUsersFF(queryParams))
 
-    case cc.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
+    case cc.createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.debug("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
-      sender ! (mapper.createResourceUser(provider, providerId, name, email, userId))
+      sender ! (mapper.createResourceUser(provider, providerId, createdByConsentId, name, email, userId))
 
     case cc.createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.debug("createUnsavedResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")

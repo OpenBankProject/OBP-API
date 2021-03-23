@@ -5,6 +5,7 @@ import java.util.UUID
 import code.api.util.APIUtil
 import code.model.Consumer
 import code.model.Consumer.redirectURLRegex
+import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.jwk.gen.{ECKeyGenerator, JWKGenerator, RSAKeyGenerator}
 import com.nimbusds.jose.jwk.{AsymmetricJWK, Curve, ECKey, JWK, KeyUse, RSAKey}
 import com.nimbusds.jose.{Algorithm, JWSAlgorithm}
@@ -16,7 +17,7 @@ import sh.ory.hydra.{ApiClient, Configuration}
 import scala.collection.immutable.List
 import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
 
-object HydraUtil {
+object HydraUtil extends MdcLoggable{
 
   private val INTEGRATE_WITH_HYDRA = "integrate_with_hydra"
 
@@ -65,6 +66,7 @@ object HydraUtil {
    * @return created Hydra client or None
    */
   def createHydraClient(consumer: Consumer, fun: OAuth2Client => OAuth2Client = identity): Option[OAuth2Client] = {
+    logger.info("createHydraClient process is starting")
     val redirectUrl = consumer.redirectURL.get
     if (StringUtils.isBlank(redirectUrl) || redirectURLRegex.findFirstIn(redirectUrl).isEmpty) {
       return None
@@ -88,7 +90,9 @@ object HydraUtil {
     oAuth2Client.setTokenEndpointAuthMethod("client_secret_post")
 
     val decoratedClient = fun(oAuth2Client)
-    Some(hydraAdmin.createOAuth2Client(decoratedClient))
+    val oAuth2ClientResult = Some(hydraAdmin.createOAuth2Client(decoratedClient))
+    logger.info("createHydraClient process is successful.")
+    oAuth2ClientResult
   }
 
 

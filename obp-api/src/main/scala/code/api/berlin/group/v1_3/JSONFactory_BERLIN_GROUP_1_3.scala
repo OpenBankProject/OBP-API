@@ -520,7 +520,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     PostConsentResponseJson(
       consentId = consent.consentId,
       consentStatus = consent.status.toLowerCase(),
-      _links= ConsentLinksV13(s"v1.3/consents/${consent.consentId}/authorisations")
+      _links= ConsentLinksV13(s"/v1.3/consents/${consent.consentId}/authorisations")
     )
   }
 
