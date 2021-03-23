@@ -294,6 +294,8 @@ class Boot extends MdcLoggable {
       }
     }
 
+    // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+    // Please note that migration scripts are executed before Lift Mapper Schemifier
     Migration.database.executeScripts()
     
     // ensure our relational database's tables are created/fit the schema
