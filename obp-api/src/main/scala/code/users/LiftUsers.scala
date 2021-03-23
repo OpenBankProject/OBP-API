@@ -176,7 +176,7 @@ object LiftUsers extends Users with MdcLoggable{
     }
     createdByConsentId match {
       case Some(consentId) => ru.CreatedByConsentId(consentId)
-      case None    =>
+      case None    => ru.CreatedByConsentId(null)
     }
     name match {
       case Some(v) => ru.name_(v)

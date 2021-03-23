@@ -55,9 +55,12 @@ case class CallContext(
                        `X-Rate-Limit-Reset` : Long = -1
                       ) extends MdcLoggable {
 
-  private def obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(userId: String, consentUserId: String): Box[List[UserAuthContext]] = {
+  private def obtainAuthContextFromOriginalUserOrElseConsentUser(originalUserId: String, consentUserId: String): Box[List[UserAuthContext]] = {
     // Try to find the Auth Context of logged in user
-    UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId) orElse {
+    val userAuthContext= UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(originalUserId)
+    if (userAuthContext.isDefined && userAuthContext.head.nonEmpty){
+      userAuthContext
+    } else{
       // Try to find the Auth Context of the user created Berlin Group Consent
       UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(consentUserId)
     }
@@ -74,7 +77,7 @@ case class CallContext(
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
-      userAuthContexts <- obtainAuthContextOfOwnerUserOrElseConsentOwnerUser(user.userId, this.consentCreatedByUserId.getOrElse("None"))
+      userAuthContexts <- obtainAuthContextFromOriginalUserOrElseConsentUser(user.userId, this.consentCreatedByUserId.getOrElse("None"))
       basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
       generalContextFromPassThroughHeaders = createBasicUserAuthContextJsonFromCallContext(this)
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))

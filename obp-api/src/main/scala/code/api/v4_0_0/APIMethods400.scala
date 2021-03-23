@@ -320,7 +320,7 @@ trait APIMethods400 {
         cc =>
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
-            (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, cc.callContext)
+            (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, callContext)
           } yield {
             (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
           }
