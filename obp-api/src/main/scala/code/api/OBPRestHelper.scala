@@ -339,12 +339,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                 case Full(payload) =>
                   val s = S
                   GatewayLogin.getOrCreateResourceUser(payload: String, Some(cc)) match {
-                    case Full((u, cbsToken, callContextNew)) => // Authentication is successful
+                    case Full((u, cbsToken, callContext)) => // Authentication is successful
                       val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
                       setGatewayResponseHeader(s) {GatewayLogin.createJwt(payload, cbsToken)}
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
-                      val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextNew)
-                      fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContextNew.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
+                      val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContext)
+                      fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload, httpCode))
                   }

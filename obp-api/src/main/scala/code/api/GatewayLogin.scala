@@ -230,11 +230,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val cbsAndCallContextBox = refreshBankAccounts(jwtPayload, callContext)
     for {
       tuple <- cbsAndCallContextBox match {
-        case Full((s, _, callContextNew)) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
+        case Full((s, _, callContext)) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
           logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
           Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username) match {
             case Full(u) => // Only valid case because we expect to find a user
-              Full(u, None,callContextNew)
+              Full(u, None, callContext)
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotFindUser)
             case Failure(msg, t, c) =>
@@ -242,7 +242,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             case _ =>
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
-        case Full((s, accounts, callContextNew )) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
+        case Full((s, accounts, callContext)) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
           logger.debug("CBS returned proper response")
           Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username).or { // Find a user
             Users.users.vend.createResourceUser( // Otherwise create a new one
@@ -260,7 +260,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               if(APIUtil.isFirst(isFirst)) {
                 AuthUser.updateUserAccountViews(u, accounts)
               }
-              Full((u, Some(getCbsTokens(s).head),callContextNew)) // Return user
+              Full((u, Some(getCbsTokens(s).head),callContext)) // Return user
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
             case Failure(msg, t, c) =>
@@ -293,11 +293,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     for {
       cbs <- cbsAndCallContextF
       tuple <- cbs match {
-        case Full((s, _, callContextNew)) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
+        case Full((s, _, callContext)) if s.equalsIgnoreCase(ErrorMessages.GatewayLoginNoNeedToCallCbs) => // Payload data do not require call to CBS
           logger.debug(ErrorMessages.GatewayLoginNoNeedToCallCbs)
           Users.users.vend.getUserByProviderIdFuture(provider = gateway, idGivenByProvider = username) map {
             case Full(u) => // Only valid case because we expect to find a user
-              Full(u, None, callContextNew)
+              Full(u, None, callContext)
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotFindUser)
             case Failure(msg, t, c) =>
@@ -305,7 +305,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
             case _ =>
               Failure(ErrorMessages.GatewayLoginUnknownError)
           }
-        case Full((s, accounts, callContextNew)) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
+        case Full((s, accounts, callContext)) if getErrors(s).forall(_.equalsIgnoreCase("")) => // CBS returned response without any error
           logger.debug("CBS returned proper response")
           Users.users.vend.getOrCreateUserByProviderIdFuture(provider = gateway, idGivenByProvider = username, consentId = consentId, name = None, email = None) map {
             case Full(u) =>
@@ -314,7 +314,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               if(APIUtil.isFirst(isFirst)) {
                 AuthUser.updateUserAccountViews(u, accounts)
               }
-              Full(u, Some(getCbsTokens(s).head), callContextNew) // Return user
+              Full(u, Some(getCbsTokens(s).head), callContext) // Return user
             case Empty =>
               Failure(ErrorMessages.GatewayLoginCannotGetOrCreateUser)
             case Failure(msg, t, c) =>
