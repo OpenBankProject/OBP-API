@@ -269,6 +269,13 @@ trait UserAuthContext {
   def value : String
 }
 
+trait ConsentAuthContext {
+  def consentAuthContextId : String
+  def consentId : String
+  def key : String
+  def value : String
+}
+
 
 trait AddressT {
   def line1 : String

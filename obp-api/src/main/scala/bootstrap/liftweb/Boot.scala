@@ -55,7 +55,7 @@ import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
 import code.consumer.Consumers
-import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
+import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -848,6 +848,7 @@ object ToSchemify {
     MappedCustomerAddress,
     MappedUserAuthContext,
     MappedUserAuthContextUpdate,
+    MappedConsentAuthContext,
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,

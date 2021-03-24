@@ -10,9 +10,9 @@ import code.bankconnectors.Connector
 import code.consent
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
+import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.entitlement.Entitlement
 import code.model.Consumer
-import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.HydraUtil
 import code.views.Views
@@ -480,6 +480,10 @@ object Consent {
       case Some(date) => date.getTime() / 1000
       case _ => currentTimeInSeconds
     }
+    // Write Consent's Auth Context to the DB
+    val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+      .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+    ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
       
     // 1. Add views
     // Please note that consents can only contain Views that the User already has access to.
@@ -537,8 +541,14 @@ object Consent {
       case Some(date) => date.getTime() / 1000
       case _ => currentTimeInSeconds
     }
+    // Write Consent's Auth Context to the DB
+    user map { u =>
+      val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
+        .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+      ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
+    }
     
-    // 1. Add views
+    // 1. Add access
     val accounts: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
       Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
         ConsentView(
@@ -607,6 +617,12 @@ object Consent {
     val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, createdByUserId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = expirationDateTime.getTime() / 1000
+    // Write Consent's Auth Context to the DB
+    user map { u =>
+      val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
+        .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+      ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
+    }
     
     // 1. Add views
     val consentViews: List[ConsentView] = if (bankId.isDefined && accountIds.isDefined) {
