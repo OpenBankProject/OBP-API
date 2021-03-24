@@ -575,7 +575,7 @@ Reads account data from a given card account addressed by "account-id".
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
              (transactions, callContext) <- model.toBankAccountExtended(bankAccount).getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
@@ -908,7 +908,7 @@ The ASPSP might add balance information, if transaction lists without balances a
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
