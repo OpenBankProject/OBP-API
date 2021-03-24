@@ -1,19 +1,18 @@
 package code.api.util
 
 import java.util.{Date, UUID}
-
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
 import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
-import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
+import code.context.UserAuthContextProvider
 import code.customer.CustomerX
 import code.model.{Consumer, _}
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model.{UserAuthContext, _}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
 import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
@@ -51,22 +50,6 @@ case class CallContext(
                        `X-Rate-Limit-Remaining` : Long = -1,
                        `X-Rate-Limit-Reset` : Long = -1
                       ) extends MdcLoggable {
-
-  private def obtainAuthContextFromOriginalUserOrElseConsentUser(user: User): Box[(List[UserAuthContext], List[ConsentAuthContext])] = {
-    if(user.createdByConsentId.isDefined) {
-      ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(
-        user.createdByConsentId.getOrElse("None")).map(i => (Nil, i)
-      )
-    } else {
-      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId).map(i => (i, Nil))
-    }
-  }
-  
-  private def getAuthContext(userAuthContexts: List[UserAuthContext], consentAuthContext: List[ConsentAuthContext]): Option[List[BasicUserAuthContext]] = {
-    if (userAuthContexts.isEmpty == false) Some(createBasicUserAuthContextJson(userAuthContexts)) 
-    else if(consentAuthContext.isEmpty == false) Some(createBasicConsentAuthContextJson(consentAuthContext)) 
-    else None
-  }
   
   //This is only used to connect the back adapter. not useful for sandbox mode.
   def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
@@ -79,8 +62,8 @@ case class CallContext(
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
-      (userAuthContexts, consentAuthContext) <- obtainAuthContextFromOriginalUserOrElseConsentUser(user)
-      basicUserAuthContextsFromDatabase = getAuthContext(userAuthContexts, consentAuthContext)
+      userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+      basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
       generalContextFromPassThroughHeaders = createBasicUserAuthContextJsonFromCallContext(this)
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))
       authViews<- tryo(

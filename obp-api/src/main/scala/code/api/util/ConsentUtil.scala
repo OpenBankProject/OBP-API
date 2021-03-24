@@ -311,10 +311,16 @@ object Consent {
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
             case (Full(user)) =>
-              // 3. Assign views to the User
-              (grantAccessToViews(user, consent), Some(cc))
-            case everythingElse =>
-              (everythingElse, Some(cc))
+              // 3. Copy Auth Context to the User
+              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+                case Full(_) =>
+                  // 4. Assign views to the User
+                  (grantAccessToViews(user, consent), Some(cc))
+                case failure@Failure(_, _, _) => // Handled errors
+                  (failure, Some(callContext))
+                case _ =>
+                  (Failure(ErrorMessages.UnknownError), Some(cc))
+              }
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentIdAsJwt), Some(cc))
@@ -361,7 +367,11 @@ object Consent {
     }
   }
 
-
+  private def copyAuthContextOfConsentToUser(consentId: String, userId: String): Box[List[UserAuthContext]] = {
+    val authContexts = ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(consentId)
+      .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+    UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(userId, authContexts.getOrElse(Nil))
+  }
   private def hasBerlinGroupConsentInternal(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
@@ -369,14 +379,20 @@ object Consent {
       val cc = callContext.copy(consentCreatedByUserId = Some(consent.createdByUserId))
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
-        case (Full(user)) =>
+        case Full(user) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
-            case (Full(user)) =>
-              // 3. Assign views to the User
-              (grantAccessToViews(user, consent), Some(cc))
-            case everythingElse =>
-              (everythingElse, Some(cc))
+            case Full(user) =>
+              // 3. Copy Auth Context to the User
+              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+                case Full(_) =>
+                  // 4. Assign views to the User
+                  (grantAccessToViews(user, consent), Some(cc))
+                case failure@Failure(_, _, _) => // Handled errors
+                  (failure, Some(callContext))
+                case _ =>
+                  (Failure(ErrorMessages.UnknownError), Some(cc))
+              }
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentId), Some(cc))
