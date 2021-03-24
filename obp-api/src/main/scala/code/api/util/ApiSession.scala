@@ -8,19 +8,16 @@ import code.api.util.APIUtil._
 import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
-import code.consent.Consents
-import code.context.UserAuthContextProvider
+import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.customer.CustomerX
 import code.model.{Consumer, _}
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{UserAuthContext, _}
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.common.{Box, Empty}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.MappingException
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
@@ -55,15 +52,20 @@ case class CallContext(
                        `X-Rate-Limit-Reset` : Long = -1
                       ) extends MdcLoggable {
 
-  private def obtainAuthContextFromOriginalUserOrElseConsentUser(originalUserId: String, consentUserId: String): Box[List[UserAuthContext]] = {
-    // Try to find the Auth Context of logged in user
-    val userAuthContext= UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(originalUserId)
-    if (userAuthContext.isDefined && userAuthContext.head.nonEmpty){
-      userAuthContext
-    } else{
-      // Try to find the Auth Context of the user created Berlin Group Consent
-      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(consentUserId)
+  private def obtainAuthContextFromOriginalUserOrElseConsentUser(user: User): Box[(List[UserAuthContext], List[ConsentAuthContext])] = {
+    if(user.createdByConsentId.isDefined) {
+      ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(
+        user.createdByConsentId.getOrElse("None")).map(i => (Nil, i)
+      )
+    } else {
+      UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId).map(i => (i, Nil))
     }
+  }
+  
+  private def getAuthContext(userAuthContexts: List[UserAuthContext], consentAuthContext: List[ConsentAuthContext]): Option[List[BasicUserAuthContext]] = {
+    if (userAuthContexts.isEmpty == false) Some(createBasicUserAuthContextJson(userAuthContexts)) 
+    else if(consentAuthContext.isEmpty == false) Some(createBasicConsentAuthContextJson(consentAuthContext)) 
+    else None
   }
   
   //This is only used to connect the back adapter. not useful for sandbox mode.
@@ -77,8 +79,8 @@ case class CallContext(
       views <- tryo(permission.views)
       linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
-      userAuthContexts <- obtainAuthContextFromOriginalUserOrElseConsentUser(user.userId, this.consentCreatedByUserId.getOrElse("None"))
-      basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
+      (userAuthContexts, consentAuthContext) <- obtainAuthContextFromOriginalUserOrElseConsentUser(user)
+      basicUserAuthContextsFromDatabase = getAuthContext(userAuthContexts, consentAuthContext)
       generalContextFromPassThroughHeaders = createBasicUserAuthContextJsonFromCallContext(this)
       basicUserAuthContexts = Some(basicUserAuthContextsFromDatabase.getOrElse(List.empty[BasicUserAuthContext]))
       authViews<- tryo(
