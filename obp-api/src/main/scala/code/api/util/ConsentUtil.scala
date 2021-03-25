@@ -10,9 +10,9 @@ import code.bankconnectors.Connector
 import code.consent
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
+import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.entitlement.Entitlement
 import code.model.Consumer
-import code.model.dataAccess.AuthUser
 import code.users.Users
 import code.util.HydraUtil
 import code.views.Views
@@ -304,17 +304,23 @@ object Consent {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
-      val cc = callContext.copy(consentCreatedByUserId = Some(consent.createdByUserId))
+      val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
         case (Full(user)) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
             case (Full(user)) =>
-              // 3. Assign views to the User
-              (grantAccessToViews(user, consent), Some(cc))
-            case everythingElse =>
-              (everythingElse, Some(cc))
+              // 3. Copy Auth Context to the User
+              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+                case Full(_) =>
+                  // 4. Assign views to the User
+                  (grantAccessToViews(user, consent), Some(cc))
+                case failure@Failure(_, _, _) => // Handled errors
+                  (failure, Some(callContext))
+                case _ =>
+                  (Failure(ErrorMessages.UnknownError), Some(cc))
+              }
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentIdAsJwt), Some(cc))
@@ -361,22 +367,32 @@ object Consent {
     }
   }
 
-
+  private def copyAuthContextOfConsentToUser(consentId: String, userId: String): Box[List[UserAuthContext]] = {
+    val authContexts = ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(consentId)
+      .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+    UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(userId, authContexts.getOrElse(Nil))
+  }
   private def hasBerlinGroupConsentInternal(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
-      val cc = callContext.copy(consentCreatedByUserId = Some(consent.createdByUserId))
+      val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
-        case (Full(user)) =>
+        case Full(user) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
-            case (Full(user)) =>
-              // 3. Assign views to the User
-              (grantAccessToViews(user, consent), Some(cc))
-            case everythingElse =>
-              (everythingElse, Some(cc))
+            case Full(user) =>
+              // 3. Copy Auth Context to the User
+              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+                case Full(_) =>
+                  // 4. Assign views to the User
+                  (grantAccessToViews(user, consent), Some(cc))
+                case failure@Failure(_, _, _) => // Handled errors
+                  (failure, Some(callContext))
+                case _ =>
+                  (Failure(ErrorMessages.UnknownError), Some(cc))
+              }
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentId), Some(cc))
@@ -480,6 +496,10 @@ object Consent {
       case Some(date) => date.getTime() / 1000
       case _ => currentTimeInSeconds
     }
+    // Write Consent's Auth Context to the DB
+    val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
+      .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+    ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
       
     // 1. Add views
     // Please note that consents can only contain Views that the User already has access to.
@@ -537,8 +557,14 @@ object Consent {
       case Some(date) => date.getTime() / 1000
       case _ => currentTimeInSeconds
     }
+    // Write Consent's Auth Context to the DB
+    user map { u =>
+      val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
+        .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+      ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
+    }
     
-    // 1. Add views
+    // 1. Add access
     val accounts: List[Future[ConsentView]] = consent.access.accounts.getOrElse(Nil) map { account =>
       Connector.connector.vend.getBankAccountByIban(account.iban.getOrElse(""), None) map { bankAccount =>
         ConsentView(
@@ -607,6 +633,12 @@ object Consent {
     val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, createdByUserId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val validUntilTimeInSeconds = expirationDateTime.getTime() / 1000
+    // Write Consent's Auth Context to the DB
+    user map { u =>
+      val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
+        .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+      ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
+    }
     
     // 1. Add views
     val consentViews: List[ConsentView] = if (bankId.isDefined && accountIds.isDefined) {
