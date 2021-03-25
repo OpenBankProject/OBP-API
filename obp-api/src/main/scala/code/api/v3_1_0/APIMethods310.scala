@@ -4362,6 +4362,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteMethodRouting, callContext)
             deleted: Box[Boolean] <- NewStyle.function.deleteMethodRouting(methodRoutingId)
           } yield {
