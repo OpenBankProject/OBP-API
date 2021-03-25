@@ -28,7 +28,7 @@ package code.model.dataAccess
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
-import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, _}
+import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, logger, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
@@ -864,7 +864,17 @@ import net.liftweb.util.Helpers._
               // TODO add field stating external password check only.
               .provider(iss)
               .validated(emailVerified.exists(_.equalsIgnoreCase("true")))
-              .saveMe()
+              .saveMe() //NOTE, we will create the resourceUser in the `saveMe()` method.
+        }
+        userAuthContexts match {
+          case Some(authContexts) => { // Write user auth context to the database
+              // get resourceUserId from AuthUser.
+              val resourceUserId = user.user.foreign.map(_.userId).getOrElse("")
+              // we try to catch this exception, the createOrUpdateUserAuthContexts can not break the login process.
+              tryo {UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(resourceUserId, authContexts)} 
+                .openOr(logger.error(s"${resourceUserId} checkExternalUserViaConnector.createOrUpdateUserAuthContexts throw exception! "))
+          }
+          case None => // Do nothing
         }
         Full(user)
       case _ =>

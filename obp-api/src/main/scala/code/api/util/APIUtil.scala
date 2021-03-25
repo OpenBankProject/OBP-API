@@ -2752,7 +2752,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
     } map {
       x =>
-        refreshUserIfRequired(x._1,x._2)
+        // make sure, if `refreshUserIfRequired` throw exception, do not break the `authenticatedAccess`, 
+        // TODO better move `refreshUserIfRequired` to other place.
+        tryo{refreshUserIfRequired(x._1,x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.refreshUserIfRequired throw exception! "))
         x
     }
   }

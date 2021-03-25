@@ -1105,7 +1105,7 @@ trait Connector extends MdcLoggable {
     }
   }
 
-  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext] = None) : Box[(List[TransactionRequest], Option[CallContext])] = {
+  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext]) : Box[(List[TransactionRequest], Option[CallContext])] = {
     val transactionRequests =
       for {
         transactionRequests <- getTransactionRequestsImpl210(fromAccount)
