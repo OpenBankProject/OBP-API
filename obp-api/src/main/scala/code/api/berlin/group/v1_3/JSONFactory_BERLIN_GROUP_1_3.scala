@@ -353,7 +353,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
   }
 
   private def getIbanAndBban(x: BankAccount) = {
-    val iBan = x.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString)
+    val iBan = x.accountRoutings.find(_.scheme.equalsIgnoreCase(AccountRoutingScheme.IBAN.toString))
       .map(_.address).getOrElse("")
     val bBan = if (iBan.size > 4) iBan.substring(4) else ""
     (iBan, bBan)
