@@ -27,7 +27,6 @@ case class CallContext(
                        gatewayLoginResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
-                       consentCreatedByUserId: Box[String] = Empty,
                        consumer: Box[Consumer] = Empty,
                        ipAddress: String = "",
                        resourceDocument: Option[ResourceDoc] = None,

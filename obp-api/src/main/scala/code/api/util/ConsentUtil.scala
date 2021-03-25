@@ -304,7 +304,7 @@ object Consent {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
-      val cc = callContext.copy(consentCreatedByUserId = Some(consent.createdByUserId))
+      val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
         case (Full(user)) =>
@@ -376,7 +376,7 @@ object Consent {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
-      val cc = callContext.copy(consentCreatedByUserId = Some(consent.createdByUserId))
+      val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
         case Full(user) =>
