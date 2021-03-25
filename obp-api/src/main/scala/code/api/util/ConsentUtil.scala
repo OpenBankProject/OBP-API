@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
-import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
+import code.api.v3_1_0.{PostConsentEntitlementJsonV310, PostConsentBodyCommonJson, PostConsentViewJsonV310}
 import code.api.{Constant, RequestHeader}
 import code.bankconnectors.Connector
 import code.consent
@@ -506,7 +506,7 @@ object Consent {
     val views: Seq[ConsentView] = 
       for {
         view <- Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
-        if consent.everything || consent.views.exists(_ == ViewJsonV400(view.bankId.value,view.accountId.value, view.viewId.value))
+        if consent.everything || consent.views.exists(_ == PostConsentViewJsonV310(view.bankId.value,view.accountId.value, view.viewId.value))
       } yield  {
         ConsentView(
           bank_id = view.bankId.value,
@@ -519,7 +519,7 @@ object Consent {
     val entitlements: Seq[Role] = 
       for {
         entitlement <- Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)
-        if consent.everything || consent.entitlements.exists(_ == EntitlementJsonV400(entitlement.bankId,entitlement.roleName))
+        if consent.everything || consent.entitlements.exists(_ == PostConsentEntitlementJsonV310(entitlement.bankId,entitlement.roleName))
       } yield  {
         Role(entitlement.roleName, entitlement.bankId)
       }
