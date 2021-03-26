@@ -55,7 +55,7 @@ import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.MappedConsent
 import code.consumer.Consumers
-import code.context.{MappedUserAuthContext, MappedUserAuthContextUpdate}
+import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -294,6 +294,8 @@ class Boot extends MdcLoggable {
       }
     }
 
+    // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+    // Please note that migration scripts are executed before Lift Mapper Schemifier
     Migration.database.executeScripts()
     
     // ensure our relational database's tables are created/fit the schema
@@ -846,6 +848,7 @@ object ToSchemify {
     MappedCustomerAddress,
     MappedUserAuthContext,
     MappedUserAuthContextUpdate,
+    MappedConsentAuthContext,
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,

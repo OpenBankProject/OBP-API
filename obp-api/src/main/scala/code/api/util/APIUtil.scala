@@ -3264,6 +3264,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     userAuthContexts.map(createBasicUserAuthContext)
   }
 
+  def createBasicConsentAuthContext(userAuthContest : ConsentAuthContext) : BasicUserAuthContext = {
+    BasicUserAuthContext(
+      key = userAuthContest.key,
+      value = userAuthContest.value
+    )
+  }
+  def createBasicConsentAuthContextJson(userAuthContexts : List[ConsentAuthContext]) : List[BasicUserAuthContext] = {
+    userAuthContexts.map(createBasicConsentAuthContext)
+  }
+
   def createBasicUserAuthContextJsonFromCallContext(callContext : CallContext) : List[BasicGeneralContext] = {
     val requestHeaders: List[HTTPParam] = callContext.requestHeaders
 

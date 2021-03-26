@@ -6116,7 +6116,9 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
         cc =>
           for {
-            consents <- Future(Consents.consentProvider.vend.getConsentsByUser(cc.userId).sortBy(i => (i.creationDateTime, i.apiStandard)).reverse)
+            consents <- Future { Consents.consentProvider.vend.getConsentsByUser(cc.userId)
+              .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
+            }
           } yield {
             val consentsOfBank = Consent.filterByBankId(consents, bankId)
             (JSONFactory400.createConsentsJsonV400(consentsOfBank), HttpCode.`200`(cc))
