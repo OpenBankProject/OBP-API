@@ -29,6 +29,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
+
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -46,6 +47,7 @@ import code.api.builder.APIBuilder_Connector
 import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
 import code.api.util._
 import code.api.util.migration.Migration
+import code.api.util.migration.Migration.DbFunction
 import code.atms.MappedAtm
 import code.authtypevalidation.AuthenticationTypeValidation
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
@@ -135,7 +137,7 @@ import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, Props, Schedule, _}
+import net.liftweb.util.{DefaultConnectionIdentifier, Helpers, Props, Schedule, _}
 import org.apache.commons.io.FileUtils
 
 import scala.concurrent.ExecutionContext
@@ -293,10 +295,16 @@ class Boot extends MdcLoggable {
         FileUtils.copyDirectory(srcDir, destDir)
       }
     }
-
-    // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-    // Please note that migration scripts are executed before Lift Mapper Schemifier
-    Migration.database.executeScripts()
+    
+    DbFunction.tableExists(ResourceUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+      case true => // DB already exist
+        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+        // Please note that migration scripts are executed before Lift Mapper Schemifier
+        Migration.database.executeScripts()
+        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
+      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
+        logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
+    }
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
@@ -613,7 +621,10 @@ class Boot extends MdcLoggable {
       }
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
-    
+
+    // Migration Scripts are used to update the model of OBP-API DB to a latest version.
+    // Please note that migration scripts are executed after Lift Mapper Schemifier
+    Migration.database.executeScripts()
 
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
