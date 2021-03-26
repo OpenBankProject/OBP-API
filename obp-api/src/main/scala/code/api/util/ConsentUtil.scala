@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
-import code.api.v3_1_0.{EntitlementJsonV400, PostConsentBodyCommonJson, ViewJsonV400}
+import code.api.v3_1_0.{PostConsentEntitlementJsonV310, PostConsentBodyCommonJson, PostConsentViewJsonV310}
 import code.api.{Constant, RequestHeader}
 import code.bankconnectors.Connector
 import code.consent
@@ -170,7 +170,7 @@ object Consent {
     }
   }
 
-  private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[Box[User]] = {
+  private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[(Box[User], Boolean)] = {
     Users.users.vend.getOrCreateUserByProviderIdFuture(
       provider = issuer,
       idGivenByProvider = subject,
@@ -307,12 +307,12 @@ object Consent {
       val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
-        case (Full(user)) =>
+        case (Full(user), newUser) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Copy Auth Context to the User
-              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+              copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
                 case Full(_) =>
                   // 4. Assign views to the User
                   (grantAccessToViews(user, consent), Some(cc))
@@ -367,10 +367,14 @@ object Consent {
     }
   }
 
-  private def copyAuthContextOfConsentToUser(consentId: String, userId: String): Box[List[UserAuthContext]] = {
-    val authContexts = ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(consentId)
-      .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
-    UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(userId, authContexts.getOrElse(Nil))
+  private def copyAuthContextOfConsentToUser(consentId: String, userId: String, newUser: Boolean): Box[List[UserAuthContext]] = {
+    if(newUser) {
+      val authContexts = ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(consentId)
+        .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+      UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(userId, authContexts.getOrElse(Nil))
+    } else {
+      Full(Nil)
+    }
   }
   private def hasBerlinGroupConsentInternal(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
@@ -379,12 +383,12 @@ object Consent {
       val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
-        case Full(user) =>
+        case (Full(user), newUser) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
             case Full(user) =>
               // 3. Copy Auth Context to the User
-              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+              copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
                 case Full(_) =>
                   // 4. Assign views to the User
                   (grantAccessToViews(user, consent), Some(cc))
@@ -506,7 +510,7 @@ object Consent {
     val views: Seq[ConsentView] = 
       for {
         view <- Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
-        if consent.everything || consent.views.exists(_ == ViewJsonV400(view.bankId.value,view.accountId.value, view.viewId.value))
+        if consent.everything || consent.views.exists(_ == PostConsentViewJsonV310(view.bankId.value,view.accountId.value, view.viewId.value))
       } yield  {
         ConsentView(
           bank_id = view.bankId.value,
@@ -519,7 +523,7 @@ object Consent {
     val entitlements: Seq[Role] = 
       for {
         entitlement <- Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)
-        if consent.everything || consent.entitlements.exists(_ == EntitlementJsonV400(entitlement.bankId,entitlement.roleName))
+        if consent.everything || consent.entitlements.exists(_ == PostConsentEntitlementJsonV310(entitlement.bankId,entitlement.roleName))
       } yield  {
         Role(entitlement.roleName, entitlement.bankId)
       }
