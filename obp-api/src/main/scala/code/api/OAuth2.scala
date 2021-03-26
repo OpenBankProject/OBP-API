@@ -251,7 +251,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         consentId = None, 
         name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
         email = getClaim(name = "email", idToken = idToken)
-      )
+      ).map(_._1)
     }
     /** Old Style Endpoints
       * This function creates user based on "iss" and "sub" fields

@@ -58,8 +58,8 @@ class ConsentTest extends V310ServerSetup {
 
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccount(bankId)
-  lazy val entitlements = List(EntitlementJsonV400("", CanGetAnyUser.toString()))
-  lazy val views = List(ViewJsonV400(bankId, bankAccount.id, "owner"))
+  lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
+  lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, "owner"))
   lazy val postConsentEmailJsonV310 = SwaggerDefinitionsJSON.postConsentEmailJsonV310
     .copy(entitlements=entitlements)
     .copy(consumer_id=None)
@@ -157,8 +157,8 @@ class ConsentTest extends V310ServerSetup {
         val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
         val user = makeGetRequest((v3_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
           .body.extract[UserJsonV300]
-        val assignedEntitlements: Seq[EntitlementJsonV400] = user.entitlements.list.flatMap(
-          e => entitlements.find(_ == EntitlementJsonV400(e.bank_id, e.role_name))
+        val assignedEntitlements: Seq[PostConsentEntitlementJsonV310] = user.entitlements.list.flatMap(
+          e => entitlements.find(_ == PostConsentEntitlementJsonV310(e.bank_id, e.role_name))
         )
         // Check we have all entitlements from the consent
         assignedEntitlements should equal(entitlements)
@@ -168,7 +168,7 @@ class ConsentTest extends V310ServerSetup {
 
         // Check we have all views from the consent
         val assignedViews = user.views.map(_.list).toSeq.flatten
-        assignedViews.map(e => ViewJsonV400(e.bank_id, e.account_id, e.view_id)).distinct should equal(views)
+        assignedViews.map(e => PostConsentViewJsonV310(e.bank_id, e.account_id, e.view_id)).distinct should equal(views)
 
       case false =>
         // Due to missing props at the instance the request must fail
