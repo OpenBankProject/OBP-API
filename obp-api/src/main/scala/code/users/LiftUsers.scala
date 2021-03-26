@@ -63,7 +63,7 @@ object LiftUsers extends Users with MdcLoggable{
         (newUser, true)
     }
   }
-  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Future[Box[User]] = {
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Future[(Box[User], Boolean)] = {
     Future {
       getOrCreateUserByProviderId(provider, idGivenByProvider,consentId, name, email)
     }

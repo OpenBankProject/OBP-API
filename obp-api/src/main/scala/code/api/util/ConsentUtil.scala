@@ -170,7 +170,7 @@ object Consent {
     }
   }
 
-  private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[Box[User]] = {
+  private def getOrCreateUser(subject: String, issuer: String, consentId: Option[String], name: Option[String], email: Option[String]): Future[(Box[User], Boolean)] = {
     Users.users.vend.getOrCreateUserByProviderIdFuture(
       provider = issuer,
       idGivenByProvider = subject,
@@ -307,12 +307,12 @@ object Consent {
       val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
-        case (Full(user)) =>
+        case (Full(user), newUser) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
             case (Full(user)) =>
               // 3. Copy Auth Context to the User
-              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+              copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
                 case Full(_) =>
                   // 4. Assign views to the User
                   (grantAccessToViews(user, consent), Some(cc))
@@ -367,10 +367,14 @@ object Consent {
     }
   }
 
-  private def copyAuthContextOfConsentToUser(consentId: String, userId: String): Box[List[UserAuthContext]] = {
-    val authContexts = ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(consentId)
-      .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
-    UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(userId, authContexts.getOrElse(Nil))
+  private def copyAuthContextOfConsentToUser(consentId: String, userId: String, newUser: Boolean): Box[List[UserAuthContext]] = {
+    if(newUser) {
+      val authContexts = ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(consentId)
+        .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+      UserAuthContextProvider.userAuthContextProvider.vend.createOrUpdateUserAuthContexts(userId, authContexts.getOrElse(Nil))
+    } else {
+      Full(Nil)
+    }
   }
   private def hasBerlinGroupConsentInternal(consentId: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
@@ -379,12 +383,12 @@ object Consent {
       val cc = callContext
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
-        case Full(user) =>
+        case (Full(user), newUser) =>
           // 2. Assign entitlements to the User
           addEntitlements(user, consent) match {
             case Full(user) =>
               // 3. Copy Auth Context to the User
-              copyAuthContextOfConsentToUser(consent.jti, user.userId) match {
+              copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
                 case Full(_) =>
                   // 4. Assign views to the User
                   (grantAccessToViews(user, consent), Some(cc))
