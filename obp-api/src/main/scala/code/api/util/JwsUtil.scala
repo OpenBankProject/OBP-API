@@ -1,5 +1,6 @@
 package code.api.util
 
+import java.security.interfaces.RSAPublicKey
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util
@@ -12,6 +13,7 @@ import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
+
 import scala.collection.immutable.List
 
 
@@ -27,15 +29,45 @@ object JwsUtil {
 
   case class sigD(pars: List[String], mId: String)
 
-  def rebuildDetachedPayload(s: String, requestHeaders: List[HTTPParam] = Nil): String = {
+  /**
+   * Rebuilds detached payload from request's headers in accordance to the JWS header
+   * @param s JWS Header in form of JSON string
+   * @param requestHeaders List of HTTP Request parameters
+   * @return The detached payload used for JWS verification
+   *         
+   * More info: JSON Web Signature (JWS) Unencoded Payload Option (RFC 7797)
+   */
+  def rebuildDetachedPayload(s: String, requestHeaders: List[HTTPParam]): String = {
     json.parse(s).extractOpt[JwsProtectedHeader] match {
       case Some(header) =>
-        val headers = header.sigD.pars.flatMap(i =>
+        val headers = header.sigD.pars.flatMap( i =>
           requestHeaders.find(_.name == i).map(i => s"${i.name}: ${i.values.mkString}")
         )
         headers.mkString("\n") + "\n" // Add new line after each item
       case None => "Cannot extract JWS Header"
     }
+  }
+  
+  def computeDigest(input: String): String = SecurityHelpers.hash256(input)
+  def createDigestHeader(input: String): String = s"digest: SHA-256=$input"
+  private def getDeferredCriticalHeaders() = {
+    val deferredCriticalHeaders  = new util.HashSet[String]()
+    deferredCriticalHeaders.add("sigT")
+    deferredCriticalHeaders.add("sigD")
+    deferredCriticalHeaders
+  }
+  
+  def verifyJws(jws: String, publicKey: RSAPublicKey, requestHeaders: List[HTTPParam] = Nil): Boolean = {
+    // Rebuild detached header
+    val jwsProtectedHeaderAsString = JWSObject.parse(jws).getHeader().toString()
+    val rebuiltDetachedPayload = rebuildDetachedPayload(jwsProtectedHeaderAsString, requestHeaders)
+
+    // Parse JWS with detached payload
+    val parsedJWSObject: JWSObject = JWSObject.parse(jws, new Payload(rebuiltDetachedPayload));
+    // Verify the RSA
+    val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
+    val isVerified = parsedJWSObject.verify(verifier)
+    isVerified
   }
   
   def main(args: Array[String]): Unit = {
@@ -60,7 +92,7 @@ object JwsUtil {
          |""".stripMargin
     
     // digest: SHA-256=+xeh7JAayYPh8K13UnQCBBcniZzsyat+KDiuy8aZYdI
-    val digest = SecurityHelpers.hash256(httpBody)
+    val digest = computeDigest(httpBody)
     
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
