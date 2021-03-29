@@ -4884,4 +4884,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]) = 
+    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, challenge) map { ( _, callContext) }
 }

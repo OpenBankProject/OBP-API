@@ -2976,6 +2976,11 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-    
+
+    def checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]):  OBPReturnType[UserAuthContextUpdate] = {
+      Connector.connector.vend.checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
   }
 }
