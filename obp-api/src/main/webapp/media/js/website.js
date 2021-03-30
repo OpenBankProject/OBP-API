@@ -10,6 +10,33 @@ $(window).resize(function() {
 	}
 });
 
+$(function() {
+	toastr.options = {
+		"closeButton": true,
+		"debug": false,
+		"newestOnTop": false,
+		"progressBar": false,
+		"positionClass": "toast-top-right",
+		"preventDuplicates": false,
+		"onclick": null,
+		"showDuration": 0,
+		"hideDuration": 0,
+		"timeOut": 0,
+		"extendedTimeOut": 0,
+		"showEasing": "swing",
+		"hideEasing": "linear",
+		"showMethod": "fadeIn",
+		"hideMethod": "fadeOut",
+		"tapToDismiss": false
+	};
+	if(notice = $("#lift__noticesContainer___error").text()) {
+		toastr.error(notice, "Error. ")
+	}
+	else if(notice = $("#lift__noticesContainer__").text()) {
+		toastr.success(notice, "Success. ")
+	}
+});
+
 function checkclick(){
 	if($("#agree").is(':checked') ){
 		$("#agree").attr("checked","unchecked");
