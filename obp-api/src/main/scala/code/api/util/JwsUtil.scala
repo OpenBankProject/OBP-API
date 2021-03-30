@@ -50,6 +50,15 @@ object JwsUtil {
   }
   
   def computeDigest(input: String): String = SecurityHelpers.hash256(input)
+  def verifyDigestHeader(headerValue: String, httpBody: String): Boolean = {
+    headerValue == s"SHA-256=${computeDigest(httpBody)}"
+  }
+  def getDigestHeaderValue(requestHeaders: List[HTTPParam]): String = {
+    requestHeaders.find(_.name == "digest").map(_.values.mkString).getOrElse("None")
+  }
+  def getJwsHeaderValue(requestHeaders: List[HTTPParam]): String = {
+    requestHeaders.find(_.name == "x-jws-signature").map(_.values.mkString).getOrElse("None")
+  }
   def createDigestHeader(input: String): String = s"digest: SHA-256=$input"
   private def getDeferredCriticalHeaders() = {
     val deferredCriticalHeaders  = new util.HashSet[String]()
@@ -58,7 +67,10 @@ object JwsUtil {
     deferredCriticalHeaders
   }
   
-  def verifyJws(jws: String, publicKey: RSAPublicKey, requestHeaders: List[HTTPParam] = Nil): Boolean = {
+  def verifyJws(publicKey: RSAPublicKey, httpBody: String, requestHeaders: List[HTTPParam] = Nil): Boolean = {
+    // Verify digest header
+    val isVerifiedDigestHeader = verifyDigestHeader(getDigestHeaderValue(requestHeaders), httpBody)
+    val jws = getJwsHeaderValue(requestHeaders)
     // Rebuild detached header
     val jwsProtectedHeaderAsString = JWSObject.parse(jws).getHeader().toString()
     val rebuiltDetachedPayload = rebuildDetachedPayload(jwsProtectedHeaderAsString, requestHeaders)
@@ -66,12 +78,11 @@ object JwsUtil {
     val parsedJWSObject: JWSObject = JWSObject.parse(jws, new Payload(rebuiltDetachedPayload));
     // Verify the RSA
     val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
-    val isVerified = parsedJWSObject.verify(verifier)
-    isVerified
+    val isVerifiedJws = parsedJWSObject.verify(verifier)
+    isVerifiedJws && isVerifiedDigestHeader
   }
   
   def main(args: Array[String]): Unit = {
-    val before = System.currentTimeMillis()
     // RSA signatures require a public and private RSA key pair,
     // the public key must be made known to the JWS recipient to
     // allow the signatures to be verified
@@ -148,6 +159,7 @@ object JwsUtil {
     // 5rPBT_XW-x7mjc1ubf4WwW1iV2YJyc4CCFxORIEaAEk
 
     val requestHeaders = List(
+      HTTPParam("x-jws-signature", List(jws)),
       HTTPParam("(request-target)", List("post /v1/payments/sepa-credit-transfers")),
       HTTPParam("host", List("api.testbank.com")),
       HTTPParam("content-type", List("application/json")),
@@ -156,7 +168,7 @@ object JwsUtil {
       HTTPParam("digest", List(s"SHA-256=$digest"))
     )
     
-    val isVerified = verifyJws(jws, rsaJWK.toRSAPublicKey, requestHeaders)
+    val isVerified = verifyJws(rsaJWK.toRSAPublicKey, httpBody, requestHeaders)
     org.scalameta.logger.elem(isVerified)
   }
 
