@@ -4,6 +4,7 @@ import java.security.interfaces.RSAPublicKey
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util
+import java.util.Set
 
 import com.nimbusds.jose.crypto.{RSASSASigner, RSASSAVerifier}
 import com.nimbusds.jose.jwk.RSAKey
@@ -61,7 +62,6 @@ object JwsUtil {
     // Rebuild detached header
     val jwsProtectedHeaderAsString = JWSObject.parse(jws).getHeader().toString()
     val rebuiltDetachedPayload = rebuildDetachedPayload(jwsProtectedHeaderAsString, requestHeaders)
-
     // Parse JWS with detached payload
     val parsedJWSObject: JWSObject = JWSObject.parse(jws, new Payload(rebuiltDetachedPayload));
     // Verify the RSA
@@ -105,13 +105,10 @@ object JwsUtil {
           |digest: SHA-256=$digest
           |""".stripMargin);
 
-    import java.util.Set
-    val deferredCriticalHeaders  = new util.HashSet[String]()
-    deferredCriticalHeaders.add("sigT")
-    deferredCriticalHeaders.add("sigD")
+    
     val criticalParams: Set[String] = new util.HashSet[String]()
     criticalParams.add("b64")
-    criticalParams.addAll(deferredCriticalHeaders)
+    criticalParams.addAll(getDeferredCriticalHeaders)
     
     val sigD = """{
                  |    "pars": [
@@ -137,8 +134,6 @@ object JwsUtil {
       .customParam("sigT", sigT)
       .customParam("sigD", JSONObjectUtils.parse(sigD))
       .build();
-    
-    org.scalameta.logger.elem(jwsProtectedHeader)
   
     val jwsObject: JWSObject = new JWSObject(jwsProtectedHeader, detachedPayload);
 
@@ -147,7 +142,6 @@ object JwsUtil {
   
     val isDetached = true;
     val jws: String = jwsObject.serialize(isDetached)
-    org.scalameta.logger.elem(jws)
   
     // The resulting JWS, note the payload is not encoded (empty second part)
     // eyJiNjQiOmZhbHNlLCJjcml0IjpbImI2NCJdLCJhbGciOiJIUzI1NiJ9..
@@ -162,16 +156,7 @@ object JwsUtil {
       HTTPParam("digest", List(s"SHA-256=$digest"))
     )
     
-    // Rebuild detached header
-    val jwsProtectedHeaderAsString = JWSObject.parse(jws).getHeader().toString()
-    val rebuiltDetachedPayload = rebuildDetachedPayload(jwsProtectedHeaderAsString, requestHeaders)
-    
-    // Parse JWS with detached payload
-    val parsedJWSObject: JWSObject = JWSObject.parse(jws, new Payload(rebuiltDetachedPayload));
-    // Verify the RSA
-    val verifier = new RSASSAVerifier(rsaJWK.toRSAPublicKey, deferredCriticalHeaders)
-    val isVerified = parsedJWSObject.verify(verifier)
-    
+    val isVerified = verifyJws(jws, rsaJWK.toRSAPublicKey, requestHeaders)
     org.scalameta.logger.elem(isVerified)
   }
 
