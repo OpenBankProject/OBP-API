@@ -1,7 +1,7 @@
 package code.api.util
 
 import java.security.interfaces.RSAPublicKey
-import java.time.ZonedDateTime
+import java.time.{ZoneId, ZoneOffset, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.util
 import java.util.Set
@@ -52,7 +52,17 @@ object JwsUtil {
       case None => "Cannot extract JWS Header"
     }
   }
-  
+  def verifySigningTime(jwsProtectedHeader: String): Boolean = {
+    json.parse(jwsProtectedHeader).extractOpt[JwsProtectedHeader] match {
+      case Some(header) =>
+        val signingTime = ZonedDateTime.parse(header.sigT, DateTimeFormatter.ISO_ZONED_DATE_TIME)
+        val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
+        val criteriaOneFailed = signingTime.isAfter(verifyingTime.plusSeconds(2))
+        val criteriaTwoFailed = signingTime.plusSeconds(60).isBefore(verifyingTime)
+        !criteriaOneFailed && !criteriaTwoFailed
+      case None => false
+    }
+  }
   def computeDigest(input: String): String = SecurityHelpers.hash256(input)
   def verifyDigestHeader(headerValue: String, httpBody: String): Boolean = {
     headerValue == s"SHA-256=${computeDigest(httpBody)}"
@@ -74,16 +84,16 @@ object JwsUtil {
   def verifyJws(publicKey: RSAPublicKey, httpBody: String, requestHeaders: List[HTTPParam], verb: String, url: String): Boolean = {
     // Verify digest header
     val isVerifiedDigestHeader = verifyDigestHeader(getDigestHeaderValue(requestHeaders), httpBody)
-    val jws = getJwsHeaderValue(requestHeaders)
+    val xJwsSignature = getJwsHeaderValue(requestHeaders)
     // Rebuild detached header
-    val jwsProtectedHeaderAsString = JWSObject.parse(jws).getHeader().toString()
+    val jwsProtectedHeaderAsString = JWSObject.parse(xJwsSignature).getHeader().toString()
     val rebuiltDetachedPayload = rebuildDetachedPayload(jwsProtectedHeaderAsString, requestHeaders, verb, url)
     // Parse JWS with detached payload
-    val parsedJWSObject: JWSObject = JWSObject.parse(jws, new Payload(rebuiltDetachedPayload));
+    val parsedJWSObject: JWSObject = JWSObject.parse(xJwsSignature, new Payload(rebuiltDetachedPayload));
     // Verify the RSA
     val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
     val isVerifiedJws = parsedJWSObject.verify(verifier)
-    isVerifiedJws && isVerifiedDigestHeader
+    isVerifiedJws && isVerifiedDigestHeader && verifySigningTime(jwsProtectedHeaderAsString)
   }
 
   /**
@@ -166,7 +176,7 @@ object JwsUtil {
                  |  """.stripMargin
 
     // We create the time in next format: '2011-12-03T10:15:30Z' 
-    val sigT = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+    val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
     
     // Create and sign JWS
     val jwsProtectedHeader: JWSHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
