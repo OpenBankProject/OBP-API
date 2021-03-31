@@ -739,7 +739,7 @@ object Util {
   
   def checkWrongDefinedNames: List[List[Unit]] = {
     import scala.meta._
-    val source: Source = new java.io.File("src/main/scala/code/api/util/ApiRole.scala").parse[Source].get
+    val source: Source = new java.io.File("obp-api/src/main/scala/code/api/util/ApiRole.scala").parse[Source].get
 
     val allowedPrefixes = 
       List(

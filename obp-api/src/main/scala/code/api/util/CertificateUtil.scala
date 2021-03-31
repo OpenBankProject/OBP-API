@@ -71,7 +71,7 @@ object CertificateUtil extends MdcLoggable {
       .keyUse(KeyUse.SIGNATURE)
       .keyIDFromThumbprint()
       .build()
-    jwk.toJSONObject.toJSONString()
+    jwk.toJSONString()
   }
   
 

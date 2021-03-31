@@ -2666,8 +2666,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
     /*************************************************************************************************************** */
 
-    // Update Call Context
-    resultWithRateLimiting map {
+    
+    resultWithRateLimiting map { // Verify signed request
+      x => JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, x)
+    } map { // Update Call Context
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
@@ -2688,6 +2690,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
   }
+  
 
   /**
    * This Function is used to terminate a Future used in for-comprehension with specific message and code in case that value of Box is not Full.
@@ -2695,6 +2698,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *  - Future(Full("Some value")    -> Does NOT terminate
    *  - Future(Empty)                -> Terminates
    *  - Future(Failure/ParamFailure) -> Terminates
+ *
    * @param box Boxed Payload
    * @param cc Call Context
    * @param emptyBoxErrorMsg Error message in case of Empty Box
