@@ -918,6 +918,9 @@ outboundAdapterCallContext.generalContext
 ### enable or disable the feature of send "Force-Error" header, default value is false
 enable.force_error=false
 
+### Force the feature of signing/verifing requests on a certain standard
+force_jws=BGv1.3,UKv1.3,OBPv4.0.0,OBPv3.1.0
+
 # Suggested default SCA method
 # In case is not defined default value is SMS
 # Possible values: SMS, EMAIL, DUMMY, SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP

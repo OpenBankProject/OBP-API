@@ -199,6 +199,8 @@ object ErrorMessages {
   val X509CannotGetCertificate = "OBP-20306: PEM Encoded Certificate cannot be found at request header."
   val X509ActionIsNotAllowed = "OBP-20307: PEM Encoded Certificate does not provide the proper role for the action has been taken."
   val X509ThereAreNoPsd2Roles = "OBP-20308: PEM Encoded Certificate does not contain PSD2 roles."
+  val X509CannotGetPublicKey = "OBP-20309: Public key cannot be found at PEM Encoded Certificate."
+  val X509PublicKeyCannotVerify = "OBP-20310: Certificate's public key cannot verify signed request."
   
   // OpenID Connect
   val CouldNotExchangeAuthorizationCodeForTokens = "OBP-20400: Could not exchange authorization code for tokens."

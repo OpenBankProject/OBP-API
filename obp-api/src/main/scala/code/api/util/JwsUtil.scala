@@ -6,16 +6,19 @@ import java.time.format.DateTimeFormatter
 import java.util
 import java.util.Set
 
+import code.api.util.X509.{pemEncodedCertificate, pemEncodedRSAPrivateKey, validate}
 import com.nimbusds.jose.crypto.{RSASSASigner, RSASSAVerifier}
-import com.nimbusds.jose.jwk.RSAKey
-import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
+import com.nimbusds.jose.jwk.{JWK, RSAKey}
 import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
+import com.openbankproject.commons.model.User
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
 
-import scala.collection.immutable.List
+import scala.collection.immutable
+import scala.collection.immutable.{HashMap, List}
 
 
 object JwsUtil {
@@ -38,13 +41,14 @@ object JwsUtil {
    *         
    * More info: JSON Web Signature (JWS) Unencoded Payload Option (RFC 7797)
    */
-  def rebuildDetachedPayload(s: String, requestHeaders: List[HTTPParam]): String = {
+  def rebuildDetachedPayload(s: String, requestHeaders: List[HTTPParam], verb: String, url: String): String = {
     json.parse(s).extractOpt[JwsProtectedHeader] match {
       case Some(header) =>
         val headers = header.sigD.pars.flatMap( i =>
-          requestHeaders.find(_.name == i).map(i => s"${i.name}: ${i.values.mkString}")
+          requestHeaders.find(_.name.toLowerCase() == i.toLowerCase()).map(i => s"${i.name.toLowerCase()}: ${i.values.mkString}")
         )
-        headers.mkString("\n") + "\n" // Add new line after each item
+        val requestTarget = s"""(request-target): ${verb.toLowerCase()} ${url}\n"""
+        requestTarget + headers.mkString("\n") + "\n" // Add new line after each item
       case None => "Cannot extract JWS Header"
     }
   }
@@ -67,13 +71,13 @@ object JwsUtil {
     deferredCriticalHeaders
   }
   
-  def verifyJws(publicKey: RSAPublicKey, httpBody: String, requestHeaders: List[HTTPParam] = Nil): Boolean = {
+  def verifyJws(publicKey: RSAPublicKey, httpBody: String, requestHeaders: List[HTTPParam], verb: String, url: String): Boolean = {
     // Verify digest header
     val isVerifiedDigestHeader = verifyDigestHeader(getDigestHeaderValue(requestHeaders), httpBody)
     val jws = getJwsHeaderValue(requestHeaders)
     // Rebuild detached header
     val jwsProtectedHeaderAsString = JWSObject.parse(jws).getHeader().toString()
-    val rebuiltDetachedPayload = rebuildDetachedPayload(jwsProtectedHeaderAsString, requestHeaders)
+    val rebuiltDetachedPayload = rebuildDetachedPayload(jwsProtectedHeaderAsString, requestHeaders, verb, url)
     // Parse JWS with detached payload
     val parsedJWSObject: JWSObject = JWSObject.parse(jws, new Payload(rebuiltDetachedPayload));
     // Verify the RSA
@@ -81,16 +85,43 @@ object JwsUtil {
     val isVerifiedJws = parsedJWSObject.verify(verifier)
     isVerifiedJws && isVerifiedDigestHeader
   }
+
+  /**
+   * Verifies Signed Request. It assumes that Customers has a sored certificate.
+   * @param body of the signed request
+   * @param verb GET, POST, DELETE, etc.
+   * @param url of the the signed request. For example: /berlin-group/v1.3/payments/sepa-credit-transfers
+   * @param reqHeaders All request headers of the signed request
+   * @param forwardResult Propagated result of calling function
+   * @return Propagated result of calling function or signing request error
+   */
+  def verifySignedRequest(body: Box[String], verb: String, url: String, reqHeaders: List[HTTPParam], forwardResult: (Box[User], Option[CallContext])) = {
+    val standards: List[String] = APIUtil.getPropsValue(nameOfProperty="force_jws", "None").split(",").map(_.trim).toList
+    val pathOfStandard = HashMap("BGv1.3"->"berlin-group/v1.3", "OBPv4.0.0"->"obp/v4.0.0", "OBPv3.1.0"->"obp/v3.1.0", "UKv1.3"->"open-banking/v3.1").withDefaultValue("{Not found any standard to match}")
+    if(standards.exists(standard => url.contains(pathOfStandard(standard)))){
+      val pem: String = forwardResult._2.flatMap(_.consumer.map(_.clientCertificate.get)).getOrElse("None")
+      X509.validate(pem) match {
+        case Full(true) => // PEM certificate is ok
+          val jwkPublic: JWK = X509.pemToRsaJwk(pem)
+          val isVerified = JwsUtil.verifyJws(jwkPublic.toRSAKey.toRSAPublicKey, body.getOrElse(""), reqHeaders, verb, url)
+          if (isVerified) forwardResult else (Failure(ErrorMessages.X509PublicKeyCannotVerify), forwardResult._2)
+        case Failure(msg, t, c) => (Failure(msg, t, c), forwardResult._2) // PEM certificate is not valid
+        case _ => (Failure(ErrorMessages.X509GeneralError), forwardResult._2) // PEM certificate cannot be validated
+      }
+    } else {
+      forwardResult
+    }
+    
+  }
   
   def main(args: Array[String]): Unit = {
     // RSA signatures require a public and private RSA key pair,
     // the public key must be made known to the JWS recipient to
     // allow the signatures to be verified
-    val rsaJWK: RSAKey = new RSAKeyGenerator(2048).keyID("123").generate
-
+    val jwk = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey)
+    val rsaJWK: RSAKey = jwk.toRSAKey
     // Create RSA-signer with the private key
     val signer = new RSASSASigner(rsaJWK)
-
 
     val httpBody =
       s"""{
@@ -108,7 +139,7 @@ object JwsUtil {
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
     val  detachedPayload: Payload = new Payload(
-      s"""(request-target): post /v1/payments/sepa-credit-transfers
+      s"""(request-target): post /berlin-group/v1.3/payments/sepa-credit-transfers
           |host: api.testbank.com
           |content-type: application/json
           |psu-ip-address: 192.168.8.78
@@ -158,18 +189,24 @@ object JwsUtil {
     // eyJiNjQiOmZhbHNlLCJjcml0IjpbImI2NCJdLCJhbGciOiJIUzI1NiJ9..
     // 5rPBT_XW-x7mjc1ubf4WwW1iV2YJyc4CCFxORIEaAEk
 
+    // Hard-coded request headers
     val requestHeaders = List(
       HTTPParam("x-jws-signature", List(jws)),
-      HTTPParam("(request-target)", List("post /v1/payments/sepa-credit-transfers")),
+      // HTTPParam("(request-target)", List("post /v1.3/payments/sepa-credit-transfers")),
       HTTPParam("host", List("api.testbank.com")),
       HTTPParam("content-type", List("application/json")),
       HTTPParam("psu-ip-address", List("192.168.8.78")),
       HTTPParam("psu-geo-location", List("GEO:52.506931,13.144558")),
       HTTPParam("digest", List(s"SHA-256=$digest"))
     )
-    
-    val isVerified = verifyJws(rsaJWK.toRSAPublicKey, httpBody, requestHeaders)
-    org.scalameta.logger.elem(isVerified)
-  }
 
+    validate(pemEncodedCertificate)
+    val jwkPublic: JWK = JWK.parseFromPEMEncodedObjects(pemEncodedCertificate)
+    val isVerified = verifyJws(jwkPublic.toRSAKey.toRSAPublicKey, httpBody, requestHeaders, "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
+    org.scalameta.logger.elem(isVerified)
+    org.scalameta.logger.elem(jws)
+    org.scalameta.logger.elem(pemEncodedCertificate)
+    
+  }
+  
 }
