@@ -1,8 +1,8 @@
 package code.api.util
 
 import java.security.interfaces.RSAPublicKey
-import java.time.{ZoneId, ZoneOffset, ZonedDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{ZoneOffset, ZonedDateTime}
 import java.util
 import java.util.Set
 
@@ -17,7 +17,6 @@ import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
 
-import scala.collection.immutable
 import scala.collection.immutable.{HashMap, List}
 
 

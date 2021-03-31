@@ -19,29 +19,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 
 
 object SelfSignedCertificateUtil {
-
-  /**
-   * Example of produced output:
-   *
-   * -----BEGIN RSA PRIVATE KEY-----
-   * MIIBOgIBAAJBAK5k4zmaUe/vaNGhC7CVooOs3T/7wCkeZHlD/28MLJ6fdSjTWP9R
-   * jG2fRp0iaJZQTrGRpRdjGEXjp9ivLVc+kJUCAwEAAQJAAwlOT7bwS3+LcUUmDOZr
-   * ZI71/vuVMBdr/IaGR55MQbGgBFZJPV4qS4a3Qhv81HeN0cASefAonc0sJkYR4kYd
-   * UQIhANzXAnThhYgk1mipQm2LazldtOGzMlj365kQdp9s7X/NAiEAyijXQWaIpi/0
-   * Jz5K76kaSmTM65+Gz+QIvuY8LvYlO+kCIBkVgv3rr9Mq+/+fWiA/OcqmTilkxU89
-   * udEFAbRSFxfxAiEAmvVBQm1Q02owkSArmpcZgurPNNE8KgBWP9YFTc35bnkCIFO7
-   * eFJ0emB41KtYAdngtdBoMx4svRsDX+NjT/ZeQ8YN
-   * -----END RSA PRIVATE KEY-----
-   * -----BEGIN CERTIFICATE-----
-   * MIIBJzCB0qADAgECAgYBeIgGjdswDQYJKoZIhvcNAQELBQAwGjEYMBYGA1UEAwwP
-   * YXBwLmV4YW1wbGUuY29tMB4XDTIxMDMzMTExMjM1NFoXDTIzMDMzMTExMjM1NFow
-   * GjEYMBYGA1UEAwwPYXBwLmV4YW1wbGUuY29tMFwwDQYJKoZIhvcNAQEBBQADSwAw
-   * SAJBAK5k4zmaUe/vaNGhC7CVooOs3T/7wCkeZHlD/28MLJ6fdSjTWP9RjG2fRp0i
-   * aJZQTrGRpRdjGEXjp9ivLVc+kJUCAwEAATANBgkqhkiG9w0BAQsFAANBAKw8GjAM
-   * w/S6hzC19IoOfLrTTXjXrge9lXedtFHpzLTylJi40aoNJnAtdHF9u95EjD9smglu
-   * 2NEZO4X0J4mjAac=
-   * -----END CERTIFICATE-----
-   */
+  
   def main(args: Array[String]): Unit = {
     Security.addProvider(new BouncyCastleProvider)
     val pair = generateSelfSignedCert("app.example.com")
