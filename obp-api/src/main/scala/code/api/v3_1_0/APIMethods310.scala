@@ -3802,9 +3802,7 @@ trait APIMethods310 {
             postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextUpdateJsonV310]
             }
-            userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer) map {
-              i => connectorEmptyResponse(i, callContext)
-            }
+            (userAuthContextUpdate, callContext) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, callContext)
             (_, callContext) <-
               userAuthContextUpdate.status match {
                 case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString => 
@@ -4362,6 +4360,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteMethodRouting, callContext)
             deleted: Box[Boolean] <- NewStyle.function.deleteMethodRouting(methodRoutingId)
           } yield {
