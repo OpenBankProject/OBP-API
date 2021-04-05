@@ -12,7 +12,7 @@ import com.nimbusds.jose.jwk.{JWK, RSAKey}
 import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import com.openbankproject.commons.model.User
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
@@ -108,7 +108,7 @@ object JwsUtil {
     val standards: List[String] = APIUtil.getPropsValue(nameOfProperty="force_jws", "None").split(",").map(_.trim).toList
     val pathOfStandard = HashMap("BGv1.3"->"berlin-group/v1.3", "OBPv4.0.0"->"obp/v4.0.0", "OBPv3.1.0"->"obp/v3.1.0", "UKv1.3"->"open-banking/v3.1").withDefaultValue("{Not found any standard to match}")
     if(standards.exists(standard => url.contains(pathOfStandard(standard)))){
-      val pem: String = forwardResult._2.flatMap(_.consumer.map(_.clientCertificate.get)).getOrElse("None")
+      val pem: String = getPem(forwardResult)
       X509.validate(pem) match {
         case Full(true) => // PEM certificate is ok
           val jwkPublic: JWK = X509.pemToRsaJwk(pem)
@@ -122,12 +122,20 @@ object JwsUtil {
     }
     
   }
-  
+
+  private def getPem(forwardResult: (Box[User], Option[CallContext])): String = {
+    val requestHeaders = forwardResult._2.map(_.requestHeaders).getOrElse(Nil)
+    forwardResult._2.flatMap(_.consumer.map(_.clientCertificate.get)) match {
+      case Some(certificate) if !(certificate == null || certificate.isEmpty) => certificate
+      case _ => APIUtil.`getPSD2-CERT`(requestHeaders).getOrElse("None")
+    }
+  }
+
   def main(args: Array[String]): Unit = {
     // RSA signatures require a public and private RSA key pair,
     // the public key must be made known to the JWS recipient to
     // allow the signatures to be verified
-    val jwk = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey)
+    val jwk: JWK = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey)
     val rsaJWK: RSAKey = jwk.toRSAKey
     // Create RSA-signer with the private key
     val signer = new RSASSASigner(rsaJWK)
@@ -191,7 +199,7 @@ object JwsUtil {
     // Compute the RSA signature
     jwsObject.sign(signer)
   
-    val isDetached = true;
+    val isDetached = true
     val jws: String = jwsObject.serialize(isDetached)
   
     // The resulting JWS, note the payload is not encoded (empty second part)
