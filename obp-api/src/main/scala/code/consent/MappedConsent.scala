@@ -2,7 +2,7 @@ package code.consent
 
 import java.util.Date
 
-import code.api.util.{APIUtil, Consent, ErrorMessages}
+import code.api.util.{APIUtil, Consent, ErrorMessages, SecureRandomUtil}
 import code.consent.ConsentStatus.ConsentStatus
 import code.util.MappedUUID
 import com.openbankproject.commons.model.User
@@ -221,7 +221,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mSecret extends MappedUUID(this)
   object mStatus extends MappedString(this, 40)
   object mChallenge extends MappedString(this, 50)  {
-    override def defaultValue = Random.nextInt(99999999).toString()
+    override def defaultValue = SecureRandomUtil.csprng.nextInt(99999999).toString()
   }
   object mSalt extends MappedString(this, 50)  {
     override def defaultValue = BCrypt.gensalt()
