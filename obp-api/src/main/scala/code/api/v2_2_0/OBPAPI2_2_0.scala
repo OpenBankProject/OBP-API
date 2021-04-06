@@ -18,14 +18,6 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val version : ApiVersion = ApiVersion.v2_2_0 //  "2.2.0"
   val versionStatus = "STABLE"
 
-  // Get disabled API versions from props
-  val disabledVersions = APIUtil.getDisabledVersions
-  // Get disabled API endpoints from props
-  val disabledEndpoints = APIUtil.getDisabledEndpoints
-
-
-  // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
-
   // Possible Endpoints from 1.2.1
   val endpointsOf1_2_1 = Implementations1_2_1.addCommentForViewOnTransaction ::
                           Implementations1_2_1.addCounterpartyCorporateLocation::

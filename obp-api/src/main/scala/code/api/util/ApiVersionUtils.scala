@@ -16,12 +16,8 @@ object ApiVersionUtils {
       v3_0_0 ::
       v3_1_0 ::
       v4_0_0 ::
-      importerApi ::
-      accountsApi ::
-      bankMockApi ::
       openIdConnect1 ::
-      sandbox ::
-      apiBuilder::
+      b1::
       scannedApis
 
   def valueOf(value: String): ApiVersion = {
@@ -39,7 +35,7 @@ object ApiVersionUtils {
       case v3_0_0.fullyQualifiedVersion => v3_0_0.apiShortVersion
       case v3_1_0.fullyQualifiedVersion => v3_1_0.apiShortVersion
       case v4_0_0.fullyQualifiedVersion => v4_0_0.apiShortVersion
-      case apiBuilder.fullyQualifiedVersion => apiBuilder.apiShortVersion
+      case b1.fullyQualifiedVersion => b1.apiShortVersion
       case version if(scannedApis.map(_.fullyQualifiedVersion).contains(version))
         =>scannedApis.filter(_.fullyQualifiedVersion==version).head.apiShortVersion
       case _=> value
