@@ -67,7 +67,7 @@ object JwsUtil {
     headerValue == s"SHA-256=${computeDigest(httpBody)}"
   }
   def getDigestHeaderValue(requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.find(_.name == "digest").map(_.values.mkString).getOrElse("None")
+    requestHeaders.find(_.name.toLowerCase == "digest").map(_.values.mkString).getOrElse("None")
   }
   def getJwsHeaderValue(requestHeaders: List[HTTPParam]): String = {
     requestHeaders.find(_.name == "x-jws-signature").map(_.values.mkString).getOrElse("None")
