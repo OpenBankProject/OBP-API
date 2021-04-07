@@ -542,25 +542,36 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # In OBP, endpoints are defined in various files but made available under a *version*
 # e.g. in v3_0_0 (aka v3.0.0) we have endpoints from various versions.
 # Thus when we enable/disable a version we enable/disable a group of endpoints which are defined in several files.
-#
-#
-# For a VERSION to be allowed it must be:
+# OBP support two types of versions: fullyQualifiedVersion vs apiShortVersion, 
+# "OBPv4.0.0" vs "v4.0.0"
+# "OBPv3.1.0" vs "v3.1.0"
+# "OBPv3.0.0" vs "v3.0.0"
+# "BGv1" vs "v1"
+# "BGv1.3" vs "v1.3"
+# "PAPIv2.1.1.1" vs "v2.1.1.1"
+# "STETv1.4" vs "v1.4"
+# "UKv2.0" vs "v2.0"
+# "AUv1.0.0" vs "v1.0.0"
+# "UKv3.1" vs "v3.1"
+# we recommend to use fullyQualifiedVersion.
+# 
+# For a VERSION[version in path] to be allowed it must be:
 
-# 1) Absent from here:
-#api_disabled_versions=[v3.0.0]
+# 1) Absent from here:(high priority)
+#api_disabled_versions=[OBPv3.0.0,BGv1.3]
 
 # 2) Present here OR this entry must be empty.
-#api_enabled_versions=[v2.2.0,v3.0.0]
+#api_enabled_versions=[OBPv2.2.0,OBPv3.0.0,UKv2.0]
 
 # Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
 
-# For an ENDPOINT to be allowed it must be:
+# For an ENDPOINT[scala function as identified by operationId] to be allowed it must be:
 
-# 1) Absent from here:
-#api_disabled_endpoints=[createAccount]
+# 1) Absent from here:(high priority)
+#api_disabled_endpoints=[OBPv3.0.0-getPermissionForUserForBankAccount]
 
 # 2) Present here OR this list must be empty
-#api_enabled_endpoints=[createAccount,accountById]
+#api_enabled_endpoints=[OBPv3.0.0-getPermissionForUserForBankAccount,OBPv3.0.0-getViewsForBankAccount]
 
 # Note that "root" cannot be disabled
 #

@@ -40,7 +40,6 @@ import code.api.OAuthHandshake._
 import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
-import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
@@ -2216,13 +2215,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getDisabledEndpoints() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
 
 
   def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getEnabledEndpoints() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
@@ -2254,14 +2253,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
    */
-  def versionIsAllowed(version: ApiVersion) : Boolean = {
+  def versionIsAllowed(version: ScannedApiVersion) : Boolean = {
     def checkVersion: Boolean = {
       val disabledVersions: List[String] = getDisabledVersions()
       val enabledVersions: List[String] = getEnabledVersions()
-      if (
-        !disabledVersions.contains(version.toString) &&
+      if (//                                     this is the short version: v4.0.0             this is for fullyQualifiedVersion: OBPv4.0.0 
+        (disabledVersions.find(disableVersion => (disableVersion == version.apiShortVersion || disableVersion == version.fullyQualifiedVersion )).isEmpty) &&
           // Enabled versions or all
-          (enabledVersions.contains(version.toString) || enabledVersions.isEmpty)
+          (enabledVersions.find(enableVersion => (enableVersion ==version.apiShortVersion || enableVersion == version.fullyQualifiedVersion)).isDefined || enabledVersions.isEmpty)
       ) true
       else
         false
@@ -2280,7 +2279,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   Note a version such as v3_0_0.OBPAPI3_0_0 may well include routes from other earlier versions.
    */
 
-  def enableVersionIfAllowed(version: ApiVersion) : Boolean = {
+  def enableVersionIfAllowed(version: ScannedApiVersion) : Boolean = {
     val allowed: Boolean = if (versionIsAllowed(version)
     ) {
       version match {
@@ -2297,8 +2296,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
-        case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
-        case ApiVersion.sandbox => LiftRules.statelessDispatch.append(SandboxApiCalls)
+        case ApiVersion.`b1` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")
       }
@@ -2320,11 +2318,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getAllowedEndpoints (endpoints : Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
 
-    // Endpoints
-    val disabledEndpoints = getDisabledEndpoints
+    val allowedResourceDocs: ArrayBuffer[ResourceDoc] = getAllowedResourceDocs(endpoints, resourceDocs)
 
-    // Endpoints
-    val enabledEndpoints = getEnabledEndpoints
+    allowedResourceDocs.map(_.partialFunction).toList
+  }
+
+  def getAllowedResourceDocs(endpoints: Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]): ArrayBuffer[ResourceDoc] = {
+    // Endpoint Operation Ids
+    val disabledEndpointOperationIds = getDisabledEndpointOperationIds
+
+    // Endpoint Operation Ids
+    val enabledEndpointOperationIds = getEnabledEndpointOperationIds
 
     val onlyNewStyle = APIUtil.getPropsAsBoolValue("new_style_only", false)
 
@@ -2333,16 +2337,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       item <- resourceDocs
       if
       // Remove any Resource Doc / endpoint mentioned in Disabled endpoints in Props
-      !disabledEndpoints.contains(item.partialFunctionName) &&
-        // Only allow Resrouce Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
-        (enabledEndpoints.contains(item.partialFunctionName) || enabledEndpoints.isEmpty)  &&
+      !disabledEndpointOperationIds.contains(item.operationId) &&
+        // Only allow Resource Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
+        (enabledEndpointOperationIds.contains(item.operationId) || enabledEndpointOperationIds.isEmpty) &&
         // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
-        // i.e. this function may recieve more Resource Docs than version endpoints
+        // i.e. this function may receive more Resource Docs than version endpoints
         endpoints.exists(_ == item.partialFunction) &&
         (item.tags.exists(_ == apiTagNewStyle) || !onlyNewStyle)
     )
-      yield item.partialFunction
-    routes.toList
+      yield item
+    routes
   }
 
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {

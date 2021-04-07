@@ -248,7 +248,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         ApiVersion.v2_0_0.toString,
         ApiVersion.v2_1_0.toString,
         ApiVersion.v2_2_0.toString,
-        ApiVersion.apiBuilder.toString, //apiBuilder is the old style.
+        ApiVersion.b1.toString, //apiBuilder is the old style.
       ).exists(_ == e.implementedInApiVersion.toString()) =>
         false
       case Some(e) if APIMethods300.oldStyleEndpoints.exists(_ == e.partialFunctionName) =>

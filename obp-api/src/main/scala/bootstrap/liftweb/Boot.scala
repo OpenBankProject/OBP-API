@@ -381,7 +381,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v3_0_0)
     enableVersionIfAllowed(ApiVersion.v3_1_0)
     enableVersionIfAllowed(ApiVersion.v4_0_0)
-    enableVersionIfAllowed(ApiVersion.apiBuilder)
+    enableVersionIfAllowed(ApiVersion.b1)
 
     
     def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
@@ -430,12 +430,6 @@ class Boot extends MdcLoggable {
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
 
-    //add sandbox api calls only if we're running in sandbox mode
-    if(APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false)) {
-      enableVersionIfAllowed(ApiVersion.sandbox)
-    } else {
-      logger.info("Not adding sandbox api calls")
-    }
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)

@@ -24,28 +24,32 @@ This product includes software developed at
 TESOBE (http://www.tesobe.com/)
 
   */
-package code.sandbox
+package code.api.v2_1_0
 
 import java.util.Date
 
 import code.api.Constant._
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
+import code.api.Constant._
+import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, OBPLimit}
+import code.api.util.{APIUtil, ApiRole, OBPLimit}
 import code.atms.Atms
 import code.atms.Atms.countOfAtms
 import code.bankconnectors.Connector
 import code.branches.Branches
 import code.crm.CrmEvent
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
+import code.entitlement.Entitlement
 import code.model._
 import code.model.dataAccess._
 import code.products.Products
 import code.products.Products.countOfProducts
+import code.sandbox._
 import com.openbankproject.commons.model.Product
-import code.setup.{APIResponse, SendServerRequests}
+import code.setup.{APIResponse, DefaultUsers, SendServerRequests}
 import code.users.Users
 import code.views.Views
 import code.views.system.ViewDefinition
@@ -57,9 +61,10 @@ import net.liftweb.json.JsonAST.{JObject, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{JField, _}
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, MetaMapper}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
-
+import code.model._
+import code.model.dataAccess._
 import scala.util.Random
 
 /*
@@ -68,7 +73,7 @@ This tests:
 Posting of json to the sandbox creation API endpoint.
 Checking that the various objects were created OK via calling the Mapper.
  */
-class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Matchers with BeforeAndAfterEach {
+class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Matchers with BeforeAndAfterEach with DefaultUsers{
 
   val SUCCESS: Int = 201
   val FAILED: Int = 400
@@ -79,18 +84,27 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   val server = TestServer
   def baseRequest = host(server.host, server.port)
 
-  def sandboxApiPrefix = baseRequest / "obp" / "sandbox"
+  val user1Import = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "user.name_1")
+  val user2Import = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "user.name_2")
 
-  //users should automatically be assigned the "hostname" as a provider (for now at least)
-  val defaultProvider = APIUtil.getPropsValue("hostname").openOrThrowException("no hostname set")
-
-  val theImportToken = APIUtil.getPropsValue("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
-
+  val standardUsers = user1Import :: user2Import :: Nil
+  
+  
   override def beforeEach() = {
+    //returns true if the model should not be wiped after each test
+    def exclusion(m : MetaMapper[_]) = {
+      m == Nonce || m == code.model.Token || m == code.model.Consumer || m == AuthUser || m == ResourceUser
+    }
     //drop database tables before
     //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
-    ToSchemify.models.foreach(_.bulkDelete_!!())
-    ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
+    ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    //we need to delete the test uses manully here.
+    AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))
+    AuthUser.bulkDelete_!!(By(AuthUser.username, user2Import.user_name))
+    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, user1Import.user_name ))
+    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, user2Import.user_name ))
+    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateSandbox.toString)
   }
 
 
@@ -122,18 +136,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
   // posts the json with the correct secret token
   def postImportJson(json : String) : APIResponse = {
-    postImportJson(json, Some(theImportToken))
-  }
-
-  def postImportJson(json : String, secretToken : Option[String]) : APIResponse = {
-    ViewDefinition.bulkDelete_!!()
-    val base = sandboxApiPrefix / "v1.0" / "data-import"
-
+    val base = baseRequest / "obp"  / "v2.1.0" / "sandbox" / "data-import"
     // If we have a secretToken add that to the base request
-    val request = secretToken match {
-      case Some(t) => base <<? Map("secret_token" -> t)
-      case None => base
-    }
+    val request = base.POST <@(user1)
     makePostRequest(request, json)
   }
 
@@ -454,21 +459,17 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
 
 
-  val user1 = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "user.name_1")
-  val user2 = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "user.name_2")
-
-  val standardUsers = user1 :: user2 :: Nil
 
   val account1AtBank1 = SandboxAccountImport(id = "account1", bank = "bank1", label = "Account 1 at Bank 1",
-    number = "1", `type` = "savings", IBAN = "1234567890", generate_public_view = true, owners = List(user1.user_name),
+    number = "1", `type` = "savings", IBAN = "1234567890", generate_public_view = true, owners = List(user1Import.user_name),
     balance = SandboxBalanceImport(currency = "EUR", amount = "1000.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val account2AtBank1 = SandboxAccountImport(id = "account2", bank = "bank1", label = "Account 2 at Bank 1",
-    number = "2", `type` = "current", IBAN = "91234567890", generate_public_view = false, owners = List(user2.user_name),
+    number = "2", `type` = "current", IBAN = "91234567890", generate_public_view = false, owners = List(user2Import.user_name),
     balance = SandboxBalanceImport(currency = "EUR", amount = "2000.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val account1AtBank2 = SandboxAccountImport(id = "account1", bank = "bank2", label = "Account 1 at Bank 2",
-    number = "22", `type` = "savings", IBAN = "21234567890", generate_public_view = false, owners = List(user1.user_name, user2.user_name),
+    number = "22", `type` = "savings", IBAN = "21234567890", generate_public_view = false, owners = List(user1Import.user_name, user2Import.user_name),
     balance = SandboxBalanceImport(currency = "EUR", amount = "1500.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val standardAccounts = account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil
@@ -585,7 +586,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
 
     val response = postImportJson(write(importJson))
-
     response.code should equal(SUCCESS)
 
     banks.foreach(verifyBankCreated)
@@ -593,28 +593,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     println("accounts: " + accounts)
     accounts.foreach(verifyAccountCreated)
     transactions.foreach(verifyTransactionCreated(_, accounts))
-  }
-
-  it should "not allow data to be imported without a secret token" in {
-    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches, standardAtms, standardProducts, standardCrmEvents)
-    val response = postImportJson(write(importJson), None)
-
-    response.code should equal(403)
-
-    //nothing should be created
-    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
-  }
-
-  it should "not allow data to be imported with an invalid secret token" in {
-    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches, standardAtms, standardProducts, standardCrmEvents)
-    val badToken = "12345"
-    badToken should not equal(theImportToken)
-    val response = postImportJson(write(importJson), Some(badToken))
-
-    response.code should equal(403)
-
-    //nothing should be created
-    Connector.connector.vend.getBanksLegacy(None).map(_._1).openOrThrowException(attemptedToOpenAnEmptyBox) should equal(Nil)
   }
 
   it should "require banks to have non-empty ids" in {
@@ -719,7 +697,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       postImportJson(json)
     }
 
-    val user1AsJson = Extraction.decompose(user1)
+    val user1AsJson = Extraction.decompose(user1Import)
 
     val userWithoutEmail = removeEmailField(user1AsJson)
 
@@ -750,7 +728,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(userWithInvalidEmail).code should equal(FAILED)
 
     //there should still be no user
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+    Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name) match {
       case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
       case Empty                 => Empty should equal(Empty)
       case _                     => 0 should equal (1) // Should not happen
@@ -762,11 +740,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(userWithValidEmail).code should equal(SUCCESS)
 
     //a user should now have been created
-    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name)
+    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name)
     createdUser.isDefined should equal(true)
     createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).provider should equal(defaultProvider)
-    createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(user1.user_name)
-    createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(user1.user_name)
+    createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(user1Import.user_name)
+    createdUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(user1Import.user_name)
 
   }
 
@@ -780,14 +758,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //emails of the user we will eventually create to show multiple users with different ids are possible
     val secondUserName = "user_two"
 
-    val user1Json = Extraction.decompose(user1)
+    val user1Json = Extraction.decompose(user1Import)
 
     val differentUsername = "user_one"
-    differentUsername should not equal(user1.user_name)
+    differentUsername should not equal(user1Import.user_name)
     val userWithSameUsernameAsUser1 = user1Json
 
     //neither of the users should exist initially
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+    Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name) match {
       case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
       case Empty                 => Empty should equal(Empty)
       case _                     => 0 should equal (1) // Should not happen
@@ -801,7 +779,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(user1Json, userWithSameUsernameAsUser1)).code should equal(FAILED)
 
     //no user with firstUserId should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+    Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name) match {
       case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
       case Empty                 => Empty should equal(Empty)
       case _                     => 0 should equal (1) // Should not happen
@@ -813,16 +791,16 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     getResponse(List(user1Json, userWithUsername2)).code should equal(SUCCESS)
 
     //and both users should be created
-    val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name)
+    val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name)
     val secondUser = Users.users.vend.getUserByProviderId(defaultProvider, secondUserName)
 
     firstUser.isDefined should equal(true)
     secondUser.isDefined should equal(true)
 
-    firstUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(user1.user_name)
+    firstUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(user1Import.user_name)
     secondUser.openOrThrowException(attemptedToOpenAnEmptyBox).idGivenByProvider should equal(secondUserName)
 
-    firstUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(user1.user_name)
+    firstUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(user1Import.user_name)
     secondUser.openOrThrowException(attemptedToOpenAnEmptyBox).name should equal(secondUserName)
   }
 
@@ -832,14 +810,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       postImportJson(json)
     }
 
-    val user1Json = Extraction.decompose(user1)
+    val user1Json = Extraction.decompose(user1Import)
 
-    //add user1
+    //add user1Import
     getResponse(List(user1Json)).code should equal(SUCCESS)
 
 
-    val otherUser = user2
-    //when we try to add user1 and another valid new user it should now fail
+    val otherUser = user2Import
+    //when we try to add user1Import and another valid new user it should now fail
     getResponse(List(user1Json, Extraction.decompose(otherUser))).code should equal(FAILED)
 
     //and the other user should not have been created
@@ -852,21 +830,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       postImportJson(json)
     }
 
-    val goodUser = Extraction.decompose(user1)
+    val goodUser = Extraction.decompose(user1Import)
 
     val userWithoutPassword = removeField(goodUser, "password")
     getResponse(List(userWithoutPassword)).code should equal(FAILED)
     //no user should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(false)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name).isDefined should equal(false)
 
     val userWithBlankPassword = replaceField(goodUser, "password", "")
     getResponse(List(userWithBlankPassword)).code should equal(FAILED)
     //no user should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(false)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name).isDefined should equal(false)
 
     //check that a normal password is okay
     getResponse(List(goodUser)).code should equal(SUCCESS)
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(true)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1Import.user_name).isDefined should equal(true)
   }
 
   it should "set user passwords properly" in {
@@ -875,15 +853,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       postImportJson(json)
     }
 
-    getResponse(List(Extraction.decompose(user1))).code should equal(SUCCESS)
+    getResponse(List(Extraction.decompose(user1Import))).code should equal(SUCCESS)
 
     //TODO: we shouldn't reference AuthUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
-    val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1.user_name))
+    val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1Import.user_name))
     createdAuthUserBox.isDefined should equal(true)
 
     val createdAuthUser = createdAuthUserBox.openOrThrowException(attemptedToOpenAnEmptyBox)
-    createdAuthUser.password.match_?(user1.password) should equal(true)
+    createdAuthUser.password.match_?(user1Import.password) should equal(true)
   }
 
   it should "require accounts to have non-empty ids" in {
@@ -1025,7 +1003,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     Connector.connector.vend.getBankAccountOld(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)).isDefined should equal(false)
 
     //a mix of valid an invalid owners should also not work
-    val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.user_name))
+    val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1Import.user_name))
     getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(FAILED)
 
     //it should not have been created
