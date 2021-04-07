@@ -542,38 +542,43 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # In OBP, endpoints are defined in various files but made available under a *version*
 # e.g. in v3_0_0 (aka v3.0.0) we have endpoints from various versions.
 # Thus when we enable/disable a version we enable/disable a group of endpoints which are defined in several files.
-# OBP support two types of versions: fullyQualifiedVersion vs apiShortVersion, 
-# "OBPv4.0.0" vs "v4.0.0"
-# "OBPv3.1.0" vs "v3.1.0"
-# "OBPv3.0.0" vs "v3.0.0"
-# "BGv1" vs "v1"
-# "BGv1.3" vs "v1.3"
-# "PAPIv2.1.1.1" vs "v2.1.1.1"
-# "STETv1.4" vs "v1.4"
-# "UKv2.0" vs "v2.0"
-# "AUv1.0.0" vs "v1.0.0"
-# "UKv3.1" vs "v3.1"
-# we recommend to use fullyQualifiedVersion.
+# To enable / disable a version here you can use a fullyQualifiedVersion or apiShortVersion e.g.:
+# "OBPv4.0.0" or "v4.0.0"
+# "OBPv3.1.0" or "v3.1.0"
+# "OBPv3.0.0" or "v3.0.0"
+# "BGv1" or "v1"
+# "BGv1.3" or "v1.3"
+# "PAPIv2.1.1.1" or "v2.1.1.1"
+# "STETv1.4" or "v1.4"
+# "UKv2.0" or "v2.0"
+# "AUv1.0.0" or "v1.0.0"
+# "UKv3.1" or "v3.1"
+#
+# Note: we recommend to use the fullyQualifiedVersion. The apiShortVersion is depreciated here.
 # 
-# For a VERSION[version in path] to be allowed it must be:
+# For a VERSION (the version in path e.g. /obp/v4.0.0) to be allowed, it must be:
 
-# 1) Absent from here:(high priority)
+# 1) Absent from here (high priority):
+# Note the default is empty, not the example here.
 #api_disabled_versions=[OBPv3.0.0,BGv1.3]
 
-# 2) Present here OR this entry must be empty.
+# 2) Present here OR this entry must be empty:
+# Note the default is empty, not the example here.
 #api_enabled_versions=[OBPv2.2.0,OBPv3.0.0,UKv2.0]
 
 # Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
 
-# For an ENDPOINT[scala function as identified by operationId] to be allowed it must be:
+# For an ENDPOINT (i.e. the scala function that serves the endpoint as identified its "operationId") to be allowed it must be:
 
 # 1) Absent from here:(high priority)
+# Note the default is empty, not the following example
 #api_disabled_endpoints=[OBPv3.0.0-getPermissionForUserForBankAccount]
 
 # 2) Present here OR this list must be empty
+# Note the default is empty, not the following example
 #api_enabled_endpoints=[OBPv3.0.0-getPermissionForUserForBankAccount,OBPv3.0.0-getViewsForBankAccount]
 
-# Note that "root" cannot be disabled
+# Note that "root" and also the documentation endpoints (Resource Doc and Swagger) cannot be disabled
 #
 #
 ##########################
