@@ -16,6 +16,7 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
+import sun.security.provider.X509Factory
 
 import scala.collection.immutable.{HashMap, List}
 
@@ -23,7 +24,8 @@ import scala.collection.immutable.{HashMap, List}
 object JwsUtil {
   implicit val formats = CustomJsonFormats.formats
   case class JwsProtectedHeader(b64: Boolean,
-                                `x5t#S256`: String,
+                                `x5t#S256`: Option[String],
+                                x5c: Option[List[String]],
                                 crit: List[String],
                                 sigT: String,
                                 sigD: sigD,
@@ -92,6 +94,9 @@ object JwsUtil {
     // Verify the RSA
     val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
     val isVerifiedJws = parsedJWSObject.verify(verifier)
+    org.scalameta.logger.elem(verifySigningTime(jwsProtectedHeaderAsString))
+    org.scalameta.logger.elem(isVerifiedJws)
+    org.scalameta.logger.elem(isVerifiedDigestHeader)
     isVerifiedJws && isVerifiedDigestHeader && verifySigningTime(jwsProtectedHeaderAsString)
   }
 
@@ -125,10 +130,17 @@ object JwsUtil {
 
   private def getPem(forwardResult: (Box[User], Option[CallContext])): String = {
     val requestHeaders = forwardResult._2.map(_.requestHeaders).getOrElse(Nil)
-    forwardResult._2.flatMap(_.consumer.map(_.clientCertificate.get)) match {
-      case Some(certificate) if !(certificate == null || certificate.isEmpty) => certificate
-      case _ => APIUtil.`getPSD2-CERT`(requestHeaders).getOrElse("None")
+    val xJwsSignature = getJwsHeaderValue(requestHeaders)
+    val jwsProtectedHeaderAsString = JWSObject.parse(xJwsSignature).getHeader().toString()
+    val x5c = json.parse(jwsProtectedHeaderAsString).extractOpt[JwsProtectedHeader] match {
+      case Some(header) =>
+        header.x5c.map(_.headOption.getOrElse("None")).getOrElse("None")
+      case None => "None"
     }
+    s"""${X509Factory.BEGIN_CERT}
+       |$x5c
+       |${X509Factory.END_CERT}
+       |""".stripMargin
   }
 
   def main(args: Array[String]): Unit = {
