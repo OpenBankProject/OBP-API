@@ -2215,13 +2215,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getDisabledEndpoints() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
 
 
   def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getEnabledEndpoints() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
@@ -2318,11 +2318,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getAllowedEndpoints (endpoints : Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
 
-    // Endpoints
-    val disabledEndpoints = getDisabledEndpoints
+    val allowedResourceDocs: ArrayBuffer[ResourceDoc] = getAllowedResourceDocs(endpoints, resourceDocs)
 
-    // Endpoints
-    val enabledEndpoints = getEnabledEndpoints
+    allowedResourceDocs.map(_.partialFunction).toList
+  }
+
+  def getAllowedResourceDocs(endpoints: Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]): ArrayBuffer[ResourceDoc] = {
+    // Endpoint Operation Ids
+    val disabledEndpointOperationIds = getDisabledEndpointOperationIds
+
+    // Endpoint Operation Ids
+    val enabledEndpointOperationIds = getEnabledEndpointOperationIds
 
     val onlyNewStyle = APIUtil.getPropsAsBoolValue("new_style_only", false)
 
@@ -2331,16 +2337,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       item <- resourceDocs
       if
       // Remove any Resource Doc / endpoint mentioned in Disabled endpoints in Props
-      !disabledEndpoints.contains(item.partialFunctionName) &&
-        // Only allow Resrouce Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
-        (enabledEndpoints.contains(item.partialFunctionName) || enabledEndpoints.isEmpty)  &&
+      !disabledEndpointOperationIds.contains(item.operationId) &&
+        // Only allow Resource Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
+        (enabledEndpointOperationIds.contains(item.operationId) || enabledEndpointOperationIds.isEmpty) &&
         // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
-        // i.e. this function may recieve more Resource Docs than version endpoints
+        // i.e. this function may receive more Resource Docs than version endpoints
         endpoints.exists(_ == item.partialFunction) &&
         (item.tags.exists(_ == apiTagNewStyle) || !onlyNewStyle)
     )
-      yield item.partialFunction
-    routes.toList
+      yield item
+    routes
   }
 
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
