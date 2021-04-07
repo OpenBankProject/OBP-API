@@ -73,8 +73,28 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }
 
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv4.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv4.0.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
     scenario(s"We will test ${ApiEndpoint1.name} Api -v3.1.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v3.1.0" / "obp").GET 
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv3.1.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv3.1.0" / "obp").GET 
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -93,8 +113,28 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }
 
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv3.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv3.0.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.2.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.2.0" / "obp").GET 
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv2.2.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv2.2.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -113,8 +153,28 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }
 
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv2.1.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv2.1.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.0.0" / "obp").GET 
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv2.0.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv2.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -130,6 +190,16 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
       responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
     }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv1.4.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv1.4.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
     
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.3.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.3.0" / "obp").GET 
@@ -141,8 +211,79 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }
 
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv1.3.0", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv1.3.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.2.1", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.2.1" / "obp").GET 
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv1.2.1", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "OBPv1.2.1" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+    
+    
+    scenario(s"We will test ${ApiEndpoint1.name} Api -BGv1", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "BGv1" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -v1.3", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.3" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+    
+    scenario(s"We will test ${ApiEndpoint1.name} Api -BGv1.3", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "BGv1.3" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -v3.1", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v3.1" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(200)
+      //This should not throw any exceptions
+      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+    }
+    
+    scenario(s"We will test ${ApiEndpoint1.name} Api -UKv3.1", ApiEndpoint1, VersionOfApi) {
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "UKv3.1" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
