@@ -2253,14 +2253,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
    */
-  def versionIsAllowed(version: ApiVersion) : Boolean = {
+  def versionIsAllowed(version: ScannedApiVersion) : Boolean = {
     def checkVersion: Boolean = {
       val disabledVersions: List[String] = getDisabledVersions()
       val enabledVersions: List[String] = getEnabledVersions()
-      if (
-        !disabledVersions.contains(version.toString) &&
+      if (//                                     this is the short version: v4.0.0             this is for fullyQualifiedVersion: OBPv4.0.0 
+        (disabledVersions.find(disableVersion => (disableVersion == version.apiShortVersion || disableVersion == version.fullyQualifiedVersion )).isEmpty) &&
           // Enabled versions or all
-          (enabledVersions.contains(version.toString) || enabledVersions.isEmpty)
+          (enabledVersions.find(enableVersion => (enableVersion ==version.apiShortVersion || enableVersion == version.fullyQualifiedVersion)).isDefined || enabledVersions.isEmpty)
       ) true
       else
         false
@@ -2279,7 +2279,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   Note a version such as v3_0_0.OBPAPI3_0_0 may well include routes from other earlier versions.
    */
 
-  def enableVersionIfAllowed(version: ApiVersion) : Boolean = {
+  def enableVersionIfAllowed(version: ScannedApiVersion) : Boolean = {
     val allowed: Boolean = if (versionIsAllowed(version)
     ) {
       version match {

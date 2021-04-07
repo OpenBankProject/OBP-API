@@ -542,7 +542,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # In OBP, endpoints are defined in various files but made available under a *version*
 # e.g. in v3_0_0 (aka v3.0.0) we have endpoints from various versions.
 # Thus when we enable/disable a version we enable/disable a group of endpoints which are defined in several files.
-# there are two types of versions in OBP. fullyQualifiedVersion vs apiShortVersion , eg: 
+# OBP support two types of versions: fullyQualifiedVersion vs apiShortVersion, 
 # "OBPv4.0.0" vs "v4.0.0"
 # "OBPv3.1.0" vs "v3.1.0"
 # "OBPv3.0.0" vs "v3.0.0"
@@ -557,7 +557,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # 
 # For a VERSION[version in path] to be allowed it must be:
 
-# 1) Absent from here:
+# 1) Absent from here:(high priority)
 #api_disabled_versions=[OBPv3.0.0,BGv1.3]
 
 # 2) Present here OR this entry must be empty.
@@ -567,7 +567,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 
 # For an ENDPOINT[scala function as identified by operationId] to be allowed it must be:
 
-# 1) Absent from here:
+# 1) Absent from here:(high priority)
 #api_disabled_endpoints=[OBPv3.0.0-getPermissionForUserForBankAccount]
 
 # 2) Present here OR this list must be empty
