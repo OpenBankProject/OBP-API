@@ -306,7 +306,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case Some(StrongCustomerAuthentication.DUMMY) =>
         createHashedPassword("123")
       case Some(StrongCustomerAuthentication.EMAIL) =>
-        val challengeAnswer = Random.nextInt(99999999).toString()
+        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
         val hashedPassword = createHashedPassword(challengeAnswer)
         APIUtil.getEmailsByUserId(userId) map {
           pair =>
@@ -315,7 +315,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         }
         hashedPassword
       case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
-        val challengeAnswer = Random.nextInt(99999999).toString()
+        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
         logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
         val hashedPassword = createHashedPassword(challengeAnswer)
         val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {

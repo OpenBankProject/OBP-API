@@ -267,10 +267,6 @@ class Boot extends MdcLoggable {
     
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
 
-    import java.security.SecureRandom
-    val rand = new SecureRandom(SecureRandom.getSeed(20))
-    rand
-
     //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
     if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
       //this `LiftRules.getResource` will get the path of `OBP-API/obp-api/src/main/webapp`: 
