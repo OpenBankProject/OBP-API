@@ -6,19 +6,20 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import java.util
 import java.util.Set
 
-import code.api.util.X509.{pemEncodedCertificate, pemEncodedRSAPrivateKey, validate}
-import com.nimbusds.jose.crypto.{RSASSASigner, RSASSAVerifier}
-import com.nimbusds.jose.jwk.{JWK, RSAKey}
+import code.api.util.X509.validate
+import com.nimbusds.jose.crypto.RSASSAVerifier
+import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import com.openbankproject.commons.model.User
-import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
 import sun.security.provider.X509Factory
 
 import scala.collection.immutable.{HashMap, List}
+import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 
 object JwsUtil {
@@ -94,9 +95,6 @@ object JwsUtil {
     // Verify the RSA
     val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
     val isVerifiedJws = parsedJWSObject.verify(verifier)
-    org.scalameta.logger.elem(verifySigningTime(jwsProtectedHeaderAsString))
-    org.scalameta.logger.elem(isVerifiedJws)
-    org.scalameta.logger.elem(isVerifiedDigestHeader)
     isVerifiedJws && isVerifiedDigestHeader && verifySigningTime(jwsProtectedHeaderAsString)
   }
 
@@ -110,10 +108,8 @@ object JwsUtil {
    * @return Propagated result of calling function or signing request error
    */
   def verifySignedRequest(body: Box[String], verb: String, url: String, reqHeaders: List[HTTPParam], forwardResult: (Box[User], Option[CallContext])) = {
-    val standards: List[String] = APIUtil.getPropsValue(nameOfProperty="force_jws", "None").split(",").map(_.trim).toList
-    val pathOfStandard = HashMap("BGv1.3"->"berlin-group/v1.3", "OBPv4.0.0"->"obp/v4.0.0", "OBPv3.1.0"->"obp/v3.1.0", "UKv1.3"->"open-banking/v3.1").withDefaultValue("{Not found any standard to match}")
-    if(standards.exists(standard => url.contains(pathOfStandard(standard)))){
-      val pem: String = getPem(forwardResult)
+    if(forceVerifyRequestSignResponse(url)){
+      val pem: String = getPem(forwardResult._2.map(_.requestHeaders).getOrElse(Nil))
       X509.validate(pem) match {
         case Full(true) => // PEM certificate is ok
           val jwkPublic: JWK = X509.pemToRsaJwk(pem)
@@ -127,9 +123,15 @@ object JwsUtil {
     }
     
   }
+  
+  def forceVerifyRequestSignResponse(url: String): Boolean = {
+    val standards: List[String] = APIUtil.getPropsValue(nameOfProperty="force_jws", "None").split(",").map(_.trim).toList
+    val pathOfStandard = HashMap("BGv1.3"->"berlin-group/v1.3", "OBPv4.0.0"->"obp/v4.0.0", "OBPv3.1.0"->"obp/v3.1.0", "UKv1.3"->"open-banking/v3.1").withDefaultValue("{Not found any standard to match}")
+    standards.exists(standard => url.contains(pathOfStandard(standard)))
+  }
+  
 
-  private def getPem(forwardResult: (Box[User], Option[CallContext])): String = {
-    val requestHeaders = forwardResult._2.map(_.requestHeaders).getOrElse(Nil)
+  private def getPem(requestHeaders: List[HTTPParam]): String = {
     val xJwsSignature = getJwsHeaderValue(requestHeaders)
     val jwsProtectedHeaderAsString = JWSObject.parse(xJwsSignature).getHeader().toString()
     val x5c = json.parse(jwsProtectedHeaderAsString).extractOpt[JwsProtectedHeader] match {
@@ -143,44 +145,70 @@ object JwsUtil {
        |""".stripMargin
   }
 
-  def main(args: Array[String]): Unit = {
-    // RSA signatures require a public and private RSA key pair,
-    // the public key must be made known to the JWS recipient to
-    // allow the signatures to be verified
-    val jwk: JWK = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey)
-    val rsaJWK: RSAKey = jwk.toRSAKey
-    // Create RSA-signer with the private key
-    val signer = new RSASSASigner(rsaJWK)
-
-    val httpBody =
-      s"""{
-         |"instructedAmount": {"currency": "EUR", "amount": "123.50"},
-         |"debtorAccount": {"iban": "DE40100100103307118608"},
-         |"creditorName": "Merchant123",
-         |"creditorAccount": {"iban": "DE02100100109307118603"},
-         |"remittanceInformationUnstructured": "Ref Number Merchant"
-         |}
-         |""".stripMargin
-    
-    // digest: SHA-256=+xeh7JAayYPh8K13UnQCBBcniZzsyat+KDiuy8aZYdI
-    val digest = computeDigest(httpBody)
-    
+  def signResponse(body: Box[String], verb: String, url: String): List[HTTPParam] = {
+    val digest = "SHA-256=" + computeDigest(body.getOrElse(""))
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
     val  detachedPayload: Payload = new Payload(
-      s"""(request-target): post /berlin-group/v1.3/payments/sepa-credit-transfers
-          |host: api.testbank.com
-          |content-type: application/json
-          |psu-ip-address: 192.168.8.78
-          |psu-geo-location: GEO:52.506931,13.144558
-          |digest: SHA-256=$digest
-          |""".stripMargin);
+      s"""(status-line): ${verb.toLowerCase} ${url}
+         |host: ${APIUtil.getPropsValue("hostname", "")}
+         |content-type: application/json
+         |psu-ip-address: 192.168.8.78
+         |psu-geo-location: GEO:52.506931,13.144558
+         |digest: SHA-256=$digest
+         |""".stripMargin)
 
-    
+    val sigD = """{
+                 |    "pars": [
+                 |      "(status-line)",
+                 |      "host",
+                 |      "content-type",
+                 |      "psu-ip-address",
+                 |      "psu-geo-location",
+                 |      "digest"
+                 |    ],
+                 |    "mId": "http://uri.etsi.org/19182/HttpHeaders"
+                 |  }
+                 |  """.stripMargin
+    // We create the time in next format: '2011-12-03T10:15:30Z' 
+    val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
     val criticalParams: Set[String] = new util.HashSet[String]()
     criticalParams.add("b64")
     criticalParams.addAll(getDeferredCriticalHeaders)
+    // Create and sign JWS
+    val jwsProtectedHeader: JWSHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
+      .base64URLEncodePayload(false)
+      .x509CertChain(List(new com.nimbusds.jose.util.Base64(CertificateUtil.x5c)).asJava)
+      .criticalParams(criticalParams)
+      .customParam("sigT", sigT)
+      .customParam("sigD", JSONObjectUtils.parse(sigD))
+      .build();
+    val jwsObject: JWSObject = new JWSObject(jwsProtectedHeader, detachedPayload)
     
+
+    // Compute the RSA signature
+    jwsObject.sign(CertificateUtil.rsaSigner)
+
+    val isDetached = true
+    val jws: String = jwsObject.serialize(isDetached)
+    
+    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest)))
+    
+  }
+  
+  def signRequest(body: Box[String], verb: String, url: String): List[HTTPParam] = {
+    val digest = computeDigest(body.getOrElse(""))
+    // The payload which will not be encoded and must be passed to
+    // the JWS consumer in a detached manner
+    val  detachedPayload: Payload = new Payload(
+      s"""(request-target): ${verb.toLowerCase} ${url}
+         |host: ${APIUtil.getPropsValue("hostname", "")}
+         |content-type: application/json
+         |psu-ip-address: 192.168.8.78
+         |psu-geo-location: GEO:52.506931,13.144558
+         |digest: SHA-256=$digest
+         |""".stripMargin)
+
     val sigD = """{
                  |    "pars": [
                  |      "(request-target)",
@@ -193,48 +221,58 @@ object JwsUtil {
                  |    "mId": "http://uri.etsi.org/19182/HttpHeaders"
                  |  }
                  |  """.stripMargin
-
     // We create the time in next format: '2011-12-03T10:15:30Z' 
     val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
-    
+    val criticalParams: Set[String] = new util.HashSet[String]()
+    criticalParams.add("b64")
+    criticalParams.addAll(getDeferredCriticalHeaders)
     // Create and sign JWS
     val jwsProtectedHeader: JWSHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
       .base64URLEncodePayload(false)
-      .x509CertSHA256Thumbprint(rsaJWK.computeThumbprint())
+      .x509CertChain(List(new com.nimbusds.jose.util.Base64(CertificateUtil.x5c)).asJava)
       .criticalParams(criticalParams)
       .customParam("sigT", sigT)
       .customParam("sigD", JSONObjectUtils.parse(sigD))
       .build();
-  
-    val jwsObject: JWSObject = new JWSObject(jwsProtectedHeader, detachedPayload);
+    val jwsObject: JWSObject = new JWSObject(jwsProtectedHeader, detachedPayload)
 
     // Compute the RSA signature
-    jwsObject.sign(signer)
-  
+    jwsObject.sign(CertificateUtil.rsaSigner)
+
     val isDetached = true
     val jws: String = jwsObject.serialize(isDetached)
-  
-    // The resulting JWS, note the payload is not encoded (empty second part)
-    // eyJiNjQiOmZhbHNlLCJjcml0IjpbImI2NCJdLCJhbGciOiJIUzI1NiJ9..
-    // 5rPBT_XW-x7mjc1ubf4WwW1iV2YJyc4CCFxORIEaAEk
+    
+    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List("SHA-256=" + digest)))
+    
+  }
+
+  def main(args: Array[String]): Unit = {
+
+    val httpBody =
+      s"""{
+         |"instructedAmount": {"currency": "EUR", "amount": "123.50"},
+         |"debtorAccount": {"iban": "DE40100100103307118608"},
+         |"creditorName": "Merchant123",
+         |"creditorAccount": {"iban": "DE02100100109307118603"},
+         |"remittanceInformationUnstructured": "Ref Number Merchant"
+         |}
+         |""".stripMargin
+    
+    
+    // x-jws-signature and digest
+    val httpParams = signRequest(Full(httpBody), "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
 
     // Hard-coded request headers
     val requestHeaders = List(
-      HTTPParam("x-jws-signature", List(jws)),
-      // HTTPParam("(request-target)", List("post /v1.3/payments/sepa-credit-transfers")),
-      HTTPParam("host", List("api.testbank.com")),
+      HTTPParam("host", List(APIUtil.getPropsValue("hostname", ""))),
       HTTPParam("content-type", List("application/json")),
       HTTPParam("psu-ip-address", List("192.168.8.78")),
       HTTPParam("psu-geo-location", List("GEO:52.506931,13.144558")),
-      HTTPParam("digest", List(s"SHA-256=$digest"))
-    )
+    ) ::: httpParams
 
-    validate(pemEncodedCertificate)
-    val jwkPublic: JWK = JWK.parseFromPEMEncodedObjects(pemEncodedCertificate)
-    val isVerified = verifyJws(jwkPublic.toRSAKey.toRSAPublicKey, httpBody, requestHeaders, "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
+    validate(getPem(requestHeaders))
+    val isVerified = verifyJws(CertificateUtil.rsaPublicKey, httpBody, requestHeaders, "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
     org.scalameta.logger.elem(isVerified)
-    org.scalameta.logger.elem(jws)
-    org.scalameta.logger.elem(pemEncodedCertificate)
     
   }
   

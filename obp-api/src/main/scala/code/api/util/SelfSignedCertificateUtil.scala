@@ -24,8 +24,8 @@ object SelfSignedCertificateUtil {
     Security.addProvider(new BouncyCastleProvider)
     val pair = generateSelfSignedCert("app.example.com")
     val pemWriter = new JcaPEMWriter(new PrintWriter(System.out))
-    pemWriter.writeObject(pair.getLeft) // Create PEM representation of private kek
-    pemWriter.writeObject(pair.getRight) // Create PEM representation of certificate
+    pemWriter.writeObject(pair._1) // Create PEM representation of private kek
+    pemWriter.writeObject(pair._2) // Create PEM representation of certificate
     pemWriter.flush() // Print result to the standard out
     pemWriter.close()
   }
@@ -36,7 +36,8 @@ object SelfSignedCertificateUtil {
   @throws[NoSuchAlgorithmException]
   @throws[OperatorCreationException]
   @throws[CertificateException]
-  def generateSelfSignedCert(commonName: String): Pair[PrivateKey, Certificate] = {
+  def generateSelfSignedCert(commonName: String): (PrivateKey, Certificate) = {
+    Security.addProvider(new BouncyCastleProvider)
     val keyPairGenerator = KeyPairGenerator.getInstance("RSA", bcProvider) // Define RSA as the algorithm for a key creation
     keyPairGenerator.initialize(2048) // Define 2048 as the size of the key
     val keyPair = keyPairGenerator.generateKeyPair
@@ -48,6 +49,6 @@ object SelfSignedCertificateUtil {
     val endDate = startDate.plus(2 * 365, ChronoUnit.DAYS)
     val certBuilder = new JcaX509v3CertificateBuilder(dnName, certSerialNumber, Date.from(startDate), Date.from(endDate), dnName, keyPair.getPublic)
     val certificate = new JcaX509CertificateConverter().setProvider(bcProvider).getCertificate(certBuilder.build(contentSigner))
-    Pair.of(keyPair.getPrivate, certificate)
+    (keyPair.getPrivate, certificate)
   }
 }

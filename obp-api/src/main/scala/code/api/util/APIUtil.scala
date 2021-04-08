@@ -385,7 +385,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
     CustomResponseHeaders(
-      getGatewayLoginHeader(cc).list ::: getRateLimitHeadersNewStyle(cc).list ::: getRequestHeadersToMirror(cc).list
+      getGatewayLoginHeader(cc).list ::: 
+        getRateLimitHeadersNewStyle(cc).list ::: 
+        getRequestHeadersToMirror(cc).list :::
+        getSignRequestHeadersNewStyle(cc).list
     )
   }
 
@@ -402,6 +405,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ =>
         CustomResponseHeaders((Nil))
     }
+  }
+  private def getSignRequestHeadersNewStyle(cc: Option[CallContextLight]): CustomResponseHeaders = {
+    cc.map { i =>
+      if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
+        val headers = JwsUtil.signResponse(i.httpBody, i.verb, i.url)
+        CustomResponseHeaders(headers.map(h => (h.name, h.values.mkString(", "))))
+      } else {
+        CustomResponseHeaders(Nil)
+      }
+    }.getOrElse(CustomResponseHeaders(Nil))
   }
 
   /**

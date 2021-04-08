@@ -6,12 +6,12 @@ import java.security.cert.{CertificateExpiredException, CertificateNotYetValidEx
 import java.security.interfaces.{ECPublicKey, RSAPublicKey}
 
 import com.github.dwickern.macros.NameOf
-import com.nimbusds.jose.jwk.{JWK, RSAKey}
+import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.util.X509CertUtils
 import net.liftweb.common.{Box, Failure, Full}
+import org.bouncycastle.asn1._
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.qualified.QCStatement
-import org.bouncycastle.asn1._
 
 object X509 {
 
@@ -201,65 +201,5 @@ object X509 {
     val rsaJWK = RSAKey.parse(cert)
     rsaJWK
   }
-
-  // PEM-encoded private RSA key - This is a test only Private Key
-  lazy val  pemEncodedRSAPrivateKey: String = """-----BEGIN RSA PRIVATE KEY-----
-                                                |MIIEpAIBAAKCAQEAyaWz5PDC+WAjzKVni66t0aB6UcMeaLScdospNgT32GmE2jfT
-                                                |zUGes0OWV4C6JN1XQXeeTwgzqX0n3IR+fQCs+3o1G3Cu0c3f8as7TQZv9Gdy41re
-                                                |HfYNtmz8pxGO5e/tVyyIsU2J+IZRjn+6glL+00vegf/SDvGaZuJrs2LRPnmUgypX
-                                                |5KcUTRM+XjR3tFpFaFm3k1ns9qn+6lunDszgLwAQ4OFSuoq0w457TOrStdvQxRjw
-                                                |Aa/2XxgDX8qU/FjTfm1Shjmh4vO0nGYDyvJnLKo5/Q/txTIt4gOCxg/I67pdY8AS
-                                                |FxeBaq70sebjMSBt2a++ig5XIQraW6VmJSCl7QIDAQABAoIBAAyQdhaQR93I90IT
-                                                |llGWRz9WC/kXOshUZKFgR2eVxKmn3X7JVrml2pEZ5365Rx/v6LVsEiGjhbCMW1T6
-                                                |rnT0e1LKCRAWI9ZvyQHiZPYGLiig34A6E7fzMmSJAu8YAXrjSbsSS8wcZDnniKJj
-                                                |5Aelyzn4MruP6JNEy5WYixRo1lfZmC52M4WBwyzbRyzmPlnYKJTJ6l9z3CXgvUmw
-                                                |gvPSahgIyxALgqhNRh9ngMBJQG7Hkag2MsLUz+2fncHoKUHYEmdAjb2cwXYSClzg
-                                                |VLYeBe2m/vuWafD0v53DAkyIJv4knHuaUUC5adJ/cQzoAWNAglWkWxtskNlPfZHx
-                                                |4VwqR7MCgYEA5AWjOfHC5erY+205ukYkcRyrPBFOLSSr4RUE/NDsd2w+cryYeQZg
-                                                |SvsbFvOZH2IOnMCyfcUNe3ExNwaRFP7hCI9H449F0AwUFcQs604K++a2y/7TvlnZ
-                                                |q+/Ahu7SueVUHdi+9eL4jwyuxVUJg8UhHYHD9oqW4Af/bHvJYy0IYucCgYEA4mOc
-                                                |vx1456kSW0EiqJyJ3yUAUNrVY75AfwprWCBjgIYkEYEAHaQ/EyHnRGO5ySRYGYs6
-                                                |GAWuYBHyPzKUnIuxpCutaU/hWjw2w/6T9hLYzyEn5NG7EhaDMiO/pEIpX0BZ29mx
-                                                |yIoXc8SEDZzuiB+tVuqjW24rLyLNn3+ppr9RqgsCgYEAusLbVGRuC771BcoKlEVL
-                                                |J9Ihdkt+Sn9UwEBlG2VLqOzhoTxTbh0I1aEiKQRQkGHSMhWqnFS/nDGz66vXPOke
-                                                |C9K/QOVieurJsKJDYF9Fo9juM9t+NtSE8symVl5Z/qSU5vVWQzMp/pCWvU3PQzw8
-                                                |yVw100LkHI6waHxjEHYb/lUCgYAbGXt48Sk46ec1nz1r25kxafd4tklW8D4+NtwU
-                                                |p4Phra0Bn2SJJ9EZFDTf3eQubLhTDnR8zalK/Lr3z7E0cBBqq4PNmG9MYurXWVES
-                                                |4ryrRrfEz0pKZwF7bgYRvo2/Ri+7fnqmm8kk5YA9NOzkxI32Wo4FctGeidb9YcXI
-                                                |HRzEcwKBgQDKqCBgSnf414PP+KzIhQYUXCbXetwcNGwnPh3VkB0DXiROnpg/x5VJ
-                                                |VqB2rXZWLnCgp36H+fF+hvFzcIGiSloSREAhPhDMdC6vCP39CR2b7Nik3txVuqK3
-                                                |oF4inGgJYgKfsLaxEhpo64l1IPXCB2zmE2eNeZt+0YE82T+ad+XIUw==
-                                                |-----END RSA PRIVATE KEY-----""".stripMargin
-
-  lazy val pemEncodedCertificate =
-    """-----BEGIN CERTIFICATE-----
-      |MIICsjCCAZqgAwIBAgIGAXiEVYd0MA0GCSqGSIb3DQEBCwUAMBoxGDAWBgNVBAMM
-      |D2FwcC5leGFtcGxlLmNvbTAeFw0yMTAzMzAxODExNDFaFw0yMzAzMzAxODExNDFa
-      |MBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQAD
-      |ggEPADCCAQoCggEBAMmls+TwwvlgI8ylZ4uurdGgelHDHmi0nHaLKTYE99hphNo3
-      |081BnrNDlleAuiTdV0F3nk8IM6l9J9yEfn0ArPt6NRtwrtHN3/GrO00Gb/RncuNa
-      |3h32DbZs/KcRjuXv7VcsiLFNifiGUY5/uoJS/tNL3oH/0g7xmmbia7Ni0T55lIMq
-      |V+SnFE0TPl40d7RaRWhZt5NZ7Pap/upbpw7M4C8AEODhUrqKtMOOe0zq0rXb0MUY
-      |8AGv9l8YA1/KlPxY035tUoY5oeLztJxmA8ryZyyqOf0P7cUyLeIDgsYPyOu6XWPA
-      |EhcXgWqu9LHm4zEgbdmvvooOVyEK2lulZiUgpe0CAwEAATANBgkqhkiG9w0BAQsF
-      |AAOCAQEAUZ5BqGFl+ce2skZD6Wf3PnCsdos9HnSFg/WogcDbeTVLS3+bn5Z+VbOK
-      |m4yroOB9VCfhZ6msrBKKcELmj85jRGw4bnip9AjOrYgowePr0f0kq/BMIkZkSB9J
-      |98PusxUXgfVdeygbfLyBhQkkGKYaIEIsWSyFxJ/grIoZSwdIt2wkD2VfGakdq9UI
-      |1IY8BK9NiILGL3HaQdoHFavuXq6/M6/5hrIRtpXncZTO93i4/YhLuaPWlXjGqijL
-      |dfo4IrZChEBioZ/sGmatrqoQUdeuG1loMWFPRN6/6AdXv33QAL7uiKTWpFOJkMys
-      |Waq0JntfTgPHs/yvCjzdKrOKS1uUgQ==
-      |-----END CERTIFICATE-----""".stripMargin
   
-  def main(args: Array[String]): Unit = {
-    
-    // Parse PEM-encoded key to RSA public / private JWK
-    val jwkPrivate: JWK = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey)
-    org.scalameta.logger.elem(jwkPrivate.getKeyType())
-    org.scalameta.logger.elem(jwkPrivate.isPrivate())
-    
-    validate(pemEncodedCertificate)
-    val jwk: JWK = JWK.parseFromPEMEncodedObjects(pemEncodedCertificate)
-    org.scalameta.logger.elem(jwk.getKeyType())
-    org.scalameta.logger.elem(jwk.isPrivate())
-  }
 }
