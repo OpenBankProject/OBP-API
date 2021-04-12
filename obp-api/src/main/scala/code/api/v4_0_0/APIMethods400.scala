@@ -6211,11 +6211,12 @@ trait APIMethods400 {
       "Get My Api Collection By Name",
       s"""Get Api Collection By API_COLLECTION_NAME.
          |
-         |${authenticationRequiredMessage(false)}
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionJson400,
       List(
+        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -6234,31 +6235,31 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollectionById,
+      getSharableApiCollectionById,
       implementedInApiVersion,
-      nameOf(getApiCollectionById),
+      nameOf(getSharableApiCollectionById),
       "GET",
-      "/users/USER_ID/api-collections/API_COLLECTION_ID",
-      "Get Api Collection By Id",
-      s"""Get Api Collection By Id.
-         |
+      "/api-collections/sharable/API_COLLECTION_ID",
+      "Get Sharable Api Collection By Id",
+      s"""Get Sharable Api Collection By Id.
          |${authenticationRequiredMessage(false)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionJson400,
       List(
-        UserNotFoundByUserId,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getApiCollectionById: OBPEndpoint = {
-      case "users" :: userId :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
+    lazy val getSharableApiCollectionById: OBPEndpoint = {
+      case "api-collections" :: "sharable" :: apiCollectionId :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointNotFound Current api_collection_id(${apiCollectionId}) is not sharable.") {
+              apiCollection.isSharable
+            }
           } yield {
             (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
           }
@@ -6274,15 +6275,16 @@ trait APIMethods400 {
       "Get Api Collections",
       s"""Get Api Collections.
          |
-         |${authenticationRequiredMessage(false)}
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      apiCollectionJson400,
+      apiCollectionsJson400,
       List(
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagApiCollection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle),
+      Some(canGetAllApiCollections :: Nil)
     )
 
     lazy val getApiCollections: OBPEndpoint = {
@@ -6312,6 +6314,7 @@ trait APIMethods400 {
       EmptyBody,
       apiCollectionsJson400,
       List(
+        $UserNotLoggedIn,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
@@ -6421,6 +6424,7 @@ trait APIMethods400 {
       EmptyBody,
       apiCollectionEndpointJson400,
       List(
+        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
