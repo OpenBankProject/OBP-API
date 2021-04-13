@@ -6298,6 +6298,37 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      getFeaturedApiCollections,
+      implementedInApiVersion,
+      nameOf(getApiCollections),
+      "GET",
+      "/api-collections/featured",
+      "Get Featured Api Collections",
+      s"""Get Featured Api Collections.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionsJson400,
+      List(
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getFeaturedApiCollections: OBPEndpoint = {
+      case "api-collections" :: "featured" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollections, callContext) <- NewStyle.function.getFeaturedApiCollections(cc.callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
     
     staticResourceDocs += ResourceDoc(
       getMyApiCollections,
