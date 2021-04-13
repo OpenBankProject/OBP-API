@@ -6207,7 +6207,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getMyApiCollectionByName),
       "GET",
-      "/my/api-collections/API_COLLECTION_NAME",
+      "/my/api-collections/name/API_COLLECTION_NAME",
       "Get My Api Collection By Name",
       s"""Get Api Collection By API_COLLECTION_NAME.
          |
@@ -6224,10 +6224,42 @@ trait APIMethods400 {
     )
 
     lazy val getMyApiCollectionByName: OBPEndpoint = {
-      case "my" :: "api-collections" :: apiCollectionName :: Nil JsonGet _ => {
+      case "my" :: "api-collections" :: "name" ::apiCollectionName :: Nil JsonGet _ => {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
+          } yield {
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollectionById,
+      implementedInApiVersion,
+      nameOf(getMyApiCollectionById),
+      "GET",
+      "/my/api-collections/API_COLLECTION_ID",
+      "Get My Api Collection By Id",
+      s"""Get Api Collection By API_COLLECTION_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getMyApiCollectionById: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
           } yield {
             (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
           }
@@ -6302,7 +6334,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       getFeaturedApiCollections,
       implementedInApiVersion,
-      nameOf(getApiCollections),
+      nameOf(getFeaturedApiCollections),
       "GET",
       "/api-collections/featured",
       "Get Featured Api Collections",

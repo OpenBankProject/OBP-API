@@ -50,12 +50,13 @@ class ApiCollectionTest extends V400ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getMyApiCollections))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionByName))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteMyApiCollection))
+  object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionById))
   
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getSharableApiCollectionById))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getApiCollections))
 
   feature("Test the apiCollection endpoints") {
-    scenario("We create my apiCollection and get,delete", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    scenario("We create my apiCollection and get,delete", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint7,  VersionOfApi) {
       When("We make a request v4.0.0")
 
       {
@@ -109,17 +110,34 @@ class ApiCollectionTest extends V400ServerSetup {
 
 
       Then(s"we test the $ApiEndpoint3")
-      val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_name).GET <@ (user1)
+      val requestGetSingleByName = (v4_0_0_Request / "my" / "api-collections" / "name" /apiCollectionJson400.api_collection_name).GET <@ (user1)
 
       {
        //then we test the ApiEndpoint3 without Authentication
-        val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_name).GET
+        val requestGetSingle = (v4_0_0_Request / "my" / "api-collections"/ "name"  / apiCollectionJson400.api_collection_name).GET
         val responseGetSingle = makeGetRequest(requestGetSingle)
         Then(s"we should get the error messages")
         responseGetSingle.code should equal(401)
         responseGetSingle.body.toString contains(s"$UserNotLoggedIn") should be (true)
       }
       
+
+      val responseGetSingleByName = makeGetRequest(requestGetSingleByName)
+      Then("We should get a 200")
+      responseGetSingleByName.code should equal(200)
+
+      Then(s"we test the $ApiEndpoint7")
+      val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_id).GET <@ (user1)
+
+      {
+        //then we test the ApiEndpoint3 without Authentication
+        val requestGetSingle = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_id).GET
+        val responseGetSingle = makeGetRequest(requestGetSingle)
+        Then(s"we should get the error messages")
+        responseGetSingle.code should equal(401)
+        responseGetSingle.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      }
+
 
       val responseGetSingle = makeGetRequest(requestGetSingle)
       Then("We should get a 200")
