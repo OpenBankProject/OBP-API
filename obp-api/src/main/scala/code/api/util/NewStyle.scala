@@ -2709,6 +2709,14 @@ object NewStyle {
     def getApiCollectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
       Future(MappedApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
     }
+
+    def getFeaturedApiCollections(callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
+      //we get the getFeaturedApiCollectionIds from props, and remove the deplication there.
+      val featuredApiCollectionIds =  APIUtil.getPropsValue("featured_api_collection_ids","").split(",").map(_.trim).toSet.toList
+      //We filter the isDefined and is isSharable collections.
+      val apiCollections = featuredApiCollectionIds.map(MappedApiCollectionsProvider.getApiCollectionById).filter(_.isDefined).filter(_.head.isSharable).map(_.head)
+      Future{(apiCollections, callContext)}
+    }
     
     def createApiCollection(
       userId: String,

@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+13/03/2021    3c9880a9      Added props: featured_api_collection_ids, default is Empty.
+                            This props is used for the featured api collections. Eg: API_Explorer will consume it to modify the Home Page.
 11/03/2021    ae211dd9      Added props: default_auth_context_update_request_key, default is CUSTOMER_NUMBER.
                             This props is used for the User Onboard page, we can have the default identifier key.
                             The different banks may have different identifiers for their customers, eg: CUSTOMER_NUMBER, TAX_ID...
