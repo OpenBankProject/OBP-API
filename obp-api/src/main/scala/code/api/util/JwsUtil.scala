@@ -130,7 +130,7 @@ object JwsUtil {
   }
   
 
-  private def getPem(requestHeaders: List[HTTPParam]): String = {
+  def getPem(requestHeaders: List[HTTPParam]): String = {
     val xJwsSignature = getJwsHeaderValue(requestHeaders)
     val jwsProtectedHeaderAsString = JWSObject.parse(xJwsSignature).getHeader().toString()
     val x5c = json.parse(jwsProtectedHeaderAsString).extractOpt[JwsProtectedHeader] match {
@@ -195,42 +195,26 @@ object JwsUtil {
     List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest)))
   }
 
+  /**
+   * This function signs request we send to a TPP app.
+   * @param body HTTP body of an request 
+   * @param verb HTTP method of an request
+   * @param url HTTP relative path of an request 
+   * @return Request header params: x-jws-signature and digest
+   */
   def signResponse(body: Box[String], verb: String, url: String): List[HTTPParam] = {
     signRequestResponseCommon(body, verb, url, "status-line")
   }
 
+  /**
+   * This function simulates signing request at a TPP app.
+   * @param body HTTP body of an request 
+   * @param verb HTTP method of an request
+   * @param url HTTP relative path of an request 
+   * @return Request header params: x-jws-signature and digest
+   */
   def signRequest(body: Box[String], verb: String, url: String): List[HTTPParam] = {
     signRequestResponseCommon(body, verb, url, "request-target")
-  }
-
-  def main(args: Array[String]): Unit = {
-
-    val httpBody =
-      s"""{
-         |"instructedAmount": {"currency": "EUR", "amount": "123.50"},
-         |"debtorAccount": {"iban": "DE40100100103307118608"},
-         |"creditorName": "Merchant123",
-         |"creditorAccount": {"iban": "DE02100100109307118603"},
-         |"remittanceInformationUnstructured": "Ref Number Merchant"
-         |}
-         |""".stripMargin
-    
-    
-    // x-jws-signature and digest
-    val httpParams = signRequest(Full(httpBody), "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
-
-    // Hard-coded request headers
-    val requestHeaders = List(
-      HTTPParam("host", List(APIUtil.getPropsValue("hostname", ""))),
-      HTTPParam("content-type", List("application/json")),
-      HTTPParam("psu-ip-address", List("192.168.8.78")),
-      HTTPParam("psu-geo-location", List("GEO:52.506931,13.144558")),
-    ) ::: httpParams
-
-    validate(getPem(requestHeaders))
-    val isVerified = verifyJws(CertificateUtil.rsaPublicKey, httpBody, requestHeaders, "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
-    org.scalameta.logger.elem(isVerified)
-    
   }
   
 }
