@@ -6,6 +6,8 @@ import net.liftweb.util.SimpleInjector
 import java.util.Date
 
 import code.consent.ConsentStatus.ConsentStatus
+import code.model.Consumer
+
 import scala.collection.immutable.List
 
 object Consents extends SimpleInjector {
@@ -24,6 +26,7 @@ trait ConsentProvider {
   def checkAnswer(consentId: String, challenge: String): Box[MappedConsent]
   def createBerlinGroupConsent(
     user: Option[User],
+    consumer: Option[Consumer],
     recurringIndicator: Boolean,
     validUntil: Date,
     frequencyPerDay: Int,
@@ -75,6 +78,14 @@ trait Consent {
    * ) 
    */
   def jsonWebToken: String
+
+  /**
+   * This field identifies the Consumer which can create this consent.
+   * It MUST be the same as the value of the field "jsonWebToken.ConsentJWT.aud".
+   * We use it as a standalone field in order to avoid parsing of JWT at DB level.
+   * @return Consumer ID
+   */
+  def consumerId: String
 
   /**
    * This field identifies the standard of API of a related consent

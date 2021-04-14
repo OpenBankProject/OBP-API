@@ -158,6 +158,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
              
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
                createdByUser,
+               consumer,
                recurringIndicator = consentJson.recurringIndicator,
                validUntil = validUntil,
                frequencyPerDay = consentJson.frequencyPerDay,
