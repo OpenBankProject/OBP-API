@@ -1985,7 +1985,52 @@ object Glossary {
 |
  """)
 
-
+	glossaryItems += GlossaryItem(
+		title = "Permission, Transport and Payload Security",
+		description =
+			s"""
+|
+|Permission, Transport and Payload Security using Consents, Consumer, MTLS and JWS
+				 |This glossary item aims to give an overview of how the communication between an Application and the OBP API server is secured with Consents, Consumer records, MTLs and JWS.
+					|
+					|It includes some implementation step notes for the Application developer.
+				|
+|The following components are required:
+|
+|## Consumer record
+|
+|The Application must have an active API Consumer / Client record on the server.
+|
+|## MTLS
+|
+|With Mutual TLS both the Client (App) and the Server (API) must use certificates.
+|
+|## JWS
+|
+|The payload of the Request and Response is signed using the client / server signature by the client / server and the server / client validates.
+|
+|## Consent
+|
+|The end user must give permission to the Application in order for the Application to see his/her account and transaction data.
+|
+|<img width="468" alt="obp-data-model-overview" src="https://user-images.githubusercontent.com/485218/114748431-38c13f80-9d52-11eb-9e54-50633a0ee601.png"></img>
+|
+|## In order to get an App / Consumer key
+|
+|[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer.
+|
+|Register your App / Consumer [HERE]($getServerUrl/consumer-registration)
+|
+|Be sure to enter your Certificate in the above form.
+|
+|
+|## Authenticate
+|
+|To test the service your App will need to authenticate using OAuth2.
+|
+|You can use the OBP Hola App as an example / starting point for your App.
+|
+ """)
 
 
 	///////////////////////////////////////////////////////////////////
