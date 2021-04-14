@@ -89,8 +89,10 @@ class Login {
   // For instance we can use it to display example login on a sandbox
     def customiseLogin : CssSel = {
       val specialLoginInstructions  = scala.xml.Unparsed(getWebUiPropsValue("webui_login_page_special_instructions", ""))
+      val LoginInstructionTitle = scala.xml.Unparsed(getWebUiPropsValue("webui_login_page_instruction_title", "Log on to the Open Bank Project API"))
       // In case we use Extraction.decompose
       implicit val formats = CustomJsonFormats.formats
+      "#login-instruction-title *" #> LoginInstructionTitle &
       "#login-special-instructions *" #> specialLoginInstructions &
       "#brand [value]" #> activeBrand
     }

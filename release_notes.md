@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+14/03/2021    e29001e2      Added props: webui_login_page_instruction_title, default is 'Log on to the Open Bank Project API'.
+                            The clients can customise the login page instraction title.
 13/03/2021    3c9880a9      Added props: featured_api_collection_ids, default is Empty.
                             This props is used for the featured api collections. Eg: API_Explorer will consume it to modify the Home Page.
 11/03/2021    ae211dd9      Added props: default_auth_context_update_request_key, default is CUSTOMER_NUMBER.
