@@ -378,7 +378,8 @@ webui_api_tester_url = https://apitester.openbankproject.com
 
 # To display a custom message above the username / password box
 # We currently use this to display example customer login in sandbox etc.
-webui_login_page_special_instructions=
+#webui_login_page_special_instructions=
+#webui_login_page_instruction_title=Log on to the Open Bank Project API
 
 
 ##################################################################################
