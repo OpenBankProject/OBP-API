@@ -3118,63 +3118,6 @@ trait APIMethods121 {
       }
     }
 
-  /*
-
-    resourceDocs += ResourceDoc(
-      makePayment,
-      apiVersion,
-      "makePayment",
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
-      "Make Payment",
-      """This is an experimental call, currently only implemented in the OBP sandbox instance up to version 1.3.0. It is very minimal
-         |and was superseded by Transaction Requests in version 1.4.0.
-         |
-         |This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
-         |
-         |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
-      makePaymentJson,
-      transactionIdJson,
-      List(
-        UserNotLoggedIn,
-        "amount not convertible to number",
-        "Sorry, payments are not enabled in this API instance.",
-        "account not found at bank",
-        "user does not have access to owner view",
-        "Cannot send payment to account with different currency",
-        "Can't send a payment with a value of 0 or less.",
-        "Sorry, payments are not enabled in this API instance.",
-        UnknownError),
-      List(apiTagTransactionRequest))
-
-*/
-
-    /*
-
-    lazy val makePayment : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
-        sc
-          if (APIUtil.getPropsAsBoolValue("payments_enabled", false)) {
-            for {
-              u <- cc.user ?~ UserNotLoggedIn
-              makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {InvalidJsonFormat}
-              rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
-              toAccountUID = BankIdAccountId(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))
-              createdPaymentId <- Connector.connector.vend.makePayment(u, BankIdAccountId(bankId, accountId), toAccountUID, rawAmt, "")
-            } yield {
-              val successJson = Extraction.decompose(TransactionIdJson(createdPaymentId.value))
-              successJsonResponse(successJson)
-            }
-          } else{
-            Failure("Sorry, payments are not enabled in this API instance.")
-          }
-
-      }
-    }
-
-
-    */
-
   }
 }
 
