@@ -2003,17 +2003,21 @@ object Glossary {
 |
 |## MTLS
 |
-|With Mutual TLS both the Client (App) and the Server (API) must use certificates.
+|With Mutual TLS both the Consumer and the Server (OBP API) must use certificates.
 |
 |## JWS
 |
-|The payload of the Request and Response is signed using the client / server signature by the client / server and the server / client validates.
+|The Request is signed by the Consumer with a JWS using the client certificate of the Consumer. See [HERE](https://github.com/OpenBankProject/OBP-Hydra-OAuth2/blob/40359cf569a814c1aec4ce593303b39ddf9bdded/src/main/java/com/openbankproject/hydra/auth/RestTemplateConfig.java#L106) for an example of how to create a JWS.
+|The Request is validated by the OBP API Server using the JWS provided by the Consumer.
+|The Response is signed by the OBP API Server with a JWS
+|The Response is validated by the Client using the JWS provided by the OBP API Server.
+|
 |
 |## Consent
 |
 |The end user must give permission to the Application in order for the Application to see his/her account and transaction data.
 |
-|<img width="468" alt="obp-data-model-overview" src="https://user-images.githubusercontent.com/485218/114748431-38c13f80-9d52-11eb-9e54-50633a0ee601.png"></img>
+|<img width="468" alt="obp-permission-transport-and-payload-security" src="https://user-images.githubusercontent.com/485218/114748431-38c13f80-9d52-11eb-9e54-50633a0ee601.png"></img>
 |
 |## In order to get an App / Consumer key
 |
@@ -2021,14 +2025,14 @@ object Glossary {
 |
 |Register your App / Consumer [HERE]($getServerUrl/consumer-registration)
 |
-|Be sure to enter your Certificate in the above form.
+|Be sure to enter your Client Certificate in the above form. To create the user.crt file see [HERE](https://fardog.io/blog/2017/12/30/client-side-certificate-authentication-with-nginx/)
 |
 |
 |## Authenticate
 |
 |To test the service your App will need to authenticate using OAuth2.
 |
-|You can use the OBP Hola App as an example / starting point for your App.
+|You can use the [OBP Hola App](https://github.com/OpenBankProject/OBP-Hydra-OAuth2) as an example / starting point for your App.
 |
  """)
 
