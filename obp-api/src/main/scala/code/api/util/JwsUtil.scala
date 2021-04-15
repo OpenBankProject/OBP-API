@@ -4,7 +4,6 @@ import java.security.interfaces.RSAPublicKey
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util
-import java.util.Set
 
 import code.api.util.X509.validate
 import com.nimbusds.jose.crypto.RSASSAVerifier
@@ -131,7 +130,7 @@ object JwsUtil {
   }
   
 
-  private def getPem(requestHeaders: List[HTTPParam]): String = {
+  def getPem(requestHeaders: List[HTTPParam]): String = {
     val xJwsSignature = getJwsHeaderValue(requestHeaders)
     val jwsProtectedHeaderAsString = JWSObject.parse(xJwsSignature).getHeader().toString()
     val x5c = json.parse(jwsProtectedHeaderAsString).extractOpt[JwsProtectedHeader] match {
@@ -145,135 +144,77 @@ object JwsUtil {
        |""".stripMargin
   }
 
-  def signResponse(body: Box[String], verb: String, url: String): List[HTTPParam] = {
+  private def signRequestResponseCommon(body: Box[String], verb: String, url: String, requestResponse: String) = {
     val digest = "SHA-256=" + computeDigest(body.getOrElse(""))
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
-    val  detachedPayload: Payload = new Payload(
-      s"""(status-line): ${verb.toLowerCase} ${url}
+    val detachedPayload: Payload = new Payload(
+      s"""($requestResponse): ${verb.toLowerCase} ${url}
          |host: ${APIUtil.getPropsValue("hostname", "")}
          |content-type: application/json
          |psu-ip-address: 192.168.8.78
          |psu-geo-location: GEO:52.506931,13.144558
-         |digest: SHA-256=$digest
+         |digest: $digest
          |""".stripMargin)
 
-    val sigD = """{
-                 |    "pars": [
-                 |      "(status-line)",
-                 |      "host",
-                 |      "content-type",
-                 |      "psu-ip-address",
-                 |      "psu-geo-location",
-                 |      "digest"
-                 |    ],
-                 |    "mId": "http://uri.etsi.org/19182/HttpHeaders"
-                 |  }
-                 |  """.stripMargin
-    // We create the time in next format: '2011-12-03T10:15:30Z' 
-    val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
-    val criticalParams: Set[String] = new util.HashSet[String]()
-    criticalParams.add("b64")
-    criticalParams.addAll(getDeferredCriticalHeaders)
-    // Create and sign JWS
-    val jwsProtectedHeader: JWSHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
-      .base64URLEncodePayload(false)
-      .x509CertChain(List(new com.nimbusds.jose.util.Base64(CertificateUtil.x5c)).asJava)
-      .criticalParams(criticalParams)
-      .customParam("sigT", sigT)
-      .customParam("sigD", JSONObjectUtils.parse(sigD))
-      .build();
-    val jwsObject: JWSObject = new JWSObject(jwsProtectedHeader, detachedPayload)
-    
-
-    // Compute the RSA signature
-    jwsObject.sign(CertificateUtil.rsaSigner)
-
-    val isDetached = true
-    val jws: String = jwsObject.serialize(isDetached)
-    
-    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest)))
-    
-  }
-  
-  def signRequest(body: Box[String], verb: String, url: String): List[HTTPParam] = {
-    val digest = computeDigest(body.getOrElse(""))
-    // The payload which will not be encoded and must be passed to
-    // the JWS consumer in a detached manner
-    val  detachedPayload: Payload = new Payload(
-      s"""(request-target): ${verb.toLowerCase} ${url}
-         |host: ${APIUtil.getPropsValue("hostname", "")}
-         |content-type: application/json
-         |psu-ip-address: 192.168.8.78
-         |psu-geo-location: GEO:52.506931,13.144558
-         |digest: SHA-256=$digest
-         |""".stripMargin)
-
-    val sigD = """{
-                 |    "pars": [
-                 |      "(request-target)",
-                 |      "host",
-                 |      "content-type",
-                 |      "psu-ip-address",
-                 |      "psu-geo-location",
-                 |      "digest"
-                 |    ],
-                 |    "mId": "http://uri.etsi.org/19182/HttpHeaders"
-                 |  }
-                 |  """.stripMargin
-    // We create the time in next format: '2011-12-03T10:15:30Z' 
-    val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
-    val criticalParams: Set[String] = new util.HashSet[String]()
-    criticalParams.add("b64")
-    criticalParams.addAll(getDeferredCriticalHeaders)
-    // Create and sign JWS
-    val jwsProtectedHeader: JWSHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
-      .base64URLEncodePayload(false)
-      .x509CertChain(List(new com.nimbusds.jose.util.Base64(CertificateUtil.x5c)).asJava)
-      .criticalParams(criticalParams)
-      .customParam("sigT", sigT)
-      .customParam("sigD", JSONObjectUtils.parse(sigD))
-      .build();
-    val jwsObject: JWSObject = new JWSObject(jwsProtectedHeader, detachedPayload)
-
-    // Compute the RSA signature
-    jwsObject.sign(CertificateUtil.rsaSigner)
-
-    val isDetached = true
-    val jws: String = jwsObject.serialize(isDetached)
-    
-    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List("SHA-256=" + digest)))
-    
-  }
-
-  def main(args: Array[String]): Unit = {
-
-    val httpBody =
+    val sigD =
       s"""{
-         |"instructedAmount": {"currency": "EUR", "amount": "123.50"},
-         |"debtorAccount": {"iban": "DE40100100103307118608"},
-         |"creditorName": "Merchant123",
-         |"creditorAccount": {"iban": "DE02100100109307118603"},
-         |"remittanceInformationUnstructured": "Ref Number Merchant"
-         |}
-         |""".stripMargin
-    
-    
-    // x-jws-signature and digest
-    val httpParams = signRequest(Full(httpBody), "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
+        |    "pars": [
+        |      "($requestResponse)",
+        |      "host",
+        |      "content-type",
+        |      "psu-ip-address",
+        |      "psu-geo-location",
+        |      "digest"
+        |    ],
+        |    "mId": "http://uri.etsi.org/19182/HttpHeaders"
+        |  }
+        |  """.stripMargin
+    // We create the time in next format: '2011-12-03T10:15:30Z' 
+    val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+    val criticalParams: util.Set[String] = new util.HashSet[String]()
+    criticalParams.add("b64")
+    criticalParams.addAll(getDeferredCriticalHeaders)
+    // Create and sign JWS
+    val jwsProtectedHeader: JWSHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
+      .base64URLEncodePayload(false)
+      .x509CertChain(List(new com.nimbusds.jose.util.Base64(CertificateUtil.x5c)).asJava)
+      .criticalParams(criticalParams)
+      .customParam("sigT", sigT)
+      .customParam("sigD", JSONObjectUtils.parse(sigD))
+      .build();
+    val jwsObject: JWSObject = new JWSObject(jwsProtectedHeader, detachedPayload)
 
-    // Hard-coded request headers
-    val requestHeaders = List(
-      HTTPParam("host", List(APIUtil.getPropsValue("hostname", ""))),
-      HTTPParam("content-type", List("application/json")),
-      HTTPParam("psu-ip-address", List("192.168.8.78")),
-      HTTPParam("psu-geo-location", List("GEO:52.506931,13.144558")),
-    ) ::: httpParams
 
-    validate(getPem(requestHeaders))
-    val isVerified = verifyJws(CertificateUtil.rsaPublicKey, httpBody, requestHeaders, "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
-    org.scalameta.logger.elem(isVerified)
-    
+    // Compute the RSA signature
+    jwsObject.sign(CertificateUtil.rsaSigner)
+
+    val isDetached = true
+    val jws: String = jwsObject.serialize(isDetached)
+
+    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest)))
+  }
+
+  /**
+   * This function signs request we send to a TPP app.
+   * @param body HTTP body of an request 
+   * @param verb HTTP method of an request
+   * @param url HTTP relative path of an request 
+   * @return Request header params: x-jws-signature and digest
+   */
+  def signResponse(body: Box[String], verb: String, url: String): List[HTTPParam] = {
+    signRequestResponseCommon(body, verb, url, "status-line")
+  }
+
+  /**
+   * This function simulates signing request at a TPP app.
+   * @param body HTTP body of an request 
+   * @param verb HTTP method of an request
+   * @param url HTTP relative path of an request 
+   * @return Request header params: x-jws-signature and digest
+   */
+  def signRequest(body: Box[String], verb: String, url: String): List[HTTPParam] = {
+    signRequestResponseCommon(body, verb, url, "request-target")
   }
   
 }
