@@ -6,6 +6,7 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import java.util
 
 import code.api.util.X509.validate
+import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.util.JSONObjectUtils
@@ -15,13 +16,14 @@ import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
+import org.scalameta.logger
 import sun.security.provider.X509Factory
 
 import scala.collection.immutable.{HashMap, List}
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 
-object JwsUtil {
+object JwsUtil extends MdcLoggable {
   implicit val formats = CustomJsonFormats.formats
   case class JwsProtectedHeader(b64: Boolean,
                                 `x5t#S256`: Option[String],
@@ -98,7 +100,13 @@ object JwsUtil {
     // Verify the RSA
     val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
     val isVerifiedJws = parsedJWSObject.verify(verifier)
-    isVerifiedJws && isVerifiedDigestHeader && verifySigningTime(jwsProtectedHeaderAsString)
+    val isVerifiedSigningTime = verifySigningTime(jwsProtectedHeaderAsString)
+    logger.debug("isVerifiedJws: " + isVerifiedJws)
+    logger.debug("isVerifiedDigestHeader" + isVerifiedDigestHeader)
+    logger.debug("isVerifiedSigningTime" + isVerifiedSigningTime)
+    logger.debug("xJwsSignature" + xJwsSignature)
+    logger.debug("DigestHeaderValue" + getDigestHeaderValue(requestHeaders))
+    isVerifiedJws && isVerifiedDigestHeader && isVerifiedSigningTime
   }
 
   /**
