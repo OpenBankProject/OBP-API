@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
+
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -43,6 +44,7 @@ import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.JwsUtil.getJwsHeaderValue
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
@@ -2684,9 +2686,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     /*************************************************************************************************************** */
 
     
-    resultWithRateLimiting map { // Verify signed request
-      x => JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, x)
-    } map { // Update Call Context
+    resultWithRateLimiting map { // Update Call Context
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
@@ -2786,7 +2786,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return Failure in case we exceeded rate limit
    */
   def anonymousAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
-    getUserAndSessionContextFuture(cc) map {
+    getUserAndSessionContextFuture(cc)  map { result =>
+      val url = result._2.map(_.url).getOrElse("None")
+      val verb = result._2.map(_.verb).getOrElse("None")
+      val body = result._2.flatMap(_.httpBody)
+      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+      // Verify signed request
+      JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
+    } map {
       result =>
         val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root").split(",").toList
         cc.resourceDocument.map(_.partialFunctionName) match {
@@ -2810,15 +2817,33 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def applicationAccess(cc: CallContext): Future[(Box[Consumer], Option[CallContext])] = {
+  /**
+   * This function is used to guard endpoints(APIs) which require at least Client Authentication.
+   * I.e you don't need to be logged in in order to make an request but the endpoint must know which client makes call.
+   * Client Authentication => we know which application.
+   * User Authentication => we know which user is logged in and via which application.
+   * @param cc Call Context of te current call
+   * @return Tuple (User, Call Context)
+   */
+  def applicationAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] = 
     getUserAndSessionContextFuture(cc) map { result =>
-      val consumer = if (result._2.isDefined) result._2.map(_.consumer).get else Empty
-      (
-        fullBoxOrException(consumer ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
-        result._2
-      )
+      val url = result._2.map(_.url).getOrElse("None")
+      val verb = result._2.map(_.verb).getOrElse("None")
+      val body = result._2.flatMap(_.httpBody)
+      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+      // Verify signed request if need be
+      JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
+    } map { result =>
+      result._1 match {
+        case Empty if result._2.flatMap(_.consumer).isDefined => // There is no error and Consumer is defined
+          result
+        case _ =>
+          (
+            fullBoxOrException(result._1 ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
+            result._2
+          )
+      }
     }
-  }
 
   def filterMessage(obj: Failure): String = {
     logger.debug("Failure: " + obj)
