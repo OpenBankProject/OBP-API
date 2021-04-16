@@ -5423,7 +5423,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagAccount, apiTagApi, apiTagNewStyle),
+      List(apiTagAccount, apiTagNewStyle),
       Some(List(canDeleteAccountCascade)))
 
     lazy val deleteAccountCascade : OBPEndpoint = {
