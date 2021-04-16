@@ -74,6 +74,10 @@ object JwsUtil {
   def getJwsHeaderValue(requestHeaders: List[HTTPParam]): String = {
     requestHeaders.find(_.name == "x-jws-signature").map(_.values.mkString).getOrElse("None")
   }
+  def checkRequestIsSigned(requestHeaders: List[HTTPParam]): Boolean = {
+    requestHeaders.find(_.name == "x-jws-signature").isDefined ||
+    requestHeaders.find(_.name == "digest").isDefined
+  }
   def createDigestHeader(input: String): String = s"digest: SHA-256=$input"
   private def getDeferredCriticalHeaders() = {
     val deferredCriticalHeaders  = new util.HashSet[String]()
@@ -108,14 +112,19 @@ object JwsUtil {
    */
   def verifySignedRequest(body: Box[String], verb: String, url: String, reqHeaders: List[HTTPParam], forwardResult: (Box[User], Option[CallContext])) = {
     if(forceVerifyRequestSignResponse(url)){
-      val pem: String = getPem(forwardResult._2.map(_.requestHeaders).getOrElse(Nil))
-      X509.validate(pem) match {
-        case Full(true) => // PEM certificate is ok
-          val jwkPublic: JWK = X509.pemToRsaJwk(pem)
-          val isVerified = JwsUtil.verifyJws(jwkPublic.toRSAKey.toRSAPublicKey, body.getOrElse(""), reqHeaders, verb, url)
-          if (isVerified) forwardResult else (Failure(ErrorMessages.X509PublicKeyCannotVerify), forwardResult._2)
-        case Failure(msg, t, c) => (Failure(msg, t, c), forwardResult._2) // PEM certificate is not valid
-        case _ => (Failure(ErrorMessages.X509GeneralError), forwardResult._2) // PEM certificate cannot be validated
+      checkRequestIsSigned(forwardResult._2.map(_.requestHeaders).getOrElse(Nil)) match {
+        case false => 
+          (Failure(ErrorMessages.X509RequestIsNotSigned), forwardResult._2)
+        case true =>
+          val pem: String = getPem(forwardResult._2.map(_.requestHeaders).getOrElse(Nil))
+          X509.validate(pem) match {
+            case Full(true) => // PEM certificate is ok
+              val jwkPublic: JWK = X509.pemToRsaJwk(pem)
+              val isVerified = JwsUtil.verifyJws(jwkPublic.toRSAKey.toRSAPublicKey, body.getOrElse(""), reqHeaders, verb, url)
+              if (isVerified) forwardResult else (Failure(ErrorMessages.X509PublicKeyCannotVerify), forwardResult._2)
+            case Failure(msg, t, c) => (Failure(msg, t, c), forwardResult._2) // PEM certificate is not valid
+            case _ => (Failure(ErrorMessages.X509GeneralError), forwardResult._2) // PEM certificate cannot be validated
+          }
       }
     } else {
       forwardResult
