@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util
 
-import code.api.util.X509.validate
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.JWK
@@ -16,7 +15,6 @@ import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
-import org.scalameta.logger
 import sun.security.provider.X509Factory
 
 import scala.collection.immutable.{HashMap, List}
@@ -101,11 +99,13 @@ object JwsUtil extends MdcLoggable {
     val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
     val isVerifiedJws = parsedJWSObject.verify(verifier)
     val isVerifiedSigningTime = verifySigningTime(jwsProtectedHeaderAsString)
-    logger.debug("isVerifiedJws: " + isVerifiedJws)
-    logger.debug("isVerifiedDigestHeader" + isVerifiedDigestHeader)
-    logger.debug("isVerifiedSigningTime" + isVerifiedSigningTime)
-    logger.debug("xJwsSignature" + xJwsSignature)
-    logger.debug("DigestHeaderValue" + getDigestHeaderValue(requestHeaders))
+    logger.debug("JWS Protected Header: " + jwsProtectedHeaderAsString)
+    logger.debug("Rebuilt Detached Payload: " + rebuiltDetachedPayload)
+    logger.debug("Is Verified Jws: " + isVerifiedJws)
+    logger.debug("Is Verified Digest Header: " + isVerifiedDigestHeader)
+    logger.debug("Is Verified Signing Time: " + isVerifiedSigningTime)
+    logger.debug("X-JWS-Signature: " + xJwsSignature)
+    logger.debug("Digest Header Value: " + getDigestHeaderValue(requestHeaders))
     isVerifiedJws && isVerifiedDigestHeader && isVerifiedSigningTime
   }
 
