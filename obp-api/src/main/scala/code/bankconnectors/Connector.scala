@@ -502,6 +502,7 @@ trait Connector extends MdcLoggable {
 
   def getBankAccountsHeldLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : Box[List[AccountHeld]]= Failure(setUnimplementedError)
   def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[AccountHeld]]]= Future {(Failure(setUnimplementedError), callContext)}
+  def getAccountsHeld(bankId: BankId, user: User, callContext: Option[CallContext]): OBPReturnType[Box[List[BankIdAccountId]]]= Future {(Failure(setUnimplementedError), callContext)}
 
   def checkBankAccountExistsLegacy(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
   def checkBankAccountExists(bankId : BankId, accountId : AccountId, callContext: Option[CallContext] = None) : OBPReturnType[Box[(BankAccount)]] = Future {(Failure(setUnimplementedError), callContext)}
@@ -1104,7 +1105,7 @@ trait Connector extends MdcLoggable {
     }
   }
 
-  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext] = None) : Box[(List[TransactionRequest], Option[CallContext])] = {
+  def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext]) : Box[(List[TransactionRequest], Option[CallContext])] = {
     val transactionRequests =
       for {
         transactionRequests <- getTransactionRequestsImpl210(fromAccount)
@@ -2343,4 +2344,28 @@ trait Connector extends MdcLoggable {
 
   def deleteCustomerAttribute(customerAttributeId: String,
                            callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+
+
+  /**
+   * this method is used to validate the UserAuthContextUpdateRequest. OBP will do the followings in connector level:
+   * 1st: check if the `real` bank customer is existing to search for this key-value pair. If not found, we will throw exception.
+   *    if it is `CUSTOMERB_NUMBER: 1234`,then we will check the customer by customer_number. 
+   *    if it is `PASSPORT_NUMBER:1234`, then we will check the customer by passport_number. 
+   * 2rd: create the UserAuthContextUpdateRequestChallenge  
+   * 
+   * 3rd: send the Challenge to the user by email/phone .....
+   * 
+   * @return
+   */
+  def validateUserAuthContextUpdateRequest(
+    bankId: String,
+    userId: String,
+    key: String,
+    value: String,
+    scaMethod: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[UserAuthContextUpdate]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = Future{(Failure(setUnimplementedError), callContext)}
+
 }

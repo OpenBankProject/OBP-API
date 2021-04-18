@@ -87,6 +87,7 @@ class MappedClassNameTest extends FeatureSpec {
       "code.branches.MappedBranch",
       "code.scope.MappedUserScope",
       "code.context.MappedUserAuthContext",
+      "code.context.MappedConsentAuthContext",
       "code.model.dataAccess.ViewImpl",
       "code.metadata.counterparties.MappedCounterpartyMetadata",
       "code.transaction_types.MappedTransactionType",

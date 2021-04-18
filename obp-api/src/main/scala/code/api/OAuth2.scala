@@ -247,10 +247,11 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       val issuer = JwtUtil.getIssuer(idToken).getOrElse("")
       Users.users.vend.getOrCreateUserByProviderIdFuture(
         provider = issuer, 
-        idGivenByProvider = subject, 
+        idGivenByProvider = subject,
+        consentId = None, 
         name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
         email = getClaim(name = "email", idToken = idToken)
-      )
+      ).map(_._1)
     }
     /** Old Style Endpoints
       * This function creates user based on "iss" and "sub" fields
@@ -275,6 +276,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         Users.users.vend.createResourceUser( // Otherwise create a new one
           provider = issuer,
           providerId = Some(subject),
+          None,
           name = getClaim(name = "given_name", idToken = idToken).orElse(Some(subject)),
           email = getClaim(name = "email", idToken = idToken),
           userId = None

@@ -10,6 +10,7 @@ import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
 import code.customer.CustomerX
 import code.model.{Consumer, _}
+import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
@@ -47,8 +48,8 @@ case class CallContext(
                        `X-Rate-Limit-Limit` : Long = -1,
                        `X-Rate-Limit-Remaining` : Long = -1,
                        `X-Rate-Limit-Reset` : Long = -1
-                      ) {
-
+                      ) extends MdcLoggable {
+  
   //This is only used to connect the back adapter. not useful for sandbox mode.
   def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
     for{
@@ -124,16 +125,6 @@ case class CallContext(
       `X-Rate-Limit-Remaining` = this.`X-Rate-Limit-Remaining`,
       `X-Rate-Limit-Reset` = this.`X-Rate-Limit-Reset`
     )
-  }
-  /**
-    * Purpose of this helper function is to get the Consent-JWT value from a Request Headers.
-    * @return the Consent-JWT value from a Request Header as a String
-    */
-  def getConsentId(): Option[String] = {
-    APIUtil.getConsentJWT(this.requestHeaders)
-  }
-  def hasConsentId(): Boolean = {
-    APIUtil.hasConsentJWT(this.requestHeaders)
   }
 
   // for endpoint body convenient get userId

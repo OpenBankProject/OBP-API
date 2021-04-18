@@ -1,14 +1,19 @@
 package code.api.util
 
-import java.io.FileInputStream
+import java.io.{FileInputStream, IOException}
+import java.security.cert.{Certificate, CertificateException, X509Certificate}
 import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
 import java.security.{PublicKey, _}
 
 import code.api.util.CryptoSystem.CryptoSystem
+import code.api.util.SelfSignedCertificateUtil.generateSelfSignedCert
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose._
-import com.nimbusds.jose.crypto.{MACSigner, RSAEncrypter}
+import com.nimbusds.jose.crypto.{MACSigner, RSAEncrypter, RSASSASigner}
+import com.nimbusds.jose.util.X509CertUtils
 import com.nimbusds.jwt.{EncryptedJWT, JWTClaimsSet}
+import net.liftweb.util.Props
+import org.bouncycastle.operator.OperatorCreationException
 
 
 object CryptoSystem extends Enumeration {
@@ -56,6 +61,32 @@ object CertificateUtil extends MdcLoggable {
     else throw new RuntimeException("No private key")
   }
 
+  @throws[IOException]
+  @throws[NoSuchAlgorithmException]
+  @throws[CertificateException]
+  @throws[RuntimeException]
+  def getKeyStoreCertificate() = {
+    val jkspath = APIUtil.getPropsValue("keystore.path").getOrElse("")
+    val jkspasswd = APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd)
+    val keypasswd = APIUtil.getPropsValue("keystore.passphrase").getOrElse(APIUtil.initPasswd)
+    val alias = APIUtil.getPropsValue("keystore.alias").getOrElse("")
+    val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
+    val inputStream = new FileInputStream(jkspath)
+    keyStore.load(inputStream, jkspasswd.toArray)
+    inputStream.close()
+    val privateKey: Key = keyStore.getKey(alias, keypasswd.toCharArray())
+    if (privateKey.isInstanceOf[PrivateKey]) {
+      // Get certificate of public key
+      val cert: java.security.cert.Certificate = keyStore.getCertificate(alias)
+
+      // Return a private key and certificate
+      (privateKey, cert)
+    }
+    else throw new RuntimeException("No private key")
+    
+  }
+  
+
   @throws[NoSuchAlgorithmException]
   def buildKeyPair(cryptoSystem: CryptoSystem): KeyPair = {
     val keySize = 2048
@@ -71,7 +102,26 @@ object CertificateUtil extends MdcLoggable {
       .keyUse(KeyUse.SIGNATURE)
       .keyIDFromThumbprint()
       .build()
-    jwk.toJSONObject.toJSONString()
+    jwk.toJSONString()
+  }  
+  lazy val (rsaSigner, x5c, rsaPublicKey) = {
+    val (privateKey: PrivateKey, certificate: Certificate) =
+      Props.mode match {
+        case Props.RunModes.Development | Props.RunModes.Test => generateSelfSignedCert("test.tesobe.com")
+        case _ => getKeyStoreCertificate
+      }
+    val publicKey: RSAPublicKey = certificate.getPublicKey.asInstanceOf[RSAPublicKey]
+    import com.nimbusds.jose.jwk._
+    // Convert to JWK format
+    val jwk: RSAKey  = new RSAKey.Builder(publicKey)
+      .privateKey(privateKey.asInstanceOf[RSAPrivateKey])
+      .keyUse(KeyUse.SIGNATURE)
+      .keyIDFromThumbprint()
+      .build()
+    val x5c = X509CertUtils.toPEMString(certificate.asInstanceOf[X509Certificate], false)
+      .replace(X509CertUtils.PEM_BEGIN_MARKER, "")
+      .replace(X509CertUtils.PEM_END_MARKER, "")
+    (new RSASSASigner(jwk), x5c, publicKey)
   }
   
 

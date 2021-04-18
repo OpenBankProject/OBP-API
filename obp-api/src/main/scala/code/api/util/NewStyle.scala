@@ -2,9 +2,11 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
+import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
 import code.api.util.APIUtil.{EntitlementAndScopeStatus, JsonResponseExtractor, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
@@ -271,6 +273,17 @@ object NewStyle {
     def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[BankAccount]] = {
       Connector.connector.vend.getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
+      }
+    }
+    
+    def getAccountListOfBerlinGroup(user : User, callContext: Option[CallContext]): OBPReturnType[List[BankIdAccountId]] = {
+      val viewIds = List(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID))
+      Views.views.vend.getPrivateBankAccountsFuture(user, viewIds) map { i =>
+        if(i.isEmpty) {
+          (unboxFullOrFail(Empty, callContext, NoViewReadAccountsBerlinGroup , 403), callContext)
+        } else {
+          (i, callContext )
+        }
       }
     }
 
@@ -1703,10 +1716,14 @@ object NewStyle {
         }
       }
 
-    def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] =
-    {
+    def getBankAccountsHeldFuture(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[List[AccountHeld]] = {
       Connector.connector.vend.getBankAccountsHeld(bankIdAccountIds, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Cannot ${nameOf(getBankAccountsHeldFuture(bankIdAccountIds, callContext))} in the backend. ", 400), i._2)
+      }
+    }
+    def getAccountsHeld(bankId: BankId, user: User, callContext: Option[CallContext]): OBPReturnType[List[BankIdAccountId]] = {
+      Connector.connector.vend.getAccountsHeld(bankId, user, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Cannot ${nameOf(getAccountsHeld(bankId, user, callContext))} in the backend. ", 400), i._2)
       }
     }
 
@@ -2353,7 +2370,7 @@ object NewStyle {
     }
 
     private[this] val dynamicEntityTTL = {
-      if(Props.testMode) 0
+      if(Props.testMode || Props.devMode) 0
       else APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "30").toInt
     }
 
@@ -2692,6 +2709,14 @@ object NewStyle {
     def getApiCollectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
       Future(MappedApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
     }
+
+    def getFeaturedApiCollections(callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
+      //we get the getFeaturedApiCollectionIds from props, and remove the deplication there.
+      val featuredApiCollectionIds =  APIUtil.getPropsValue("featured_api_collection_ids","").split(",").map(_.trim).toSet.toList
+      //We filter the isDefined and is isSharable collections.
+      val apiCollections = featuredApiCollectionIds.map(MappedApiCollectionsProvider.getApiCollectionById).filter(_.isDefined).filter(_.head.isSharable).map(_.head)
+      Future{(apiCollections, callContext)}
+    }
     
     def createApiCollection(
       userId: String,
@@ -2953,6 +2978,17 @@ object NewStyle {
         val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.deleteById(dynamicMessageDocId)
         (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocDeleteError", 400), callContext)
       }
-    
+
+    def validateUserAuthContextUpdateRequest(bankId: String, userId: String, key: String, value: String, scaMethod: String, callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
+      Connector.connector.vend.validateUserAuthContextUpdateRequest(bankId, userId, key, value, scaMethod, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
+    def checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]):  OBPReturnType[UserAuthContextUpdate] = {
+      Connector.connector.vend.checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
   }
 }

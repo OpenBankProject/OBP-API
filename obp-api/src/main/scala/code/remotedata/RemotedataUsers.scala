@@ -35,8 +35,8 @@ object RemotedataUsers extends ObpActorInit with Users {
   def getUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]] =
     (actor ? cc.getUserByProviderIdFuture(provider, idGivenByProvider)).mapTo[Box[User]]
 
-  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Future[Box[User]] =
-    (actor ? cc.getOrCreateUserByProviderIdFuture(provider, idGivenByProvider, name, email)).mapTo[Box[User]]
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, createdByConsentId: Option[String], name: Option[String], email: Option[String]) : Future[(Box[User], Boolean)] =
+    (actor ? cc.getOrCreateUserByProviderIdFuture(provider, idGivenByProvider, createdByConsentId, name, email)).mapTo[(Box[User], Boolean)]
 
   def getUserByUserId(userId : String) : Box[User] = getValueFromFuture(
     (actor ? cc.getUserByUserId(userId)).mapTo[Box[User]]
@@ -71,8 +71,8 @@ object RemotedataUsers extends ObpActorInit with Users {
     res.mapTo[List[(ResourceUser, Box[List[Entitlement]])]]
   }
 
-  def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = getValueFromFuture(
-    (actor ? cc.createResourceUser(provider, providerId, name, email, userId)).mapTo[Box[ResourceUser]]
+  def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = getValueFromFuture(
+    (actor ? cc.createResourceUser(provider, providerId, createdByConsentId, name, email, userId)).mapTo[Box[ResourceUser]]
   )
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = getValueFromFuture(

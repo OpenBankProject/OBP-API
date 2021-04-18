@@ -1,0 +1,52 @@
+<!--
+Open Bank Project - API
+Copyright (C) 2011-2017, TESOBE GmbH
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Sebastian Henschel : sebastian AT tesobe DOT com
+-->
+
+<div data-lift="surround?with=default;at=content">
+    <div id="confirm-user-auth-context-update-request-div" data-lift="UserOnBoarding.confirmUserAuthContextUpdateRequest">
+        <form class="login" method="post">
+            <div class="form-group">
+                <h3>Please enter the One Time Password (OTP) that we just sent to you</h3>
+                <p>Please check your phone or email for the value to enter.</p>
+                <input class="form-control" id="otp-value" type="text" value="123" tabindex="0" autofocus
+                       autocomplete="off" aria-label="One Time Password"/>
+                <div id="otp-value-error-div" class="alert alert-danger hide">
+                    <span class="lift:Msg?id=otp-value-error&errorClass=error">error</span>
+                </div>
+            </div>
+
+            <div class="row">
+                <input id="authorise-submit-button" class="btn btn-danger pull-right" type="submit" value="Submit"
+                       tabindex="0"/>
+            </div>
+            <br>
+
+        </form>
+    </div>
+</div>
+

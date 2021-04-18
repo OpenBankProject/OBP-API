@@ -28,7 +28,7 @@ package code.snippet
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.StartPaymentAuthorisationJson
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.{startPaymentAuthorisation, updatePaymentPsuData}
-import code.api.util.APIUtil.OBPEndpoint
+import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.FutureTimeoutException
 import code.api.util.{CallContext, CustomJsonFormats}
 import code.api.v2_1_0.TransactionRequestWithChargeJSON210
@@ -199,53 +199,4 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
 
   }
 
-  /**
-    * call an endpoint method
-    * @param endpoint endpoint method
-    * @param endpointPartPath endpoint method url slices, it is for endpoint the first case expression
-    * @param requestType http request method
-    * @param requestBody http request body
-    * @param addlParams append request parameters
-    * @return result of call endpoint method
-    */
-  def callEndpoint(endpoint: OBPEndpoint, endpointPartPath: List[String], requestType: RequestType, requestBody: String = "", addlParams: Map[String, String] = Map.empty): Either[(String, Int), String] = {
-    val req: Req = S.request.openOrThrowException("no request object can be extract.")
-    val pathOrigin = req.path
-    val forwardPath = pathOrigin.copy(partPath = endpointPartPath)
-
-    val body = Full(BodyOrInputStream(IOUtils.toInputStream(requestBody)))
-
-    val paramCalcInfo = ParamCalcInfo(req.paramNames, req._params, Nil, body)
-    val newRequest = new Req(forwardPath, req.contextPath, requestType, Full("application/json"), req.request, req.nanoStart, req.nanoEnd, false, () => paramCalcInfo, addlParams)
-
-    val user = AuthUser.getCurrentUser
-    val result = tryo {
-      endpoint(newRequest)(CallContext(user = user))
-    }
-
-    val func: ((=> LiftResponse) => Unit) => Unit = result match {
-      case Failure("Continuation", Full(continueException), _) => ReflectUtils.getCallByNameValue(continueException, "f").asInstanceOf[((=> LiftResponse) => Unit) => Unit]
-      case _ => null
-    }
-
-    val future = new LAFuture[LiftResponse]
-    val satisfyFutureFunction: (=> LiftResponse) => Unit = liftResponse => future.satisfy(liftResponse)
-    func(satisfyFutureFunction)
-
-    val timeoutOfEndpointMethod = 10 * 1000L // endpoint is async, but html template must not async, So here need wait for endpoint value.
-
-    future.get(timeoutOfEndpointMethod) match {
-      case Full(JsonResponse(jsExp, _, _, code)) if (code.toString.startsWith("20")) => Right(jsExp.toJsCmd)
-      case Full(JsonResponse(jsExp, _, _, code)) => {
-        val message = json.parse(jsExp.toJsCmd)
-          .asInstanceOf[JObject]
-          .obj
-          .find(_.name == "message")
-          .map(_.value.asInstanceOf[JString].s)
-          .getOrElse("")
-        Left((message, code))
-      }
-      case Empty => Left((FutureTimeoutException, 500))
-    }
-  }
 }

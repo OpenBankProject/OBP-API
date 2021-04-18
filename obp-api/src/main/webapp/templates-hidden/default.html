@@ -86,34 +86,6 @@ Berlin 13359, Germany
 			</table>
 			<div id="table-header-script" data-lift="WebUI.headerContentLoader"></div>
 			<div id="messages-container" data-lift="Msgs"></div>
-			<script>
-			  $(function() {
-				  toastr.options = {
-					  "closeButton": true,
-					  "debug": false,
-					  "newestOnTop": false,
-					  "progressBar": false,
-					  "positionClass": "toast-top-right",
-					  "preventDuplicates": false,
-					  "onclick": null,
-					  "showDuration": 0,
-					  "hideDuration": 0,
-					  "timeOut": 0,
-					  "extendedTimeOut": 0,
-					  "showEasing": "swing",
-					  "hideEasing": "linear",
-					  "showMethod": "fadeIn",
-					  "hideMethod": "fadeOut",
-					  "tapToDismiss": false
-				  }
-				if(notice = $("#lift__noticesContainer___error").text()) {
-				  toastr.error(notice, "Error. ")
-				}
-				else if(notice = $("#lift__noticesContainer__").text()) {
-				  toastr.success(notice, "Success. ")
-				}
-			  })
-			</script>
 		</header>
 		<a class="sr-only sr-only-focusable" href ="#main" id="index-page">Skip to main content</a>
 		<a class="sr-only sr-only-focusable" href ="#register-consumer" id="consumer-registration-page">Skip to main content</a>
@@ -237,6 +209,9 @@ Berlin 13359, Germany
 					</li>
 					<li>
 						<a class="sofi-link" data-lift="WebUI.sofiLink" href="">Sofit</a>
+					</li>
+					<li>
+						<a href="/user_mgt/sign_up?after-signup=link-to-customer" class="navbar-btn" id ="register-link">On Board</a>
 					</li>
 					<li>
 						<a class="api-link" data-lift="WebUI.apiLinkHuman" href="">This API Host</a>

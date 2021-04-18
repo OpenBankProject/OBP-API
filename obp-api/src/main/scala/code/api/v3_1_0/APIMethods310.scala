@@ -3650,10 +3650,6 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents",
       "Get Consents",
       s"""
-         |$generalObpConsentText
-         |
-         |
-         |
          |This endpoint gets the Consents that the current User created.
         |
         |${authenticationRequiredMessage(true)}
@@ -3689,9 +3685,6 @@ trait APIMethods310 {
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
       s"""
-        |$generalObpConsentText
-        |
-        |
         |Revoke Consent for current user specified by CONSENT_ID
         |
         |
@@ -3771,21 +3764,9 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
-            (_, callContext) <- NewStyle.function.findByUserId(user.userId, callContext)
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.value, bankId, callContext)
-            (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(user.userId, postedData.key, postedData.value, callContext)
+            (userAuthContextUpdate, callContext) <- NewStyle.function.validateUserAuthContextUpdateRequest(bankId.value, user.userId, postedData.key, postedData.value, scaMethod, callContext)
           } yield {
-            scaMethod match {
-              case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-                val params = PlainMailBodyType(userAuthContextUpdate.challenge) :: List(To(customer.email))
-                Mailer.sendMail(
-                  From("challenge@tesobe.com"),
-                  Subject("Challenge request"),
-                  params :_*
-                )
-              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
-              case _ => // Not handled
-            }
+
             (JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`201`(callContext))
           }
       }
@@ -3821,9 +3802,7 @@ trait APIMethods310 {
             postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextUpdateJsonV310]
             }
-            userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer) map {
-              i => connectorEmptyResponse(i, callContext)
-            }
+            (userAuthContextUpdate, callContext) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, callContext)
             (_, callContext) <-
               userAuthContextUpdate.status match {
                 case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString => 
@@ -4150,19 +4129,22 @@ trait APIMethods310 {
         |
         |${authenticationRequiredMessage(true)}
         |
-        |Explaination of Fields:
+        |Explanation of Fields:
         |
         |* method_name is required String value, current supported value: $supportedConnectorNames
         |* connector_name is required String value
         |* is_bank_id_exact_match is required boolean value, if bank_id_pattern is exact bank_id value, this value is true; if bank_id_pattern is null or a regex, this value is false
         |* bank_id_pattern is optional String value, it can be null, a exact bank_id or a regex
-        |* parameters is optional array of key value pairs. You can set some paremeters for this method
+        |* parameters is optional array of key value pairs. You can set some parameters for this method
         |
-        |note:
+        |note and CAVEAT!:
         |
+        |* bank_id_pattern has to be empty for methods that do not take bank_id as a function parameter, otherwise might get empty result
+        |* methods that aggregate bank objects (e.g. getBankAccountsForUser) have to take any  existing method routings for these objects into consideration
+        |* so if you create e.g. a bank specific method routing for getting an account, make sure that it is also served by endpoints getting ALL accounts for ALL banks
         |* if bank_id_pattern is regex, special characters need to do escape, for example: bank_id_pattern = "some\\-id_pattern_\\d+"
         |
-        |If connector name start with rest, parameters can contain "outBoundMapping" and "inBoundMapping", convert OutBound and InBound json structure.
+        |If the connector name starts with rest, parameters can contain "outBoundMapping" and "inBoundMapping", convert OutBound and InBound json structure.
         |for example:
         | outBoundMapping example, convert json from source to target:
         |![Snipaste_outBoundMapping](https://user-images.githubusercontent.com/2577334/75248007-33332e00-580e-11ea-8d2a-d1856035fa24.png)
@@ -4221,7 +4203,12 @@ trait APIMethods310 {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              //If connectorName = "internal", it mean the dynamic connector methods.
+              //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
+              if(connectorName == "internal")
+                NewStyle.function.getConnectorMethod("mapped", methodName).isDefined
+              else
+                NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             invalidRegexMsg = s"$InvalidBankIdRegex The bankIdPattern is invalid regex, bankIdPatten: ${postedData.bankIdPattern.orNull} "
             _ <- NewStyle.function.tryons(invalidRegexMsg, 400, callContext) {
@@ -4320,7 +4307,12 @@ trait APIMethods310 {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
             _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
-              NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
+              //If connectorName = "internal", it mean the dynamic connector methods.
+              //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
+              if(connectorName == "internal")
+                NewStyle.function.getConnectorMethod("mapped", methodName).isDefined
+              else
+                NewStyle.function.getConnectorMethod(connectorName, methodName).isDefined
             }
             (_, _) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
 
@@ -4368,6 +4360,7 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getMethodRoutingById(methodRoutingId, callContext)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteMethodRouting, callContext)
             deleted: Box[Boolean] <- NewStyle.function.deleteMethodRouting(methodRoutingId)
           } yield {

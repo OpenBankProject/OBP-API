@@ -33,7 +33,7 @@ trait Users {
 
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
   def getUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]]
-  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String]) : Future[Box[User]]
+  def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Future[(Box[User], Boolean)]
 
   //resourceuser has two ids: id(Long)and userid_(String), this method use userid_(String)
   def getUserByUserId(userId : String) : Box[User]
@@ -51,7 +51,7 @@ trait Users {
 
   def getAllUsersF(queryParams: List[OBPQueryParam]) : Future[List[(ResourceUser, Box[List[Entitlement]])]]
 
-  def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
+  def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 
@@ -68,7 +68,7 @@ class RemotedataUsersCaseClasses {
   case class getResourceUserByResourceUserIdFuture(id : Long)
   case class getUserByProviderId(provider : String, idGivenByProvider : String)
   case class getUserByProviderIdFuture(provider : String, idGivenByProvider : String)
-  case class getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, name: Option[String], email: Option[String])
+  case class getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, createdByConsentId: Option[String],name: Option[String], email: Option[String])
   case class getUserByUserId(userId : String)
   case class getUserByUserIdFuture(userId : String)
   case class getUsersByUserIdsFuture(userId : List[String])
@@ -78,7 +78,7 @@ class RemotedataUsersCaseClasses {
   case class getUserByEmailFuture(email : String)
   case class getAllUsers()
   case class getAllUsersF(queryParams: List[OBPQueryParam])
-  case class createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
+  case class createResourceUser(provider: String, providerId: Option[String],createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class saveResourceUser(resourceUser: ResourceUser)
   case class deleteResourceUser(userId: Long)

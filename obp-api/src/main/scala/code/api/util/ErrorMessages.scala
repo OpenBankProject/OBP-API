@@ -170,6 +170,8 @@ object ErrorMessages {
   val CouldNotGetUserLockStatus = "OBP-20059: Could not get the lock status of the user."
   val NoViewReadAccountsBerlinGroup = s"OBP-20060: User does not have access to the view $SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID."
   val NoAccountAccessOnView = "OBP-20061: Current user does not have access to the view "
+  val FrequencyPerDayError = "OBP-20062: Frequency per day must be greater than 0."
+  val FrequencyPerDayMustBeOneError = "OBP-20063: Frequency per day must be equal to 1 in case of one-off access."
 
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
@@ -197,6 +199,9 @@ object ErrorMessages {
   val X509CannotGetCertificate = "OBP-20306: PEM Encoded Certificate cannot be found at request header."
   val X509ActionIsNotAllowed = "OBP-20307: PEM Encoded Certificate does not provide the proper role for the action has been taken."
   val X509ThereAreNoPsd2Roles = "OBP-20308: PEM Encoded Certificate does not contain PSD2 roles."
+  val X509CannotGetPublicKey = "OBP-20309: Public key cannot be found in the PEM Encoded Certificate."
+  val X509PublicKeyCannotVerify = "OBP-20310: Certificate's public key cannot be used to verify signed request."
+  val X509RequestIsNotSigned = "OBP-20311: The Request is not signed."
   
   // OpenID Connect
   val CouldNotExchangeAuthorizationCodeForTokens = "OBP-20400: Could not exchange authorization code for tokens."
@@ -319,6 +324,8 @@ object ErrorMessages {
   val ApiCollectionAlreadyExisting = "OBP-30086: The ApiCollection is already Existing."
 
   val DoubleEntryTransactionNotFound = "OBP-30087: Double Entry Transaction not found."
+  
+  val InvalidAuthContextUpdateRequestKey = "OBP-30088: Invalid Auth Context Update Request Key."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

@@ -146,7 +146,7 @@ trait APIMethods300 {
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
         |
-        | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-(System)).
+        | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
         | """,
       SwaggerDefinitionsJSON.createViewJson,
       viewJsonV300,
@@ -2084,7 +2084,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            availableAccounts <- Future{ AccountHolders.accountHolders.vend.getAccountsHeld(bankId, u)}
+            (availableAccounts, callContext) <- NewStyle.function.getAccountsHeld(bankId, u, callContext)
             (accounts, callContext) <- NewStyle.function.getBankAccountsHeldFuture(availableAccounts.toList, callContext)
 
             accountHelds <- getFilteredCoreAccounts(availableAccounts.toList, req, callContext).map { it =>

@@ -10,6 +10,33 @@ $(window).resize(function() {
 	}
 });
 
+$(function() {
+	toastr.options = {
+		"closeButton": true,
+		"debug": false,
+		"newestOnTop": false,
+		"progressBar": false,
+		"positionClass": "toast-top-right",
+		"preventDuplicates": false,
+		"onclick": null,
+		"showDuration": 0,
+		"hideDuration": 0,
+		"timeOut": 0,
+		"extendedTimeOut": 0,
+		"showEasing": "swing",
+		"hideEasing": "linear",
+		"showMethod": "fadeIn",
+		"hideMethod": "fadeOut",
+		"tapToDismiss": false
+	};
+	if(notice = $("#lift__noticesContainer___error").text()) {
+		toastr.error(notice, "Error. ")
+	}
+	else if(notice = $("#lift__noticesContainer__").text()) {
+		toastr.success(notice, "Success. ")
+	}
+});
+
 function checkclick(){
 	if($("#agree").is(':checked') ){
 		$("#agree").attr("checked","unchecked");
@@ -343,6 +370,23 @@ $(document).ready(function() {
 	}else{
 		registerConsumerError.parent().addClass('hide');
 	}
-	
+
+	var addUserAuthContextUpdateRequestError = $('#add-user-auth-context-update-request-div #identifier-error');
+	var addUserAuthContextIdentifierKeyDiv = $('#add-user-auth-context-update-request-div #identifier-key');
+	var addUserAuthContextIdentifierValueDiv = $('#add-user-auth-context-update-request-div #identifier-value');
+	if (addUserAuthContextUpdateRequestError.length > 0 && addUserAuthContextUpdateRequestError.html().length > 0) {
+		addUserAuthContextUpdateRequestError.parent().removeClass('hide');
+		addUserAuthContextIdentifierValueDiv.css("border","1px solid #A8000B").css("background","#F9F2F3")
+		addUserAuthContextIdentifierKeyDiv.css("border","1px solid #A8000B").css("background","#F9F2F3")
+	}
+
+
+	var confirmUserAuthContextUpdateRequestError = $('#confirm-user-auth-context-update-request-div #otp-value-error');
+	var confirmUserAuthContextOtpValueDiv = $('#confirm-user-auth-context-update-request-div #otp-value');
+	if (confirmUserAuthContextUpdateRequestError.length > 0 && confirmUserAuthContextUpdateRequestError.html().length > 0) {
+		confirmUserAuthContextUpdateRequestError.parent().removeClass('hide');
+		confirmUserAuthContextOtpValueDiv.css("border","1px solid #A8000B").css("background","#F9F2F3")
+	}
+
 	showIndicatorCookiePage('cookies-consent');
 });
