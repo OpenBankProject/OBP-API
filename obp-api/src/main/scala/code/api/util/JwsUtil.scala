@@ -161,16 +161,20 @@ object JwsUtil extends MdcLoggable {
        |""".stripMargin
   }
 
-  private def signRequestResponseCommon(body: Box[String], verb: String, url: String, requestResponse: String) = {
+  private def signRequestResponseCommon(body: Box[String], verb: String, url: String, requestResponse: String): List[HTTPParam] = {
     val digest = "SHA-256=" + computeDigest(body.getOrElse(""))
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
+    val host = APIUtil.getPropsValue("hostname", "")
+    val psuIpAddress = "192.168.8.78"
+    val psuGeoLocation = "GEO:52.506931,13.144558"
+    val contentType = "application/json"
     val detachedPayload: Payload = new Payload(
       s"""($requestResponse): ${verb.toLowerCase} ${url}
-         |host: ${APIUtil.getPropsValue("hostname", "")}
-         |content-type: application/json
-         |psu-ip-address: 192.168.8.78
-         |psu-geo-location: GEO:52.506931,13.144558
+         |host: ${host}
+         |content-type: $contentType
+         |psu-ip-address: $psuIpAddress
+         |psu-geo-location: $psuGeoLocation
          |digest: $digest
          |""".stripMargin)
 
@@ -209,7 +213,13 @@ object JwsUtil extends MdcLoggable {
     val isDetached = true
     val jws: String = jwsObject.serialize(isDetached)
 
-    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest)))
+    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest))) :::
+    List(
+      HTTPParam("host", List(host)),
+      HTTPParam("content-type", List(contentType)),
+      HTTPParam("psu-ip-address", List(psuIpAddress)),
+      HTTPParam("psu-geo-location", List(psuGeoLocation)),
+    )
   }
 
   /**

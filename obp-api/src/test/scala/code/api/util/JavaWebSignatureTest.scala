@@ -46,12 +46,7 @@ class JavaWebSignatureTest extends V400ServerSetup {
       val httpParams = signRequest(Full(httpBody), "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
 
       // Hard-coded request headers
-      val requestHeaders = List(
-        HTTPParam("host", List(APIUtil.getPropsValue("hostname", ""))),
-        HTTPParam("content-type", List("application/json")),
-        HTTPParam("psu-ip-address", List("192.168.8.78")),
-        HTTPParam("psu-geo-location", List("GEO:52.506931,13.144558")),
-      ) ::: httpParams
+      val requestHeaders = httpParams
 
       validate(getPem(requestHeaders))
       val isVerified = verifyJws(CertificateUtil.rsaPublicKey, httpBody, requestHeaders, "post", "/berlin-group/v1.3/payments/sepa-credit-transfers")
