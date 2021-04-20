@@ -665,4 +665,10 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     APIUtil.getPropsValue("hello.world") should be("hello_foo_bar__good luck__")
   }
 
+  feature("test APIUtil.getObpFormatOperationId method") {
+    APIUtil.getObpFormatOperationId("OBPv4_0_0-dynamicEntity_deleteFooBar33") should be ("OBPv4.0.0-dynamicEntity_deleteFooBar33")
+    APIUtil.getObpFormatOperationId("OBPv3.0.0-getCoreAccountById") should be ("OBPv3.0.0-getCoreAccountById")
+    APIUtil.getObpFormatOperationId("xxx") should be ("xxx")
+  }
+
 }
