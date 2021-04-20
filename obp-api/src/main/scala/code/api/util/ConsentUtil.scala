@@ -121,11 +121,12 @@ object Consent {
     JwtUtil.verifyHmacSignedJwt(jwtToken, c.secret)
   }
 
-  private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, requestHeaderConsumerKey: Option[String]): Box[Boolean] = {
+  private def checkConsumerIsActiveAndMatched(consent: ConsentJWT, callContext: CallContext): Box[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
       case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active
         APIUtil.getPropsValue(nameOfProperty = "consumer_validation_method_for_consent", defaultValue = "CONSUMER_KEY_VALUE") match {
           case "CONSUMER_KEY_VALUE" =>
+            val requestHeaderConsumerKey = getConsumerKey(callContext.requestHeaders)
             requestHeaderConsumerKey match {
               case Some(reqHeaderConsumerKey) =>
                 if (reqHeaderConsumerKey == consumerFromConsent.key.get)
@@ -134,6 +135,15 @@ object Consent {
                   Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
               case None => Failure(ErrorMessages.ConsumerKeyHeaderMissing) // There is no header `Consumer-Key` in request headers
             }
+          case "CONSUMER_CERTIFICATE" =>
+            val clientCert: String = APIUtil.`getPSD2-CERT`(callContext.requestHeaders).getOrElse(SecureRandomUtil.csprng.nextLong().toString)
+            def removeBreakLines(input: String) = input
+              .replace("\n", "")
+              .replace("\r", "")
+            if (removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get))
+              Full(true) // This consent can be used by current application
+            else // This consent can NOT be used by current application
+              Failure(ErrorMessages.ConsentDoesNotMatchConsumer)
           case "NONE" => // This instance does not require validation method
             Full(true)
           case _ => // This instance does not specify validation method
@@ -146,7 +156,7 @@ object Consent {
     }
   }
 
-  private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, calContext: CallContext): Box[Boolean] = {
+  private def checkConsent(consent: ConsentJWT, consentIdAsJwt: String, callContext: CallContext): Box[Boolean] = {
     Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
       case Full(c) if c.mStatus == ConsentStatus.ACCEPTED.toString | c.mStatus == ConsentStatus.VALID.toString =>
         verifyHmacSignedJwt(consentIdAsJwt, c) match {
@@ -157,8 +167,7 @@ object Consent {
               case currentTimeInSeconds if currentTimeInSeconds > consent.exp =>
                 Failure(ErrorMessages.ConsentExpiredIssue)
               case _ =>
-                val requestHeaderConsumerKey = getConsumerKey(calContext.requestHeaders)
-                checkConsumerIsActiveAndMatched(consent, requestHeaderConsumerKey)
+                checkConsumerIsActiveAndMatched(consent, callContext)
             }
           case false =>
             Failure(ErrorMessages.ConsentVerificationIssue)

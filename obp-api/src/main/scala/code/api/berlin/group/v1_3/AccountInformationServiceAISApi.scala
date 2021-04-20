@@ -129,7 +129,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
        case "consents" :: Nil JsonPost json -> _  =>  {
          cc =>
            for {
-             (consumer, callContext) <- applicationAccess(cc)
+             (_, callContext) <- applicationAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              createdByUser: Option[User] <- callContext.map(_.user).getOrElse(Empty) match {
                case Full(user) => Future(Some(user))
@@ -158,6 +158,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
              
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
                createdByUser,
+               callContext.flatMap(_.consumer),
                recurringIndicator = consentJson.recurringIndicator,
                validUntil = validUntil,
                frequencyPerDay = consentJson.frequencyPerDay,
@@ -173,7 +174,7 @@ As a last option, an ASPSP might in addition accept a command with access rights
                consentJson,
                createdConsent.secret,
                createdConsent.consentId,
-               consumer.map(_.consumerId.get),
+               callContext.flatMap(_.consumer).map(_.consumerId.get),
                Some(validUntil)
              )
              _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
