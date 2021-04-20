@@ -168,7 +168,7 @@ object JwsUtil extends MdcLoggable {
     val host = APIUtil.getPropsValue("hostname", "")
     val psuIpAddress = "192.168.8.78"
     val psuGeoLocation = "GEO:52.506931,13.144558"
-    val contentType = "application/json"
+    val contentType = "application/json;charset=utf-8"
     val detachedPayload: Payload = new Payload(
       s"""($requestResponse): ${verb.toLowerCase} ${url}
          |host: ${host}
@@ -177,7 +177,8 @@ object JwsUtil extends MdcLoggable {
          |psu-geo-location: $psuGeoLocation
          |digest: $digest
          |""".stripMargin)
-
+    logger.debug("Detached Payload of Signing: " + detachedPayload)
+    
     val sigD =
       s"""{
         |    "pars": [
