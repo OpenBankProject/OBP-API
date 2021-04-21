@@ -424,7 +424,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             json <- languageParam match {
               case Some(ZH) => getChineseVersionResourceDocs
               case _ if(apiCollectionIdParam.isDefined) =>
-                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId.replace("_","."))
+                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
                 val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
                 val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs)
                 val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
