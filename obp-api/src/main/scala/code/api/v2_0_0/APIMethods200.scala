@@ -1954,7 +1954,7 @@ trait APIMethods200 {
               val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
               x => unboxFullOrFail(x, callContext, msg)
             }
-            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc=callContext) {
               ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
             }
             allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
@@ -1962,10 +1962,10 @@ trait APIMethods200 {
             _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
                   else NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements, callContext)
 
-            _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, cc=callContext) {
               postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
             }
-            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc=callContext) {
               hasEntitlement(postedData.bank_id, userId, role) == false
             }
             addedEntitlement <- Future(Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)) map { unboxFull(_) }
@@ -2049,7 +2049,7 @@ trait APIMethods200 {
                 entitlement <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId)) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementNotFound, 404, callContext.map(_.toLight)))
               } map { unboxFull(_) }
-              _ <- Helper.booleanToFuture(UserDoesNotHaveEntitlement) { entitlement.userId == userId }
+              _ <- Helper.booleanToFuture(UserDoesNotHaveEntitlement, cc=callContext) { entitlement.userId == userId }
               deleted <- Future(Entitlement.entitlement.vend.deleteEntitlement(Some(entitlement))) map {
                 x => fullBoxOrException(x ~> APIFailureNewStyle(EntitlementCannotBeDeleted, 404, callContext.map(_.toLight)))
               } map { unboxFull(_) }

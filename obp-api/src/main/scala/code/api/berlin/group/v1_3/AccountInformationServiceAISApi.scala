@@ -142,11 +142,11 @@ As a last option, an ASPSP might in addition accept a command with access rights
                json.extract[PostConsentJson]
              }
 
-             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayError) {
+             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayError, cc=callContext) {
                consentJson.frequencyPerDay > 0
              }
 
-             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayMustBeOneError) {
+             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayMustBeOneError, cc=callContext) {
                consentJson.recurringIndicator == true ||
                  (consentJson.recurringIndicator == false && consentJson.frequencyPerDay == 1)
              }

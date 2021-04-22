@@ -392,12 +392,12 @@ trait APIMethods400 {
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)
             }
-            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero, cc=callContext){0 == initialBalanceAsNumber}
             currency = createAccountJson.balance.currency
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(currency)}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){isValidCurrencyISOCode(currency)}
 
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", cc=callContext) {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
@@ -406,13 +406,13 @@ trait APIMethods400 {
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
             }
-            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})", cc=callContext) {
               alreadyExistingAccountRouting.isEmpty
             }
-            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", cc=callContext) {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
-            _ <- Helper.booleanToFuture(s"$InvalidPaymentSystemName Space characters are not allowed.") {
+            _ <- Helper.booleanToFuture(s"$InvalidPaymentSystemName Space characters are not allowed.", cc=callContext) {
               !createAccountJson.payment_system.contains(" ")
             }
             accountId = AccountId(createAccountJson.payment_system.toUpperCase + "_SETTLEMENT_ACCOUNT_" + currency.toUpperCase)
@@ -801,11 +801,11 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), fromAccount, callContext) <- SS.userAccount
-            _ <- NewStyle.function.isEnabledTransactionRequests()
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
+            _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
               isValidID(accountId.value)
             }
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {
               isValidID(bankId.value)
             }
 
@@ -815,7 +815,7 @@ trait APIMethods400 {
             _ <- if (u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId))) Future.successful(Full(Unit))
             else NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'", cc=callContext) {
               APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
             }
 
@@ -828,16 +828,16 @@ trait APIMethods400 {
               BigDecimal(transDetailsJson.value.amount)
             }
 
-            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${transactionAmountNumber}'") {
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${transactionAmountNumber}'", cc=callContext) {
               transactionAmountNumber > BigDecimal("0")
             }
 
-            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
 
             // Prevent default value for transaction request type (at least).
-            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
 
@@ -864,7 +864,7 @@ trait APIMethods400 {
                       for {
                         (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(toCounterpartyId, callContext)
                         toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, isOutgoingAccount = true, callContext)
-                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                           toCounterparty.isBeneficiary
                         }
                         (transaction, callContext) <- NewStyle.function.getTransaction(fromAccount.bankId, fromAccount.accountId, transactionId, callContext)
@@ -876,7 +876,7 @@ trait APIMethods400 {
                       for {
                         (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(fromCounterpartyId, callContext)
                         fromAccount <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, isOutgoingAccount = false, callContext)
-                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                        _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                           fromCounterparty.isBeneficiary
                         }
                         (transaction, callContext) <- NewStyle.function.getTransaction(toAccount.bankId, toAccount.accountId, transactionId, callContext)
@@ -887,7 +887,7 @@ trait APIMethods400 {
                     write(transactionRequestBodyRefundJson)(Serialization.formats(NoTypeHints))
                   }
 
-                  _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})") {
+                  _ <- Helper.booleanToFuture(s"${RefundedTransaction} Current input amount is: '${transDetailsJson.value.amount}'. It can not be more than the original amount(${(transaction.amount).abs})", cc=callContext) {
                     (transaction.amount).abs  >= transactionAmountNumber
                   }
                   //TODO, we need additional field to guarantee the transaction is refunded...
@@ -1013,11 +1013,11 @@ trait APIMethods400 {
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
                   toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
                   // Check we can send money to it.
-                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     toCounterparty.isBeneficiary
                   }
                   chargePolicy = transactionRequestBodyCounterparty.charge_policy
-                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
+                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
@@ -1048,11 +1048,11 @@ trait APIMethods400 {
                   toIban = transDetailsSEPAJson.to.iban
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(toIban, fromAccount.bankId, fromAccount.accountId, callContext)
                   toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
-                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     toCounterparty.isBeneficiary
                   }
                   chargePolicy = transDetailsSEPAJson.charge_policy
-                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
+                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
                   transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
@@ -1177,11 +1177,11 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), fromAccount, callContext) <- SS.userAccount
-            _ <- NewStyle.function.isEnabledTransactionRequests()
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {
+            _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
               isValidID(accountId.value)
             }
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {
               isValidID(bankId.value)
             }
             challengeAnswerJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChallengeAnswerJson400", 400, callContext) {
@@ -1195,7 +1195,7 @@ trait APIMethods400 {
             (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, callContext)
 
             // Check the Transaction Request is still INITIATED or NEXT_CHALLENGE_PENDING or FORWARDED
-            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPendingOrForwarded) {
+            _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiatedOrPendingOrForwarded, cc=callContext) {
               existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
               existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) ||
               existingTransactionRequest.status.equals(TransactionRequestStatus.FORWARDED.toString)
@@ -1203,17 +1203,17 @@ trait APIMethods400 {
 
             // Check the input transactionRequestType is the same as when the user created the TransactionRequest
             existingTransactionRequestType = existingTransactionRequest.`type`
-            _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ") {
+            _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ", cc=callContext) {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
             
             //Check the allowed attempts, Note: not supported yet, the default value is 3
-            _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
+            _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}", cc=callContext) {
               existingTransactionRequest.challenge.allowed_attempts > 0
             }
 
             //Check the challenge type, Note: not supported yet, the default value is SANDBOX_TAN
-            _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
+            _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ", cc=callContext) {
               List(
                 OTP_VIA_API.toString,
                 OTP_VIA_WEB_FORM.toString
@@ -1272,7 +1272,7 @@ trait APIMethods400 {
               case _ =>
                 for {
                   // Check the challengeId is valid for this existingTransactionRequest
-                  _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
+                  _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}", cc=callContext) {
                     if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")) {
                       MappedExpectedChallengeAnswer
                         .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
@@ -1284,7 +1284,7 @@ trait APIMethods400 {
 
                   (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
-                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
+                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ", cc=callContext) {
                     challengeAnswerIsValidated
                   }
 
@@ -1293,7 +1293,7 @@ trait APIMethods400 {
                   _ <- if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")){
                     for{
                       accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
-                      _ <- Helper.booleanToFuture(s"$NextChallengePending") {
+                      _ <- Helper.booleanToFuture(s"$NextChallengePending", cc=callContext) {
                         val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
                         MappedExpectedChallengeAnswer
                           .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
@@ -1838,7 +1838,7 @@ trait APIMethods400 {
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
             (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
             }
 
@@ -1880,7 +1880,7 @@ trait APIMethods400 {
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
             (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
@@ -1964,12 +1964,12 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
               entity.userId.equals(cc.userId)
             }
             (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
             }
             jsonObject = json.asInstanceOf[JObject]
@@ -2007,12 +2007,12 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
               entity.userId.equals(cc.userId)
             }
             (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
+            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
@@ -2080,13 +2080,13 @@ trait APIMethods400 {
           jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
             case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
           })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
             jsonResponse.isEmpty
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, Some(cc))
           
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {box.isDefined}
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {box.isDefined}
         } yield {
           val jValue = if(isGetAll) {
             val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
@@ -2137,7 +2137,7 @@ trait APIMethods400 {
           jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
             case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
           })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
             jsonResponse.isEmpty
           }
 
@@ -2178,12 +2178,12 @@ trait APIMethods400 {
           jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
             case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
           })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
             jsonResponse.isEmpty
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {
             box.isDefined
           }
           (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, Some(cc))
@@ -2222,12 +2222,12 @@ trait APIMethods400 {
           jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
             case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
           })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
             jsonResponse.isEmpty
           }
 
           (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
+          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {
             box.isDefined
           }
           (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, Some(cc))
@@ -2263,7 +2263,7 @@ trait APIMethods400 {
       case "management" :: "user" :: "reset-password-url" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
-            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.NotAllowedEndpoint) {
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.NotAllowedEndpoint, cc=cc.callContext) {
               APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the ${classOf[PostResetPasswordUrlJsonV400]} "
@@ -2336,11 +2336,11 @@ trait APIMethods400 {
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)
             }
-            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero, cc=callContext){0 == initialBalanceAsNumber}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme") {
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", cc=callContext) {
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
@@ -2349,7 +2349,7 @@ trait APIMethods400 {
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
             }
-            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})", cc=callContext) {
               alreadyExistingAccountRouting.isEmpty
             }
             (bankAccount,callContext) <- NewStyle.function.addBankAccount(
@@ -2629,7 +2629,7 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), view, callContext) <- SS.userView
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)") {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)", cc=callContext) {
               view.canAddTag
             }
             tagJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionTagJSON ", 400, callContext) {
@@ -2673,7 +2673,7 @@ trait APIMethods400 {
         cc =>
           for {
             (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)") {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)", cc=callContext) {
               view.canDeleteTag
             }
             deleted <- Future(Tags.tags.vend.deleteTagOnAccount(bankId, accountId)(tagId)) map {
@@ -2715,7 +2715,7 @@ trait APIMethods400 {
         cc =>
           for {
             (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)") {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)", cc=callContext) {
               view.canSeeTags
             }
             tags <- Future(Tags.tags.vend.getTagsOnAccount(bankId, accountId)(viewId))
@@ -3030,7 +3030,7 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), bank, view, callContext) <- SS.userBankView
-            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  , cc=callContext) {
               canUseAccountFirehose(u)
             }
 
@@ -3155,15 +3155,15 @@ trait APIMethods400 {
             bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[BankJson400]
             }
-            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials) {
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials, cc=cc.callContext) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
             }
 
-            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.") {
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.", cc=cc.callContext) {
               bank.id.length > 5
             }
 
-            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters") {
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters", cc=cc.callContext) {
               !bank.id.contains(" ")
             }
 
@@ -3227,7 +3227,7 @@ trait APIMethods400 {
         cc =>
           for {
             (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)") {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)", cc=callContext) {
               view.canCreateDirectDebit
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostDirectDebitJsonV400 "
@@ -3346,7 +3346,7 @@ trait APIMethods400 {
         cc =>
           for {
             (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)") {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)", cc=callContext) {
               view.canCreateStandingOrder
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostStandingOrderJsonV400 "
@@ -3356,7 +3356,7 @@ trait APIMethods400 {
             amountValue <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${postJson.amount.amount} ", 400, callContext) {
               BigDecimal(postJson.amount.amount)
             }
-            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'", cc=callContext) {
               isValidCurrencyISOCode(postJson.amount.currency)
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
@@ -3427,7 +3427,7 @@ trait APIMethods400 {
             amountValue <- NewStyle.function.tryons(s"$InvalidNumber Current input is  ${postJson.amount.amount} ", 400, cc.callContext) {
               BigDecimal(postJson.amount.amount)
             }
-            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'", cc=cc.callContext) {
               isValidCurrencyISOCode(postJson.amount.currency)
             }
             (_, callContext) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, cc.callContext)
@@ -3653,7 +3653,7 @@ trait APIMethods400 {
               CustomerAttributeType.withName(postedData.`type`)
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
-            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)"), cc=callContext){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.createOrUpdateCustomerAttribute(
               BankId(bankId),
               CustomerId(customerId),
@@ -3708,7 +3708,7 @@ trait APIMethods400 {
               CustomerAttributeType.withName(postedData.`type`)
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
-            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)"), cc=callContext){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
               callContext
@@ -3757,7 +3757,7 @@ trait APIMethods400 {
         cc =>
           for {
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
-            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)"), cc=callContext){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributes(
               BankId(bankId),
               CustomerId(customerId),
@@ -3798,7 +3798,7 @@ trait APIMethods400 {
         cc =>
           for {
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
-            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)")){customer.bankId == bankId}
+            _ <-  Helper.booleanToFuture(InvalidCustomerBankId.replaceAll("Bank Id.",s"Bank Id ($bankId).").replaceAll("The Customer",s"The Customer($customerId)"), cc=callContext){customer.bankId == bankId}
             (accountAttribute, callContext) <- NewStyle.function.getCustomerAttributeById(
               customerAttributeId,
               callContext
@@ -4102,8 +4102,8 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), callContext) <- SS.user
-            _ <- NewStyle.function.isEnabledTransactionRequests()
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView) {
+            _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
               u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
             }
             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, callContext)
@@ -4325,7 +4325,7 @@ trait APIMethods400 {
             }
             duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._1}:${kv._2}")
             errorMsg = s"""$DynamicEndpointExists Duplicated ${if(duplicatedUrl.size > 1) "endpoints" else "endpoint"}: ${duplicatedUrl.mkString("; ")}"""
-            _ <- Helper.booleanToFuture(errorMsg) {
+            _ <- Helper.booleanToFuture(errorMsg, cc=cc.callContext) {
               duplicatedUrl.isEmpty
             }
             (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(cc.userId, postedJson.swaggerString, cc.callContext)
@@ -4507,7 +4507,7 @@ trait APIMethods400 {
         cc =>
           for {
             (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
-            _ <- Helper.booleanToFuture(InvalidMyDynamicEndpointUser) {
+            _ <- Helper.booleanToFuture(InvalidMyDynamicEndpointUser, cc=callContext) {
               dynamicEndpoint.userId.equals(cc.userId)
             }
             deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, callContext)
@@ -4537,7 +4537,7 @@ trait APIMethods400 {
             jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
               case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
             })
-            _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
+            _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
               jsonResponse.isEmpty
             }
 
@@ -5586,24 +5586,24 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), view, callContext) <-  SS.userView
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, callContext) {
               json.extract[PostCounterpartyJson400]
             }
 
-            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.") {view.canAddCounterparty}
+            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", cc=callContext) {view.canAddCounterparty}
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
 
             _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
-              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)")){
+              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)"), cc=callContext){
               counterparty.isEmpty
             }
-            _ <- booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}"){
+            _ <- booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}", cc=callContext){
               postJson.description.length <= 36
             }
-            _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'") {
+            _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'", cc=callContext) {
               isValidCurrencyISOCode(postJson.currency)
             }
 
@@ -5771,17 +5771,17 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  callContext) {
               json.extract[PostCounterpartyJson400]
             }
-            _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}"){postJson.description.length <= 36}
+            _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}", cc=callContext){postJson.description.length <= 36}
 
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
 
             _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
-              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)")){
+              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)"), cc=callContext){
               counterparty.isEmpty
             }
 
-            _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'") {
+            _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'", cc=callContext) {
               isValidCurrencyISOCode(postJson.currency)
             }
 
@@ -5862,13 +5862,13 @@ trait APIMethods400 {
         cc =>
           for {
             (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
               view.canAddCounterparty == true
             }
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
-            _ <- Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400) {
+            _ <- Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc=callContext) {
               {
                 for {
                   counterparty <- counterparties
@@ -5909,7 +5909,7 @@ trait APIMethods400 {
         cc =>
           for {
             (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
               view.canAddCounterparty == true
             }
             counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
@@ -6019,7 +6019,7 @@ trait APIMethods400 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            _ <- Helper.booleanToFuture(ConsentUserAlreadyAdded) { consent.userId != null }
+            _ <- Helper.booleanToFuture(ConsentUserAlreadyAdded, cc=callContext) { consent.userId != null }
             consent <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user)) map {
               i => connectorEmptyResponse(i, callContext)
             }
@@ -6187,7 +6187,7 @@ trait APIMethods400 {
               json.extract[PostApiCollectionJson400]
             }
             apiCollection <- Future{MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(cc.userId, postJson.api_collection_name)}
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExisting Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.") {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionAlreadyExisting Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.", cc=cc.callContext) {
               apiCollection.isEmpty
             }
             (apiCollection, callContext) <- NewStyle.function.createApiCollection(
@@ -6289,7 +6289,7 @@ trait APIMethods400 {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointNotFound Current api_collection_id(${apiCollectionId}) is not sharable.") {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointNotFound Current api_collection_id(${apiCollectionId}) is not sharable.", cc=callContext) {
               apiCollection.isSharable
             }
           } yield {
@@ -6459,7 +6459,7 @@ trait APIMethods400 {
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ") {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ", cc=callContext) {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
@@ -6640,12 +6640,12 @@ trait APIMethods400 {
             (Full(u), callContext) <- SS.user
 
             schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
-            _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}", cc=callContext) {
               CollectionUtils.isEmpty(schemaErrors)
             }
 
             (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = OperationIdExistsError) {
+            _ <- Helper.booleanToFuture(failMsg = OperationIdExistsError, cc=callContext) {
               !isExists
             }
             (validation, callContext) <- NewStyle.function.createJsonSchemaValidation(JsonValidation(operationId, httpBody), callContext)
@@ -6686,12 +6686,12 @@ trait APIMethods400 {
             (Full(u), callContext) <- SS.user
 
             schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
-            _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}", cc=callContext) {
               CollectionUtils.isEmpty(schemaErrors)
             }
 
             (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = JsonSchemaValidationNotFound) {
+            _ <- Helper.booleanToFuture(failMsg = JsonSchemaValidationNotFound, cc=callContext) {
               isExists
             }
             (validation, callContext) <- NewStyle.function.updateJsonSchemaValidation(operationId, httpBody, callContext)
@@ -6730,7 +6730,7 @@ trait APIMethods400 {
             (Full(u), callContext) <- SS.user
 
             (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = JsonSchemaValidationNotFound) {
+            _ <- Helper.booleanToFuture(failMsg = JsonSchemaValidationNotFound, cc=callContext) {
               isExists
             }
 
@@ -6865,7 +6865,7 @@ trait APIMethods400 {
             }
 
             (isExists, callContext) <- NewStyle.function.isAuthenticationTypeValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = OperationIdExistsError) {
+            _ <- Helper.booleanToFuture(failMsg = OperationIdExistsError, cc=callContext) {
               !isExists
             }
             (authenticationTypeValidation, callContext) <- NewStyle.function.createAuthenticationTypeValidation(JsonAuthTypeValidation(operationId, authTypes), callContext)
@@ -6909,7 +6909,7 @@ trait APIMethods400 {
             }
 
             (isExists, callContext) <- NewStyle.function.isAuthenticationTypeValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = AuthenticationTypeValidationNotFound) {
+            _ <- Helper.booleanToFuture(failMsg = AuthenticationTypeValidationNotFound, cc=callContext) {
               isExists
             }
             (authenticationTypeValidation, callContext) <- NewStyle.function.updateAuthenticationTypeValidation(operationId, authTypes, callContext)
@@ -6948,7 +6948,7 @@ trait APIMethods400 {
             (Full(u), callContext) <- SS.user
 
             (isExists, callContext) <- NewStyle.function.isAuthenticationTypeValidationExists(operationId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = AuthenticationTypeValidationNotFound) {
+            _ <- Helper.booleanToFuture(failMsg = AuthenticationTypeValidationNotFound, cc=callContext) {
               isExists
             }
 
@@ -7078,12 +7078,12 @@ trait APIMethods400 {
             }
             
             (isExists, callContext) <- NewStyle.function.connectorMethodNameExists(jsonConnectorMethod.methodName, Some(cc))
-            _ <- Helper.booleanToFuture(failMsg = s"$ConnectorMethodAlreadyExists Please use a different method_name(${jsonConnectorMethod.methodName})") {
+            _ <- Helper.booleanToFuture(failMsg = s"$ConnectorMethodAlreadyExists Please use a different method_name(${jsonConnectorMethod.methodName})", cc=callContext) {
               (!isExists)
             }
             connectorMethod = InternalConnector.createFunction(jsonConnectorMethod.methodName, jsonConnectorMethod.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
-            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+            _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
             
@@ -7128,7 +7128,7 @@ trait APIMethods400 {
 
             connectorMethod = InternalConnector.createFunction(cm.methodName, connectorMethodBody.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
-            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+            _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
             (connectorMethod, callContext) <- NewStyle.function.updateJsonConnectorMethod(connectorMethodId, connectorMethodBody.methodBody, callContext)
@@ -7229,10 +7229,10 @@ trait APIMethods400 {
             jsonDynamicResourceDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
             }
-            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc=cc.callContext) {
               Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
             }
-            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""") {
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""", cc=cc.callContext) {
               (jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.exampleRequestBody) match {
                 case ("GET" | "DELETE", Some(JString(s))) => //we support the empty string "" here
                   StringUtils.isBlank(s)
@@ -7250,7 +7250,7 @@ trait APIMethods400 {
             }
 
             (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.requestUrl, Some(cc))
-            _ <- Helper.booleanToFuture(failMsg = s"$DynamicResourceDocAlreadyExists The combination of request_url(${jsonDynamicResourceDoc.requestUrl}) and request_verb(${jsonDynamicResourceDoc.requestVerb}) must be unique") {
+            _ <- Helper.booleanToFuture(failMsg = s"$DynamicResourceDocAlreadyExists The combination of request_url(${jsonDynamicResourceDoc.requestUrl}) and request_verb(${jsonDynamicResourceDoc.requestVerb}) must be unique", cc=callContext) {
               (!isExists)
             }
 
@@ -7291,11 +7291,11 @@ trait APIMethods400 {
               json.extract[JsonDynamicResourceDoc]
             }
 
-            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc=cc.callContext) {
               Set("POST", "PUT", "GET", "DELETE").contains(dynamicResourceDocBody.requestVerb)
             }
 
-            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""", cc=cc.callContext) {
               (dynamicResourceDocBody.requestVerb, dynamicResourceDocBody.exampleRequestBody) match {
                 case ("GET" | "DELETE", Some(JString(s))) =>
                   StringUtils.isBlank(s)
@@ -7446,11 +7446,11 @@ trait APIMethods400 {
             resourceDocFragment <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ResourceDocFragment", 400, cc.callContext) {
               json.extract[ResourceDocFragment]
             }
-            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc=cc.callContext) {
                Set("POST", "PUT", "GET", "DELETE").contains(resourceDocFragment.requestVerb)
             }
 
-            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""", cc=cc.callContext) {
               (resourceDocFragment.requestVerb, resourceDocFragment.exampleRequestBody) match {
                 case ("GET" | "DELETE", Some(JString(s))) =>
                   StringUtils.isBlank(s)
@@ -7496,12 +7496,12 @@ trait APIMethods400 {
               json.extract[JsonDynamicMessageDoc]
             }
             (dynamicMessageDocExisted, callContext) <- NewStyle.function.isJsonDynamicMessageDocExists(dynamicMessageDoc.process, cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$DynamicMessageDocAlreadyExists The json body process(${dynamicMessageDoc.process}) already exists") {
+            _ <- Helper.booleanToFuture(failMsg = s"$DynamicMessageDocAlreadyExists The json body process(${dynamicMessageDoc.process}) already exists", cc=callContext) {
               (!dynamicMessageDocExisted)
             }
             connectorMethod = DynamicConnector.createFunction(dynamicMessageDoc.process, dynamicMessageDoc.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
-            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+            _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
             (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(dynamicMessageDoc, callContext)
@@ -7540,7 +7540,7 @@ trait APIMethods400 {
             }
             connectorMethod = DynamicConnector.createFunction(dynamicMessageDocBody.process, dynamicMessageDocBody.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
-            _ <- Helper.booleanToFuture(failMsg = errorMsg) {
+            _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=cc.callContext) {
               connectorMethod.isDefined
             }
             (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)

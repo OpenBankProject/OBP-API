@@ -697,7 +697,7 @@ trait APIMethods121 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
-            _ <- Helper.booleanToFuture(InvalidCustomViewFormat) { viewId.value.startsWith("_") }
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat, cc=callContext) { viewId.value.startsWith("_") }
             _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
             deleted <- NewStyle.function.removeView(account, u, viewId)
           } yield {
@@ -1043,7 +1043,7 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
           } yield {
@@ -1082,10 +1082,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a public alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a public alias", cc=callContext) {
               otherBankAccount.metadata.get.publicAlias.isDefined
             }
           } yield {
@@ -1134,10 +1134,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             } 
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a public alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a public alias", cc=callContext) {
               otherBankAccount.metadata.get.addPublicAlias.isDefined
             }
             aliasJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1187,10 +1187,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating a public alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating a public alias", cc=callContext) {
               otherBankAccount.metadata.get.addPublicAlias.isDefined
             }
             aliasJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1238,10 +1238,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a public alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a public alias", cc=callContext) {
               otherBankAccount.metadata.get.addPublicAlias.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.addPublicAlias(other_account_id, "")) map { i =>
@@ -1285,10 +1285,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a private alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a private alias", cc=callContext) {
               otherBankAccount.metadata.get.privateAlias.isDefined
             }
           } yield {
@@ -1331,10 +1331,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a private alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a private alias", cc=callContext) {
               otherBankAccount.metadata.get.addPrivateAlias.isDefined
             }
             aliasJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1383,10 +1383,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating a private alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating a private alias", cc=callContext) {
               otherBankAccount.metadata.get.addPrivateAlias.isDefined
             }
             aliasJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1434,10 +1434,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a private alias" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a private alias", cc=callContext) {
               otherBankAccount.metadata.get.addPrivateAlias.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.addPrivateAlias(other_account_id, "")) map { i =>
@@ -1483,10 +1483,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding more info" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding more info", cc=callContext) {
               otherBankAccount.metadata.get.addMoreInfo.isDefined
             }
             moreInfoJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1532,10 +1532,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating more info" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating more info", cc=callContext) {
               otherBankAccount.metadata.get.addMoreInfo.isDefined
             }
             moreInfoJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1580,10 +1580,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting more info" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting more info", cc=callContext) {
               otherBankAccount.metadata.get.addMoreInfo.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.addMoreInfo(other_account_id, "")) map { i =>
@@ -1629,10 +1629,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding a url", cc=callContext) {
               otherBankAccount.metadata.get.addURL.isDefined
             }
             urlJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1678,10 +1678,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating a url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating a url", cc=callContext) {
               otherBankAccount.metadata.get.addURL.isDefined
             }
             urlJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1726,10 +1726,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a url", cc=callContext) {
               otherBankAccount.metadata.get.addURL.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.addURL(other_account_id, "")) map { i =>
@@ -1774,10 +1774,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding an image url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding an image url", cc=callContext) {
               otherBankAccount.metadata.get.addImageURL.isDefined
             }
             imageUrlJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1822,10 +1822,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating an image url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating an image url", cc=callContext) {
               otherBankAccount.metadata.get.addImageURL.isDefined
             }
             imageUrlJson <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1864,10 +1864,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting an image url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting an image url", cc=callContext) {
               otherBankAccount.metadata.get.addImageURL.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.addImageURL(other_account_id, "")) map { i =>
@@ -1911,10 +1911,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding an open corporate url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow adding an open corporate url", cc=callContext) {
               otherBankAccount.metadata.get.addOpenCorporatesURL.isDefined
             }
             openCorpUrl <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -1960,10 +1960,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating an open corporate url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow updating an open corporate url", cc=callContext) {
               otherBankAccount.metadata.get.addOpenCorporatesURL.isDefined
             }
             openCorpUrl <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
@@ -2008,10 +2008,10 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting an open corporate url" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting an open corporate url", cc=callContext) {
               otherBankAccount.metadata.get.addOpenCorporatesURL.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.addOpenCorporatesURL(other_account_id, "")) map { i =>
@@ -2140,16 +2140,16 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a Corporate Location" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a Corporate Location", cc=callContext) {
               otherBankAccount.metadata.get.deleteCorporateLocation.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.deleteCorporateLocation(other_account_id)) map { i =>
               (unboxFullOrFail(i, callContext, "Corporate Location cannot be deleted", 400), i)
             }
-            _ <- Helper.booleanToFuture(failMsg = "Delete not completed" ) {
+            _ <- Helper.booleanToFuture(failMsg = "Delete not completed", cc=callContext) {
               deleted
             }
           } yield {
@@ -2277,16 +2277,16 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             otherBankAccount <- NewStyle.function.moderatedOtherBankAccount(account, other_account_id, view, Full(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)", cc=callContext) {
               otherBankAccount.metadata.isDefined
             }
-            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a Physical Location" ) {
+            _ <- Helper.booleanToFuture(failMsg = "the view " + viewId + "does not allow deleting a Physical Location", cc=callContext) {
               otherBankAccount.metadata.get.deletePhysicalLocation.isDefined
             }
             (deleted, _) <- Future(Counterparties.counterparties.vend.deletePhysicalLocation(other_account_id)) map { i =>
               (unboxFullOrFail(i, callContext, "Physical Location cannot be deleted", 400), i)
             }
-            _ <- Helper.booleanToFuture(failMsg = s"Delete not completed" ) {
+            _ <- Helper.booleanToFuture(failMsg = s"Delete not completed", cc=callContext) {
               deleted
             }
           } yield {

@@ -728,7 +728,7 @@ object NewStyle {
     }
 
 
-    def isEnabledTransactionRequests(): Future[Box[Unit]] = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
+    def isEnabledTransactionRequests(callContext: Option[CallContext]): Future[Box[Unit]] = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled, cc=callContext)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
     /**
       * Wraps a Future("try") block around the function f and
@@ -797,7 +797,7 @@ object NewStyle {
       val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
                        else errorMsg
 
-      Helper.booleanToFuture(errorInfo) {
+      Helper.booleanToFuture(errorInfo, cc=callContext) {
         APIUtil.hasEntitlement(bankId, userId, role)
       } map validateRequestPayload(callContext)
     }
@@ -810,7 +810,7 @@ object NewStyle {
     }
     
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
-      Helper.booleanToFuture(failMsg) {
+      Helper.booleanToFuture(failMsg, cc=callContext) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
       } map validateRequestPayload(callContext)
 
@@ -2294,7 +2294,7 @@ object NewStyle {
 
       if(existsDynamicEntity.isDefined) {
         val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
-        return Helper.booleanToFuture(errorMsg)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
+        return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
       Future {
@@ -2308,7 +2308,7 @@ object NewStyle {
       val idNotExistsMsg = s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = ${dynamicEntity.dynamicEntityId.get}."
 
       if (originEntity.isEmpty) {
-        return Helper.booleanToFuture(idNotExistsMsg, 404)(originEntity.isDefined).map(_.asInstanceOf[Box[DynamicEntityT]])
+        return Helper.booleanToFuture(idNotExistsMsg, 404, cc=callContext)(originEntity.isDefined).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
       val originEntityName = originEntity.map(_.entityName).orNull
@@ -2318,7 +2318,7 @@ object NewStyle {
 
         if(existsDynamicEntity.isDefined) {
           val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
-          return Helper.booleanToFuture(errorMsg)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
+          return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
         }
       }
 
@@ -2444,19 +2444,19 @@ object NewStyle {
       val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
       // do validate, any validate process fail will return immediately
       if(dynamicEntityBox.isEmpty) {
-        return Helper.booleanToFuture(s"$DynamicEntityNotExists entity's name is '$entityName'")(false)
+        return Helper.booleanToFuture(s"$DynamicEntityNotExists entity's name is '$entityName'", cc=callContext)(false)
           .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
       }
 
       if(operation == CREATE || operation == UPDATE) {
         if(requestBody.isEmpty) {
-          return Helper.booleanToFuture(s"$InvalidJsonFormat requestBody is required for $operation operation.")(false)
+          return Helper.booleanToFuture(s"$InvalidJsonFormat requestBody is required for $operation operation.", cc=callContext)(false)
             .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
         }
       }
       if(operation == GET_ONE || operation == UPDATE || operation == DELETE) {
         if (entityId.isEmpty) {
-          return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
+          return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.", cc=callContext)(entityId.isEmpty || StringUtils.isBlank(entityId.get))
             .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
         }
       }
@@ -2482,7 +2482,7 @@ object NewStyle {
           val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
           dynamicEntity.validateEntityJson(body, callContext).flatMap {
             case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, bankId, callContext)
-            case Some(errorMsg) => Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg")(false)
+            case Some(errorMsg) => Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg", cc=callContext)(false)
               .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
           }
       }
