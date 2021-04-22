@@ -1593,6 +1593,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def buildOperationId(apiVersion: ScannedApiVersion, partialFunctionName: String) =
     s"${apiVersion.fullyQualifiedVersion}-$partialFunctionName"
 
+  //This is correct: OBPv3.0.0-getCoreAccountById
+  //This is OBPv4_0_0-dynamicEntity_deleteFooBar33
+  def getObpFormatOperationId(operationId: String) = {
+    val operationElements = operationId.split("-")
+    if(operationElements.length>1){
+      s"${operationElements(0).replaceAll("_",".")}-${operationElements(1)}"
+    }else operationId
+  }
+
   /**
    * Simulate S pass request and session, this object pass bank, account and view.
    * This method invoke must fulfill three point:
