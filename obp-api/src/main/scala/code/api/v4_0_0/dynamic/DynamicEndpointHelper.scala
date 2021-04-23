@@ -99,14 +99,14 @@ object DynamicEndpointHelper extends RestHelper {
      * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
      */
     def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)])] = {
-      val partPath = r.path.partPath
-      if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))
-        None
+      val partPath = r.path.partPath//eg: List("dynamic","feature-test")
+      if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
+        None //if do not match `URL and Content-Type`, then can not find this endpoint. return None.
       else {
         val akkaHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get
         val httpMethod = HttpMethod.valueOf(r.requestType.method)
         // url that match original swagger endpoint.
-        val url = partPath.tail.mkString("/", "/", "")
+        val url = partPath.tail.mkString("/", "/", "") // eg: --> /feature-test
         val foundDynamicEndpoint: Option[(String, String, Int, ResourceDoc)] = dynamicEndpointInfos
           .map(_.findDynamicEndpoint(httpMethod, url))
           .collectFirst {
