@@ -2010,7 +2010,7 @@ object Glossary {
 |The Request is signed by the Consumer with a JWS using the client certificate of the Consumer. Example: [OBP-Hola private void requestIntercept](https://github.com/OpenBankProject/OBP-Hydra-OAuth2/blob/40359cf569a814c1aec4ce593303b39ddf9bdded/src/main/java/com/openbankproject/hydra/auth/RestTemplateConfig.java#L106)
 |The Request is validated by the OBP API Server using the JWS provided by the Consumer. See [OBP-API def verifySignedRequest](https://github.com/OpenBankProject/OBP-API/blob/752044a35ca73ea4d3563c6ced57ee80903b6d30/obp-api/src/main/scala/code/api/util/JwsUtil.scala#L121)
 |The Response is signed by the OBP API Server with a JWS. See [OBP-API def signResponse](https://github.com/OpenBankProject/OBP-API/blob/752044a35ca73ea4d3563c6ced57ee80903b6d30/obp-api/src/main/scala/code/api/util/JwsUtil.scala#L233)
-|The Response is validated by the Client using the JWS provided by the OBP API Server.
+|The Response is validated by the Client using the JWS provided by the OBP API Server. Example: [OBP-Hola private void responseIntercept](https://github.com/OpenBankProject/OBP-Hydra-OAuth2/blob/c2e4589ad7e6e6b156b54e535bdcd93638317ff7/src/main/java/com/openbankproject/hydra/auth/RestTemplateConfig.java#L121)
 |
 |
 |## Consent
