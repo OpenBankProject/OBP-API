@@ -212,14 +212,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => None
     }
   }
-
-  def getRequestHeader(name: String, requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.toSet.filter(_.name.toLowerCase == name.toLowerCase).toList match {
-      case x :: Nil => x.values.mkString(";")
-      case _ => ""
-    }
-  }
-  
   def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
     getConsentJWT(requestHeaders).isDefined
   }
@@ -418,7 +410,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private def getSignRequestHeadersNewStyle(cc: Option[CallContext], httpBody: String): CustomResponseHeaders = {
     cc.map { i =>
       if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
-        val headers = JwsUtil.signResponse(Full(httpBody), i.verb, i.url, getRequestHeader("content-type", cc.map(_.requestHeaders).getOrElse(Nil)))
+        val headers = JwsUtil.signResponse(Full(httpBody), i.verb, i.url)
         CustomResponseHeaders(headers.map(h => (h.name, h.values.mkString(", "))))
       } else {
         CustomResponseHeaders(Nil)
@@ -428,7 +420,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private def getSignRequestHeadersError(cc: Option[CallContextLight], httpBody: String): CustomResponseHeaders = {
     cc.map { i =>
       if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
-        val headers = JwsUtil.signResponse(Full(httpBody), i.verb, i.url, getRequestHeader("content-type", cc.map(_.requestHeaders).getOrElse(Nil)))
+        val headers = JwsUtil.signResponse(Full(httpBody), i.verb, i.url)
         CustomResponseHeaders(headers.map(h => (h.name, h.values.mkString(", "))))
       } else {
         CustomResponseHeaders(Nil)

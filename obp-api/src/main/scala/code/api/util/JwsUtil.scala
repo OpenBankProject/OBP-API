@@ -142,13 +142,7 @@ object JwsUtil extends MdcLoggable {
   
   def forceVerifyRequestSignResponse(url: String): Boolean = {
     val standards: List[String] = APIUtil.getPropsValue(nameOfProperty="force_jws", "None").split(",").map(_.trim).toList
-    val pathOfStandard = HashMap(
-      "TEST"->"obp/v4.0.0/roles", 
-      "BGv1.3"->"berlin-group/v1.3", 
-      "OBPv4.0.0"->"obp/v4.0.0", 
-      "OBPv3.1.0"->"obp/v3.1.0", 
-      "UKv1.3"->"open-banking/v3.1"
-    ).withDefaultValue("{Not found any standard to match}")
+    val pathOfStandard = HashMap("BGv1.3"->"berlin-group/v1.3", "OBPv4.0.0"->"obp/v4.0.0", "OBPv3.1.0"->"obp/v3.1.0", "UKv1.3"->"open-banking/v3.1").withDefaultValue("{Not found any standard to match}")
     standards.exists(standard => url.contains(pathOfStandard(standard)))
   }
   
@@ -167,24 +161,20 @@ object JwsUtil extends MdcLoggable {
        |""".stripMargin
   }
 
-  private def signRequestResponseCommon(body: Box[String], 
-                                        verb: String, 
-                                        url: String, 
-                                        requestResponse: String, 
-                                        contentType: String,
-                                        psuIpAddress: Option[String] = None,
-                                        psuGeoLocation: Option[String] = None
-                                       ): List[HTTPParam] = {
+  private def signRequestResponseCommon(body: Box[String], verb: String, url: String, requestResponse: String): List[HTTPParam] = {
     val digest = "SHA-256=" + computeDigest(body.getOrElse(""))
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
     val host = APIUtil.getPropsValue("hostname", "")
+    val psuIpAddress = "192.168.8.78"
+    val psuGeoLocation = "GEO:52.506931,13.144558"
+    val contentType = "application/json;charset=utf-8"
     val detachedPayload: Payload = new Payload(
       s"""($requestResponse): ${verb.toLowerCase} ${url}
          |host: ${host}
          |content-type: $contentType
-         |psu-ip-address: ${psuIpAddress.getOrElse("None")}
-         |psu-geo-location: ${psuGeoLocation.getOrElse("None")}
+         |psu-ip-address: $psuIpAddress
+         |psu-geo-location: $psuGeoLocation
          |digest: $digest
          |""".stripMargin)
     logger.debug("Detached Payload of Signing: " + detachedPayload)
@@ -228,8 +218,8 @@ object JwsUtil extends MdcLoggable {
     List(
       HTTPParam("host", List(host)),
       HTTPParam("content-type", List(contentType)),
-      HTTPParam("psu-ip-address", List(psuIpAddress.getOrElse("None"))),
-      HTTPParam("psu-geo-location", List(psuGeoLocation.getOrElse("None"))),
+      HTTPParam("psu-ip-address", List(psuIpAddress)),
+      HTTPParam("psu-geo-location", List(psuGeoLocation)),
     )
   }
 
@@ -240,8 +230,8 @@ object JwsUtil extends MdcLoggable {
    * @param url HTTP relative path of an request 
    * @return Request header params: x-jws-signature and digest
    */
-  def signResponse(body: Box[String], verb: String, url: String, contentType: String): List[HTTPParam] = {
-    signRequestResponseCommon(body, verb, url, "status-line", contentType)
+  def signResponse(body: Box[String], verb: String, url: String): List[HTTPParam] = {
+    signRequestResponseCommon(body, verb, url, "status-line")
   }
 
   /**
@@ -251,8 +241,8 @@ object JwsUtil extends MdcLoggable {
    * @param url HTTP relative path of an request 
    * @return Request header params: x-jws-signature and digest
    */
-  def signRequest(body: Box[String], verb: String, url: String, contentType: String): List[HTTPParam] = {
-    signRequestResponseCommon(body, verb, url, "request-target", contentType)
+  def signRequest(body: Box[String], verb: String, url: String): List[HTTPParam] = {
+    signRequestResponseCommon(body, verb, url, "request-target")
   }
   
 }

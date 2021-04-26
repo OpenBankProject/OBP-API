@@ -255,7 +255,7 @@ trait SendServerRequests {
   def makeGetRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
     val extra_headers = Map.empty ++ params
     val reqData = extractParamsAndHeaders(req.GET, "", "UTF-8", extra_headers)
-    val jsonReq: Req = createRequest(reqData)
+    val jsonReq = createRequest(reqData)
     getAPIResponse(jsonReq)
   }
   /**
