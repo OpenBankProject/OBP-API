@@ -75,7 +75,7 @@ in the header. This field is contained but commented out in this specification. 
 
              requestAccountCurrency = checkAvailabilityOfFundsJson.instructedAmount.currency
 
-             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${ requestAccountCurrency}'") {
+             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${ requestAccountCurrency}'", cc=callContext) {
                isValidCurrencyISOCode(requestAccountCurrency)
              }
 
@@ -88,7 +88,7 @@ in the header. This field is contained but commented out in this specification. 
              //From change from requestAccount Currency to currentBankAccount Currency
              rate = fx.exchangeRate(requestAccountCurrency, currentAccountCurrency, Some(bankAccount.bankId.value))
 
-             _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${requestAccountCurrency} to ${currentAccountCurrency}) is not supported.") {
+             _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${requestAccountCurrency} to ${currentAccountCurrency}) is not supported.", cc=callContext) {
                rate.isDefined
              }
 

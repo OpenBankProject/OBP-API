@@ -4,7 +4,7 @@ import java.net.{Socket, SocketException}
 import java.util.UUID.randomUUID
 import java.util.{Date, GregorianCalendar}
 
-import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
@@ -20,6 +20,7 @@ import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, 
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.http.S
 import net.liftweb.util.Helpers
+
 import scala.concurrent.Future
 import scala.util.Random
 import scala.reflect.runtime.universe.Type
@@ -109,11 +110,11 @@ object Helper{
     * @return In case the statement is false the function returns Future[Failure(failMsg)].
     *         Otherwise returns Future[Full()].
     */
-  def booleanToFuture(failMsg: String, failCode: Int = 400)(statement: => Boolean): Future[Box[Unit]] = {
+  def booleanToFuture(failMsg: String, failCode: Int = 400, cc: Option[CallContext])(statement: => Boolean): Future[Box[Unit]] = {
     Future{
       booleanToBox(statement)
     } map {
-      x => fullBoxOrException(x ~> APIFailureNewStyle(failMsg, failCode))
+      x => fullBoxOrException(x ~> APIFailureNewStyle(failMsg, failCode, cc.map(_.toLight)))
     }
   }
   /**

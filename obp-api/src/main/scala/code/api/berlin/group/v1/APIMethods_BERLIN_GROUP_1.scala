@@ -72,7 +72,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
   
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet, cc=callContext) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
   
             bankId = BankId(defaultBankId)
   
@@ -113,7 +113,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet, cc=callContext) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
             (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), accountId, callContext)
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
@@ -155,7 +155,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
             
             (Full(u), callContext) <- authenticatedAccess(cc)
             
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet, cc=callContext) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
             
             bankId = BankId(defaultBankId)
             
