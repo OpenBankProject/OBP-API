@@ -1182,6 +1182,9 @@ Maybe in a later version the access path will change.
              _ <- NewStyle.function.tryons(ConsentUpdateStatusError, 400, callContext) {
                consent.toList.size == 1
              }
+             _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, u)) map {
+               unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
+             }
            } yield {
              (createPostConsentResponseJson(consent.toList.head), HttpCode.`200`(callContext))
            }
