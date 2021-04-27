@@ -101,7 +101,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSandbox, apiTagApi),
+      List(apiTagSandbox),
       Some(List(canCreateSandbox)))
 
 
@@ -835,7 +835,7 @@ trait APIMethods210 {
         InvalidConsumerId,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canGetConsumers)))
 
 
@@ -873,7 +873,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canGetConsumers)))
 
 
@@ -910,7 +910,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 
@@ -1569,7 +1569,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canUpdateConsumerRedirectUrl))
     )
     
