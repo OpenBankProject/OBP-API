@@ -1545,7 +1545,7 @@ trait APIMethods200 {
         MeetingsNotSupported,
         UnknownError
       ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagExperimental))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental))
 
 
     lazy val createMeeting: OBPEndpoint = {
@@ -1602,7 +1602,7 @@ trait APIMethods200 {
         BankNotFound,
         MeetingsNotSupported,
         UnknownError),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagExperimental))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental))
 
 
     lazy val getMeetings: OBPEndpoint = {

@@ -2207,7 +2207,7 @@ trait APIMethods300 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      List(apiTagScope, apiTagRole, apiTagNewStyle),
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle),
       Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)))
   
     lazy val addScope : OBPEndpoint = {
@@ -2278,7 +2278,7 @@ trait APIMethods300 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
 
     lazy val deleteScope: OBPEndpoint = {
       case "consumers" :: consumerId :: "scope" :: scopeId :: Nil JsonDelete _ => {
@@ -2316,7 +2316,7 @@ trait APIMethods300 {
       emptyObjectJson,
       scopeJsons,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
   
     lazy val getScopes: OBPEndpoint = {
       case "consumers" :: consumerId :: "scopes" :: Nil JsonGet _ => {

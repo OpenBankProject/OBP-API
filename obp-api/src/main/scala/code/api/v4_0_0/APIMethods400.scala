@@ -2308,7 +2308,7 @@ trait APIMethods400 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
+      List(apiTagAccount, apiTagNewStyle),
       Some(List(canCreateAccount))
     ).disableAutoValidateRoles()  // this means disabled auto roles validation, will manually do the roles validation .
 

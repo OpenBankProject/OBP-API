@@ -3050,7 +3050,7 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
     
     lazy val createMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
@@ -3126,7 +3126,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         UnknownError),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeetings: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
@@ -3166,7 +3166,7 @@ trait APIMethods310 {
         MeetingNotFound,
         UnknownError
       ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
