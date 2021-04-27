@@ -6149,6 +6149,42 @@ trait APIMethods400 {
           }
       }
     }
+    staticResourceDocs += ResourceDoc(
+      getConsentInfos,
+      implementedInApiVersion,
+      nameOf(getConsentInfos),
+      "GET",
+      "/banks/BANK_ID/my/consent-infos",
+      "Get Consents Info",
+      s"""
+         |
+         |This endpoint gets the Consents that the current User created.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      consentsJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
+
+    lazy val getConsentInfos: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consent-infos" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            consents <- Future { Consents.consentProvider.vend.getConsentsByUser(cc.userId)
+              .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
+            }
+          } yield {
+            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            (JSONFactory400.createConsentInfosJsonV400(consentsOfBank), HttpCode.`200`(cc))
+          }
+      }
+    }
     
 
     staticResourceDocs += ResourceDoc(
