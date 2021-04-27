@@ -58,11 +58,11 @@ class JavaWebSignatureTest extends V400ServerSetup {
   feature("Assuring that endpoint getRoles works as expected - v2.1.0") {
     scenario("We try to get all roles with credentials - getRoles", ApiEndpoint1) {
       When("We make the request")
-      val requestGet = (v4_0_0_Request / "roles").GET <@ (user1)
+      val requestGet = (v4_0_0_Request / "development" / "verify-request-sign-response").GET <@ (user1)
       val signHeaders = signRequest(
         Full(""), 
         "get", 
-        "/obp/v4.0.0/roles", 
+        "/obp/v4.0.0/development/verify-request-sign-response", 
         "application/json;charset=UTF-8"
       ).map(i => (i.name, i.values.mkString(",")))
       val responseGet = makeGetRequest(requestGet, signHeaders)

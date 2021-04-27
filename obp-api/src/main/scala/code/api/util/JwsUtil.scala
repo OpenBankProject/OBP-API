@@ -143,13 +143,12 @@ object JwsUtil extends MdcLoggable {
   def forceVerifyRequestSignResponse(url: String): Boolean = {
     val standards: List[String] = APIUtil.getPropsValue(nameOfProperty="force_jws", "None").split(",").map(_.trim).toList
     val pathOfStandard = HashMap(
-      "TEST"->"obp/v4.0.0/roles", 
       "BGv1.3"->"berlin-group/v1.3", 
       "OBPv4.0.0"->"obp/v4.0.0", 
       "OBPv3.1.0"->"obp/v3.1.0", 
       "UKv1.3"->"open-banking/v3.1"
     ).withDefaultValue("{Not found any standard to match}")
-    standards.exists(standard => url.contains(pathOfStandard(standard)))
+    standards.exists(standard => url.contains(pathOfStandard(standard))) || url.contains("development/verify-request-sign-response")
   }
   
 

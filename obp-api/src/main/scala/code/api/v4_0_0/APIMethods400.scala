@@ -2459,6 +2459,30 @@ trait APIMethods400 {
         }
     }
 
+    staticResourceDocs += ResourceDoc(
+      verifyRequestSignResponse,
+      implementedInApiVersion,
+      nameOf(verifyRequestSignResponse),
+      "GET",
+      "/development/verify-request-sign-response",
+      "Verify Request and Sign Response of a current call",
+      s"""Verify Request and Sign Response of a current call.
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      List($UserNotLoggedIn, UnknownError),
+      List(apiTagApi, apiTagNewStyle),
+      Some(Nil))
+
+    lazy val verifyRequestSignResponse: OBPEndpoint = {
+      case "development" :: "verify-request-sign-response" :: Nil JsonGet _ => {
+        cc => Future{
+            (cc.callContext, HttpCode.`200`(cc.callContext))
+          }
+        }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       updateAccountLabel,
