@@ -2464,7 +2464,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(verifyRequestSignResponse),
       "GET",
-      "/development/verify-request-sign-response",
+      "/development/echo/jws-verified-request-jws-signed-response",
       "Verify Request and Sign Response of a current call",
       s"""Verify Request and Sign Response of a current call.
          |
@@ -2476,7 +2476,7 @@ trait APIMethods400 {
       Some(Nil))
 
     lazy val verifyRequestSignResponse: OBPEndpoint = {
-      case "development" :: "verify-request-sign-response" :: Nil JsonGet _ => {
+      case "development" :: "echo":: "jws-verified-request-jws-signed-response" :: Nil JsonGet _ => {
         cc => Future{
             (cc.callContext, HttpCode.`200`(cc.callContext))
           }
