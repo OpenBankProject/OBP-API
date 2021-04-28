@@ -2459,6 +2459,30 @@ trait APIMethods400 {
         }
     }
 
+    staticResourceDocs += ResourceDoc(
+      verifyRequestSignResponse,
+      implementedInApiVersion,
+      nameOf(verifyRequestSignResponse),
+      "GET",
+      "/development/echo/jws-verified-request-jws-signed-response",
+      "Verify Request and Sign Response of a current call",
+      s"""Verify Request and Sign Response of a current call.
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      List($UserNotLoggedIn, UnknownError),
+      List(apiTagApi, apiTagNewStyle),
+      Some(Nil))
+
+    lazy val verifyRequestSignResponse: OBPEndpoint = {
+      case "development" :: "echo":: "jws-verified-request-jws-signed-response" :: Nil JsonGet _ => {
+        cc => Future{
+            (cc.callContext, HttpCode.`200`(cc.callContext))
+          }
+        }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       updateAccountLabel,
@@ -6122,6 +6146,42 @@ trait APIMethods400 {
           } yield {
             val consentsOfBank = Consent.filterByBankId(consents, bankId)
             (JSONFactory400.createConsentsJsonV400(consentsOfBank), HttpCode.`200`(cc))
+          }
+      }
+    }
+    staticResourceDocs += ResourceDoc(
+      getConsentInfos,
+      implementedInApiVersion,
+      nameOf(getConsentInfos),
+      "GET",
+      "/banks/BANK_ID/my/consent-infos",
+      "Get Consents Info",
+      s"""
+         |
+         |This endpoint gets the Consents that the current User created.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      consentsJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
+
+    lazy val getConsentInfos: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consent-infos" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            consents <- Future { Consents.consentProvider.vend.getConsentsByUser(cc.userId)
+              .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
+            }
+          } yield {
+            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            (JSONFactory400.createConsentInfosJsonV400(consentsOfBank), HttpCode.`200`(cc))
           }
       }
     }

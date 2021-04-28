@@ -1,9 +1,9 @@
 package code.api.util
 
-import code.api.ResourceDocs1_4_0.ResourceDocs220
 import code.api.util.APIUtil.OAuth._
 import code.api.util.JwsUtil.{getPem, signRequest, verifyJws}
 import code.api.util.X509.validate
+import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v4_0_0.V400ServerSetup
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.Full
@@ -20,7 +20,7 @@ class JavaWebSignatureTest extends V400ServerSetup {
   object File extends Tag("JwsUtil.scala")
   object Function1 extends Tag("signRequest")
   object Function2 extends Tag("verifyJws")
-  object ApiEndpoint1 extends Tag(nameOf(ResourceDocs220.Implementations2_1_0.getRoles))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.verifyRequestSignResponse))
   override def beforeAll() {
     super.beforeAll()
   }
@@ -58,11 +58,11 @@ class JavaWebSignatureTest extends V400ServerSetup {
   feature("Assuring that endpoint getRoles works as expected - v2.1.0") {
     scenario("We try to get all roles with credentials - getRoles", ApiEndpoint1) {
       When("We make the request")
-      val requestGet = (v4_0_0_Request / "roles").GET <@ (user1)
+      val requestGet = (v4_0_0_Request / "development" / "echo" / "jws-verified-request-jws-signed-response").GET <@ (user1)
       val signHeaders = signRequest(
         Full(""), 
         "get", 
-        "/obp/v4.0.0/roles", 
+        "/obp/v4.0.0/development/echo/jws-verified-request-jws-signed-response", 
         "application/json;charset=UTF-8"
       ).map(i => (i.name, i.values.mkString(",")))
       val responseGet = makeGetRequest(requestGet, signHeaders)
