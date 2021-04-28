@@ -148,7 +148,7 @@ object JwsUtil extends MdcLoggable {
       "OBPv3.1.0"->"obp/v3.1.0", 
       "UKv1.3"->"open-banking/v3.1"
     ).withDefaultValue("{Not found any standard to match}")
-    standards.exists(standard => url.contains(pathOfStandard(standard))) || url.contains("development/verify-request-sign-response")
+    standards.exists(standard => url.contains(pathOfStandard(standard))) || url.contains("development/echo/jws-verified-request-jws-signed-response")
   }
   
 
