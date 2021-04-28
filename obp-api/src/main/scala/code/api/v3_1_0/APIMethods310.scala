@@ -760,7 +760,7 @@ trait APIMethods310 {
         ConsumerNotFoundByConsumerId,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canGetConsumers)))
 
 
@@ -795,7 +795,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle)
+      List(apiTagConsumer, apiTagNewStyle)
     )
 
 
@@ -830,7 +830,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canGetConsumers))
     )
 
@@ -3050,7 +3050,7 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
     
     lazy val createMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
@@ -3126,7 +3126,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         UnknownError),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeetings: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
@@ -3166,7 +3166,7 @@ trait APIMethods310 {
         MeetingNotFound,
         UnknownError
       ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
@@ -5683,7 +5683,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      List(apiTagWebUiProps, apiTagNewStyle),
       Some(List(canGetWebUiProps))
     )
 
@@ -5775,7 +5775,7 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      List(apiTagWebUiProps, apiTagNewStyle),
       Some(List(canCreateWebUiProps)))
 
     lazy val createWebUiProps : OBPEndpoint = {
@@ -5820,7 +5820,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      List(apiTagWebUiProps, apiTagNewStyle),
       Some(List(canDeleteWebUiProps)))
 
     lazy val deleteWebUiProps : OBPEndpoint = {
@@ -5885,7 +5885,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 

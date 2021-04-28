@@ -2256,7 +2256,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagUser, apiTagApi, apiTagNewStyle),
+      List(apiTagUser, apiTagNewStyle),
       Some(List(canCreateResetPasswordUrl)))
 
     lazy val resetPasswordUrl : OBPEndpoint = {
@@ -2308,7 +2308,7 @@ trait APIMethods400 {
         InvalidAccountBalanceCurrency,
         UnknownError
       ),
-      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
+      List(apiTagAccount, apiTagNewStyle),
       Some(List(canCreateAccount))
     ).disableAutoValidateRoles()  // this means disabled auto roles validation, will manually do the roles validation .
 
@@ -5409,7 +5409,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagTransaction, apiTagApi, apiTagNewStyle),
+      List(apiTagTransaction, apiTagNewStyle),
       Some(List(canDeleteTransactionCascade)))
 
     lazy val deleteTransactionCascade : OBPEndpoint = {
@@ -5483,7 +5483,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagApi, apiTagNewStyle),
+      List(apiTagProduct, apiTagNewStyle),
       Some(List(canDeleteProductCascade)))
 
     lazy val deleteProductCascade : OBPEndpoint = {
