@@ -4558,9 +4558,18 @@ trait APIMethods400 {
               }
               val entityName = url.split("DynamicEntity-")(1).split("/").head
               //outBoundMapping
-//              val requestBodyScheme = ""
-//              val targetRequestBody = JsonUtils.buildJson(json, requestBodyScheme)
-              val requestBody = json match {
+              val requestBodyScheme = net.liftweb.json.parse("""{
+                                        |  "field1": "id",
+                                        |  "field2": "category.id",
+                                        |  "field3": "category.name",
+                                        |  "field4": "name",
+                                        |  "field5[0]": "photoUrls",
+                                        |  "field6[0]": "tags.id",
+                                        |  "field7[0]": "tags.name",
+                                        |  "field8": "status",
+                                        |}""".stripMargin)
+              val targetRequestBody = JsonUtils.buildJson(json, requestBodyScheme)
+              val requestBody = targetRequestBody match {
                 case j @ JObject(jobj) => Some(j)
                 case _ => None
               }
