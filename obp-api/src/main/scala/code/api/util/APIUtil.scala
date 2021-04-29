@@ -2269,9 +2269,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-  def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty).map(_.trim)
 
-  def getEnabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty).map(_.trim)
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
