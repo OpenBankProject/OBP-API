@@ -5,7 +5,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats}
+import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats, NewStyle}
 import com.openbankproject.commons.util.ApiVersion
 import com.openbankproject.commons.util.Functions.Memo
 import io.swagger.v3.oas.models.PathItem.HttpMethod
@@ -24,12 +24,14 @@ import net.liftweb.util.{StringHelpers, ThreadGlobal}
 import org.apache.commons.collections4.MapUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.io.File
 import java.nio.charset.Charset
 import java.util
 import java.util.regex.Pattern
 import java.util.{Date, UUID}
+
+import com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL
+
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
 import scala.collection.mutable

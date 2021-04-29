@@ -4541,11 +4541,56 @@ trait APIMethods400 {
               jsonResponse.isEmpty
             }
 
-            (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
-              NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+            (box, _) <- if (url.contains("DynamicEntity-")) { //If   "host": "DynamicEntity-FooBar1", then we call the DynamicEntity directly.
+              //TODO, here need more logic to check if there is entityId here.
+              val entityId = Some("bd1f083b-af72-42cf-8a70-21d7740f386f")// if (params.toList.length ==0) None else Some(params.last._2.head)
+              
+              val operation = if(method.value.equalsIgnoreCase("get") || entityId.isEmpty){
+                GET_ONE
+              } else if (method.value.equalsIgnoreCase("get")|| entityId.isDefined){
+                GET_ALL
+              } else if (method.value.equalsIgnoreCase("create")){
+                CREATE
+              } else if (method.value.equalsIgnoreCase("delete")){
+                DELETE
+              } else {
+                DELETE
+              }
+              val entityName = url.split("DynamicEntity-")(1).split("/").head
+              //outBoundMapping
+//              val requestBodyScheme = ""
+//              val targetRequestBody = JsonUtils.buildJson(json, requestBodyScheme)
+              val requestBody = json match {
+                case j @ JObject(jobj) => Some(j)
+                case _ => None
+              }
+              NewStyle.function.invokeDynamicConnector(operation, entityName, requestBody, entityId, None, callContext)
+              //intBoundMapping 
+            }else{
+              MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
+                NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+              }
             }
           } yield {
             box match {
+              case Full(v) if(url.contains("DynamicEntity-")) => {
+                val responseBodyScheme =  net.liftweb.json.parse("""{
+                                           |  "id":"field1",
+                                           |  "category":{
+                                           |    "id":"field2",
+                                           |    "name":"field3"
+                                           |  },
+                                           |  "name":"field4",
+                                           |  "photoUrls":["field5"],
+                                           |  "tags":[{
+                                           |    "id":"field6",
+                                           |    "name":"field7"
+                                           |  }],
+                                           |  "status":"field8"
+                                           |}""".stripMargin)
+                val responseBody = JsonUtils.buildJson(v, responseBodyScheme)
+                (responseBody, HttpCode.`200`(Some(cc)))
+              }
               case Full(v) =>
                 val code = (v \ "code").asInstanceOf[JInt].num.toInt
                 (v \ "value", callContext.map(_.copy(httpCode = Some(code))))

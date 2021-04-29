@@ -10,7 +10,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   val zson = json.parse(
     """
       |{
-      |  "level": 3
+      |  "level": 3,
       |  "banks":[{
       |    "id":"dmo.01.uk.uk",
       |    "short_name":"uk",
@@ -131,6 +131,82 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
+  "transformField" should "generate JValue according schema2" taggedAs JsonUtilsTag in {
+    val zson = (
+      """
+        |{
+        |  "id1": 698761728,
+        |  "name1": "James Brown",
+        |  "status1": "Done"
+        |}
+        |""".stripMargin)
+
+    val schema = (
+      """{
+        |  "id": "id1",
+        |  "name": "name1",
+        |  "status": "status1"
+        |}""".stripMargin)
+
+    val expectedJson = json.parse(
+      """{"id": 698761728,
+        |  "name": "James Brown",
+        |  "status": "Done"
+        |}""".stripMargin)
+
+    val resultJson = buildJson(zson, schema)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+
+
+  "transformField" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
+    val zson = (
+      """{
+        |    "field1": "field1-1",
+        |    "field2": "field2-1",
+        |    "field3": "field3-1",
+        |    "field4": "field4-1",
+        |    "field5": "field5-1",
+        |    "field6": "field6-1",
+        |    "field7": "field7-1",
+        |    "field8": "field8-1"
+        |}""".stripMargin)
+
+    val schema = (
+      """{
+        |  "id":"field1",
+        |  "category":{
+        |    "id":"field2",
+        |    "name":"field3"
+        |  },
+        |  "name":"field4",
+        |  "photoUrls":["field5"],
+        |  "tags":[{
+        |    "id":"field6",
+        |    "name":"field7"
+        |  }],
+        |  "status":"field8"
+        |}
+        |""".stripMargin)
+
+    val expectedJson = json.parse(
+      """{"id": 698761728,
+        |  "name": "James Brown",
+        |  "status": "Done"
+        |}""".stripMargin)
+
+    val resultJson = buildJson(zson, schema)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+//    str1 shouldEqual str2
+  }
+  
   val arrayRoot = json.parse(
     """
       |[
