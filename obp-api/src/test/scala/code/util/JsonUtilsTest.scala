@@ -276,6 +276,154 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
+  "transformField" should "generate JValue according schema5" taggedAs JsonUtilsTag in {
+    val zson = (
+      """[
+        |  {
+        |    "field1": 2,
+        |    "field2": 1,
+        |    "field3": "string",
+        |    "field4": "doggie",
+        |    "field5": "string",
+        |    "field6": 1,
+        |    "field7": "string",
+        |    "field8": "available",
+        |    "pet_entity_id": "b57c3eed-9726-4aa0-aba2-d0dcc4f45a9e"
+        |  },
+        |  {
+        |    "field1": 2,
+        |    "field2": 1,
+        |    "field3": "string",
+        |    "field4": "doggie",
+        |    "field5": "string",
+        |    "field6": 1,
+        |    "field7": "string",
+        |    "field8": "available",
+        |    "pet_entity_id": "babb259e-859b-47d8-b40c-e77cd6cb7b12"
+        |  }
+        |]
+        |""".stripMargin)
+
+    //The array do not support sub field `category`,`photoUrls` and `tags` if remove these 3 ,it will work.!, 
+
+    val schemaGoodOne = ("""{"result[]":{
+                    |  "id":"pet_entity_id",
+                    | 
+                    |  "name":"field4",
+                    |
+                    |  "status":"field8"
+                    |}}""".stripMargin)
+    
+    val schemaBadOne = ("""{"result[]":{
+                    |  "id":"pet_entity_id",
+                    |  "category":{
+                    |    "id":"field2",
+                    |    "name":"field3"
+                    |  },
+                    |  "name":"field4",
+                    |  "photoUrls":["field5"],
+                    |  "tags":[{
+                    |    "id":"field6",
+                    |    "name":"field7"
+                    |  }],
+                    |  "status":"field8"
+                    |}}""".stripMargin)
+
+    val expectedJson = json.parse(
+      """{
+        |  "id":"field1-1",
+        |  "category":{
+        |    "id":"field2-1",
+        |    "name":"field3-1"
+        |  },
+        |  "name":"field4-1",
+        |  "photoUrls":[
+        |    "field5"
+        |  ],
+        |  "tags":[
+        |    {
+        |      "id":"field6-1",
+        |      "name":"field7-1"
+        |    }
+        |  ],
+        |  "status":"field8-1"
+        |}
+        |""".stripMargin)
+
+    val resultJson = buildJson(zson, schemaBadOne)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+//    val str2 = json.prettyRender(expectedJson)
+//    str1 shouldEqual str2
+  }
+
+  "transformField" should "generate JValue according schema6" taggedAs JsonUtilsTag in {
+    val zson = (
+      """[
+        |  {
+        |    "field1": 2,
+        |    "field2": 1,
+        |    "field3": "string",
+        |    "field4": "doggie",
+        |    "field5": "string",
+        |    "field6": 1,
+        |    "field7": "string",
+        |    "field8": "available",
+        |    "pet_entity_id": "b57c3eed-9726-4aa0-aba2-d0dcc4f45a9e"
+        |  },
+        |  {
+        |    "field1": 2,
+        |    "field2": 1,
+        |    "field3": "string",
+        |    "field4": "doggie",
+        |    "field5": "string",
+        |    "field6": 1,
+        |    "field7": "string",
+        |    "field8": "available",
+        |    "pet_entity_id": "babb259e-859b-47d8-b40c-e77cd6cb7b12"
+        |  }
+        |]
+        |""".stripMargin)
+
+    //The array do not support sub field `category`,`photoUrls` and `tags` if remove these 3 ,it will work.!, 
+
+
+
+    val schemaBadOne = ("""[{
+                           |  "id":"pet_entity_id",
+                           |  "name":"field4",
+                           |  "status":"field8"
+                           |}]""".stripMargin)
+
+    val expectedJson = json.parse(
+      """{
+        |  "id":"field1-1",
+        |  "category":{
+        |    "id":"field2-1",
+        |    "name":"field3-1"
+        |  },
+        |  "name":"field4-1",
+        |  "photoUrls":[
+        |    "field5"
+        |  ],
+        |  "tags":[
+        |    {
+        |      "id":"field6-1",
+        |      "name":"field7-1"
+        |    }
+        |  ],
+        |  "status":"field8-1"
+        |}
+        |""".stripMargin)
+
+    val resultJson = buildJson(zson, schemaBadOne)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    //    val str2 = json.prettyRender(expectedJson)
+    //    str1 shouldEqual str2
+  }
   
   val arrayRoot = json.parse(
     """
@@ -441,6 +589,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(jsonList, jsonListSchema)
 
     val str1 = json.prettyRender(resultJson)
+//    println(str1)
     val str2 = json.prettyRender(expectListResult)
     str1 shouldEqual str2
   }
