@@ -194,9 +194,73 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |""".stripMargin)
 
     val expectedJson = json.parse(
-      """{"id": 698761728,
-        |  "name": "James Brown",
-        |  "status": "Done"
+      """{
+        |  "id":"field1-1",
+        |  "category":{
+        |    "id":"field2-1",
+        |    "name":"field3-1"
+        |  },
+        |  "name":"field4-1",
+        |  "photoUrls":[
+        |    "field5"
+        |  ],
+        |  "tags":[
+        |    {
+        |      "id":"field6-1",
+        |      "name":"field7-1"
+        |    }
+        |  ],
+        |  "status":"field8-1"
+        |}
+        |""".stripMargin)
+
+    val resultJson = buildJson(zson, schema)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+
+  "transformField" should "generate JValue according schema4" taggedAs JsonUtilsTag in {
+    val zson = (
+      """{
+        |  "id":1,
+        |  "category":{
+        |    "id":2,
+        |    "name":"test1"
+        |  },
+        |  "name":"doggie",
+        |  "photoUrls":["photoUrls-string"],
+        |  "tags":[{
+        |    "id":1,
+        |    "name":"tags-string"
+        |  }],
+        |  "status":"available"
+        |}""".stripMargin)
+
+    val schema = (
+      """{
+        |  "field1": "id",
+        |  "field2": "category.id",
+        |  "field3": "category.name",
+        |  "field4": "name",
+        |  "field5[0]": "photoUrls",
+        |  "field6[0]": "tags.id",
+        |  "field7[0]": "tags.name",
+        |  "field8": "status",
+        |}""".stripMargin)
+
+    val expectedJson = json.parse(
+      """{
+        |  "field1":1,
+        |  "field2":2,
+        |  "field3":"test1",
+        |  "field4":"doggie",
+        |  "field5":"photoUrls-string",
+        |  "field6":1,
+        |  "field7":"tags-string",
+        |  "field8":"available"
         |}""".stripMargin)
 
     val resultJson = buildJson(zson, schema)
@@ -204,7 +268,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val str1 = json.prettyRender(resultJson)
     println(str1)
     val str2 = json.prettyRender(expectedJson)
-//    str1 shouldEqual str2
+    str1 shouldEqual str2
   }
   
   val arrayRoot = json.parse(
