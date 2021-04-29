@@ -225,18 +225,22 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   "transformField" should "generate JValue according schema4" taggedAs JsonUtilsTag in {
     val zson = (
       """{
-        |  "id":1,
-        |  "category":{
-        |    "id":2,
-        |    "name":"test1"
-        |  },
-        |  "name":"doggie",
-        |  "photoUrls":["photoUrls-string"],
-        |  "tags":[{
-        |    "id":1,
-        |    "name":"tags-string"
-        |  }],
-        |  "status":"available"
+        |    "id": 1,
+        |    "category": {
+        |        "id": 1,
+        |        "name": "string"
+        |    },
+        |    "name": "doggie",
+        |    "photoUrls": [
+        |        "string"
+        |    ],
+        |    "tags": [
+        |        {
+        |            "id": 1,
+        |            "name": "string"
+        |        }
+        |    ],
+        |    "status": "available"
         |}""".stripMargin)
 
     val schema = (
@@ -254,14 +258,15 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val expectedJson = json.parse(
       """{
         |  "field1":1,
-        |  "field2":2,
-        |  "field3":"test1",
+        |  "field2":1,
+        |  "field3":"string",
         |  "field4":"doggie",
-        |  "field5":"photoUrls-string",
+        |  "field5":"string",
         |  "field6":1,
-        |  "field7":"tags-string",
+        |  "field7":"string",
         |  "field8":"available"
-        |}""".stripMargin)
+        |}
+        |""".stripMargin)
 
     val resultJson = buildJson(zson, schema)
 
@@ -270,6 +275,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
+
   
   val arrayRoot = json.parse(
     """

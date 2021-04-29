@@ -4542,19 +4542,20 @@ trait APIMethods400 {
             }
 
             (box, _) <- if (url.contains("DynamicEntity-")) { //If   "host": "DynamicEntity-FooBar1", then we call the DynamicEntity directly.
-              //TODO, here need more logic to check if there is entityId here.
-              val entityId = Some("bd1f083b-af72-42cf-8a70-21d7740f386f")// if (params.toList.length ==0) None else Some(params.last._2.head)
-              
-              val operation = if(method.value.equalsIgnoreCase("get") || entityId.isEmpty){
+              //TODO, here need more logic to check if the Id is proper one!
+              val entityId = pathParams.find(parameter => parameter._1.contains("Id")).map(_._2)
+//              val entityId = pathParams.find(parameter => parameter._1.contains("Id")).map(_._2)
+
+              val operation = if(method.value.equalsIgnoreCase("get") && entityId.isDefined){
                 GET_ONE
-              } else if (method.value.equalsIgnoreCase("get")|| entityId.isDefined){
+              } else if (method.value.equalsIgnoreCase("get") && entityId.isEmpty){
                 GET_ALL
-              } else if (method.value.equalsIgnoreCase("create")){
+              } else if (method.value.equalsIgnoreCase("post")){
                 CREATE
               } else if (method.value.equalsIgnoreCase("delete")){
                 DELETE
               } else {
-                DELETE
+                GET_ONE
               }
               val entityName = url.split("DynamicEntity-")(1).split("/").head
               //outBoundMapping
@@ -4584,7 +4585,7 @@ trait APIMethods400 {
             box match {
               case Full(v) if(url.contains("DynamicEntity-")) => {
                 val responseBodyScheme =  net.liftweb.json.parse("""{
-                                           |  "id":"field1",
+                                           |  "id":"pet_entity_id",
                                            |  "category":{
                                            |    "id":"field2",
                                            |    "name":"field3"
