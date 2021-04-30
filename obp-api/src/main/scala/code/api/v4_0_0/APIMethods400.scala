@@ -7571,7 +7571,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateDynamicMessageDoc),
       "PUT",
-      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
       "Update Dynamic Message Doc",
       s"""Update a Dynamic Message Doc.
          |""",
@@ -7611,9 +7611,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getDynamicMessageDoc),
       "GET",
-      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
       "Get Dynamic Message Doc by Id",
-      s"""Get a Dynamic Message Doc by DYNAMIC-MESSAGE-DOC-ID.
+      s"""Get a Dynamic Message Doc by DYNAMIC_MESSAGE_DOC_ID.
          |
          |""",
       EmptyBody,
@@ -7673,7 +7673,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteDynamicMessageDoc),
       "DELETE",
-      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
       "Delete Dynamic Message Doc",
       s"""Delete a Dynamic Message Doc.
          |""",

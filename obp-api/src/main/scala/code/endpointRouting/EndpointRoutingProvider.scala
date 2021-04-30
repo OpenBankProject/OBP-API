@@ -45,6 +45,8 @@ object EndpointRoutingCommons extends Converter[EndpointRoutingT, EndpointRoutin
 
 trait EndpointRoutingProvider {
   def getById(endpointRoutingId: String): Box[EndpointRoutingT]
+  
+  def getByEndpointRoutings: List[EndpointRoutingT]
 
   def createOrUpdate(endpointRouting: EndpointRoutingT): Box[EndpointRoutingT]
 

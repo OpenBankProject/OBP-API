@@ -13,9 +13,7 @@ import net.liftweb.json.JsonAST.JArray
 
 object MappedEndpointRoutingProvider extends EndpointRoutingProvider with CustomJsonFormats{
 
-  override def getById(endpointRoutingId: String): Box[EndpointRoutingT] =  EndpointRouting.find(
-    By(EndpointRouting.EndpointRoutingId, endpointRoutingId)
-  )
+  override def getById(endpointRoutingId: String): Box[EndpointRoutingT] =  getByEndpointRoutingId(endpointRoutingId)
 
   override def createOrUpdate(endpointRouting: EndpointRoutingT): Box[EndpointRoutingT] = {
     //to find exists endpointRouting, if endpointRoutingId supplied, query by endpointRoutingId, or use endpointName and endpointRoutingId to do query
@@ -41,6 +39,8 @@ object MappedEndpointRoutingProvider extends EndpointRoutingProvider with Custom
   override def delete(endpointRoutingId: String): Box[Boolean] = getByEndpointRoutingId(endpointRoutingId).map(_.delete_!)
 
   private[this] def getByEndpointRoutingId(endpointRoutingId: String): Box[EndpointRouting] = EndpointRouting.find(By(EndpointRouting.EndpointRoutingId, endpointRoutingId))
+
+  override def getByEndpointRoutings: List[EndpointRoutingT] = EndpointRouting.findAll()
 
 }
 
