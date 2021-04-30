@@ -41,8 +41,9 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 import code.api.util.APIUtil.OAuth._
+import code.setup.PropsReset
 
-class RateLimitingTest extends V400ServerSetup {
+class RateLimitingTest extends V400ServerSetup with PropsReset {
 
   /**
     * Test tags
@@ -55,7 +56,11 @@ class RateLimitingTest extends V400ServerSetup {
   object ApiCallsLimit extends Tag(nameOf(Implementations4_0_0.callsLimit))
   object ApiCreateDynamicEndpoint extends Tag(nameOf(Implementations4_0_0.createDynamicEndpoint))
   
-  val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
+  override def beforeEach() = {
+    super.beforeEach()
+    setPropsValues("use_consumer_limits"->"true")
+    setPropsValues("user_consumer_limit_anonymous_access"->"6000")
+  }
 
   val yesterday = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val tomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(10)
@@ -110,7 +115,6 @@ class RateLimitingTest extends V400ServerSetup {
       response400.body.extract[CallLimitJsonV400]
     }
     scenario("We will set Rate Limiting per second for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonSecond)
         Then("We should get a 200")
@@ -131,10 +135,8 @@ class RateLimitingTest extends V400ServerSetup {
         val response04 = setRateLimiting(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
-      }
     }
     scenario("We will set Rate Limiting per minute for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonMinute)
         Then("We should get a 200")
@@ -154,10 +156,8 @@ class RateLimitingTest extends V400ServerSetup {
         val response04 = setRateLimiting(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
-      }
     }
     scenario("We will set Rate Limiting per hour for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonHour)
         Then("We should get a 200")
@@ -177,10 +177,8 @@ class RateLimitingTest extends V400ServerSetup {
         val response04 = setRateLimiting(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
-      }
     }
     scenario("We will set Rate Limiting per week for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonWeek)
         Then("We should get a 200")
@@ -200,10 +198,8 @@ class RateLimitingTest extends V400ServerSetup {
         val response04 = setRateLimiting(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
-      }
     }
     scenario("We will set Rate Limiting per month for an Endpoint", ApiCallsLimit, ApiVersion400) {
-      if(useConsumerLimits) {
         When("We make a request v4.0.0 with a Role " + ApiRole.canSetCallLimits)
         val response01 = setRateLimiting(user1, callLimitJsonMonth)
         Then("We should get a 200")
@@ -223,13 +219,11 @@ class RateLimitingTest extends V400ServerSetup {
         val response04 = setRateLimiting(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
-      }
     }
   }
 
   feature(s"Dynamic Endpoint: test $ApiCreateDynamicEndpoint version $ApiVersion400 - authorized access - with role - should be success!") {
     scenario("We will call the endpoint with user credentials", ApiCreateDynamicEndpoint, ApiVersion400) {
-      if(useConsumerLimits) {
         When("We make a request v4.0.0")
         val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
         When("We make a request v4.0.0")
@@ -271,7 +265,6 @@ class RateLimitingTest extends V400ServerSetup {
         When("We make the first call after update")
         Then("We should get a 404")
         makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(404)
-      }
     }
   }
 
