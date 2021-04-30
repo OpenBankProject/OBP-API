@@ -2715,7 +2715,7 @@ object NewStyle {
       val featuredApiCollectionIds =  APIUtil.getPropsValue("featured_api_collection_ids","").split(",").map(_.trim).toSet.toList
       //We filter the isDefined and is isSharable collections.
       val apiCollections = featuredApiCollectionIds.map(MappedApiCollectionsProvider.getApiCollectionById).filter(_.isDefined).filter(_.head.isSharable).map(_.head)
-      Future{(apiCollections, callContext)}
+      Future{(apiCollections.sortBy(_.apiCollectionName), callContext)}
     }
     
     def createApiCollection(
