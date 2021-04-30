@@ -65,6 +65,7 @@ import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityInfo}
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
+import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -2289,6 +2290,39 @@ object NewStyle {
       }
     }
 
+    def createOrUpdateEndpointMapping(endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(endpointMapping), callContext)
+    } map {
+      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    }
+
+    def deleteEndpointMapping(endpointMappingId: String, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.delete(endpointMappingId), callContext)
+    } map {
+      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    }
+
+    def getEndpointMappingById(endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(endpointMappingId)
+      Future{
+        val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, EndpointMappingNotFoundByEndpointMappingId)
+        (endpointMapping, callContext)
+      }
+    }
+
+    private[this] val endpointMappingTTL = APIUtil.getPropsValue(s"endpointMapping.cache.ttl.seconds", "0").toInt
+
+    def getEndpointMappings(callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL second) {
+          Future{(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(), callContext)}
+        }
+      }
+    }
+    
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
       val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
 

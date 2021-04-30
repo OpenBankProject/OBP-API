@@ -77,6 +77,7 @@ import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
 
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
+import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -7696,6 +7697,174 @@ trait APIMethods400 {
             (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(dynamicMessageDocId, callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createEndpointMapping,
+      implementedInApiVersion,
+      nameOf(createEndpointMapping),
+      "POST",
+      "/management/endpoint-mappings",
+      "Create Endpoint Mapping",
+      s"""Create an Endpoint Mapping. 
+         |
+         |Note: at moment only support the dynamic endpoints
+         |""",
+      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canCreateEndpointMapping)))
+
+    lazy val createEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointMapping <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[EndpointMappingCommons]}", 400, cc.callContext) {
+              json.extract[EndpointMappingCommons]
+            }
+            (endpointMapping, callContext) <- NewStyle.function.createOrUpdateEndpointMapping(endpointMapping.copy(endpointMappingId= None), cc.callContext)
+          } yield {
+            val commonsData: EndpointMappingCommons = endpointMapping
+            (commonsData.toJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateEndpointMapping,
+      implementedInApiVersion,
+      nameOf(updateEndpointMapping),
+      "PUT",
+      "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
+      "Update Endpoint Mapping",
+      s"""Update an Endpoint Mapping.
+         |""",
+      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canUpdateEndpointMapping)))
+
+    lazy val updateEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointMappingBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[EndpointMappingCommons]}", 400, cc.callContext) {
+              json.extract[EndpointMappingCommons]
+            }
+            (endpointMapping, callContext) <- NewStyle.function.getEndpointMappingById(endpointMappingId, cc.callContext)
+            (endpointMapping, callContext) <- NewStyle.function.createOrUpdateEndpointMapping(endpointMapping, callContext)
+          } yield {
+            val commonsData: EndpointMappingCommons = endpointMapping
+            (commonsData.toJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getEndpointMapping,
+      implementedInApiVersion,
+      nameOf(getEndpointMapping),
+      "GET",
+      "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
+      "Get Endpoint Mapping by Id",
+      s"""Get an Endpoint Mapping by ENDPOINT_MAPPING_ID.
+         |
+         |""",
+      EmptyBody,
+      endpointMappingJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canGetEndpointMapping)))
+
+    lazy val getEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointMapping, callContext) <- NewStyle.function.getEndpointMappingById(endpointMappingId, cc.callContext)
+          } yield {
+            val commonsData: EndpointMappingCommons = endpointMapping
+            (commonsData.toJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllEndpointMappings,
+      implementedInApiVersion,
+      nameOf(getAllEndpointMappings),
+      "GET",
+      "/management/endpoint-mappings",
+      "Get all Endpoint Mappings",
+      s"""Get all Endpoint Mappings.
+         |
+         |""",
+      EmptyBody,
+      ListResult("endpoint-mappings", endpointMappingJson::Nil),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canGetAllEndpointMappings)))
+
+    lazy val getAllEndpointMappings: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointMappings, callContext) <- NewStyle.function.getEndpointMappings(cc.callContext)
+          } yield {
+            val listCommons: List[EndpointMappingCommons] = endpointMappings
+            (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteEndpointMapping,
+      implementedInApiVersion,
+      nameOf(deleteEndpointMapping),
+      "DELETE",
+      "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
+      "Delete Endpoint Mapping",
+      s"""Delete a Endpoint Mapping.
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canDeleteEndpointMapping)))
+
+    lazy val deleteEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- NewStyle.function.deleteEndpointMapping(endpointMappingId, cc.callContext)
+          } yield {
+            (deleted, HttpCode.`204`(callContext))
           }
       }
     }

@@ -103,7 +103,7 @@ import code.apicollection.ApiCollection
 import code.connectormethod.ConnectorMethod
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
-import code.endpointRouting.EndpointRouting
+import code.endpointMapping.EndpointMapping
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -900,7 +900,7 @@ object ToSchemify {
     MappedConsent,
     MigrationScriptLog,
     MethodRouting,
-    EndpointRouting,
+    EndpointMapping,
     WebUiProps,
     Authorisation,
     DynamicEntity,

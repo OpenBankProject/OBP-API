@@ -693,6 +693,21 @@ object ApiRole {
   case class CanDeleteDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicMessageDoc = CanDeleteDynamicMessageDoc()
 
+  case class CanCreateEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateEndpointMapping = CanCreateEndpointMapping()
+
+  case class CanUpdateEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateEndpointMapping = CanUpdateEndpointMapping()
+
+  case class CanGetEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetEndpointMapping = CanGetEndpointMapping()
+
+  case class CanGetAllEndpointMappings(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllEndpointMappings = CanGetAllEndpointMappings()
+
+  case class CanDeleteEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteEndpointMapping = CanDeleteEndpointMapping()
+
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{

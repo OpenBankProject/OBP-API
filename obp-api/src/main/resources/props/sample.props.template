@@ -59,6 +59,9 @@ connector=mapped
 ## MethodRouting cache time-to-live in seconds
 #methodRouting.cache.ttl.seconds=30
 
+## EndpointRouting cache time-to-live in seconds
+#endpointrouting.cache.ttl.seconds=30
+
 ## webui props cache time-to-live in seconds
 #webui.props.cache.ttl.seconds=20
 

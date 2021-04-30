@@ -430,6 +430,9 @@ object ErrorMessages {
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
   val InvalidAuthorisationStatus = "OBP-36002: Authorisation Status is Invalid"
   val AuthorisationNotFoundByPaymentId = "OBP-36003: Authorisation not found. Please specify valid values for PAYMENT_ID. "
+
+  //EndpointMappings
+  val EndpointMappingNotFoundByEndpointMappingId = "OBP-36004: Endpoint Mapping not found. Please specify valid values for ENDPOINT_MAPPING_ID. "
   // General Resource related messages above here
 
 
