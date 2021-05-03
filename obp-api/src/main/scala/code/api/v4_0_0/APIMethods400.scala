@@ -1886,7 +1886,7 @@ trait APIMethods400 {
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
-            (deleted, HttpCode.`204`(cc.callContext))
+            (deleted, HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -7765,8 +7765,8 @@ trait APIMethods400 {
             endpointMappingBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[EndpointMappingCommons]}", 400, cc.callContext) {
               json.extract[EndpointMappingCommons]
             }
-            (endpointMapping, callContext) <- NewStyle.function.getEndpointMappingById(endpointMappingId, cc.callContext)
-            (endpointMapping, callContext) <- NewStyle.function.createOrUpdateEndpointMapping(endpointMapping, callContext)
+            (_, callContext) <- NewStyle.function.getEndpointMappingById(endpointMappingId, cc.callContext)
+            (endpointMapping, callContext) <- NewStyle.function.createOrUpdateEndpointMapping(endpointMappingBody.copy(endpointMappingId = Some(endpointMappingId)), callContext)
           } yield {
             val commonsData: EndpointMappingCommons = endpointMapping
             (commonsData.toJson, HttpCode.`201`(callContext))
@@ -7833,7 +7833,7 @@ trait APIMethods400 {
             (endpointMappings, callContext) <- NewStyle.function.getEndpointMappings(cc.callContext)
           } yield {
             val listCommons: List[EndpointMappingCommons] = endpointMappings
-            (ListResult("method_routings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
+            (ListResult("endpoint-mappings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
           }
       }
     }
@@ -7864,7 +7864,7 @@ trait APIMethods400 {
           for {
             (deleted, callContext) <- NewStyle.function.deleteEndpointMapping(endpointMappingId, cc.callContext)
           } yield {
-            (deleted, HttpCode.`204`(callContext))
+            (deleted, HttpCode.`200`(callContext))
           }
       }
     }
