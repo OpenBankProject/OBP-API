@@ -329,33 +329,78 @@ class JsonUtilsTest extends FlatSpec with Matchers {
                     |  "status":"field8"
                     |}}""".stripMargin)
 
-    val expectedJson = json.parse(
+    val schemaGoodOnExpectedJson = json.parse(
       """{
-        |  "id":"field1-1",
-        |  "category":{
-        |    "id":"field2-1",
-        |    "name":"field3-1"
-        |  },
-        |  "name":"field4-1",
-        |  "photoUrls":[
-        |    "field5"
-        |  ],
-        |  "tags":[
+        |       "result":[
         |    {
-        |      "id":"field6-1",
-        |      "name":"field7-1"
+        |      "id":"b57c3eed-9726-4aa0-aba2-d0dcc4f45a9e",
+        |      "name":"doggie",
+        |      "status":"available"
+        |    },
+        |    {
+        |      "id":"babb259e-859b-47d8-b40c-e77cd6cb7b12",
+        |      "name":"doggie",
+        |      "status":"available"
         |    }
-        |  ],
-        |  "status":"field8-1"
-        |}
-        |""".stripMargin)
+        |  ]
+        |}""".stripMargin)
+    
+    val schemaBadOneExpectedJson = json.parse(
+      """{
+        |   "result":[
+        |    {
+        |         "id":"b57c3eed-9726-4aa0-aba2-d0dcc4f45a9e",
+        |         "category":{
+        |            "id":1,
+        |            "name":"string"
+        |         },
+        |         "name":"doggie",
+        |         "photoUrls":[
+        |            "string"
+        |         ],
+        |         "tags":[
+        |            {
+        |               "id":1,
+        |               "name":"string"
+        |            }
+        |         ],
+        |         "status":"available"
+        |      },
+        |      {
+        |         "id":"babb259e-859b-47d8-b40c-e77cd6cb7b12",
+        |         "category":{
+        |            "id":2,
+        |            "name":"string"
+        |         },
+        |         "name":"doggie",
+        |         "photoUrls":[
+        |            "string"
+        |         ],
+        |         "tags":[
+        |            {
+        |               "id":1,
+        |               "name":"string"
+        |            }
+        |         ],
+        |         "status":"available"
+        |      }
+        |   ]
+        |}""".stripMargin)
 
-    val resultJson = buildJson(zson, schemaBadOne)
+    val resultGoodJson = buildJson(zson, schemaGoodOne)
 
-    val str1 = json.prettyRender(resultJson)
+    val str1 = json.prettyRender(resultGoodJson)
     println(str1)
-//    val str2 = json.prettyRender(expectedJson)
-//    str1 shouldEqual str2
+    val str2 = json.prettyRender(schemaGoodOnExpectedJson)
+    str1 shouldEqual str2
+    
+  {
+      val resultJson = buildJson(zson, schemaBadOne)
+      val str1 = json.prettyRender(resultJson)
+      println(str1)
+      val str2 = json.prettyRender(schemaBadOneExpectedJson)
+      str1 shouldEqual str2
+  }
   }
 
   "transformField" should "generate JValue according schema6" taggedAs JsonUtilsTag in {
@@ -397,32 +442,25 @@ class JsonUtilsTest extends FlatSpec with Matchers {
                            |}]""".stripMargin)
 
     val expectedJson = json.parse(
-      """{
-        |  "id":"field1-1",
-        |  "category":{
-        |    "id":"field2-1",
-        |    "name":"field3-1"
-        |  },
-        |  "name":"field4-1",
-        |  "photoUrls":[
-        |    "field5"
-        |  ],
-        |  "tags":[
-        |    {
-        |      "id":"field6-1",
-        |      "name":"field7-1"
-        |    }
-        |  ],
-        |  "status":"field8-1"
-        |}
-        |""".stripMargin)
+      """[
+        |   {
+        |      "id":"b57c3eed-9726-4aa0-aba2-d0dcc4f45a9e",
+        |      "name":"doggie",
+        |      "status":"available"
+        |   },
+        |   {
+        |      "id":"babb259e-859b-47d8-b40c-e77cd6cb7b12",
+        |      "name":"doggie",
+        |      "status":"available"
+        |   }
+        |]""".stripMargin)
 
     val resultJson = buildJson(zson, schemaBadOne)
 
     val str1 = json.prettyRender(resultJson)
     println(str1)
-    //    val str2 = json.prettyRender(expectedJson)
-    //    str1 shouldEqual str2
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
   }
   
   val arrayRoot = json.parse(
