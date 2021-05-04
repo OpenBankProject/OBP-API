@@ -283,7 +283,8 @@ case class RevokedJsonV400(revoked: Boolean)
 case class ConsentJsonV400(consent_id: String, jwt: String, status: String, api_standard: String, api_version: String)
 case class ConsentsJsonV400(consents: List[ConsentJsonV400])
 case class ConsentInfoJsonV400(consent_id: String, 
-                               consumer_id: String, 
+                               consumer_id: String,
+                               created_by_user_id: String, 
                                last_action_date: String, 
                                last_usage_date: String, 
                                status: String, 
@@ -1079,6 +1080,7 @@ object JSONFactory400 {
       ConsentInfoJsonV400(
         c.consentId,
         c.consumerId,
+        c.userId,
         if(c.lastActionDate!=null) new SimpleDateFormat(DateWithDay).format(c.lastActionDate) else null, 
         if(c.usesSoFarTodayCounterUpdatedAt!=null) new SimpleDateFormat(DateWithSeconds).format(c.usesSoFarTodayCounterUpdatedAt) else null, 
         c.status, 

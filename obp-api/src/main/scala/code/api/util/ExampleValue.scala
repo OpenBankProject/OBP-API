@@ -249,6 +249,7 @@ object ExampleValue {
   lazy val transactionCompletedDateExample = ConnectorField("2018-01-28", "The Completed date of a transaction in the format: yyyy-MM-dd")
 
   lazy val dateExample = ConnectorField("2020-01-27", "The Date in the format: yyyy-MM-dd")
+  lazy val dateTimeExample = ConnectorField("2021-04-08T09:12:27Z", "The Date in the format: yyyy-MM-dd'T'HH:mm:ss'Z'")
   lazy val cancelledDateExample = ConnectorField("2020-01-27", "The Cancelled Date in the format: yyyy-MM-dd")
   lazy val dateCancelledExample = cancelledDateExample
   lazy val signedDateExample = ConnectorField("2020-01-27", "The Signed Date in the format: yyyy-MM-dd")
