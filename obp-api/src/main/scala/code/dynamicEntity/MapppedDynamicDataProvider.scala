@@ -2,7 +2,7 @@ package code.DynamicData
 
 import code.api.util.CustomJsonFormats
 import code.util.MappedUUID
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JString
@@ -24,7 +24,13 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     saveOrUpdate(entityName, requestBody, dynamicData)
   }
 
-  override def get(entityName: String, id: String): Box[DynamicData] = DynamicData.find(By(DynamicData.DynamicDataId, id), By(DynamicData.DynamicEntityName, entityName))
+  override def get(entityName: String, id: String): Box[DynamicData] = {
+    //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
+    DynamicData.find(By(DynamicData.DynamicDataId, id), By(DynamicData.DynamicEntityName, entityName)) match {
+      case Full(dynamicData) => Full(dynamicData)
+      case _ => Failure(s"not exists DynamicData's data of dynamicEntityName=$entityName, dynameicDataId=$id")
+    }
+  }
 
   override def getAll(entityName: String): List[JObject] = DynamicData.findAll(By(DynamicData.DynamicEntityName, entityName))
     .map(it => json.parse(it.dataJson)).map(_.asInstanceOf[JObject])
