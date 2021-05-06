@@ -52,6 +52,8 @@ object EndpointMappingCommons extends Converter[EndpointMappingT, EndpointMappin
 trait EndpointMappingProvider {
   def getById(endpointMappingId: String): Box[EndpointMappingT]
   
+  def getByOperationId(operationId: String): Box[EndpointMappingT]
+  
   def getAllEndpointMappings: List[EndpointMappingT]
 
   def createOrUpdate(endpointMapping: EndpointMappingT): Box[EndpointMappingT]

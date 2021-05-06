@@ -3742,8 +3742,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         }
         case DELETE => {
           val id = entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. "))
-          val deleteResult: Boolean = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
-          Full(JBool(deleteResult))
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
+              .map(it => JBool(it))
+          boxedEntity
         }
       }
       (processResult, callContext)

@@ -31,7 +31,7 @@ trait DynamicDataProvider {
   def update(entityName: String, requestBody: JObject, id: String): Box[DynamicData]
   def get(entityName: String, id: String): Box[DynamicData]
   def getAll(entityName: String): List[JObject]
-  def delete(entityName: String, id: String): Boolean
+  def delete(entityName: String, id: String): Box[Boolean]
   def existsData(dynamicEntityName: String): Boolean
 }
 

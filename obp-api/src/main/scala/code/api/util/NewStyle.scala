@@ -2305,7 +2305,15 @@ object NewStyle {
     def getEndpointMappingById(endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
       val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(endpointMappingId)
       Future{
-        val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, EndpointMappingNotFoundByEndpointMappingId)
+        val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByEndpointMappingId Current ENDPOINT_MAPPING_ID is $endpointMappingId", 404)
+        (endpointMapping, callContext)
+      }
+    }
+
+    def getEndpointMappingByOperationId(operationId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getByOperationId(operationId)
+      Future{
+        val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByOperationId Current OPERATION_ID is $operationId",404)
         (endpointMapping, callContext)
       }
     }
@@ -2482,41 +2490,64 @@ object NewStyle {
           .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
       }
 
+      //To make sure create and update contain the requestBody
       if(operation == CREATE || operation == UPDATE) {
         if(requestBody.isEmpty) {
           return Helper.booleanToFuture(s"$InvalidJsonFormat requestBody is required for $operation operation.")(false)
             .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
         }
       }
+      
+      //To make sure the GET_ONE/UPDATE/DELETE contain the entityId
       if(operation == GET_ONE || operation == UPDATE || operation == DELETE) {
         if (entityId.isEmpty) {
           return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
             .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
         }
       }
-      val dynamicInstance: Option[JObject] = requestBody.map { it =>
-        val entityIdName = s"${entityName}_Id".replaceAll("(?<=[a-z0-9])(?=[A-Z])|-", "_").toLowerCase
-        val entityIdValue = it \ entityIdName
+      
+      // check if there is (entityIdName, entityIdValue) pair in the requestBody, if no, we will add it. 
+      val requestBodyDynamicInstance: Option[JObject] = requestBody.map { requestJsonJObject =>
+       
+        // (?<=[a-z0-9])(?=[A-Z]) --> mean `Positive Lookbehind (?<=[a-z0-9])` && Positive Lookahead (?=[A-Z]) --> So we can find the space to replace to  `_`
+        val regexPattern = "(?<=[a-z0-9])(?=[A-Z])|-"
+        // eg: entityName = PetEntity => entityIdName = pet_entity_id
+        val entityIdName = s"${entityName}_Id".replaceAll(regexPattern, "_").toLowerCase
+        
+        val entityIdValue = requestJsonJObject \ entityIdName
 
         entityIdValue match {
-          case JNothing | JNull => it ~ (entityIdName -> entityId.getOrElse(generateUUID()))
-          case _: JString => it
-          case JInt(i) => JsonUtils.transformField(it){
+            //if the value is not existing, we need to add the `(entityIdName, entityIdValue)` pair
+          case JNothing | JNull => requestJsonJObject ~ (entityIdName -> entityId.getOrElse(generateUUID()))
+            // if it is there, we just return it. 
+          case _: JString => requestJsonJObject
+            //If it is Integer, we need to cast it to String.
+          case JInt(i) => JsonUtils.transformField(requestJsonJObject){
             case (jField, "") if jField.name == entityIdName => JField(entityIdName, JString(i.toString))
           }.asInstanceOf[JObject]
-          case _ => JsonUtils.transformField(it){
+            //If it contains `entityIdName` and value is EmptyString, we need to set the `entityId or new UUID` for the value.
+          case _ => JsonUtils.transformField(requestJsonJObject){
             case (jField, "") if jField.name == entityIdName => JField(entityIdName, JString(entityId.getOrElse(generateUUID())))
           }.asInstanceOf[JObject]
         }
       }
 
-      dynamicInstance match {
-        case empty @None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, callContext)
+      requestBodyDynamicInstance match {
+          // @(variable-binding pattern), we can use the empty variable 
+          // If there is not instance in requestBody, we just call the `dynamicEntityProcess` directly.
+        case empty @None => 
+          Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, callContext)
+        // @(variable-binding pattern), we can use both v and body variables.
         case v @Some(body) =>
+          // If the request body is existing, we need to validate the body first. 
           val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
           dynamicEntity.validateEntityJson(body, callContext).flatMap {
-            case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, bankId, callContext)
-            case Some(errorMsg) => Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg")(false)
+            // If there is no error in the request body
+            case None => 
+              Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, bankId, callContext)
+            // If there are errors, we need to show them to end user. 
+            case Some(errorMsg) => 
+              Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg")(false)
               .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
           }
       }

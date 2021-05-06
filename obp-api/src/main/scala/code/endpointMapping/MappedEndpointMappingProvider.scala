@@ -13,7 +13,9 @@ import net.liftweb.json.JsonAST.JArray
 
 object MappedEndpointMappingProvider extends EndpointMappingProvider with CustomJsonFormats{
 
-  override def getById(endpointMappingId: String): Box[EndpointMappingT] =  getByEndpointMappingId(endpointMappingId)
+  override def getById(endpointMappingId: String): Box[EndpointMappingT] = getByEndpointMappingId(endpointMappingId)
+  
+  override def getByOperationId(operationId: String): Box[EndpointMappingT] = EndpointMapping.find(By(EndpointMapping.OperationId, operationId))
 
   override def createOrUpdate(endpointMapping: EndpointMappingT): Box[EndpointMappingT] = {
     //to find exists endpointMapping, if endpointMappingId supplied, query by endpointMappingId, or use endpointName and endpointMappingId to do query

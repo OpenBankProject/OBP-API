@@ -4542,10 +4542,20 @@ trait APIMethods400 {
               jsonResponse.isEmpty
             }
 
+            (endpointMapping, callContext) <- //if (url.contains("DynamicEntity-")) {
+              NewStyle.function.getEndpointMappingByOperationId(operationId, cc.callContext)
+//            } else{
+//              Future.successful((_, callContext))
+//            } 
+            val requestBodySchemeString = endpointMapping.requestMapping
+            val requestBodySchemeJvalue = net.liftweb.json.parse(requestBodySchemeString)
+            val responseBodySchemeString = endpointMapping.responseMapping
+            val responseBodySchemeJvalue =  net.liftweb.json.parse(responseBodySchemeString)
+            val entityName = endpointMapping.dynamicEntityNames.head
+            
             (box, _) <- if (url.contains("DynamicEntity-")) { //If   "host": "DynamicEntity-FooBar1", then we call the DynamicEntity directly.
               //TODO, here need more logic to check if the Id is proper one!
               val entityId = pathParams.find(parameter => parameter._1.contains("Id")).map(_._2)
-//              val entityId = pathParams.find(parameter => parameter._1.contains("Id")).map(_._2)
 
               val operation = if(method.value.equalsIgnoreCase("get") && entityId.isDefined){
                 GET_ONE
@@ -4558,25 +4568,14 @@ trait APIMethods400 {
               } else {
                 GET_ONE
               }
-              val entityName = url.split("DynamicEntity-")(1).split("/").head
-              //outBoundMapping
-              val requestBodyScheme = net.liftweb.json.parse("""{
-                                        |  "field1": "id",
-                                        |  "field2": "category.id",
-                                        |  "field3": "category.name",
-                                        |  "field4": "name",
-                                        |  "field5[0]": "photoUrls",
-                                        |  "field6[0]": "tags.id",
-                                        |  "field7[0]": "tags.name",
-                                        |  "field8": "status",
-                                        |}""".stripMargin)
-              val targetRequestBody = JsonUtils.buildJson(json, requestBodyScheme)
+             
+              //requestBodyMapping --> Convert `RequestJson` --> `DynamicEntity Model.`  
+              val targetRequestBody = JsonUtils.buildJson(json, requestBodySchemeJvalue)
               val requestBody = targetRequestBody match {
                 case j @ JObject(jobj) => Some(j)
                 case _ => None
               }
               NewStyle.function.invokeDynamicConnector(operation, entityName, requestBody, entityId, None, callContext)
-              //intBoundMapping 
             }else{
               MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
                 NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
@@ -4585,21 +4584,8 @@ trait APIMethods400 {
           } yield {
             box match {
               case Full(v) if(url.contains("DynamicEntity-")) => {
-                val responseBodyScheme =  net.liftweb.json.parse("""{
-                                           |  "id":"pet_entity_id",
-                                           |  "category":{
-                                           |    "id":"field2",
-                                           |    "name":"field3"
-                                           |  },
-                                           |  "name":"field4",
-                                           |  "photoUrls":["field5"],
-                                           |  "tags":[{
-                                           |    "id":"field6",
-                                           |    "name":"field7"
-                                           |  }],
-                                           |  "status":"field8"
-                                           |}""".stripMargin)
-                val responseBody = JsonUtils.buildJson(v, responseBodyScheme)
+                //responseBodyMapping
+                val responseBody = JsonUtils.buildJson(v, responseBodySchemeJvalue)
                 (responseBody, HttpCode.`200`(Some(cc)))
               }
               case Full(v) =>

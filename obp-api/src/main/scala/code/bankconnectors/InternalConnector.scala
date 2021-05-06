@@ -3,12 +3,49 @@ package code.bankconnectors
 import code.api.util.DynamicUtil.compileScalaCode
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Failure}
+import net.liftweb.common.{Box, Failure, Full}
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import org.apache.commons.lang3.StringUtils
 import java.lang.reflect.Method
-import code.api.util.DynamicUtil
+import java.util.Date
+
+import code.adapter.soap.customers.{ListCustomers, ListCustomersQuery}
+import code.adapter.soap.orders.{InternalAccountIdentification, ListGLTransactions, ListGLTransactionsQuery, RequestHeaders}
+import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
+import code.api.util.APIUtil.{OBPReturnType, connectorEmptyResponse}
+import code.api.util.ErrorMessages.{InvalidAuthContextUpdateRequestKey, InvalidConnectorResponse, InvalidJsonFormat, MissingPropsValueAtThisInstance, ScaMethodNotDefined, SmsServerNotResponding}
+import code.api.util._
+import code.api.v4_0_0.CallLimitPostJsonV400
+import code.bankconnectors.LocalMappedConnector.{createChallengeInternal, getBankAccountsHeldLegacy, logger}
+import code.model.dataAccess.MappedBankAccount
+import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
+import code.util.Helper
+import com.openbankproject.commons.model._
+import com.openbankproject.commons.util.optional
+import net.liftweb.mapper.By
+
+import scala.collection.immutable.List
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, Future}
 import scala.reflect.runtime.universe.{MethodSymbol, TermSymbol, typeOf}
+import code.api.util.DynamicUtil
+import code.util.AkkaHttpClient.{makeHttpRequest, prepareHttpRequest}
+import code.util.Helper.MdcLoggable
+import code.bankconnectors.{akka => obpakka}
+import code.database.authorisation.Authorisations
+import code.transactionChallenge.Challenges
+import com.nexmo.client.NexmoClient
+import com.nexmo.client.sms.messages.TextMessage
+import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import net.liftweb.json.parse
+import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Mailer
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import org.mindrot.jbcrypt.BCrypt
+
+import scala.util.Random
 
 object InternalConnector {
 
@@ -94,3 +131,35 @@ object InternalConnector {
   }
 }
 
+object abc extends App{
+  import scala.concurrent.ExecutionContext.Implicits.global
+  import scala.concurrent._
+  import scala.concurrent.duration._
+  import _root_.akka.http.javadsl.model.HttpEntity
+  import net.liftweb.json.Formats
+  implicit val formats = CustomJsonFormats.formats
+  import net.liftweb.util.Helpers.tryo
+
+  
+  case class CbsExternalUserResponse(
+    userId: Int,
+    customerId: Int,
+    customerNameKa: String,
+    isCorporateCustomer: Boolean
+  )
+  
+  val request = prepareHttpRequest(
+    "http://localhost:8083/api/v1/user/authorize",
+    _root_.akka.http.scaladsl.model.HttpMethods.POST,
+    _root_.akka.http.scaladsl.model.HttpProtocol("HTTP/1.1"),
+    s"""{"userName": "NATROSHVILI","password": "Aa123456"}"""
+  )
+  val responseFuture = makeHttpRequest(request)
+
+  val listAccountsServiceResponseResult = Await.result(responseFuture, 30 seconds).entity.asInstanceOf[HttpEntity.Strict].getData().utf8String
+  val object1= parse(listAccountsServiceResponseResult).extract[CbsExternalUserResponse]
+
+  println(123123)
+  println(listAccountsServiceResponseResult)
+  println(object1)
+}

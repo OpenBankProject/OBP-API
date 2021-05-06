@@ -35,7 +35,13 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   override def getAll(entityName: String): List[JObject] = DynamicData.findAll(By(DynamicData.DynamicEntityName, entityName))
     .map(it => json.parse(it.dataJson)).map(_.asInstanceOf[JObject])
 
-  override def delete(entityName: String, id: String): Boolean = DynamicData.bulkDelete_!!(By(DynamicData.DynamicDataId, id), By(DynamicData.DynamicEntityName, entityName))
+  override def delete(entityName: String, id: String) = {
+    //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
+    DynamicData.find(By(DynamicData.DynamicDataId, id), By(DynamicData.DynamicEntityName, entityName)) match {
+      case Full(dynamicData) => Full(dynamicData.delete_!)
+      case _ => Failure(s"not exists DynamicData's data of dynamicEntityName=$entityName, dynameicDataId=$id")
+    }
+  }
 
   override def existsData(dynamicEntityName: String): Boolean = {
     DynamicData.findAll(By(DynamicData.DynamicEntityName, dynamicEntityName), MaxRows(1))
