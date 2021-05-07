@@ -462,6 +462,33 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
+
+  "transformField" should "generate JValue according schema7" taggedAs JsonUtilsTag in {
+    val zson ="""{
+        |  "field1": 2,
+        |  "field2": 1,
+        |  "field3": "string",
+        |  "field4": "doggie",
+        |  "field5": "string",
+        |  "field6": 1,
+        |  "field7": "string",
+        |  "field8": "available",
+        |  "pet_entity_id": "b57c3eed-9726-4aa0-aba2-d0dcc4f45a9e"
+        |}""".stripMargin
+
+    //If the schme is {}, then the result will be {}.
+    val schema = json.parse("{}")
+
+    val expectedJson = json.parse("""{}""")
+
+    val resultJson = buildJson(zson, schema)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+    
+  }
   
   val arrayRoot = json.parse(
     """
