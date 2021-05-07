@@ -61,7 +61,7 @@ import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCa
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, _}
@@ -71,11 +71,9 @@ import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.Date
-
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
-
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
 
@@ -1837,7 +1835,7 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
               resultList.arr.isEmpty
@@ -1879,7 +1877,7 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
               resultList.arr.isEmpty
@@ -1968,7 +1966,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
               entity.userId.equals(cc.userId)
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
               resultList.arr.isEmpty
@@ -2011,7 +2009,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser) {
               entity.userId.equals(cc.userId)
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed) {
               resultList.arr.isEmpty
@@ -2085,7 +2083,7 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(cc))
           
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {box.isDefined}
         } yield {
@@ -2142,7 +2140,7 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           val result: JObject = (singleName -> singleObject)
@@ -2183,11 +2181,11 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
             box.isDefined
           }
-          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, Some(cc))
+          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           val result: JObject = (singleName -> singleObject)
@@ -2227,11 +2225,11 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404) {
             box.isDefined
           }
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None, Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
           (deleteResult, HttpCode.`204`(Some(cc)))
@@ -4541,19 +4539,24 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400)) {
               jsonResponse.isEmpty
             }
-
-            (endpointMapping, callContext) <- //if (url.contains("DynamicEntity-")) {
-              NewStyle.function.getEndpointMappingByOperationId(operationId, cc.callContext)
-//            } else{
-//              Future.successful((_, callContext))
-//            } 
-            val requestBodySchemeString = endpointMapping.requestMapping
-            val requestBodySchemeJvalue = net.liftweb.json.parse(requestBodySchemeString)
-            val responseBodySchemeString = endpointMapping.responseMapping
-            val responseBodySchemeJvalue =  net.liftweb.json.parse(responseBodySchemeString)
-            val entityName = endpointMapping.dynamicEntityNames.head
             
-            (box, _) <- if (url.contains("DynamicEntity-")) { //If   "host": "DynamicEntity-FooBar1", then we call the DynamicEntity directly.
+            (endpointMapping, callContext) <- if (DynamicEndpointHelper.isDynamicEntityResponse(url)) {
+              NewStyle.function.getEndpointMappingByOperationId(operationId, cc.callContext)
+            } else{
+              Future.successful((EndpointMappingCommons(None,"",List("Foobar"),"",""), callContext))
+            }
+            
+            requestBodySchemeString = endpointMapping.requestMapping
+            requestBodySchemeJvalue = net.liftweb.json.parse(requestBodySchemeString)
+            responseBodySchemeString = endpointMapping.responseMapping
+            responseBodySchemeJvalue =  net.liftweb.json.parse(responseBodySchemeString)
+
+            entityName <- NewStyle.function.tryons(s"$InvalidDynamicEndpointSwagger dynamic_entity_names must contain at least one valid dynamic entity!", 400,  cc.callContext) {
+              //TODO, now, we only support one entity, so only check the head.
+              endpointMapping.dynamicEntityNames.head
+            }
+            
+            (box, _) <- if (DynamicEndpointHelper.isDynamicEntityResponse(url)) { 
               //TODO, here need more logic to check if the Id is proper one!
               val entityId = pathParams.find(parameter => parameter._1.contains("Id")).map(_._2)
 
@@ -4563,19 +4566,25 @@ trait APIMethods400 {
                 GET_ALL
               } else if (method.value.equalsIgnoreCase("post")){
                 CREATE
-              } else if (method.value.equalsIgnoreCase("delete")){
+              } else if (method.value.equalsIgnoreCase("put")){
+                UPDATE
+              } else if (method.value.equalsIgnoreCase("delete") && entityId.isDefined){
                 DELETE
               } else {
+                //TODO here, we may need to provide error message back.
                 GET_ONE
               }
              
               //requestBodyMapping --> Convert `RequestJson` --> `DynamicEntity Model.`  
               val targetRequestBody = JsonUtils.buildJson(json, requestBodySchemeJvalue)
               val requestBody = targetRequestBody match {
-                case j @ JObject(jobj) => Some(j)
+                case j @ JObject(_) => Some(j)
                 case _ => None
               }
-              NewStyle.function.invokeDynamicConnector(operation, entityName, requestBody, entityId, None, callContext)
+              //TODO, the params need to convert over the Mapping too: 
+              val anc: Option[JField] = requestBodySchemeJvalue findField {case JField(n, v) => v.values.toString == params.head._1}
+              val newParams = anc.map(a => Map(a.name-> params.head._2))
+              NewStyle.function.invokeDynamicConnector(operation, entityName, requestBody, entityId, None, newParams, callContext)
             }else{
               MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
                 NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
@@ -4583,7 +4592,7 @@ trait APIMethods400 {
             }
           } yield {
             box match {
-              case Full(v) if(url.contains("DynamicEntity-")) => {
+              case Full(v) if(DynamicEndpointHelper.isDynamicEntityResponse(url)) => {
                 //responseBodyMapping
                 val responseBody = JsonUtils.buildJson(v, responseBodySchemeJvalue)
                 (responseBody, HttpCode.`200`(Some(cc)))

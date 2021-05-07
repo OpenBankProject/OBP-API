@@ -3,6 +3,7 @@ package code.util
 import org.scalatest.{FlatSpec, Matchers, Tag}
 import com.openbankproject.commons.util.JsonUtils.buildJson
 import net.liftweb.json
+import net.liftweb.json.JsonAST.JNothing
 
 class JsonUtilsTest extends FlatSpec with Matchers {
   object JsonUtilsTag extends Tag("JsonUtils")
@@ -487,6 +488,24 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     println(str1)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
+    
+  }
+
+  "transformField" should "generate JValue according schema8" taggedAs JsonUtilsTag in {
+    val zson = JNothing
+
+    //If the schme is {}, then the result will be {}.
+    val schema = json.parse("""{
+                               |  "id":"pet_entity_id",
+                               |  "name":"field4",
+                               |  "status":"field8"
+                               |}""".stripMargin)
+    
+    val expectedJson = JNothing
+
+    val resultJson = buildJson(zson, schema)
+
+    expectedJson shouldEqual resultJson
     
   }
   

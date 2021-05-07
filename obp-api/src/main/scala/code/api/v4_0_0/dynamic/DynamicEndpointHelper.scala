@@ -46,7 +46,10 @@ object DynamicEndpointHelper extends RestHelper {
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
   private val implementedInApiVersion = ApiVersion.v4_0_0
+  private val IsDynamicEntityUrl = """https?://DynamicEntity.*"""
 
+  def isDynamicEntityResponse (serverUrl : String) = serverUrl matches (IsDynamicEntityUrl)
+  
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
     val infos = dynamicEndpoints.map(it => buildDynamicEndpointInfo(it.swaggerString, it.dynamicEndpointId.get))
@@ -94,7 +97,7 @@ object DynamicEndpointHelper extends RestHelper {
      * request url is  current request target url to remote server
      * json is request body
      * http method is request http method
-     * request parameters is http request parameters
+     * request parameters : http request query parameters, eg:  /pet/findByStatus?status=available => (status, List(available))
      * path parameters: /banks/{bankId}/users/{userId} bankId and userId corresponding key to value
      * role is current endpoint required entitlement
      * @param r HttpRequest
@@ -107,6 +110,7 @@ object DynamicEndpointHelper extends RestHelper {
       else {
         val akkaHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get
         val httpMethod = HttpMethod.valueOf(r.requestType.method)
+        val urlQueryParameters = r.params
         // url that match original swagger endpoint.
         val url = partPath.tail.mkString("/", "/", "") // eg: --> /feature-test
         val foundDynamicEndpoint: Option[(String, String, Int, ResourceDoc)] = dynamicEndpointInfos
@@ -142,9 +146,8 @@ object DynamicEndpointHelper extends RestHelper {
             }
 
             val Some(role::_) = doc.roles
-            body(r).toOption
-              .orElse(Some(JNothing))
-              .map(zson => (s"""$serverUrl$url""", zson, akkaHttpMethod, r.params, pathParams, role, doc.operationId, mockResponse))
+            val requestBodyJValue = body(r).getOrElse(JNothing)
+            Full(s"""$serverUrl$url""", requestBodyJValue, akkaHttpMethod, urlQueryParameters, pathParams, role, doc.operationId, mockResponse)
           }
 
       }

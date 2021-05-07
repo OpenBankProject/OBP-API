@@ -66,6 +66,7 @@ import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
+import net.liftweb.json
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -2481,6 +2482,7 @@ object NewStyle {
                                requestBody: Option[JObject],
                                entityId: Option[String],
                                bankId: Option[String],
+                               queryParameters: Option[Map[String, List[String]]],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
       val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
@@ -2493,16 +2495,14 @@ object NewStyle {
       //To make sure create and update contain the requestBody
       if(operation == CREATE || operation == UPDATE) {
         if(requestBody.isEmpty) {
-          return Helper.booleanToFuture(s"$InvalidJsonFormat requestBody is required for $operation operation.")(false)
-            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+          throw new RuntimeException(s"$InvalidJsonFormat requestBody is required for $operation operation.")
         }
       }
       
       //To make sure the GET_ONE/UPDATE/DELETE contain the entityId
       if(operation == GET_ONE || operation == UPDATE || operation == DELETE) {
-        if (entityId.isEmpty) {
-          return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.")(entityId.isEmpty || StringUtils.isBlank(entityId.get))
-            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+        if (entityId.isEmpty || entityId.filter(StringUtils.isBlank).isDefined) {
+          throw new RuntimeException(s"$InvalidJsonFormat entityId is required for $operation operation.")
         }
       }
       
@@ -2536,15 +2536,15 @@ object NewStyle {
           // @(variable-binding pattern), we can use the empty variable 
           // If there is not instance in requestBody, we just call the `dynamicEntityProcess` directly.
         case empty @None => 
-          Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, callContext)
+          Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, queryParameters, callContext)
         // @(variable-binding pattern), we can use both v and body variables.
-        case v @Some(body) =>
+        case requestBody @Some(body) =>
           // If the request body is existing, we need to validate the body first. 
           val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
           dynamicEntity.validateEntityJson(body, callContext).flatMap {
             // If there is no error in the request body
             case None => 
-              Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, bankId, callContext)
+              Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, bankId, queryParameters, callContext)
             // If there are errors, we need to show them to end user. 
             case Some(errorMsg) => 
               Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg")(false)

@@ -80,7 +80,8 @@ import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.json
-import net.liftweb.json.{JArray, JBool, JObject, JValue}
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.{JArray, JBool, JInt, JObject, JValue,JString}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
@@ -3713,14 +3714,23 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                     entityName: String,
                                     requestBody: Option[JObject],
                                     entityId: Option[String],
-                                    bankId: Option[String],
+                                    bankId: Option[String], 
+                                    queryParameters: Option[Map[String, List[String]]],
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
 
     Future {
       val processResult: Box[JValue] = operation.asInstanceOf[Any] match {
         case GET_ALL => Full {
-          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
-          JArray(dataList)
+          val dataList: List[JObject] = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
+        
+//          JValue should be filter by the query parameters:
+          //eg: status --> field5 --> value == available. 
+          val abc = dataList
+            .filter(data => {// TODO: here need the error handling:
+            val d1: Option[JField] = data.findField {case JField(n, v) => n == queryParameters.get.head._1 && v.values.toString ==queryParameters.get.head._2.head }
+            d1.isDefined
+          })
+          JArray(abc)
         }
         case GET_ONE => {
           val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend
