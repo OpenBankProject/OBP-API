@@ -2,7 +2,7 @@ package code.api.util
 
 import java.security.interfaces.RSAPublicKey
 import java.time.format.DateTimeFormatter
-import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.{Duration, ZoneOffset, ZonedDateTime}
 import java.util
 
 import code.util.Helper.MdcLoggable
@@ -58,9 +58,12 @@ object JwsUtil extends MdcLoggable {
       case Some(header) =>
         val signingTime = ZonedDateTime.parse(header.sigT, DateTimeFormatter.ISO_ZONED_DATE_TIME)
         val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
-        val criteriaOneFailed = signingTime.isAfter(verifyingTime.plusSeconds(2))
-        val criteriaTwoFailed = signingTime.plusSeconds(60).isBefore(verifyingTime)
-        !criteriaOneFailed && !criteriaTwoFailed
+        val timeDifference = Duration.between(verifyingTime, signingTime)
+        val timeDifferenceInNanos = (timeDifference.abs.getSeconds * 1000000000L) + timeDifference.abs.getNano
+        val criteriaOneOk = signingTime.isBefore(verifyingTime) || // Signing Time > Verifying Time otherwise
+          (signingTime.isAfter(verifyingTime) && timeDifferenceInNanos < (2 * 1000000000L)) // IF "Verifying Time > Signing Time" THEN "Verifying Time - Signing Time < 2 seconds"
+        val criteriaTwoOk = timeDifferenceInNanos < (60 * 1000000000L) // Signing Time - Verifying Time < 60 seconds
+        criteriaOneOk && criteriaTwoOk
       case None => false
     }
   }
@@ -172,7 +175,8 @@ object JwsUtil extends MdcLoggable {
                                         requestResponse: String, 
                                         contentType: String,
                                         psuIpAddress: Option[String] = None,
-                                        psuGeoLocation: Option[String] = None
+                                        psuGeoLocation: Option[String] = None,
+                                        signingTime: Option[ZonedDateTime] = None
                                        ): List[HTTPParam] = {
     val digest = "SHA-256=" + computeDigest(body.getOrElse(""))
     // The payload which will not be encoded and must be passed to
@@ -202,7 +206,10 @@ object JwsUtil extends MdcLoggable {
         |  }
         |  """.stripMargin
     // We create the time in next format: '2011-12-03T10:15:30Z' 
-    val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+    val sigT: String = signingTime match {
+      case None => ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+      case Some(time) => time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+    }
     val criticalParams: util.Set[String] = new util.HashSet[String]()
     criticalParams.add("b64")
     criticalParams.addAll(getDeferredCriticalHeaders)
@@ -250,8 +257,8 @@ object JwsUtil extends MdcLoggable {
    * @param url HTTP relative path of an request 
    * @return Request header params: x-jws-signature and digest
    */
-  def signRequest(body: Box[String], verb: String, url: String, contentType: String): List[HTTPParam] = {
-    signRequestResponseCommon(body, verb, url, "request-target", contentType)
+  def signRequest(body: Box[String], verb: String, url: String, contentType: String, signingTime: Option[ZonedDateTime] = None): List[HTTPParam] = {
+    signRequestResponseCommon(body, verb, url, "request-target", contentType, signingTime = signingTime)
   }
   
 }

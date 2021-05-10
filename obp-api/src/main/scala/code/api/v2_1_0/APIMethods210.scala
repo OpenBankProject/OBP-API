@@ -1095,13 +1095,13 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "transaction-types" ::  Nil JsonPut json -> _ => {
         cc => {
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            postedData <- tryo {json.extract[TransactionTypeJsonV200]} ?~! InvalidJsonFormat
-            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canCreateTransactionType, callContext, InsufficientAuthorisationToCreateTransactionType)
-            returnTranscationType <- TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            postedData <- NewStyle.function.tryons(failMsg=InvalidJsonFormat, callContext=callContext) {json.extract[TransactionTypeJsonV200]}
+            _ <- Future (NewStyle.function.ownEntitlement(bankId.value, u.userId, canCreateTransactionType, callContext, InsufficientAuthorisationToCreateTransactionType))map { fullBoxOrException(_)} map { unboxFull(_) }
+            returnTranscationType <- Future(TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)) map { fullBoxOrException(_)} map { unboxFull(_) }
           } yield {
-            successJsonResponse(Extraction.decompose(returnTranscationType))
+            (returnTranscationType, HttpCode.`200`(callContext))
           }
         }
       }

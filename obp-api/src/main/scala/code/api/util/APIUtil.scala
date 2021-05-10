@@ -415,10 +415,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         CustomResponseHeaders((Nil))
     }
   }
-  private def getSignRequestHeadersNewStyle(cc: Option[CallContext], httpBody: String): CustomResponseHeaders = {
+  private def getSignRequestHeadersNewStyle(cc: Option[CallContext], httpBody: Box[String]): CustomResponseHeaders = {
     cc.map { i =>
       if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
-        val headers = JwsUtil.signResponse(Full(httpBody), i.verb, i.url, "application/json;charset=utf-8")
+        val headers = JwsUtil.signResponse(httpBody, i.verb, i.url, "application/json;charset=utf-8")
         CustomResponseHeaders(headers.map(h => (h.name, h.values.mkString(", "))))
       } else {
         CustomResponseHeaders(Nil)
@@ -526,16 +526,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst: JValue = ApiSession.processJson((Extraction.decompose(cc)), callContext)
     callContext match {
+      case Some(c) if c.httpCode.isDefined && c.httpCode.get == 204 =>
+        val httpBody = None
+        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
       case Some(c) if c.httpCode.isDefined =>
-        val httpBody = JsonAST.compactRender(jsonAst)
+        val httpBody = Full(JsonAST.compactRender(jsonAst))
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
         JsonResponse(jsonAst, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, c.httpCode.get)
-      case Some(c) if c.verb == "DELETE" =>
-        val httpBody = JsonAST.compactRender(JString(""))
+      case Some(c) if c.verb.toUpperCase() == "DELETE" =>
+        val httpBody = None
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
         JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
       case _ =>
-        val httpBody = JsonAST.compactRender(jsonAst)
+        val httpBody = Full(JsonAST.compactRender(jsonAst))
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
         JsonResponse(jsonAst, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, httpCode)
     }

@@ -6164,7 +6164,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       emptyObjectJson,
-      consentsJsonV400,
+      consentInfosJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,

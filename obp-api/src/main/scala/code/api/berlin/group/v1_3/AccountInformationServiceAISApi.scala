@@ -13,6 +13,7 @@ import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiTag, CallContext, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
+import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.model
 import code.model._
 import code.util.Helper
@@ -1181,6 +1182,13 @@ Maybe in a later version the access path will change.
              }
              _ <- NewStyle.function.tryons(ConsentUpdateStatusError, 400, callContext) {
                consent.toList.size == 1
+             }
+             _ <- Future {
+               val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
+                 .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
+               ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
+             } map {
+               unboxFullOrFail(_, callContext, ConsentUserAuthContextCannotBeAdded)
              }
              _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, u)) map {
                unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)

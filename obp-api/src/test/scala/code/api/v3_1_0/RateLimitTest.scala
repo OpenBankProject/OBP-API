@@ -25,26 +25,25 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
-import java.text.SimpleDateFormat
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
-import java.util.{Calendar, Date}
+import java.util.Date
 
-import com.openbankproject.commons.model.ErrorMessage
-import code.api.util.APIUtil.DateWithDayFormat
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanReadCallLimits, CanSetCallLimits}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole}
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
+import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
-class RateLimitTest extends V310ServerSetup {
+class RateLimitTest extends V310ServerSetup with PropsReset {
 
   /**
     * Test tags
@@ -56,6 +55,12 @@ class RateLimitTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.callsLimit))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCallsLimit))
+
+  override def beforeEach() = {
+    super.beforeEach()
+    setPropsValues("use_consumer_limits"->"true")
+    setPropsValues("user_consumer_limit_anonymous_access"->"6000")
+  }
 
   val yesterday = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val tomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(10)
@@ -172,7 +177,6 @@ class RateLimitTest extends V310ServerSetup {
       response310.body.extract[CallLimitJson]
     }
     scenario("We will set calls limit per second for a Consumer", ApiEndpoint, VersionOfApi) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
         When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -195,10 +199,8 @@ class RateLimitTest extends V310ServerSetup {
 
         // Revert to initial state
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-      }
     }
     scenario("We will set calls limit per minute for a Consumer", ApiEndpoint, VersionOfApi) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
         When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -221,10 +223,8 @@ class RateLimitTest extends V310ServerSetup {
 
         // Revert to initial state
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-      }
     }
     scenario("We will set calls limit per hour for a Consumer", ApiEndpoint, VersionOfApi) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
         When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -247,10 +247,8 @@ class RateLimitTest extends V310ServerSetup {
 
         // Revert to initial state
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-      }
     }
     scenario("We will set calls limit per day for a Consumer", ApiEndpoint, VersionOfApi) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
         When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -273,10 +271,8 @@ class RateLimitTest extends V310ServerSetup {
 
         // Revert to initial state
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-      }
     }
     scenario("We will set calls limit per week for a Consumer", ApiEndpoint, VersionOfApi) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
         When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -299,10 +295,8 @@ class RateLimitTest extends V310ServerSetup {
 
         // Revert to initial state
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-      }
     }
     scenario("We will set calls limit per month for a Consumer", ApiEndpoint, VersionOfApi) {
-      if(APIUtil.getPropsAsBoolValue("use_consumer_limits", false)) {
         When("We make a request v3.1.0 with a Role " + ApiRole.canSetCallLimits)
         val Some((c, _)) = user1
         val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -325,7 +319,6 @@ class RateLimitTest extends V310ServerSetup {
 
         // Revert to initial state
         Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-      }
     }
   }
 
