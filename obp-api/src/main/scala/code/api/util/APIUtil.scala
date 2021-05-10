@@ -534,7 +534,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val httpBody = Full(JsonAST.compactRender(jsonAst))
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
         JsonResponse(jsonAst, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, c.httpCode.get)
-      case Some(c) if c.verb.toLowerCase == "DELETE".toLowerCase =>
+      case Some(c) if c.verb.toUpperCase() == "DELETE" =>
         val httpBody = None
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
         JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
