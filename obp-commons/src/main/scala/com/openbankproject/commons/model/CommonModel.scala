@@ -786,7 +786,7 @@ case class Transaction(
   val accountId = thisAccount.accountId
 }
 
-case class UserCommons(userPrimaryKey : UserPrimaryKey, userId: String,idGivenByProvider: String, provider : String, emailAddress : String, name : String) extends User
+case class UserCommons(userPrimaryKey : UserPrimaryKey, userId: String,idGivenByProvider: String, provider : String, emailAddress : String, name : String, createdByConsentId: Option[String] = None) extends User
 
 case class InternalBasicUser(
   userId:String,
@@ -877,7 +877,8 @@ case class InboundExternalUser(
                                 azp: Option[String],
                                 email: Option[String],
                                 emailVerified: Option[String],
-                                name: Option[String]
+                                name: Option[String],
+                                userAuthContext: Option[List[BasicUserAuthContext]] = None
                               )
 
 

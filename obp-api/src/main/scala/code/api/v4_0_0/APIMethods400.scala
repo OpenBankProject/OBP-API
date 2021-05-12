@@ -32,7 +32,7 @@ import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentStatus, Consents}
+import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
@@ -70,12 +70,12 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.util.Date
+
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
-
 import java.net.URLEncoder
+
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 
 import scala.collection.immutable.{List, Nil}
@@ -320,7 +320,7 @@ trait APIMethods400 {
         cc =>
           for {
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
-            (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, cc.callContext)
+            (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, callContext)
           } yield {
             (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
           }
@@ -4311,7 +4311,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
@@ -4362,7 +4362,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoint)))
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
@@ -4401,7 +4401,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
@@ -4434,7 +4434,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEndpoint)))
 
     lazy val deleteDynamicEndpoint : OBPEndpoint = {
@@ -4466,7 +4466,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle)
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMyDynamicEndpoints: OBPEndpoint = {
@@ -4499,7 +4499,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
     )
 
     lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
@@ -5423,7 +5423,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagAccount, apiTagApi, apiTagNewStyle),
+      List(apiTagAccount, apiTagNewStyle),
       Some(List(canDeleteAccountCascade)))
 
     lazy val deleteAccountCascade : OBPEndpoint = {
@@ -6088,6 +6088,45 @@ trait APIMethods400 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      getConsents,
+      implementedInApiVersion,
+      nameOf(getConsents),
+      "GET",
+      "/banks/BANK_ID/my/consents",
+      "Get Consents",
+      s"""
+         |
+         |This endpoint gets the Consents that the current User created.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      consentsJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
+
+    lazy val getConsents: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "consents" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            consents <- Future { Consents.consentProvider.vend.getConsentsByUser(cc.userId)
+              .sortBy(i => (i.creationDateTime, i.apiStandard)).reverse
+            }
+          } yield {
+            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            (JSONFactory400.createConsentsJsonV400(consentsOfBank), HttpCode.`200`(cc))
+          }
+      }
+    }
+    
+
     staticResourceDocs += ResourceDoc(
       getScannedApiVersions,
       implementedInApiVersion,
@@ -6168,15 +6207,16 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getMyApiCollectionByName),
       "GET",
-      "/my/api-collections/API_COLLECTION_NAME",
+      "/my/api-collections/name/API_COLLECTION_NAME",
       "Get My Api Collection By Name",
       s"""Get Api Collection By API_COLLECTION_NAME.
          |
-         |${authenticationRequiredMessage(false)}
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionJson400,
       List(
+        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -6184,7 +6224,7 @@ trait APIMethods400 {
     )
 
     lazy val getMyApiCollectionByName: OBPEndpoint = {
-      case "my" :: "api-collections" :: apiCollectionName :: Nil JsonGet _ => {
+      case "my" :: "api-collections" :: "name" ::apiCollectionName :: Nil JsonGet _ => {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
@@ -6195,31 +6235,63 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollectionById,
+      getMyApiCollectionById,
       implementedInApiVersion,
-      nameOf(getApiCollectionById),
+      nameOf(getMyApiCollectionById),
       "GET",
-      "/users/USER_ID/api-collections/API_COLLECTION_ID",
-      "Get Api Collection By Id",
-      s"""Get Api Collection By Id.
+      "/my/api-collections/API_COLLECTION_ID",
+      "Get My Api Collection By Id",
+      s"""Get Api Collection By API_COLLECTION_ID.
          |
-         |${authenticationRequiredMessage(false)}
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
       apiCollectionJson400,
       List(
+        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
     )
 
-    lazy val getApiCollectionById: OBPEndpoint = {
-      case "users" :: userId :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
+    lazy val getMyApiCollectionById: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionId :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, callContext)
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+          } yield {
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSharableApiCollectionById,
+      implementedInApiVersion,
+      nameOf(getSharableApiCollectionById),
+      "GET",
+      "/api-collections/sharable/API_COLLECTION_ID",
+      "Get Sharable Api Collection By Id",
+      s"""Get Sharable Api Collection By Id.
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionJson400,
+      List(
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getSharableApiCollectionById: OBPEndpoint = {
+      case "api-collections" :: "sharable" :: apiCollectionId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointNotFound Current api_collection_id(${apiCollectionId}) is not sharable.") {
+              apiCollection.isSharable
+            }
           } yield {
             (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
           }
@@ -6235,15 +6307,16 @@ trait APIMethods400 {
       "Get Api Collections",
       s"""Get Api Collections.
          |
-         |${authenticationRequiredMessage(false)}
+         |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      apiCollectionJson400,
+      apiCollectionsJson400,
       List(
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagApiCollection, apiTagNewStyle)
+      List(apiTagApiCollection, apiTagNewStyle),
+      Some(canGetAllApiCollections :: Nil)
     )
 
     lazy val getApiCollections: OBPEndpoint = {
@@ -6257,6 +6330,37 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      getFeaturedApiCollections,
+      implementedInApiVersion,
+      nameOf(getFeaturedApiCollections),
+      "GET",
+      "/api-collections/featured",
+      "Get Featured Api Collections",
+      s"""Get Featured Api Collections.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionsJson400,
+      List(
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getFeaturedApiCollections: OBPEndpoint = {
+      case "api-collections" :: "featured" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollections, callContext) <- NewStyle.function.getFeaturedApiCollections(cc.callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
     
     staticResourceDocs += ResourceDoc(
       getMyApiCollections,
@@ -6273,6 +6377,7 @@ trait APIMethods400 {
       EmptyBody,
       apiCollectionsJson400,
       List(
+        $UserNotLoggedIn,
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle)
@@ -6382,6 +6487,7 @@ trait APIMethods400 {
       EmptyBody,
       apiCollectionEndpointJson400,
       List(
+        $UserNotLoggedIn,
         UserNotFoundByUserId,
         UnknownError
       ),
@@ -7123,11 +7229,18 @@ trait APIMethods400 {
             jsonDynamicResourceDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
               json.extract[JsonDynamicResourceDoc]
             }
-
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
               Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
             }
-
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""") {
+              (jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(JString(s))) => //we support the empty string "" here
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) => //we add the guard, we forbid any json objects in GET/DELETE request body.
+                  requestBody == JNothing
+                case _ => true
+              }
+            }
             _ = try {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
             } catch {
@@ -7180,6 +7293,16 @@ trait APIMethods400 {
 
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
               Set("POST", "PUT", "GET", "DELETE").contains(dynamicResourceDocBody.requestVerb)
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+              (dynamicResourceDocBody.requestVerb, dynamicResourceDocBody.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(JString(s))) =>
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) =>
+                  requestBody == JNothing
+                case _ => true
+              }
             }
 
             _ = try {
@@ -7303,7 +7426,7 @@ trait APIMethods400 {
       "Create Dynamic Resource Doc endpoint code",
       s"""Create a Dynamic Resource Doc endpoint code.
          |
-         |copy the response and past to ${nameOf(PractiseEndpoint)}, So you can have the benifit of
+         |copy the response and past to ${nameOf(PractiseEndpoint)}, So you can have the benefits of
          |auto compilation and debug
          |""",
       jsonResourceDocFragment,
@@ -7325,6 +7448,16 @@ trait APIMethods400 {
             }
             _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""") {
                Set("POST", "PUT", "GET", "DELETE").contains(resourceDocFragment.requestVerb)
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""") {
+              (resourceDocFragment.requestVerb, resourceDocFragment.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(JString(s))) =>
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) =>
+                  requestBody == JNothing
+                case _ => true
+              }
             }
 
             code = DynamicEndpointCodeGenerator.buildTemplate(resourceDocFragment)

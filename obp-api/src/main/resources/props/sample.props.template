@@ -112,9 +112,11 @@ read_authentication_type_validation_requires_role=false
 #This is the api instance, we create kafka topic based on this number, each instance should have each own id. use it in load balancing + Kafka setup
 #api_instance_id=1
 
+## DEPRECATED
 ## Enable user authentication via kafka
 #kafka.user.authentication=true
 
+## DEPRECATED
 ## Enable user authentication via obpjvm
 #obpjvm.user.authentication=true
 
@@ -376,7 +378,8 @@ webui_api_tester_url = https://apitester.openbankproject.com
 
 # To display a custom message above the username / password box
 # We currently use this to display example customer login in sandbox etc.
-webui_login_page_special_instructions=
+#webui_login_page_special_instructions=
+#webui_login_page_instruction_title=Log on to the Open Bank Project API
 
 
 ##################################################################################
@@ -540,27 +543,43 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # In OBP, endpoints are defined in various files but made available under a *version*
 # e.g. in v3_0_0 (aka v3.0.0) we have endpoints from various versions.
 # Thus when we enable/disable a version we enable/disable a group of endpoints which are defined in several files.
+# To enable / disable a version here you can use a fullyQualifiedVersion or apiShortVersion e.g.:
+# "OBPv4.0.0" or "v4.0.0"
+# "OBPv3.1.0" or "v3.1.0"
+# "OBPv3.0.0" or "v3.0.0"
+# "BGv1" or "v1"
+# "BGv1.3" or "v1.3"
+# "PAPIv2.1.1.1" or "v2.1.1.1"
+# "STETv1.4" or "v1.4"
+# "UKv2.0" or "v2.0"
+# "AUv1.0.0" or "v1.0.0"
+# "UKv3.1" or "v3.1"
 #
-#
-# For a VERSION to be allowed it must be:
+# Note: we recommend to use the fullyQualifiedVersion. The apiShortVersion is depreciated here.
+# 
+# For a VERSION (the version in path e.g. /obp/v4.0.0) to be allowed, it must be:
 
-# 1) Absent from here:
-#api_disabled_versions=[v3.0.0]
+# 1) Absent from here (high priority):
+# Note the default is empty, not the example here.
+#api_disabled_versions=[OBPv3.0.0,BGv1.3]
 
-# 2) Present here OR this entry must be empty.
-#api_enabled_versions=[v2.2.0,v3.0.0]
+# 2) Present here OR this entry must be empty:
+# Note the default is empty, not the example here.
+#api_enabled_versions=[OBPv2.2.0,OBPv3.0.0,UKv2.0]
 
 # Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
 
-# For an ENDPOINT to be allowed it must be:
+# For an ENDPOINT (i.e. the scala function that serves the endpoint as identified its "operationId") to be allowed it must be:
 
-# 1) Absent from here:
-#api_disabled_endpoints=[createAccount]
+# 1) Absent from here:(high priority)
+# Note the default is empty, not the following example
+#api_disabled_endpoints=[OBPv3.0.0-getPermissionForUserForBankAccount]
 
 # 2) Present here OR this list must be empty
-#api_enabled_endpoints=[createAccount,accountById]
+# Note the default is empty, not the following example
+#api_enabled_endpoints=[OBPv3.0.0-getPermissionForUserForBankAccount,OBPv3.0.0-getViewsForBankAccount]
 
-# Note that "root" cannot be disabled
+# Note that "root" and also the documentation endpoints (Resource Doc and Swagger) cannot be disabled
 #
 #
 ##########################
@@ -916,3 +935,18 @@ outboundAdapterCallContext.generalContext
 ### enable or disable the feature of send "Force-Error" header, default value is false
 enable.force_error=false
 
+### Force the feature of signing/verifing requests on a certain standard
+#force_jws=BGv1.3,UKv1.3,OBPv4.0.0,OBPv3.1.0
+
+# Suggested default SCA method
+# In case is not defined default value is SMS
+# Possible values: SMS, EMAIL, DUMMY, SMS_OTP, CHIP_OTP, PHOTO_OTP, PUSH_OTP
+# suggested_default_sca_method=DUMMY
+
+
+## This props is used for the User Onboard page, we can have the default identifier key.
+## The different banks may have different identifiers for their customers, eg: CUSTOMER_NUMBER, TAX_ID, PASSPORT_NUMBER ...
+default_auth_context_update_request_key=CUSTOMER_NUMBER
+
+## This props is used for the featured api collection, eg: API_Explore will use the api collection to tweak the Home Page
+#featured_api_collection_ids=

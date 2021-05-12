@@ -295,7 +295,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           cashAccountType = x.accountType,
           product = x.accountType,
           balances = balance,
-          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances")) 
+          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances")) 
         )
      }
     )
@@ -324,7 +324,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           cashAccountType = x.accountType,
           product = x.accountType,
           balances = balance,
-          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances"))
+          _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances"))
         )
     }
     )
@@ -345,15 +345,15 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       cashAccountType = bankAccount.accountType,
       product = bankAccount.accountType,
       _links = AccountDetailsLinksJsonV13(
-        LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${bankAccount.accountId.value}/balances"),
-        LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.version}/accounts/${bankAccount.accountId.value}/transactions")
+        LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${bankAccount.accountId.value}/balances"),
+        LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${bankAccount.accountId.value}/transactions")
       ) 
     )
     AccountDetailsJsonV13(account)
   }
 
   private def getIbanAndBban(x: BankAccount) = {
-    val iBan = x.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString)
+    val iBan = x.accountRoutings.find(_.scheme.equalsIgnoreCase(AccountRoutingScheme.IBAN.toString))
       .map(_.address).getOrElse("")
     val bBan = if (iBan.size > 4) iBan.substring(4) else ""
     (iBan, bBan)
@@ -520,7 +520,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     PostConsentResponseJson(
       consentId = consent.consentId,
       consentStatus = consent.status.toLowerCase(),
-      _links= ConsentLinksV13(s"v1.3/consents/${consent.consentId}/authorisations")
+      _links= ConsentLinksV13(s"/v1.3/consents/${consent.consentId}/authorisations")
     )
   }
 

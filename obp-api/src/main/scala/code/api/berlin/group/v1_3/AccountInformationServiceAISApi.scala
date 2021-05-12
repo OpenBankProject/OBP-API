@@ -3,14 +3,14 @@ package code.api.builder.AccountInformationServiceAISApi
 import java.text.SimpleDateFormat
 
 import code.api.APIFailureNewStyle
-import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
+import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{PostConsentResponseJson, _}
 import code.api.berlin.group.v1_3.{JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass, OBP_BERLIN_GROUP_1_3}
 import code.api.util.APIUtil.{passesPsd2Aisp, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
-import code.api.util.{ApiTag, Consent, ExampleValue, NewStyle}
+import code.api.util.{APIUtil, ApiTag, Consent, ExampleValue, NewStyle}
 import code.bankconnectors.Connector
 import code.consent.{ConsentStatus, Consents}
 import code.model
@@ -21,7 +21,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -129,11 +129,24 @@ As a last option, an ASPSP might in addition accept a command with access rights
        case "consents" :: Nil JsonPost json -> _  =>  {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc)
+             (_, callContext) <- applicationAccess(cc)
              _ <- passesPsd2Aisp(callContext)
+             createdByUser: Option[User] <- callContext.map(_.user).getOrElse(Empty) match {
+               case Full(user) => Future(Some(user))
+               case _ => Future(None)
+             }
              failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
              consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                json.extract[PostConsentJson]
+             }
+
+             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayError) {
+               consentJson.frequencyPerDay > 0
+             }
+
+             _ <- Helper.booleanToFuture(failMsg = FrequencyPerDayMustBeOneError) {
+               consentJson.recurringIndicator == true ||
+                 (consentJson.recurringIndicator == false && consentJson.frequencyPerDay == 1)
              }
 
              failMsg = s"$InvalidDateFormat Current `validUntil` field is ${consentJson.validUntil}. Please use this format ${DateWithDayFormat.toPattern}!"
@@ -144,7 +157,8 @@ As a last option, an ASPSP might in addition accept a command with access rights
              _ <- NewStyle.function.getBankAccountsByIban(consentJson.access.accounts.getOrElse(Nil).map(_.iban.getOrElse("")), callContext)
              
              createdConsent <- Future(Consents.consentProvider.vend.createBerlinGroupConsent(
-               u,
+               createdByUser,
+               callContext.flatMap(_.consumer),
                recurringIndicator = consentJson.recurringIndicator,
                validUntil = validUntil,
                frequencyPerDay = consentJson.frequencyPerDay,
@@ -156,11 +170,11 @@ As a last option, an ASPSP might in addition accept a command with access rights
              }
              consentJWT <-
              Consent.createBerlinGroupConsentJWT(
-               u,
+               createdByUser,
                consentJson,
                createdConsent.secret,
                createdConsent.consentId,
-               None,
+               callContext.flatMap(_.consumer).map(_.consumerId.get),
                Some(validUntil)
              )
              _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
@@ -280,8 +294,8 @@ of the PSU at this ASPSP.
            for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
-            (accounts, callContext)<- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
+            (availablePrivateAccounts, callContext) <- NewStyle.function.getAccountListOfBerlinGroup(u, callContext)
+            (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
             bankAccountsFiltered = accounts.filter(bankAccount =>
               bankAccount.attributes.toList.flatten.find(attribute =>
                 attribute.name.equals("CashAccountTypeCode")&&
@@ -339,7 +353,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
-            _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
+            _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account)
           } yield {
             (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -469,7 +483,7 @@ This account-id then can be retrieved by the
              (Full(u), callContext) <- authenticatedAccess(cc)
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             _ <- checkAccountAccess(ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID), u, account)
+             _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account)
            } yield {
              (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
            }
@@ -562,7 +576,7 @@ Reads account data from a given card account addressed by "account-id".
              params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
-             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+             (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
                x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
              } map { unboxFull(_) }
              (transactions, callContext) <- model.toBankAccountExtended(bankAccount).getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
@@ -795,7 +809,7 @@ of the "Read Transaction List" call within the _links subfield.
            for {
              (Full(user), callContext) <- authenticatedAccess(cc)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
-             viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+             viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
              bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
              view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(user), callContext)
              (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, Some(user), callContext) map {
@@ -889,13 +903,13 @@ The ASPSP might add balance information, if transaction lists without balances a
             _ <- passesPsd2Aisp(callContext)
             (bankAccount: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankAccount.bankId, callContext)
-            viewId = ViewId(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID)
+            viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
             bankIdAccountId = BankIdAccountId(bankAccount.bankId, bankAccount.accountId)
             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, bankIdAccountId, Full(u), callContext)
             params <- Future { createQueriesByHttpParams(callContext.get.requestHeaders)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
-            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount)} map {
+            (transactionRequests, callContext) <- Future { Connector.connector.vend.getTransactionRequests210(u, bankAccount, callContext)} map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidConnectorResponseForGetTransactionRequests210, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
             (transactions, callContext) <-bankAccount.getModeratedTransactionsFuture(bank, Full(u), view, callContext, params) map {
@@ -1074,7 +1088,7 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
                List(u.userId),
                ChallengeType.BERLINGROUP_CONSENT,
                None,
-               Some(StrongCustomerAuthentication.SMS),
+               getSuggestedDefaultScaMethod(),
                Some(StrongCustomerAuthenticationStatus.received),
                Some(consentId),
                None,

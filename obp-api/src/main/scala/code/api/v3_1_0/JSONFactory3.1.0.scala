@@ -514,19 +514,19 @@ case class MeetingJsonV310(
 case class MeetingsJsonV310(
   meetings: List[MeetingJsonV310]
 )
-case class EntitlementJsonV400(bank_id: String, role_name: String)
-case class ViewJsonV400(bank_id: String, account_id: String, view_id: String)
+case class PostConsentEntitlementJsonV310(bank_id: String, role_name: String)
+case class PostConsentViewJsonV310(bank_id: String, account_id: String, view_id: String)
 trait PostConsentCommonBody{
   val everything: Boolean
-  val views: List[ViewJsonV400]
-  val entitlements: List[EntitlementJsonV400]
+  val views: List[PostConsentViewJsonV310]
+  val entitlements: List[PostConsentEntitlementJsonV310]
   val consumer_id: Option[String]
 }
 
 case class PostConsentBodyCommonJson(
                                       everything: Boolean,
-                                      views:  List[ViewJsonV400],
-                                      entitlements: List[EntitlementJsonV400],
+                                      views:  List[PostConsentViewJsonV310],
+                                      entitlements: List[PostConsentEntitlementJsonV310],
                                       consumer_id: Option[String],
                                       valid_from: Option[Date],
                                       time_to_live: Option[Long]
@@ -534,8 +534,8 @@ case class PostConsentBodyCommonJson(
 
 case class PostConsentEmailJsonV310(
                                      everything: Boolean,
-                                     views:  List[ViewJsonV400],
-                                     entitlements: List[EntitlementJsonV400],
+                                     views:  List[PostConsentViewJsonV310],
+                                     entitlements: List[PostConsentEntitlementJsonV310],
                                      consumer_id: Option[String],
                                      email: String,
                                      valid_from: Option[Date],
@@ -544,8 +544,8 @@ case class PostConsentEmailJsonV310(
 
 case class PostConsentPhoneJsonV310(
                                      everything: Boolean,
-                                     views:  List[ViewJsonV400],
-                                     entitlements: List[EntitlementJsonV400],
+                                     views:  List[PostConsentViewJsonV310],
+                                     entitlements: List[PostConsentEntitlementJsonV310],
                                      consumer_id: Option[String],
                                      phone_number: String,
                                      valid_from: Option[Date],

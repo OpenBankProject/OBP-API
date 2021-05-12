@@ -85,8 +85,20 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // register v4.0.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
+  //This is the dynamic endpoints which are created by dynamic entities 
   oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
+  //This is for the dynamic endpoints which are created by dynamic swagger files
   oauthServe(apiPrefix{Implementations4_0_0.dynamicEndpoint}, None)
+  /**
+   * Here is the place where we register the dynamicEndpoint, all the dynamic resource docs endpoints are here.    
+   * Actually, we only register one endpoint for all the dynamic resource docs endpoints.                          
+   * For Liftweb, it just need to handle one endpoint,                                                             
+   *  all the router functionalities are in OBP code.                                                              
+   *  details: please also check code/api/v4_0_0/dynamic/DynamicEndpoints.findEndpoint method                      
+   * NOTE: this must be the last one endpoint to register into Liftweb                                             
+   * Because firstly, Liftweb should look for the static endpoints --> then the dynamic ones. 
+   * This is for the dynamic endpoints which are createdy by dynamic resourceDocs
+   */
   oauthServe(apiPrefix{DynamicEndpoints.dynamicEndpoint}, None)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")

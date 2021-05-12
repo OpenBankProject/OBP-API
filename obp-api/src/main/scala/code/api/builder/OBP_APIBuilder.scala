@@ -7,7 +7,7 @@ import code.util.Helper.MdcLoggable
 
 object OBP_APIBuilder extends OBPRestHelper with APIMethods_APIBuilder with MdcLoggable {
 
-  val version = ApiVersion.apiBuilder
+  val version = ApiVersion.b1
   val versionStatus = "DRAFT"
 
   val endpoints = ImplementationsBuilderAPI.endpointsOfBuilderAPI

@@ -8,7 +8,7 @@ import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.crypto.{MACVerifier, RSASSAVerifier}
 import com.nimbusds.jose.jwk.source.{JWKSource, RemoteJWKSet}
 import com.nimbusds.jose.proc.{JWSVerificationKeySelector, SecurityContext}
-import com.nimbusds.jose.util.DefaultResourceRetriever
+import com.nimbusds.jose.util.{DefaultResourceRetriever, JSONObjectUtils}
 import com.nimbusds.jwt.proc.{BadJWTException, DefaultJWTProcessor}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
@@ -19,7 +19,7 @@ object JwtUtil extends MdcLoggable {
   def getSignedPayloadAsJson(jwtToken: String): Box[String] = {
     try {
       val signedJWT = SignedJWT.parse(jwtToken)
-      val result: String = signedJWT.getJWTClaimsSet.toJSONObject().toJSONString()
+      val result: String = JSONObjectUtils.toJSONString(signedJWT.getJWTClaimsSet().toJSONObject)
       // claims extraction...
       Some(result)
     } catch {

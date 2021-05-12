@@ -5,8 +5,10 @@ import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.BasicUserAuthContext
+
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLoggable {
@@ -26,6 +28,36 @@ object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLog
   override def getUserAuthContextsBox(userId: String): Box[List[MappedUserAuthContext]] = {
     tryo {
       MappedUserAuthContext.findAll(By(MappedUserAuthContext.mUserId, userId))
+    }
+  }
+  // This function creates or replaces only user auth contexts provided a parameter to this function. (It does not delete other user auth contexts)
+  // For this reason developers are encouraged to use name space in the key.
+  override def createOrUpdateUserAuthContexts(userId: String, userAuthContexts: List[BasicUserAuthContext]): Box[List[MappedUserAuthContext]] = {
+    // Remove duplicates if any
+    val userAuthContextsDistinct = userAuthContexts.distinct
+    // Find the user auth contexts we must create
+    val create = userAuthContextsDistinct.filter( authContext =>
+      MappedUserAuthContext.find(
+        By(MappedUserAuthContext.mUserId, userId),
+        By(MappedUserAuthContext.mKey, authContext.key)
+      ).isEmpty
+    )
+    // Find the user auth contexts we must update
+    val update = userAuthContextsDistinct diff create // List(1,2,3,4,5) diff List(4,5) = List(1,2,3)
+
+    val updated = update.flatMap( authContext =>
+      MappedUserAuthContext.find(
+        By(MappedUserAuthContext.mUserId, userId),
+        By(MappedUserAuthContext.mKey, authContext.key)
+      ).map( authContext =>
+        authContext.mKey(authContext.key).mValue(authContext.value).saveMe()
+      )
+    )
+    val created = create.map( authContext =>
+      MappedUserAuthContext.create.mUserId(userId).mKey(authContext.key).mValue(authContext.value).saveMe()
+    )
+    tryo {
+      updated ::: created
     }
   }
 

@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
+
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -40,10 +41,10 @@ import code.api.OAuthHandshake._
 import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
-import code.api.sandbox.SandboxApiCalls
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.JwsUtil.getJwsHeaderValue
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.{DirectLogin, _}
@@ -77,7 +78,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JString, JValue}
+import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
@@ -92,11 +93,13 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
+import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
+import scala.util.Either
 import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
@@ -215,6 +218,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /**
    * Purpose of this helper function is to get the Consent-ID value from a Request Headers.
+   * This Request Header is related to Berlin Group.
    * @return the Consent-ID value from a Request Header as a String
    */
   def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
@@ -383,7 +387,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
     CustomResponseHeaders(
-      getGatewayLoginHeader(cc).list ::: getRateLimitHeadersNewStyle(cc).list ::: getRequestHeadersToMirror(cc).list
+      getGatewayLoginHeader(cc).list ::: 
+        getRateLimitHeadersNewStyle(cc).list ::: 
+        getRequestHeadersToMirror(cc).list :::
+        getSignRequestHeadersNewStyle(cc).list
     )
   }
 
@@ -400,6 +407,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ =>
         CustomResponseHeaders((Nil))
     }
+  }
+  private def getSignRequestHeadersNewStyle(cc: Option[CallContextLight]): CustomResponseHeaders = {
+    cc.map { i =>
+      if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
+        val headers = JwsUtil.signResponse(i.httpBody, i.verb, i.url)
+        CustomResponseHeaders(headers.map(h => (h.name, h.values.mkString(", "))))
+      } else {
+        CustomResponseHeaders(Nil)
+      }
+    }.getOrElse(CustomResponseHeaders(Nil))
   }
 
   /**
@@ -1146,6 +1163,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // So create the EmptyClassJson to set the empty JValue "{}"
   case class EmptyClassJson(jsonString: String ="{}")
 
+  /**
+   *  PrimaryDataBody is used to make the following ResourceDoc.exampleRequestBody and ResourceDoc.successResponseBody to
+   *  support the primitive types(String, Int, Boolean....)
+   *  also see@ case class ResourceDoc -> exampleRequestBody: scala.Product and successResponseBody: scala.Product
+   *  It is `product` type, not support the primitive scala types.
+   *  
+   *  following are some usages eg: 
+   *  1st: we support empty string for `Create Dynamic Resource Doc` endpoint, json body.example_request_body = "",
+   *  2rd: Swagger file use Boolean as response body. 
+   *  .....
+   *  
+   *  
+   * Here are the sub-classes of PrimaryDataBody, they can be used for scala.Product type.
+   * JArrayBody in APIUtil$ (code.api.util)
+   * FloatBody in APIUtil$ (code.api.util)
+   * IntBody in APIUtil$ (code.api.util)
+   * DoubleBody in APIUtil$ (code.api.util)
+   * BigDecimalBody in APIUtil$ (code.api.util)
+   * BooleanBody in APIUtil$ (code.api.util)
+   * StringBody in APIUtil$ (code.api.util)
+   * LongBody in APIUtil$ (code.api.util)
+   * BigIntBody in APIUtil$ (code.api.util)
+   * EmptyBody$ in APIUtil$ (code.api.util)
+   *
+   * @tparam T
+   */
   sealed abstract class PrimaryDataBody[T] extends JsonAble {
     def value: T
 
@@ -2187,13 +2230,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getDisabledVersions() : List[String] = APIUtil.getPropsValue("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getDisabledEndpoints() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getDisabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
 
 
   def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
-  def getEnabledEndpoints() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
@@ -2225,14 +2268,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Note we use "v" and "." in the name to match the ApiVersions enumeration in ApiUtil.scala
    */
-  def versionIsAllowed(version: ApiVersion) : Boolean = {
+  def versionIsAllowed(version: ScannedApiVersion) : Boolean = {
     def checkVersion: Boolean = {
       val disabledVersions: List[String] = getDisabledVersions()
       val enabledVersions: List[String] = getEnabledVersions()
-      if (
-        !disabledVersions.contains(version.toString) &&
+      if (//                                     this is the short version: v4.0.0             this is for fullyQualifiedVersion: OBPv4.0.0 
+        (disabledVersions.find(disableVersion => (disableVersion == version.apiShortVersion || disableVersion == version.fullyQualifiedVersion )).isEmpty) &&
           // Enabled versions or all
-          (enabledVersions.contains(version.toString) || enabledVersions.isEmpty)
+          (enabledVersions.find(enableVersion => (enableVersion ==version.apiShortVersion || enableVersion == version.fullyQualifiedVersion)).isDefined || enabledVersions.isEmpty)
       ) true
       else
         false
@@ -2251,7 +2294,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   Note a version such as v3_0_0.OBPAPI3_0_0 may well include routes from other earlier versions.
    */
 
-  def enableVersionIfAllowed(version: ApiVersion) : Boolean = {
+  def enableVersionIfAllowed(version: ScannedApiVersion) : Boolean = {
     val allowed: Boolean = if (versionIsAllowed(version)
     ) {
       version match {
@@ -2268,8 +2311,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
-        case ApiVersion.`apiBuilder` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
-        case ApiVersion.sandbox => LiftRules.statelessDispatch.append(SandboxApiCalls)
+        case ApiVersion.`b1` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")
       }
@@ -2291,11 +2333,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getAllowedEndpoints (endpoints : Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
 
-    // Endpoints
-    val disabledEndpoints = getDisabledEndpoints
+    val allowedResourceDocs: ArrayBuffer[ResourceDoc] = getAllowedResourceDocs(endpoints, resourceDocs)
 
-    // Endpoints
-    val enabledEndpoints = getEnabledEndpoints
+    allowedResourceDocs.map(_.partialFunction).toList
+  }
+
+  def getAllowedResourceDocs(endpoints: Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]): ArrayBuffer[ResourceDoc] = {
+    // Endpoint Operation Ids
+    val disabledEndpointOperationIds = getDisabledEndpointOperationIds
+
+    // Endpoint Operation Ids
+    val enabledEndpointOperationIds = getEnabledEndpointOperationIds
 
     val onlyNewStyle = APIUtil.getPropsAsBoolValue("new_style_only", false)
 
@@ -2304,16 +2352,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       item <- resourceDocs
       if
       // Remove any Resource Doc / endpoint mentioned in Disabled endpoints in Props
-      !disabledEndpoints.contains(item.partialFunctionName) &&
-        // Only allow Resrouce Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
-        (enabledEndpoints.contains(item.partialFunctionName) || enabledEndpoints.isEmpty)  &&
+      !disabledEndpointOperationIds.contains(item.operationId) &&
+        // Only allow Resource Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
+        (enabledEndpointOperationIds.contains(item.operationId) || enabledEndpointOperationIds.isEmpty) &&
         // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
-        // i.e. this function may recieve more Resource Docs than version endpoints
+        // i.e. this function may receive more Resource Docs than version endpoints
         endpoints.exists(_ == item.partialFunction) &&
         (item.tags.exists(_ == apiTagNewStyle) || !onlyNewStyle)
     )
-      yield item.partialFunction
-    routes.toList
+      yield item
+    routes
   }
 
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
@@ -2521,13 +2569,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
     val remoteIpAddress = getRemoteIpAddress()
     val res =
-      if (APIUtil.`hasConsent-ID`(reqHeaders)) {
+      if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
-      } else if (APIUtil.hasConsentJWT(reqHeaders)) {
+      } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
         Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
-      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) {
+      } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
         getUserFromOAuthHeaderFuture(cc)
-      } else if (hasAnOAuth2Header(cc.authReqHeaderField)) {
+      } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
         for {
           (user, callContext) <- OAuth2Login.getUserFuture(cc)
         } yield {
@@ -2535,8 +2583,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
           (user, callContext)
         }
+      // Direct Login
       } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
+      // Gateway Login
       } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
         APIUtil.getPropsValue("gateway.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
@@ -2635,8 +2685,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
     /*************************************************************************************************************** */
 
-    // Update Call Context
-    resultWithRateLimiting map {
+    
+    resultWithRateLimiting map { // Update Call Context
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
@@ -2657,6 +2707,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
   }
+  
 
   /**
    * This Function is used to terminate a Future used in for-comprehension with specific message and code in case that value of Box is not Full.
@@ -2664,6 +2715,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *  - Future(Full("Some value")    -> Does NOT terminate
    *  - Future(Empty)                -> Terminates
    *  - Future(Failure/ParamFailure) -> Terminates
+ *
    * @param box Boxed Payload
    * @param cc Call Context
    * @param emptyBoxErrorMsg Error message in case of Empty Box
@@ -2721,7 +2773,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
     } map {
       x =>
-        refreshUserIfRequired(x._1,x._2)
+        // make sure, if `refreshUserIfRequired` throw exception, do not break the `authenticatedAccess`, 
+        // TODO better move `refreshUserIfRequired` to other place.
+        tryo{refreshUserIfRequired(x._1,x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.refreshUserIfRequired throw exception! "))
         x
     }
   }
@@ -2732,7 +2786,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return Failure in case we exceeded rate limit
    */
   def anonymousAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] = {
-    getUserAndSessionContextFuture(cc) map {
+    getUserAndSessionContextFuture(cc)  map { result =>
+      val url = result._2.map(_.url).getOrElse("None")
+      val verb = result._2.map(_.verb).getOrElse("None")
+      val body = result._2.flatMap(_.httpBody)
+      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+      // Verify signed request
+      JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
+    } map {
       result =>
         val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root").split(",").toList
         cc.resourceDocument.map(_.partialFunctionName) match {
@@ -2756,15 +2817,33 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def applicationAccess(cc: CallContext): Future[(Box[Consumer], Option[CallContext])] = {
+  /**
+   * This function is used to guard endpoints(APIs) which require at least Client Authentication.
+   * I.e you don't need to be logged in in order to make an request but the endpoint must know which client makes call.
+   * Client Authentication => we know which application.
+   * User Authentication => we know which user is logged in and via which application.
+   * @param cc Call Context of te current call
+   * @return Tuple (User, Call Context)
+   */
+  def applicationAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] = 
     getUserAndSessionContextFuture(cc) map { result =>
-      val consumer = if (result._2.isDefined) result._2.map(_.consumer).get else Empty
-      (
-        fullBoxOrException(consumer ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
-        result._2
-      )
+      val url = result._2.map(_.url).getOrElse("None")
+      val verb = result._2.map(_.verb).getOrElse("None")
+      val body = result._2.flatMap(_.httpBody)
+      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+      // Verify signed request if need be
+      JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
+    } map { result =>
+      result._1 match {
+        case Empty if result._2.flatMap(_.consumer).isDefined => // There is no error and Consumer is defined
+          result
+        case _ =>
+          (
+            fullBoxOrException(result._1 ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
+            result._2
+          )
+      }
     }
-  }
 
   def filterMessage(obj: Failure): String = {
     logger.debug("Failure: " + obj)
@@ -3231,6 +3310,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     userAuthContexts.map(createBasicUserAuthContext)
   }
 
+  def createBasicConsentAuthContext(userAuthContest : ConsentAuthContext) : BasicUserAuthContext = {
+    BasicUserAuthContext(
+      key = userAuthContest.key,
+      value = userAuthContest.value
+    )
+  }
+  def createBasicConsentAuthContextJson(userAuthContexts : List[ConsentAuthContext]) : List[BasicUserAuthContext] = {
+    userAuthContexts.map(createBasicConsentAuthContext)
+  }
+
   def createBasicUserAuthContextJsonFromCallContext(callContext : CallContext) : List[BasicGeneralContext] = {
     val requestHeaders: List[HTTPParam] = callContext.requestHeaders
 
@@ -3431,8 +3520,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def getScaMethodAtInstance(transactionType: String): Full[SCA] = {
-    val propsName = transactionType + "_OTP_INSTRUCTION_TRANSPORT"
+  def getScaMethodAtInstance(transactionRequestType: String): Full[SCA] = {
+    val propsName = transactionRequestType + "_OTP_INSTRUCTION_TRANSPORT"
+    APIUtil.getPropsValue(propsName).map(_.toUpperCase()) match {
+      case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
+      case Full(sca) if sca == StrongCustomerAuthentication.EMAIL.toString() => Full(StrongCustomerAuthentication.EMAIL)
+      case Full(sca) if sca == StrongCustomerAuthentication.SMS_OTP.toString() => Full(StrongCustomerAuthentication.SMS_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.CHIP_OTP.toString() => Full(StrongCustomerAuthentication.CHIP_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PHOTO_OTP.toString() => Full(StrongCustomerAuthentication.PHOTO_OTP)
+      case Full(sca) if sca == StrongCustomerAuthentication.PUSH_OTP.toString() => Full(StrongCustomerAuthentication.PUSH_OTP)
+      case _ => Full(StrongCustomerAuthentication.SMS)
+    }
+  }
+  
+  def getSuggestedDefaultScaMethod(): Full[SCA] = {
+    val propsName = "suggested_default_sca_method"
     APIUtil.getPropsValue(propsName).map(_.toUpperCase()) match {
       case Full(sca) if sca == StrongCustomerAuthentication.DUMMY.toString() => Full(StrongCustomerAuthentication.DUMMY)
       case Full(sca) if sca == StrongCustomerAuthentication.SMS.toString() => Full(StrongCustomerAuthentication.SMS)
@@ -3748,4 +3851,55 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }
     }
   )
+
+  /**
+   * call an endpoint method
+   * @param endpoint endpoint method
+   * @param endpointPartPath endpoint method url slices, it is for endpoint the first case expression
+   * @param requestType http request method
+   * @param requestBody http request body
+   * @param addlParams append request parameters
+   * @return result of call endpoint method
+   */
+  def callEndpoint(endpoint: OBPEndpoint, endpointPartPath: List[String], requestType: RequestType, requestBody: String = "", addlParams: Map[String, String] = Map.empty): Either[(String, Int), String] = {
+    val req: Req = S.request.openOrThrowException("no request object can be extract.")
+    val pathOrigin = req.path
+    val forwardPath = pathOrigin.copy(partPath = endpointPartPath)
+
+    val body = Full(BodyOrInputStream(IOUtils.toInputStream(requestBody)))
+
+    val paramCalcInfo = ParamCalcInfo(req.paramNames, req._params, Nil, body)
+    val newRequest = new Req(forwardPath, req.contextPath, requestType, Full("application/json"), req.request, req.nanoStart, req.nanoEnd, false, () => paramCalcInfo, addlParams)
+
+    val user = AuthUser.getCurrentUser
+    val result = tryo {
+      endpoint(newRequest)(CallContext(user = user))
+    }
+
+    val func: ((=> LiftResponse) => Unit) => Unit = result match {
+      case Failure("Continuation", Full(continueException), _) => ReflectUtils.getCallByNameValue(continueException, "f").asInstanceOf[((=> LiftResponse) => Unit) => Unit]
+      case _ => null
+    }
+
+    val future = new LAFuture[LiftResponse]
+    val satisfyFutureFunction: (=> LiftResponse) => Unit = liftResponse => future.satisfy(liftResponse)
+    func(satisfyFutureFunction)
+
+    val timeoutOfEndpointMethod = 60 * 1000L // endpoint is async, but html template must not async, So here need wait for endpoint value.
+
+    future.get(timeoutOfEndpointMethod) match {
+      case Full(JsonResponse(jsExp, _, _, code)) if (code.toString.startsWith("20")) => Right(jsExp.toJsCmd)
+      case Full(JsonResponse(jsExp, _, _, code)) => {
+        val message = json.parse(jsExp.toJsCmd)
+          .asInstanceOf[JObject]
+          .obj
+          .find(_.name == "message")
+          .map(_.value.asInstanceOf[JString].s)
+          .getOrElse("")
+        Left((message, code))
+      }
+      case Empty => Left((FutureTimeoutException, 500))
+    }
+  }
+
 }

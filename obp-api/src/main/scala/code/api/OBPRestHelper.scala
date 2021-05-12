@@ -248,7 +248,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         ApiVersion.v2_0_0.toString,
         ApiVersion.v2_1_0.toString,
         ApiVersion.v2_2_0.toString,
-        ApiVersion.apiBuilder.toString, //apiBuilder is the old style.
+        ApiVersion.b1.toString, //apiBuilder is the old style.
       ).exists(_ == e.implementedInApiVersion.toString()) =>
         false
       case Some(e) if APIMethods300.oldStyleEndpoints.exists(_ == e.partialFunctionName) =>
@@ -339,12 +339,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                 case Full(payload) =>
                   val s = S
                   GatewayLogin.getOrCreateResourceUser(payload: String, Some(cc)) match {
-                    case Full((u, cbsToken, callContextNew)) => // Authentication is successful
+                    case Full((u, cbsToken, callContext)) => // Authentication is successful
                       val consumer = GatewayLogin.getOrCreateConsumer(payload, u)
                       setGatewayResponseHeader(s) {GatewayLogin.createJwt(payload, cbsToken)}
                       val jwt = GatewayLogin.createJwt(payload, cbsToken)
-                      val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContextNew)
-                      fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContextNew.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
+                      val callContextUpdated = ApiSession.updateCallContext(GatewayLoginResponseHeader(Some(jwt)), callContext)
+                      fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload, httpCode))
                   }

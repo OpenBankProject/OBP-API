@@ -1,5 +1,6 @@
 package code.context
 
+import code.api.util.SecureRandomUtil
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.model.UserAuthContextUpdate
 import net.liftweb.mapper._
@@ -15,7 +16,7 @@ class MappedUserAuthContextUpdate extends UserAuthContextUpdate with LongKeyedMa
   object mKey extends MappedString(this, 50)
   object mValue extends MappedString(this, 50)
   object mChallenge extends MappedString(this, 10)  {
-    override def defaultValue = Random.nextInt(99999999).toString()
+    override def defaultValue = SecureRandomUtil.csprng.nextInt(99999999).toString()
   }
   object mStatus extends MappedString(this, 20)
 

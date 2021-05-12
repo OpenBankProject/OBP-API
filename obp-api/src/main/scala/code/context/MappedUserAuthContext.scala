@@ -21,6 +21,6 @@ class MappedUserAuthContext extends UserAuthContext with LongKeyedMapper[MappedU
 }
 
 object MappedUserAuthContext extends MappedUserAuthContext with LongKeyedMetaMapper[MappedUserAuthContext] {
-  override def dbIndexes = super.dbIndexes
+  override def dbIndexes = UniqueIndex(mUserId, mKey) :: super.dbIndexes
 }
 

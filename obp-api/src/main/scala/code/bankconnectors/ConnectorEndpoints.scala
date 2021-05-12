@@ -7,6 +7,7 @@ import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, NewStyle
 import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
 import code.bankconnectors.ConnectorEndpoints.getMethod
 import code.bankconnectors.rest.RestConnector_vMar2019
+import code.util.Helper
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
@@ -120,7 +121,7 @@ object ConnectorEndpoints extends RestHelper{
   }
 
   def getParamValues(outBound: AnyRef, methodSymbol: ru.MethodSymbol, optionCC: Option[CallContext]): Seq[Any] = {
-    RestConnector_vMar2019.convertToId(outBound) // convert reference to customerId and accountId
+    Helper.convertToId(outBound) // convert reference to customerId and accountId
     val paramNameToValue: Map[String, Any] = ReflectUtils.getConstructorArgs(outBound)
 
     val paramValues: Seq[Any] = allMethods.find(_._3 == methodSymbol)
@@ -197,7 +198,7 @@ object ConnectorEndpoints extends RestHelper{
             case _ => throw new IllegalArgumentException(s"not supported type ${getType(value)}")
           }
         }
-        .map(RestConnector_vMar2019.convertToReference(_)) //convert customerId and AccountId to reference
+        .map(Helper.convertToReference(_)) //convert customerId and AccountId to reference
       }
       case Full(data) => {
         data match {

@@ -7,7 +7,7 @@ import com.openbankproject.commons.util.JsonUtils
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
 import net.liftweb.json.{JArray, JObject, JValue}
-import org.apache.commons.lang3.ArrayUtils
+import org.apache.commons.lang3.{ArrayUtils, StringUtils}
 
 object DynamicEndpointCodeGenerator {
 
@@ -46,7 +46,7 @@ object DynamicEndpointCodeGenerator {
       case Some(JBool(_)) => requestEntityExp("Boolean")
       case Some(JInt(_)) => requestEntityExp("Long")
       case Some(JDouble(_)) => requestEntityExp("Double")
-      case Some(JString(_)) => requestEntityExp("String")
+      case Some(JString(s)) if StringUtils.isNotBlank(s) => requestEntityExp("String")
       case Some(JObject(_)) | Some(JArray(_)) => requestEntityExp("RequestRootJsonClass")
       case _ => ""
     }
@@ -102,6 +102,19 @@ object DynamicEndpointCodeGenerator {
     )
   }
 
+  /**
+   *  also see @com.openbankproject.commons.util.JsonUtils#toCaseClasses 
+   *  it will generate the following case class strings:
+   *  
+   * // all request case classes
+   * // case class RequestRootJsonClass(name: String, age: Long)
+   * // all response case classes
+   * // case class ResponseRootJsonClass(person_id: String, name: String, age: Long)
+   *
+   * @param exampleRequestBody : Option[JValue]
+   * @param successResponseBody: Option[JValue]
+   * @return
+   */
   def buildCaseClasses(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue]): (String, String) = {
     val requestBodyCaseClasses = if(exampleRequestBody.exists(it => it.isInstanceOf[JObject] || it.isInstanceOf[JArray])) {
       val Some(requestBody) = exampleRequestBody

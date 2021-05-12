@@ -254,8 +254,8 @@ object ApiRole {
   case class CanGetApiCollection(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetApiCollection = CanGetApiCollection()
 
-  case class CanGetApiCollections(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetApiCollections = CanGetApiCollections()
+  case class CanGetAllApiCollections(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAllApiCollections = CanGetAllApiCollections()
   
   case class CanGetCounterpartyAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCounterpartyAtAnyBank = CanGetCounterpartyAtAnyBank()
@@ -739,7 +739,7 @@ object Util {
   
   def checkWrongDefinedNames: List[List[Unit]] = {
     import scala.meta._
-    val source: Source = new java.io.File("src/main/scala/code/api/util/ApiRole.scala").parse[Source].get
+    val source: Source = new java.io.File("obp-api/src/main/scala/code/api/util/ApiRole.scala").parse[Source].get
 
     val allowedPrefixes = 
       List(

@@ -324,7 +324,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>7.9</version>
+      <version>9.7</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>
@@ -645,6 +645,24 @@
         <configuration>
           <release>${java.version}</release>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.scalaxb</groupId>
+        <artifactId>scalaxb-maven-plugin</artifactId>
+        <version>1.7.5</version>
+        <configuration>
+          <packageName>code.adapter.soap</packageName>
+          <wsdlDirectory>src/main/resources/custom_webapp/wsdl</wsdlDirectory>
+          <xsdDirectory>src/main/resources/custom_webapp/xsd</xsdDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>scalaxb</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <!--grpc related plugin begin-->
       <!-- currently not need, enable this plugin when need generate new grpc code.
