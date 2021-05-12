@@ -109,7 +109,7 @@ The ASPSP answers by providing a list of balances on this account.
          cc => 
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
-             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
+             _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet, cc=callContext) { defaultBankId != "DEFAULT_BANK_ID_NOT_SET" }
              (_, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
              (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(BankId(defaultBankId), AccountId(accountresourceid), callContext)
              view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
@@ -199,7 +199,7 @@ The TPP sends a request to the ASPSP for retrieving the list of the PSU payment 
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
   
-              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+              _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet, cc=callContext) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
     
               bankId = BankId(defaultBankId)
     
@@ -291,7 +291,7 @@ The AISP requests the ASPSP on one of the PSU's accounts. It may specify some se
            for {
              (Full(u), callContext) <- authenticatedAccess(cc)
             
-            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet ) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
+            _ <- Helper.booleanToFuture(failMsg= DefaultBankIdNotSet, cc=callContext) {defaultBankId != "DEFAULT_BANK_ID_NOT_SET"}
             
             bankId = BankId(defaultBankId)
             

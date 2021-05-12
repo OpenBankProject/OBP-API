@@ -110,7 +110,7 @@ trait APIMethods300 {
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId){
+              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext){
                 u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
               }
             } yield {
@@ -170,7 +170,7 @@ trait APIMethods300 {
                 x => unboxFullOrFail(x, callContext, msg)
               }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat, cc=callContext) {
                 checkCustomViewName(createViewJson.name)
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
@@ -256,7 +256,7 @@ trait APIMethods300 {
                 x => unboxFullOrFail(x, callContext, msg)
               }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat) {
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat, cc=callContext) {
                 updateJson.metadata_view.startsWith("_")
               }
               _ <- Views.views.vend.customViewFuture(ViewId(viewId.value), BankIdAccountId(bankId, accountId)) map {
@@ -264,7 +264,7 @@ trait APIMethods300 {
                   x ~> APIFailureNewStyle(s"$ViewNotFound. Check your post json body, metadata_view = ${updateJson.metadata_view}. It should be an existing VIEW_ID, eg: owner", 400, callContext.map(_.toLight)))
               } map { unboxFull(_) }
               view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId),Some(u), callContext)
-              _ <- Helper.booleanToFuture(failMsg = SystemViewsCanNotBeModified) {
+              _ <- Helper.booleanToFuture(failMsg = SystemViewsCanNotBeModified, cc=callContext) {
                 !view.isSystem
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
@@ -492,7 +492,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank, cc=callContext) {
                canUseAccountFirehose(u)
             }
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -578,7 +578,7 @@ trait APIMethods300 {
         cc =>
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  ) {
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank , cc=callContext) {
              canUseAccountFirehose(u)
             }
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -779,13 +779,13 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouse, callContext)
-            _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
+            _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled, cc=callContext) {
               esw.isEnabled()
             }
             maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.pagesize", 10000)
             //This is for performance issue, we can not support query more than maximumSize records in one call. 
             // If it contains the size and if it over maximumSize, we will throw the error back.
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize."), cc=callContext) {
               // find all the size field.
               val allSizeFields = json filterField {
                 case JField(key, _) => key.equals("size")
@@ -859,13 +859,13 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canSearchWarehouseStatistics, callContext)
-            _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled) {
+            _ <- Helper.booleanToFuture(failMsg = ElasticSearchDisabled, cc=callContext) {
               esw.isEnabled()
             }
             maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.pagesize", 10000)
             //This is for performance issue, we can not support query more than maximumSize records in one call. 
             // If it contains the size and if it over maximumSize, we will throw the error back.
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize.")) {
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded.replace("Maximum number is 10000.",s"Please check query body, the maximum size is $maximumSize."), cc=callContext) {
               // find all the size field.
               val allSizeFields = json filterField {
                 case JField(key, _) => key.equals("size")
@@ -1308,25 +1308,25 @@ trait APIMethods300 {
                 case false => authenticatedAccess(cc)
                 case true => anonymousAccess(cc)
               }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}", cc=callContext) {
               limit match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
                 case _ => true
               }
             }
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded, cc=callContext) {
               limit match {
                 case Full(i) if i.toInt > 10000 => false
                 case _ => true
               }
             }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}", cc=callContext) {
               offset match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
                 case _ => true
               }
             }
-            _ <- Helper.booleanToFuture(failMsg = s"${MissingQueryParams} withinMetersOf, nearLatitude and nearLongitude must be either all empty or all float value, but currently their value are: withinMetersOf=${withinMetersOf.openOr("")}, nearLatitude=${nearLatitude.openOr("")} and nearLongitude=${nearLongitude.openOr("")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"${MissingQueryParams} withinMetersOf, nearLatitude and nearLongitude must be either all empty or all float value, but currently their value are: withinMetersOf=${withinMetersOf.openOr("")}, nearLatitude=${nearLatitude.openOr("")} and nearLongitude=${nearLongitude.openOr("")}", cc=callContext) {
               (withinMetersOf, nearLatitude, nearLongitude) match {
                 case (Full(i), Full(j), Full(k)) => reg.matcher(i).matches() && reg.matcher(j).matches() && reg.matcher(k).matches()
                 case (Empty, Empty, Empty) => true
@@ -1441,19 +1441,19 @@ trait APIMethods300 {
                 case false => authenticatedAccess(cc)
                 case true => anonymousAccess(cc)
               }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}", cc=callContext) {
               limit match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
                 case _ => true
               }
             }
-            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded) {
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded, cc=callContext) {
               limit match {
                 case Full(i) if i.toInt > 10000 => false
                 case _ => true
               }
             }
-            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}") {
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } offset:${offset.getOrElse("")}", cc=callContext) {
               offset match {
                 case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
                 case _ => true
@@ -1814,13 +1814,13 @@ trait APIMethods300 {
               }
               _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(BankId(postedData.bank_id), callContext)}
               
-              _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")) {
+              _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", "), cc=callContext) {
                 availableRoles.exists(_ == postedData.role_name)
               }
-              _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+              _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc=callContext) {
                 ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
               }
-              _ <- Helper.booleanToFuture(failMsg = EntitlementRequestAlreadyExists) {
+              _ <- Helper.booleanToFuture(failMsg = EntitlementRequestAlreadyExists, cc=callContext) {
                 EntitlementRequest.entitlementRequest.vend.getEntitlementRequest(postedData.bank_id, u.userId, postedData.role_name).isEmpty
               }
               addedEntitlementRequest <- EntitlementRequest.entitlementRequest.vend.addEntitlementRequestFuture(postedData.bank_id, u.userId, postedData.role_name) map {
@@ -2207,7 +2207,7 @@ trait APIMethods300 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      List(apiTagScope, apiTagRole, apiTagNewStyle),
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle),
       Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)))
   
     lazy val addScope : OBPEndpoint = {
@@ -2236,7 +2236,7 @@ trait APIMethods300 {
               x => unboxFullOrFail(x, callContext, msg)
             }
             
-            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole) {
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc=callContext) {
               ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
             }
             
@@ -2245,11 +2245,11 @@ trait APIMethods300 {
 
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements, callContext)
 
-            _ <- Helper.booleanToFuture(failMsg = BankNotFound) {
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, cc=callContext) {
               postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
             }
 
-            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists) {
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc=callContext) {
               hasScope(postedData.bank_id, consumerId, role) == false
             }
             
@@ -2278,7 +2278,7 @@ trait APIMethods300 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
 
     lazy val deleteScope: OBPEndpoint = {
       case "consumers" :: consumerId :: "scope" :: scopeId :: Nil JsonDelete _ => {
@@ -2293,7 +2293,7 @@ trait APIMethods300 {
               val msg = s"$ScopeNotFound Current Value is $scopeId"
               x => unboxFullOrFail(x, callContext, msg)
             }
-            _ <- Helper.booleanToFuture(failMsg = ConsumerDoesNotHaveScope) { scope.scopeId ==scopeId }
+            _ <- Helper.booleanToFuture(failMsg = ConsumerDoesNotHaveScope, cc=callContext) { scope.scopeId ==scopeId }
             _ <- Future {Scope.scope.vend.deleteScope(Full(scope))} 
           } yield
             (JsRaw(""), HttpCode.`200`(callContext))
@@ -2316,7 +2316,7 @@ trait APIMethods300 {
       emptyObjectJson,
       scopeJsons,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagRole, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
   
     lazy val getScopes: OBPEndpoint = {
       case "consumers" :: consumerId :: "scopes" :: Nil JsonGet _ => {

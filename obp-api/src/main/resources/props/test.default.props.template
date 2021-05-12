@@ -80,9 +80,6 @@ payments_enabled=false
 #connection.user=user
 #connection.password=pw
 
-#secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
-#cashApplicationKey=change_me
-
 #secret key that allows access to the "add transactions" api. You should change this to your own secret key
 importer_secret=change_me
 
