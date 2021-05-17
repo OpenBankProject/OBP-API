@@ -34,7 +34,7 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JValue, prettyRender}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
@@ -62,6 +62,10 @@ trait APIMethods200 {
   // shows a small representation of View
   private def publicBankAccountBasicListToJson(bankAccounts: List[BankAccount], publicViews : List[View]): JValue = {
     Extraction.decompose(publicBasicBankAccountList(bankAccounts, publicViews))
+  }
+  // shows a small representation of View
+  private def publicBankAccountBasicList(bankAccounts: List[BankAccount], publicViews : List[View]): List[BasicAccountJSON] = {
+    publicBasicBankAccountList(bankAccounts, publicViews)
   }
   
   // Shows accounts without view
@@ -222,22 +226,19 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, CannotGetAccounts, UnknownError),
-      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
-
-
-
-
-
-
+      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData)
+    )
     lazy val publicAccountsAllBanks : OBPEndpoint = {
       //get public accounts for all banks
       case "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for {
-            (publicViews, publicAccountAccesses) <- Full(Views.views.vend.publicViews)
-            publicAccountsJson <- tryo{publicBankAccountBasicListToJson(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)} ?~! CannotGetAccounts
+            (publicViews, publicAccountAccesses) <- Future(Views.views.vend.publicViews)
+            publicAccountsJson <- NewStyle.function.tryons(CannotGetAccounts, 400, Some(cc)){
+              publicBankAccountBasicList(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)
+            }
           } yield {
-            Full(successJsonResponse(publicAccountsJson))
+            (BasicAccountsJSON(publicAccountsJson), HttpCode.`200`(cc))
           }
       }
     }

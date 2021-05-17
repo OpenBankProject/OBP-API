@@ -129,6 +129,7 @@ object NewStyle {
     (nameOf(Implementations2_0_0.deleteEntitlement), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.getTransactionTypes), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_0_0.getPermissionsForBankAccount), ApiVersion.v2_0_0.toString),
+    (nameOf(Implementations2_0_0.publicAccountsAllBanks), ApiVersion.v2_0_0.toString),
     (nameOf(Implementations2_1_0.getEntitlementsByBankAndUser), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_1_0.getRoles), ApiVersion.v2_1_0.toString),
     (nameOf(Implementations2_1_0.getCustomersForCurrentUserAtBank), ApiVersion.v2_1_0.toString),
