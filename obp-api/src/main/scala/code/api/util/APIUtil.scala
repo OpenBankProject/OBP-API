@@ -212,6 +212,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => None
     }
   }
+
+  def getRequestHeader(name: String, requestHeaders: List[HTTPParam]): String = {
+    requestHeaders.toSet.filter(_.name.toLowerCase == name.toLowerCase).toList match {
+      case x :: Nil => x.values.mkString(";")
+      case _ => ""
+    }
+  }
+  
   def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
     getConsentJWT(requestHeaders).isDefined
   }
@@ -389,8 +397,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     CustomResponseHeaders(
       getGatewayLoginHeader(cc).list ::: 
         getRateLimitHeadersNewStyle(cc).list ::: 
-        getRequestHeadersToMirror(cc).list :::
-        getSignRequestHeadersNewStyle(cc).list
+        getRequestHeadersToMirror(cc).list
     )
   }
 
@@ -408,10 +415,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         CustomResponseHeaders((Nil))
     }
   }
-  private def getSignRequestHeadersNewStyle(cc: Option[CallContextLight]): CustomResponseHeaders = {
+  private def getSignRequestHeadersNewStyle(cc: Option[CallContext], httpBody: Box[String]): CustomResponseHeaders = {
     cc.map { i =>
       if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
-        val headers = JwsUtil.signResponse(i.httpBody, i.verb, i.url)
+        val headers = JwsUtil.signResponse(httpBody, i.verb, i.url, "application/json;charset=utf-8")
+        CustomResponseHeaders(headers.map(h => (h.name, h.values.mkString(", "))))
+      } else {
+        CustomResponseHeaders(Nil)
+      }
+    }.getOrElse(CustomResponseHeaders(Nil))
+  }
+  private def getSignRequestHeadersError(cc: Option[CallContextLight], httpBody: String): CustomResponseHeaders = {
+    cc.map { i =>
+      if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
+        val headers = JwsUtil.signResponse(Full(httpBody), i.verb, i.url, "application/json;charset=utf-8")
         CustomResponseHeaders(headers.map(h => (h.name, h.values.mkString(", "))))
       } else {
         CustomResponseHeaders(Nil)
@@ -507,14 +524,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
-    val jsonAst = ApiSession.processJson((Extraction.decompose(cc)), callContext)
+    val jsonAst: JValue = ApiSession.processJson((Extraction.decompose(cc)), callContext)
     callContext match {
+      case Some(c) if c.httpCode.isDefined && c.httpCode.get == 204 =>
+        val httpBody = None
+        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
       case Some(c) if c.httpCode.isDefined =>
-        JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, c.httpCode.get)
-      case Some(c) if c.verb == "DELETE" =>
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
+        val httpBody = Full(JsonAST.compactRender(jsonAst))
+        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(jsonAst, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, c.httpCode.get)
+      case Some(c) if c.verb.toUpperCase() == "DELETE" =>
+        val httpBody = None
+        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
       case _ =>
-        JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
+        val httpBody = Full(JsonAST.compactRender(jsonAst))
+        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(jsonAst, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, httpCode)
     }
   }
 
@@ -524,7 +551,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
-  def errorJsonResponse(message : String = "error", httpCode : Int = 400)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
+  def errorJsonResponse(message : String = "error", httpCode : Int = 400, callContextLight: Option[CallContextLight] = None)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     def check403(message: String): Boolean = {
       message.contains(UserHasMissingRoles) ||
         message.contains(UserNoPermissionAccessView) ||
@@ -547,7 +574,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case _ =>
           (httpCode, getHeaders() ::: headers.list)
       }
-    JsonResponse(Extraction.decompose(ErrorMessage(message = message, code = code)), responseHeaders, Nil, code)
+    val errorMessageAst: json.JValue = Extraction.decompose(ErrorMessage(message = message, code = code))
+    val httpBody = JsonAST.compactRender(errorMessageAst)
+    val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersError(callContextLight, httpBody)
+    JsonResponse(errorMessageAst, responseHeaders ::: jwsHeaders.list, Nil, code)
   }
 
   def notImplementedJsonResponse(message : String = ErrorMessages.NotImplemented, httpCode : Int = 501)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
@@ -2243,9 +2273,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-  def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty).map(_.trim)
 
-  def getEnabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
+  def getEnabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_enabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty).map(_.trim)
 
   def stringToDate(value: String, dateFormat: String): Date = {
     import java.text.SimpleDateFormat
@@ -2452,7 +2482,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode)(getHeadersNewStyle(af.ccl))))
+              logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl))))
             case _ =>
               val errorResponse: JsonResponse = errorJsonResponse(msg)
               reply.apply(errorResponse)
@@ -2488,7 +2518,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       in.onSuccess{ _ match {
         case (Full(jsonResponse: JsonResponse), _: Option[_]) =>
           reply(jsonResponse)
-        case t => Full(logEndpointTiming(t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))))
+        case t => Full(
+          logEndpointTiming(t._2.map(_.toLight))(
+            reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))
+          )
+        )
       }
       }
       in.onFail {
@@ -2508,7 +2542,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              Full(logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode)(getHeadersNewStyle(af.ccl)))))
+              Full(logEndpointTiming(callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl)))))
             case _ =>
               val errorResponse: JsonResponse = errorJsonResponse(msg)
               Full((reply.apply(errorResponse)))

@@ -107,7 +107,7 @@ or * access method is generally applicable, but further authorisation processes 
              toAccountIban = transactionRequestBody.creditorAccount.iban
              (_, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
              (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
-             _ <- Helper.booleanToFuture(invalidIban) { ibanChecker.isValid == true }
+             _ <- Helper.booleanToFuture(invalidIban, cc=callContext) { ibanChecker.isValid == true }
              (_, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
              (canBeCancelled, _, startSca) <- transactionRequestTypes match {
                case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS => {
@@ -133,7 +133,7 @@ or * access method is generally applicable, but further authorisation processes 
                  }
                }
              }
-             _ <- Helper.booleanToFuture(failMsg= TransactionRequestCannotBeCancelled) { canBeCancelled == true }
+             _ <- Helper.booleanToFuture(failMsg= TransactionRequestCannotBeCancelled, cc=callContext) { canBeCancelled == true }
              (updatedTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
            } yield {
              startSca.getOrElse(false) match {
@@ -418,7 +418,7 @@ Check the transaction status of a payment initiation.""",
 
              //From change from requestAccount Currency to currentBankAccount Currency
              rate = fx.exchangeRate(transactionRequestCurrency, fromAccountCurrency)
-             _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionRequestCurrency} to ${fromAccountCurrency}) is not supported.") {
+             _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionRequestCurrency} to ${fromAccountCurrency}) is not supported.", cc=callContext) {
                rate.isDefined
              }
              
@@ -545,29 +545,29 @@ $additionalInstructions
                BigDecimal(transDetailsJson.instructedAmount.amount)
              }
 
-             _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'") {
+             _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'", cc=callContext) {
                isValidAmountNumber > BigDecimal("0")
              }
 
              // Prevent default value for transaction request type (at least).
-             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'") {
+             _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.instructedAmount.currency}'", cc=callContext) {
                isValidCurrencyISOCode(transDetailsJson.instructedAmount.currency)
              }
 
-             _ <- NewStyle.function.isEnabledTransactionRequests()
+             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
              fromAccountIban = transDetailsJson.debtorAccount.iban
              toAccountIban = transDetailsJson.creditorAccount.iban
 
              (fromAccount, callContext) <- NewStyle.function.getBankAccountByIban(fromAccountIban, callContext)
              (ibanChecker, callContext) <- NewStyle.function.validateAndCheckIbanNumber(toAccountIban, callContext)
-             _ <- Helper.booleanToFuture(invalidIban) { ibanChecker.isValid == true }
+             _ <- Helper.booleanToFuture(invalidIban, cc=callContext) { ibanChecker.isValid == true }
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
              _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))) Future.successful(Full(Unit))
                   else NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
                // Prevent default value for transaction request type (at least).
-             _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}") {
+             _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.instructedAmount.currency}", cc=callContext) {
                transDetailsJson.instructedAmount.currency == fromAccount.currency
              }
 
@@ -760,7 +760,7 @@ This applies in the following scenarios:
                TransactionRequestTypes.withName(paymentProduct.replaceAll("-","_").toUpperCase)
              }
              (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
-             _ <- Helper.booleanToFuture(failMsg= CannotStartTheAuthorisationProcessForTheCancellation) {
+             _ <- Helper.booleanToFuture(failMsg= CannotStartTheAuthorisationProcessForTheCancellation, cc=callContext) {
                transactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString
              }
              (challenges, callContext) <- NewStyle.function.createChallengesC2(
@@ -870,7 +870,7 @@ There are the following request types on this access path:
              //Map obp transaction request id with BerlinGroup PaymentId
              transactionRequestId = TransactionRequestId(paymentId)
              (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
-             _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUDataCancellation) { 
+             _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUDataCancellation, cc=callContext) { 
                existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString ||
                existingTransactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString ||
                existingTransactionRequest.status == TransactionRequestStatus.COMPLETED.toString
@@ -993,7 +993,7 @@ There are the following request types on this access path:
              //Map obp transaction request id with BerlinGroup PaymentId
              transactionRequestId = TransactionRequestId(paymentId)
              (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
-             _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUData) {
+             _ <- Helper.booleanToFuture(failMsg= CannotUpdatePSUData, cc=callContext) {
                existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString
              }
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(

@@ -72,8 +72,8 @@ object RateLimitingJson {
 object RateLimitingUtil extends MdcLoggable {
   import code.api.util.RateLimitingPeriod._
   
-  val useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
-  val inMemoryMode = APIUtil.getPropsAsBoolValue("use_consumer_limits_in_memory_mode", false)
+  def useConsumerLimits = APIUtil.getPropsAsBoolValue("use_consumer_limits", false)
+  def inMemoryMode = APIUtil.getPropsAsBoolValue("use_consumer_limits_in_memory_mode", false)
 
   lazy val jedis = Props.mode match {
     case Props.RunModes.Test  =>
@@ -240,7 +240,7 @@ object RateLimitingUtil extends MdcLoggable {
     * @return a Tuple (Box[User], Option[CallContext]) enriched with rate limiting header or an error.
     */
   def underCallLimits(userAndCallContext: (Box[User], Option[CallContext])): (Box[User], Option[CallContext]) = {
-    val perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 1000)
+    def perHourLimitAnonymous = APIUtil.getPropsAsIntValue("user_consumer_limit_anonymous_access", 1000)
     def composeMsgAuthorizedAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for this Consumer."
     def composeMsgAnonymousAccess(period: LimitCallPeriod, limit: Long): String = TooManyRequests + s" We only allow $limit requests ${RateLimitingPeriod.humanReadable(period)} for anonymous access."
 

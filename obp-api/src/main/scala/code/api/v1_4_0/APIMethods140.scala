@@ -414,7 +414,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.isEnabledTransactionRequests()
+            _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             (bank, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             failMsg = ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")

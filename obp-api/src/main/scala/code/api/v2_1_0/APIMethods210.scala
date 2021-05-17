@@ -101,7 +101,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSandbox, apiTagApi),
+      List(apiTagSandbox),
       Some(List(canCreateSandbox)))
 
 
@@ -398,16 +398,16 @@ trait APIMethods210 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.isEnabledTransactionRequests()
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+            _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext) 
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             
             account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, callContext)
             
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'", cc=callContext) {
               APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
             }
 
@@ -420,21 +420,21 @@ trait APIMethods210 {
               BigDecimal(transDetailsJson.value.amount)
             }
             
-            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'") {
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${isValidAmountNumber}'", cc=callContext) {
               isValidAmountNumber > BigDecimal("0")
             }
             
-            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
             
             // Prevent default value for transaction request type (at least).
-            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
             
             // Prevent default value for transaction request type (at least).
-            _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}") {
+            _ <- Helper.booleanToFuture(s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}", cc=callContext) {
               transDetailsJson.value.currency == fromAccount.currency
             }
             
@@ -477,11 +477,11 @@ trait APIMethods210 {
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
                   toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext) 
                   // Check we can send money to it. 
-                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     toCounterparty.isBeneficiary == true
                   }
                   chargePolicy = transactionRequestBodyCounterparty.charge_policy
-                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
+                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
                   transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transactionRequestBodyCounterparty)(Serialization.formats(NoTypeHints))}
@@ -508,11 +508,11 @@ trait APIMethods210 {
                   toIban = transDetailsSEPAJson.to.iban
                   (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByIban(toIban, callContext)
                   toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
-                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit") {
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
                     toCounterparty.isBeneficiary == true
                   }
                   chargePolicy = transDetailsSEPAJson.charge_policy
-                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy") {
+                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
                     ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
                   }
                   transDetailsSerialized <- NewStyle.function.tryons (UnknownError, 400, callContext){write(transDetailsSEPAJson)(Serialization.formats(NoTypeHints))}
@@ -604,9 +604,9 @@ trait APIMethods210 {
             for {
               // Check we have a User
               (Full(u), callContext) <- authenticatedAccess(cc)
-              _ <- NewStyle.function.isEnabledTransactionRequests()
-              _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
-              _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+              _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+              _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+              _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
               challengeAnswerJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ChallengeAnswerJSON ", 400, callContext) {
                 json.extract[ChallengeAnswerJSON]
               }
@@ -622,34 +622,34 @@ trait APIMethods210 {
               (existingTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transReqId, callContext)
 
               // Check the Transaction Request is still INITIATED
-              _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated) {
+              _ <- Helper.booleanToFuture(TransactionRequestStatusNotInitiated, cc=callContext) {
                 existingTransactionRequest.status.equals("INITIATED")
               }
               
               // Check the input transactionRequestType is the same as when the user created the TransactionRequest
               existingTransactionRequestType = existingTransactionRequest.`type`
-              _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ") {
+              _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ", cc=callContext) {
                 existingTransactionRequestType.equals(transactionRequestType.value)
               }
               
               // Check the challengeId is valid for this existingTransactionRequest
-              _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}") {
+              _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}", cc=callContext) {
                 existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
               }
               
               //Check the allowed attemps, Note: not support yet, the default value is 3
-              _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}") {
+              _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}", cc=callContext) {
                 existingTransactionRequest.challenge.allowed_attempts > 0
               }
 
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
-              _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ") {
+              _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ", cc=callContext) {
                 existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString
               }
             
               (isChallengeAnswerValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
               
-              _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ") {
+              _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ", cc=callContext) {
                 (isChallengeAnswerValidated == true)
               }
 
@@ -835,7 +835,7 @@ trait APIMethods210 {
         InvalidConsumerId,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canGetConsumers)))
 
 
@@ -873,7 +873,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canGetConsumers)))
 
 
@@ -910,7 +910,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 
@@ -971,11 +971,11 @@ trait APIMethods210 {
               json.extract[PostPhysicalCardJSON]
             }
 
-            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}", cc=callContext)(postJson.issue_number.length<= 10)
 
             _ <- postJson.allows match {
               case List() => Future {true}
-              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "), cc=callContext)(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
             }
 
             failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
@@ -1095,13 +1095,13 @@ trait APIMethods210 {
       case "banks" :: BankId(bankId) :: "transaction-types" ::  Nil JsonPut json -> _ => {
         cc => {
           for {
-            u <- cc.user ?~! UserNotLoggedIn
-            (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            postedData <- tryo {json.extract[TransactionTypeJsonV200]} ?~! InvalidJsonFormat
-            _ <- NewStyle.function.ownEntitlement(bank.bankId.value, u.userId, canCreateTransactionType, callContext, InsufficientAuthorisationToCreateTransactionType)
-            returnTranscationType <- TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            postedData <- NewStyle.function.tryons(failMsg=InvalidJsonFormat, callContext=callContext) {json.extract[TransactionTypeJsonV200]}
+            _ <- Future (NewStyle.function.ownEntitlement(bankId.value, u.userId, canCreateTransactionType, callContext, InsufficientAuthorisationToCreateTransactionType))map { fullBoxOrException(_)} map { unboxFull(_) }
+            returnTranscationType <- Future(TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)) map { fullBoxOrException(_)} map { unboxFull(_) }
           } yield {
-            successJsonResponse(Extraction.decompose(returnTranscationType))
+            (returnTranscationType, HttpCode.`200`(callContext))
           }
         }
       }
@@ -1569,7 +1569,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi),
+      List(apiTagConsumer),
       Some(List(canUpdateConsumerRedirectUrl))
     )
     

@@ -2,9 +2,9 @@ package code.api.ResourceDocs1_4_0
 
 import java.util
 
-import code.api.ResourceDocs1_4_0.ResourceDocsV140ServerSetup
 import code.api.util.{ApiRole, CustomJsonFormats}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
+import code.setup.PropsReset
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import io.swagger.parser.OpenAPIParser
 import net.liftweb.json
@@ -15,10 +15,19 @@ import org.scalatest.Tag
 
 import scala.xml.NodeSeq
 
-class ResourceDocsTest extends ResourceDocsV140ServerSetup {
+class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset {
   object VersionOfApi extends Tag(ApiVersion.v1_4_0.toString)
   object ApiEndpoint1 extends Tag("Get OBP ResourceDoc")
   object ApiEndpoint2 extends Tag("Get Swagger ResourceDoc ")
+
+  
+  override def beforeEach() = {
+    super.beforeEach()
+    setPropsValues(
+      "api_disabled_versions" -> "[]",
+      "api_enabled_versions" -> "[]"
+    )
+  }
 
   // here must supply a Serializer of json, to support Product type, because the follow type are Product:
   //ResourceDocsJson#ResourceDocJson.example_request_body
@@ -88,6 +97,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup {
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      org.scalameta.logger.elem(responseGetObp)
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
