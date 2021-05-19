@@ -4123,22 +4123,10 @@ object SwaggerDefinitionsJSON {
 
   val endpointMappingJson = EndpointMappingCommons(
     Some("b4e0352a-9a0f-4bfa-b30b-9003aa467f50"),
-    "OBPv4.0.0-CreatePet",
-    """{
-      |  "field1": "id",
-      |  "field2": "category.id",
-      |  "field3": "category.name",
-      |  "field4": "name",
-      |  "field5[0]": "photoUrls",
-      |  "field6[0]": "tags.id",
-      |  "field7[0]": "tags.name",
-      |  "field8": "status",
-      |}""".stripMargin,
-      """{
-      |  "id[]":"pet_entity_id",
-      |  "name[]":"field4",
-      |  "status[]":"field8"
-      |}""".stripMargin)
+    "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+    """{}""".stripMargin,
+    """{}""".stripMargin
+  )
   
 
   //The common error or success format.

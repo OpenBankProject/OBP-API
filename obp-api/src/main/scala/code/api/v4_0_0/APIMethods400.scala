@@ -1887,7 +1887,7 @@ trait APIMethods400 {
             }
             deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
           } yield {
-            (deleted, HttpCode.`200`(cc.callContext))
+            (deleted, HttpCode.`204`(cc.callContext))
           }
       }
     }

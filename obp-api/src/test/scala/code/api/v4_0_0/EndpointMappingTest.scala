@@ -114,8 +114,8 @@ class EndpointMappingTest extends V400ServerSetup {
         // update a not exists EndpointMapping
         val request400 = (v4_0_0_Request / "management" / "endpoint-mappings" / "not-exists-id" ).PUT <@(user1)
         val response400 = makePutRequest(request400, write(customerJson.copy(operationId = "wrongId")))
-        Then("We should get a 400")
-        response400.code should equal(400)
+        Then("We should get a 404")
+        response400.code should equal(404)
         response400.body.extract[ErrorMessage].message should startWith (EndpointMappingNotFoundByEndpointMappingId)
       }
 

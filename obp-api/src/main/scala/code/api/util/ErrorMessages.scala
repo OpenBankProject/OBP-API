@@ -56,8 +56,8 @@ object ErrorMessages {
   val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
   val InvalidDynamicEndpointSwagger = "OBP-09013: Invalided DynamicEndpoint Swagger Json. "
   
-  val InvalidRequestPayload = "OBP-09013: Incorrect request body Format, it should be a valid json that matches Validation rule."
-  val DynamicDataNotFound = "OBP-09014: Dynamic Data not found. Please specify a valid value."
+  val InvalidRequestPayload = "OBP-09014: Incorrect request body Format, it should be a valid json that matches Validation rule."
+  val DynamicDataNotFound = "OBP-09015: Dynamic Data not found. Please specify a valid value."
 
 
   // General messages (OBP-10XXX)
