@@ -4124,7 +4124,6 @@ object SwaggerDefinitionsJSON {
   val endpointMappingJson = EndpointMappingCommons(
     Some("b4e0352a-9a0f-4bfa-b30b-9003aa467f50"),
     "OBPv4.0.0-CreatePet",
-    List("Entity1","Entity2"),
     """{
       |  "field1": "id",
       |  "field2": "category.id",
@@ -4135,7 +4134,7 @@ object SwaggerDefinitionsJSON {
       |  "field7[0]": "tags.name",
       |  "field8": "status",
       |}""".stripMargin,
-    """{
+      """{
       |  "id[]":"pet_entity_id",
       |  "name[]":"field4",
       |  "status[]":"field8"

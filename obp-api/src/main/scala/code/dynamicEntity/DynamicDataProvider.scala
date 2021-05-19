@@ -30,7 +30,8 @@ trait DynamicDataProvider {
   def save(entityName: String, requestBody: JObject): Box[DynamicData]
   def update(entityName: String, requestBody: JObject, id: String): Box[DynamicData]
   def get(entityName: String, id: String): Box[DynamicData]
-  def getAll(entityName: String): List[JObject]
+  def getAllDataJson(entityName: String): List[JObject]
+  def getAll(entityName: String): List[DynamicData]
   def delete(entityName: String, id: String): Box[Boolean]
   def existsData(dynamicEntityName: String): Boolean
 }

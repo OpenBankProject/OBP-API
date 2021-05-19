@@ -33,7 +33,6 @@ object MappedEndpointMappingProvider extends EndpointMappingProvider with Custom
         .OperationId(endpointMapping.operationId)
         .RequestMapping(endpointMapping.requestMapping)
         .ResponseMapping(endpointMapping.responseMapping)
-        .DynamicEntityNames(endpointMapping.dynamicEntityNames.mkString(","))
         .saveMe()
     }
   }
@@ -52,15 +51,13 @@ class EndpointMapping extends EndpointMappingT with LongKeyedMapper[EndpointMapp
 
   object EndpointMappingId extends MappedUUID(this)
   object OperationId extends MappedString(this, 255)
-  object RequestMapping extends MappedString(this, 255)
-  object ResponseMapping extends MappedString(this, 255)
-  object DynamicEntityNames extends MappedString(this, 512)
+  object RequestMapping extends MappedText(this)
+  object ResponseMapping extends MappedText(this)
 
   override def endpointMappingId: Option[String] = Option(EndpointMappingId.get)
   override def operationId: String = OperationId.get
   override def requestMapping: String = RequestMapping.get
   override def responseMapping: String = ResponseMapping.get
-  override def dynamicEntityNames: List[String] = DynamicEntityNames.get.split(",").toList
 }
 
 object EndpointMapping extends EndpointMapping with LongKeyedMetaMapper[EndpointMapping] {

@@ -20,7 +20,6 @@ object EndpointMappingProvider extends SimpleInjector {
 trait EndpointMappingT {
   def endpointMappingId: Option[String]
   def operationId: String
-  def dynamicEntityNames: List[String]
   def requestMapping: String 
   def responseMapping: String 
 }
@@ -28,7 +27,6 @@ trait EndpointMappingT {
 case class EndpointMappingCommons(
   endpointMappingId: Option[String],
   operationId: String,
-  dynamicEntityNames: List[String],
   requestMapping: String,
   responseMapping: String
 ) extends EndpointMappingT with JsonFieldReName {
@@ -40,7 +38,6 @@ case class EndpointMappingCommons(
     JObject(List(
       JField("operation_id", JString(this.operationId)),
       JField("request_mapping", json.parse(this.requestMapping)),
-      JField("dynamic_entity_names", JArray(this.dynamicEntityNames.map(JString))),
       JField("response_mapping", json.parse(this.responseMapping)),
       JField("endpoint_mapping_id", this.endpointMappingId.map(JString(_)).getOrElse(JNull))
     ))

@@ -57,6 +57,7 @@ object ErrorMessages {
   val InvalidDynamicEndpointSwagger = "OBP-09013: Invalided DynamicEndpoint Swagger Json. "
   
   val InvalidRequestPayload = "OBP-09013: Incorrect request body Format, it should be a valid json that matches Validation rule."
+  val DynamicDataNotFound = "OBP-09014: Dynamic Data not found. Please specify a valid value."
 
 
   // General messages (OBP-10XXX)

@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{DynamicDataNotFound, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats, NewStyle}
 import com.openbankproject.commons.util.ApiVersion
 import com.openbankproject.commons.util.Functions.Memo
@@ -18,19 +18,23 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject}
-import net.liftweb.json.{Formats, JValue}
+import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JValue}
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonParser.ParseException
+import org.apache.commons.lang3.{StringUtils, Validate}
 import net.liftweb.util.{StringHelpers, ThreadGlobal}
 import org.apache.commons.collections4.MapUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
+
 import java.io.File
 import java.nio.charset.Charset
 import java.util
 import java.util.regex.Pattern
 import java.util.{Date, UUID}
-
 import com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL
+import net.liftweb.json.Formats
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
@@ -563,6 +567,195 @@ object DynamicEndpointHelper extends RestHelper {
       case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
     }
   }
+
+
+  def prepareMappingFields (originalJson: String): JValue = {
+    val jValue: json.JValue = json.parse(originalJson)
+    prepareMappingFields(jValue)
+  }
+
+  /**
+   *  This function will replace the object to a pure field value, to prepare the parameters for @buildJson method 
+   *  Please also see the scala test.
+   * "id": {                    
+   *        "entity": "PetEntity",      
+   *        "field": "field1",          
+   *        "query": "field1"        
+   *      }                             
+   *      -->                           
+   *      "id": "field1"                
+   *
+   * @param originalJson
+   * @return
+   */
+  def prepareMappingFields (originalJson: JValue): JValue = {
+    // 1st: remove all the entity, query 
+    //    "id": {
+    //      "entity": "PetEntity",
+    //      "field": "field1",
+    //      "query": "field1"
+    //    }
+    //    -->
+    //    "id": {
+    //      "field": "field1",
+    //    }
+    val JvalueRemoved = originalJson.removeField{
+      case JField(n, _) => n =="entity"
+    }.removeField{
+      case JField(n, _) => n =="query"
+    }
+    //2rd:  {
+    //    //      "field": "field1",
+    //    //    } -->
+    //    "field1"
+    val JvalueReplaced = JvalueRemoved transform {
+      case JObject(List(JField("entity",JNothing), JField("field",v), JField("query",JNothing)))=> v
+    }
+    JvalueReplaced
+  }
+
+
+  /**
+   * get all the dynamic entities from the json, please check the test
+   */
+  def getAllEntitiesFromMappingJson (originalJson: String): List[String] = {
+    val jValue: json.JValue = json.parse(originalJson)
+    getAllEntityFromMapping(jValue)
+  }
+
+  /**
+   * get all the dynamic entities from the json, please check the test
+   */
+  def getAllEntityFromMapping (originalJson: JValue): List[String] = {
+    //    {
+    //      "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+    //      "request_mapping": {},
+    //      "response_mapping": {
+    //        "id": {
+    //        "entity": "PetEntity",
+    //        "field": "field1",
+    //        "query": "field1"
+    //      }
+    //      }
+    //    }
+    val entityList = for {
+      JObject(child) <- originalJson
+      JField("entity", JString(name)) <- child
+    } yield (name)
+
+    //Remove the duplicated items
+    entityList.toSet.toList
+  }
+
+  def getEntityQueryIdsFromMapping (originalJson: String): List[String] = {
+    val jValue: json.JValue = json.parse(originalJson)
+    getEntityQueryIdsFromMapping(jValue)
+  }
+
+  /**
+   * get all the dynamic entities from the json, please check the test
+   */
+  def getEntityQueryIdsFromMapping (originalJson: JValue): List[String] = {
+    //    {
+    //      "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+    //      "request_mapping": {},
+    //      "response_mapping": {
+    //        "id": {
+    //        "entity": "PetEntity",
+    //        "field": "field1",
+    //        "query": "field1"
+    //      }
+    //      }
+    //    }
+    val entityList = for {
+      JObject(child) <- originalJson
+      JField("query", JString(name)) <- child
+    } yield (name)
+
+    //Remove the duplicated items
+    entityList.toSet.toList
+  }
+
+
+  /**
+   * we can query the JArray by the (key, value) pair
+   */
+  def getObjectByKeyValuePair (jsonArray: JArray, key:String, value:String) = {
+    val result: JValue =  jsonArray.arr
+      .find(
+        jObject => {
+          val jFieldOption = jObject.findField {
+            case JField(n, v) => n == key && v.values.toString == value
+          }
+          jFieldOption.isDefined
+        }
+      )
+    
+    if(result == JNothing)
+      throw new RuntimeException(s"$DynamicDataNotFound, current query is (key=$key,value=$value)")
+    else
+      result
+  }
+
+
+  /**
+   * get the query key and value form URL, and convert to the dynamic entity ones.
+   * 
+   *  eg: URL is /obp/v4.0.0/dynamic/pet/findByStatus?status=available
+   *  and mapping is: 
+   *  {
+   *     "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+   *     "request_mapping": {},
+   *     "response_mapping": {
+   *       "status": {
+   *         "entity": "PetEntity",
+   *         "field": "field8",
+   *         "query": "field1"
+   *       }
+   *     }
+   *   }
+   *   --> we can get the key-pair(field8-available) to query the dynamicEntity.
+   * 
+   */
+  def convertToMappingQueryParams (mapping: JValue, params:Map[String, List[String]]) = {
+
+    //1st: find the `status` field in mapping: it should return:
+//    {
+//       "entity": "PetEntity",
+//       "field": "field8",
+//       "query": "field1"
+//     }
+    val queryField: Option[JField] = mapping findField {case JField(n, _) => n.contains(params.head._1)}
+
+    //return: "field8",
+    val fieldValueOption = queryField.map(_.value \ "field")
+    
+    //return Map(field8 -> List(available))
+    fieldValueOption.map(fieldValue => Map(fieldValue.values.toString -> params.head._2))
+    
+  }
+
+  def convertToMappingQueryParams (mapping: String, params:Map[String, List[String]]): Option[Map[String, List[String]]] = {
+    val jValue: json.JValue = json.parse(mapping)
+    convertToMappingQueryParams(jValue, params)
+  }
+
+  /**
+   * we can query the JArray by the (key, value) pair
+   */
+  def getObjectsByKeyValuePair (jsonArray: JArray, key:String, value:String) = {
+    val result: List[JValue] =  jsonArray.arr
+      .filter(
+        jObject => {
+          val jFieldOption = jObject.findField { 
+            case JField(n, v) => n == key && v.values.toString == value 
+          }
+          jFieldOption.isDefined
+        }
+      )
+    JArray(result)
+  }
+
 }
 
 /**

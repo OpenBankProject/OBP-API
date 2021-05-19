@@ -3721,16 +3721,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Future {
       val processResult: Box[JValue] = operation.asInstanceOf[Any] match {
         case GET_ALL => Full {
-          val dataList: List[JObject] = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
-        
-//          JValue should be filter by the query parameters:
-          //eg: status --> field5 --> value == available. 
-          val abc = dataList
-            .filter(data => {// TODO: here need the error handling:
-            val d1: Option[JField] = data.findField {case JField(n, v) => n == queryParameters.get.head._1 && v.values.toString ==queryParameters.get.head._2.head }
-            d1.isDefined
-          })
-          JArray(abc)
+          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJson(entityName)
+          JArray(dataList)
         }
         case GET_ONE => {
           val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend
