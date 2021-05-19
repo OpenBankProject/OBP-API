@@ -2,10 +2,10 @@ package code.api.util
 
 import java.security.interfaces.RSAPublicKey
 import java.time.format.DateTimeFormatter
-import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.{Duration, ZoneOffset, ZonedDateTime}
 import java.util
 
-import code.api.util.X509.validate
+import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.util.JSONObjectUtils
@@ -21,7 +21,7 @@ import scala.collection.immutable.{HashMap, List}
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 
-object JwsUtil {
+object JwsUtil extends MdcLoggable {
   implicit val formats = CustomJsonFormats.formats
   case class JwsProtectedHeader(b64: Boolean,
                                 `x5t#S256`: Option[String],
@@ -58,9 +58,12 @@ object JwsUtil {
       case Some(header) =>
         val signingTime = ZonedDateTime.parse(header.sigT, DateTimeFormatter.ISO_ZONED_DATE_TIME)
         val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
-        val criteriaOneFailed = signingTime.isAfter(verifyingTime.plusSeconds(2))
-        val criteriaTwoFailed = signingTime.plusSeconds(60).isBefore(verifyingTime)
-        !criteriaOneFailed && !criteriaTwoFailed
+        val timeDifference = Duration.between(verifyingTime, signingTime)
+        val timeDifferenceInNanos = (timeDifference.abs.getSeconds * 1000000000L) + timeDifference.abs.getNano
+        val criteriaOneOk = signingTime.isBefore(verifyingTime) || // Signing Time > Verifying Time otherwise
+          (signingTime.isAfter(verifyingTime) && timeDifferenceInNanos < (2 * 1000000000L)) // IF "Verifying Time > Signing Time" THEN "Verifying Time - Signing Time < 2 seconds"
+        val criteriaTwoOk = timeDifferenceInNanos < (60 * 1000000000L) // Signing Time - Verifying Time < 60 seconds
+        criteriaOneOk && criteriaTwoOk
       case None => false
     }
   }
@@ -98,7 +101,15 @@ object JwsUtil {
     // Verify the RSA
     val verifier = new RSASSAVerifier(publicKey, getDeferredCriticalHeaders)
     val isVerifiedJws = parsedJWSObject.verify(verifier)
-    isVerifiedJws && isVerifiedDigestHeader && verifySigningTime(jwsProtectedHeaderAsString)
+    val isVerifiedSigningTime = verifySigningTime(jwsProtectedHeaderAsString)
+    logger.debug("JWS Protected Header: " + jwsProtectedHeaderAsString)
+    logger.debug("Rebuilt Detached Payload: " + rebuiltDetachedPayload)
+    logger.debug("Is Verified Jws: " + isVerifiedJws)
+    logger.debug("Is Verified Digest Header: " + isVerifiedDigestHeader)
+    logger.debug("Is Verified Signing Time: " + isVerifiedSigningTime)
+    logger.debug("X-JWS-Signature: " + xJwsSignature)
+    logger.debug("Digest Header Value: " + getDigestHeaderValue(requestHeaders))
+    isVerifiedJws && isVerifiedDigestHeader && isVerifiedSigningTime
   }
 
   /**
@@ -134,8 +145,13 @@ object JwsUtil {
   
   def forceVerifyRequestSignResponse(url: String): Boolean = {
     val standards: List[String] = APIUtil.getPropsValue(nameOfProperty="force_jws", "None").split(",").map(_.trim).toList
-    val pathOfStandard = HashMap("BGv1.3"->"berlin-group/v1.3", "OBPv4.0.0"->"obp/v4.0.0", "OBPv3.1.0"->"obp/v3.1.0", "UKv1.3"->"open-banking/v3.1").withDefaultValue("{Not found any standard to match}")
-    standards.exists(standard => url.contains(pathOfStandard(standard)))
+    val pathOfStandard = HashMap(
+      "BGv1.3"->"berlin-group/v1.3", 
+      "OBPv4.0.0"->"obp/v4.0.0", 
+      "OBPv3.1.0"->"obp/v3.1.0", 
+      "UKv1.3"->"open-banking/v3.1"
+    ).withDefaultValue("{Not found any standard to match}")
+    standards.exists(standard => url.contains(pathOfStandard(standard))) || url.contains("development/echo/jws-verified-request-jws-signed-response")
   }
   
 
@@ -153,19 +169,29 @@ object JwsUtil {
        |""".stripMargin
   }
 
-  private def signRequestResponseCommon(body: Box[String], verb: String, url: String, requestResponse: String) = {
+  private def signRequestResponseCommon(body: Box[String], 
+                                        verb: String, 
+                                        url: String, 
+                                        requestResponse: String, 
+                                        contentType: String,
+                                        psuIpAddress: Option[String] = None,
+                                        psuGeoLocation: Option[String] = None,
+                                        signingTime: Option[ZonedDateTime] = None
+                                       ): List[HTTPParam] = {
     val digest = "SHA-256=" + computeDigest(body.getOrElse(""))
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
+    val host = APIUtil.getPropsValue("hostname", "")
     val detachedPayload: Payload = new Payload(
       s"""($requestResponse): ${verb.toLowerCase} ${url}
-         |host: ${APIUtil.getPropsValue("hostname", "")}
-         |content-type: application/json
-         |psu-ip-address: 192.168.8.78
-         |psu-geo-location: GEO:52.506931,13.144558
+         |host: ${host}
+         |content-type: $contentType
+         |psu-ip-address: ${psuIpAddress.getOrElse("None")}
+         |psu-geo-location: ${psuGeoLocation.getOrElse("None")}
          |digest: $digest
          |""".stripMargin)
-
+    logger.debug("Detached Payload of Signing: " + detachedPayload)
+    
     val sigD =
       s"""{
         |    "pars": [
@@ -180,7 +206,10 @@ object JwsUtil {
         |  }
         |  """.stripMargin
     // We create the time in next format: '2011-12-03T10:15:30Z' 
-    val sigT = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+    val sigT: String = signingTime match {
+      case None => ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+      case Some(time) => time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+    }
     val criticalParams: util.Set[String] = new util.HashSet[String]()
     criticalParams.add("b64")
     criticalParams.addAll(getDeferredCriticalHeaders)
@@ -201,7 +230,13 @@ object JwsUtil {
     val isDetached = true
     val jws: String = jwsObject.serialize(isDetached)
 
-    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest)))
+    List(HTTPParam("x-jws-signature", List(jws)), HTTPParam("digest", List(digest))) :::
+    List(
+      HTTPParam("host", List(host)),
+      HTTPParam("content-type", List(contentType)),
+      HTTPParam("psu-ip-address", List(psuIpAddress.getOrElse("None"))),
+      HTTPParam("psu-geo-location", List(psuGeoLocation.getOrElse("None"))),
+    )
   }
 
   /**
@@ -211,8 +246,8 @@ object JwsUtil {
    * @param url HTTP relative path of an request 
    * @return Request header params: x-jws-signature and digest
    */
-  def signResponse(body: Box[String], verb: String, url: String): List[HTTPParam] = {
-    signRequestResponseCommon(body, verb, url, "status-line")
+  def signResponse(body: Box[String], verb: String, url: String, contentType: String): List[HTTPParam] = {
+    signRequestResponseCommon(body, verb, url, "status-line", contentType)
   }
 
   /**
@@ -222,8 +257,8 @@ object JwsUtil {
    * @param url HTTP relative path of an request 
    * @return Request header params: x-jws-signature and digest
    */
-  def signRequest(body: Box[String], verb: String, url: String): List[HTTPParam] = {
-    signRequestResponseCommon(body, verb, url, "request-target")
+  def signRequest(body: Box[String], verb: String, url: String, contentType: String, signingTime: Option[ZonedDateTime] = None): List[HTTPParam] = {
+    signRequestResponseCommon(body, verb, url, "request-target", contentType, signingTime = signingTime)
   }
   
 }

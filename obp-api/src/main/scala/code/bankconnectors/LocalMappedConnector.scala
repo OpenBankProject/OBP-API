@@ -1364,9 +1364,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .fallbackTo(NewStyle.function.getBank(toAccount.bankId, callContext))
 
       debitRate <- Future (fx.exchangeRate(currency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${fromAccount.currency}) is not supported.", cc=callContext){debitRate.isDefined}
       creditRate <- Future (fx.exchangeRate(currency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
       fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, creditRate)
@@ -1521,9 +1521,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
       transactionCurrency = transactionRequestCommonBody.value.currency
       debitRate <- Future (fx.exchangeRate(transactionCurrency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${fromAccount.currency}) is not supported.", cc=callContext){debitRate.isDefined}
       creditRate <- Future (fx.exchangeRate(transactionCurrency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
       fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, creditRate)
@@ -4861,7 +4861,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[UserAuthContextUpdate]] = {
     for{
-      _ <- Helper.booleanToFuture(s"$InvalidAuthContextUpdateRequestKey. Current Sandbox only support key == CUSTOMER_NUMBER"){
+      _ <- Helper.booleanToFuture(s"$InvalidAuthContextUpdateRequestKey. Current Sandbox only support key == CUSTOMER_NUMBER", cc=callContext){
         key.equals("CUSTOMER_NUMBER")
       }
       //1st: check if the customer is existing 

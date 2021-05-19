@@ -427,6 +427,8 @@ object ErrorMessages {
   val ConsentDoesNotMatchUser = "OBP-35023: The Consent does not match a valid User."
   val ConsentUserAlreadyAdded = "OBP-35024: The Consent's User is already added."
   val ConsentUpdateStatusError = "OBP-35025: The Consent's status cannot be updated."
+  val ConsentUserCannotBeAdded = "OBP-35026: The Consent's User cannot be added."
+  val ConsentUserAuthContextCannotBeAdded = "OBP-35027: The Consent's User Auth Context cannot be added."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

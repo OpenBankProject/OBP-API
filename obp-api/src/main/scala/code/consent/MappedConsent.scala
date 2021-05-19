@@ -173,6 +173,7 @@ object MappedConsentProvider extends ConsentProvider {
       case Full(consent) =>
         tryo(consent
           .mStatus(ConsentStatus.REVOKED.toString)
+          .mLastActionDate(now)
           .saveMe())
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
@@ -199,7 +200,7 @@ object MappedConsentProvider extends ConsentProvider {
             val status = 
               if (isAnswerCorrect(consent.challenge, challengeAnswer, consent.mSalt.get)) ConsentStatus.ACCEPTED.toString 
               else ConsentStatus.REJECTED.toString
-            tryo(consent.mStatus(status).saveMe())
+            tryo(consent.mStatus(status).mLastActionDate(now).saveMe())
           case _ =>
             Full(consent)
         }

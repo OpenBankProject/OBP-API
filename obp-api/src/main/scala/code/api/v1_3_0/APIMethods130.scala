@@ -40,7 +40,7 @@ trait APIMethods130 {
       emptyObjectJson,
       physicalCardsJSON,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagCard, apiTagUser))
+      List(apiTagCard))
 
     lazy val getCards : OBPEndpoint = {
       case "cards" :: Nil JsonGet _ => {
