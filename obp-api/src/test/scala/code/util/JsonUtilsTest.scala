@@ -59,9 +59,9 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       | "meta$default": {
       |   "count": 10,
       |   "classInfo": {
-      |       "someInfo[]": "hello"
+      |       "someInfo": "hello"
       |   }
-      | }
+      | },
       | "result[]": {
       |   "bkId": "banks.id",
       |   "bkName": "'hello:' + banks.short_name+ ' +  ' + banks.full_name",
@@ -85,7 +85,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       |  "meta":{
       |    "count":10,
       |    "classInfo":{
-      |      "someInfo[]":"hello"
+      |      "someInfo":"hello"
       |    }
       |  },
       |  "result":[
@@ -127,8 +127,9 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(zson, schema)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+//    println(str1)
     val str2 = json.prettyRender(expectedJson)
+//    println(str2)
     str1 shouldEqual str2
   }
 
@@ -223,7 +224,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
-  "buildJson" should "generate JValue according schema4" taggedAs JsonUtilsTag in {
+  "buildJson" should "generate JValue according schema4" taggedAs JsonUtilsTag in{
     val zson = (
       """{
         |    "id": 1,
@@ -408,7 +409,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |]
         |""".stripMargin)
     val mapping = ("""{
-                     |  "data[]": {
+                     |  "$root[]": {
                      |    "id": "field1",
                      |    "category[]": {
                      |      "id": "field2",
@@ -424,8 +425,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
                      |  }
                      |}""".stripMargin)
     val expectedJson = json.parse(
-      """{
-        |  "data":[
+      """[
         |    {
         |      "id":11,
         |      "category":{
@@ -455,7 +455,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |      "status":"field8-value-2"
         |    }
         |  ]
-        |}""".stripMargin)
+        """.stripMargin)
    
     val resultJson = buildJson(requestJson, mapping)
     val str1 = json.prettyRender(resultJson)
@@ -696,6 +696,38 @@ class JsonUtilsTest extends FlatSpec with Matchers {
 
   }
   "$root[] name field and subField[][] type field" should "properly be converted" taggedAs JsonUtilsTag in {
+    val jsonList = json.parse(
+      """
+        |[
+        |  {
+        |    "id": "xrest-bank-x--uk",
+        |    "shortName": "bank shortName string",
+        |    "fullName": "bank fullName x from rest connector",
+        |    "logo": "bank logoUrl string",
+        |    "websiteUrl": "bank websiteUrl string",
+        |    "bankRouting": [{
+        |      "Scheme": "BIC",
+        |      "Address": "GENODEM1GLS"
+        |    }],
+        |    "swiftBic": "bank swiftBic string",
+        |    "nationalIdentifier": "bank nationalIdentifier string"
+        |  },
+        |  {
+        |    "id": "xrest-bank-y--uk",
+        |    "shortName": "bank shortName y",
+        |    "fullName": "bank fullName y  from rest connector",
+        |    "logo": "bank logoUrl y",
+        |    "websiteUrl": "bank websiteUrl y",
+        |    "bankRouting": [{
+        |      "Scheme": "BIC2",
+        |      "Address": "GENODEM1GLS2"
+        |    }],
+        |    "swiftBic": "bank swiftBic string",
+        |    "nationalIdentifier": "bank nationalIdentifier string"
+        |  }
+        |]
+        |""".stripMargin)
+    
     val schema = json.parse(
       """
         |{
@@ -734,10 +766,9 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |  }
         |]""".stripMargin)
     val resultJson = buildJson(jsonList, schema)
-
     val str1 = json.prettyRender(resultJson)
-
-    str1 shouldEqual expectedJson
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
 
   }
 }

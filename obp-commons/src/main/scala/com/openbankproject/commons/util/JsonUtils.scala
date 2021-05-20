@@ -59,7 +59,6 @@ object JsonUtils {
    */
   def buildJson(source: JValue, schema: JValue): JValue = {
     if(source==JNothing) JNothing else{
-    transformField(schema){
     val convertedJson = transformField(schema){
       case (jField, path) if path.contains("$default") =>
         jField
@@ -236,17 +235,32 @@ object JsonUtils {
    * @return
    */
   def mapField(jValue: JValue)(f: (JField, String) => JField): JValue = {
+    //get the path of the field, if it is root, just return the field name, if not, concatenate its parent. 
+    //This will be used in recursive function, so it will store the full path of the field.
     def buildPath(parentPath: String, currentFieldName: String): String =
       if(parentPath == "") currentFieldName else s"$parentPath.$currentFieldName"
-
+    //If it is a JObject or JArray, it will call `rec` itself until it is single object, eg:  
+    // (JNothing, JString, JDouble, JBool, JInt or JNUll)
     def rec(v: JValue, path: String): JValue = v match {
+      //If it is the JObject, we need to loop the JObject(obj: List[JField]) obj field: 
+      //for each field, we need to call `rec` until to Stop flag                                                                      
       case JObject(l) => JObject(l.map { field =>
         f(field.copy(value = rec(field.value, buildPath(path, field.name))), path)
       }
       )
       case JArray(l) => JArray(l.map(rec(_, path)))
+       //stop Flag: other JValue cases: mean the following ones: we just need to return it directly.
+      // They do not have any nest classes, so do not need call `rec` again.
+      //JNothing
+      //JString
+      //JDouble
+      //JBool
+      //JInt 
+      //JNull
       case x => x
     }
+    
+    //path="", mean it is the root of the JValue.
     rec(jValue, "")
   }
 
