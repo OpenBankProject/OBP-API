@@ -298,4 +298,86 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val str2 = json.prettyRender(expectListResult)
     str1 shouldEqual str2
   }
+
+  "$root name field" should "properly be converted" taggedAs JsonUtilsTag in {
+    val schema = json.parse(
+      """
+        |{
+        | "$root":{
+        |     "bankId":{
+        |      "value":"id"
+        |    },
+        |    "shortName":"short_name",
+        |    "fullName":"full_name"
+        | }
+        |}
+        |""".stripMargin)
+    val sourceValue = json.parse(
+      """
+        |{
+        |    "id":"dmo.01.uk.uk",
+        |    "short_name":"uk",
+        |    "full_name":"uk"
+        |}""".stripMargin)
+
+    val expectedJson =
+      """{
+        |  "bankId":{
+        |    "value":"dmo.01.uk.uk"
+        |  },
+        |  "shortName":"uk",
+        |  "fullName":"uk"
+        |}""".stripMargin
+    val resultJson = buildJson(sourceValue, schema)
+
+    val str1 = json.prettyRender(resultJson)
+
+    str1 shouldEqual expectedJson
+
+  }
+  "$root[] name field and subField[][] type field" should "properly be converted" taggedAs JsonUtilsTag in {
+    val schema = json.parse(
+      """
+        |{
+        | "$root[]":{
+        |     "bankId[]":{
+        |      "value":"id"
+        |    },
+        |    "shortName[]":"shortName",
+        |    "fullName[]":"fullName",
+        |    "nationalIdentifier[][]":"swiftBic"
+        | }
+        |}
+        |""".stripMargin)
+    val expectedJson = json.parse(
+      """
+        |[
+        |  {
+        |    "bankId":{
+        |      "value":"xrest-bank-x--uk"
+        |    },
+        |    "shortName":"bank shortName string",
+        |    "fullName":"bank fullName x from rest connector",
+        |    "nationalIdentifier":[
+        |      "bank swiftBic string"
+        |    ]
+        |  },
+        |  {
+        |    "bankId":{
+        |      "value":"xrest-bank-y--uk"
+        |    },
+        |    "shortName":"bank shortName y",
+        |    "fullName":"bank fullName y  from rest connector",
+        |    "nationalIdentifier":[
+        |      "bank swiftBic string"
+        |    ]
+        |  }
+        |]""".stripMargin)
+    val resultJson = buildJson(jsonList, schema)
+
+    val str1 = json.prettyRender(resultJson)
+
+    str1 shouldEqual expectedJson
+
+  }
 }

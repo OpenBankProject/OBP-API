@@ -1,6 +1,7 @@
 package com.openbankproject.commons.util
 
 import com.openbankproject.commons.util.Functions.Implicits._
+import net.liftweb
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
@@ -57,7 +58,7 @@ object JsonUtils {
    * @return built json
    */
   def buildJson(source: JValue, schema: JValue): JValue = {
-    transformField(schema){
+    val convertedJson = transformField(schema){
       case (jField, path) if path.contains("$default") =>
         jField
 
@@ -182,6 +183,15 @@ object JsonUtils {
       case (JField(name, JString(s)), _) =>
         JField(name, calculateValue(source, s))
 
+    }
+    convertedJson.transformField {
+      case  JField(name, value) if name.endsWith("[]") =>
+        val newName = StringUtils.substringBeforeLast(name, "[]")
+        JField(newName, JArray(value::Nil))
+    } match {
+      case JObject(JField("$root", value)::Nil) =>
+        value
+      case v => v
     }
   }
 
