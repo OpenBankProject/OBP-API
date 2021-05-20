@@ -65,6 +65,8 @@ import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityInfo}
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
+import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
+import net.liftweb.json
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -2290,6 +2292,47 @@ object NewStyle {
       }
     }
 
+    def createOrUpdateEndpointMapping(endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(endpointMapping), callContext)
+    } map {
+      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    }
+
+    def deleteEndpointMapping(endpointMappingId: String, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.delete(endpointMappingId), callContext)
+    } map {
+      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    }
+
+    def getEndpointMappingById(endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(endpointMappingId)
+      Future{
+        val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByEndpointMappingId Current ENDPOINT_MAPPING_ID is $endpointMappingId", 404)
+        (endpointMapping, callContext)
+      }
+    }
+
+    def getEndpointMappingByOperationId(operationId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getByOperationId(operationId)
+      Future{
+        val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByOperationId Current OPERATION_ID is $operationId",404)
+        (endpointMapping, callContext)
+      }
+    }
+
+    private[this] val endpointMappingTTL = APIUtil.getPropsValue(s"endpointMapping.cache.ttl.seconds", "0").toInt
+
+    def getEndpointMappings(callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = {
+      import scala.concurrent.duration._
+
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL second) {
+          Future{(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(), callContext)}
+        }
+      }
+    }
+    
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
       val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
 
@@ -2440,6 +2483,7 @@ object NewStyle {
                                requestBody: Option[JObject],
                                entityId: Option[String],
                                bankId: Option[String],
+                               queryParameters: Option[Map[String, List[String]]],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
       val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
@@ -2449,41 +2493,62 @@ object NewStyle {
           .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
       }
 
+      //To make sure create and update contain the requestBody
       if(operation == CREATE || operation == UPDATE) {
         if(requestBody.isEmpty) {
-          return Helper.booleanToFuture(s"$InvalidJsonFormat requestBody is required for $operation operation.", cc=callContext)(false)
-            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+          throw new RuntimeException(s"$InvalidJsonFormat requestBody is required for $operation operation.")
         }
       }
+      
+      //To make sure the GET_ONE/UPDATE/DELETE contain the entityId
       if(operation == GET_ONE || operation == UPDATE || operation == DELETE) {
-        if (entityId.isEmpty) {
-          return Helper.booleanToFuture(s"$InvalidJsonFormat entityId is required for $operation operation.", cc=callContext)(entityId.isEmpty || StringUtils.isBlank(entityId.get))
-            .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
+        if (entityId.isEmpty || entityId.filter(StringUtils.isBlank).isDefined) {
+          throw new RuntimeException(s"$InvalidJsonFormat entityId is required for $operation operation.")
         }
       }
-      val dynamicInstance: Option[JObject] = requestBody.map { it =>
-        val entityIdName = s"${entityName}_Id".replaceAll("(?<=[a-z0-9])(?=[A-Z])|-", "_").toLowerCase
-        val entityIdValue = it \ entityIdName
+      
+      // check if there is (entityIdName, entityIdValue) pair in the requestBody, if no, we will add it. 
+      val requestBodyDynamicInstance: Option[JObject] = requestBody.map { requestJsonJObject =>
+       
+        // (?<=[a-z0-9])(?=[A-Z]) --> mean `Positive Lookbehind (?<=[a-z0-9])` && Positive Lookahead (?=[A-Z]) --> So we can find the space to replace to  `_`
+        val regexPattern = "(?<=[a-z0-9])(?=[A-Z])|-"
+        // eg: entityName = PetEntity => entityIdName = pet_entity_id
+        val entityIdName = s"${entityName}_Id".replaceAll(regexPattern, "_").toLowerCase
+        
+        val entityIdValue = requestJsonJObject \ entityIdName
 
         entityIdValue match {
-          case JNothing | JNull => it ~ (entityIdName -> entityId.getOrElse(generateUUID()))
-          case _: JString => it
-          case JInt(i) => JsonUtils.transformField(it){
+            //if the value is not existing, we need to add the `(entityIdName, entityIdValue)` pair
+          case JNothing | JNull => requestJsonJObject ~ (entityIdName -> entityId.getOrElse(generateUUID()))
+            // if it is there, we just return it. 
+          case _: JString => requestJsonJObject
+            //If it is Integer, we need to cast it to String.
+          case JInt(i) => JsonUtils.transformField(requestJsonJObject){
             case (jField, "") if jField.name == entityIdName => JField(entityIdName, JString(i.toString))
           }.asInstanceOf[JObject]
-          case _ => JsonUtils.transformField(it){
+            //If it contains `entityIdName` and value is EmptyString, we need to set the `entityId or new UUID` for the value.
+          case _ => JsonUtils.transformField(requestJsonJObject){
             case (jField, "") if jField.name == entityIdName => JField(entityIdName, JString(entityId.getOrElse(generateUUID())))
           }.asInstanceOf[JObject]
         }
       }
 
-      dynamicInstance match {
-        case empty @None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, callContext)
-        case v @Some(body) =>
+      requestBodyDynamicInstance match {
+          // @(variable-binding pattern), we can use the empty variable 
+          // If there is not instance in requestBody, we just call the `dynamicEntityProcess` directly.
+        case empty @None => 
+          Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, queryParameters, callContext)
+        // @(variable-binding pattern), we can use both v and body variables.
+        case requestBody @Some(body) =>
+          // If the request body is existing, we need to validate the body first. 
           val dynamicEntity: DynamicEntityT = dynamicEntityBox.openOrThrowException(DynamicEntityNotExists)
           dynamicEntity.validateEntityJson(body, callContext).flatMap {
-            case None => Connector.connector.vend.dynamicEntityProcess(operation, entityName, v, entityId, bankId, callContext)
-            case Some(errorMsg) => Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg", cc=callContext)(false)
+            // If there is no error in the request body
+            case None => 
+              Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, bankId, queryParameters, callContext)
+            // If there are errors, we need to show them to end user. 
+            case Some(errorMsg) => 
+              Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg", cc=callContext)(false)
               .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
           }
       }
@@ -2716,7 +2781,7 @@ object NewStyle {
       val featuredApiCollectionIds =  APIUtil.getPropsValue("featured_api_collection_ids","").split(",").map(_.trim).toSet.toList
       //We filter the isDefined and is isSharable collections.
       val apiCollections = featuredApiCollectionIds.map(MappedApiCollectionsProvider.getApiCollectionById).filter(_.isDefined).filter(_.head.isSharable).map(_.head)
-      Future{(apiCollections, callContext)}
+      Future{(apiCollections.sortBy(_.apiCollectionName), callContext)}
     }
     
     def createApiCollection(

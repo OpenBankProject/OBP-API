@@ -35,6 +35,8 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
+import code.endpointMapping.EndpointMappingCommons
+
 import scala.collection.immutable.List
 
 /**
@@ -4130,6 +4132,14 @@ object SwaggerDefinitionsJSON {
   )
 
   val jsonCodeTemplate = "code" -> URLEncoder.encode("""println("hello")""", "UTF-8")
+
+  val endpointMappingJson = EndpointMappingCommons(
+    Some("b4e0352a-9a0f-4bfa-b30b-9003aa467f50"),
+    "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+    """{}""".stripMargin,
+    """{}""".stripMargin
+  )
+  
 
   //The common error or success format.
   //Just some helper format to use in Json 

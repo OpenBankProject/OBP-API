@@ -68,6 +68,7 @@ object ApiTag {
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
+  val apiTagEndpointMapping = ResourceDocTag("Endpoint-Mapping")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
   val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-Manage")
   val apiTagDynamicSwaggerDoc = ResourceDocTag("Dynamic-Swagger-Doc-Manage")
