@@ -80,7 +80,8 @@ import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.json
-import net.liftweb.json.{JArray, JBool, JObject, JValue}
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.{JArray, JBool, JInt, JObject, JValue,JString}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
@@ -3713,13 +3714,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                     entityName: String,
                                     requestBody: Option[JObject],
                                     entityId: Option[String],
-                                    bankId: Option[String],
+                                    bankId: Option[String], 
+                                    queryParameters: Option[Map[String, List[String]]],
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
 
     Future {
       val processResult: Box[JValue] = operation.asInstanceOf[Any] match {
         case GET_ALL => Full {
-          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
+          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJson(entityName)
           JArray(dataList)
         }
         case GET_ONE => {
@@ -3742,8 +3744,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         }
         case DELETE => {
           val id = entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. "))
-          val deleteResult: Boolean = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
-          Full(JBool(deleteResult))
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
+              .map(it => JBool(it))
+          boxedEntity
         }
       }
       (processResult, callContext)

@@ -2303,6 +2303,7 @@ trait Connector extends MdcLoggable {
    * @param requestBody content of request
    * @param entityId    id of given DynamicEntity
    * @param bankId    bank id of the Entity
+   * @param queryParameters: eg: ("status":List("pending","available"))
    * @param callContext
    * @return result DynamicEntity process
    */
@@ -2311,6 +2312,7 @@ trait Connector extends MdcLoggable {
                              requestBody: Option[JObject],
                              entityId: Option[String],
                              bankId: Option[String],
+                             queryParameters: Option[Map[String, List[String]]],
                              callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],
