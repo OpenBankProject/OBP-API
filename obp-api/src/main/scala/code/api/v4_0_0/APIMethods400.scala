@@ -1,6 +1,6 @@
 package code.api.v4_0_0
 
-import code.DynamicData.DynamicData
+import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.{ChargePolicy, JsonResponseException}
@@ -61,10 +61,10 @@ import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCa
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
-import net.liftweb.json.{compactRender, _}
+import net.liftweb.json.{compactRender, prettyRender, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
@@ -77,6 +77,8 @@ import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
 
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
+import code.endpointMapping.EndpointMappingCommons
+import net.liftweb.json
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1836,7 +1838,7 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
@@ -1878,7 +1880,7 @@ trait APIMethods400 {
           for {
             // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
             (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
@@ -1967,7 +1969,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
               entity.userId.equals(cc.userId)
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
@@ -2010,7 +2012,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
               entity.userId.equals(cc.userId)
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
@@ -2084,7 +2086,7 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(cc))
           
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {box.isDefined}
         } yield {
@@ -2141,7 +2143,7 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           val result: JObject = (singleName -> singleObject)
@@ -2182,11 +2184,11 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {
             box.isDefined
           }
-          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, Some(cc))
+          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None, Some(cc))
           singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
         } yield {
           val result: JObject = (singleName -> singleObject)
@@ -2226,11 +2228,11 @@ trait APIMethods400 {
             jsonResponse.isEmpty
           }
 
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
           _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {
             box.isDefined
           }
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, Some(cc))
+          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None, Some(cc))
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
           (deleteResult, HttpCode.`204`(Some(cc)))
@@ -4564,9 +4566,67 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
               jsonResponse.isEmpty
             }
+            (box, callContext) <- if (DynamicEndpointHelper.isDynamicEntityResponse(url)) {
+              for {
+                (endpointMapping, callContext) <- if (DynamicEndpointHelper.isDynamicEntityResponse(url)) {
+                  NewStyle.function.getEndpointMappingByOperationId(operationId, cc.callContext)
+                } else{
+                  Future.successful((EndpointMappingCommons(None,"","",""), callContext))
+                }
+//                requestMappingString = endpointMapping.requestMapping
+//                requestMappingJvalue = net.liftweb.json.parse(requestMappingString)
+                responseMappingString = endpointMapping.responseMapping
+                responseMappingJvalue = net.liftweb.json.parse(responseMappingString)
 
-            (box, _) <- MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
-              NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+                entityName <- NewStyle.function.tryons(s"$InvalidDynamicEndpointSwagger `entity` must contain at least one valid dynamic entity!", 400, cc.callContext) {
+                  //TODO Here need to be refactor later, only support one Entity and one Id here: 
+                  DynamicEndpointHelper.getAllEntitiesFromMappingJson(responseMappingString).head
+                }
+
+                (entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidDynamicEndpointSwagger `query` must contain at least one valid dynamic entity field !", 400, cc.callContext) {
+                  //TODO Here need to be refactor later, only support one Entity and one Id here: 
+                  val entityIdKey = DynamicEndpointHelper.getEntityQueryIdsFromMapping(responseMappingString).head
+                  //TODO, here need more logic to check if the Id is proper one!
+                  val entityIdFromUrl = pathParams.find(parameter => parameter._1.toLowerCase.contains("id")).map(_._2)
+                  (entityIdKey, entityIdFromUrl)
+                }
+                dynamicData <- Future{DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)}
+                dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
+
+                //                //We only get the value, but not sure the field name of it.
+                //                // we can get the field name from the mapping: `primary_query_key`
+                //                //requestBodyMapping --> Convert `RequestJson` --> `DynamicEntity Model.`  
+                //                targetRequestBody = JsonUtils.buildJson(json, requestBodySchemeJvalue)
+                //                requestBody = targetRequestBody match {
+                //                  case j@JObject(_) => Some(j)
+                //                  case _ => None
+                //                }
+
+                result = if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isDefined) {
+                  DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
+                } else if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isEmpty) {
+                  val result = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
+                  DynamicEndpointHelper.getObjectsByKeyValuePair(dynamicJsonData, result.get.head._1, result.get.head._2.head)
+//                } else if (method.value.equalsIgnoreCase("post")) {
+//                  //this post need the dynamicId to update it.
+//                  //1st: we need to find the data by json.field1 --> dynamicId --> update the table.
+//                  dynamicJsonData
+//                } else if (method.value.equalsIgnoreCase("put")) {
+//                  dynamicJsonData
+//                } else if (method.value.equalsIgnoreCase("delete") && entityId.isDefined) {
+//                  dynamicJsonData
+                } else {
+                  throw new RuntimeException(s"$NotImplemented Only support Http Method `GET` yet, current  is ${method.value}")
+                }
+                responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
+                responseBody = JsonUtils.buildJson(result, responseBodyScheme)
+              } yield{
+                (Full(("code", 200) ~ ("value", responseBody)), callContext)
+              }
+            }else{
+              MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
+                NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
+              }
             }
           } yield {
             box match {
@@ -7576,7 +7636,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateDynamicMessageDoc),
       "PUT",
-      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
       "Update Dynamic Message Doc",
       s"""Update a Dynamic Message Doc.
          |""",
@@ -7616,9 +7676,9 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getDynamicMessageDoc),
       "GET",
-      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
       "Get Dynamic Message Doc by Id",
-      s"""Get a Dynamic Message Doc by DYNAMIC-MESSAGE-DOC-ID.
+      s"""Get a Dynamic Message Doc by DYNAMIC_MESSAGE_DOC_ID.
          |
          |""",
       EmptyBody,
@@ -7678,7 +7738,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(deleteDynamicMessageDoc),
       "DELETE",
-      "/management/dynamic-message-docs/DYNAMIC-MESSAGE-DOC-ID",
+      "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
       "Delete Dynamic Message Doc",
       s"""Delete a Dynamic Message Doc.
          |""",
@@ -7701,6 +7761,174 @@ trait APIMethods400 {
             (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(dynamicMessageDocId, callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createEndpointMapping,
+      implementedInApiVersion,
+      nameOf(createEndpointMapping),
+      "POST",
+      "/management/endpoint-mappings",
+      "Create Endpoint Mapping",
+      s"""Create an Endpoint Mapping. 
+         |
+         |Note: at moment only support the dynamic endpoints
+         |""",
+      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canCreateEndpointMapping)))
+
+    lazy val createEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointMapping <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[EndpointMappingCommons]}", 400, cc.callContext) {
+              json.extract[EndpointMappingCommons]
+            }
+            (endpointMapping, callContext) <- NewStyle.function.createOrUpdateEndpointMapping(endpointMapping.copy(endpointMappingId= None), cc.callContext)
+          } yield {
+            val commonsData: EndpointMappingCommons = endpointMapping
+            (commonsData.toJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateEndpointMapping,
+      implementedInApiVersion,
+      nameOf(updateEndpointMapping),
+      "PUT",
+      "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
+      "Update Endpoint Mapping",
+      s"""Update an Endpoint Mapping.
+         |""",
+      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canUpdateEndpointMapping)))
+
+    lazy val updateEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointMappingBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[EndpointMappingCommons]}", 400, cc.callContext) {
+              json.extract[EndpointMappingCommons]
+            }
+            (_, callContext) <- NewStyle.function.getEndpointMappingById(endpointMappingId, cc.callContext)
+            (endpointMapping, callContext) <- NewStyle.function.createOrUpdateEndpointMapping(endpointMappingBody.copy(endpointMappingId = Some(endpointMappingId)), callContext)
+          } yield {
+            val commonsData: EndpointMappingCommons = endpointMapping
+            (commonsData.toJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getEndpointMapping,
+      implementedInApiVersion,
+      nameOf(getEndpointMapping),
+      "GET",
+      "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
+      "Get Endpoint Mapping by Id",
+      s"""Get an Endpoint Mapping by ENDPOINT_MAPPING_ID.
+         |
+         |""",
+      EmptyBody,
+      endpointMappingJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canGetEndpointMapping)))
+
+    lazy val getEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointMapping, callContext) <- NewStyle.function.getEndpointMappingById(endpointMappingId, cc.callContext)
+          } yield {
+            val commonsData: EndpointMappingCommons = endpointMapping
+            (commonsData.toJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllEndpointMappings,
+      implementedInApiVersion,
+      nameOf(getAllEndpointMappings),
+      "GET",
+      "/management/endpoint-mappings",
+      "Get all Endpoint Mappings",
+      s"""Get all Endpoint Mappings.
+         |
+         |""",
+      EmptyBody,
+      ListResult("endpoint-mappings", endpointMappingJson::Nil),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canGetAllEndpointMappings)))
+
+    lazy val getAllEndpointMappings: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointMappings, callContext) <- NewStyle.function.getEndpointMappings(cc.callContext)
+          } yield {
+            val listCommons: List[EndpointMappingCommons] = endpointMappings
+            (ListResult("endpoint-mappings", listCommons.map(_.toJson)), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteEndpointMapping,
+      implementedInApiVersion,
+      nameOf(deleteEndpointMapping),
+      "DELETE",
+      "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
+      "Delete Endpoint Mapping",
+      s"""Delete a Endpoint Mapping.
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagEndpointMapping, apiTagNewStyle),
+      Some(List(canDeleteEndpointMapping)))
+
+    lazy val deleteEndpointMapping: OBPEndpoint = {
+      case "management" :: "endpoint-mappings" :: endpointMappingId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (deleted, callContext) <- NewStyle.function.deleteEndpointMapping(endpointMappingId, cc.callContext)
+          } yield {
+            (deleted, HttpCode.`200`(callContext))
           }
       }
     }

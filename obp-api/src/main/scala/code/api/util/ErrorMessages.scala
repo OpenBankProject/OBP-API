@@ -54,8 +54,10 @@ object ErrorMessages {
   val DynamicEndpointNotFoundByDynamicEndpointId = "OBP-09009: DynamicEndpoint not found. Please specify a valid value for DYNAMIC_ENDPOINT_ID."
   val InvalidMyDynamicEntityUser = "OBP-09010: DynamicEntity can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Entity` endpoint"
   val InvalidMyDynamicEndpointUser = "OBP-09011: DynamicEndpoint can only be updated/deleted by the user who created it. Please try `Update/DELETE Dynamic Endpoint` endpoint"
+  val InvalidDynamicEndpointSwagger = "OBP-09013: Invalid DynamicEndpoint Swagger Json. "
   
-  val InvalidRequestPayload = "OBP-09013: Incorrect request body Format, it should be a valid json that matches Validation rule."
+  val InvalidRequestPayload = "OBP-09014: Incorrect request body Format, it should be a valid json that matches Validation rule."
+  val DynamicDataNotFound = "OBP-09015: Dynamic Data not found. Please specify a valid value."
 
 
   // General messages (OBP-10XXX)
@@ -432,6 +434,10 @@ object ErrorMessages {
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
   val InvalidAuthorisationStatus = "OBP-36002: Authorisation Status is Invalid"
   val AuthorisationNotFoundByPaymentId = "OBP-36003: Authorisation not found. Please specify valid values for PAYMENT_ID. "
+
+  //EndpointMappings
+  val EndpointMappingNotFoundByEndpointMappingId = "OBP-36004: Endpoint Mapping not found. Please specify valid values for ENDPOINT_MAPPING_ID. "
+  val EndpointMappingNotFoundByOperationId = "OBP-36005: Endpoint Mapping not found. Please specify valid values for OPERATION_ID. "
   // General Resource related messages above here
 
 
