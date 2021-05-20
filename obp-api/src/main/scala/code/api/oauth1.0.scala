@@ -63,6 +63,7 @@ object OAuthHandshake extends RestHelper with MdcLoggable {
     //Handling get request for a "request token"
     case Req("oauth" :: "initiate" :: Nil,_ , PostRequest) =>
     {
+      logger.debug("Hello from oauth/initiate POST")
       //Extract the OAuth parameters from the header and test if the request is valid
       var (httpCode, message, oAuthParameters) = validator("requestToken", "POST")
       //Test if the request is valid
