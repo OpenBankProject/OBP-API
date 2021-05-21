@@ -155,12 +155,7 @@ object JsonUtils {
         JField(name, calculateValue(source, s))
 
     }
-    convertedJson.transformField {
-          //This is for "photoUrls[][]": "field5", search for it in the test, you will know the usages. 
-      case  JField(name, value) if name.endsWith("[]") =>
-        val newName = StringUtils.substringBeforeLast(name, "[]")
-        JField(newName, JArray(value::Nil))
-    } match {
+    convertedJson match {
         //support the root object, eg: {"$root":[]} --> [].
       case JObject(JField("$root", value)::Nil) =>
         value
@@ -204,6 +199,11 @@ object JsonUtils {
     val allFields = for {
       i <- (0 until arraySize).toList
       newJFields = jFields.collect {
+        //This is for [][], eg: "photoUrls[][]": "field5", search for it in the JsonUtilsTest.scala, you will know the usages.
+        case JField(fieldName, JArray(arr)) if fieldName.endsWith("[]") => {
+          val newFileName = StringUtils.substringBeforeLast(fieldName, "[]")
+          JField(newFileName, JArray(List(arr(i))))
+        }
         case JField(fieldName, JArray(arr)) => JField(fieldName, arr(i))
       }
     } yield {
