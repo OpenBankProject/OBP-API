@@ -2646,6 +2646,12 @@ object NewStyle {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
+    def updateDynamicEndpointHost(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(userId, swaggerString), callContext)
+    } map {
+      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    }
+
     def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
       val dynamicEndpoint = unboxFullOrFail(dynamicEndpointBox, callContext, DynamicEndpointNotFoundByDynamicEndpointId, 404)

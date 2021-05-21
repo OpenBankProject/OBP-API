@@ -50,7 +50,7 @@ object DynamicEndpointHelper extends RestHelper {
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
   private val implementedInApiVersion = ApiVersion.v4_0_0
-  private val IsDynamicEntityUrl = """https?://DynamicEntity.*"""
+  private val IsDynamicEntityUrl = """https?://dynamic_entity.*"""
 
   def isDynamicEntityResponse (serverUrl : String) = serverUrl matches (IsDynamicEntityUrl)
   
