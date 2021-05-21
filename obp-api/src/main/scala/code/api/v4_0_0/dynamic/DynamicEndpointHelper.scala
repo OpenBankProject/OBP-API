@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{DynamicDataNotFound, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{DynamicDataNotFound, InvalidUrlParameters, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats, NewStyle}
 import com.openbankproject.commons.util.ApiVersion
 import com.openbankproject.commons.util.Functions.Memo
@@ -718,42 +718,57 @@ object DynamicEndpointHelper extends RestHelper {
    * 
    */
   def convertToMappingQueryParams (mapping: JValue, params:Map[String, List[String]]) = {
-
-    //1st: find the `status` field in mapping: it should return:
-//    {
-//       "entity": "PetEntity",
-//       "field": "field8",
-//       "query": "field1"
-//     }
-    val queryField: Option[JField] = mapping findField {case JField(n, _) => n.contains(params.head._1)}
-
-    //return: "field8",
-    val fieldValueOption = queryField.map(_.value \ "field")
-    
-    //return Map(field8 -> List(available))
-    fieldValueOption.map(fieldValue => Map(fieldValue.values.toString -> params.head._2))
-    
+    if(params.isEmpty) None
+    else if (params.size > 1) {
+      throw new RuntimeException(s"$InvalidUrlParameters only support one set at the moment.");
+    } else {
+      //1st: find the `status` field in mapping: it should return:
+  //    {
+  //       "entity": "PetEntity",
+  //       "field": "field8",
+  //       "query": "field1"
+  //     }
+      val queryField: Option[JField] = mapping findField {case JField(n, _) => n.contains(params.head._1)}
+  
+      //return: "field8", note: `field` is the obp structure, so we can hardcode it here.
+      val fieldValueOption = queryField.map(_.value \ "field")
+      
+      //return Map(field8 -> List(available))
+      fieldValueOption.map(fieldValue => Map(fieldValue.values.toString -> params.head._2))
+    }
   }
 
   def convertToMappingQueryParams (mapping: String, params:Map[String, List[String]]): Option[Map[String, List[String]]] = {
-    val jValue: json.JValue = json.parse(mapping)
-    convertToMappingQueryParams(jValue, params)
+    if(params.isEmpty) None else {
+      val jValue: json.JValue = json.parse(mapping)
+      convertToMappingQueryParams(jValue, params)
+    }
   }
 
   /**
-   * we can query the JArray by the (key, value) pair
+   * we can query the JArray by parameters
    */
-  def getObjectsByKeyValuePair (jsonArray: JArray, key:String, value:String) = {
-    val result: List[JValue] =  jsonArray.arr
-      .filter(
-        jObject => {
-          val jFieldOption = jObject.findField { 
-            case JField(n, v) => n == key && v.values.toString == value 
+  def getObjectsByParams (jsonArray: JArray, params:Option[Map[String, List[String]]]) = {
+    if (params.isEmpty) {
+      jsonArray
+    } else if (params.isDefined && params.get.size > 1){
+      throw new RuntimeException(s"$InvalidUrlParameters only support one set at the moment.");
+    } else if (params.isDefined && params.get.size == 1){
+      val key = params.get.head._1
+      val value = params.get.head._2.head
+      val result: List[JValue] =  jsonArray.arr
+        .filter(
+          jObject => {
+            val jFieldOption = jObject.findField {
+              case JField(n, v) => n == key && v.values.toString == value
+            }
+            jFieldOption.isDefined
           }
-          jFieldOption.isDefined
-        }
-      )
-    JArray(result)
+        )
+      JArray(result)
+    } else {
+      jsonArray
+    }
   }
 
 }

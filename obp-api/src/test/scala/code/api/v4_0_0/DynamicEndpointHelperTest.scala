@@ -5,6 +5,8 @@ import net.liftweb.json
 import net.liftweb.json.{Formats, JArray, prettyRender}
 import org.scalatest.{FlatSpec, Matchers, Tag}
 
+import scala.collection.immutable.List
+
 
 class DynamicEndpointHelperTest extends FlatSpec with Matchers {
   object FunctionsTag extends Tag("DynamicEndpointHelper")
@@ -355,7 +357,7 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
 
   }
 
-  "convertToMappingQueryParams " should "work well" taggedAs FunctionsTag in {
+  "convertToMappingQueryParams one parameter" should "work well" taggedAs FunctionsTag in {
 
     val mapping = """{
                         |  "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
@@ -422,8 +424,201 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
     expectResult should equal(result)
 
   }
+  "convertToMappingQueryParams wrong parameter" should "work well" taggedAs FunctionsTag in {
 
-  "getObjectsByKeyValuePair " should "work well" taggedAs FunctionsTag in {
+    val mapping = """{
+                        |  "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+                        |  "request_mapping": {},
+                        |  "response_mapping": {
+                        |    "id": {
+                        |      "entity": "PetEntity",
+                        |      "field": "field1",
+                        |      "query": "field1"
+                        |    },
+                        |    "category": {
+                        |      "id": {
+                        |        "entity": "PetEntity",
+                        |        "field": "field2",
+                        |        "query": "field1"
+                        |      },
+                        |      "name": {
+                        |        "entity": "PetEntity",
+                        |        "field": "field3",
+                        |        "query": "field1"
+                        |      }
+                        |    },
+                        |    "name": {
+                        |      "entity": "PetEntity",
+                        |      "field": "field4",
+                        |      "query": "field1"
+                        |    },
+                        |    "photoUrls": [
+                        |      {
+                        |        "entity": "PetEntity",
+                        |        "field": "field5",
+                        |        "query": "field1"
+                        |      }
+                        |    ],
+                        |    "tags": [
+                        |      {
+                        |        "id": {
+                        |          "entity": "PetEntityTag",
+                        |          "field": "field6",
+                        |          "query": "field1"
+                        |        },
+                        |        "name": {
+                        |          "entity": "PetEntity",
+                        |          "field": "field7",
+                        |          "query": "field1"
+                        |        }
+                        |      }
+                        |    ],
+                        |    "status": {
+                        |      "entity": "PetEntityStatus",
+                        |      "field": "field8",
+                        |      "query": "field1"
+                        |    }
+                        |  }
+                        |}""".stripMargin
+    val params = Map("status1"->List("available"))
+
+    val expectResult = None
+    
+    val result = DynamicEndpointHelper.convertToMappingQueryParams(mapping, params)
+
+//    println(result)
+
+    expectResult should equal(result)
+
+  }
+  "convertToMappingQueryParams no parameters" should "work well" taggedAs FunctionsTag in {
+
+    val mapping = """{
+                    |  "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+                    |  "request_mapping": {},
+                    |  "response_mapping": {
+                    |    "id": {
+                    |      "entity": "PetEntity",
+                    |      "field": "field1",
+                    |      "query": "field1"
+                    |    },
+                    |    "category": {
+                    |      "id": {
+                    |        "entity": "PetEntity",
+                    |        "field": "field2",
+                    |        "query": "field1"
+                    |      },
+                    |      "name": {
+                    |        "entity": "PetEntity",
+                    |        "field": "field3",
+                    |        "query": "field1"
+                    |      }
+                    |    },
+                    |    "name": {
+                    |      "entity": "PetEntity",
+                    |      "field": "field4",
+                    |      "query": "field1"
+                    |    },
+                    |    "photoUrls": [
+                    |      {
+                    |        "entity": "PetEntity",
+                    |        "field": "field5",
+                    |        "query": "field1"
+                    |      }
+                    |    ],
+                    |    "tags": [
+                    |      {
+                    |        "id": {
+                    |          "entity": "PetEntityTag",
+                    |          "field": "field6",
+                    |          "query": "field1"
+                    |        },
+                    |        "name": {
+                    |          "entity": "PetEntity",
+                    |          "field": "field7",
+                    |          "query": "field1"
+                    |        }
+                    |      }
+                    |    ],
+                    |    "status": {
+                    |      "entity": "PetEntityStatus",
+                    |      "field": "field8",
+                    |      "query": "field1"
+                    |    }
+                    |  }
+                    |}""".stripMargin
+    val params = Map.empty[String, List[String]]
+
+    val expectResult = None
+
+    val result = DynamicEndpointHelper.convertToMappingQueryParams(mapping, params)
+
+    expectResult should equal(result)
+
+  }
+  "convertToMappingQueryParams more than one parameter" should "throw exception" taggedAs FunctionsTag in {
+
+    val mapping = """{
+                    |  "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+                    |  "request_mapping": {},
+                    |  "response_mapping": {
+                    |    "id": {
+                    |      "entity": "PetEntity",
+                    |      "field": "field1",
+                    |      "query": "field1"
+                    |    },
+                    |    "category": {
+                    |      "id": {
+                    |        "entity": "PetEntity",
+                    |        "field": "field2",
+                    |        "query": "field1"
+                    |      },
+                    |      "name": {
+                    |        "entity": "PetEntity",
+                    |        "field": "field3",
+                    |        "query": "field1"
+                    |      }
+                    |    },
+                    |    "name": {
+                    |      "entity": "PetEntity",
+                    |      "field": "field4",
+                    |      "query": "field1"
+                    |    },
+                    |    "photoUrls": [
+                    |      {
+                    |        "entity": "PetEntity",
+                    |        "field": "field5",
+                    |        "query": "field1"
+                    |      }
+                    |    ],
+                    |    "tags": [
+                    |      {
+                    |        "id": {
+                    |          "entity": "PetEntityTag",
+                    |          "field": "field6",
+                    |          "query": "field1"
+                    |        },
+                    |        "name": {
+                    |          "entity": "PetEntity",
+                    |          "field": "field7",
+                    |          "query": "field1"
+                    |        }
+                    |      }
+                    |    ],
+                    |    "status": {
+                    |      "entity": "PetEntityStatus",
+                    |      "field": "field8",
+                    |      "query": "field1"
+                    |    }
+                    |  }
+                    |}""".stripMargin
+    val params = Map("status"->List("available"), "status2"->List("available2"))
+    intercept[RuntimeException] {
+      DynamicEndpointHelper.convertToMappingQueryParams(mapping, params)
+    }
+  }
+  
+  "getObjectsByKeyValuePair one param" should "work well" taggedAs FunctionsTag in {
 
     val originalJson1 = """{
                           |  "field1": 1,
@@ -466,17 +661,84 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
     val jArray = JArray(List(jValue1, jValue2, jValue3))
     
     val params = Some(Map("field8"->List("available")))
-    val key = "field8"
-    val value = "available"
 
+    val result = DynamicEndpointHelper.getObjectsByParams(jArray, params)
 
-    val result = DynamicEndpointHelper.getObjectsByKeyValuePair(jArray, key, value)
+    val str1 = prettyRender(result)
+    println(str1)
 
-    println(prettyRender(result))
-
-//    expectResult should equal(result)
-
+    val expectString ="""[
+                        |  {
+                        |    "field1":1,
+                        |    "field2":2,
+                        |    "field3":"field3-1",
+                        |    "field4":"field4-1",
+                        |    "field5":"field5-1",
+                        |    "field6":6,
+                        |    "field7":"field7-1",
+                        |    "field8":"available",
+                        |    "pet_entity_id":"bd1f083b-af72-42cf-8a70-21d7740f3861"
+                        |  },
+                        |  {
+                        |    "field1":3,
+                        |    "field2":222,
+                        |    "field3":"field3-3",
+                        |    "field4":"field4-3",
+                        |    "field5":"field5-3",
+                        |    "field6":666,
+                        |    "field7":"field7-3",
+                        |    "field8":"available",
+                        |    "pet_entity_id":"33ca0384-5835-431e-9b88-4257f71f1483"
+                        |  }
+                        |]""".stripMargin
+    expectString should equal(str1)
   }
-  
+  "getObjectsByKeyValuePair no param" should "work well " taggedAs FunctionsTag in {
+
+    val originalJson1 = """{
+                          |  "field1": 1,
+                          |  "field2": 2,
+                          |  "field3": "field3-1",
+                          |  "field4": "field4-1",
+                          |  "field5": "field5-1",
+                          |  "field6": 6,
+                          |  "field7": "field7-1",
+                          |  "field8": "available",
+                          |  "pet_entity_id": "bd1f083b-af72-42cf-8a70-21d7740f3861"
+                          |}""".stripMargin
+    
+    val jValue1 = json.parse(originalJson1)
+
+
+    val jArray = JArray(List(jValue1))
+    
+    val params = None
+
+    val result = DynamicEndpointHelper.getObjectsByParams(jArray,params)
+
+    jArray should equal(result)
+  }
+  "getObjectsByKeyValuePair more than one param" should "throw exception" taggedAs FunctionsTag in {
+    val originalJson1 = """{
+                          |  "field1": 1,
+                          |  "field2": 2,
+                          |  "field3": "field3-1",
+                          |  "field4": "field4-1",
+                          |  "field5": "field5-1",
+                          |  "field6": 6,
+                          |  "field7": "field7-1",
+                          |  "field8": "available",
+                          |  "pet_entity_id": "bd1f083b-af72-42cf-8a70-21d7740f3861"
+                          |}""".stripMargin
+
+
+    val jValue1 = json.parse(originalJson1)
+
+
+    val jArray = JArray(List(jValue1))
+
+    val params = Some(Map("status"->List("available"), "status2"->List("available2")))
+    intercept[RuntimeException] {DynamicEndpointHelper.getObjectsByParams(jArray,params)}
+  }
 
 }

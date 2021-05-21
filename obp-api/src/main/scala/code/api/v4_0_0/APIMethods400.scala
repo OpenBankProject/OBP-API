@@ -4643,8 +4643,8 @@ trait APIMethods400 {
                 result = if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isDefined) {
                   DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                 } else if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isEmpty) {
-                  val result = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
-                  DynamicEndpointHelper.getObjectsByKeyValuePair(dynamicJsonData, result.get.head._1, result.get.head._2.head)
+                  val newParams = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
+                  DynamicEndpointHelper.getObjectsByParams(dynamicJsonData, newParams)
 //                } else if (method.value.equalsIgnoreCase("post")) {
 //                  //this post need the dynamicId to update it.
 //                  //1st: we need to find the data by json.field1 --> dynamicId --> update the table.
