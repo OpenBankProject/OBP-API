@@ -87,46 +87,7 @@ object JsonUtils {
         if(jFields.isEmpty) {
           JField(newName, JArray(Nil))
         } else if(allValueIsSameSizeArray(jFields)) {
-          /*convert the follow structure
-           * {
-           *  "foo[]": {
-           *    "name": ["Ken", "Billy"],
-           *    "address": [{
-           *        "name": "Berlin",
-           *        "PostCode" : 116100
-           *      }, {
-           *        "name": "DaLian",
-           *        "PostCode": 11660
-           *      }]
-           *  }
-           * }
-           * to real list:
-           *{
-           *  "foo": [{
-           *     "name": "Ken",
-           *     "address": {
-           *        "name": "Berlin",
-           *        "PostCode" : 116100
-           *      }
-           *    }, {
-           *    "name": "Billy",
-           *    "address": {
-           *        "name": "DaLian",
-           *        "PostCode": 11660
-           *    }
-           * }]
-           */
-
-          val arraySize = jFields.head.value.asInstanceOf[JArray].arr.size
-          val allFields = for {
-            i <- (0 until arraySize).toList
-            newJFields = jFields.collect {
-              case JField(fieldName, JArray(arr)) => JField(fieldName, arr(i))
-            }
-          } yield {
-            JObject(newJFields)
-          }
-          JField(newName, JArray(allFields))
+          buildSingleJFieldFromArray(newName,jFields)
         } else {
           JField(newName, JArray(jObj :: Nil))
         }
@@ -181,20 +142,74 @@ object JsonUtils {
 
       }
 
+      case (JField(name, jObj @JObject(jFields)), _)  =>
+        if(jFields.isEmpty) {
+          JField(name, JObject(Nil))
+        } else if(allValueIsSameSizeArray(jFields)) {
+          buildSingleJFieldFromArray(name, jFields)
+        } else {
+          JField(name, jObj)
+        }
+        
       case (JField(name, JString(s)), _) =>
         JField(name, calculateValue(source, s))
 
     }
     convertedJson.transformField {
+          //This is for "photoUrls[][]": "field5", search for it in the test, you will know the usages. 
       case  JField(name, value) if name.endsWith("[]") =>
         val newName = StringUtils.substringBeforeLast(name, "[]")
         JField(newName, JArray(value::Nil))
     } match {
+        //support the root object, eg: {"$root":[]} --> [].
       case JObject(JField("$root", value)::Nil) =>
         value
       case v => v
     }
     }
+  }
+  
+  /*convert the follow structure
+   * {
+   *  "foo[]": {
+   *    "name": ["Ken", "Billy"],
+   *    "address": [{
+   *        "name": "Berlin",
+   *        "PostCode" : 116100
+   *      }, {
+   *        "name": "DaLian",
+   *        "PostCode": 11660
+   *      }]
+   *  }
+   * }
+   * to real list:
+   *{
+   *  "foo": [{
+   *     "name": "Ken",
+   *     "address": {
+   *        "name": "Berlin",
+   *        "PostCode" : 116100
+   *      }
+   *    }, {
+   *    "name": "Billy",
+   *    "address": {
+   *        "name": "DaLian",
+   *        "PostCode": 11660
+   *    }
+   * }]
+   */
+  //TODO, this method is in processing, may contain bugs here....
+  private def buildSingleJFieldFromArray(newName: String, jFields: List[JField]) = {
+    val arraySize = jFields.head.value.asInstanceOf[JArray].arr.size
+    val allFields = for {
+      i <- (0 until arraySize).toList
+      newJFields = jFields.collect {
+        case JField(fieldName, JArray(arr)) => JField(fieldName, arr(i))
+      }
+    } yield {
+      JObject(newJFields)
+    }
+    JField(newName, JArray(allFields))
   }
 
   def buildJson(source: String, schema: JValue): JValue = buildJson(json.parse(source), schema)
@@ -459,6 +474,7 @@ object JsonUtils {
 
   /**
    * according path express, calculate JValue
+   * If jValue=JArray, it will return multiple values.
    * @param jValue source json
    * @param pathExp path expression, e.g: "result.price * 'int: 2' + result.count"
    * @return calculated JValue

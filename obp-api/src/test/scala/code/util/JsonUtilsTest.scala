@@ -165,7 +165,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   }
 
 
-  "buildJson" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
+  """buildJson-request single{}, mapping is {"photoUrls[]":"field5"}""" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
     val zson = (
       """{
         |    "field1": "field1-1",
@@ -178,7 +178,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |    "field8": "field8-1"
         |}""".stripMargin)
 
-    val schema = (
+    val mapping = (
       """{
         |  "id":"field1",
         |  "category":{
@@ -186,11 +186,11 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |    "name":"field3"
         |  },
         |  "name":"field4",
-        |  "photoUrls":["field5"],
-        |  "tags":[{
+        |  "photoUrls[]":"field5",
+        |  "tags[]":{
         |    "id":"field6",
         |    "name":"field7"
-        |  }],
+        |  },
         |  "status":"field8"
         |}
         |""".stripMargin)
@@ -204,7 +204,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |  },
         |  "name":"field4-1",
         |  "photoUrls":[
-        |    "field5"
+        |    "field5-1"
         |  ],
         |  "tags":[
         |    {
@@ -216,7 +216,41 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |}
         |""".stripMargin)
 
-    val resultJson = buildJson(zson, schema)
+    val resultJson = buildJson(zson, mapping)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+  
+  """buildJson-request Array[{}], mapping is {"photoUrls[]":"field5"}""" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
+    val requestJson = (
+      """[
+        |  {
+        |    "field5": "field5-1",
+        |  },
+        |    {
+        |    "field5": "field5-2",
+        |  }
+        |]""".stripMargin)
+    val mapping = (
+      """{
+        |  "$root[]": {
+        |    "photoUrls[][]": "field5",
+        |  }
+        |}""".stripMargin)
+    
+    val expectedJson = json.parse(
+      """[
+        |  {
+        |    "photoUrls":["field5-1"]
+        |  },
+        |  {
+        |    "photoUrls":["field5-2"]
+        |  }
+        |]""".stripMargin)
+    val resultJson = buildJson(requestJson, mapping)
 
     val str1 = json.prettyRender(resultJson)
     println(str1)
@@ -224,7 +258,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
-  "buildJson" should "generate JValue according schema4" taggedAs JsonUtilsTag in{
+  """buildJson - request is Array.tags[], mapping is {"field5[0]": "photoUrls"}""" should "generate JValue according schema4" taggedAs JsonUtilsTag in{
     val zson = (
       """{
         |    "id": 1,
@@ -278,7 +312,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
-  "buildJson" should "generate JValue according schema5" taggedAs JsonUtilsTag in {
+  "buildJson request is Array, mapping is data[]:{}" should "generate JValue according schema5" taggedAs JsonUtilsTag in {
     
     val requestJson = (
       """[
@@ -767,8 +801,82 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |]""".stripMargin)
     val resultJson = buildJson(jsonList, schema)
     val str1 = json.prettyRender(resultJson)
+//    println(str1)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
 
+  }
+
+  "buildJson - request is Array, mapping is []nest object" should "work well" taggedAs JsonUtilsTag in {
+    val requestJson = (
+      """[
+        |  {
+        |    "field1": 1
+        |  },
+        |  {
+        |    "field1": 2
+        |  }
+        |]
+        |""".stripMargin)
+    val mapping = ("""{
+                     |  "$root[]": {
+                     |    "category": {
+                     |      "id": "field1"
+                     |    }
+                     |  }
+                     |}""".stripMargin)
+    val expectedJson = json.parse(
+      """[
+        |  {
+        |    "category":{
+        |      "id":1
+        |    }
+        |  },
+        |  {
+        |    "category":{
+        |      "id":2
+        |    }
+        |  }
+        |]
+        """.stripMargin)
+
+    val resultJson = buildJson(requestJson, mapping)
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+  
+  "buildJson - request is Array, mapping is []object" should "work well" taggedAs JsonUtilsTag in {
+    val requestJson = (
+      """[
+        |  {
+        |    "field1": 1
+        |  },
+        |  {
+        |    "field1": 2
+        |  }
+        |]
+        |""".stripMargin)
+    val mapping = ("""{
+                     |  "$root[]": {
+                     |    "category[][]":  "field1"
+                     |  }
+                     |}""".stripMargin)
+    val expectedJson = json.parse(
+      """[
+        |  {
+        |    "category":[1]
+        |  },
+        |  {
+        |    "category":[2]
+        |  }
+        |]""".stripMargin)
+
+    val resultJson = buildJson(requestJson, mapping)
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
   }
 }
