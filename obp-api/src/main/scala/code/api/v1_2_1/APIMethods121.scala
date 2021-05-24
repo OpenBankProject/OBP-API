@@ -3106,13 +3106,18 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet req => {
         cc =>
           for {
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user) ?~! ViewNotFound
-            (transaction, callerContext) <- account.moderatedTransaction(transactionId, view, BankIdAccountId(bankId,accountId), cc.user, Some(cc))
-            moderatedOtherBankAccount <- transaction.otherBankAccount
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+            (moderatedTransaction, callContext) <- account.moderatedTransactionFuture(transactionId, view, Full(u), callContext) map {
+              unboxFullOrFail(_, callContext, GetTransactionsException)
+            }
+            _ <- NewStyle.function.tryons(GetTransactionsException, 400, callContext) {
+              moderatedTransaction.otherBankAccount.isDefined
+            }
           } yield {
-            val otherBankAccountJson = JSONFactory.createOtherBankAccount(moderatedOtherBankAccount)
-            successJsonResponse(Extraction.decompose(otherBankAccountJson))
+            val otherBankAccountJson = JSONFactory.createOtherBankAccount(moderatedTransaction.otherBankAccount.get)
+            (otherBankAccountJson, HttpCode.`200`(callContext))
           }
 
       }

@@ -6471,8 +6471,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheCounterpartyOfOneTransaction(bankId, bankAccount.id, view, transaction.id, None)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 401 code")
+      reply.code should equal (401)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -6485,8 +6485,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheCounterpartyOfOneTransaction(bankId, bankAccount.id, view, transaction.id, user3)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 403 code")
+      reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
@@ -6499,10 +6499,10 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheCounterpartyOfOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 403 code")
+      reply.code should equal (403)
       And("we should get an error message")
-      reply.body.extract[ErrorMessage].message should equal (ViewNotFound)
+      reply.body.extract[ErrorMessage].message should equal (UserNoPermissionAccessView)
     }
 
     scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){

@@ -71,6 +71,7 @@ import net.liftweb.json
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getOtherAccountForTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getOtherAccountMetadata), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
