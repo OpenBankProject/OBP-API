@@ -3945,4 +3945,5 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  val berlinGroupV13AliasPath = APIUtil.getPropsValue("berlin_group_v1.3_alias.path","").split("/").toList.map(_.trim)
 }
