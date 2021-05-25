@@ -2,6 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.UUID.randomUUID
 import code.api.OBPRestHelper
+import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -169,12 +170,23 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val theResourceDocs = for {
         x <- activePlusLocalResourceDocs
-
+        // If we set the props`berlin_group_v1.3_alias.path`, we need to replace the url for BerlinV13 
+        (requestUrl, specifiedUrl) = if(!berlinGroupV13AliasPath.isEmpty && x.implementedInApiVersion == OBP_BERLIN_GROUP_1_3.apiVersion) {
+          (
+            s"/${berlinGroupV13AliasPath.head}/${berlinGroupV13AliasPath.last}${x.requestUrl}" // This is the "implemented" in url
+            ,Some(s"/${berlinGroupV13AliasPath.head}/${berlinGroupV13AliasPath.last}${x.requestUrl}") // This is the "specified" in url when we call the resourceDoc api
+          )
+        }else{
+          (
+            s"/${x.implementedInApiVersion.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}" // This is the "implemented" in url
+            ,Some(s"/${x.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}") // This is the "specified" in url when we call the resourceDoc api
+          )
+        }
         y = x.copy(
           isFeatured = getIsFeaturedApi(x.partialFunctionName),
           specialInstructions = getSpecialInstructions(x.partialFunctionName),
-          requestUrl =  s"/${x.implementedInApiVersion.urlPrefix}/${x.implementedInApiVersion.vDottedApiVersion}${x.requestUrl}", // This is the "implemented" in url
-          specifiedUrl = Some(s"/${x.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${x.requestUrl}"), // This is the "specified" in url when we call the resourceDoc api
+          requestUrl = requestUrl,
+          specifiedUrl = specifiedUrl
         )
       } yield {
         y.connectorMethods = x.connectorMethods // scala language bug, var field can't be kept when do copy, it must reset itself manually.

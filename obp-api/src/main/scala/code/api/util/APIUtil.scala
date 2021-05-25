@@ -33,7 +33,6 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -3944,5 +3943,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Empty => Left((FutureTimeoutException, 500))
     }
   }
+  
+  val berlinGroupV13AliasPath = APIUtil.getPropsValue("berlin_group_v1.3_alias.path","").split("/").toList
 
 }

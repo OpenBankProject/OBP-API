@@ -30,6 +30,7 @@ package code.api
 import java.net.URLDecoder
 import code.api.Constant._
 import code.api.OAuthHandshake._
+import code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
@@ -379,10 +380,19 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
      */
     def oPrefix(pf: OBPEndpoint): OBPEndpoint =
       new OBPEndpoint {
-        def isDefinedAt(req: Req): Boolean =
-          req.path.partPath.startsWith(list) && {
-            pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
+        def isDefinedAt(req: Req): Boolean = {
+          //If we set the props`berlin_group_v1.3_alias.path`,
+          // we need to support both: obp prefix (eg: berlin-group/v1.3) and props `berlin_group_v1.3_alias.path` (eg:0.6/V1)
+          if(!berlinGroupV13AliasPath.isEmpty && list == List(OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix, OBP_BERLIN_GROUP_1_3.apiVersion.apiShortVersion)){
+            (req.path.partPath.startsWith(berlinGroupV13AliasPath) || req.path.partPath.startsWith(list)) && {
+                pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))  
+              }
+          }else{
+            req.path.partPath.startsWith(list) && {
+              pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
+            }
           }
+        }
 
         def apply(req: Req): CallContext => Box[JsonResponse] = {
           val function: CallContext => Box[JsonResponse] = pf.apply(req.withNewPath(req.path.drop(listLen)))
