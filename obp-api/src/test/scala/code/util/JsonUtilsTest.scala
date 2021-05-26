@@ -3,7 +3,8 @@ package code.util
 import org.scalatest.{FlatSpec, Matchers, Tag}
 import com.openbankproject.commons.util.JsonUtils.buildJson
 import net.liftweb.json
-import net.liftweb.json.JsonAST.JNothing
+import net.liftweb.json.JBool
+import net.liftweb.json.JsonAST.{JNothing, JValue}
 
 class JsonUtilsTest extends FlatSpec with Matchers {
   object JsonUtilsTag extends Tag("JsonUtils")
@@ -872,6 +873,18 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |    "category":[2]
         |  }
         |]""".stripMargin)
+
+    val resultJson = buildJson(requestJson, mapping)
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+
+  "buildJson - request is JBool, mapping is {}" should "work well" taggedAs JsonUtilsTag in {
+    val requestJson: JValue = JBool(true)
+    val mapping = ("""{}""".stripMargin)
+    val expectedJson = json.parse("""{}""".stripMargin)
 
     val resultJson = buildJson(requestJson, mapping)
     val str1 = json.prettyRender(resultJson)

@@ -4611,23 +4611,21 @@ trait APIMethods400 {
                 } else{
                   Future.successful((EndpointMappingCommons(None,"","",""), callContext))
                 }
-//                requestMappingString = endpointMapping.requestMapping
+                requestMappingString = endpointMapping.requestMapping
 //                requestMappingJvalue = net.liftweb.json.parse(requestMappingString)
                 responseMappingString = endpointMapping.responseMapping
                 responseMappingJvalue = net.liftweb.json.parse(responseMappingString)
 
-                entityName <- NewStyle.function.tryons(s"$InvalidDynamicEndpointSwagger `entity` must contain at least one valid dynamic entity!", 400, cc.callContext) {
-                  //TODO Here need to be refactor later, only support one Entity and one Id here: 
-                  DynamicEndpointHelper.getAllEntitiesFromMappingJson(responseMappingString).head
+                (entityName, entityIdKey, entityIdValueFromUrl) <- if (method.value.equalsIgnoreCase("get")) {
+                  NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                    DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
+                  } 
+                } else {
+                  NewStyle.function.tryons(s"$InvalidEndpointMapping `request_mapping` must  be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                    DynamicEndpointHelper.getEntityNameKeyAndValue(requestMappingString, pathParams)
+                  }
                 }
 
-                (entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidDynamicEndpointSwagger `query` must contain at least one valid dynamic entity field !", 400, cc.callContext) {
-                  //TODO Here need to be refactor later, only support one Entity and one Id here: 
-                  val entityIdKey = DynamicEndpointHelper.getEntityQueryIdsFromMapping(responseMappingString).head
-                  //TODO, here need more logic to check if the Id is proper one!
-                  val entityIdFromUrl = pathParams.find(parameter => parameter._1.toLowerCase.contains("id")).map(_._2)
-                  (entityIdKey, entityIdFromUrl)
-                }
                 dynamicData <- Future{DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)}
                 dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
 
@@ -4651,8 +4649,8 @@ trait APIMethods400 {
 //                  dynamicJsonData
 //                } else if (method.value.equalsIgnoreCase("put")) {
 //                  dynamicJsonData
-//                } else if (method.value.equalsIgnoreCase("delete") && entityId.isDefined) {
-//                  dynamicJsonData
+                } else if (method.value.equalsIgnoreCase("delete") && entityIdValueFromUrl.isDefined) {
+                  DynamicEndpointHelper.deleteObjectByKeyValuePair(dynamicData, dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                 } else {
                   throw new RuntimeException(s"$NotImplemented Only support Http Method `GET` yet, current  is ${method.value}")
                 }

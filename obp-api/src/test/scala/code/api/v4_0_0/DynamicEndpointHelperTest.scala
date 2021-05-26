@@ -1,7 +1,9 @@
 package code.api.v4_0_0
 
+import code.DynamicData.DynamicDataT
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper
 import net.liftweb.json
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Formats, JArray, prettyRender}
 import org.scalatest.{FlatSpec, Matchers, Tag}
 
@@ -739,6 +741,57 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
 
     val params = Some(Map("status"->List("available"), "status2"->List("available2")))
     intercept[RuntimeException] {DynamicEndpointHelper.getObjectsByParams(jArray,params)}
+  }
+
+  "getEntityNameKeyAndValue with proper input" should "work well" taggedAs FunctionsTag in {
+    val mapping = """{
+                          |"id": {
+                          |    "entity": "PetEntity",
+                          |    "field": "field1",
+                          |    "query": "field1"
+                          |}
+                          |}""".stripMargin
+
+
+
+    val params = Map("id"->"1")
+    
+    val expectedResult = ("PetEntity","field1",Some("1"))
+    val result = DynamicEndpointHelper.getEntityNameKeyAndValue(mapping, params)
+    
+    result should equal(expectedResult)
+  }
+
+  "findDynamicData with proper input" should "work well" taggedAs FunctionsTag in {
+
+    case class DataTest (
+      dynamicDataId: Option[String],
+      dynamicEntityName: String,
+      dataJson: String,
+    )extends DynamicDataT
+    
+    val dataJsonString = """{
+                           |"id": {
+                           |    "entity": "PetEntity",
+                           |    "field": "field1",
+                           |    "query": "field1"
+                           |}
+                           |}""".stripMargin
+    val dataJsonString2 = """{
+                           |"id": {
+                           |    "entity": "PetEntity",
+                           |    "field": "field2",
+                           |    "query": "field2"
+                           |}
+                           |}""".stripMargin
+    val dynamicDataJson = json.parse(dataJsonString)
+    val dynamicDataList = List(DataTest(Some("1"),"PetEntity",dataJsonString), DataTest(Some("2"),"PetEntity2",dataJsonString2))
+
+
+    val expectedResult = ("PetEntity", "1")
+    val result: (String, String) = DynamicEndpointHelper.findDynamicData(dynamicDataList: List[DynamicDataT], dynamicDataJson: JValue)
+
+    result should equal(expectedResult)
   }
 
 }

@@ -439,6 +439,7 @@ object ErrorMessages {
   //EndpointMappings
   val EndpointMappingNotFoundByEndpointMappingId = "OBP-36004: Endpoint Mapping not found. Please specify valid values for ENDPOINT_MAPPING_ID. "
   val EndpointMappingNotFoundByOperationId = "OBP-36005: Endpoint Mapping not found. Please specify valid values for OPERATION_ID. "
+  val InvalidEndpointMapping = "OBP-36006: Invalid Endpoint Mapping. "
   // General Resource related messages above here
 
 

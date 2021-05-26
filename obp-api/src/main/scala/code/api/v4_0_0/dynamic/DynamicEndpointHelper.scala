@@ -1,6 +1,7 @@
 package code.api.v4_0_0.dynamic
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
+import code.DynamicData.{DynamicDataProvider, DynamicDataT}
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.ApiTag._
@@ -769,6 +770,40 @@ object DynamicEndpointHelper extends RestHelper {
     } else {
       jsonArray
     }
+  }
+
+
+  /**
+   * We can get the (entityName, entityIdKey, entityIdValueFromUrl) by the parameters. Better see the scala test.
+   * @param mappingJson it should be a valid endpoint mapping, it can be requestMapping or responseMapping
+   * @param pathParams the url parameters: eg: Map("petId"-> "1")
+   * @return eg: we can get: ("PetEntity","field1",Some("1"))  
+   * 
+   */
+  //TODO Here need to be refactor later, only support one Entity and one Id here, and it may throw exceptions.
+  def getEntityNameKeyAndValue (mappingJson: String, pathParams:Map[String, String]): (String, String, Option[String]) = {
+    // we can get the entity name, eg:PetEntity
+    val entityName = DynamicEndpointHelper.getAllEntitiesFromMappingJson(mappingJson).head
+    // it will get the entity field, eg: field1
+    val entityIdKey = DynamicEndpointHelper.getEntityQueryIdsFromMapping(mappingJson).head
+    // it will get the id value from the url, eg: 1
+    val entityIdValueFromUrl = pathParams.find(parameter => parameter._1.toLowerCase.contains("id")).map(_._2)
+    //(PetEntity, field1, 1) we can query all the PetEntity data
+    (entityName, entityIdKey, entityIdValueFromUrl)
+  }
+
+  def findDynamicData(dynamicDataList: List[DynamicDataT], dynamicDataJson: JValue) = {
+    val dynamicDataOption = dynamicDataList.find(dynamicData=>json.parse(dynamicData.dataJson) == dynamicDataJson)
+    dynamicDataOption.map(dynamicData =>(dynamicData.dynamicEntityName,dynamicData.dynamicDataId.getOrElse(""))).getOrElse("","")
+  }
+
+  /**
+   * we delete dynamic data by the (key, value) pair
+   */
+  def deleteObjectByKeyValuePair (dynamicDataList: List[DynamicDataT], jsonArray: JArray, key:String, value:String): JValue = {
+    val dynamicDataJson = getObjectByKeyValuePair(jsonArray: JArray, key:String, value:String)
+    val (dynamicEntityName, dynamicDateId) = findDynamicData(dynamicDataList, dynamicDataJson)
+    JBool(DynamicDataProvider.connectorMethodProvider.vend.delete(dynamicEntityName, dynamicDateId).getOrElse(false))
   }
 
 }

@@ -215,6 +215,8 @@ object JsonUtils {
   def buildJson(source: String, schema: JValue): JValue = buildJson(json.parse(source), schema)
 
   def buildJson(source: String, schema: String): JValue = buildJson(source, json.parse(schema))
+  
+  def buildJson(source: JValue, schema: String): JValue = buildJson(source, json.parse(schema))
 
   /**
    * Get given index value from path value, get direct index value if it JArray, escape IndexOutOfBoundsException
