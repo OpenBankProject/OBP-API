@@ -33,6 +33,7 @@ case class DynamicEndpointSwagger(swaggerString: String, dynamicEndpointId: Opti
 trait DynamicEndpointProvider {
   def create(userId: String, swaggerString: String): Box[DynamicEndpointT]
   def update(dynamicEndpointId: String, swaggerString: String): Box[DynamicEndpointT]
+  def updateHost(dynamicEndpointId: String, hostString: String): Box[DynamicEndpointT]
   def get(dynamicEndpointId: String): Box[DynamicEndpointT]
   def getAll(): List[DynamicEndpointT]
   def getDynamicEndpointsByUserId(userId: String): List[DynamicEndpointT]
