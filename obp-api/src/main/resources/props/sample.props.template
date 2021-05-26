@@ -950,3 +950,6 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 
 ## This props is used for the featured api collection, eg: API_Explore will use the api collection to tweak the Home Page
 #featured_api_collection_ids=
+
+# the alias prefix path for BerlinGroupV1.3 (OBP built-in is berlin-group/v1.3), the format must be xxx/yyy, eg: 0.6/v1 
+#berlin_group_v1.3_alias.path=

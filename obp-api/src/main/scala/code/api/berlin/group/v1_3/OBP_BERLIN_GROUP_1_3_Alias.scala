@@ -32,48 +32,33 @@
 package code.api.berlin.group.v1_3
 
 import code.api.OBPRestHelper
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
-import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
-import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
-import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, berlinGroupV13AliasPath, getAllowedEndpoints}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ScannedApiVersion
-
 import scala.collection.mutable.ArrayBuffer
-
-
-
 
 /*
 This file defines which endpoints from all the versions are available in v1
  */
-object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
+object OBP_BERLIN_GROUP_1_3_Alias extends OBPRestHelper with MdcLoggable with ScannedApis {
+  override val apiVersion = ScannedApiVersion(berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.head, berlinGroupV13AliasPath.last)
+  val versionStatus = OBP_BERLIN_GROUP_1_3.versionStatus
 
-  override val apiVersion = ScannedApiVersion("berlin-group", "BG", "v1.3")
-  val versionStatus = "DRAFT"
-
-  val endpoints =
-    APIMethods_AccountInformationServiceAISApi.endpoints ++
-    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
-    APIMethods_PaymentInitiationServicePISApi.endpoints ++
-    APIMethods_SigningBasketsApi.endpoints ++
-    APIMethods_CommonServicesApi.endpoints
-
-  override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
-    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
-    APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
-    APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
-    APIMethods_SigningBasketsApi.resourceDocs ++
-    APIMethods_CommonServicesApi.resourceDocs
+  override val allResourceDocs: ArrayBuffer[ResourceDoc] = if(berlinGroupV13AliasPath.nonEmpty){
+    OBP_BERLIN_GROUP_1_3.allResourceDocs.map(resourceDoc => resourceDoc.copy(
+      implementedInApiVersion = apiVersion,
+    ))
+  } else ArrayBuffer.empty[ResourceDoc]
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
+  override val routes: List[OBPEndpoint] = if(berlinGroupV13AliasPath.nonEmpty){
+    getAllowedEndpoints(OBP_BERLIN_GROUP_1_3.endpoints, allResourceDocs)
+  } else List.empty[OBPEndpoint]
 
   // Make them available for use!
-  registerRoutes(routes, allResourceDocs, apiPrefix)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+  if(berlinGroupV13AliasPath.nonEmpty){
+    registerRoutes(routes, allResourceDocs, apiPrefix)
+    logger.info(s"version $apiVersion has been run! There are ${routes.length} routes.")
+  }
 }
