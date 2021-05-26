@@ -13,19 +13,19 @@ import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
 object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonFormats{
-  override def save(entityName: String, requestBody: JObject): Box[DynamicData] = {
+  override def save(entityName: String, requestBody: JObject): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
     val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
     val dynamicData: DynamicData = DynamicData.create.DynamicDataId(idValue)
     val result = saveOrUpdate(entityName, requestBody, dynamicData)
     result
   }
-  override def update(entityName: String, requestBody: JObject, id: String): Box[DynamicData] = {
-    val dynamicData: DynamicData = get(entityName, id).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynameicDataId=$id")
+  override def update(entityName: String, requestBody: JObject, id: String): Box[DynamicDataT] = {
+    val dynamicData = get(entityName, id).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynameicDataId=$id").asInstanceOf[DynamicData]
     saveOrUpdate(entityName, requestBody, dynamicData)
   }
 
-  override def get(entityName: String, id: String): Box[DynamicData] = {
+  override def get(entityName: String, id: String): Box[DynamicDataT] = {
     //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
     DynamicData.find(By(DynamicData.DynamicDataId, id), By(DynamicData.DynamicEntityName, entityName)) match {
       case Full(dynamicData) => Full(dynamicData)
@@ -36,7 +36,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   override def getAllDataJson(entityName: String): List[JObject] = DynamicData.findAll(By(DynamicData.DynamicEntityName, entityName))
     .map(it => json.parse(it.dataJson)).map(_.asInstanceOf[JObject])
 
-  override def getAll(entityName: String): List[DynamicData] = DynamicData.findAll(By(DynamicData.DynamicEntityName, entityName))
+  override def getAll(entityName: String): List[DynamicDataT] = DynamicData.findAll(By(DynamicData.DynamicEntityName, entityName))
   
   override def delete(entityName: String, id: String) = {
     //forced the empty also to a error here. this is get Dynamic by Id, if it return Empty, better show the error in this level.
