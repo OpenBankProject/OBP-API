@@ -6,6 +6,8 @@ import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
+import net.liftweb.json
+import net.liftweb.json.JString
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
@@ -23,6 +25,13 @@ object MappedDynamicEndpointProvider extends DynamicEndpointProvider with Custom
   }
   override def update(dynamicEndpointId: String, swaggerString: String): Box[DynamicEndpointT] = {
     DynamicEndpoint.find(By(DynamicEndpoint.DynamicEndpointId, dynamicEndpointId)).map(_.SwaggerString(swaggerString).saveMe())
+  }
+  override def updateHost(dynamicEndpointId: String, hostString: String): Box[DynamicEndpointT] = {
+    DynamicEndpoint.find(By(DynamicEndpoint.DynamicEndpointId, dynamicEndpointId))
+      .map(dynamicEndpoint => {
+        dynamicEndpoint.SwaggerString(json.compactRender(json.parse(dynamicEndpoint.swaggerString).replace("host" :: Nil, JString(hostString)))).saveMe()
+      }
+      )
   }
 
   override def get(dynamicEndpointId: String): Box[DynamicEndpointT] = DynamicEndpoint.find(By(DynamicEndpoint.DynamicEndpointId, dynamicEndpointId))

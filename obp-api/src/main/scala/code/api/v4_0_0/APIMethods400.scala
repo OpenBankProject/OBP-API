@@ -4,7 +4,7 @@ import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.{ChargePolicy, JsonResponseException}
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, logoutLinkV400, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -71,11 +71,9 @@ import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.Date
-
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
-
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
 import net.liftweb.json
@@ -4324,6 +4322,9 @@ trait APIMethods400 {
          |
          |Create dynamic endpoints with one json format swagger content.
          |
+         |If the host of swagger is `dynamic_entity`, then you need link the swagger fields to the dynamic entity fields, 
+         |please check `Endpoint Mapping` endpoints.
+         |
          |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
          |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
          |
@@ -4365,6 +4366,43 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      updateDynamicEndpointHost,
+      implementedInApiVersion,
+      nameOf(updateDynamicEndpointHost),
+      "PUT",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID/host",
+      " Update Dynamic Endpoint Host",
+      s"""Update dynamic endpoint Host.
+         |The value can be obp_mock, dynamic_entity, or some service url.
+         |""",
+      dynamicEndpointHostJson400,
+      dynamicEndpointHostJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateDynamicEndpoint)))
+
+    lazy val updateDynamicEndpointHost: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: "host" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $DynamicEndpointHostJson400"
+            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              json.extract[DynamicEndpointHostJson400]
+            }
+            (dynamicEndpoint, callContext) <- NewStyle.function.updateDynamicEndpointHost(dynamicEndpointId, postedData.host, cc.callContext)
+          } yield {
+            (postedData, HttpCode.`201`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       getDynamicEndpoint,
@@ -4605,8 +4643,8 @@ trait APIMethods400 {
                 result = if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isDefined) {
                   DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                 } else if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isEmpty) {
-                  val result = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
-                  DynamicEndpointHelper.getObjectsByKeyValuePair(dynamicJsonData, result.get.head._1, result.get.head._2.head)
+                  val newParams = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
+                  DynamicEndpointHelper.getObjectsByParams(dynamicJsonData, newParams)
 //                } else if (method.value.equalsIgnoreCase("post")) {
 //                  //this post need the dynamicId to update it.
 //                  //1st: we need to find the data by json.field1 --> dynamicId --> update the table.

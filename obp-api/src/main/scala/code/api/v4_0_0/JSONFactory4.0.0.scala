@@ -511,6 +511,9 @@ case class PostCounterpartyJson400(
                                     is_beneficiary: Boolean,
                                     bespoke: List[PostCounterpartyBespokeJson]
                                   )
+case class DynamicEndpointHostJson400(
+  host: String
+)
 
 case class CounterpartyJson400(
                                  name: String,
