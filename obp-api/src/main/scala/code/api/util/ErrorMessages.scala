@@ -90,7 +90,8 @@ object ErrorMessages {
   val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
   val ResourceDoesNotExist = "OBP-10405: Resource does not exist."
-
+  val InvalidJsonValue = "OBP-10035: Incorrect json value."
+  
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024

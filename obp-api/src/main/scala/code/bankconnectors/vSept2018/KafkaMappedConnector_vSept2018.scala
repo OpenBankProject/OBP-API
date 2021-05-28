@@ -2099,7 +2099,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
           locatedAt = Some(""),
           moreInfo = Some(""),
-          hasDepositCapability = Some(true)
+          hasDepositCapability = Some(true),
+          supportedLanguages = None
         )  :: Nil
       )
 
@@ -2205,7 +2206,8 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
           locatedAt = Some(""),
           moreInfo = Some(""),
-          hasDepositCapability = Some(true)
+          hasDepositCapability = Some(true),
+          supportedLanguages = None
         )
       ))
     ),

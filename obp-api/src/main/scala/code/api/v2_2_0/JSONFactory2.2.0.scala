@@ -777,7 +777,8 @@ object JSONFactory220 {
       isAccessible = None,
       locatedAt = None,
       moreInfo = None,
-      hasDepositCapability = None
+      hasDepositCapability = None,
+      supportedLanguages = None
     )
     Full(atm)
   }

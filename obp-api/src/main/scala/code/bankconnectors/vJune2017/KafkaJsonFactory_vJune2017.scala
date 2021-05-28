@@ -369,7 +369,8 @@ case class InboundAtmJune2017(
 
                                locatedAt : Option[String],
                                moreInfo : Option[String],
-                               hasDepositCapability : Option[Boolean]
+                               hasDepositCapability : Option[Boolean],
+                               supportedLanguages: Option[List[String]]
                              ) extends AtmT
 
 case class InternalTransaction_vJune2017(

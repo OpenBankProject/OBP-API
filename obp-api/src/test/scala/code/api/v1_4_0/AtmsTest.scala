@@ -47,7 +47,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
                       locatedAt : Option[String],
                       moreInfo : Option[String],
-                      hasDepositCapability : Option[Boolean]
+                      hasDepositCapability : Option[Boolean],
+                      supportedLanguages: Option[List[String]]
                     ) extends AtmT
 
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : Option[String],
@@ -89,6 +90,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
   val fakeBranchType = Some("Main")
   val fakeMoreInfo = Some("Not available when it's snowing.")
   val fakehasDepositCapability = Some(true)
+  val fakeSupportedLanguages = Some(List("es"))
 
 
 
@@ -103,7 +105,9 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeIsAccessible,
     fakeBranchType,
     fakeMoreInfo,
-    fakehasDepositCapability)
+    fakehasDepositCapability,
+    fakeSupportedLanguages)
+  
   val fakeAtm2 = AtmTImpl(AtmId("atm2"), bankWithLicense, "Atm 2", fakeAddress2, fakeLocation2, fakeMeta,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
@@ -115,7 +119,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeIsAccessible,
     fakeBranchType,
     fakeMoreInfo,
-    fakehasDepositCapability)
+    fakehasDepositCapability,
+    fakeSupportedLanguages)
   val fakeAtm3 = AtmTImpl(AtmId("atm3"), bankWithLicense, "Atm 3", fakeAddress2, fakeLocation, fakeMetaNoLicense,
     fakeOpeningTime,fakeClosingTime,
     fakeOpeningTime,fakeClosingTime,
@@ -127,7 +132,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     fakeIsAccessible,
     fakeBranchType,
     fakeMoreInfo,
-    fakehasDepositCapability) // Should not be returned
+    fakehasDepositCapability,
+    fakeSupportedLanguages) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks
   val mockConnector = new AtmsProvider {

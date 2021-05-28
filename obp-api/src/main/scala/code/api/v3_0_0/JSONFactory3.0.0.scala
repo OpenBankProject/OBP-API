@@ -1090,7 +1090,8 @@ object JSONFactory300{
       isAccessible = Some(isAccessible),
       locatedAt = Some(atmJsonV300.located_at),
       moreInfo = Some(atmJsonV300.more_info),
-      hasDepositCapability = Some(hdc)
+      hasDepositCapability = Some(hdc),
+      supportedLanguages = None
     )
     Full(atm)
   }

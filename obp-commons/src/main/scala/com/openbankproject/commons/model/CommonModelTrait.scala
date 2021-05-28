@@ -157,7 +157,7 @@ trait AtmT {
   def hasDepositCapability: Option[Boolean]
   
   //These are not OBP Standard yet, only used for MXV100 now.
-  def supportedLanguages: Option[List[String]] = ???
+  def supportedLanguages: Option[List[String]]
 }
 
 // MappedBranch will implement this.

@@ -2340,7 +2340,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       isAccessible=Some(true),
       locatedAt=Some("string"),
       moreInfo=Some("string"),
-      hasDepositCapability=Some(true)))
+      hasDepositCapability=Some(true),
+      supportedLanguages=Some(List("es"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2406,7 +2407,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       isAccessible=Some(true),
       locatedAt=Some("string"),
       moreInfo=Some("string"),
-      hasDepositCapability=Some(true))))
+      hasDepositCapability=Some(true), 
+      supportedLanguages=Some(List("es"))))) 
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

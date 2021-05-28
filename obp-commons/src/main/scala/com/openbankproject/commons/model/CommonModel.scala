@@ -250,7 +250,9 @@ case class AtmTCommons(
 
                         locatedAt : Option[String],
                         moreInfo : Option[String],
-                        hasDepositCapability : Option[Boolean]) extends AtmT
+                        hasDepositCapability : Option[Boolean],
+                        supportedLanguages : Option[List[String]],
+) extends AtmT
 
 object AtmTCommons extends Converter[AtmT, AtmTCommons]
 

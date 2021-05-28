@@ -9,6 +9,8 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
+import scala.collection.immutable.List
+
 object Atms extends SimpleInjector {
 
   case class Atm (
@@ -44,7 +46,8 @@ object Atms extends SimpleInjector {
 
     locatedAt : Option[String],
     moreInfo : Option[String],
-    hasDepositCapability : Option[Boolean]
+    hasDepositCapability : Option[Boolean],
+    supportedLanguages: Option[List[String]]
   ) extends AtmT
 
   val atmsProvider = new Inject(buildOne _) {}
