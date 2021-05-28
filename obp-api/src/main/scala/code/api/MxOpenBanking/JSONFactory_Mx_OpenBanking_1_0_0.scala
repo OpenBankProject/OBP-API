@@ -58,7 +58,7 @@ case class FeeSurcharges(
 )
 case class MxATMV100(
   Identification: String,
-  SupportedLanguages: List[String],
+  SupportedLanguages: Option[List[String]],
   ATMServices: List[String],
   Accessibility: List[String],
   Access24HoursIndicator: Boolean,
@@ -84,14 +84,17 @@ case class GetAtmsResponseJson(
 )
 object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
    def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
-     val brandList = banks.map(bank => {
+     val brandList = banks
+       //first filter out the banks without the atms
+       .filter(bank =>atms.map(_.bankId).contains(bank.bankId))
+       .map(bank => {
        val bankAtms = atms.filter(_.bankId== bank.bankId)
        Brand(
          BrandName = bank.fullName,
          ATM = bankAtms.map{ bankAtm =>
            MxATMV100(
              Identification = bankAtm.atmId.value,
-             SupportedLanguages = Nil, //TODO1 Add field ATMS.supported_languages (comma separated list) and add OBP PUT endpoint to set /atms/supported-languages
+             SupportedLanguages = bankAtm.supportedLanguages,//TODO1 Add field ATMS.supported_languages (comma separated list) and add OBP PUT endpoint to set /atms/supported-languages
              ATMServices = Nil,  //TODO 2 # Add field ATM.services (comma separated list) and add OBP PUT endpoint to set /atms/services
              Accessibility = Nil, //TODO 3 # Add field ATM.accesibility_features (comma separated list) and add OBP PUT endpoint to set /atms/accesibility-features
              Access24HoursIndicator = true,//TODO 6 

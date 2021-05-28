@@ -2463,6 +2463,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
     val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)
+    val supportedLanguagesString = atm.supportedLanguages.map(_.mkString(",")).getOrElse("")
 
     //check the atm existence and update or insert data
     getAtmLegacy(atm.bankId, atm.atmId) match {
@@ -2505,6 +2506,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLocatedAt(atm.locatedAt.orNull)
             .mMoreInfo(atm.moreInfo.orNull)
             .mHasDepositCapability(hasDepositCapabilityString)
+            .mSupportedLanguages(supportedLanguagesString)
             .saveMe()
         }
       case _ =>
@@ -2549,6 +2551,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLocatedAt(atm.locatedAt.orNull)
             .mMoreInfo(atm.moreInfo.orNull)
             .mHasDepositCapability(hasDepositCapabilityString)
+            .mSupportedLanguages(supportedLanguagesString)
             .saveMe()
         }
     }
@@ -2654,6 +2657,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getAtmLegacy(bankId, atmId).map(atm => (atm, callContext))
     }
 
+  override def updateAtmSupportedLanguages(bankId: BankId, atmId: AtmId, supportedLanguages: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val supportedLanguagesString = supportedLanguages.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mSupportedLanguages(supportedLanguagesString).saveMe()).map(atm => (atm, callContext))
+    }
+    
   override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
     Future {
       Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)), callContext)

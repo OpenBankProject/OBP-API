@@ -1597,6 +1597,10 @@ trait Connector extends MdcLoggable {
     Failure(setUnimplementedError)
   }
 
+  def updateAtmSupportedLanguages(bankId : BankId, atmId: AtmId, supportedLanguages: List[String], callContext: Option[CallContext]) : Future[Box[(AtmT, Option[CallContext])]] = Future {
+    Failure(setUnimplementedError)
+  }
+  
   def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Future[Box[(List[AtmT], Option[CallContext])]] = Future {
     Failure(setUnimplementedError)
   }

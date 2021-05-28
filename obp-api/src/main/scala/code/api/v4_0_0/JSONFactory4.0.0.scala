@@ -645,6 +645,15 @@ case class ResourceDocFragment(
                                 successResponseBody: Option[JValue]
                            ) extends JsonFieldReName
 
+case class SupportedCurrenciesJson(
+  supported_languages: List[String]
+)
+
+case class AtmSupportedCurrenciesJson(
+  atm_id: String,
+  supported_languages: List[String]
+)
+
 object JSONFactory400 {
 
   def createCallsLimitJson(rateLimiting: RateLimiting) : CallLimitJsonV400 = {

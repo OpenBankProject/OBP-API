@@ -228,6 +228,12 @@ object NewStyle {
       } map { unboxFull(_) }
     }
 
+    def updateAtmSupportedLanguages(bankId : BankId, atmId : AtmId, supportedLanguages: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmSupportedLanguages(bankId, atmId, supportedLanguages, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
       Connector.connector.vend.getBank(bankId, callContext) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 404)

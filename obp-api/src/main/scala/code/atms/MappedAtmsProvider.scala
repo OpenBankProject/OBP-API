@@ -81,6 +81,8 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
   object mMoreInfo extends MappedString(this, 128)
 
   object mHasDepositCapability extends MappedString(this, 1)
+  
+  object mSupportedLanguages extends MappedText(this)
 
 
 
@@ -153,6 +155,10 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
     case _ => None
   }
 
+  override def  supportedLanguages = mSupportedLanguages.get match {
+    case value: String => Some (value.split(",").toList)
+    case _ => None
+  }
 
 }
 

@@ -7969,6 +7969,41 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      updateAtmSupportedCurrencies,
+      implementedInApiVersion,
+      nameOf(updateAtmSupportedCurrencies),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/supported-currencies",
+      "Update ATM Supported Currencies",
+      s"""Update ATM Supported Currencies.
+         |""",
+      supportedCurrenciesJson,
+      atmsSupportedCurrenciesJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmSupportedCurrencies : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "supported-currencies" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            supportedCurrencies <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SupportedCurrenciesJson]}", 400, cc.callContext) {
+              json.extract[SupportedCurrenciesJson].supported_languages
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmSupportedLanguages(bankId, atmId, supportedCurrencies, cc.callContext)
+          } yield {
+            (AtmSupportedCurrenciesJson(atm.atmId.value, atm.supportedLanguages.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
   }
 }
 

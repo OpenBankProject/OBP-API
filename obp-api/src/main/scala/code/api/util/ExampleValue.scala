@@ -748,6 +748,10 @@ object ExampleValue {
   lazy val atmIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("atm_id", atmIdExample)
 
+  lazy val supportedLanguagesExample = ConnectorField("""["es","fr","de"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("supported_languages", supportedLanguagesExample)
+  
+  
   lazy val canSeeOtherBankRoutingSchemeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_other_bank_routing_scheme", canSeeOtherBankRoutingSchemeExample)
 
