@@ -2660,6 +2660,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def getAllAtms(callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
+    Future {
+      Full(MappedAtm.findAll(), callContext)
+    }
+  }
 
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.

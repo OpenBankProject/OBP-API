@@ -238,6 +238,11 @@ object NewStyle {
         connectorEmptyResponse(_, callContext)
       }
     }
+    def getAllAtms(callContext: Option[CallContext]) : Future[(List[AtmT], Option[CallContext])] = {
+      Connector.connector.vend.getAllAtms(callContext: Option[CallContext]) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
     def createOrUpdateBank(bankId: String,
                            fullBankName: String,
                            shortBankName: String,

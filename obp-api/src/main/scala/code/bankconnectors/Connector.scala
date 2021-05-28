@@ -1601,6 +1601,10 @@ trait Connector extends MdcLoggable {
     Failure(setUnimplementedError)
   }
 
+  def getAllAtms(callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Future[Box[(List[AtmT], Option[CallContext])]] = Future {
+    Failure(setUnimplementedError)
+  }
+  
   //This method is only existing in mapper
   def accountOwnerExists(user: User, bankId: BankId, accountId: AccountId): Box[Boolean]= {
     val res =
