@@ -28,7 +28,7 @@ object APIMethods_AtmsApi extends RestHelper {
 
     val endpoints = 
       getMxAtms :: 
-      headMxAtms ::
+//      headMxAtms ::
       Nil
 
      val getMxAtmsResponseJson = json.parse(
@@ -144,9 +144,9 @@ object APIMethods_AtmsApi extends RestHelper {
        nameOf(getMxAtms),
        "GET", 
        "/atms", 
-       "getAccountByAccountId",
+       "Get ATMS",
        s"""${mockedDataText(false)}
-            Get Account by AccountId
+            Gets a list of all ATM objects.
             """,
        emptyObjectJson,
        getMxAtmsResponseJson,
@@ -167,38 +167,38 @@ object APIMethods_AtmsApi extends RestHelper {
          }
        }
             
-     resourceDocs += ResourceDoc(
-       headMxAtms, 
-       apiVersion, 
-       nameOf(headMxAtms),
-       "GET", 
-       "/accounts", 
-       "getAccounts",
-       s"""${mockedDataText(false)}
-            Get Accounts
-            """,
-       emptyObjectJson,
-       emptyObjectJson,
-       List(
-         UserNotLoggedIn, 
-         ConsentNotFound,
-         ConsentNotBeforeIssue,
-         ConsentExpiredIssue, 
-         UnknownError
-       ),
-       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
-     )
-
-     lazy val headMxAtms : OBPEndpoint = {
-       case "accounts" :: Nil JsonGet _ => {
-         cc =>
-           for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-           } yield {
-             (json.parse("""{}"""), callContext)
-           }
-         }
-       }
+//     resourceDocs += ResourceDoc(
+//       headMxAtms, 
+//       apiVersion, 
+//       nameOf(headMxAtms),
+//       "GET", 
+//       "/accounts", 
+//       "Head ATMS",
+//       s"""${mockedDataText(false)}
+//            Gets header information on the current set of ATM data
+//            """,
+//       emptyObjectJson,
+//       emptyObjectJson,
+//       List(
+//         UserNotLoggedIn, 
+//         ConsentNotFound,
+//         ConsentNotBeforeIssue,
+//         ConsentExpiredIssue, 
+//         UnknownError
+//       ),
+//       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
+//     )
+//
+//     lazy val headMxAtms : OBPEndpoint = {
+//       case "accounts" :: Nil JsonGet _ => {
+//         cc =>
+//           for {
+//             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+//           } yield {
+//             (json.parse("""{}"""), callContext)
+//           }
+//         }
+//       }
 
 }
 

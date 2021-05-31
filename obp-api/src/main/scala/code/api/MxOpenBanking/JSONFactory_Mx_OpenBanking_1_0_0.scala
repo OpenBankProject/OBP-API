@@ -100,7 +100,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
              Access24HoursIndicator = true,//TODO 6 
              SupportedCurrencies = List("USD","MXN"), //TODO provide dummy data firstly, need to prepare obp data and map it.
              MinimumPossibleAmount = "5", //TODO 5 Add field ATM.minimum_withdrawal and add OBP PUT endpoint to set /atms/minimum-withdrawal
-             Note = List("String1","Sting2"),
+             Note = List("String1","Sting2"),//TODO provide dummy data firstly, need to prepare obp data and map it. 
              OtherAccessibility = List(OtherAccessibility("string","string","string")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
              OtherATMServices = List(OtherAccessibility("string","string","string")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
              Branch = MxBranchV100("N/A"), //TODO 10 Add field branch_identification String

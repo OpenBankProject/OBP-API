@@ -8118,8 +8118,8 @@ trait APIMethods400 {
       "Update ATM Notes",
       s"""Update ATM Notes.
          |""",
-      atmServicesJson,
-      atmServicesResponseJson,
+      atmNotesJson,
+      atmNotesResponseJson,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,

@@ -44,7 +44,8 @@ import scala.collection.mutable.ArrayBuffer
 This file defines which endpoints from all the versions are available in v1
  */
 object OBP_Mx_OpenBanking_1_0_0 extends OBPRestHelper with MdcLoggable with ScannedApis {
-  override val apiVersion = ScannedApiVersion("mx-open-banking", "MX", "v1.0.0")
+//  mx-open-finance
+  override val apiVersion = ScannedApiVersion("mxof", "MXOF", "v1.0.0")
   val versionStatus = "DRAFT"
 
   private[this] val endpoints = APIMethods_AtmsApi.endpoints 
