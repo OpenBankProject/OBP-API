@@ -4216,6 +4216,21 @@ object SwaggerDefinitionsJSON {
   )
   
 
+  val atmLocationCategoriesJsonV400 = AtmLocationCategoriesJsonV400(
+    atmNotesExample.value
+      .replaceAll(""""""","").replace("""[""","")
+      .replace("""]""","").split(",").toList
+  )
+
+  val atmLocationCategoriesResponseJsonV400 = AtmLocationCategoriesResponseJsonV400(
+    atmIdExample.value,
+    atmNotesExample.value.replaceAll(""""""","")
+      .replace("""[""","")
+      .replace("""]""","")
+      .split(",").toList
+  )
+  
+
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

@@ -53,14 +53,14 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
                       accessibilityFeatures: Option[List[String]] = None,
                       supportedCurrencies: Option[List[String]] = None,
                       notes: Option[List[String]] = None,
+                      locationCategories: Option[List[String]]= None,
                       minimumWithdrawal: Option[String] = None,
                       branchIdentification: Option[String] = None,
-                      locationCategories: Option[String] = None,
                       siteIdentification: Option[String] = None,
                       siteName: Option[String] = None,
-                      CashWithdrawalNational: Option[String] = None,
-                      CashWithdrawalInternational: Option[String] = None,
-                      BalanceInquiry: Option[String] = None,
+                      cashWithdrawalNationalFee: Option[String] = None,
+                      cashWithdrawalInternationalFee: Option[String] = None,
+                      balanceInquiryFee: Option[String] = None,
                     ) extends AtmT
 
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : Option[String],

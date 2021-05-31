@@ -29,7 +29,7 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.MxOpenBanking
+package code.api.MxOF
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
@@ -43,7 +43,7 @@ import scala.collection.mutable.ArrayBuffer
 /*
 This file defines which endpoints from all the versions are available in v1
  */
-object OBP_Mx_OpenBanking_1_0_0 extends OBPRestHelper with MdcLoggable with ScannedApis {
+object OBP_MXOF_1_0_0 extends OBPRestHelper with MdcLoggable with ScannedApis {
 //  mx-open-finance
   override val apiVersion = ScannedApiVersion("mxof", "MXOF", "v1.0.0")
   val versionStatus = "DRAFT"

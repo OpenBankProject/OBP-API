@@ -2703,6 +2703,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           By(MappedAtm.mAtmId, atmId.value)).map(_.mNotes(notesString).saveMe()).map(atm => (atm, callContext))
     }
 
+  override def updateAtmLocationCategories(bankId: BankId, atmId: AtmId, locationCategories: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val locationCategoriesString = locationCategories.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mLocationCategories(locationCategoriesString).saveMe()).map(atm => (atm, callContext))
+    }
+
   override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
     Future {
       Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)), callContext)

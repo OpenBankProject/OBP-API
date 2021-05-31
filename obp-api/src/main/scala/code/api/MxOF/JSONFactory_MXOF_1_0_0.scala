@@ -1,4 +1,4 @@
-package code.api.MxOpenBanking
+package code.api.MxOF
 
 import code.api.util.CustomJsonFormats
 import com.openbankproject.commons.model.Bank
@@ -82,7 +82,7 @@ case class GetAtmsResponseJson(
   meta: MetaBis,
   data: List[Data]
 )
-object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
+object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
    def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
      val brandList = banks
        //first filter out the banks without the atms
@@ -99,18 +99,18 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
              Accessibility = List("ATAD","ATAC"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
              Access24HoursIndicator = true,//TODO 6 
              SupportedCurrencies = List("USD","MXN"), //TODO provide dummy data firstly, need to prepare obp data and map it.
-             MinimumPossibleAmount = "5", //TODO 5 Add field ATM.minimum_withdrawal and add OBP PUT endpoint to set /atms/minimum-withdrawal
+             MinimumPossibleAmount = "5", //TODO provide dummy data firstly, need to prepare obp data and map it. 
              Note = List("String1","Sting2"),//TODO provide dummy data firstly, need to prepare obp data and map it. 
              OtherAccessibility = List(OtherAccessibility("string","string","string")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
              OtherATMServices = List(OtherAccessibility("string","string","string")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
-             Branch = MxBranchV100("N/A"), //TODO 10 Add field branch_identification String
+             Branch = MxBranchV100("N/A"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
              Location = Location(
-               LocationCategory = List("ATBI","ATBE"), //TODO 11 # Add field location_categories (comma separated list)
+               LocationCategory = List("ATBI","ATBE"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
                OtherLocationCategory = List(OtherAccessibility("string","string","string")), //TODO 12 Add Table atm_other_location_category with atm_id and the following fields and a PUT endpoint /atms/ATM_ID/other-location-categories
                Site = Site(
                  Identification = "String",
                  Name= "String"
-               ),//TODO 13 # Add fields site_identification and site_name
+               ),//TODO provide dummy data firstly, need to prepare obp data and map it. 
                PostalAddress = PostalAddress(
                  AddressLine= bankAtm.address.line1,
                  BuildingNumber= bankAtm.address.line2,
@@ -131,7 +131,7 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
              FeeSurcharges = FeeSurcharges(
                CashWithdrawalNational = "String",
                CashWithdrawalInternational = "String",
-               BalanceInquiry = "String") //TODO 13 # add fields cash_withdrawal_national_fee, cash_withdrawal_international_fee, balance_enquiry_fee
+               BalanceInquiry = "String") //TODO provide dummy data firstly, need to prepare obp data and map it. 
            )
          }
        )

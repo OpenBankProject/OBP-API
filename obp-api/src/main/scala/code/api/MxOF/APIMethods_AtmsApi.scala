@@ -1,7 +1,7 @@
-package code.api.MxOpenBanking
+package code.api.MxOF
 
 import code.api.Constant
-import code.api.MxOpenBanking.JSONFactory_MX_OPEN_FINANCE_0_0_1.createGetAtmsResponse
+import code.api.MxOF.JSONFactory_MXOF_0_0_1.createGetAtmsResponse
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -13,6 +13,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import dispatch.Future
 import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json._
@@ -21,14 +22,30 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 
 object APIMethods_AtmsApi extends RestHelper {
-    val apiVersion =  OBP_Mx_OpenBanking_1_0_0.apiVersion
+  
+  protected trait TestHead {
+    /**
+     * Test to see if the request is a GET and expecting JSON in the response.
+     * The path and the Req instance are extracted.
+     */
+    def unapply(r: Req): Option[(List[String], Req)] =
+      if (r.requestType.head_? && testResponse_?(r))
+        Some(r.path.partPath -> r) else None
+
+    def testResponse_?(r: Req): Boolean
+  }
+  
+  lazy val JsonHead = new TestHead with JsonTest
+  
+  
+    val apiVersion =  OBP_MXOF_1_0_0.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
 
     val endpoints = 
       getMxAtms :: 
-//      headMxAtms ::
+      headMxAtms ::
       Nil
 
      val getMxAtmsResponseJson = json.parse(
@@ -167,38 +184,38 @@ object APIMethods_AtmsApi extends RestHelper {
          }
        }
             
-//     resourceDocs += ResourceDoc(
-//       headMxAtms, 
-//       apiVersion, 
-//       nameOf(headMxAtms),
-//       "GET", 
-//       "/accounts", 
-//       "Head ATMS",
-//       s"""${mockedDataText(false)}
-//            Gets header information on the current set of ATM data
-//            """,
-//       emptyObjectJson,
-//       emptyObjectJson,
-//       List(
-//         UserNotLoggedIn, 
-//         ConsentNotFound,
-//         ConsentNotBeforeIssue,
-//         ConsentExpiredIssue, 
-//         UnknownError
-//       ),
-//       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
-//     )
-//
-//     lazy val headMxAtms : OBPEndpoint = {
-//       case "accounts" :: Nil JsonGet _ => {
-//         cc =>
-//           for {
-//             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
-//           } yield {
-//             (json.parse("""{}"""), callContext)
-//           }
-//         }
-//       }
+     resourceDocs += ResourceDoc(
+       headMxAtms, 
+       apiVersion, 
+       nameOf(headMxAtms),
+       "HEAD", 
+       "/atms", 
+       "Head ATMS",
+       s"""${mockedDataText(false)}
+            Gets header information on the current set of ATM data
+            """,
+       emptyObjectJson,
+       emptyObjectJson,
+       List(
+         UserNotLoggedIn, 
+         ConsentNotFound,
+         ConsentNotBeforeIssue,
+         ConsentExpiredIssue, 
+         UnknownError
+       ),
+       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
+     )
+
+     lazy val headMxAtms : OBPEndpoint = {
+       case "atms" :: Nil JsonHead _ => {
+         cc =>
+           for {
+             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+           } yield {
+             (json.parse("""{}"""), callContext)
+           }
+         }
+       }
 
 }
 

@@ -340,6 +340,8 @@ object ErrorMessages {
   val UpdateAtmServicesException = "OBP-30093: Could not update the Atm Services."
   
   val UpdateAtmNotesException = "OBP-30094: Could not update the Atm Notes."
+  
+  val UpdateAtmLocationCategoriesException = "OBP-30095: Could not update the Atm Location Categories."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

@@ -26,6 +26,7 @@ class AtmsTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.updateAtmAccessibilityFeatures))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.updateAtmServices))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.updateAtmNotes))
+  object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.updateAtmLocationCategories))
 
 
   feature("We need to first create Atm and update the supported-currencies") {
@@ -140,6 +141,29 @@ class AtmsTest extends V400ServerSetup {
       val responseUpdate  = makePutRequest(update, write(postAtmNotesJson))
       responseUpdate.code should equal(201)
       responseUpdate.body.extract[AtmServicesResponseJsonV400].services should be (postAtmNotesJson.notes)
+    }
+  }
+
+  feature("We need to first create Atm and update the location-categories") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint2,ApiEndpoint7, VersionOfApi) {
+      val bankId = testBankId1;
+      val postAtmJson = SwaggerDefinitionsJSON.atmJsonV300.copy(bank_id= testBankId1.value)
+      val postAtmLocationCategoriesJson = SwaggerDefinitionsJSON.atmLocationCategoriesJsonV400
+
+      When("We need to grant role and create atm")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
+      val requestCreateAtm = (v4_0_0_Request / "banks" /bankId.value / "atms").POST <@ (user1)
+      val responseCreateAtm = makePostRequest(requestCreateAtm, write(postAtmJson))
+
+
+      responseCreateAtm.code should be (201)
+      val atmId = responseCreateAtm.body.extract[AtmJsonV300].id
+
+      val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId / "location-categories").PUT <@ (user1)
+
+      val responseUpdate  = makePutRequest(update, write(postAtmLocationCategoriesJson))
+      responseUpdate.code should equal(201)
+      responseUpdate.body.extract[AtmLocationCategoriesResponseJsonV400].location_categories should be (postAtmLocationCategoriesJson.location_categories)
     }
   }
 }
