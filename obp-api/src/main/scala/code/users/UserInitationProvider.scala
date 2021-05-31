@@ -36,4 +36,5 @@ trait UserInvitationTrait {
   def company: String
   def country: String
   def status: String
+  def secretLink: Long
 }

@@ -707,6 +707,9 @@ object ApiRole {
 
   case class CanDeleteEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEndpointMapping = CanDeleteEndpointMapping()
+  
+  case class CanCreateUserInvitation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateUserInvitation = CanCreateUserInvitation()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

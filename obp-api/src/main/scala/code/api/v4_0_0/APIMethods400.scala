@@ -3145,6 +3145,44 @@ trait APIMethods400 {
     }
 
 
+    staticResourceDocs += ResourceDoc(
+      createUserInvitation,
+      implementedInApiVersion,
+      nameOf(createUserInvitation),
+      "POST",
+      "/banks/BANK_ID/user-invitation",
+      "Create User Invitation",
+      s"""Create User Invitation.
+         |
+         |""",
+      userInvitationPostJsonV200,
+      userInvitationJsonV200,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagKyc ,apiTagNewStyle),
+      Some(canCreateUserInvitation :: Nil)
+    )
+
+    lazy val createUserInvitation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user-invitation" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserInvitationJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostUserInvitationJsonV400]
+            }
+            (invitation, callContext) <- NewStyle.function.createUserInvitation(postedData.first_name, postedData.last_name , postedData.email , postedData.company , postedData.country , cc.callContext)
+          } yield {
+            (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
 
     staticResourceDocs += ResourceDoc(
       createBank,

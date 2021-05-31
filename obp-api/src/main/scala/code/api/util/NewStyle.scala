@@ -34,7 +34,7 @@ import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.model.dataAccess.BankAccountRouting
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
-import code.users.Users
+import code.users.{UserInvitation, UserInvitationProvider, Users}
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -684,7 +684,11 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-
+    def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
+      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.createUserInvitation(firstName, lastName, email, company, country)
+      (unboxFullOrFail(response, callContext, s"$CannotCreateUserInvitation", 400), callContext)
+    }
+    
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
         Connector.connector.vend.getAdapterInfo(callContext) map {
           connectorEmptyResponse(_, callContext)

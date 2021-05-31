@@ -238,6 +238,7 @@ object ErrorMessages {
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
   val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
   val ConsumerNotFoundByConsumerId = "OBP-30019: Consumer not found. Please specify a valid value for CONSUMER_ID."
+  val CannotCreateUserInvitation = "OBP-30020: Cannot create user invitation."
   
 
   val CreateBankError = "OBP-30020: Could not create the Bank"
