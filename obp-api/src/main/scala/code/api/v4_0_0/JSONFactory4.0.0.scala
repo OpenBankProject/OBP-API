@@ -646,13 +646,50 @@ case class ResourceDocFragment(
                            ) extends JsonFieldReName
 
 case class SupportedCurrenciesJson(
-  supported_languages: List[String]
+  supported_currencies: List[String]
 )
 
 case class AtmSupportedCurrenciesJson(
   atm_id: String,
+  supported_currencies: List[String]
+)
+
+case class SupportedLanguagesJson(
   supported_languages: List[String]
 )
+
+case class AtmSupportedLanguagesJson(
+  atm_id: String,
+  supported_languages: List[String]
+)
+
+case class AccessibilityFeaturesJson(
+  accessibility_features: List[String]
+)
+
+case class AtmAccessibilityFeaturesJson(
+  atm_id: String,
+  accessibility_features: List[String]
+)
+
+case class AtmServicesJsonV400(
+  services: List[String]
+)
+
+case class AtmServicesResponseJsonV400(
+  atm_id: String,
+  services: List[String]
+)
+
+case class AtmNotesJsonV400(
+  notes: List[String]
+)
+
+case class AtmNotesResponseJsonV400(
+  atm_id: String,
+  notes: List[String]
+)
+
 
 object JSONFactory400 {
 

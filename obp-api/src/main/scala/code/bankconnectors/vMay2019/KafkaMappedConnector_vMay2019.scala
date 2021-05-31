@@ -739,8 +739,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       isAccessible=Some(true),
       locatedAt=Some("string"),
       moreInfo=Some("string"),
-      hasDepositCapability=Some(true),
-      supportedLanguages=Some(List("es"))))
+      hasDepositCapability=Some(true)))
     ),
     adapterImplementation = Some(AdapterImplementation("ATM", 1))
   )
@@ -850,8 +849,7 @@ trait KafkaMappedConnector_vMay2019 extends Connector with KafkaHelper with MdcL
       isAccessible=Some(true),
       locatedAt=Some("string"),
       moreInfo=Some("string"),
-      hasDepositCapability=Some(true),
-      supportedLanguages=Some(List("es")))))
+      hasDepositCapability=Some(true))))
     ),
     adapterImplementation = Some(AdapterImplementation("ATM", 1))
   )

@@ -331,6 +331,16 @@ object ErrorMessages {
   
   val InvalidAuthContextUpdateRequestKey = "OBP-30088: Invalid Auth Context Update Request Key."
 
+  val UpdateAtmSupportedLanguagesException = "OBP-30089: Could not update the Atm Supported Languages."
+  
+  val UpdateAtmSupportedCurrenciesException = "OBP-30091: Could not update the Atm Supported Currencies."
+  
+  val UpdateAtmAccessibilityFeaturesException = "OBP-30092: Could not update the Atm Accessibility Features."
+  
+  val UpdateAtmServicesException = "OBP-30093: Could not update the Atm Services."
+  
+  val UpdateAtmNotesException = "OBP-30094: Could not update the Atm Notes."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

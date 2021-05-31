@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{APIInfoJson400, AccountBalanceJsonV400, AccountTagJSON, AccountTagsJSON, AccountsBalancesJsonV400, ApiCollectionEndpointJson400, ApiCollectionEndpointsJson400, ApiCollectionJson400, ApiCollectionsJson400, AtmSupportedCurrenciesJson, AttributeDefinitionJsonV400, AttributeDefinitionResponseJsonV400, AttributeDefinitionsResponseJsonV400, AttributeJsonV400, BalanceJsonV400, BankAccountRoutingJson, BankJson400, BanksJson400, CallLimitPostJsonV400, ChallengeAnswerJson400, ChallengeJsonV400, ConsentInfoJsonV400, ConsentInfosJsonV400, ConsentJsonV400, ConsentsJsonV400, CounterpartiesJson400, CounterpartyJson400, CounterpartyWithMetadataJson400, CustomerAttributeJsonV400, CustomerAttributesResponseJson, DirectDebitJsonV400, DoubleEntryTransactionJson, DynamicEndpointHostJson400, EnergySource400, HostedAt400, HostedBy400, IbanCheckerJsonV400, IbanDetailsJsonV400, JsonSchemaV400, JsonValidationV400, LogoutLinkJson, ModeratedAccountJSON400, ModeratedAccountsJSON400, ModeratedCoreAccountJsonV400, ModeratedFirehoseAccountJsonV400, ModeratedFirehoseAccountsJsonV400, PostAccountAccessJsonV400, PostAccountTagJSON, PostApiCollectionEndpointJson400, PostApiCollectionJson400, PostCounterpartyJson400, PostCustomerPhoneNumberJsonV400, PostDirectDebitJsonV400, PostRevokeGrantAccountAccessJsonV400, PostStandingOrderJsonV400, PostViewJsonV400, Properties, RefundJson, ResourceDocFragment, RevokedJsonV400, SettlementAccountJson, SettlementAccountRequestJson, SettlementAccountResponseJson, SettlementAccountsJson, StandingOrderJsonV400, SupportedCurrenciesJson, TransactionAttributeJsonV400, TransactionAttributeResponseJson, TransactionAttributesResponseJson, TransactionBankAccountJson, TransactionRequestAttributeJsonV400, TransactionRequestAttributeResponseJson, TransactionRequestAttributesResponseJson, TransactionRequestBankAccountJson, TransactionRequestBodyRefundJsonV400, TransactionRequestBodySEPAJsonV400, TransactionRequestReasonJsonV400, TransactionRequestRefundFrom, TransactionRequestRefundTo, TransactionRequestWithChargeJSON400, UpdateAccountJsonV400, UserLockStatusJson, When, XxxId}
+import code.api.v4_0_0._
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -4143,14 +4143,73 @@ object SwaggerDefinitionsJSON {
   )
 
   val supportedCurrenciesJson = SupportedCurrenciesJson(
+    supportedCurrenciesExample.value
+      .replaceAll(""""""","").replace("""[""","")
+      .replace("""]""","").split(",").toList
+  ) 
+  
+  val atmSupportedCurrenciesJson = AtmSupportedCurrenciesJson(
+    atmIdExample.value,
+    supportedCurrenciesExample.value.replaceAll(""""""","")
+      .replace("""[""","")
+      .replace("""]""","")
+      .split(",").toList
+  )
+
+  val supportedLanguagesJson = SupportedLanguagesJson(
     supportedLanguagesExample.value
       .replaceAll(""""""","").replace("""[""","")
       .replace("""]""","").split(",").toList
   ) 
   
-  val atmsSupportedCurrenciesJson = AtmSupportedCurrenciesJson(
+  val atmSupportedLanguagesJson = AtmSupportedLanguagesJson(
     atmIdExample.value,
     supportedLanguagesExample.value.replaceAll(""""""","")
+      .replace("""[""","")
+      .replace("""]""","")
+      .split(",").toList
+  )
+  
+
+  val accessibilityFeaturesJson = AccessibilityFeaturesJson(
+    accessibilityFeaturesExample.value
+      .replaceAll(""""""","").replace("""[""","")
+      .replace("""]""","").split(",").toList
+  ) 
+  
+  val atmAccessibilityFeaturesJson = AtmAccessibilityFeaturesJson(
+    atmIdExample.value,
+    accessibilityFeaturesExample.value.replaceAll(""""""","")
+      .replace("""[""","")
+      .replace("""]""","")
+      .split(",").toList
+  )
+
+
+  val atmServicesJson = AtmServicesJsonV400(
+    atmServicesExample.value
+      .replaceAll(""""""","").replace("""[""","")
+      .replace("""]""","").split(",").toList
+  )
+
+  val atmServicesResponseJson = AtmServicesResponseJsonV400(
+    atmIdExample.value,
+    atmServicesExample.value.replaceAll(""""""","")
+      .replace("""[""","")
+      .replace("""]""","")
+      .split(",").toList
+  )
+
+
+  val atmNotesJson = AtmNotesJsonV400(
+    atmNotesExample.value
+      .replaceAll(""""""","").replace("""[""","")
+      .replace("""]""","").split(",").toList
+  )
+
+  val atmNotesResponseJson = AtmNotesResponseJsonV400(
+    atmIdExample.value,
+    atmNotesExample.value.replaceAll(""""""","")
       .replace("""[""","")
       .replace("""]""","")
       .split(",").toList

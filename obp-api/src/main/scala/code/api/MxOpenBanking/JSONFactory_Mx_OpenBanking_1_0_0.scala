@@ -94,28 +94,31 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
          ATM = bankAtms.map{ bankAtm =>
            MxATMV100(
              Identification = bankAtm.atmId.value,
-             SupportedLanguages = bankAtm.supportedLanguages,//TODO1 Add field ATMS.supported_languages (comma separated list) and add OBP PUT endpoint to set /atms/supported-languages
-             ATMServices = Nil,  //TODO 2 # Add field ATM.services (comma separated list) and add OBP PUT endpoint to set /atms/services
-             Accessibility = Nil, //TODO 3 # Add field ATM.accesibility_features (comma separated list) and add OBP PUT endpoint to set /atms/accesibility-features
+             SupportedLanguages = Some(List("es","en")),//TODO provide dummy data firstly, need to prepare obp data and map it.
+             ATMServices = List("ATBA","ATBP"),  //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             Accessibility = List("ATAD","ATAC"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
              Access24HoursIndicator = true,//TODO 6 
-             SupportedCurrencies = Nil, //TODO 4 Add field ATM.supported_currencies (comma separated list) and add OBP PUT endpoint to set /atms/supported-currencies
-             MinimumPossibleAmount = "String", //TODO 5 Add String field ATM.minimum_withdrawal and add OBP PUT endpoint to set /atms/minimum-withdrawal
-             Note = Nil,//TODO 7
-             OtherAccessibility = Nil, //TODO8 Add table atm_other_accesibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accesibility-features
-             OtherATMServices = Nil, //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
-             Branch = MxBranchV100("'"), //TODO 10 Add field branch_identification String
+             SupportedCurrencies = List("USD","MXN"), //TODO provide dummy data firstly, need to prepare obp data and map it.
+             MinimumPossibleAmount = "5", //TODO 5 Add field ATM.minimum_withdrawal and add OBP PUT endpoint to set /atms/minimum-withdrawal
+             Note = List("String1","Sting2"),
+             OtherAccessibility = List(OtherAccessibility("string","string","string")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
+             OtherATMServices = List(OtherAccessibility("string","string","string")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
+             Branch = MxBranchV100("N/A"), //TODO 10 Add field branch_identification String
              Location = Location(
-               LocationCategory = Nil,
-               OtherLocationCategory = Nil,
-               Site = Site("",""),
+               LocationCategory = List("ATBI","ATBE"), //TODO 11 # Add field location_categories (comma separated list)
+               OtherLocationCategory = List(OtherAccessibility("string","string","string")), //TODO 12 Add Table atm_other_location_category with atm_id and the following fields and a PUT endpoint /atms/ATM_ID/other-location-categories
+               Site = Site(
+                 Identification = "String",
+                 Name= "String"
+               ),//TODO 13 # Add fields site_identification and site_name
                PostalAddress = PostalAddress(
-                 AddressLine= "String",
-                 BuildingNumber= "String",
-                 StreetName= "String",
-                 TownName= "String",
-                 CountrySubDivision = Nil, 
-                 Country = "String",
-                 PostCode= "String",
+                 AddressLine= bankAtm.address.line1,
+                 BuildingNumber= bankAtm.address.line2,
+                 StreetName= bankAtm.address.line3,
+                 TownName= bankAtm.address.city,
+                 CountrySubDivision = List(bankAtm.address.state), 
+                 Country = bankAtm.address.county.getOrElse(""),
+                 PostCode= bankAtm.address.postCode,
                  GeoLocation = GeoLocation(
                    GeographicCoordinates(
                      bankAtm.location.latitude.toString,
@@ -124,8 +127,11 @@ object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
                    )
                  )
                )
-             ), //TODO 11
-             FeeSurcharges = FeeSurcharges("","","") //TODO 12
+             ),
+             FeeSurcharges = FeeSurcharges(
+               CashWithdrawalNational = "String",
+               CashWithdrawalInternational = "String",
+               BalanceInquiry = "String") //TODO 13 # add fields cash_withdrawal_national_fee, cash_withdrawal_international_fee, balance_enquiry_fee
            )
          }
        )

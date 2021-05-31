@@ -4401,8 +4401,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       isAccessible=Some(true),
       locatedAt=Some("string"),
       moreInfo=Some("string"),
-      hasDepositCapability=Some(true),
-      supportedLanguages=Some(List("es"))))
+      hasDepositCapability=Some(true)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4501,8 +4500,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       isAccessible=Some(true),
       locatedAt=Some("string"),
       moreInfo=Some("string"),
-      hasDepositCapability=Some(true),
-      supportedLanguages=Some(List("es")))))
+      hasDepositCapability=Some(true))))
       ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

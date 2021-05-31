@@ -3087,8 +3087,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       isAccessible=Some(isAccessibleExample.value.toBoolean),
       locatedAt=Some(locatedAtExample.value),
       moreInfo=Some(moreInfoExample.value),
-      hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
-      supportedLanguages=Some(List("es"))))
+      hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3154,8 +3153,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       isAccessible=Some(isAccessibleExample.value.toBoolean),
       locatedAt=Some(locatedAtExample.value),
       moreInfo=Some(moreInfoExample.value),
-      hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
-        supportedLanguages=Some(List("es")))))
+      hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

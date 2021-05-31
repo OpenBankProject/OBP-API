@@ -230,7 +230,31 @@ object NewStyle {
 
     def updateAtmSupportedLanguages(bankId : BankId, atmId : AtmId, supportedLanguages: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
       Connector.connector.vend.updateAtmSupportedLanguages(bankId, atmId, supportedLanguages, callContext) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(AtmNotFoundByAtmId, 404, callContext.map(_.toLight)))
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmSupportedLanguagesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmSupportedCurrencies(bankId : BankId, atmId : AtmId, supportedCurrencies: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmSupportedCurrencies(bankId, atmId, supportedCurrencies, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmSupportedCurrenciesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmAccessibilityFeatures(bankId : BankId, atmId : AtmId, supportedCurrencies: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmAccessibilityFeatures(bankId, atmId, supportedCurrencies, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmAccessibilityFeaturesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmServices(bankId : BankId, atmId : AtmId, services: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmServices(bankId, atmId, services, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmServicesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmNotes(bankId : BankId, atmId : AtmId, notes: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmNotes(bankId, atmId, notes, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmNotesException, 404, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 

@@ -373,7 +373,19 @@ case class InboundAtmSept2018(
                                locatedAt : Option[String],
                                moreInfo : Option[String],
                                hasDepositCapability : Option[Boolean],
-                               supportedLanguages: Option[List[String]]
+                               supportedLanguages: Option[List[String]]= None,
+                               services: Option[List[String]] = None,
+                               accessibilityFeatures: Option[List[String]] = None,
+                               supportedCurrencies: Option[List[String]] = None,
+                               notes: Option[List[String]] = None,
+                               minimumWithdrawal: Option[String] = None,
+                               branchIdentification: Option[String] = None,
+                               locationCategories: Option[String] = None,
+                               siteIdentification: Option[String] = None,
+                               siteName: Option[String] = None,
+                               CashWithdrawalNational: Option[String] = None,
+                               CashWithdrawalInternational: Option[String] = None,
+                               BalanceInquiry: Option[String] = None,
                              ) extends AtmT
 
 case class InternalTransaction_vSept2018(
