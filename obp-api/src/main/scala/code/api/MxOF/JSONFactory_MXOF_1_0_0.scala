@@ -1,4 +1,4 @@
-package code.api.MxOpenBanking
+package code.api.MxOF
 
 import code.api.util.CustomJsonFormats
 import com.openbankproject.commons.model.Bank
@@ -82,7 +82,7 @@ case class GetAtmsResponseJson(
   meta: MetaBis,
   data: List[Data]
 )
-object JSONFactory_MX_OPEN_FINANCE_0_0_1 extends CustomJsonFormats {
+object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
    def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
      val brandList = banks
        //first filter out the banks without the atms
