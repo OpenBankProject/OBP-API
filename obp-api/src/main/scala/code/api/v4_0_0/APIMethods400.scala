@@ -7982,7 +7982,6 @@ trait APIMethods400 {
       atmSupportedCurrenciesJson,
       List(
         $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -8017,7 +8016,6 @@ trait APIMethods400 {
       atmSupportedCurrenciesJson,
       List(
         $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -8052,7 +8050,6 @@ trait APIMethods400 {
       atmAccessibilityFeaturesJson,
       List(
         $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -8087,7 +8084,6 @@ trait APIMethods400 {
       atmServicesResponseJson,
       List(
         $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -8122,7 +8118,6 @@ trait APIMethods400 {
       atmNotesResponseJson,
       List(
         $UserNotLoggedIn,
-        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -8140,6 +8135,40 @@ trait APIMethods400 {
             (atm, callContext) <- NewStyle.function.updateAtmNotes(bankId, atmId, notes, cc.callContext)
           } yield {
             (AtmServicesResponseJsonV400(atm.atmId.value, atm.notes.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmLocationCategories,
+      implementedInApiVersion,
+      nameOf(updateAtmLocationCategories),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/location-categories",
+      "Update ATM Location Categories",
+      s"""Update ATM Location Categories.
+         |""",
+      atmLocationCategoriesJsonV400,
+      atmLocationCategoriesResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmLocationCategories : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "location-categories" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            locationCategories <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmLocationCategoriesJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmLocationCategoriesJsonV400].location_categories
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmLocationCategories(bankId, atmId, locationCategories, cc.callContext)
+          } yield {
+            (AtmLocationCategoriesResponseJsonV400(atm.atmId.value, atm.locationCategories.getOrElse(Nil)), HttpCode.`201`(callContext))
           }
       }
     }

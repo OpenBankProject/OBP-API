@@ -760,6 +760,9 @@ object ExampleValue {
   lazy val atmNotesExample = ConnectorField("""["String1","String2"]""", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("ATM.notes", atmNotesExample)
   
+  lazy val atmLocationCategoriesExample = ConnectorField("""["ATBI","ATBE"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.location_categories", atmLocationCategoriesExample)
+  
   lazy val accessibilityFeaturesExample = ConnectorField("""["ATAC","ATAD"]""", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("accessibility_features", accessibilityFeaturesExample)
   

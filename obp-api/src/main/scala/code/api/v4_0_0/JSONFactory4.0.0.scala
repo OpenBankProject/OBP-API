@@ -690,6 +690,15 @@ case class AtmNotesResponseJsonV400(
   notes: List[String]
 )
 
+case class AtmLocationCategoriesJsonV400(
+  location_categories: List[String]
+)
+
+case class AtmLocationCategoriesResponseJsonV400(
+  atm_id: String,
+  location_categories: List[String]
+)
+
 
 object JSONFactory400 {
 
