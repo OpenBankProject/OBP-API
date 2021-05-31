@@ -250,7 +250,21 @@ case class AtmTCommons(
 
                         locatedAt : Option[String],
                         moreInfo : Option[String],
-                        hasDepositCapability : Option[Boolean]) extends AtmT
+                        hasDepositCapability : Option[Boolean] = None,
+                        supportedLanguages : Option[List[String]] = None,
+                        services: Option[List[String]] = None,
+                        accessibilityFeatures: Option[List[String]] = None,
+                        supportedCurrencies: Option[List[String]] = None,
+                        notes: Option[List[String]] = None,
+                        minimumWithdrawal: Option[String] = None,
+                        branchIdentification: Option[String] = None,
+                        locationCategories: Option[String] = None,
+                        siteIdentification: Option[String] = None,
+                        siteName: Option[String] = None,
+                        CashWithdrawalNational: Option[String] = None,
+                        CashWithdrawalInternational: Option[String] = None,
+                        BalanceInquiry: Option[String] = None,
+) extends AtmT
 
 object AtmTCommons extends Converter[AtmT, AtmTCommons]
 

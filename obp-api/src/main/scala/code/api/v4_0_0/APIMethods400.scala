@@ -7969,6 +7969,181 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      updateAtmSupportedCurrencies,
+      implementedInApiVersion,
+      nameOf(updateAtmSupportedCurrencies),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/supported-currencies",
+      "Update ATM Supported Currencies",
+      s"""Update ATM Supported Currencies.
+         |""",
+      supportedCurrenciesJson,
+      atmSupportedCurrenciesJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmSupportedCurrencies : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "supported-currencies" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            supportedCurrencies <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SupportedCurrenciesJson]}", 400, cc.callContext) {
+              json.extract[SupportedCurrenciesJson].supported_currencies
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmSupportedCurrencies(bankId, atmId, supportedCurrencies, cc.callContext)
+          } yield {
+            (AtmSupportedCurrenciesJson(atm.atmId.value, atm.supportedCurrencies.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmSupportedLanguages,
+      implementedInApiVersion,
+      nameOf(updateAtmSupportedLanguages),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/supported-languages",
+      "Update ATM Supported Languages",
+      s"""Update ATM Supported Languages.
+         |""",
+      supportedLanguagesJson,
+      atmSupportedCurrenciesJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmSupportedLanguages : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "supported-languages" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            supportedLanguages <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SupportedLanguagesJson]}", 400, cc.callContext) {
+              json.extract[SupportedLanguagesJson].supported_languages
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmSupportedLanguages(bankId, atmId, supportedLanguages, cc.callContext)
+          } yield {
+            (AtmSupportedLanguagesJson(atm.atmId.value, atm.supportedLanguages.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmAccessibilityFeatures,
+      implementedInApiVersion,
+      nameOf(updateAtmAccessibilityFeatures),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/accessibility-features",
+      "Update ATM Accessibility Features",
+      s"""Update ATM Accessibility Features.
+         |""",
+      accessibilityFeaturesJson,
+      atmAccessibilityFeaturesJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmAccessibilityFeatures : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "accessibility-features" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            accessibilityFeatures <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AccessibilityFeaturesJson]}", 400, cc.callContext) {
+              json.extract[AccessibilityFeaturesJson].accessibility_features
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmAccessibilityFeatures(bankId, atmId, accessibilityFeatures, cc.callContext)
+          } yield {
+            (AtmAccessibilityFeaturesJson(atm.atmId.value, atm.accessibilityFeatures.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmServices,
+      implementedInApiVersion,
+      nameOf(updateAtmServices),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/services",
+      "Update ATM Services",
+      s"""Update ATM Services.
+         |""",
+      atmServicesJson,
+      atmServicesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmServices : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "services" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            services <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmServicesJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmServicesJsonV400].services
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmServices(bankId, atmId, services, cc.callContext)
+          } yield {
+            (AtmServicesResponseJsonV400(atm.atmId.value, atm.services.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmNotes,
+      implementedInApiVersion,
+      nameOf(updateAtmNotes),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/notes",
+      "Update ATM Notes",
+      s"""Update ATM Notes.
+         |""",
+      atmNotesJson,
+      atmNotesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmNotes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "notes" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            notes <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmNotesJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmNotesJsonV400].notes
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmNotes(bankId, atmId, notes, cc.callContext)
+          } yield {
+            (AtmServicesResponseJsonV400(atm.atmId.value, atm.notes.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
   }
 }
 
