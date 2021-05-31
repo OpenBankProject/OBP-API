@@ -188,7 +188,7 @@ object APIMethods_AtmsApi extends RestHelper {
        headMxAtms, 
        apiVersion, 
        nameOf(headMxAtms),
-       "GET", 
+       "HEAD", 
        "/atms", 
        "Head ATMS",
        s"""${mockedDataText(false)}
