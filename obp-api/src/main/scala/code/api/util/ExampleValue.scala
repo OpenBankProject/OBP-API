@@ -748,6 +748,24 @@ object ExampleValue {
   lazy val atmIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("atm_id", atmIdExample)
 
+  lazy val supportedCurrenciesExample = ConnectorField("""["EUR","MXN","USD"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("supported_currencies", supportedCurrenciesExample)
+
+  lazy val supportedLanguagesExample = ConnectorField("""["es","fr","de"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("supported_languages", supportedCurrenciesExample)
+
+  lazy val atmServicesExample = ConnectorField("""["ATBP","ATBA"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.services", atmServicesExample)
+  
+  lazy val atmNotesExample = ConnectorField("""["String1","String2"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.notes", atmNotesExample)
+  
+  lazy val atmLocationCategoriesExample = ConnectorField("""["ATBI","ATBE"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.location_categories", atmLocationCategoriesExample)
+  
+  lazy val accessibilityFeaturesExample = ConnectorField("""["ATAC","ATAD"]""", NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("accessibility_features", accessibilityFeaturesExample)
+  
   lazy val canSeeOtherBankRoutingSchemeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_other_bank_routing_scheme", canSeeOtherBankRoutingSchemeExample)
 

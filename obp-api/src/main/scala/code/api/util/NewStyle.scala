@@ -229,6 +229,42 @@ object NewStyle {
       } map { unboxFull(_) }
     }
 
+    def updateAtmSupportedLanguages(bankId : BankId, atmId : AtmId, supportedLanguages: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmSupportedLanguages(bankId, atmId, supportedLanguages, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmSupportedLanguagesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmSupportedCurrencies(bankId : BankId, atmId : AtmId, supportedCurrencies: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmSupportedCurrencies(bankId, atmId, supportedCurrencies, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmSupportedCurrenciesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmAccessibilityFeatures(bankId : BankId, atmId : AtmId, supportedCurrencies: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmAccessibilityFeatures(bankId, atmId, supportedCurrencies, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmAccessibilityFeaturesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmServices(bankId : BankId, atmId : AtmId, services: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmServices(bankId, atmId, services, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmServicesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmNotes(bankId : BankId, atmId : AtmId, notes: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmNotes(bankId, atmId, notes, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmNotesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
+    def updateAtmLocationCategories(bankId : BankId, atmId : AtmId, locationCategories: List[String], callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.updateAtmLocationCategories(bankId, atmId, locationCategories, callContext) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmLocationCategoriesException, 404, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
       Connector.connector.vend.getBank(bankId, callContext) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 404)
@@ -236,6 +272,11 @@ object NewStyle {
     }
     def getBanks(callContext: Option[CallContext]) : Future[(List[Bank], Option[CallContext])] = {
       Connector.connector.vend.getBanks(callContext: Option[CallContext]) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
+    def getAllAtms(callContext: Option[CallContext]) : Future[(List[AtmT], Option[CallContext])] = {
+      Connector.connector.vend.getAllAtms(callContext: Option[CallContext]) map {
         connectorEmptyResponse(_, callContext)
       }
     }

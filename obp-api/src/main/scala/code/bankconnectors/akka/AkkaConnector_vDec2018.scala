@@ -2406,7 +2406,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       isAccessible=Some(true),
       locatedAt=Some("string"),
       moreInfo=Some("string"),
-      hasDepositCapability=Some(true))))
+      hasDepositCapability=Some(true)))) 
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

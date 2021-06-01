@@ -155,6 +155,22 @@ trait AtmT {
   def locatedAt: Option[String]
   def moreInfo: Option[String]
   def hasDepositCapability: Option[Boolean]
+  
+  //These are not OBP Standard yet, only used for MXV100 now.
+  def supportedLanguages: Option[List[String]]
+  def services: Option[List[String]]
+  def accessibilityFeatures: Option[List[String]]
+  def supportedCurrencies: Option[List[String]]
+  def notes: Option[List[String]]
+  def locationCategories: Option[List[String]]
+  
+  def minimumWithdrawal: Option[String]
+  def branchIdentification: Option[String]
+  def siteIdentification: Option[String]
+  def siteName: Option[String]
+  def cashWithdrawalNationalFee: Option[String]
+  def cashWithdrawalInternationalFee: Option[String]
+  def balanceInquiryFee: Option[String]
 }
 
 // MappedBranch will implement this.
