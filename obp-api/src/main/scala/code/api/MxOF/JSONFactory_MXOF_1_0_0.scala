@@ -21,7 +21,7 @@ case class OtherAccessibility(
   Description: String,
   Name: String
 )
-case class MxBranchV100(
+case class MxofBranchV100(
   Identification: String
 )
 case class Site(
@@ -56,7 +56,7 @@ case class FeeSurcharges(
   CashWithdrawalInternational: String,
   BalanceInquiry: String
 )
-case class MxATMV100(
+case class MxofATMV100(
   Identification: String,
   SupportedLanguages: Option[List[String]],
   ATMServices: List[String],
@@ -67,13 +67,13 @@ case class MxATMV100(
   Note: List[String],
   OtherAccessibility: List[OtherAccessibility],
   OtherATMServices: List[OtherAccessibility],
-  Branch: MxBranchV100,
+  Branch: MxofBranchV100,
   Location: Location,
   FeeSurcharges: FeeSurcharges
 )
 case class Brand(
   BrandName: String,
-  ATM: List[MxATMV100]
+  ATM: List[MxofATMV100]
 )
 case class Data(
   Brand: List[Brand]
@@ -92,7 +92,7 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
        Brand(
          BrandName = bank.fullName,
          ATM = bankAtms.map{ bankAtm =>
-           MxATMV100(
+           MxofATMV100(
              Identification = bankAtm.atmId.value,
              SupportedLanguages = Some(List("es","en")),//TODO provide dummy data firstly, need to prepare obp data and map it.
              ATMServices = List("ATBA","ATBP"),  //TODO provide dummy data firstly, need to prepare obp data and map it. 
@@ -103,7 +103,7 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
              Note = List("String1","Sting2"),//TODO provide dummy data firstly, need to prepare obp data and map it. 
              OtherAccessibility = List(OtherAccessibility("string","string","string")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
              OtherATMServices = List(OtherAccessibility("string","string","string")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
-             Branch = MxBranchV100("N/A"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             Branch = MxofBranchV100("N/A"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
              Location = Location(
                LocationCategory = List("ATBI","ATBE"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
                OtherLocationCategory = List(OtherAccessibility("string","string","string")), //TODO 12 Add Table atm_other_location_category with atm_id and the following fields and a PUT endpoint /atms/ATM_ID/other-location-categories
