@@ -688,6 +688,10 @@ object NewStyle {
       val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.createUserInvitation(firstName, lastName, email, company, country)
       (unboxFullOrFail(response, callContext, s"$CannotCreateUserInvitation", 400), callContext)
     }
+    def getUserInvitation(secretLink: Long, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
+      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitation(secretLink)
+      (unboxFullOrFail(response, callContext, s"$CannotGetUserInvitation", 400), callContext)
+    }
     
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
         Connector.connector.vend.getAdapterInfo(callContext) map {

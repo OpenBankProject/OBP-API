@@ -15,6 +15,10 @@ class RemotedataUserInvitationActor extends Actor with ObpActorHelper with MdcLo
     case cc.createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String) =>
       logger.debug(s"createUserCustomerLink($firstName, $lastName, $email, $company, $country)")
       sender ! (mapper.createUserInvitation(firstName, lastName, email, company, country))
+      
+    case cc.getUserInvitation(secretLink: Long) =>
+      logger.debug(s"createUserCustomerLink($secretLink)")
+      sender ! (mapper.getUserInvitation(secretLink))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

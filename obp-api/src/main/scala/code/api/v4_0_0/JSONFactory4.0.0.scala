@@ -133,7 +133,8 @@ case class UserInvitationJsonV400(first_name: String,
                                   email: String, 
                                   company: String, 
                                   country: String,
-                                  status: String)
+                                  status: String,
+                                  secret_link: Long)
 
 
 case class APIInfoJson400(
@@ -1080,7 +1081,8 @@ object JSONFactory400 {
       email = userInvitation.email,
       company = userInvitation.company,
       country = userInvitation.country,
-      status = userInvitation.status
+      status = userInvitation.status,
+      secret_link = userInvitation.secretLink
     )
   }
   

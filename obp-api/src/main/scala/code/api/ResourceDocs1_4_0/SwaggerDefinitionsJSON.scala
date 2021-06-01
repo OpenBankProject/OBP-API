@@ -1693,20 +1693,21 @@ object SwaggerDefinitionsJSON {
     entitlements = entitlementJSONs
   )
   
-  val userInvitationPostJsonV200 = PostUserInvitationJsonV400(
+  val userInvitationPostJsonV400 = PostUserInvitationJsonV400(
     first_name = ExampleValue.nameExample.value,
     last_name = ExampleValue.nameExample.value,
     email = ExampleValue.emailExample.value,
     company = "Tesobe",
     country = "Germany"
   ) 
-  val userInvitationJsonV200 = UserInvitationJsonV400(
+  val userInvitationJsonV400 = UserInvitationJsonV400(
     first_name = ExampleValue.nameExample.value,
     last_name = ExampleValue.nameExample.value,
     email = ExampleValue.emailExample.value,
     company = "Tesobe",
     country = "Germany",
-    status = "Created"
+    status = "Created",
+    secret_link = 5819479115482092878L
   )
 
   val entitlementRequestJSON =

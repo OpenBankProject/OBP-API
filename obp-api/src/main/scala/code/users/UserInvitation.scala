@@ -19,6 +19,9 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
       .Status("CREATED")
       .saveMe()
   }
+  override def getUserInvitation(secretLink: Long): Box[UserInvitation] = {
+    UserInvitation.find(By(UserInvitation.SecretLink, secretLink))
+  }
 }
 class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvitation] with IdPK with CreatedUpdated {
 

@@ -20,10 +20,12 @@ object UserInvitationProvider extends SimpleInjector {
 
 trait UserInvitationProvider {
   def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String): Box[UserInvitation]
+  def getUserInvitation(secretLink: Long): Box[UserInvitation]
 }
 
 class RemotedataUserInvitationProviderCaseClass {
   case class createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String)
+  case class getUserInvitation(secretLink: Long)
 }
 
 object RemotedataUserInvitationProviderCaseClass extends RemotedataUserInvitationProviderCaseClass
