@@ -1696,16 +1696,18 @@ object SwaggerDefinitionsJSON {
     last_name = ExampleValue.nameExample.value,
     email = ExampleValue.emailExample.value,
     company = "Tesobe",
-    country = "Germany"
+    country = "Germany",
+    purpose = "Developer"
   ) 
   val userInvitationJsonV400 = UserInvitationJsonV400(
     first_name = ExampleValue.nameExample.value,
     last_name = ExampleValue.nameExample.value,
     email = ExampleValue.emailExample.value,
-    company = "Tesobe",
+    company = "TESOBE",
     country = "Germany",
-    status = "Created",
-    secret_link = 5819479115482092878L
+    purpose = "Developer",
+    status = "CREATED",
+    secret_key = 5819479115482092878L
   )
 
   val entitlementRequestJSON =

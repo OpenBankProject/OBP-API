@@ -3163,7 +3163,7 @@ trait APIMethods400 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagUser, apiTagKyc ,apiTagNewStyle),
+      List(apiTagUserInvitation, apiTagKyc ,apiTagNewStyle),
       Some(canCreateUserInvitation :: Nil)
     )
 
@@ -3175,7 +3175,13 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostUserInvitationJsonV400]
             }
-            (invitation, callContext) <- NewStyle.function.createUserInvitation(postedData.first_name, postedData.last_name , postedData.email , postedData.company , postedData.country , cc.callContext)
+            (invitation, callContext) <- NewStyle.function.createUserInvitation(postedData.first_name, 
+              postedData.last_name, 
+              postedData.email, 
+              postedData.company, 
+              postedData.country, 
+              postedData.purpose, 
+              cc.callContext)
           } yield {
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
@@ -3202,7 +3208,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUserInvitation, apiTagNewStyle),
       Some(List(canGetUserInvitation))
     )
 

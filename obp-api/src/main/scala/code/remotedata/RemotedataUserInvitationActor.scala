@@ -12,9 +12,9 @@ class RemotedataUserInvitationActor extends Actor with ObpActorHelper with MdcLo
 
   def receive: PartialFunction[Any, Unit] = {
 
-    case cc.createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String) =>
-      logger.debug(s"createUserCustomerLink($firstName, $lastName, $email, $company, $country)")
-      sender ! (mapper.createUserInvitation(firstName, lastName, email, company, country))
+    case cc.createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String) =>
+      logger.debug(s"createUserCustomerLink($firstName, $lastName, $email, $company, $country, $purpose)")
+      sender ! (mapper.createUserInvitation(firstName, lastName, email, company, country, purpose))
       
     case cc.getUserInvitation(secretLink: Long) =>
       logger.debug(s"createUserCustomerLink($secretLink)")

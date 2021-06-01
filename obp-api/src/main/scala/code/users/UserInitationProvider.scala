@@ -19,12 +19,12 @@ object UserInvitationProvider extends SimpleInjector {
 }
 
 trait UserInvitationProvider {
-  def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String): Box[UserInvitation]
+  def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String): Box[UserInvitation]
   def getUserInvitation(secretLink: Long): Box[UserInvitation]
 }
 
 class RemotedataUserInvitationProviderCaseClass {
-  case class createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String)
+  case class createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String)
   case class getUserInvitation(secretLink: Long)
 }
 
@@ -38,5 +38,6 @@ trait UserInvitationTrait {
   def company: String
   def country: String
   def status: String
+  def purpose: String
   def secretLink: Long
 }

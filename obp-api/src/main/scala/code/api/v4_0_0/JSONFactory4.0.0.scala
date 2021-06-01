@@ -127,14 +127,16 @@ case class PostUserInvitationJsonV400(first_name: String,
                                       last_name: String, 
                                       email: String, 
                                       company: String, 
-                                      country: String)
-case class UserInvitationJsonV400(first_name: String, 
-                                  last_name: String, 
-                                  email: String, 
-                                  company: String, 
+                                      country: String,
+                                      purpose: String)
+case class UserInvitationJsonV400(first_name: String,
+                                  last_name: String,
+                                  email: String,
+                                  company: String,
                                   country: String,
+                                  purpose: String,
                                   status: String,
-                                  secret_link: Long)
+                                  secret_key: Long)
 
 
 case class APIInfoJson400(
@@ -1136,8 +1138,9 @@ object JSONFactory400 {
       email = userInvitation.email,
       company = userInvitation.company,
       country = userInvitation.country,
+      purpose = userInvitation.purpose,
       status = userInvitation.status,
-      secret_link = userInvitation.secretLink
+      secret_key = userInvitation.secretLink
     )
   }
   

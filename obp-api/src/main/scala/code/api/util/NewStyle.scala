@@ -725,8 +725,8 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-    def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
-      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.createUserInvitation(firstName, lastName, email, company, country)
+    def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
+      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.createUserInvitation(firstName, lastName, email, company, country, purpose)
       (unboxFullOrFail(response, callContext, s"$CannotCreateUserInvitation", 400), callContext)
     }
     def getUserInvitation(secretLink: Long, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {

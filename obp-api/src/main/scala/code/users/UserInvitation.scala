@@ -9,7 +9,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 object MappedUserInvitationProvider extends UserInvitationProvider {
-  override def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String): Box[UserInvitation] = tryo {
+  override def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String): Box[UserInvitation] = tryo {
     UserInvitation.create
       .FirstName(firstName)
       .LastName(lastName)
@@ -17,10 +17,11 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
       .Company(company)
       .Country(country)
       .Status("CREATED")
+      .Purpose(purpose)
       .saveMe()
   }
   override def getUserInvitation(secretLink: Long): Box[UserInvitation] = {
-    UserInvitation.find(By(UserInvitation.SecretLink, secretLink))
+    UserInvitation.find(By(UserInvitation.SecretKey, secretLink))
   }
 }
 class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvitation] with IdPK with CreatedUpdated {
@@ -36,7 +37,8 @@ class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvita
   object Company extends MappedString(this, 50)
   object Country extends MappedString(this, 50)
   object Status extends MappedString(this, 50)
-  object SecretLink extends MappedLong(this) {
+  object Purpose extends MappedString(this, 50)
+  object SecretKey extends MappedLong(this) {
     override def defaultValue: Long = SecureRandomUtil.csprng.nextLong()
   }
 
@@ -47,7 +49,8 @@ class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvita
   override def company: String = Company.get
   override def country: String = Country.get
   override def status: String = Status.get
-  override def secretLink: Long = SecretLink.get
+  override def purpose: String = Purpose.get
+  override def secretLink: Long = SecretKey.get
 }
 
 object UserInvitation extends UserInvitation with LongKeyedMetaMapper[UserInvitation] {
