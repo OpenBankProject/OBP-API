@@ -80,7 +80,10 @@ case class Data(
 )
 case class GetAtmsResponseJson(
   meta: MetaBis,
-  data: List[Data]
+  data: List[Data],
+  additionalProp1: String ="string",
+  additionalProp2: String ="string",
+  additionalProp3: String ="string"
 )
 object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
    def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
