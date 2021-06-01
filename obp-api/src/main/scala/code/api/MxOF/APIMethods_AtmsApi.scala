@@ -175,7 +175,7 @@ object APIMethods_AtmsApi extends RestHelper {
        case "atms" :: Nil JsonGet _ => {
          cc =>
            for {
-             (Full(user), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (_, callContext) <- anonymousAccess(cc)
              (banks, callContext) <- NewStyle.function.getBanks(callContext)
              (atms, callContext) <- NewStyle.function.getAllAtms(callContext)
            } yield {
@@ -210,9 +210,9 @@ object APIMethods_AtmsApi extends RestHelper {
        case "atms" :: Nil JsonHead _ => {
          cc =>
            for {
-             (Full(u), callContext) <- authenticatedAccess(cc, UserNotLoggedIn)
+             (_, callContext) <- anonymousAccess(cc)
            } yield {
-             (json.parse("""{}"""), callContext)
+             ("", callContext)
            }
          }
        }
