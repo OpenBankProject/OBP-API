@@ -168,7 +168,7 @@ object APIMethods_AtmsApi extends RestHelper {
        emptyObjectJson,
        getMxAtmsResponseJson,
        List(UserNotLoggedIn, UnknownError),
-       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
+       ApiTag("ATM") :: apiTagMXOpenFinance :: Nil
      )
     
      lazy val getMxAtms : OBPEndpoint = {
@@ -203,7 +203,7 @@ object APIMethods_AtmsApi extends RestHelper {
          ConsentExpiredIssue, 
          UnknownError
        ),
-       ApiTag("Accounts") :: apiTagMXOpenFinance :: Nil
+       ApiTag("ATM") :: apiTagMXOpenFinance :: Nil
      )
 
      lazy val headMxAtms : OBPEndpoint = {
