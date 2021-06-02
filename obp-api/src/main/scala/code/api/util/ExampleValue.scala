@@ -745,8 +745,11 @@ object ExampleValue {
   lazy val websiteExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("website", websiteExample)
 
-  lazy val atmIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val atmIdExample = ConnectorField("atme0352a-9a0f-4bfa-b30b-9003aa467f51","A string that MUST uniquely identify the ATM on this OBP instance.")
   glossaryItems += makeGlossaryItem("atm_id", atmIdExample)
+
+  lazy val atmNameExample = ConnectorField("Atm by the Lake","The name of the ATM")
+  glossaryItems += makeGlossaryItem("ATM.name", atmNameExample)
 
   lazy val supportedCurrenciesExample = ConnectorField("""["EUR","MXN","USD"]""", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("supported_currencies", supportedCurrenciesExample)
@@ -762,6 +765,27 @@ object ExampleValue {
   
   lazy val atmLocationCategoriesExample = ConnectorField("""["ATBI","ATBE"]""", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("ATM.location_categories", atmLocationCategoriesExample)
+  
+  lazy val atmMinimumWithdrawalExample = ConnectorField("""5""", "minimum withdrawal at this ATM")
+  glossaryItems += makeGlossaryItem("ATM.minimum_withdrawal", atmMinimumWithdrawalExample)
+  
+  lazy val atmBranchIdentificationExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.branch_identification", atmBranchIdentificationExample)
+  
+  lazy val siteIdentification = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.site_identification", siteIdentification)
+  
+  lazy val atmSiteNameExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.site_name", atmSiteNameExample)
+  
+  lazy val cashWithdrawalNationalFeeExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.cash_withdrawal_national_fee", cashWithdrawalNationalFeeExample)
+  
+  lazy val cashWithdrawalInternationalFeeExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.cash_withdrawal_international_fee", cashWithdrawalInternationalFeeExample)
+  
+  lazy val balanceInquiryFeeExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.balance_inquiry_fee", balanceInquiryFeeExample)
   
   lazy val accessibilityFeaturesExample = ConnectorField("""["ATAC","ATAD"]""", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("accessibility_features", accessibilityFeaturesExample)
@@ -1007,7 +1031,7 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("minimum_response_time", minimumResponseTimeExample)
 
   lazy val locatedAtExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("located_at", locatedAtExample)
+  glossaryItems += makeGlossaryItem("ATM.located_at", locatedAtExample)
 
   lazy val requireScopesForAllRolesExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("require_scopes_for_all_roles", requireScopesForAllRolesExample)
@@ -1229,7 +1253,7 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("card_description", cardDescriptionExample)
 
   lazy val moreInfoExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("more_info", moreInfoExample)
+  glossaryItems += makeGlossaryItem("ATM.more_info", moreInfoExample)
 
   lazy val fieldExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("field", fieldExample)
@@ -1412,7 +1436,7 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("dependent_endpoints", dependentEndpointsExample)
 
   lazy val hasDepositCapabilityExample = ConnectorField("true",NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("has_deposit_capability", hasDepositCapabilityExample)
+  glossaryItems += makeGlossaryItem("ATM.has_deposit_capability", hasDepositCapabilityExample)
 
   lazy val toCounterpartyExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("to_counterparty", toCounterpartyExample)
@@ -2006,7 +2030,7 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("is_public", isPublicExample)
 
   lazy val isAccessibleExample = ConnectorField("true",NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("is_accessible", isAccessibleExample)
+  glossaryItems += makeGlossaryItem("ATM.is_accessible", isAccessibleExample)
 
   lazy val entitlementIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("entitlement_id", entitlementIdExample)

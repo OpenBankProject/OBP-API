@@ -263,7 +263,13 @@ object NewStyle {
         x => fullBoxOrException(x ~> APIFailureNewStyle(UpdateAtmLocationCategoriesException, 404, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
-
+    
+    def createOrUpdateAtm(atm: AtmT, callContext: Option[CallContext]): OBPReturnType[AtmT] = {
+      Connector.connector.vend.createOrUpdateAtm(atm, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateAtmError", 400), i._2)
+      } 
+    }
+    
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
       Connector.connector.vend.getBank(bankId, callContext) map {
         unboxFullOrFail(_, callContext, s"$BankNotFound Current BankId is $bankId", 404)

@@ -1554,7 +1554,8 @@ trait Connector extends MdcLoggable {
 
 
   def createOrUpdateAtm(atm: AtmT): Box[AtmT] = Failure(setUnimplementedError)
-
+  
+  def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{Failure(setUnimplementedError)}
 
   def createOrUpdateProduct(
                              bankId : String,

@@ -193,11 +193,11 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
     case _ => None
   }
   
-  override def minimumWithdrawal: Option[String] = mSupportedCurrencies.get match {
+  override def minimumWithdrawal: Option[String] = mMinimumWithdrawal.get match {
     case value: String => Some (value)
     case _ => None
   }
-  override def branchIdentification: Option[String] = mSupportedCurrencies.get match {
+  override def branchIdentification: Option[String] = mBranchIdentification.get match {
     case value: String => Some (value)
     case _ => None
   }
@@ -205,23 +205,23 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
     case value: String => Some (value.split(",").toList)
     case _ => None
   }
-  override def siteIdentification: Option[String] = mSupportedCurrencies.get match {
+  override def siteIdentification: Option[String] = mSiteIdentification.get match {
     case value: String => Some (value)
     case _ => None
   }
-  override def siteName: Option[String] = mSupportedCurrencies.get match {
+  override def siteName: Option[String] = mSiteName.get match {
     case value: String => Some (value)
     case _ => None
   }
-  override def cashWithdrawalNationalFee: Option[String] = mSupportedCurrencies.get match {
+  override def cashWithdrawalNationalFee: Option[String] = mCashWithdrawalNationalFee.get match {
     case value: String => Some (value)
     case _ => None
   }
-  override def cashWithdrawalInternationalFee: Option[String] = mSupportedCurrencies.get match {
+  override def cashWithdrawalInternationalFee: Option[String] = mCashWithdrawalInternationalFee.get match {
     case value: String => Some (value)
     case _ => None
   }
-  override def balanceInquiryFee: Option[String] = mSupportedCurrencies.get match {
+  override def balanceInquiryFee: Option[String] = mBalanceInquiryFee.get match {
     case value: String => Some (value)
     case _ => None
   }

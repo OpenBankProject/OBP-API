@@ -1363,8 +1363,6 @@ trait APIMethods300 {
       }
     }
 
-    val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
-
     resourceDocs += ResourceDoc(
       getAtm,
       implementedInApiVersion,
