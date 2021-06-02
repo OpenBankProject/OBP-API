@@ -137,7 +137,7 @@ case class UserInvitationJsonV400(first_name: String,
                                   purpose: String,
                                   status: String,
                                   secret_key: Long)
-
+case class UserInvitationsJsonV400(user_invitations: List[UserInvitationJsonV400])
 
 case class APIInfoJson400(
                         version : String,
@@ -1142,6 +1142,10 @@ object JSONFactory400 {
       status = userInvitation.status,
       secret_key = userInvitation.secretLink
     )
+  }
+
+  def createUserInvitationJson(userInvitations: List[UserInvitation]): UserInvitationsJsonV400 = {
+    UserInvitationsJsonV400(userInvitations.map(createUserInvitationJson))
   }
   
   def createBalancesJson(accountsBalances: AccountsBalances) = {

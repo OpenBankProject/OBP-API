@@ -725,12 +725,16 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-    def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
-      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.createUserInvitation(firstName, lastName, email, company, country, purpose)
+    def createUserInvitation(bankId: BankId, firstName: String, lastName: String, email: String, company: String, country: String, purpose: String, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
+      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.createUserInvitation(bankId, firstName, lastName, email, company, country, purpose)
       (unboxFullOrFail(response, callContext, s"$CannotCreateUserInvitation", 400), callContext)
     }
-    def getUserInvitation(secretLink: Long, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
-      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitation(secretLink)
+    def getUserInvitation(bankId: BankId, secretLink: Long, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
+      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitation(bankId, secretLink)
+      (unboxFullOrFail(response, callContext, s"$CannotGetUserInvitation", 400), callContext)
+    }
+    def getUserInvitations(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[List[UserInvitation]] = Future {
+      val response = UserInvitationProvider.userInvitationProvider.vend.getUserInvitations(bankId)
       (unboxFullOrFail(response, callContext, s"$CannotGetUserInvitation", 400), callContext)
     }
     

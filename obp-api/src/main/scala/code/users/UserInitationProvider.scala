@@ -2,6 +2,7 @@ package code.users
 
 import code.api.util.APIUtil
 import code.remotedata.RemotedataUserInvitation
+import com.openbankproject.commons.model.BankId
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -19,19 +20,22 @@ object UserInvitationProvider extends SimpleInjector {
 }
 
 trait UserInvitationProvider {
-  def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String): Box[UserInvitation]
-  def getUserInvitation(secretLink: Long): Box[UserInvitation]
+  def createUserInvitation(bankId: BankId, firstName: String, lastName: String, email: String, company: String, country: String, purpose: String): Box[UserInvitation]
+  def getUserInvitation(bankId: BankId, secretLink: Long): Box[UserInvitation]
+  def getUserInvitations(bankId: BankId): Box[List[UserInvitation]]
 }
 
 class RemotedataUserInvitationProviderCaseClass {
-  case class createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String)
-  case class getUserInvitation(secretLink: Long)
+  case class createUserInvitation(bankId: BankId, firstName: String, lastName: String, email: String, company: String, country: String, purpose: String)
+  case class getUserInvitation(bankId: BankId, secretLink: Long)
+  case class getUserInvitations(bankId: BankId)
 }
 
 object RemotedataUserInvitationProviderCaseClass extends RemotedataUserInvitationProviderCaseClass
 
 trait UserInvitationTrait {
   def userInvitationId: String
+  def bankId: String
   def firstName: String
   def lastName: String
   def email: String

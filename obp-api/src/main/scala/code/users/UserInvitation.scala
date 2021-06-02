@@ -4,13 +4,15 @@ import java.util.UUID.randomUUID
 
 import code.api.util.SecureRandomUtil
 import code.util.UUIDString
+import com.openbankproject.commons.model.BankId
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 object MappedUserInvitationProvider extends UserInvitationProvider {
-  override def createUserInvitation(firstName: String, lastName: String, email: String, company: String, country: String, purpose: String): Box[UserInvitation] = tryo {
+  override def createUserInvitation(bankId: BankId, firstName: String, lastName: String, email: String, company: String, country: String, purpose: String): Box[UserInvitation] = tryo {
     UserInvitation.create
+      .BankId(bankId.value)
       .FirstName(firstName)
       .LastName(lastName)
       .Email(email)
@@ -20,8 +22,14 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
       .Purpose(purpose)
       .saveMe()
   }
-  override def getUserInvitation(secretLink: Long): Box[UserInvitation] = {
-    UserInvitation.find(By(UserInvitation.SecretKey, secretLink))
+  override def getUserInvitation(bankId: BankId, secretLink: Long): Box[UserInvitation] = {
+    UserInvitation.find(
+      By(UserInvitation.BankId, bankId.value),
+      By(UserInvitation.SecretKey, secretLink)
+    )
+  }
+  override def getUserInvitations(bankId: BankId): Box[List[UserInvitation]] = tryo {
+    UserInvitation.findAll(By(UserInvitation.BankId, bankId.value))
   }
 }
 class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvitation] with IdPK with CreatedUpdated {
@@ -31,6 +39,7 @@ class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvita
   object UserInvitationId extends UUIDString(this) {
     override def defaultValue = randomUUID().toString
   }
+  object BankId extends MappedString(this, 255)
   object FirstName extends MappedString(this, 50)
   object LastName extends MappedString(this, 50)
   object Email extends MappedString(this, 50)
@@ -43,6 +52,7 @@ class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvita
   }
 
   override def userInvitationId: String = UserInvitationId.get
+  override def bankId: String = BankId.get
   override def firstName: String = FirstName.get
   override def lastName: String = LastName.get
   override def email: String = Email.get
