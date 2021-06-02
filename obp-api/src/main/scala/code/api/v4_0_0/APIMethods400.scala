@@ -8014,7 +8014,7 @@ trait APIMethods400 {
       s"""Update ATM Supported Languages.
          |""",
       supportedLanguagesJson,
-      atmSupportedCurrenciesJson,
+      atmSupportedLanguagesJson,
       List(
         $UserNotLoggedIn,
         InvalidJsonFormat,
