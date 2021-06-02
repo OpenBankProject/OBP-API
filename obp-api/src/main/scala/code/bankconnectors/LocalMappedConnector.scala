@@ -2458,10 +2458,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{
-    (createOrUpdateAtm(atm), callContext)
+    (createOrUpdateAtmLegacy(atm), callContext)
   }
   
-  override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
+  override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
     val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)

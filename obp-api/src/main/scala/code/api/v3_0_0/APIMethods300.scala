@@ -1172,7 +1172,7 @@ trait APIMethods300 {
               atmJson <- tryo {json.extract[AtmJsonV300]} ?~! ErrorMessages.InvalidJsonFormat
             atm <- transformToAtmFromV300(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
             _ <- booleanToBox(atmJson.bank_id == bank.bankId.value, s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body")
-            success <- Connector.connector.vend.createOrUpdateAtm(atm)
+            success <- Connector.connector.vend.createOrUpdateAtmLegacy(atm)
           } yield {
             val json = JSONFactory300.createAtmJsonV300(success)
             createdJsonResponse(Extraction.decompose(json), 201)
