@@ -458,6 +458,7 @@ object ErrorMessages {
   // User Invitation
   val CannotCreateUserInvitation = "OBP-37081: Cannot create user invitation."
   val CannotGetUserInvitation = "OBP-37882: Cannot get user invitation."
+  val CannotFindUserInvitation = "OBP-37882: Cannot find user invitation."
 
 
   // Transaction Request related messages (OBP-40XXX)

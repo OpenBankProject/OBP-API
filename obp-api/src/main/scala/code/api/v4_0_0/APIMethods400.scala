@@ -70,10 +70,12 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-import java.util.Date
+import java.util.{Calendar, Date}
+
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
+
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
 import net.liftweb.json
@@ -3184,6 +3186,53 @@ trait APIMethods400 {
               postedData.country, 
               postedData.purpose, 
               cc.callContext)
+          } yield {
+            (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
+    staticResourceDocs += ResourceDoc(
+      getUserInvitationAnonymous,
+      implementedInApiVersion,
+      nameOf(getUserInvitationAnonymous),
+      "POST",
+      "/banks/BANK_ID/user-invitations",
+      "Get User Invitation Information",
+      s"""Create User Invitation Information.
+         |
+         |${authenticationRequiredMessage(false)}
+         |""",
+      PostUserInvitationAnonymousJsonV400(secret_key = 5819479115482092878L),
+      userInvitationJsonV400,
+      List(
+        UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagUserInvitation, apiTagKyc ,apiTagNewStyle)
+    )
+
+    lazy val getUserInvitationAnonymous : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user-invitations" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserInvitationAnonymousJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostUserInvitationAnonymousJsonV400]
+            }
+            (invitation, callContext) <- NewStyle.function.getUserInvitation(bankId, postedData.secret_key, cc.callContext)
+            _ <- Helper.booleanToFuture(CannotFindUserInvitation, 404, cc.callContext) {
+              invitation.status == "CREATED"
+            }
+            _ <- Helper.booleanToFuture(CannotFindUserInvitation, 404, cc.callContext) {
+              val validUntil = Calendar.getInstance
+              validUntil.setTime(invitation.createdAt.get)
+              validUntil.add(Calendar.HOUR, 24)
+              validUntil.getTime.after(new Date())
+            }
           } yield {
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
