@@ -239,8 +239,6 @@ object ErrorMessages {
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
   val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
   val ConsumerNotFoundByConsumerId = "OBP-30019: Consumer not found. Please specify a valid value for CONSUMER_ID."
-  val CannotCreateUserInvitation = "OBP-30020: Cannot create user invitation."
-  val CannotGetUserInvitation = "OBP-30021: Cannot get user invitation."
   
 
   val CreateBankError = "OBP-30020: Could not create the Bank"
@@ -456,6 +454,10 @@ object ErrorMessages {
   val EndpointMappingNotFoundByOperationId = "OBP-36005: Endpoint Mapping not found. Please specify valid values for OPERATION_ID. "
   val InvalidEndpointMapping = "OBP-36006: Invalid Endpoint Mapping. "
   // General Resource related messages above here
+
+  // User Invitation
+  val CannotCreateUserInvitation = "OBP-37081: Cannot create user invitation."
+  val CannotGetUserInvitation = "OBP-37882: Cannot get user invitation."
 
 
   // Transaction Request related messages (OBP-40XXX)
@@ -698,7 +700,7 @@ object ErrorMessages {
 
   def getDuplicatedMessageNumbers = {
     import scala.meta._
-    val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
+    val source: Source = new java.io.File("obp-api/src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
     val listOfMessaegeNumbers = source.collect {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
