@@ -2457,13 +2457,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     branchToReturn
   }
 
-
-  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
-  override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
+  override def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{
+    (createOrUpdateAtmLegacy(atm), callContext)
+  }
+  
+  override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
     val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)
     val supportedLanguagesString = atm.supportedLanguages.map(_.mkString(",")).getOrElse("")
+    val servicesString = atm.services.map(_.mkString(",")).getOrElse("")
+    val accessibilityFeaturesString = atm.accessibilityFeatures.map(_.mkString(",")).getOrElse("")
+    val supportedCurrenciesString = atm.supportedCurrencies.map(_.mkString(",")).getOrElse("")
+    val notesString = atm.notes.map(_.mkString(",")).getOrElse("")
+    val locationCategoriesString = atm.locationCategories.map(_.mkString(",")).getOrElse("")
 
     //check the atm existence and update or insert data
     getAtmLegacy(atm.bankId, atm.atmId) match {
@@ -2507,6 +2514,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mMoreInfo(atm.moreInfo.orNull)
             .mHasDepositCapability(hasDepositCapabilityString)
             .mSupportedLanguages(supportedLanguagesString)
+            .mServices(servicesString)
+            .mNotes(notesString)
+            .mAccessibilityFeatures(accessibilityFeaturesString)
+            .mSupportedCurrencies(supportedCurrenciesString)
+            .mLocationCategories(locationCategoriesString)
+            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
+            .mBranchIdentification(atm.branchIdentification.orNull)
+            .mSiteIdentification(atm.siteIdentification.orNull)
+            .mSiteName(atm.siteName.orNull)
+            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
+            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
+            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
             .saveMe()
         }
       case _ =>
@@ -2552,6 +2571,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mMoreInfo(atm.moreInfo.orNull)
             .mHasDepositCapability(hasDepositCapabilityString)
             .mSupportedLanguages(supportedLanguagesString)
+            .mServices(servicesString)
+            .mNotes(notesString)
+            .mAccessibilityFeatures(accessibilityFeaturesString)
+            .mSupportedCurrencies(supportedCurrenciesString)
+            .mLocationCategories(locationCategoriesString)
+            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
+            .mBranchIdentification(atm.branchIdentification.orNull)
+            .mSiteIdentification(atm.siteIdentification.orNull)
+            .mSiteName(atm.siteName.orNull)
+            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
+            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
+            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
             .saveMe()
         }
     }

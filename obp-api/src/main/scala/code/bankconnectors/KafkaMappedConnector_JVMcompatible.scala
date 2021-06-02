@@ -1155,8 +1155,8 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
     LocalMappedConnector.createOrUpdateBranch(branch)
   }
 
-  override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
-    LocalMappedConnector.createOrUpdateAtm(atm)
+  override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
+    LocalMappedConnector.createOrUpdateAtmLegacy(atm)
   }
 
   override def getAtmLegacy(bankId: BankId, atmId: AtmId): Box[AtmT] = {

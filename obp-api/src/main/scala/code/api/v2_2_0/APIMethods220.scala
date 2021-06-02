@@ -551,7 +551,7 @@ trait APIMethods220 {
             _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, createAtmEntitlementsRequiredForSpecificBank, createAtmEntitlementsRequiredForAnyBank, callContext)
             atmJson <- tryo {json.extract[AtmJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
             atm <- JSONFactory220.transformToAtmFromV220(atmJson) ?~! {ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm"}
-            success <- Connector.connector.vend.createOrUpdateAtm(atm)
+            success <- Connector.connector.vend.createOrUpdateAtmLegacy(atm)
           } yield {
             val json = JSONFactory220.createAtmJson(success)
             createdJsonResponse(Extraction.decompose(json))
