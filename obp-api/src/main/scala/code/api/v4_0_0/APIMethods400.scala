@@ -3146,6 +3146,122 @@ trait APIMethods400 {
     }
 
 
+    staticResourceDocs += ResourceDoc(
+      createUserInvitation,
+      implementedInApiVersion,
+      nameOf(createUserInvitation),
+      "POST",
+      "/banks/BANK_ID/user-invitation",
+      "Create User Invitation",
+      s"""Create User Invitation.
+         |
+         |""",
+      userInvitationPostJsonV400,
+      userInvitationJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagUserInvitation, apiTagKyc ,apiTagNewStyle),
+      Some(canCreateUserInvitation :: Nil)
+    )
+
+    lazy val createUserInvitation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user-invitation" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserInvitationJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostUserInvitationJsonV400]
+            }
+            (invitation, callContext) <- NewStyle.function.createUserInvitation(
+              bankId, 
+              postedData.first_name, 
+              postedData.last_name, 
+              postedData.email, 
+              postedData.company, 
+              postedData.country, 
+              postedData.purpose, 
+              cc.callContext)
+          } yield {
+            (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserInvitation,
+      implementedInApiVersion,
+      nameOf(getUserInvitation),
+      "GET",
+      "/banks/BANK_ID/user-invitations/SECRET_LINK",
+      "Get User Invitation",
+      s""" Get User Invitation
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      userInvitationJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUserInvitation, apiTagNewStyle),
+      Some(List(canGetUserInvitation))
+    )
+
+    lazy val getUserInvitation : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user-invitations" :: secretLink :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (invitation, callContext) <- NewStyle.function.getUserInvitation(bankId, secretLink.toLong, cc.callContext)
+          } yield {
+            (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getUserInvitations,
+      implementedInApiVersion,
+      nameOf(getUserInvitations),
+      "GET",
+      "/banks/BANK_ID/user-invitations",
+      "Get User Invitations",
+      s""" Get User Invitations
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      userInvitationJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUserInvitation, apiTagNewStyle),
+      Some(List(canGetUserInvitation))
+    )
+
+    lazy val getUserInvitations : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "user-invitations" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (invitations, callContext) <- NewStyle.function.getUserInvitations(bankId, cc.callContext)
+          } yield {
+            (JSONFactory400.createUserInvitationJson(invitations), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
 
     staticResourceDocs += ResourceDoc(
       createBank,

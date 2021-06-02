@@ -118,6 +118,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
+import code.users.UserInvitation
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
@@ -821,6 +822,7 @@ object ToSchemify {
     AccountAccess,
     ViewDefinition,
     ResourceUser,
+    UserInvitation,
     MappedComment,
     MappedTag,
     MappedWhereTag,

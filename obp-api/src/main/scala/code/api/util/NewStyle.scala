@@ -34,7 +34,7 @@ import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.model.dataAccess.BankAccountRouting
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
-import code.users.Users
+import code.users.{UserInvitation, UserInvitationProvider, Users}
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -71,6 +71,7 @@ import net.liftweb.json
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
+    (nameOf(Implementations1_2_1.getOtherAccountForTransaction), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getOtherAccountMetadata), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.getCounterpartyPublicAlias), ApiVersion.v1_2_1.toString),
     (nameOf(Implementations1_2_1.addCounterpartyMoreInfo), ApiVersion.v1_2_1.toString),
@@ -730,7 +731,19 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-
+    def createUserInvitation(bankId: BankId, firstName: String, lastName: String, email: String, company: String, country: String, purpose: String, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
+      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.createUserInvitation(bankId, firstName, lastName, email, company, country, purpose)
+      (unboxFullOrFail(response, callContext, s"$CannotCreateUserInvitation", 400), callContext)
+    }
+    def getUserInvitation(bankId: BankId, secretLink: Long, callContext: Option[CallContext]): OBPReturnType[UserInvitation] = Future {
+      val response: Box[UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitation(bankId, secretLink)
+      (unboxFullOrFail(response, callContext, s"$CannotGetUserInvitation", 400), callContext)
+    }
+    def getUserInvitations(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[List[UserInvitation]] = Future {
+      val response = UserInvitationProvider.userInvitationProvider.vend.getUserInvitations(bankId)
+      (unboxFullOrFail(response, callContext, s"$CannotGetUserInvitation", 400), callContext)
+    }
+    
     def getAdapterInfo(callContext: Option[CallContext]): OBPReturnType[InboundAdapterInfoInternal] = {
         Connector.connector.vend.getAdapterInfo(callContext) map {
           connectorEmptyResponse(_, callContext)
