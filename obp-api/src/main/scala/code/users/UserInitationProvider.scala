@@ -43,5 +43,5 @@ trait UserInvitationTrait {
   def country: String
   def status: String
   def purpose: String
-  def secretLink: Long
+  def secretKey: Long
 }

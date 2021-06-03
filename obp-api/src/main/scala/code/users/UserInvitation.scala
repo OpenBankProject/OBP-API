@@ -60,7 +60,7 @@ class UserInvitation extends UserInvitationTrait with LongKeyedMapper[UserInvita
   override def country: String = Country.get
   override def status: String = Status.get
   override def purpose: String = Purpose.get
-  override def secretLink: Long = SecretKey.get
+  override def secretKey: Long = SecretKey.get
 }
 
 object UserInvitation extends UserInvitation with LongKeyedMetaMapper[UserInvitation] {
