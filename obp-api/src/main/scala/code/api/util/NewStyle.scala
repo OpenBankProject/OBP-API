@@ -878,11 +878,18 @@ object NewStyle {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
       } map validateRequestPayload(callContext)
 
-    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
-      hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles, callContext)
+    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
+      val errorMessage = if (bankId.isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
+      hasAtLeastOneEntitlement(errorMessage)(bankId, userId, roles, callContext)
+    }
 
     def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
-      val boxResult = Helper.booleanToBox(APIUtil.hasAllEntitlements(bankId, userId, roles), s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required.")
+      val errorMessage = if (bankId.isEmpty) 
+        s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required." 
+      else 
+        s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required for BankId($bankId)."
+        
+      val boxResult = Helper.booleanToBox(APIUtil.hasAllEntitlements(bankId, userId, roles), errorMessage)
       validateRequestPayload(callContext)(boxResult)
     }
 
