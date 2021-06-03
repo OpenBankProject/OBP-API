@@ -68,7 +68,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, prettyRender, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
-import net.liftweb.util.{Helpers, StringHelpers}
+import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.{Calendar, Date}
@@ -80,6 +80,7 @@ import java.net.URLEncoder
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
 import net.liftweb.json
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -3188,6 +3189,9 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
+            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/registration/${invitation.secretKey}"
+            val params = PlainMailBodyType(invitationText) :: List(To(invitation.email))
+            Mailer.sendMail(From("invitation@tesobe.com"), Subject("User invitation"), params :_*)
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
       }
