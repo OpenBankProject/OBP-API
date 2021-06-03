@@ -154,6 +154,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
             hydraAdmin.deleteOAuth2Client(clientId)
             hydraAdmin.createOAuth2Client(oAuth2Client)
           } else if(stringNotEq(certInConsumer, cert)) {
+            logger.debug("Cert in Consumer: " + certInConsumer)
+            logger.debug("Cert in Request: " + cert)
             return (Failure(Oauth2TokenMatchCertificateFail), Some(cc.copy(consumer = Failure(Oauth2TokenMatchCertificateFail))))
           }
         }
