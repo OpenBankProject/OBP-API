@@ -237,10 +237,16 @@ object ApiRole {
   lazy val canDeleteBranchAtAnyBank = CanDeleteBranchAtAnyBank()
 
   case class CanCreateAtm(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canCreateAtm = CanCreateAtm()
+  lazy val canCreateAtm = CanCreateAtm()  
+  
+  case class CanUpdateAtm(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateAtm = CanUpdateAtm()
 
   case class CanCreateAtmAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateAtmAtAnyBank = CanCreateAtmAtAnyBank()
+
+  case class CanUpdateAtmAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateAtmAtAnyBank = CanUpdateAtmAtAnyBank()
 
   case class CanCreateCounterparty(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCounterparty = CanCreateCounterparty()

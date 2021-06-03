@@ -1514,6 +1514,7 @@ object SwaggerDefinitionsJSON {
     has_deposit_capability="true"
 
   )
+  val atmsJsonV300 = AtmsJsonV300(List(atmJsonV300))
 
   val productJson = ProductJson(
     code = "String",
@@ -4236,20 +4237,55 @@ object SwaggerDefinitionsJSON {
   
 
   val atmLocationCategoriesJsonV400 = AtmLocationCategoriesJsonV400(
-    atmNotesExample.value
+    atmLocationCategoriesExample.value
       .replaceAll(""""""","").replace("""[""","")
       .replace("""]""","").split(",").toList
   )
 
   val atmLocationCategoriesResponseJsonV400 = AtmLocationCategoriesResponseJsonV400(
     atmIdExample.value,
-    atmNotesExample.value.replaceAll(""""""","")
+    atmLocationCategoriesExample.value.replaceAll(""""""","")
       .replace("""[""","")
       .replace("""]""","")
       .split(",").toList
   )
-  
+  val atmJsonV400 = AtmJsonV400(
+    id = Some(atmIdExample.value),
+    bank_id = bankIdExample.value,
+    name = atmNameExample.value,
+    address = addressJsonV300,
+    location = locationJson,
+    meta = metaJson,
+    monday = openingTimesV300,
+    tuesday = openingTimesV300,
+    wednesday = openingTimesV300,
+    thursday = openingTimesV300,
+    friday = openingTimesV300,
+    saturday = openingTimesV300,
+    sunday = openingTimesV300,
 
+    is_accessible = isAccessibleExample.value,
+    located_at = locatedAtExample.value,
+    more_info = moreInfoExample.value,
+    has_deposit_capability=hasDepositCapabilityExample.value,
+
+    supported_languages = supportedLanguagesJson.supported_languages,
+    services = atmServicesJson.services,
+    accessibility_features = accessibilityFeaturesJson.accessibility_features,
+    supported_currencies = supportedCurrenciesJson.supported_currencies,
+    notes = atmNotesJson.notes,
+    location_categories = atmLocationCategoriesJsonV400.location_categories,
+    minimum_withdrawal = atmMinimumWithdrawalExample.value,
+    branch_identification = atmBranchIdentificationExample.value,
+    site_identification = siteIdentification.value,
+    site_name = atmSiteNameExample.value,
+    cash_withdrawal_national_fee = cashWithdrawalNationalFeeExample.value,
+    cash_withdrawal_international_fee = cashWithdrawalInternationalFeeExample.value,
+    balance_inquiry_fee = balanceInquiryFeeExample.value
+  )
+
+  val atmsJsonV400 = AtmsJsonV400(List(atmJsonV400))
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

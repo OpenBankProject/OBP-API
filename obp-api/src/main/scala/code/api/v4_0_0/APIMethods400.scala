@@ -22,6 +22,7 @@ import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.JSONFactory300.transformToAtmFromV300
 import code.api.v3_1_0._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
@@ -58,9 +59,9 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
@@ -8178,7 +8179,7 @@ trait APIMethods400 {
       s"""Update ATM Supported Languages.
          |""",
       supportedLanguagesJson,
-      atmSupportedCurrenciesJson,
+      atmSupportedLanguagesJson,
       List(
         $UserNotLoggedIn,
         InvalidJsonFormat,
@@ -8337,7 +8338,184 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      createAtm,
+      implementedInApiVersion,
+      nameOf(createAtm),
+      "POST",
+      "/banks/BANK_ID/atms",
+      "Create ATM",
+      s"""Create ATM.""",
+      atmJsonV400,
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canCreateAtm,canCreateAtmAtAnyBank))
+    )
+    lazy val createAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            atmJsonV400 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}", 400, cc.callContext) {
+              val atm = json.extract[AtmJsonV400]
+              //Make sure the Create contains proper ATM ID
+              atm.id.get
+              atm
+            }
+            _ <-  Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc.callContext){atmJsonV400.bank_id == bankId.value}
+            atm <- NewStyle.function.tryons(ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm", 400, cc.callContext) {
+              JSONFactory400.transformToAtmFromV400(atmJsonV400)
+            }
+            (atm, callContext) <- NewStyle.function.createOrUpdateAtm(atm, cc.callContext)
+          } yield {
+            (JSONFactory400.createAtmJsonV400(atm), HttpCode.`201`(callContext))
+          }
+      }
+    }    
     
+    staticResourceDocs += ResourceDoc(
+      updateAtm,
+      implementedInApiVersion,
+      nameOf(updateAtm),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "UPDATE ATM",
+      s"""Update ATM.""",
+      atmJsonV400.copy(id= None),
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canUpdateAtm, canUpdateAtmAtAnyBank))
+    )
+    lazy val updateAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            atmJsonV400 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmJsonV400]
+            }
+            _ <-  Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc.callContext){atmJsonV400.bank_id == bankId.value}
+            atm <- NewStyle.function.tryons(ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm", 400, cc.callContext) {
+              JSONFactory400.transformToAtmFromV400(atmJsonV400.copy(id = Some(atmId.value)))
+            }
+            (atm, callContext) <- NewStyle.function.createOrUpdateAtm(atm, cc.callContext)
+          } yield {
+            (JSONFactory400.createAtmJsonV400(atm), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getAtms,
+      implementedInApiVersion,
+      nameOf(getAtms),
+      "GET",
+      "/banks/BANK_ID/atms",
+      "Get Bank ATMS",
+      s"""Get Bank ATMS.""",
+      EmptyBody,
+      atmsJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    lazy val getAtms : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
+        cc =>
+          val limit = S.param("limit")
+          val offset = S.param("offset")
+          for {
+            (_, callContext) <- getAtmsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}", cc=callContext) {
+              limit match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded, cc=callContext) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
+                case _ => true
+              }
+            }
+            (atms, callContext) <- Connector.connector.vend.getAtms(bankId, callContext) map {
+              case Empty =>
+                fullBoxOrException(Empty ?~! atmsNotFound)
+              case Full((List(), callContext)) =>
+                Full(List())
+              case Full((list, _)) =>
+                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
+                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
+                else Full(branchesWithLicense)
+              case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
+              case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
+            } map { unboxFull(_) } map {
+              branch =>
+                // Before we slice we need to sort in order to keep consistent results
+                (branch.sortWith(_.atmId.value < _.atmId.value)
+                  // Slice the result in next way: from=offset and until=offset + limit
+                  .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+                  ,callContext)
+            }
+          } yield {
+            (JSONFactory400.createAtmsJsonV400(atms), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAtm,
+      implementedInApiVersion,
+      nameOf(getAtm),
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Get Bank ATM",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}
+         |""".stripMargin,
+      EmptyBody,
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    lazy val getAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
+        cc =>
+          for {
+            (_, callContext) <- getAtmsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, callContext)
+          } yield {
+            (JSONFactory400.createAtmJsonV400(atm), HttpCode.`200`(callContext))
+          }
+      }
+    }
   }
 }
 
