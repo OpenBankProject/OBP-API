@@ -1179,7 +1179,7 @@ object JSONFactory400 {
       country = userInvitation.country,
       purpose = userInvitation.purpose,
       status = userInvitation.status,
-      secret_key = userInvitation.secretLink
+      secret_key = userInvitation.secretKey
     )
   }
 
