@@ -1707,8 +1707,7 @@ object SwaggerDefinitionsJSON {
     company = "TESOBE",
     country = "Germany",
     purpose = "Developer",
-    status = "CREATED",
-    secret_key = 5819479115482092878L
+    status = "CREATED"
   )
 
   val entitlementRequestJSON =
