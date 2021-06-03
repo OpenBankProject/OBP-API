@@ -124,6 +124,7 @@ case class TransactionRequestWithChargeJSON400(
 case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
 case class ResetPasswordUrlJsonV400(reset_password_url: String)
 
+case class PostUserInvitationAnonymousJsonV400(secret_key: Long)
 case class PostUserInvitationJsonV400(first_name: String, 
                                       last_name: String, 
                                       email: String, 
