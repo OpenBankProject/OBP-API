@@ -20,8 +20,13 @@ object MappedDynamicEndpointProvider extends DynamicEndpointProvider with Custom
     else APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "32").toInt
   }
 
-  override def create(userId: String, swaggerString: String): Box[DynamicEndpointT] = {
-    tryo{DynamicEndpoint.create.UserId(userId).SwaggerString(swaggerString).saveMe()}
+  override def create(bankId:Option[String], userId: String, swaggerString: String): Box[DynamicEndpointT] = {
+    tryo{DynamicEndpoint.create
+      .UserId(userId)
+      .BankId(bankId.getOrElse(null))
+      .SwaggerString(swaggerString)
+      .saveMe()
+    }
   }
   override def update(dynamicEndpointId: String, swaggerString: String): Box[DynamicEndpointT] = {
     DynamicEndpoint.find(By(DynamicEndpoint.DynamicEndpointId, dynamicEndpointId)).map(_.SwaggerString(swaggerString).saveMe())
@@ -59,10 +64,13 @@ class DynamicEndpoint extends DynamicEndpointT with LongKeyedMapper[DynamicEndpo
   object SwaggerString extends MappedText(this)
   
   object UserId extends MappedString(this, 255)
+  
+  object BankId extends MappedString(this, 255)
 
   override def dynamicEndpointId: Option[String] = Option(DynamicEndpointId.get)
   override def swaggerString: String = SwaggerString.get
   override def userId: String = UserId.get
+  override def bankId: Option[String] = if (BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get)
 }
 
 object DynamicEndpoint extends DynamicEndpoint with LongKeyedMetaMapper[DynamicEndpoint] {

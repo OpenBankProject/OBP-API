@@ -18,12 +18,14 @@ trait DynamicEndpointT {
    * The user who create this DynamicEndpoint
    */
   def userId: String
+  def bankId: Option[String]
 }
 
 case class DynamicEndpointCommons(
                                 dynamicEndpointId: Option[String] = None,
                                 swaggerString: String,
-                                userId: String
+                                userId: String,
+                                bankId: Option[String]
                                ) extends DynamicEndpointT with JsonFieldReName
 
 object DynamicEndpointCommons extends Converter[DynamicEndpointT, DynamicEndpointCommons]
@@ -31,7 +33,7 @@ object DynamicEndpointCommons extends Converter[DynamicEndpointT, DynamicEndpoin
 case class DynamicEndpointSwagger(swaggerString: String, dynamicEndpointId: Option[String] = None)
 
 trait DynamicEndpointProvider {
-  def create(userId: String, swaggerString: String): Box[DynamicEndpointT]
+  def create(bankId:Option[String], userId: String, swaggerString: String): Box[DynamicEndpointT]
   def update(dynamicEndpointId: String, swaggerString: String): Box[DynamicEndpointT]
   def updateHost(dynamicEndpointId: String, hostString: String): Box[DynamicEndpointT]
   def get(dynamicEndpointId: String): Box[DynamicEndpointT]

@@ -4633,31 +4633,50 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
-          for {
-            (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat, 400,  cc.callContext) {
-              val swaggerContent = compactRender(json)
+          createDynamicEndpointMethod(None, json, cc)
+      }
+    }
 
-              (DynamicEndpointSwagger(swaggerContent), DynamicEndpointHelper.parseSwaggerContent(swaggerContent))
-            }
-            duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._1}:${kv._2}")
-            errorMsg = s"""$DynamicEndpointExists Duplicated ${if(duplicatedUrl.size > 1) "endpoints" else "endpoint"}: ${duplicatedUrl.mkString("; ")}"""
-            _ <- Helper.booleanToFuture(errorMsg, cc=cc.callContext) {
-              duplicatedUrl.isEmpty
-            }
-            (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(cc.userId, postedJson.swaggerString, cc.callContext)
-          } yield {
-            val roles = DynamicEndpointHelper.getRoles(dynamicEndpoint.dynamicEndpointId.getOrElse(""))
-            roles.map(role => Entitlement.entitlement.vend.addEntitlement("", cc.userId, role.toString()))
-            val swaggerJson = parse(dynamicEndpoint.swaggerString)
-            val responseJson: JObject = ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
-            (responseJson, HttpCode.`201`(callContext))
-          }
+    staticResourceDocs += ResourceDoc(
+      createBankLevelDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(createBankLevelDynamicEndpoint),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-endpoints",
+      " Create Bank Level Dynamic Endpoint",
+      s"""Create dynamic endpoints.
+         |
+         |Create dynamic endpoints with one json format swagger content.
+         |
+         |If the host of swagger is `dynamic_entity`, then you need link the swagger fields to the dynamic entity fields, 
+         |please check `Endpoint Mapping` endpoints.
+         |
+         |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
+         |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
+         |
+         |""",
+      dynamicEndpointRequestBodyExample,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointExists,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEndpoint)))
+
+    lazy val createBankLevelDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "banks" :: bankId ::"dynamic-endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          createDynamicEndpointMethod(Some(bankId), json, cc)
       }
     }
 
@@ -4680,7 +4699,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateDynamicEndpoint)))
 
     lazy val updateDynamicEndpointHost: OBPEndpoint = {
@@ -4721,7 +4740,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoint)))
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
@@ -4760,7 +4779,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
@@ -4793,7 +4812,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEndpoint)))
 
     lazy val deleteDynamicEndpoint : OBPEndpoint = {
@@ -4825,7 +4844,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle)
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMyDynamicEndpoints: OBPEndpoint = {
@@ -4858,7 +4877,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
     )
 
     lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
@@ -8644,6 +8663,28 @@ trait APIMethods400 {
             (JSONFactory400.createAtmJsonV400(atm), HttpCode.`200`(callContext))
           }
       }
+    }
+  }
+
+  private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {
+    for {
+      (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
+        val swaggerContent = compactRender(json)
+
+        (DynamicEndpointSwagger(swaggerContent), DynamicEndpointHelper.parseSwaggerContent(swaggerContent))
+      }
+      duplicatedUrl = DynamicEndpointHelper.findExistsEndpoints(openAPI).map(kv => s"${kv._1}:${kv._2}")
+      errorMsg = s"""$DynamicEndpointExists Duplicated ${if (duplicatedUrl.size > 1) "endpoints" else "endpoint"}: ${duplicatedUrl.mkString("; ")}"""
+      _ <- Helper.booleanToFuture(errorMsg, cc = cc.callContext) {
+        duplicatedUrl.isEmpty
+      }
+      (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(bankId, cc.userId, postedJson.swaggerString, cc.callContext)
+    } yield {
+      val roles = DynamicEndpointHelper.getRoles(dynamicEndpoint.dynamicEndpointId.getOrElse(""))
+      roles.map(role => Entitlement.entitlement.vend.addEntitlement(bankId.getOrElse(""), cc.userId, role.toString()))
+      val swaggerJson = parse(dynamicEndpoint.swaggerString)
+      val responseJson: JObject = ("bank_id", dynamicEndpoint.bankId) ~ ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+      (responseJson, HttpCode.`201`(callContext))
     }
   }
 }
