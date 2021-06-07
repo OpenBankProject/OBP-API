@@ -456,11 +456,20 @@ object ApiRole {
   case class CanCreateDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateDynamicEntity = CanCreateDynamicEntity()
 
+  case class CanCreateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateDynamicEntityAtBank = CanCreateBankLevelDynamicEntity()
+  
   case class CanUpdateDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateDynamicEntity = CanUpdateDynamicEntity()
+  
+  case class CanUpdateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankLevelDynamicEntity = CanUpdateBankLevelDynamicEntity()
 
   case class CanDeleteDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicEntity = CanDeleteDynamicEntity()
+
+  case class CanDeleteBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankLevelDynamicEntity = CanDeleteBankLevelDynamicEntity()
 
   case class CanGetBankLevelDynamicEntities(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetBankLevelDynamicEntities = CanGetBankLevelDynamicEntities()

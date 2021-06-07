@@ -98,7 +98,8 @@ trait APIMethods400 {
 
     private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
     // createDynamicEntityDoc and updateDynamicEntityDoc are dynamic, So here dynamic create resourceDocs
-    def resourceDocs = staticResourceDocs ++ ArrayBuffer[ResourceDoc](createDynamicEntityDoc, updateDynamicEntityDoc, updateMyDynamicEntityDoc)
+    def resourceDocs = staticResourceDocs ++ ArrayBuffer[ResourceDoc](createDynamicEntityDoc,
+      createBankLevelDynamicEntityDoc, updateDynamicEntityDoc, updateBankLevelDynamicEntityDoc, updateMyDynamicEntityDoc)
 
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
@@ -1709,7 +1710,7 @@ trait APIMethods400 {
       "GET",
       "/management/banks/BANK_ID/dynamic-entities",
       "Get Bank Level Dynamic Entities",
-      s"""Get all the bank level Dynamic Entities.""",
+      s"""Get all the bank level Dynamic Entities for one bank.""",
       EmptyBody,
       ListResult(
         "dynamic_entities",
@@ -1737,6 +1738,23 @@ trait APIMethods400 {
       }
     }
 
+    private def createDynamicEntityMethod(cc: CallContext, dynamicEntity: DynamicEntityCommons) = {
+      for {
+        Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
+        //granted the CRUD roles to the loggedIn User
+        curdRoles = List(
+          DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
+          DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
+        )
+      } yield {
+        curdRoles.map(role => Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
+        val commonsData: DynamicEntityCommons = result
+        (commonsData.jValue, HttpCode.`201`(cc.callContext))
+      }
+    }
+    
     private def createDynamicEntityDoc = ResourceDoc(
       createDynamicEntity,
       implementedInApiVersion,
@@ -1780,20 +1798,72 @@ trait APIMethods400 {
       case "management" :: "dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
           val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId)
-          for {
-            Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
-            //granted the CRUD roles to the loggedIn User
-            curdRoles = List(
-              DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId), 
-              DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId), 
-              DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
-              DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
-            )     
-          } yield {
-            curdRoles.map(role => Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
-            val commonsData: DynamicEntityCommons = result
-            (commonsData.jValue, HttpCode.`201`(cc.callContext))
-          }
+          createDynamicEntityMethod(cc, dynamicEntity)
+      }
+    }
+
+    private def createBankLevelDynamicEntityDoc = ResourceDoc(
+      createBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(createBankLevelDynamicEntity),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-entities",
+      "Create Bank Level Dynamic Entity",
+      s"""Create a Bank Level DynamicEntity.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
+         |
+         |Current support field types as follow:
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
+         |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
+         | Note: BankId filed is optional, 
+         |          if you add it, the entity will be the Bank level.
+         |          if you omit it, the entity will be the System level.  
+         |""",
+      dynamicEntityRequestBodyExample.copy(bankId = None),
+      dynamicEntityResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEntityAtBank)))
+    lazy val createBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" ::"banks" :: BankId(bankId) :: "dynamic-entities" :: Nil JsonPost json -> _ => {
+        cc =>
+          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId).copy(bankId = Some(bankId.value))
+          createDynamicEntityMethod(cc, dynamicEntity)
+      }
+    }
+    
+    //bankId is option, if it is bankLevelEntity, we need BankId, if system Level Entity, bankId is None.
+    private def updateDynamicEntityMethod(bankId: Option[String], dynamicEntityId: String, json: JValue, cc: CallContext) = {
+      for {
+        // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
+        (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
+        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
+        resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+        _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = cc.callContext) {
+          resultList.arr.isEmpty
+        }
+
+        jsonObject = json.asInstanceOf[JObject]
+        dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId).copy(bankId = bankId)
+        Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
+      } yield {
+        val commonsData: DynamicEntityCommons = result
+        (commonsData.jValue, HttpCode.`200`(cc.callContext))
       }
     }
 
@@ -1833,26 +1903,52 @@ trait APIMethods400 {
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateDynamicEntity)))
-
     lazy val updateDynamicEntity: OBPEndpoint = {
       case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
-          for {
-            // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
-            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
-            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
-              resultList.arr.isEmpty
-            }
-
-            jsonObject = json.asInstanceOf[JObject]
-            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId)
-            Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
-          } yield {
-            val commonsData: DynamicEntityCommons = result
-            (commonsData.jValue, HttpCode.`200`(cc.callContext))
-          }
+          updateDynamicEntityMethod(None, dynamicEntityId, json, cc)
+      }
+    }    
+    
+    private def updateBankLevelDynamicEntityDoc = ResourceDoc(
+      updateBankLevelDynamicEntityAtBank,
+      implementedInApiVersion,
+      nameOf(updateBankLevelDynamicEntityAtBank),
+      "PUT",
+      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update Bank Level Dynamic Entity",
+      s"""Update a Bank Level DynamicEntity.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
+         |
+         |Current support field types as follow:
+         |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
+         |
+         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |
+         |Value of reference type is corresponding ids, please look at the following examples.
+         |Current supporting reference types and corresponding examples as follow:
+         |```
+         |${ReferenceType.referenceTypeAndExample.mkString("\n")}
+         |```
+         |""",
+      dynamicEntityRequestBodyExample.copy(bankId=None),
+      dynamicEntityResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateBankLevelDynamicEntity)))
+    lazy val updateBankLevelDynamicEntityAtBank: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+        cc =>
+          updateDynamicEntityMethod(Some(bankId),dynamicEntityId, json, cc)
       }
     }
 
@@ -1875,22 +1971,51 @@ trait APIMethods400 {
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEntity)))
-
     lazy val deleteDynamicEntity: OBPEndpoint = {
       case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
         cc =>
-          for {
-            // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
-            (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
-            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
-            _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
-              resultList.arr.isEmpty
-            }
-            deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
-          } yield {
-            (deleted, HttpCode.`204`(cc.callContext))
-          }
+          deleteDynamicEntityMethod(dynamicEntityId, cc)
+      }
+    }
+
+    private def deleteDynamicEntityMethod(dynamicEntityId: String, cc: CallContext) = {
+      for {
+        // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
+        (entity, _) <- NewStyle.function.getDynamicEntityById(dynamicEntityId, cc.callContext)
+        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
+        resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+        _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = cc.callContext) {
+          resultList.arr.isEmpty
+        }
+        deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(dynamicEntityId)
+      } yield {
+        (deleted, HttpCode.`204`(cc.callContext))
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankLevelDynamicEntity,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelDynamicEntity),
+      "DELETE",
+      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Delete Bank Level Dynamic Entity",
+      s"""Delete a Bank Level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteBankLevelDynamicEntity)))
+    lazy val deleteBankLevelDynamicEntity: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+        cc =>
+          deleteDynamicEntityMethod(dynamicEntityId, cc)
       }
     }
 
