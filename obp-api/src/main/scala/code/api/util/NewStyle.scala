@@ -853,8 +853,10 @@ object NewStyle {
     }
 
     def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext], errorMsg: String = ""): Future[Box[Unit]] = {
-      val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
-                       else errorMsg
+      val errorInfo = 
+        if(StringUtils.isBlank(errorMsg)&& !bankId.isEmpty) UserHasMissingRoles + role.toString() + s" at Bank($bankId)" 
+        else if(StringUtils.isBlank(errorMsg)&& bankId.isEmpty) UserHasMissingRoles + role.toString() 
+        else errorMsg
 
       Helper.booleanToFuture(errorInfo, cc=callContext) {
         APIUtil.hasEntitlement(bankId, userId, role)

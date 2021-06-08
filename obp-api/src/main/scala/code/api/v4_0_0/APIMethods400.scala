@@ -4897,7 +4897,7 @@ trait APIMethods400 {
     }
 
     lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse) => { cc =>
+      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse, bankId) => { cc =>
         // process before authentication interceptor, get intercept result
         val resourceDoc = DynamicEndpointHelper.doc.find(_.operationId == operationId)
         val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
@@ -4905,7 +4905,7 @@ trait APIMethods400 {
         if(beforeInterceptResult.isDefined) beforeInterceptResult
         else for {
             (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-            _ <- NewStyle.function.hasEntitlement("", u.userId, role, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, role, callContext)
 
             // validate request json payload
             httpRequestMethod = cc.verb
@@ -8669,7 +8669,9 @@ trait APIMethods400 {
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {
     for {
       (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat, 400, cc.callContext) {
-        val swaggerContent = compactRender(json)
+        //If it is bank level, we manully added /banks/bankId in all the paths:
+        val jsonTweakedPath = DynamicEndpointHelper.addedBankToPath(json, bankId) 
+        val swaggerContent = compactRender(jsonTweakedPath)
 
         (DynamicEndpointSwagger(swaggerContent), DynamicEndpointHelper.parseSwaggerContent(swaggerContent))
       }

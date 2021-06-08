@@ -57,21 +57,21 @@ object DynamicEndpointHelper extends RestHelper {
   
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
-    val infos = dynamicEndpoints.map(it => buildDynamicEndpointInfo(it.swaggerString, it.dynamicEndpointId.get))
+    val infos = dynamicEndpoints.map(it => buildDynamicEndpointInfo(it.swaggerString, it.dynamicEndpointId.get, it.bankId))
     infos
   }
 
   def allDynamicEndpointRoles: List[ApiRole] = {
     for {
       dynamicEndpoint <- DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
-      info = buildDynamicEndpointInfo(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get)
+      info = buildDynamicEndpointInfo(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get, dynamicEndpoint.bankId)
       role <- getRoles(info)
     } yield role
   }
 
   def getRoles(dynamicEndpointId: String): List[ApiRole] = {
     val foundInfos: Box[DynamicEndpointInfo] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
-      .map(dynamicEndpoint => buildDynamicEndpointInfo(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get))
+      .map(dynamicEndpoint => buildDynamicEndpointInfo(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get, dynamicEndpoint.bankId))
 
 
     val roles: List[ApiRole] = foundInfos match {
@@ -108,7 +108,7 @@ object DynamicEndpointHelper extends RestHelper {
      * @param r HttpRequest
      * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
      */
-    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)])] = {
+    def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
       val partPath = r.path.partPath//eg: List("dynamic","feature-test")
       if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
         None //if do not match `URL and Content-Type`, then can not find this endpoint. return None.
@@ -118,7 +118,7 @@ object DynamicEndpointHelper extends RestHelper {
         val urlQueryParameters = r.params
         // url that match original swagger endpoint.
         val url = partPath.tail.mkString("/", "/", "") // eg: --> /feature-test
-        val foundDynamicEndpoint: Option[(String, String, Int, ResourceDoc)] = dynamicEndpointInfos
+        val foundDynamicEndpoint: Option[(String, String, Int, ResourceDoc, Option[String])] = dynamicEndpointInfos
           .map(_.findDynamicEndpoint(httpMethod, url))
           .collectFirst {
             case Some(x) => x
@@ -126,7 +126,7 @@ object DynamicEndpointHelper extends RestHelper {
 
         foundDynamicEndpoint
           .flatMap { it =>
-            val (serverUrl, endpointUrl, code, doc) = it
+            val (serverUrl, endpointUrl, code, doc, bankId) = it
 
             val pathParams: Map[String, String] = if(endpointUrl == url) {
               Map.empty[String, String]
@@ -152,7 +152,7 @@ object DynamicEndpointHelper extends RestHelper {
 
             val Some(role::_) = doc.roles
             val requestBodyJValue = body(r).getOrElse(JNothing)
-            Full(s"""$serverUrl$url""", requestBodyJValue, akkaHttpMethod, urlQueryParameters, pathParams, role, doc.operationId, mockResponse)
+            Full(s"""$serverUrl$url""", requestBodyJValue, akkaHttpMethod, urlQueryParameters, pathParams, role, doc.operationId, mockResponse, bankId)
           }
 
       }
@@ -171,13 +171,13 @@ object DynamicEndpointHelper extends RestHelper {
 
   private val dynamicEndpointInfoMemo = new Memo[String, DynamicEndpointInfo]
 
-  private def buildDynamicEndpointInfo(content: String, id: String): DynamicEndpointInfo =
+  private def buildDynamicEndpointInfo(content: String, id: String, bankId:Option[String]): DynamicEndpointInfo =
     dynamicEndpointInfoMemo.memoize(content) {
       val openAPI: OpenAPI = parseSwaggerContent(content)
-      buildDynamicEndpointInfo(openAPI, id)
+      buildDynamicEndpointInfo(openAPI, id, bankId)
     }
 
-  private def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String): DynamicEndpointInfo = {
+  private def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String, bankId:Option[String]): DynamicEndpointInfo = {
     val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic)
 
     val serverUrl = {
@@ -267,7 +267,7 @@ object DynamicEndpointHelper extends RestHelper {
         }
 
         Some(List(
-          ApiRole.getOrCreateDynamicApiRole(roleName)
+          ApiRole.getOrCreateDynamicApiRole(roleName, bankId.isDefined)
         ))
       }
       val doc = ResourceDoc(
@@ -287,7 +287,7 @@ object DynamicEndpointHelper extends RestHelper {
       DynamicEndpointItem(path, successCode, doc)
     }
 
-    DynamicEndpointInfo(id, dynamicEndpointItems, serverUrl)
+    DynamicEndpointInfo(id, dynamicEndpointItems, serverUrl, bankId)
   }
 
   private val PathParamRegx = """\{(.+?)\}""".r
@@ -805,6 +805,27 @@ object DynamicEndpointHelper extends RestHelper {
     val (dynamicEntityName, dynamicDateId) = findDynamicData(dynamicDataList, dynamicDataJson)
     JBool(DynamicDataProvider.connectorMethodProvider.vend.delete(dynamicEntityName, dynamicDateId).getOrElse(false))
   }
+  
+  def addedBankToPath(swagger: String, bankId: Option[String]): JValue = {
+    val jvalue = json.parse(swagger)
+    addedBankToPath(jvalue, bankId)
+  }
+
+  // If it is bank is defined, we will add the bank into the path, better check the scala tests 
+  //  eg: /fashion-brand-list  --> /banks/gh.29.uk/fashion-brand-list
+  def addedBankToPath(swagger: JValue, bankId: Option[String]): JValue = {
+    if(bankId.isDefined){
+      swagger transformField {
+        case JField(name, JObject(obj)) =>
+          if (name.startsWith("/")) 
+            JField(s"/banks/${bankId.get}$name", JObject(obj))
+          else 
+            JField(name, JObject(obj))
+      }
+    } else{
+      swagger
+    }
+  }
 
 }
 
@@ -822,7 +843,7 @@ case class DynamicEndpointItem(path: String, successCode: Int, resourceDoc: Reso
  * @param dynamicEndpointItems ResourceDoc to url that defined in swagger content
  * @param serverUrl base url that defined in swagger content
  */
-case class DynamicEndpointInfo(id: String, dynamicEndpointItems: mutable.Iterable[DynamicEndpointItem], serverUrl: String) {
+case class DynamicEndpointInfo(id: String, dynamicEndpointItems: mutable.Iterable[DynamicEndpointItem], serverUrl: String, bankId:Option[String]) {
   val resourceDocs: mutable.Iterable[ResourceDoc] = dynamicEndpointItems.map(_.resourceDoc)
 
   private val existsUrlToMethod: mutable.Iterable[(HttpMethod, String, Int, ResourceDoc)] =
@@ -833,10 +854,10 @@ case class DynamicEndpointInfo(id: String, dynamicEndpointItems: mutable.Iterabl
     })
 
   // return (serverUrl, endpointUrl, successCode, resourceDoc)
-  def findDynamicEndpoint(newMethod: HttpMethod, newUrl: String): Option[(String, String, Int, ResourceDoc)] =
+  def findDynamicEndpoint(newMethod: HttpMethod, newUrl: String): Option[(String, String, Int, ResourceDoc, Option[String])] =
     existsUrlToMethod collectFirst {
     case (method, url, code, doc) if isSameUrl(newUrl, url) && newMethod == method =>
-      (this.serverUrl, url, code, doc)
+      (this.serverUrl, url, code, doc, this.bankId)
   }
 
   def existsEndpoint(newMethod: HttpMethod, newUrl: String): Boolean = findDynamicEndpoint(newMethod, newUrl).isDefined
