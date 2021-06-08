@@ -4633,7 +4633,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
 
     lazy val createDynamicEndpoint: OBPEndpoint = {
@@ -4670,8 +4670,8 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
-      Some(List(canCreateDynamicEndpoint)))
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateBankLevelDynamicEndpoint)))
 
     lazy val createBankLevelDynamicEndpoint: OBPEndpoint = {
       case "management" :: "banks" :: bankId ::"dynamic-endpoints" :: Nil JsonPost json -> _ => {
@@ -4699,22 +4699,55 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateDynamicEndpoint)))
 
     lazy val updateDynamicEndpointHost: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: "host" :: Nil JsonPut json -> _ => {
         cc =>
-          for {
-            (_, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $DynamicEndpointHostJson400"
-            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
-              json.extract[DynamicEndpointHostJson400]
-            }
-            (dynamicEndpoint, callContext) <- NewStyle.function.updateDynamicEndpointHost(dynamicEndpointId, postedData.host, cc.callContext)
-          } yield {
-            (postedData, HttpCode.`201`(callContext))
-          }
+          updateDynamicEndpointHostMethod(dynamicEndpointId, json, cc)
+      }
+    }
+
+    private def updateDynamicEndpointHostMethod(dynamicEndpointId: String, json: JValue, cc: CallContext) = {
+      for {
+        (_, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+        failMsg = s"$InvalidJsonFormat The Json body should be the $DynamicEndpointHostJson400"
+        postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+          json.extract[DynamicEndpointHostJson400]
+        }
+        (dynamicEndpoint, callContext) <- NewStyle.function.updateDynamicEndpointHost(dynamicEndpointId, postedData.host, cc.callContext)
+      } yield {
+        (postedData, HttpCode.`201`(callContext))
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelDynamicEndpointHost,
+      implementedInApiVersion,
+      nameOf(updateBankLevelDynamicEndpointHost),
+      "PUT",
+      "/management/banks/BANK_ID/dynamic-endpoints/DYNAMIC_ENDPOINT_ID/host",
+      " Update Bank Level Dynamic Endpoint Host",
+      s"""Update Bank Level  dynamic endpoint Host.
+         |The value can be obp_mock, dynamic_entity, or some service url.
+         |""",
+      dynamicEndpointHostJson400,
+      dynamicEndpointHostJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateDynamicEndpoint)))
+
+    lazy val updateBankLevelDynamicEndpointHost: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "dynamic-endpoints" :: dynamicEndpointId :: "host" :: Nil JsonPut json -> _ => {
+        cc =>
+          updateDynamicEndpointHostMethod(dynamicEndpointId, json, cc)
       }
     }
 
@@ -4740,19 +4773,13 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoint)))
 
     lazy val getDynamicEndpoint: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
         cc =>
-          for {
-            (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
-          } yield {
-            val swaggerJson = parse(dynamicEndpoint.swaggerString)
-            val responseJson: JObject = ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
-            (responseJson, HttpCode.`200`(callContext))
-          }
+          getDynamicEndpointMethod(dynamicEndpointId, cc)
       }
     }
 
@@ -4779,21 +4806,104 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canGetDynamicEndpoints)))
 
     lazy val getDynamicEndpoints: OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: Nil JsonGet _ => {
         cc =>
-          for {
-            (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
-          } yield {
-            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint=>
-              val swaggerJson = parse(dynamicEndpoint.swaggerString)
-              ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
-            }
-            (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
-          }
+          getDynamicEndpointsMethod(cc)
+      }
+    }
+
+    private def getDynamicEndpointsMethod(cc: CallContext) = {
+      for {
+        (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(cc.callContext)
+      } yield {
+        val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint =>
+          val swaggerJson = parse(dynamicEndpoint.swaggerString)
+          ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+        }
+        (ListResult("dynamic_endpoints", resultList), HttpCode.`200`(cc.callContext))
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEndpoint),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      " Get Bank Level Dynamic Endpoint",
+      s"""Get a Bank Level Dynamic Endpoint.
+         |""",
+      EmptyBody,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetBankLevelDynamicEndpoint)))
+
+    lazy val getBankLevelDynamicEndpoint: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "dynamic-endpoints" :: dynamicEndpointId :: Nil JsonGet req => {
+        cc =>
+          getDynamicEndpointMethod(dynamicEndpointId, cc)
+      }
+    }
+
+    private def getDynamicEndpointMethod(dynamicEndpointId: String, cc: CallContext) = {
+      for {
+        (dynamicEndpoint, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+      } yield {
+        val swaggerJson = parse(dynamicEndpoint.swaggerString)
+        val responseJson: JObject = ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
+        (responseJson, HttpCode.`200`(callContext))
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicEndpoints,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEndpoints),
+      "GET",
+      "/management/dynamic-endpoints",
+      "Get Bank Level Dynamic Endpoints",
+      s"""
+         |
+         |Get Bank Level Dynamic Endpoints.
+         |
+         |""",
+      EmptyBody,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canGetDynamicEndpoints)))
+
+    lazy val getBankLevelDynamicEndpoints: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "dynamic-endpoints" :: Nil JsonGet _ => {
+        cc =>
+          getDynamicEndpointsMethod(cc)
+      }
+    }
+
+    private def deleteDynamicEndpointMethod(dynamicEndpointId: String, cc: CallContext) = {
+      for {
+        deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
+      } yield {
+        (deleted, HttpCode.`204`(cc.callContext))
       }
     }
 
@@ -4812,17 +4922,38 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
       Some(List(canDeleteDynamicEndpoint)))
 
     lazy val deleteDynamicEndpoint : OBPEndpoint = {
       case "management" :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
         cc =>
-          for {
-            deleted <- NewStyle.function.deleteDynamicEndpoint(dynamicEndpointId, cc.callContext)
-          } yield {
-            (deleted, HttpCode.`204`(cc.callContext))
-          }
+          deleteDynamicEndpointMethod(dynamicEndpointId, cc)
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankLevelDynamicEndpoint,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelDynamicEndpoint),
+      "DELETE",
+      "/management/banks/BANK_ID/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
+      " Delete Bank Level Dynamic Endpoint",
+      s"""Delete a Bank Level DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteBankLevelDynamicEndpoint)))
+
+    lazy val deleteBankLevelDynamicEndpoint : OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-endpoints" :: dynamicEndpointId ::  Nil JsonDelete _ => {
+        cc =>
+          deleteDynamicEndpointMethod(dynamicEndpointId, cc)
       }
     }
 
@@ -4844,7 +4975,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle)
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle)
     )
 
     lazy val getMyDynamicEndpoints: OBPEndpoint = {
@@ -4877,7 +5008,7 @@ trait APIMethods400 {
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
       ),
-      List(apiTagDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
     )
 
     lazy val deleteMyDynamicEndpoint : OBPEndpoint = {
