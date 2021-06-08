@@ -4158,7 +4158,8 @@ object SwaggerDefinitionsJSON {
     Some("b4e0352a-9a0f-4bfa-b30b-9003aa467f50"),
     "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
     """{}""".stripMargin,
-    """{}""".stripMargin
+    """{}""".stripMargin,
+    Some(bankIdExample.value)
   )
 
   val supportedCurrenciesJson = SupportedCurrenciesJson(

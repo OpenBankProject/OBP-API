@@ -2357,28 +2357,28 @@ object NewStyle {
       }
     }
 
-    def createOrUpdateEndpointMapping(endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
-      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(endpointMapping), callContext)
+    def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def deleteEndpointMapping(endpointMappingId: String, callContext: Option[CallContext]) = Future {
-      (EndpointMappingProvider.endpointMappingProvider.vend.delete(endpointMappingId), callContext)
+    def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def getEndpointMappingById(endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
-      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(endpointMappingId)
+    def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(bankId, endpointMappingId)
       Future{
         val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByEndpointMappingId Current ENDPOINT_MAPPING_ID is $endpointMappingId", 404)
         (endpointMapping, callContext)
       }
     }
 
-    def getEndpointMappingByOperationId(operationId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
-      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getByOperationId(operationId)
+    def getEndpointMappingByOperationId(bankId: Option[String], operationId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getByOperationId(bankId, operationId)
       Future{
         val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByOperationId Current OPERATION_ID is $operationId",404)
         (endpointMapping, callContext)
@@ -2387,19 +2387,19 @@ object NewStyle {
 
     private[this] val endpointMappingTTL = APIUtil.getPropsValue(s"endpointMapping.cache.ttl.seconds", "0").toInt
 
-    def getEndpointMappings(callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = {
+    def getEndpointMappings(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = {
       import scala.concurrent.duration._
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL second) {
-          Future{(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(), callContext)}
+          Future{(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId), callContext)}
         }
       }
     }
     
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
-      val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
+      val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
 
       if(existsDynamicEntity.isDefined) {
         val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
@@ -2412,7 +2412,7 @@ object NewStyle {
     }
 
     private def updateDynamicEntity(dynamicEntity: DynamicEntityT, dynamicEntityId: String , callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
-      val originEntity = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+      val originEntity = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntity.bankId, dynamicEntityId)
       // if can't find by id, return 404 error
       val idNotExistsMsg = s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = ${dynamicEntity.dynamicEntityId.get}."
 
@@ -2423,7 +2423,7 @@ object NewStyle {
       val originEntityName = originEntity.map(_.entityName).orNull
       // if entityName changed and the new entityName already exists, return error message
       if(dynamicEntity.entityName != originEntityName) {
-        val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
+        val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
 
         if(existsDynamicEntity.isDefined) {
           val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
@@ -2448,9 +2448,9 @@ object NewStyle {
      * @param dynamicEntityId
      * @return
      */
-    def deleteDynamicEntity(dynamicEntityId: String): Future[Box[Boolean]] = Future {
+    def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = Future {
       for {
-        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
         deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
         deleteEntitleMentResult <- if(deleteEntityResult) {
           Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
@@ -2465,16 +2465,16 @@ object NewStyle {
       }
     }
 
-    def getDynamicEntityById(dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
-      val dynamicEntityBox: Box[DynamicEntityT] = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+    def getDynamicEntityById(bankId: Option[String], dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
+      val dynamicEntityBox: Box[DynamicEntityT] = DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
       val dynamicEntity = unboxFullOrFail(dynamicEntityBox, callContext, DynamicEntityNotFoundByDynamicEntityId, 404)
       Future{
         (dynamicEntity, callContext)
       }
     }
 
-    def getDynamicEntityByEntityName(entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
-      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+    def getDynamicEntityByEntityName(bankId: Option[String], entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
+      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, entityName)
       (boxedDynamicEntity, callContext)
     }
 
@@ -2483,28 +2483,17 @@ object NewStyle {
       else APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "30").toInt
     }
 
-    def getDynamicEntities(): List[DynamicEntityT] = {
+    def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
-          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities()
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId)
         }
       }
     }
     
-    def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntityT] = {
-      import scala.concurrent.duration._
-
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
-          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByBankId(bankId)
-        }
-      }
-    }
-
     def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
@@ -2551,7 +2540,7 @@ object NewStyle {
                                queryParameters: Option[Map[String, List[String]]],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
-      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, entityName)
       // do validate, any validate process fail will return immediately
       if(dynamicEntityBox.isEmpty) {
         return Helper.booleanToFuture(s"$DynamicEntityNotExists entity's name is '$entityName'", cc=callContext)(false)

@@ -737,6 +737,21 @@ object ApiRole {
 
   case class CanDeleteEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEndpointMapping = CanDeleteEndpointMapping()
+
+  case class CanCreateBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateBankLevelEndpointMapping = CanCreateBankLevelEndpointMapping()
+
+  case class CanUpdateBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankLevelEndpointMapping = CanUpdateBankLevelEndpointMapping()
+
+  case class CanGetBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankLevelEndpointMapping = CanGetBankLevelEndpointMapping()
+
+  case class CanGetAllBankLevelEndpointMappings(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetAllBankLevelEndpointMappings = CanGetAllBankLevelEndpointMappings()
+
+  case class CanDeleteBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankLevelEndpointMapping = CanDeleteBankLevelEndpointMapping()
   
   case class CanCreateUserInvitation(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateUserInvitation = CanCreateUserInvitation()  
