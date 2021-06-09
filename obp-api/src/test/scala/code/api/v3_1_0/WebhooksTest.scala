@@ -80,7 +80,9 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateWebhook)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateWebhook)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanCreateWebhook.toString()) should be (true)
     }
 
     scenario("We will try to create the web hook with a proper Role " + canCreateWebhook + " but without proper trigger name", ApiEndpoint2, VersionOfApi) {
@@ -131,7 +133,9 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetWebhooks)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetWebhooks)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanGetWebhooks.toString()) should be (true)
     }
     scenario("We will try to get web hooks with a proper Role " + canGetWebhooks, ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
@@ -155,7 +159,9 @@ class WebhooksTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanUpdateWebhook)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanUpdateWebhook)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanUpdateWebhook.toString()) should be (true)
     }
     scenario("We will try to Update an Account Web Hook with a proper Role " + canUpdateWebhook, ApiEndpoint3, VersionOfApi) {
       val bankId = randomBankId

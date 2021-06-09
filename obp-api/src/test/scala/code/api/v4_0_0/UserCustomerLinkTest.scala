@@ -52,7 +52,9 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)
-      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetUserCustomerLink)
+      val errorMessage = response400.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanGetUserCustomerLink.toString()) should be (true)
     }
   }
   
@@ -75,7 +77,9 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)
-      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetUserCustomerLink)
+      val errorMessage = response400.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanGetUserCustomerLink.toString()) should be (true)
     }
   }
   
@@ -97,7 +101,9 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)
-      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteUserCustomerLink)
+      val errorMessage = response400.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanDeleteUserCustomerLink.toString()) should be (true)
     }
   }
 

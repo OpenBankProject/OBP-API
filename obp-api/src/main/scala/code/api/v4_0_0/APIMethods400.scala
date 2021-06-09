@@ -1893,7 +1893,7 @@ trait APIMethods400 {
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
          |""",
-      dynamicEntityRequestBodyExample,
+      dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
       List(
         $UserNotLoggedIn,
@@ -2077,7 +2077,7 @@ trait APIMethods400 {
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
          |""",
-      dynamicEntityRequestBodyExample,
+      dynamicEntityRequestBodyExample.copy(bankId=None),
       dynamicEntityResponseBodyExample,
       List(
         $UserNotLoggedIn,
@@ -4649,7 +4649,7 @@ trait APIMethods400 {
       nameOf(createBankLevelDynamicEndpoint),
       "POST",
       "/management/banks/BANK_ID/dynamic-endpoints",
-      " Create Bank Level Dynamic Endpoint",
+      "Create Bank Level Dynamic Endpoint",
       s"""Create dynamic endpoints.
          |
          |Create dynamic endpoints with one json format swagger content.
@@ -8257,7 +8257,7 @@ trait APIMethods400 {
          |
          |Note: at moment only support the dynamic endpoints
          |""",
-      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
       endpointMappingJson,
       List(
         $UserNotLoggedIn,
@@ -8298,7 +8298,7 @@ trait APIMethods400 {
       "Update Endpoint Mapping",
       s"""Update an Endpoint Mapping.
          |""",
-      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
       endpointMappingJson,
       List(
         $UserNotLoggedIn,
@@ -8453,7 +8453,7 @@ trait APIMethods400 {
          |
          |Note: at moment only support the dynamic endpoints
          |""",
-      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
       endpointMappingJson,
       List(
         $UserNotLoggedIn,
@@ -8480,7 +8480,7 @@ trait APIMethods400 {
       "Update Bank Level Endpoint Mapping",
       s"""Update an Bank Level Endpoint Mapping.
          |""",
-      endpointMappingJson.copy(endpointMappingId = None),
+      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
       endpointMappingJson,
       List(
         $UserNotLoggedIn,

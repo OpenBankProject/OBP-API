@@ -66,7 +66,7 @@ class EndpointMappingTest extends V400ServerSetup {
     }
   }
   feature("Delete the EndpointMapping specified by METHOD_ROUTING_ID v4.0.0- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "endpoint-mappings" / "METHOD_ROUTING_ID").DELETE
       val response400 = makeDeleteRequest(request400)
@@ -104,12 +104,22 @@ class EndpointMappingTest extends V400ServerSetup {
       {
         // update success
         val request400 = (v4_0_0_Request / "management" / "endpoint-mappings" / customerJson.endpointMappingId.get ).PUT <@(user1)
-        val response400 = makePutRequest(request400, write(customerJson.copy(operationId = "properId")))
+        val response400 = makePutRequest(request400, write(customerJson.copy(requestMapping = "{}")))
         Then("We should get a 201")
         response400.code should equal(201)
         val endpointMappingsJson = response400.body.extract[EndpointMappingCommons]
       }
 
+      {
+        // error case, can not update with different operationid
+        val request400 = (v4_0_0_Request / "management" / "endpoint-mappings" / customerJson.endpointMappingId.get ).PUT <@(user1)
+        val response400 = makePutRequest(request400, write(customerJson.copy(operationId = "newOperationId")))
+        Then("We should get a 400")
+        response400.code should equal(400)
+        val errorMessage = response400.body.extract[ErrorMessage].message
+        errorMessage contains (s"$InvalidJsonFormat operation_id has to be the same in ") should be (true)
+      }
+      
       {
         // update a not exists EndpointMapping
         val request400 = (v4_0_0_Request / "management" / "endpoint-mappings" / "not-exists-id" ).PUT <@(user1)
