@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{DynamicEndpointExists, InvalidMyDynamicEndpointUser, UserHasMissingRoles, UserNotLoggedIn}
@@ -10,7 +11,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.{JField, JString}
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
@@ -29,6 +30,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteDynamicEndpoint))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getMyDynamicEndpoints))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.deleteMyDynamicEndpoint))
+  object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.updateDynamicEndpointHost))
   
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
@@ -342,4 +344,118 @@ class DynamicEndpointsTest extends V400ServerSetup {
       responseDeleteAgain.code should be (404)
     }
   }
+
+  feature(s"test $ApiEndpoint7 version $VersionOfApi - - Unauthorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
+      val response = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
+
+      val responseWithRole = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 201")
+      responseWithRole.code should equal(201)
+      responseWithRole.body.toString contains("dynamic_endpoint_id") should be (true)
+      val dynamicEndpointId = (responseWithRole.body \"dynamic_endpoint_id").asInstanceOf[JString].s
+
+      Then("We update the host")
+      val dynamicEndpointHostJson = SwaggerDefinitionsJSON.dynamicEndpointHostJson400
+
+      When("We make a request v4.0.0")
+      val requestPut = (v4_0_0_Request / "management" / "dynamic-endpoints"/dynamicEndpointId/ "host").PUT
+      val responsePut = makePutRequest(requestPut, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 401")
+      responsePut.code should equal(401)
+      responsePut.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+  }
+
+
+  feature(s"test $ApiEndpoint7 version $VersionOfApi - authorized access - missing role!") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
+      val response = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
+
+      val responseWithRole = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 201")
+      responseWithRole.code should equal(201)
+      responseWithRole.body.toString contains("dynamic_endpoint_id") should be (true)
+      val dynamicEndpointId = (responseWithRole.body \"dynamic_endpoint_id").asInstanceOf[JString].s
+
+      Then("We update the host")
+      val dynamicEndpointHostJson = SwaggerDefinitionsJSON.dynamicEndpointHostJson400
+
+      When("We make a request v4.0.0")
+      val requestPut = (v4_0_0_Request / "management" / "dynamic-endpoints"/dynamicEndpointId/ "host").PUT<@ (user1)
+      val responsePut = makePutRequest(requestPut, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 403")
+      responsePut.code should equal(403)
+      responsePut.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+      responsePut.body.extract[ErrorMessage].message.toString contains (CanUpdateDynamicEndpoint.toString()) should be (true)
+    }
+  }
+
+  feature(s"test $ApiEndpoint7 version $VersionOfApi - authorized access - with role - should be success!") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
+      val response = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
+
+      val responseWithRole = makePostRequest(request, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 201")
+      responseWithRole.code should equal(201)
+      responseWithRole.body.toString contains("dynamic_endpoint_id") should be (true)
+      val dynamicEndpointId = (responseWithRole.body \"dynamic_endpoint_id").asInstanceOf[JString].s
+
+      Then("We update the host")
+      val dynamicEndpointHostJson = SwaggerDefinitionsJSON.dynamicEndpointHostJson400
+
+      When("We make a request v4.0.0")
+      val requestPut = (v4_0_0_Request / "management" / "dynamic-endpoints"/dynamicEndpointId/ "host").PUT<@ (user1)
+      val responsePut = makePutRequest(requestPut, write(postDynamicEndpointRequestBodyExample))
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateDynamicEndpoint.toString)
+
+      When("We make a request v4.0.0")
+      val responseWithRolePut = makePutRequest(requestPut, write(dynamicEndpointHostJson))
+      Then("We should get a 201")
+      responseWithRolePut.code should equal(201)
+      (responseWithRolePut.body \ "host").asInstanceOf[JString].s shouldEqual (dynamicEndpointHostJson.host)
+
+
+    }
+  }
+
+
 }

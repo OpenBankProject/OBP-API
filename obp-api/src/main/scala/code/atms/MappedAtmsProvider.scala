@@ -5,6 +5,8 @@ import code.util.{TwentyFourHourClockString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.mapper._
 
+import scala.collection.immutable.List
+
 object MappedAtmsProvider extends AtmsProvider {
 
   override protected def getAtmFromProvider(bankId: BankId, atmId: AtmId): Option[AtmT] =
@@ -81,7 +83,20 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
   object mMoreInfo extends MappedString(this, 128)
 
   object mHasDepositCapability extends MappedString(this, 1)
-
+  
+  object mSupportedLanguages extends MappedText(this)
+  object mServices extends MappedText(this)
+  object mNotes extends MappedText(this)
+  object mAccessibilityFeatures extends MappedText(this)
+  object mSupportedCurrencies extends MappedText(this)
+  object mLocationCategories extends MappedText(this)
+  object mMinimumWithdrawal extends MappedString(this, 255)
+  object mBranchIdentification extends MappedString(this, 255)
+  object mSiteIdentification extends MappedString(this, 255)
+  object mSiteName extends MappedString(this, 255)
+  object mCashWithdrawalNationalFee extends MappedString(this, 255)
+  object mCashWithdrawalInternationalFee extends MappedString(this, 255)
+  object mBalanceInquiryFee extends MappedString(this, 255)
 
 
   override def atmId: AtmId = AtmId(mAtmId.get)
@@ -153,6 +168,63 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
     case _ => None
   }
 
+  override def  supportedLanguages = mSupportedLanguages.get match {
+    case value: String => Some (value.split(",").toList)
+    case _ => None
+  }
+
+  override def services: Option[List[String]] = mServices.get match {
+    case value: String => Some (value.split(",").toList)
+    case _ => None
+  }
+  
+  override def notes: Option[List[String]] = mNotes.get match {
+    case value: String => Some (value.split(",").toList)
+    case _ => None
+  }
+  
+  override def accessibilityFeatures: Option[List[String]] = mAccessibilityFeatures.get match {
+    case value: String => Some (value.split(",").toList)
+    case _ => None
+  }
+  
+  override def supportedCurrencies: Option[List[String]] = mSupportedCurrencies.get match {
+    case value: String => Some (value.split(",").toList)
+    case _ => None
+  }
+  
+  override def minimumWithdrawal: Option[String] = mMinimumWithdrawal.get match {
+    case value: String => Some (value)
+    case _ => None
+  }
+  override def branchIdentification: Option[String] = mBranchIdentification.get match {
+    case value: String => Some (value)
+    case _ => None
+  }
+  override def locationCategories: Option[List[String]] = mLocationCategories.get match {
+    case value: String => Some (value.split(",").toList)
+    case _ => None
+  }
+  override def siteIdentification: Option[String] = mSiteIdentification.get match {
+    case value: String => Some (value)
+    case _ => None
+  }
+  override def siteName: Option[String] = mSiteName.get match {
+    case value: String => Some (value)
+    case _ => None
+  }
+  override def cashWithdrawalNationalFee: Option[String] = mCashWithdrawalNationalFee.get match {
+    case value: String => Some (value)
+    case _ => None
+  }
+  override def cashWithdrawalInternationalFee: Option[String] = mCashWithdrawalInternationalFee.get match {
+    case value: String => Some (value)
+    case _ => None
+  }
+  override def balanceInquiryFee: Option[String] = mBalanceInquiryFee.get match {
+    case value: String => Some (value)
+    case _ => None
+  }
 
 }
 

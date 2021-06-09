@@ -28,22 +28,22 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
-import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
+import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v2_0_0.TransactionRequestChargeJsonV200
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
-import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON}
-import code.api.v3_0_0.{AccountRuleJsonV300, CustomerAttributeResponseJsonV300}
+import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON, createLocationJson, createMetaJson, transformToAddressFromV300}
+import code.api.v3_0_0.{AccountRuleJsonV300, AddressJsonV300, CustomerAttributeResponseJsonV300, OpeningTimesV300}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
 import code.apicollection.ApiCollectionTrait
 import code.apicollectionendpoint.ApiCollectionEndpointTrait
+import code.atms.Atms.Atm
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
@@ -56,6 +56,7 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
+import scala.util.Try
 
 
 case class CallLimitPostJsonV400(
@@ -511,6 +512,9 @@ case class PostCounterpartyJson400(
                                     is_beneficiary: Boolean,
                                     bespoke: List[PostCounterpartyBespokeJson]
                                   )
+case class DynamicEndpointHostJson400(
+  host: String
+)
 
 case class CounterpartyJson400(
                                  name: String,
@@ -641,6 +645,98 @@ case class ResourceDocFragment(
                                 exampleRequestBody: Option[JValue],
                                 successResponseBody: Option[JValue]
                            ) extends JsonFieldReName
+
+case class SupportedCurrenciesJson(
+  supported_currencies: List[String]
+)
+
+case class AtmSupportedCurrenciesJson(
+  atm_id: String,
+  supported_currencies: List[String]
+)
+
+case class SupportedLanguagesJson(
+  supported_languages: List[String]
+)
+
+case class AtmSupportedLanguagesJson(
+  atm_id: String,
+  supported_languages: List[String]
+)
+
+case class AccessibilityFeaturesJson(
+  accessibility_features: List[String]
+)
+
+case class AtmAccessibilityFeaturesJson(
+  atm_id: String,
+  accessibility_features: List[String]
+)
+
+case class AtmServicesJsonV400(
+  services: List[String]
+)
+
+case class AtmServicesResponseJsonV400(
+  atm_id: String,
+  services: List[String]
+)
+
+case class AtmNotesJsonV400(
+  notes: List[String]
+)
+
+case class AtmNotesResponseJsonV400(
+  atm_id: String,
+  notes: List[String]
+)
+
+case class AtmLocationCategoriesJsonV400(
+  location_categories: List[String]
+)
+
+case class AtmLocationCategoriesResponseJsonV400(
+  atm_id: String,
+  location_categories: List[String]
+)
+
+case class AtmJsonV400 (
+  id : Option[String],
+  bank_id : String,
+  name : String,
+  address: AddressJsonV300,
+  location: LocationJsonV140,
+  meta: MetaJsonV140,
+
+  monday: OpeningTimesV300,
+  tuesday: OpeningTimesV300,
+  wednesday: OpeningTimesV300,
+  thursday: OpeningTimesV300,
+  friday: OpeningTimesV300,
+  saturday: OpeningTimesV300,
+  sunday: OpeningTimesV300,
+
+  is_accessible : String,
+  located_at : String,
+  more_info : String,
+  has_deposit_capability : String,
+  
+  supported_languages: List[String],
+  services: List[String],
+  accessibility_features: List[String],
+  supported_currencies: List[String],
+  notes: List[String],
+  location_categories: List[String],
+  minimum_withdrawal: String,
+  branch_identification: String,
+  site_identification: String,
+  site_name: String,
+  cash_withdrawal_national_fee: String,
+  cash_withdrawal_international_fee: String,
+  balance_inquiry_fee: String
+)
+
+case class AtmsJsonV400(atms : List[AtmJsonV400])
 
 object JSONFactory400 {
 
@@ -1162,6 +1258,121 @@ object JSONFactory400 {
 
   def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
     ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))
+  }
+  def createAtmJsonV400(atm: AtmT): AtmJsonV400 = {
+    AtmJsonV400(
+      id= Some(atm.atmId.value),
+      bank_id= atm.bankId.value,
+      name= atm.name,
+      AddressJsonV300(atm.address.line1,
+        atm.address.line2,
+        atm.address.line3,
+        atm.address.city,
+        atm.address.county.getOrElse(""),
+        atm.address.state,
+        atm.address.postCode,
+        atm.address.countryCode),
+      createLocationJson(atm.location),
+      createMetaJson(atm.meta),
+      monday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnMonday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnMonday.getOrElse("")),
+      tuesday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnTuesday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnTuesday.getOrElse("")),
+      wednesday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnWednesday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnWednesday.getOrElse("")),
+      thursday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnThursday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnThursday.getOrElse("")),
+      friday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnFriday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnFriday.getOrElse("")),
+      saturday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnSaturday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnSaturday.getOrElse("")),
+      sunday = OpeningTimesV300(
+        opening_time = atm.OpeningTimeOnSunday.getOrElse(""),
+        closing_time = atm.ClosingTimeOnSunday.getOrElse("")),
+      is_accessible = atm.isAccessible.map(_.toString).getOrElse(""),
+      located_at = atm.locatedAt.getOrElse(""),
+      more_info = atm.moreInfo.getOrElse(""),
+      has_deposit_capability = atm.hasDepositCapability.map(_.toString).getOrElse(""),
+      supported_languages = atm.supportedLanguages.getOrElse(Nil),
+      services = atm.services.getOrElse(Nil),
+      accessibility_features = atm.accessibilityFeatures.getOrElse(Nil),
+      supported_currencies = atm.supportedCurrencies.getOrElse(Nil),
+      notes = atm.notes.getOrElse(Nil),
+      location_categories = atm.locationCategories.getOrElse(Nil),
+      minimum_withdrawal = atm.minimumWithdrawal.getOrElse(""),
+      branch_identification = atm.branchIdentification.getOrElse(""),
+      site_identification = atm.siteIdentification.getOrElse(""),
+      site_name = atm.siteName.getOrElse(""),
+      cash_withdrawal_national_fee = atm.cashWithdrawalNationalFee.getOrElse(""),
+      cash_withdrawal_international_fee = atm.cashWithdrawalInternationalFee.getOrElse(""),
+      balance_inquiry_fee = atm.balanceInquiryFee.getOrElse(""),
+    )
+  }
+  
+  def createAtmsJsonV400(atmList: List[AtmT]): AtmsJsonV400 = {
+      AtmsJsonV400(atmList.map(createAtmJsonV400))
+  }
+  
+  def transformToAtmFromV400(atmJsonV400: AtmJsonV400): Atm = {
+    val address : Address = transformToAddressFromV300(atmJsonV400.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(atmJsonV400.location)  // Note the location is V140
+    val meta: Meta =  transformToMetaFromV140(atmJsonV400.meta)  // Note the meta  is V140
+    val isAccessible: Boolean = Try(atmJsonV400.is_accessible.toBoolean).getOrElse(false)
+    val hdc: Boolean = Try(atmJsonV400.has_deposit_capability.toBoolean).getOrElse(false)
+    
+    Atm(
+      atmId = AtmId(atmJsonV400.id.getOrElse("")),
+      bankId = BankId(atmJsonV400.bank_id),
+      name = atmJsonV400.name,
+      address = address,
+      location = location,
+      meta = meta,
+      OpeningTimeOnMonday = Some(atmJsonV400.monday.opening_time),
+      ClosingTimeOnMonday = Some(atmJsonV400.monday.closing_time),
+
+      OpeningTimeOnTuesday = Some(atmJsonV400.tuesday.opening_time),
+      ClosingTimeOnTuesday = Some(atmJsonV400.tuesday.closing_time),
+
+      OpeningTimeOnWednesday = Some(atmJsonV400.wednesday.opening_time),
+      ClosingTimeOnWednesday = Some(atmJsonV400.wednesday.closing_time),
+
+      OpeningTimeOnThursday = Some(atmJsonV400.thursday.opening_time),
+      ClosingTimeOnThursday = Some(atmJsonV400.thursday.closing_time),
+
+      OpeningTimeOnFriday = Some(atmJsonV400.friday.opening_time),
+      ClosingTimeOnFriday = Some(atmJsonV400.friday.closing_time),
+
+      OpeningTimeOnSaturday = Some(atmJsonV400.saturday.opening_time),
+      ClosingTimeOnSaturday = Some(atmJsonV400.saturday.closing_time),
+
+      OpeningTimeOnSunday = Some(atmJsonV400.sunday.opening_time),
+      ClosingTimeOnSunday = Some(atmJsonV400.sunday.closing_time),
+      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      isAccessible = Some(isAccessible),
+      locatedAt = Some(atmJsonV400.located_at),
+      moreInfo = Some(atmJsonV400.more_info),
+      hasDepositCapability = Some(hdc),
+
+      supportedLanguages = Some(atmJsonV400.supported_languages),
+      services = Some(atmJsonV400.services),
+      accessibilityFeatures = Some(atmJsonV400.accessibility_features),
+      supportedCurrencies = Some(atmJsonV400.supported_currencies),
+      notes = Some(atmJsonV400.notes),
+      minimumWithdrawal = Some(atmJsonV400.minimum_withdrawal ),
+      branchIdentification = Some(atmJsonV400.branch_identification),
+      locationCategories = Some(atmJsonV400.location_categories ),
+      siteIdentification = Some(atmJsonV400.site_identification),
+      siteName = Some(atmJsonV400.site_name),
+      cashWithdrawalNationalFee = Some(atmJsonV400.cash_withdrawal_national_fee),
+      cashWithdrawalInternationalFee = Some(atmJsonV400.cash_withdrawal_international_fee),
+      balanceInquiryFee = Some(atmJsonV400.balance_inquiry_fee)
+    )
   }
   
 }

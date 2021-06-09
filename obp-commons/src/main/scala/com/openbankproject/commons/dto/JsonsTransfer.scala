@@ -1222,8 +1222,8 @@ case class InBoundCreateOrUpdateBank(status: Status, data: BankCommons) extends 
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 
-case class OutBoundCreateOrUpdateAtm(atm: AtmT) extends TopicTrait
-case class InBoundCreateOrUpdateAtm(status: Status, data: AtmTCommons) extends InBoundTrait[AtmTCommons] {
+case class OutBoundCreateOrUpdateAtmLegacy(atm: AtmT) extends TopicTrait
+case class InBoundCreateOrUpdateAtmLegacy(status: Status, data: AtmTCommons) extends InBoundTrait[AtmTCommons] {
   override val inboundAdapterCallContext: InboundAdapterCallContext = InboundAdapterCallContext()
 }
 

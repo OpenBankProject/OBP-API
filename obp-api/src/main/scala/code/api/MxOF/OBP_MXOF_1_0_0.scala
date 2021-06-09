@@ -1,6 +1,6 @@
 /**
   * Open Bank Project - API
-  * Copyright (C) 2011-2019, TESOBE GmbH
+  * Copyright (C) 2011-2018, TESOBE Ltd
   **
   *This program is free software: you can redistribute it and/or modify
   *it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
   *along with this program.  If not, see <http://www.gnu.org/licenses/>.
   **
   *Email: contact@tesobe.com
-  *TESOBE GmbH
+  *TESOBE Ltd
   *Osloerstrasse 16/17
   *Berlin 13359, Germany
   **
@@ -29,14 +29,9 @@
   *Ayoub Benali: ayoub AT tesobe DOT com
   *
   */
-package code.api.berlin.group.v1_3
+package code.api.MxOF
 
 import code.api.OBPRestHelper
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
-import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
-import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
-import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
@@ -45,35 +40,24 @@ import com.openbankproject.commons.util.ScannedApiVersion
 import scala.collection.mutable.ArrayBuffer
 
 
-
-
 /*
 This file defines which endpoints from all the versions are available in v1
  */
-object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
-
-  override val apiVersion = ScannedApiVersion("berlin-group", "BG", "v1.3")
+object OBP_MXOF_1_0_0 extends OBPRestHelper with MdcLoggable with ScannedApis {
+//  mx-open-finance
+  override val apiVersion = ScannedApiVersion("mxof", "MXOF", "v1.0.0")
   val versionStatus = "DRAFT"
 
-  val endpoints =
-    APIMethods_AccountInformationServiceAISApi.endpoints ++
-    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
-    APIMethods_PaymentInitiationServicePISApi.endpoints ++
-    APIMethods_SigningBasketsApi.endpoints ++
-    APIMethods_CommonServicesApi.endpoints
-
-  override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
-    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
-    APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
-    APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
-    APIMethods_SigningBasketsApi.resourceDocs ++
-    APIMethods_CommonServicesApi.resourceDocs
-
+  private[this] val endpoints = APIMethods_AtmsApi.endpoints 
+  override val allResourceDocs: ArrayBuffer[ResourceDoc]  = APIMethods_AtmsApi.resourceDocs
+  
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
   // Make them available for use!
-  registerRoutes(routes, allResourceDocs, apiPrefix)
+  routes.foreach(route => {
+    registerRoutes(routes, allResourceDocs, apiPrefix)
+  })
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 }
