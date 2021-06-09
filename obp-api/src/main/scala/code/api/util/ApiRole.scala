@@ -457,7 +457,7 @@ object ApiRole {
   lazy val canCreateDynamicEntity = CanCreateDynamicEntity()
 
   case class CanCreateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canCreateDynamicEntityAtBank = CanCreateBankLevelDynamicEntity()
+  lazy val canCreateBankLevelDynamicEntity = CanCreateBankLevelDynamicEntity()
   
   case class CanUpdateDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateDynamicEntity = CanUpdateDynamicEntity()

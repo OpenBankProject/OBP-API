@@ -56,21 +56,21 @@ object DynamicEndpointHelper extends RestHelper {
   def isDynamicEntityResponse (serverUrl : String) = serverUrl matches (IsDynamicEntityUrl)
   
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
-    val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
+    val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll(None)
     val infos = dynamicEndpoints.map(it => buildDynamicEndpointInfo(it.swaggerString, it.dynamicEndpointId.get, it.bankId))
     infos
   }
 
   def allDynamicEndpointRoles: List[ApiRole] = {
     for {
-      dynamicEndpoint <- DynamicEndpointProvider.connectorMethodProvider.vend.getAll()
+      dynamicEndpoint <- DynamicEndpointProvider.connectorMethodProvider.vend.getAll(None)
       info = buildDynamicEndpointInfo(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get, dynamicEndpoint.bankId)
       role <- getRoles(info)
     } yield role
   }
 
-  def getRoles(dynamicEndpointId: String): List[ApiRole] = {
-    val foundInfos: Box[DynamicEndpointInfo] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
+  def getRoles(bankId: Option[String], dynamicEndpointId: String): List[ApiRole] = {
+    val foundInfos: Box[DynamicEndpointInfo] = DynamicEndpointProvider.connectorMethodProvider.vend.get(bankId, dynamicEndpointId)
       .map(dynamicEndpoint => buildDynamicEndpointInfo(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get, dynamicEndpoint.bankId))
 
 

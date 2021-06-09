@@ -2700,22 +2700,27 @@ object NewStyle {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def updateDynamicEndpointHost(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(userId, swaggerString), callContext)
+    def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
-      val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
-      val dynamicEndpoint = unboxFullOrFail(dynamicEndpointBox, callContext, DynamicEndpointNotFoundByDynamicEndpointId, 404)
+    def getDynamicEndpoint(bankId: Option[String], dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(bankId, dynamicEndpointId)
+      val errorMessage = 
+        if(bankId.isEmpty)
+          DynamicEndpointNotFoundByDynamicEndpointId.replace("DYNAMIC_ENDPOINT_ID.", s"DYNAMIC_ENDPOINT_ID($dynamicEndpointId).")
+        else
+          DynamicEndpointNotFoundByDynamicEndpointId.replace("for DYNAMIC_ENDPOINT_ID.",s"for DYNAMIC_ENDPOINT_ID($dynamicEndpointId) and BANK_ID(${bankId.getOrElse("")}).")
+      val dynamicEndpoint = unboxFullOrFail(dynamicEndpointBox, callContext, errorMessage, 404)
       Future{
         (dynamicEndpoint, callContext)
       }
     }
 
-    def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
+    def getDynamicEndpoints(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(bankId), callContext)
     }
 
     def getDynamicEndpointsByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
@@ -2727,18 +2732,18 @@ object NewStyle {
      * @param callContext
      * @return
      */
-    def deleteDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): Future[Box[Boolean]] = {
-      val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(dynamicEndpointId, callContext)
+    def deleteDynamicEndpoint(bankId: Option[String], dynamicEndpointId: String, callContext: Option[CallContext]): Future[Box[Boolean]] = {
+      val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(bankId, dynamicEndpointId, callContext)
         for {
           (entity, _) <- dynamicEndpoint
           deleteEndpointResult: Box[Boolean] = {
-            val roles = DynamicEndpointHelper.getRoles(dynamicEndpointId).map(_.toString())
+            val roles = DynamicEndpointHelper.getRoles(bankId, dynamicEndpointId).map(_.toString())
             roles.foreach(ApiRole.removeDynamicApiRole(_))
             val rolesDeleteResult: Box[Boolean] = Entitlement.entitlement.vend.deleteEntitlements(roles)
               Box !! (rolesDeleteResult == Full(true))
             } 
           deleteSuccess = if(deleteEndpointResult.isDefined && deleteEndpointResult.head) {
-            tryo {DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)}
+            tryo {DynamicEndpointProvider.connectorMethodProvider.vend.delete(bankId, dynamicEndpointId)}
           }else{
             Full(false)
           }
