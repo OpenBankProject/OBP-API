@@ -59,6 +59,9 @@ connector=mapped
 ## MethodRouting cache time-to-live in seconds
 #methodRouting.cache.ttl.seconds=30
 
+## EndpointMapping cache time-to-live in seconds
+#endpointMapping.cache.ttl.seconds=0
+
 ## webui props cache time-to-live in seconds
 #webui.props.cache.ttl.seconds=20
 
@@ -255,9 +258,6 @@ sandbox_data_import_secret=change_me
 
 
 ### API features
-
-## Secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
-cashApplicationKey=change_me
 
 ## Set this to false if you don't want the api payments call to work (starting with v1.2.1)
 payments_enabled=true

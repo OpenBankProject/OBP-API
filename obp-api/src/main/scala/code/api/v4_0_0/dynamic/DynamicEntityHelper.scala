@@ -153,7 +153,7 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
+      List(apiTag, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole))
     )
     resourceDocs += (DynamicEntityOperation.GET_ONE, entityName) -> ResourceDoc(
@@ -179,7 +179,7 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
+      List(apiTag, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole))
     )
 
@@ -208,7 +208,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
+      List(apiTag, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole))
       )
 
@@ -237,7 +237,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
+      List(apiTag, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole))
     )
 
@@ -263,7 +263,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagApi, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
+      List(apiTag, apiTagNewStyle, apiTagDynamicEndpoint, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole))
     )
 

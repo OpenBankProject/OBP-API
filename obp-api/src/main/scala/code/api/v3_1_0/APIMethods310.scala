@@ -466,7 +466,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank  ) {
+            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank, cc=callContext) {
               canUseCustomerFirehose(u)
             }
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
@@ -709,14 +709,14 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext) 
-            _ <- Helper.booleanToFuture(failMsg = ViewDoesNotPermitAccess + " You need the view canQueryAvailableFunds.") {
+            _ <- Helper.booleanToFuture(failMsg = ViewDoesNotPermitAccess + " You need the view canQueryAvailableFunds.", cc=callContext) {
               view.canQueryAvailableFunds
             }
             httpParams: List[HTTPParam] <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount) {
+            _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + amount, cc=callContext) {
               httpParams.exists(_.name == amount)
             }
-            _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + currency) {
+            _ <- Helper.booleanToFuture(failMsg = MissingQueryParams + currency, cc=callContext) {
               httpParams.exists(_.name == currency)
             }
             available <- NewStyle.function.tryons(s"$InvalidAmount", 400, callContext) {
@@ -760,7 +760,7 @@ trait APIMethods310 {
         ConsumerNotFoundByConsumerId,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canGetConsumers)))
 
 
@@ -795,7 +795,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle)
+      List(apiTagConsumer, apiTagNewStyle)
     )
 
 
@@ -830,7 +830,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canGetConsumers))
     )
 
@@ -1166,11 +1166,11 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.isEnabledTransactionRequests()
+            _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView) {
+            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
               u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
             }
             (transactionRequests, callContext) <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
@@ -1224,7 +1224,7 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerJsonV310]
             }
-            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array" ) {
+            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array", cc=callContext) {
               postedData.dependants == postedData.dob_of_dependants.length 
             }
             (customer, callContext) <- NewStyle.function.createCustomer(
@@ -2918,7 +2918,7 @@ trait APIMethods310 {
             products <- Future(Connector.connector.vend.getProducts(bankId)) map {
               connectorEmptyResponse(_, callContext)
             }
-            _ <- Helper.booleanToFuture(ProductNotFoundByProductCode + " {" + (product.parent_product_code :: product.children_product_codes).mkString(", ") + "}") {
+            _ <- Helper.booleanToFuture(ProductNotFoundByProductCode + " {" + (product.parent_product_code :: product.children_product_codes).mkString(", ") + "}", cc=callContext) {
               val existingCodes = products.map(_.code.value)
               val codes = product.parent_product_code :: product.children_product_codes
               codes.forall(i => existingCodes.contains(i))
@@ -3050,7 +3050,7 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
     
     lazy val createMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
@@ -3126,7 +3126,7 @@ trait APIMethods310 {
         UserNotLoggedIn,
         BankNotFound,
         UnknownError),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeetings: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
@@ -3166,7 +3166,7 @@ trait APIMethods310 {
         MeetingNotFound,
         UnknownError
       ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental, apiTagNewStyle))
+      List(apiTagMeeting, apiTagCustomer, apiTagExperimental, apiTagNewStyle))
 
     lazy val getMeeting: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
@@ -3479,7 +3479,7 @@ trait APIMethods310 {
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
@@ -3487,7 +3487,7 @@ trait APIMethods310 {
               json.extract[PostConsentBodyCommonJson]
             }
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
-            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)"){
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
               consentJson.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive
                 case _ => true
@@ -3495,7 +3495,7 @@ trait APIMethods310 {
             }
             requestedEntitlements = consentJson.entitlements
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
-            _ <- Helper.booleanToFuture(RolesAllowedInConsent){
+            _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc=callContext){
               requestedEntitlements.forall(
                 re => myEntitlements.getOrElse(Nil).exists(
                   e => e.roleName == re.role_name && e.bankId == re.bank_id
@@ -3504,7 +3504,7 @@ trait APIMethods310 {
             }
             requestedViews = consentJson.views
             (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
-            _ <- Helper.booleanToFuture(ViewsAllowedInConsent){
+            _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc=callContext){
               requestedViews.forall(
                 rv => assignedViews.exists{
                   e => 
@@ -3576,7 +3576,7 @@ trait APIMethods310 {
                 message = new TextMessage("OBP-API", phoneNumber, messageText);
                 response <- Future{client.getSmsClient().submitMessage(message)}
                 failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
-                _ <- Helper.booleanToFuture(failMsg) {
+                _ <- Helper.booleanToFuture(failMsg, cc=callContext) {
                   response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
                 }
               } yield Future{true}
@@ -3709,7 +3709,7 @@ trait APIMethods310 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               unboxFullOrFail(_, callContext, ConsentNotFound)
             }
-            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound) {
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc=callContext) {
               consent.mUserId == user.userId
             }
             consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
@@ -3753,11 +3753,11 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate) {
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate, cc=callContext) {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
             }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods){
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
@@ -3916,7 +3916,7 @@ trait APIMethods310 {
             createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateViewJson]
             }
-            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400) {
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=callContext) {
               createViewJson.is_public == false
             }
             view <- NewStyle.function.createSystemView(createViewJson, callContext)
@@ -3998,7 +3998,7 @@ trait APIMethods310 {
               val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
               x => unboxFullOrFail(x, callContext, msg)
             }
-            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400) {
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=callContext) {
               updateJson.is_public == false
             }
             _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
@@ -4199,10 +4199,10 @@ trait APIMethods310 {
             }
             connectorName = postedData.connectorName
             methodName = postedData.methodName
-            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName or the connector($connectorName) is not supported for this sandbox. ", failCode=400) {
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName or the connector($connectorName) is not supported for this sandbox. ", failCode=400, cc=callContext) {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
-            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400, cc=callContext) {
               //If connectorName = "internal", it mean the dynamic connector methods.
               //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
               if(connectorName == "internal")
@@ -4303,10 +4303,10 @@ trait APIMethods310 {
             }
             connectorName = putData.connectorName
             methodName = putData.methodName
-            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400) {
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorName please check connectorName: $connectorName", failCode=400, cc=callContext) {
               NewStyle.function.getConnectorByName(connectorName).isDefined
             }
-            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400) {
+            _ <- Helper.booleanToFuture(s"$InvalidConnectorMethodName please check methodName: $methodName", failCode=400, cc=callContext) {
               //If connectorName = "internal", it mean the dynamic connector methods.
               //all the connector method may not be existing yet. So need to get the method name from `mapped` first. 
               if(connectorName == "internal")
@@ -4459,7 +4459,7 @@ trait APIMethods310 {
             
             (customerNumberIsAvalible, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, putData.customer_number, callContext)
             //There should not be a customer for this number, If there is, then we throw the exception. 
-            _ <- Helper.booleanToFuture(failMsg= s"$CustomerNumberAlreadyExists Current customer_number(${putData.customer_number}) and Current bank_id(${bankId.value})" ) {customerNumberIsAvalible}
+            _ <- Helper.booleanToFuture(failMsg= s"$CustomerNumberAlreadyExists Current customer_number(${putData.customer_number}) and Current bank_id(${bankId.value})", cc=callContext) {customerNumberIsAvalible}
             
             (customer, callContext) <- NewStyle.function.updateCustomerScaData(
               customerId,
@@ -4709,7 +4709,7 @@ trait APIMethods310 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[UpdateAccountRequestJsonV310]
             }
-            _ <- Helper.booleanToFuture(s"$UpdateBankAccountException Duplication detected in account routings, please specify only one value per routing scheme"){
+            _ <- Helper.booleanToFuture(s"$UpdateBankAccountException Duplication detected in account routings, please specify only one value per routing scheme", cc=callContext){
               consentJson.account_routings.map(_.scheme).distinct.size == consentJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(consentJson.account_routings.map(accountRouting =>
@@ -4723,7 +4723,7 @@ trait APIMethods310 {
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
             }
-            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})", cc=callContext) {
               alreadyExistingAccountRouting.isEmpty
             }
             (bankAccount,callContext) <- NewStyle.function.updateBankAccount(
@@ -4773,7 +4773,7 @@ trait APIMethods310 {
             
             _ <- postJson.allows match {
               case List() => Future {true}
-              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "), cc=callContext)(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
             }
 
             failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
@@ -4784,7 +4784,7 @@ trait APIMethods310 {
               }
             }
             
-            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}", cc=callContext)(postJson.issue_number.length<= 10)
 
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateCardsForBank, callContext)
             
@@ -4868,7 +4868,7 @@ trait APIMethods310 {
 
             _ <- postJson.allows match {
               case List() => Future {1}
-              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "))(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
+              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "), cc=callContext)(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
             }
 
             failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
@@ -4876,7 +4876,7 @@ trait APIMethods310 {
               CardReplacementReason.valueOf(postJson.replacement.reason_requested)
             }
             
-            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}")(postJson.issue_number.length<= 10)
+            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}", cc=callContext)(postJson.issue_number.length<= 10)
 
             (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
 
@@ -5330,7 +5330,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext)
-            _ <- Helper.booleanToFuture(AccountIdAlreadyExists){
+            _ <- Helper.booleanToFuture(AccountIdAlreadyExists, cc=callContext){
               account.isEmpty
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(createAccountRequestJsonV310))} "
@@ -5339,15 +5339,15 @@ trait APIMethods310 {
             }
             loggedInUserId = u.userId
             userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext){
               isValidID(accountId.value)
             }
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat){
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext){
               isValidID(accountId.value)
             }
             (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, callContext)
             // User can create account for self or an account for another user if they have CanCreateAccount role
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext){
               isValidID(accountId.value)
             }
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(Unit))
@@ -5359,11 +5359,11 @@ trait APIMethods310 {
             initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
               BigDecimal(initialBalanceAsString)
             }
-            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero, cc=callContext){0 == initialBalanceAsNumber}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){isValidCurrencyISOCode(createAccountJson.balance.currency)}
             currency = createAccountJson.balance.currency
             (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", 400){
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", 400, cc=callContext){
               createAccountJson.account_routings.map(_.scheme).distinct.size == createAccountJson.account_routings.size
             }
             alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.map(accountRouting =>
@@ -5372,7 +5372,7 @@ trait APIMethods310 {
             alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
               case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
             }
-            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})") {
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})", cc=callContext) {
               alreadyExistingAccountRouting.isEmpty
             }
             (bankAccount,callContext) <- NewStyle.function.createBankAccount(
@@ -5602,7 +5602,7 @@ trait APIMethods310 {
               BigDecimal(transDetailsJson.value.amount)
             }
 
-            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${amountNumber}'") {
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${amountNumber}'", cc=callContext) {
               amountNumber > BigDecimal("0")
             }
 
@@ -5615,7 +5615,7 @@ trait APIMethods310 {
             }
             
             // Prevent default value for transaction request type (at least).
-            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'") {
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
 
@@ -5683,7 +5683,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      List(apiTagWebUiProps, apiTagNewStyle),
       Some(List(canGetWebUiProps))
     )
 
@@ -5775,7 +5775,7 @@ trait APIMethods310 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      List(apiTagWebUiProps, apiTagNewStyle),
       Some(List(canCreateWebUiProps)))
 
     lazy val createWebUiProps : OBPEndpoint = {
@@ -5820,7 +5820,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagWebUiProps, apiTagApi, apiTagNewStyle),
+      List(apiTagWebUiProps, apiTagNewStyle),
       Some(List(canDeleteWebUiProps)))
 
     lazy val deleteWebUiProps : OBPEndpoint = {
@@ -5885,7 +5885,7 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagConsumer, apiTagApi, apiTagNewStyle),
+      List(apiTagConsumer, apiTagNewStyle),
       Some(List(canEnableConsumers,canDisableConsumers)))
 
 

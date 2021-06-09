@@ -12,6 +12,7 @@ object ApiTag {
 
   // Use the *singular* case. for both the variable name and string.
   // e.g. "This call is Payment related"
+  // When using these tags in resource docs, as we now have many APIs, it's best not to have too use too many tags per endpoint.
   val apiTagTransactionRequest = ResourceDocTag("Transaction-Request")
   val apiTagApi = ResourceDocTag("API")
   val apiTagBank = ResourceDocTag("Bank")
@@ -40,7 +41,7 @@ object ApiTag {
   val apiTagKyc = ResourceDocTag("KYC")
   val apiTagCustomer = ResourceDocTag("Customer")
   val apiTagOnboarding = ResourceDocTag("Onboarding")
-  val apiTagUser = ResourceDocTag("User")
+  val apiTagUser = ResourceDocTag("User") // Use for User Management / Info APIs
   val apiTagMeeting = ResourceDocTag("Customer-Meeting")
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
@@ -67,6 +68,7 @@ object ApiTag {
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
+  val apiTagEndpointMapping = ResourceDocTag("Endpoint-Mapping")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
   val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-Manage")
   val apiTagDynamicSwaggerDoc = ResourceDocTag("Dynamic-Swagger-Doc-Manage")

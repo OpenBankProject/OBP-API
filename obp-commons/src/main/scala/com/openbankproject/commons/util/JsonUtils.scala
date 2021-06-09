@@ -57,6 +57,7 @@ object JsonUtils {
    * @return built json
    */
   def buildJson(source: JValue, schema: JValue): JValue = {
+    if(source==JNothing) JNothing else{
     transformField(schema){
       case (jField, path) if path.contains("$default") =>
         jField
@@ -182,6 +183,7 @@ object JsonUtils {
       case (JField(name, JString(s)), _) =>
         JField(name, calculateValue(source, s))
 
+    }
     }
   }
 

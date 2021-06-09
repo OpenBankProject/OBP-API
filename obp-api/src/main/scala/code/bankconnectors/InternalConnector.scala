@@ -32,8 +32,8 @@ object InternalConnector {
     } else if (methodName.contains("$default$")) {
       method.invoke(connector, args:_*)
     } else {
-       val function = getFunction(methodName)
-       DynamicUtil.executeFunction(methodName, function, args)
+      val function = getFunction(methodName)
+      DynamicUtil.executeFunction(methodName, function, args)
     }
   }
 
@@ -93,4 +93,3 @@ object InternalConnector {
       methodName -> methodSignature
   }
 }
-

@@ -99,7 +99,7 @@ trait APIMethods220 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId) {
+            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext) {
               u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
             }
             views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
@@ -265,7 +265,7 @@ trait APIMethods220 {
               case false => authenticatedAccess(cc)
               case true => anonymousAccess(cc)
             }
-            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx) {
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx, cc=callContext) {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canReadFx)
             }
             fromCurrencyCodeUpperCase = fromCurrencyCode.toUpperCase
@@ -312,13 +312,13 @@ trait APIMethods220 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
               view.canAddCounterparty == true
             }
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
-            _ <- Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400) {
+            _ <- Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc=callContext) {
               {
                 for {
                   counterparty <- counterparties
@@ -362,7 +362,7 @@ trait APIMethods220 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty") {
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
               view.canAddCounterparty == true
             }
             counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
@@ -743,17 +743,17 @@ trait APIMethods220 {
 
             loggedInUserId = u.userId
             userIdAccountOwner = if (createAccountJson.user_id.nonEmpty) createAccountJson.user_id else loggedInUserId
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext){
               isValidID(accountId.value)
             }
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat){
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext){
               isValidID(accountId.value)
             }
 
             (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, callContext)
 
             // User can create account for self or an account for another user if they have CanCreateAccount role
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat){
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext){
               isValidID(accountId.value)
             }
 
@@ -767,9 +767,9 @@ trait APIMethods220 {
               BigDecimal(initialBalanceAsString)
             }
 
-            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero){0 == initialBalanceAsNumber}
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero, cc=callContext){0 == initialBalanceAsNumber}
 
-            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode){isValidCurrencyISOCode(createAccountJson.balance.currency)}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){isValidCurrencyISOCode(createAccountJson.balance.currency)}
 
 
             currency = createAccountJson.balance.currency
@@ -1079,8 +1079,8 @@ trait APIMethods220 {
         cc =>
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(InvalidAccountIdFormat) {isValidID(accountId.value)}
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat) {isValidID(bankId.value)}
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
             (bank, callContext ) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, cc.callContext) {
@@ -1088,15 +1088,15 @@ trait APIMethods220 {
             }
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
            
-            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.") {view.canAddCounterparty}
+            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", cc=callContext) {view.canAddCounterparty}
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
               
             _ <- Helper.booleanToFuture(CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
-              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)")){
+              s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${bankId.value}) and ACCOUNT_ID(${accountId.value}) and VIEW_ID($viewId)"), cc=callContext){
               counterparty.isEmpty
             }
-            _ <- booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}"){
+            _ <- booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}", cc=callContext){
               postJson.description.length <= 36
             }
 

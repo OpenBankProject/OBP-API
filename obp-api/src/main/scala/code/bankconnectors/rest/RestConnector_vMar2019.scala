@@ -9137,10 +9137,11 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                                     requestBody: Option[JObject],
                                     entityId: Option[String],
                                     bankId: Option[String],
+                                    queryParameters: Option[Map[String, List[String]]],
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
     import com.openbankproject.commons.dto.{OutBoundDynamicEntityProcess => OutBound, InBoundDynamicEntityProcess => InBound}
     val url = getUrl(callContext, "dynamicEntityProcess")
-    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , operation, entityName, requestBody, entityId, bankId)
+    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull , operation, entityName, requestBody, entityId, bankId, queryParameters)
     val result: OBPReturnType[Box[JValue]] = sendRequest[InBound](url, HttpMethods.POST, req, callContext).map(convertToTuple(callContext))
     result
   }
@@ -9250,8 +9251,15 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
   //We can set them from UserOauthContext or the http request headers.
   private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = {
+    
     val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
-    generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
+    val headersFromGeneralContext = generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
+    
+    val basicUserAuthContexts: List[BasicUserAuthContext] = callContext.flatMap(_.toOutboundAdapterCallContext.outboundAdapterAuthInfo.flatMap(_.userAuthContext)).getOrElse(List.empty[BasicUserAuthContext])
+    val headersFromUserAuthContext = basicUserAuthContexts.map(userAuthContext => RawHeader(userAuthContext.key,userAuthContext.value))
+
+    headersFromGeneralContext++headersFromUserAuthContext
+    
   }
 
   private[this] def buildAdapterCallContext(callContext: Option[CallContext]): OutboundAdapterCallContext = callContext.map(_.toOutboundAdapterCallContext).orNull

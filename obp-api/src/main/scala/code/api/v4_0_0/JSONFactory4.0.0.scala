@@ -26,11 +26,12 @@
   */
 package code.api.v4_0_0
 
+import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
+import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
@@ -281,6 +282,15 @@ case class RevokedJsonV400(revoked: Boolean)
 
 case class ConsentJsonV400(consent_id: String, jwt: String, status: String, api_standard: String, api_version: String)
 case class ConsentsJsonV400(consents: List[ConsentJsonV400])
+case class ConsentInfoJsonV400(consent_id: String, 
+                               consumer_id: String,
+                               created_by_user_id: String, 
+                               last_action_date: String, 
+                               last_usage_date: String, 
+                               status: String, 
+                               api_standard: String, 
+                               api_version: String)
+case class ConsentInfosJsonV400(consents: List[ConsentInfoJsonV400])
 
 case class TransactionRequestBodySEPAJsonV400(
                                                value: AmountOfMoneyJsonV121,
@@ -1064,6 +1074,19 @@ object JSONFactory400 {
 
   def createConsentsJsonV400(consents: List[MappedConsent]): ConsentsJsonV400= {
     ConsentsJsonV400(consents.map(c => ConsentJsonV400(c.consentId, c.jsonWebToken, c.status, c.apiStandard, c.apiVersion)))
+  }
+  def createConsentInfosJsonV400(consents: List[MappedConsent]): ConsentInfosJsonV400= {
+    ConsentInfosJsonV400(consents.map(c => 
+      ConsentInfoJsonV400(
+        c.consentId,
+        c.consumerId,
+        c.userId,
+        if(c.lastActionDate!=null) new SimpleDateFormat(DateWithDay).format(c.lastActionDate) else null, 
+        if(c.usesSoFarTodayCounterUpdatedAt!=null) new SimpleDateFormat(DateWithSeconds).format(c.usesSoFarTodayCounterUpdatedAt) else null, 
+        c.status, 
+        c.apiStandard, 
+        c.apiVersion))
+    )
   }
 
   def createApiCollectionJsonV400(apiCollection: ApiCollectionTrait) = {

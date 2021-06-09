@@ -977,7 +977,8 @@ case class OutBoundDynamicEntityProcess (outboundAdapterCallContext: OutboundAda
                                          entityName: String,
                                          requestBody: Option[JObject],
                                          entityId: Option[String],
-                                         bankId: Option[String]) extends TopicTrait
+                                         bankId: Option[String],
+                                         queryParameters: Option[Map[String, List[String]]]) extends TopicTrait
 case class InBoundDynamicEntityProcess (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: JValue) extends InBoundTrait[JValue]
 
 // because swagger generate not support JValue type, so here supply too xxxDoc TO generate correct request and response body example

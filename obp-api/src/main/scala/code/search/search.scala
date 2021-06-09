@@ -40,7 +40,7 @@ class elasticsearch extends MdcLoggable {
   {
     def toResponse = {
       val bytes = json.toString.getBytes("UTF-8")
-      InMemoryResponse(bytes, ("Content-Length", bytes.length.toString) :: ("Content-Type", "application/json; charset=utf-8") :: headers, cookies, code)
+      InMemoryResponse(bytes, ("Content-Length", bytes.length.toString) :: ("Content-Type", "application/json;charset=utf-8") :: headers, cookies, code)
     }
   }
 

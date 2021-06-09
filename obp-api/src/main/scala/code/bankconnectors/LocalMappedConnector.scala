@@ -80,7 +80,8 @@ import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.json
-import net.liftweb.json.{JArray, JBool, JObject, JValue}
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.{JArray, JBool, JInt, JObject, JValue,JString}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
@@ -1363,9 +1364,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .fallbackTo(NewStyle.function.getBank(toAccount.bankId, callContext))
 
       debitRate <- Future (fx.exchangeRate(currency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${fromAccount.currency}) is not supported.", cc=callContext){debitRate.isDefined}
       creditRate <- Future (fx.exchangeRate(currency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
       fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, creditRate)
@@ -1520,9 +1521,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
       transactionCurrency = transactionRequestCommonBody.value.currency
       debitRate <- Future (fx.exchangeRate(transactionCurrency, fromAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${fromAccount.currency}) is not supported."){debitRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${fromAccount.currency}) is not supported.", cc=callContext){debitRate.isDefined}
       creditRate <- Future (fx.exchangeRate(transactionCurrency, toAccount.currency, Some(bankIdExchangeRate.bankId.value)))
-      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${toAccount.currency}) is not supported."){creditRate.isDefined}
+      _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
       fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
       toTransAmt = fx.convert(amount, creditRate)
@@ -3713,13 +3714,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                     entityName: String,
                                     requestBody: Option[JObject],
                                     entityId: Option[String],
-                                    bankId: Option[String],
+                                    bankId: Option[String], 
+                                    queryParameters: Option[Map[String, List[String]]],
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
 
     Future {
       val processResult: Box[JValue] = operation.asInstanceOf[Any] match {
         case GET_ALL => Full {
-          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
+          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJson(entityName)
           JArray(dataList)
         }
         case GET_ONE => {
@@ -3742,8 +3744,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         }
         case DELETE => {
           val id = entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. "))
-          val deleteResult: Boolean = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
-          Full(JBool(deleteResult))
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
+              .map(it => JBool(it))
+          boxedEntity
         }
       }
       (processResult, callContext)
@@ -4858,7 +4861,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[UserAuthContextUpdate]] = {
     for{
-      _ <- Helper.booleanToFuture(s"$InvalidAuthContextUpdateRequestKey. Current Sandbox only support key == CUSTOMER_NUMBER"){
+      _ <- Helper.booleanToFuture(s"$InvalidAuthContextUpdateRequestKey. Current Sandbox only support key == CUSTOMER_NUMBER", cc=callContext){
         key.equals("CUSTOMER_NUMBER")
       }
       //1st: check if the customer is existing 
