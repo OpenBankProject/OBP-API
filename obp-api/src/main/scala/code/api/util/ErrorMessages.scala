@@ -455,6 +455,11 @@ object ErrorMessages {
   val InvalidEndpointMapping = "OBP-36006: Invalid Endpoint Mapping. "
   // General Resource related messages above here
 
+  // User Invitation
+  val CannotCreateUserInvitation = "OBP-37081: Cannot create user invitation."
+  val CannotGetUserInvitation = "OBP-37882: Cannot get user invitation."
+  val CannotFindUserInvitation = "OBP-37883: Cannot find user invitation."
+
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"

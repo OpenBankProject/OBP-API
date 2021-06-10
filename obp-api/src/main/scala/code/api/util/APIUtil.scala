@@ -3432,14 +3432,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case true =>
         `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
           case Some(pem) =>
-            val validatedPem = X509.validate(pem)
+            logger.debug("PSD2-CERT pem: " + pem)
+            val decodedPem = URLDecoder.decode(pem,"UTF-8")
+            val validatedPem = X509.validate(decodedPem)
+            logger.debug("validatedPem: " + validatedPem)
             validatedPem match {
               case Full(true) =>
-                val roles = X509.extractPsd2Roles(pem).map(_.exists(_ == serviceProvider))
-                roles match {
+                val hasServiceProvider = X509.extractPsd2Roles(decodedPem).map(_.exists(_ == serviceProvider))
+                logger.debug("hasServiceProvider: " + hasServiceProvider)
+                hasServiceProvider match {
                   case Full(true) => Full(true)
                   case Full(false) => Failure(X509ActionIsNotAllowed)
-                  case _ => roles
+                  case _ => hasServiceProvider
                 }
               case _ =>
                 validatedPem

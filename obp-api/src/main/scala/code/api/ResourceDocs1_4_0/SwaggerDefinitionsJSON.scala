@@ -1691,6 +1691,24 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     entitlements = entitlementJSONs
   )
+  
+  val userInvitationPostJsonV400 = PostUserInvitationJsonV400(
+    first_name = ExampleValue.nameExample.value,
+    last_name = ExampleValue.nameExample.value,
+    email = ExampleValue.emailExample.value,
+    company = "Tesobe",
+    country = "Germany",
+    purpose = "Developer"
+  ) 
+  val userInvitationJsonV400 = UserInvitationJsonV400(
+    first_name = ExampleValue.nameExample.value,
+    last_name = ExampleValue.nameExample.value,
+    email = ExampleValue.emailExample.value,
+    company = "TESOBE",
+    country = "Germany",
+    purpose = "Developer",
+    status = "CREATED"
+  )
 
   val entitlementRequestJSON =
     code.api.v3_0_0.EntitlementRequestJSON(
@@ -4140,7 +4158,8 @@ object SwaggerDefinitionsJSON {
     Some("b4e0352a-9a0f-4bfa-b30b-9003aa467f50"),
     "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
     """{}""".stripMargin,
-    """{}""".stripMargin
+    """{}""".stripMargin,
+    Some(bankIdExample.value)
   )
 
   val supportedCurrenciesJson = SupportedCurrenciesJson(

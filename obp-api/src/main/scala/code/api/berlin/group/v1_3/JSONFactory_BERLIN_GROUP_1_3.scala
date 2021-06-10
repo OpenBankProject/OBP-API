@@ -280,7 +280,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         val balance =
           CoreAccountBalancesJson(
             balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
-            balanceType = APIUtil.stringOrNull(x.accountType),
+            balanceType = "OpeningBooked",
             lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
             referenceDate = APIUtil.dateOrNull(x.lastUpdate),
             lastCommittedTransaction = ""
@@ -309,7 +309,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
         val balance =
           CoreAccountBalancesJson(
             balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
-            balanceType = APIUtil.stringOrNull(x.accountType),
+            balanceType = "OpeningBooked",
             lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
             referenceDate = APIUtil.dateOrNull(x.lastUpdate),
             lastCommittedTransaction = "String"
@@ -377,7 +377,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           currency = APIUtil.stringOrNull(bankAccount.currency),
           amount = bankAccount.balance.toString()
         ),
-        balanceType = APIUtil.stringOrNull(bankAccount.accountType),
+        balanceType = "OpeningBooked",
         lastChangeDateTime = APIUtil.dateOrNull(bankAccount.lastUpdate),
         referenceDate = APIUtil.dateOrNull(bankAccount.lastUpdate),
         lastCommittedTransaction = "String"

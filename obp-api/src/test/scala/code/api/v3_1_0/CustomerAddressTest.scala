@@ -88,7 +88,9 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateCustomerAddress)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateCustomerAddress)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanCreateCustomerAddress.toString()) should be (true)
     }
 
     scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
@@ -107,7 +109,9 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetCustomerAddress)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomerAddress)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanGetCustomerAddress.toString()) should be (true)
     }
 
     scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
@@ -126,7 +130,9 @@ class CustomerAddressTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanDeleteCustomerAddress)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteCustomerAddress)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanDeleteCustomerAddress.toString()) should be (true)
     }
 
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {

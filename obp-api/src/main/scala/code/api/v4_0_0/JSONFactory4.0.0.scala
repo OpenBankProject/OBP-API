@@ -51,6 +51,7 @@ import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
+import code.users.UserInvitation
 import com.openbankproject.commons.model.{DirectDebitTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
@@ -122,6 +123,22 @@ case class TransactionRequestWithChargeJSON400(
                                               )
 case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
 case class ResetPasswordUrlJsonV400(reset_password_url: String)
+
+case class PostUserInvitationAnonymousJsonV400(secret_key: Long)
+case class PostUserInvitationJsonV400(first_name: String, 
+                                      last_name: String, 
+                                      email: String, 
+                                      company: String, 
+                                      country: String,
+                                      purpose: String)
+case class UserInvitationJsonV400(first_name: String,
+                                  last_name: String,
+                                  email: String,
+                                  company: String,
+                                  country: String,
+                                  purpose: String,
+                                  status: String)
+case class UserInvitationsJsonV400(user_invitations: List[UserInvitationJsonV400])
 
 case class APIInfoJson400(
                         version : String,
@@ -1152,6 +1169,22 @@ object JSONFactory400 {
   def createCounterpartiesJson400(counterparties: List[CounterpartyTrait]): CounterpartiesJson400 =
     CounterpartiesJson400(counterparties.map(createCounterpartyJson400))
 
+  def createUserInvitationJson(userInvitation: UserInvitation): UserInvitationJsonV400 = {
+    UserInvitationJsonV400(
+      first_name = userInvitation.firstName,
+      last_name = userInvitation.lastName,
+      email = userInvitation.email,
+      company = userInvitation.company,
+      country = userInvitation.country,
+      purpose = userInvitation.purpose,
+      status = userInvitation.status
+    )
+  }
+
+  def createUserInvitationJson(userInvitations: List[UserInvitation]): UserInvitationsJsonV400 = {
+    UserInvitationsJsonV400(userInvitations.map(createUserInvitationJson))
+  }
+  
   def createBalancesJson(accountsBalances: AccountsBalances) = {
     AccountsBalancesJsonV400(
       accounts = accountsBalances.accounts.map(
