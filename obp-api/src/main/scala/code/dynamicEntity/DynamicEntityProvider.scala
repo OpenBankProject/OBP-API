@@ -169,7 +169,7 @@ object ReferenceType {
           .recover(recoverFn(fieldName, value, "MethodRouting"))
     },
     "reference:DynamicEntity" -> {(fieldName, value, callContext) =>
-        NewStyle.function.getDynamicEntityById(value, callContext)
+        NewStyle.function.getDynamicEntityById(None, value, callContext)
           .map(mapFn(fieldName, value, "DynamicEntity"))
           .recover(recoverFn(fieldName, value, "DynamicEntity"))
     },
@@ -283,7 +283,7 @@ object ReferenceType {
   )
 
   def referenceTypeNames: List[String] = {
-    val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities()
+    val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities(None)
       .map(entity => s"reference:${entity.entityName}")
 
     val staticRefs: List[String] = staticRefTypeToValidateFunction.keys.toList
@@ -534,15 +534,13 @@ case class DynamicEntityIntTypeExample(`type`: DynamicEntityFieldType, example: 
 
 
 trait DynamicEntityProvider {
-  def getById(dynamicEntityId: String): Box[DynamicEntityT]
+  def getById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntityT]
 
-  def getByEntityName(entityName: String): Box[DynamicEntityT]
+  def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT]
 
-  def getDynamicEntities(): List[DynamicEntityT]
+  def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT]
   
   def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity]
-
-  def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntity]
 
   def createOrUpdate(dynamicEntity: DynamicEntityT): Box[DynamicEntityT]
 

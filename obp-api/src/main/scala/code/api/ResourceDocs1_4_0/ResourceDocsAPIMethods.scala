@@ -582,16 +582,19 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
                * So here filter out them.
                */
-              case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
+              case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createBankLevelDynamicEndpoint) ) =>
                 doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
                   successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
                 )
 
-              case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
+              case doc if ( doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getBankLevelDynamicEndpoint)) =>
                 doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
 
               case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) ||
-                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints)
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getBankLevelDynamicEndpoints)
                 )=>
                 doc.copy(successResponseBody = ListResult(
                   "dynamic_endpoints",

@@ -312,11 +312,6 @@ object NewStyle {
         }
       } map { unboxFull(_) }
     }
-    def getBalances(callContext: Option[CallContext]) : OBPReturnType[List[Bank]] = {
-      Connector.connector.vend.getBanks(callContext: Option[CallContext]) map {
-        connectorEmptyResponse(_, callContext)
-      }
-    }
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
       Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId", 404 ), i._2)
@@ -858,8 +853,10 @@ object NewStyle {
     }
 
     def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext], errorMsg: String = ""): Future[Box[Unit]] = {
-      val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
-                       else errorMsg
+      val errorInfo = 
+        if(StringUtils.isBlank(errorMsg)&& !bankId.isEmpty) UserHasMissingRoles + role.toString() + s" at Bank($bankId)" 
+        else if(StringUtils.isBlank(errorMsg)&& bankId.isEmpty) UserHasMissingRoles + role.toString() 
+        else errorMsg
 
       Helper.booleanToFuture(errorInfo, cc=callContext) {
         APIUtil.hasEntitlement(bankId, userId, role)
@@ -878,11 +875,18 @@ object NewStyle {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
       } map validateRequestPayload(callContext)
 
-    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
-      hasAtLeastOneEntitlement(UserHasMissingRoles + roles.mkString(" or "))(bankId, userId, roles, callContext)
+    def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
+      val errorMessage = if (bankId.isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
+      hasAtLeastOneEntitlement(errorMessage)(bankId, userId, roles, callContext)
+    }
 
     def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
-      val boxResult = Helper.booleanToBox(APIUtil.hasAllEntitlements(bankId, userId, roles), s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required.")
+      val errorMessage = if (bankId.isEmpty) 
+        s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required." 
+      else 
+        s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required for BankId($bankId)."
+        
+      val boxResult = Helper.booleanToBox(APIUtil.hasAllEntitlements(bankId, userId, roles), errorMessage)
       validateRequestPayload(callContext)(boxResult)
     }
 
@@ -2353,28 +2357,28 @@ object NewStyle {
       }
     }
 
-    def createOrUpdateEndpointMapping(endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
-      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(endpointMapping), callContext)
+    def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def deleteEndpointMapping(endpointMappingId: String, callContext: Option[CallContext]) = Future {
-      (EndpointMappingProvider.endpointMappingProvider.vend.delete(endpointMappingId), callContext)
+    def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = Future {
+      (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def getEndpointMappingById(endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
-      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(endpointMappingId)
+    def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(bankId, endpointMappingId)
       Future{
         val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByEndpointMappingId Current ENDPOINT_MAPPING_ID is $endpointMappingId", 404)
         (endpointMapping, callContext)
       }
     }
 
-    def getEndpointMappingByOperationId(operationId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
-      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getByOperationId(operationId)
+    def getEndpointMappingByOperationId(bankId: Option[String], operationId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getByOperationId(bankId, operationId)
       Future{
         val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByOperationId Current OPERATION_ID is $operationId",404)
         (endpointMapping, callContext)
@@ -2383,19 +2387,19 @@ object NewStyle {
 
     private[this] val endpointMappingTTL = APIUtil.getPropsValue(s"endpointMapping.cache.ttl.seconds", "0").toInt
 
-    def getEndpointMappings(callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = {
+    def getEndpointMappings(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = {
       import scala.concurrent.duration._
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL second) {
-          Future{(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(), callContext)}
+          Future{(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId), callContext)}
         }
       }
     }
     
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
-      val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
+      val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
 
       if(existsDynamicEntity.isDefined) {
         val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
@@ -2408,7 +2412,7 @@ object NewStyle {
     }
 
     private def updateDynamicEntity(dynamicEntity: DynamicEntityT, dynamicEntityId: String , callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
-      val originEntity = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+      val originEntity = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntity.bankId, dynamicEntityId)
       // if can't find by id, return 404 error
       val idNotExistsMsg = s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = ${dynamicEntity.dynamicEntityId.get}."
 
@@ -2419,7 +2423,7 @@ object NewStyle {
       val originEntityName = originEntity.map(_.entityName).orNull
       // if entityName changed and the new entityName already exists, return error message
       if(dynamicEntity.entityName != originEntityName) {
-        val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
+        val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
 
         if(existsDynamicEntity.isDefined) {
           val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
@@ -2444,9 +2448,9 @@ object NewStyle {
      * @param dynamicEntityId
      * @return
      */
-    def deleteDynamicEntity(dynamicEntityId: String): Future[Box[Boolean]] = Future {
+    def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = Future {
       for {
-        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
         deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
         deleteEntitleMentResult <- if(deleteEntityResult) {
           Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
@@ -2461,16 +2465,16 @@ object NewStyle {
       }
     }
 
-    def getDynamicEntityById(dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
-      val dynamicEntityBox: Box[DynamicEntityT] = DynamicEntityProvider.connectorMethodProvider.vend.getById(dynamicEntityId)
+    def getDynamicEntityById(bankId: Option[String], dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
+      val dynamicEntityBox: Box[DynamicEntityT] = DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
       val dynamicEntity = unboxFullOrFail(dynamicEntityBox, callContext, DynamicEntityNotFoundByDynamicEntityId, 404)
       Future{
         (dynamicEntity, callContext)
       }
     }
 
-    def getDynamicEntityByEntityName(entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
-      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+    def getDynamicEntityByEntityName(bankId: Option[String], entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
+      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, entityName)
       (boxedDynamicEntity, callContext)
     }
 
@@ -2479,28 +2483,17 @@ object NewStyle {
       else APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "30").toInt
     }
 
-    def getDynamicEntities(): List[DynamicEntityT] = {
+    def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
-          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities()
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId)
         }
       }
     }
     
-    def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntityT] = {
-      import scala.concurrent.duration._
-
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
-          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByBankId(bankId)
-        }
-      }
-    }
-
     def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
@@ -2547,7 +2540,7 @@ object NewStyle {
                                queryParameters: Option[Map[String, List[String]]],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
-      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, entityName)
       // do validate, any validate process fail will return immediately
       if(dynamicEntityBox.isEmpty) {
         return Helper.booleanToFuture(s"$DynamicEntityNotExists entity's name is '$entityName'", cc=callContext)(false)
@@ -2701,28 +2694,33 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.callableMethods.get(methodName))
     }
 
-    def createDynamicEndpoint(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.create(userId, swaggerString), callContext)
+    def createDynamicEndpoint(bankId:Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId:Option[String], userId, swaggerString), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def updateDynamicEndpointHost(userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(userId, swaggerString), callContext)
+    def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
     } map {
       i => (connectorEmptyResponse(i._1, callContext), i._2)
     }
 
-    def getDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
-      val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(dynamicEndpointId)
-      val dynamicEndpoint = unboxFullOrFail(dynamicEndpointBox, callContext, DynamicEndpointNotFoundByDynamicEndpointId, 404)
+    def getDynamicEndpoint(bankId: Option[String], dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(bankId, dynamicEndpointId)
+      val errorMessage = 
+        if(bankId.isEmpty)
+          DynamicEndpointNotFoundByDynamicEndpointId.replace("DYNAMIC_ENDPOINT_ID.", s"DYNAMIC_ENDPOINT_ID($dynamicEndpointId).")
+        else
+          DynamicEndpointNotFoundByDynamicEndpointId.replace("for DYNAMIC_ENDPOINT_ID.",s"for DYNAMIC_ENDPOINT_ID($dynamicEndpointId) and BANK_ID(${bankId.getOrElse("")}).")
+      val dynamicEndpoint = unboxFullOrFail(dynamicEndpointBox, callContext, errorMessage, 404)
       Future{
         (dynamicEndpoint, callContext)
       }
     }
 
-    def getDynamicEndpoints(callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(), callContext)
+    def getDynamicEndpoints(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+      (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(bankId), callContext)
     }
 
     def getDynamicEndpointsByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
@@ -2734,18 +2732,18 @@ object NewStyle {
      * @param callContext
      * @return
      */
-    def deleteDynamicEndpoint(dynamicEndpointId: String, callContext: Option[CallContext]): Future[Box[Boolean]] = {
-      val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(dynamicEndpointId, callContext)
+    def deleteDynamicEndpoint(bankId: Option[String], dynamicEndpointId: String, callContext: Option[CallContext]): Future[Box[Boolean]] = {
+      val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(bankId, dynamicEndpointId, callContext)
         for {
           (entity, _) <- dynamicEndpoint
           deleteEndpointResult: Box[Boolean] = {
-            val roles = DynamicEndpointHelper.getRoles(dynamicEndpointId).map(_.toString())
+            val roles = DynamicEndpointHelper.getRoles(bankId, dynamicEndpointId).map(_.toString())
             roles.foreach(ApiRole.removeDynamicApiRole(_))
             val rolesDeleteResult: Box[Boolean] = Entitlement.entitlement.vend.deleteEntitlements(roles)
               Box !! (rolesDeleteResult == Full(true))
             } 
           deleteSuccess = if(deleteEndpointResult.isDefined && deleteEndpointResult.head) {
-            tryo {DynamicEndpointProvider.connectorMethodProvider.vend.delete(dynamicEndpointId)}
+            tryo {DynamicEndpointProvider.connectorMethodProvider.vend.delete(bankId, dynamicEndpointId)}
           }else{
             Full(false)
           }

@@ -47,9 +47,9 @@ object EntityName {
 object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
-  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities().map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
+  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None).map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
 
-  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities().flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
+  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None).flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
   def doc: ArrayBuffer[ResourceDoc] = {
     val docs = operationToResourceDoc.values.toList

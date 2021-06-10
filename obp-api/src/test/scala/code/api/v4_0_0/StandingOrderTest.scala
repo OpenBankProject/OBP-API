@@ -67,7 +67,9 @@ class StandingOrderTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postStandingOrderJsonV400))
       Then("We should get a 403")
       response400.code should equal(403)
-      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateStandingOrderAtOneBank)
+      val errorMessage = response400.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanCreateStandingOrderAtOneBank.toString()) should be (true)
     }
   }
   

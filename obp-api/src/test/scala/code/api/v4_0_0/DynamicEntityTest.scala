@@ -514,7 +514,10 @@ class DynamicEntityTest extends V400ServerSetup {
       Then("We should get a 403")
       responseGet.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
-      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+      val errorMessage = responseGet.body.extract[ErrorMessage].message
+      errorMessage contains UserHasMissingRoles should be (true)
+      errorMessage contains CanGetBankLevelDynamicEntities.toString() should be (true)
+      errorMessage contains CanGetDynamicEntities.toString() should be (true)
 
       {
         Then("We grant the role and call it again")
@@ -536,7 +539,10 @@ class DynamicEntityTest extends V400ServerSetup {
         Then("We should get a 403")
         responseGet.code should equal(403)
         And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
-        responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+        val errorMessage = responseGet.body.extract[ErrorMessage].message
+        errorMessage contains UserHasMissingRoles should be (true)
+        errorMessage contains CanGetBankLevelDynamicEntities.toString() should be (true)
+        errorMessage contains CanGetDynamicEntities.toString() should be (true)
 
         {
           Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)

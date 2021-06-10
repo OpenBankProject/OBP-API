@@ -104,7 +104,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
     }
     scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -137,7 +139,9 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetCustomer)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomer)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanGetCustomer.toString()) should be (true)
     }
     scenario("We will call the endpoint with the proper Role " + canGetCustomer, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
@@ -171,7 +175,9 @@ class CustomerTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetCustomer)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetCustomer)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanGetCustomer.toString()) should be (true)
     }
     scenario("We will call the endpoint with the proper Role " + canGetCustomer, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
@@ -205,7 +211,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerEmail
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerEmail.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -248,7 +256,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerMobilePhoneNumber
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerMobilePhoneNumber.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -292,7 +302,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerIdentity
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerIdentity.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint6, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -339,7 +351,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerCreditLimit
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerCreditLimit.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint7, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -384,7 +398,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerCreditRatingAndSource
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerCreditRatingAndSource.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -429,7 +445,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerBranch
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerBranch.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint9, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -473,7 +491,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerData
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerData.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint10, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -521,7 +541,9 @@ class CustomerTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canUpdateCustomerNumber
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal (errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateCustomerNumber.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint11, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
