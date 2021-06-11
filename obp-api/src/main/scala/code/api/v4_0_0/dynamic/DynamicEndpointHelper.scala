@@ -51,9 +51,12 @@ object DynamicEndpointHelper extends RestHelper {
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
   private val implementedInApiVersion = ApiVersion.v4_0_0
-  private val IsDynamicEntityUrl = """https?://dynamic_entity.*"""
+  private val IsDynamicEntityUrl = """.*dynamic_entity.*"""
+  private val IsMockUrlString = """.*obp_mock(?::\d+)?.*"""
+  private val IsMockUrl = IsMockUrlString.r
 
   def isDynamicEntityResponse (serverUrl : String) = serverUrl matches (IsDynamicEntityUrl)
+  def isMockedResponse (serverUrl : String) = serverUrl matches (IsMockUrlString)
   
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll(None)
@@ -96,7 +99,6 @@ object DynamicEndpointHelper extends RestHelper {
   object DynamicReq extends JsonTest with JsonBody {
 
     private val ExpressionRegx = """\{(.+?)\}""".r
-    private val IsMockUrl = """https?://obp_mock(?::\d+)?/.*""".r
     /**
      * unapply Request to (request url, json, http method, request parameters, path parameters, role)
      * request url is  current request target url to remote server

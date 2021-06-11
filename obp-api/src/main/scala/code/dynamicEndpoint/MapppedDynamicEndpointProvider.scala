@@ -17,7 +17,8 @@ import scala.concurrent.duration.DurationInt
 object MappedDynamicEndpointProvider extends DynamicEndpointProvider with CustomJsonFormats{
   val dynamicEndpointTTL : Int = {
     if(Props.testMode) 0
-    else APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "32").toInt
+    else //Better set this to 0, we maybe create multiple endpoints, when we create new ones. 
+      APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "0").toInt
   }
 
   override def create(bankId:Option[String], userId: String, swaggerString: String): Box[DynamicEndpointT] = {
