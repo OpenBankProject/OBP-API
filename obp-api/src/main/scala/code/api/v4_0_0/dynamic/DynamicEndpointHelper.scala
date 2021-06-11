@@ -177,7 +177,7 @@ object DynamicEndpointHelper extends RestHelper {
       buildDynamicEndpointInfo(openAPI, id, bankId)
     }
 
-  private def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String, bankId:Option[String]): DynamicEndpointInfo = {
+  def buildDynamicEndpointInfo(openAPI: OpenAPI, id: String, bankId:Option[String]): DynamicEndpointInfo = {
     val tags: List[ResourceDocTag] = List(ApiTag(openAPI.getInfo.getTitle), apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic)
 
     val serverUrl = {
@@ -548,7 +548,14 @@ object DynamicEndpointHelper extends RestHelper {
           }
         })
       case v: MapSchema => getDefaultValue(v, Map("name"-> "John", "age" -> 12))
-
+      //The swagger object schema may not contain any properties: eg:
+      // "Account": {
+      //   "title": "accountTransactibility",
+      //   "type": "object"
+      // }
+      case v if v.isInstanceOf[ObjectSchema] && MapUtils.isEmpty(v.getProperties()) =>
+        EmptyBody
+        
       case v if v.isInstanceOf[ObjectSchema] || MapUtils.isNotEmpty(v.getProperties()) =>
         val properties: util.Map[String, Schema[_]] = v.getProperties
 

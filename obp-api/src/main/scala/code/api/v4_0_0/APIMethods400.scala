@@ -17,6 +17,7 @@ import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
 import code.api.util.newstyle.UserCustomerLinkNewStyle
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
+import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
@@ -72,11 +73,9 @@ import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.{Calendar, Date}
-
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
-
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
 import net.liftweb.json
@@ -4612,7 +4611,7 @@ trait APIMethods400 {
       nameOf(createDynamicEndpoint),
       "POST",
       "/management/dynamic-endpoints",
-      " Create Dynamic Endpoint",
+      "Create Dynamic Endpoint",
       s"""Create dynamic endpoints.
          |
          |Create dynamic endpoints with one json format swagger content.
@@ -8976,10 +8975,20 @@ trait APIMethods400 {
       _ <- Helper.booleanToFuture(errorMsg, cc = cc.callContext) {
         duplicatedUrl.isEmpty
       }
+      dynamicEndpointInfo <- NewStyle.function.tryons(InvalidJsonFormat+"Can not convert to OBP Internal Resource Docs", 400, cc.callContext) {
+        DynamicEndpointHelper.buildDynamicEndpointInfo(openAPI, "current_request_json_body", bankId)
+      }
+      roles <- NewStyle.function.tryons(InvalidJsonFormat+"Can not generate OBP roles", 400, cc.callContext) {
+        DynamicEndpointHelper.getRoles(dynamicEndpointInfo)
+      }
+      _ <- NewStyle.function.tryons(InvalidJsonFormat+"Can not generate OBP external Resource Docs", 400, cc.callContext) {
+        JSONFactory1_4_0.createResourceDocsJson(dynamicEndpointInfo.resourceDocs.toList)
+      }
       (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(bankId, cc.userId, postedJson.swaggerString, cc.callContext)
+      _ <- NewStyle.function.tryons(InvalidJsonFormat+s"Can not grant these roles ${roles.toString} ", 400, cc.callContext) {
+        roles.map(role => Entitlement.entitlement.vend.addEntitlement(bankId.getOrElse(""), cc.userId, role.toString()))
+      }
     } yield {
-      val roles = DynamicEndpointHelper.getRoles(bankId: Option[String], dynamicEndpoint.dynamicEndpointId.getOrElse(""))
-      roles.map(role => Entitlement.entitlement.vend.addEntitlement(bankId.getOrElse(""), cc.userId, role.toString()))
       val swaggerJson = parse(dynamicEndpoint.swaggerString)
       val responseJson: JObject = ("bank_id", dynamicEndpoint.bankId) ~ ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~ ("swagger_string", swaggerJson)
       (responseJson, HttpCode.`201`(callContext))
