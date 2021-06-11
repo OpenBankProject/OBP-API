@@ -22,6 +22,11 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
       .Purpose(purpose)
       .saveMe()
   }
+  override def getUserInvitationBySecretLink(secretLink: Long): Box[UserInvitation] = {
+    UserInvitation.find(
+      By(UserInvitation.SecretKey, secretLink)
+    )
+  }
   override def getUserInvitation(bankId: BankId, secretLink: Long): Box[UserInvitation] = {
     UserInvitation.find(
       By(UserInvitation.BankId, bankId.value),

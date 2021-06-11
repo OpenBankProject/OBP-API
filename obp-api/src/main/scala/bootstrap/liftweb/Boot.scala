@@ -500,6 +500,7 @@ class Boot extends MdcLoggable {
           Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
 
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
+          Menu("User Invitation", "User Invitation") / "user-invitation",
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
