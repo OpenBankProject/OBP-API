@@ -55,6 +55,10 @@ class DynamicEntityTest extends V400ServerSetup {
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.updateMyDynamicEntity))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.deleteMyDynamicEntity))
   object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEntities))
+  object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.createBankLevelDynamicEntity))
+  object ApiEndpoint10 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEntities))
+  object ApiEndpoint11 extends Tag(nameOf(Implementations4_0_0.deleteBankLevelDynamicEntity))
+  object ApiEndpoint12 extends Tag(nameOf(Implementations4_0_0.updateBankLevelDynamicEntity))
 
   val rightEntity = parse(
     """
@@ -155,7 +159,7 @@ class DynamicEntityTest extends V400ServerSetup {
       |""".stripMargin)
 
   feature("Add a DynamicEntity v4.0.4- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint9, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "dynamic-entities").POST
       val response400 = makePostRequest(request400, write(rightEntity))
@@ -163,10 +167,21 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      
+      Then("Test the bank level")
+      
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST
+        val response400 = makePostRequest(request400, write(rightEntity))
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      }
     }
   }
   feature("Update a DynamicEntity v4.0.4- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint2, ApiEndpoint12, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "dynamic-entities"/ "some-method-routing-id").PUT
       val response400 = makePutRequest(request400, write(rightEntity))
@@ -174,10 +189,23 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      Then("Test the bank level")
+      
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities"/ "some-method-routing-id").PUT
+        val response400 = makePutRequest(request400, write(rightEntity))
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      }
+      
     }
   }
   feature("Get DynamicEntities v4.0.4- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "dynamic-entities").GET
       val response400 = makeGetRequest(request400)
@@ -185,10 +213,21 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").GET
+        val response400 = makeGetRequest(request400)
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      }
     }
   }
   feature("Delete the DynamicEntity specified by METHOD_ROUTING_ID v4.0.4- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint4, ApiEndpoint11, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / "METHOD_ROUTING_ID").DELETE
       val response400 = makeDeleteRequest(request400)
@@ -196,9 +235,20 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities" / "METHOD_ROUTING_ID").DELETE
+        val response400 = makeDeleteRequest(request400)
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      }
+      
     }
   }
-
 
   feature("Add a DynamicEntity v4.0.4- Unauthorized access - Authorized access") {
     scenario("We will call the endpoint without the proper Role " + canCreateDynamicEntity, ApiEndpoint1, VersionOfApi) {
@@ -209,6 +259,17 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateDynamicEntity)
       response400.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateDynamicEntity)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST <@(user1)
+        val response400 = makePostRequest(request400, write(rightEntity))
+        Then("We should get a 403")
+        response400.code should equal(403)
+        response400.body.extract[ErrorMessage].message contains UserHasMissingRoles should be (true)
+      }
+      
     }
 
     scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint8, VersionOfApi) {

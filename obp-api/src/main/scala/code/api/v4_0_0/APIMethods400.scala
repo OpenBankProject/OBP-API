@@ -1912,9 +1912,9 @@ trait APIMethods400 {
     }    
     
     private def updateBankLevelDynamicEntityDoc = ResourceDoc(
-      updateBankLevelDynamicEntityAtBank,
+      updateBankLevelDynamicEntity,
       implementedInApiVersion,
-      nameOf(updateBankLevelDynamicEntityAtBank),
+      nameOf(updateBankLevelDynamicEntity),
       "PUT",
       "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Update Bank Level Dynamic Entity",
@@ -1947,7 +1947,7 @@ trait APIMethods400 {
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateBankLevelDynamicEntity, canUpdateDynamicEntity)))
-    lazy val updateBankLevelDynamicEntityAtBank: OBPEndpoint = {
+    lazy val updateBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
           updateDynamicEntityMethod(Some(bankId),dynamicEntityId, json, cc)
