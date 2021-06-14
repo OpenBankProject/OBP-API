@@ -1149,7 +1149,7 @@ def restoreSomeSessions(): Unit = {
     * Find the authUser by author user name(authUser and resourceUser are the same).
     * Only search for the local database. 
     */
-  protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
+  def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
   }
 
