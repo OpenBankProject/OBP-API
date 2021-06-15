@@ -357,8 +357,9 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
+            (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(List(BankIdAccountId(account.bankId,account.accountId)), callContext)
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account, accountsBalances), HttpCode.`200`(callContext))
            }
          }
        }
@@ -487,8 +488,9 @@ This account-id then can be retrieved by the
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
+             (accountsBalances, callContext)<- NewStyle.function.getBankAccountsBalances(List(BankIdAccountId(account.bankId,account.accountId)), callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account, accountsBalances), HttpCode.`200`(callContext))
            }
        }
      }
