@@ -743,6 +743,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       )), callContext)
     }
 
+  override def getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): OBPReturnType[Box[AccountBalances]] =
+    Future {
+       for {
+        bankAccount <- getBankAccountOld(bankIdAccountId.bankId, bankIdAccountId.accountId) ?~! s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"
+        accountBalances = AccountBalances(
+          id = bankAccount.accountId.value,
+          label = bankAccount.label,
+          bankId = bankAccount.bankId.value,
+          accountRoutings = bankAccount.accountRoutings.map(accountRounting => AccountRouting(accountRounting.scheme, accountRounting.address)),
+          balances = List(BankAccountBalance(AmountOfMoney(bankAccount.currency, bankAccount.balance.toString),"OpeningBooked")),
+          overallBalance = AmountOfMoney(bankAccount.currency, bankAccount.balance.toString),
+          overallBalanceDate = now
+        )
+      } yield {
+        (accountBalances,callContext)
+      }
+    }
+
   override def checkBankAccountExistsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     getBankAccountLegacy(bankId: BankId, accountId: AccountId, callContext)
   }

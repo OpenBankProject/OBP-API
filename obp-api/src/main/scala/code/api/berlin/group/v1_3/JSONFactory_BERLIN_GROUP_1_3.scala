@@ -359,12 +359,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     (iBan, bBan)
   }
 
-  def createCardAccountBalanceJSON(bankAccount: BankAccount): CardAccountBalancesV13 = {
-    val accountBalancesV13 = createAccountBalanceJSON(bankAccount: BankAccount)
+  def createCardAccountBalanceJSON(bankAccount: BankAccount, accountBalances: AccountBalances): CardAccountBalancesV13 = {
+    val accountBalancesV13 = createAccountBalanceJSON(bankAccount: BankAccount, accountBalances)
     CardAccountBalancesV13(accountBalancesV13.account,accountBalancesV13.`balances`)
   }
   
-  def createAccountBalanceJSON(bankAccount: BankAccount): AccountBalancesV13 = {
+  def createAccountBalanceJSON(bankAccount: BankAccount, accountBalances: AccountBalances): AccountBalancesV13 = {
 
     val (iban: String, bban: String) = getIbanAndBban(bankAccount)
 
@@ -372,17 +372,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       account = FromAccount(
         iban = iban,
       ),
-      `balances` = AccountBalance(
-        balanceAmount = AmountOfMoneyV13(
-          currency = APIUtil.stringOrNull(bankAccount.currency),
-          amount = bankAccount.balance.toString()
-        ),
-        balanceType = "OpeningBooked",
+      `balances` = accountBalances.balances.map(accountBalance => AccountBalance(
+        balanceAmount = AmountOfMoneyV13(accountBalance.balance.currency, accountBalance.balance.amount),
+        balanceType = accountBalance.balanceType,
         lastChangeDateTime = APIUtil.dateOrNull(bankAccount.lastUpdate),
         referenceDate = APIUtil.dateOrNull(bankAccount.lastUpdate),
         lastCommittedTransaction = "String"
-      ) :: Nil
-    ) 
+      ) 
+    ))
   }
   
   def createTransactionJSON(bankAccount: BankAccount, transaction : ModeratedTransaction, creditorAccount: CreditorAccountJson) : TransactionJsonV13 = {
