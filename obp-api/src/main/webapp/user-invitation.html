@@ -34,42 +34,57 @@ Berlin 13359, Germany
             </div>
 
             <form method="post">
+                <style>
+                    .form-control[disabled],
+                    .form-control[readonly],
+                    fieldset[disabled] .form-control {
+                        background-color: #ffffff;
+                    }
+                </style>
                 <div class="row">
                     <div class="col-xs-12 col-sm-12">
                         
                         <div class="form-group">
                             <label for="firstName">First name</label>
-                            <input disabled type="text" name="app-name" id="firstName" class="form-control" aria-describedby="consumer-registration-app-name-error">
-                            <div id = "consumer-registration-app-name-error-div" class="hide">
-                                <span data-lift="Msg?id=consumer-registration-app-name-error"/>
+                            <input readonly type="text" name="first-name" id="firstName" class="form-control" aria-describedby="consumer-registration-first-name-error">
+                            <div id = "consumer-registration-first-name-error-div" class="hide">
+                                <span data-lift="Msg?id=consumer-registration-first-name-error"/>
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="lastName">Last name</label>
-                            <input disabled type="text" name="last-name" id="lastName" class="form-control" aria-describedby="consumer-registration-app-name-error">
+                            <input readonly type="text" name="last-name" id="lastName" class="form-control" aria-describedby="consumer-registration-app-name-error">
                             <div id = "consumer-registration-last-name-error-div" class="hide">
                                 <span data-lift="Msg?id=consumer-registration-last-name-error"/>
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="devEmail">Developer email</label>
-                            <input disabled type="text" name="app-developer" id="devEmail" class="form-control" aria-describedby="consumer-registration-app-developer-error">
+                            <input readonly type="text" name="app-developer" id="devEmail" class="form-control" aria-describedby="consumer-registration-app-developer-error">
                             <div id = "consumer-registration-app-developer-error-div" class="hide">
                                 <span data-lift="Msg?id=consumer-registration-app-developer-error"/>
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="companyName">Company</label>
-                            <input disabled type="text" name="app-developer" id="companyName" class="form-control" aria-describedby="consumer-registration-company-error">
+                            <input readonly type="text" name="app-developer" id="companyName" class="form-control" aria-describedby="consumer-registration-company-error">
                             <div id = "consumer-registration-company-error-div" class="hide">
                                 <span data-lift="Msg?id=consumer-registration-app-developer-error"/>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="country" id="appTypeLabel">Country</label>
-                            <select disabled name="app-type" id="country" class="form-control js-example-basic-single">
-                                <option class="app-type-option"></option>
-                            </select>
+                            <label for="country">Company</label>
+                            <input readonly type="text" name="country" id="country" class="form-control" aria-describedby="consumer-registration-company-error">
+                            <div id = "consumer-registration-country-error-div" class="hide">
+                                <span data-lift="Msg?id=consumer-registration-country-error"/>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" name="username" id="username" class="form-control" aria-describedby="consumer-registration-company-error">
+                            <div id = "consumer-registration-username-error-div" class="hide">
+                                <span data-lift="Msg?id=consumer-registration-username-error"/>
+                            </div>
                         </div>
                     </div>
                 </div>
