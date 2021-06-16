@@ -36,7 +36,6 @@ import net.liftweb.common.Box
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
-import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List
 
@@ -49,11 +48,7 @@ class UserInvitation extends MdcLoggable {
   private object devEmailVar extends RequestVar("")
   private object usernameVar extends RequestVar("")
   
-  // Can be used to show link to an online form to collect more information about the App / Startup
-  val registrationMoreInfoUrl = getWebUiPropsValue("webui_post_user_invitation_more_info_url", "")
-  
   val registrationConsumerButtonValue: String = getWebUiPropsValue("webui_post_user_invitation_submit_button_value", "Register as a Developer")
-
   
   def registerForm: CssSel = {
 
@@ -66,20 +61,19 @@ class UserInvitation extends MdcLoggable {
     val email = userInvitation.map(_.email).getOrElse("None")
     devEmailVar.set(email)
     companyVar.set(userInvitation.map(_.company).getOrElse("None"))
-    countryVar.set(userInvitation.map(_.country).getOrElse("Bahrain"))
+    countryVar.set(userInvitation.map(_.country).getOrElse("None"))
     val username = firstName.toLowerCase + "." + lastName.toLowerCase()
     usernameVar.set(username)
 
     def submitButtonDefense(): Unit = {
-      val username = firstNameVar.is + "." + lastNameVar.is
       createResourceUser(
         provider = "OBP-User-Invitation", 
-        providerId = Some(username), 
+        providerId = Some(usernameVar.is), 
         name = Some(firstName + " " + lastName), 
         email = Some(email)
       ).map{ u =>
         createAuthUser(user = u, firstName = firstName, lastName = lastName, password = "")
-        val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId)
+        val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
         S.redirectTo(resetLink)
       } 
       

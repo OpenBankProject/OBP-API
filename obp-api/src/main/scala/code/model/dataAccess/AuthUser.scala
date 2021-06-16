@@ -1169,6 +1169,17 @@ def restoreSomeSessions(): Unit = {
         case _ => ""
     }
   }
+
+  override def passwordResetXhtml = {
+    (<form method="post" action={S.uri}>
+      <table><tr><td colspan="2">{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</td></tr>
+        <tr><td>{S.?("enter.your.new.password")}</td><td><input type="password" /></td></tr>
+        <tr><td>{S.?("repeat.your.new.password")}</td><td><input type="password" /></td></tr>
+        <tr><td>&nbsp;</td><td><input type="submit" /></td></tr>
+      </table>
+    </form>)
+  }
+  
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).
     * Only search for the local database. 
