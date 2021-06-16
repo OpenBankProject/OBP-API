@@ -51,7 +51,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 //                                 linkedAccounts: String ="string",
 //                                 usage: String ="PRIV",
 //                                 details: String ="",
-                                 balances: CoreAccountBalancesJson,
+//                                 balances: CoreAccountBalancesJson,// We put this under the _links, not need to show it here.
                                  _links: CoreAccountLinksJsonV13,
   )
 
@@ -277,14 +277,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
-        val balance =
-          CoreAccountBalancesJson(
-            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
-            balanceType = "OpeningBooked",
-            lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
-            referenceDate = APIUtil.dateOrNull(x.lastUpdate),
-            lastCommittedTransaction = ""
-          )
+      
         CoreAccountJsonV13(
           resourceId = x.accountId.value,
           iban = iBan,
@@ -294,7 +287,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           bic = getBicFromBankId(x.bankId.value),
           cashAccountType = x.accountType,
           product = x.accountType,
-          balances = balance,
           _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances")) 
         )
      }
@@ -306,14 +298,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
-        val balance =
-          CoreAccountBalancesJson(
-            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
-            balanceType = "OpeningBooked",
-            lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
-            referenceDate = APIUtil.dateOrNull(x.lastUpdate),
-            lastCommittedTransaction = "String"
-          )
         CoreAccountJsonV13(
           resourceId = x.accountId.value,
           iban = iBan,
@@ -323,7 +307,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           bic = getBicFromBankId(x.bankId.value),
           cashAccountType = x.accountType,
           product = x.accountType,
-          balances = balance,
           _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances"))
         )
     }
