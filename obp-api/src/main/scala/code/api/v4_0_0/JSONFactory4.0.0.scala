@@ -249,6 +249,15 @@ case class AccountBalanceJsonV400(
                                    balances: List[BalanceJsonV400]
                                  )
 
+case class AccountBalancesJsonV400(
+  account_id: String,
+  bank_id: String,
+  account_routings: List[AccountRouting],
+  label: String,
+  balances: List[BalanceJsonV400],
+  
+)
+
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 case class PostDirectDebitJsonV400(customer_id: String,
                                    user_id: String,
@@ -1194,11 +1203,23 @@ object JSONFactory400 {
           account_routings = account.accountRoutings,
           label = account.label,
           balances = List(
-            BalanceJsonV400(`type` = "", currency = account.balance.currency, amount = account.balance.amount)
+            BalanceJsonV400(`type` = "OpeningBooked", currency = account.balance.currency, amount = account.balance.amount)
           )
         )
       )
     )
+  }
+  
+  def createAccountBalancesJson(accountBalances: AccountBalances) = {
+     AccountBalanceJsonV400(
+       account_id = accountBalances.id, 
+       bank_id = accountBalances.bankId, 
+       account_routings = accountBalances.accountRoutings, 
+       label = accountBalances.label, 
+       balances = accountBalances.balances.map( balance => 
+         BalanceJsonV400(`type`=balance.balanceType, currency = balance.balance.currency, amount = balance.balance.amount)
+       )
+     )
   }
 
   def createConsentsJsonV400(consents: List[MappedConsent]): ConsentsJsonV400= {

@@ -357,6 +357,21 @@ case class AccountBalance(
   balance: AmountOfMoney
 )
 
+case class AccountBalances(
+  id: String,
+  label: String,
+  bankId: String,
+  accountRoutings: List[AccountRouting],
+  balances: List[BankAccountBalance],
+  overallBalance: AmountOfMoney,
+  overallBalanceDate: Date
+)
+
+case class BankAccountBalance(
+  balance: AmountOfMoney,
+  balanceType: String,
+)
+
 case class AccountsBalances(
   accounts: List[AccountBalance],
   overallBalance: AmountOfMoney,
