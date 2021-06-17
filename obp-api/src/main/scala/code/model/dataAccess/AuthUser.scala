@@ -1149,7 +1149,7 @@ def restoreSomeSessions(): Unit = {
     * Find the authUser by author user name(authUser and resourceUser are the same).
     * Only search for the local database. 
     */
-  protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
+  def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
   }
 
@@ -1169,6 +1169,24 @@ def restoreSomeSessions(): Unit = {
         case _ => ""
     }
   }
+
+  override def passwordResetXhtml = {
+    <div id="recover-password" tabindex="-1">
+      <h1>{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
+      <form action={S.uri} method="post">
+        <div class="form-group">
+          <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
+        </div>
+        <div class="form-group">
+          <label for="repeatpassword">{S.?("repeat.your.new.password")}</label> <span><input id="repeatpassword" class="form-control" type="password" /></span>
+        </div>
+        <div class="form-group">
+          <input type="submit" class="btn btn-danger" />
+        </div>
+      </form>
+    </div>
+  }
+  
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).
     * Only search for the local database. 

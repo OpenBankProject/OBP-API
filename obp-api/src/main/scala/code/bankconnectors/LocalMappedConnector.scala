@@ -47,6 +47,7 @@ import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.model._
+import code.model.dataAccess.AuthUser.findUserByUsernameLocally
 import code.model.dataAccess._
 import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
@@ -81,7 +82,7 @@ import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.{JArray, JBool, JInt, JObject, JValue,JString}
+import net.liftweb.json.{JArray, JBool, JInt, JObject, JString, JValue}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import net.liftweb.util.Mailer
@@ -4961,7 +4962,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   //NOTE: this method is not for mapped connector, we put it here for the star default implementation.
   //    : we call that method only when we set external authentication and provider is not OBP-API
-  override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = Failure("")
+  override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
+    findUserByUsernameLocally(username).map( user =>
+      InboundExternalUser(aud = "",
+        exp = "",
+        iat = "",
+        iss = "",
+        sub = user.username.get,
+        azp = None,
+        email = None,
+        emailVerified = None,
+        name = None
+      )
+    )
+  }
 
 
   override def validateUserAuthContextUpdateRequest(

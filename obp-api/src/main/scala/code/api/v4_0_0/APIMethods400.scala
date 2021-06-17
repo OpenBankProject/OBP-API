@@ -3341,7 +3341,7 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/registration/${invitation.secretKey}"
+            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
             val params = PlainMailBodyType(invitationText) :: List(To(invitation.email))
             Mailer.sendMail(From("invitation@tesobe.com"), Subject("User invitation"), params :_*)
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
