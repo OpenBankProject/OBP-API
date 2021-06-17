@@ -41,6 +41,25 @@ class DynamicEndpointsTest extends V400ServerSetup {
 
   feature(s"test $ApiEndpoint9, $ApiEndpoint10, $ApiEndpoint11, $ApiEndpoint12 version $VersionOfApi") {
 
+    scenario(s"If we create one entity for system, we should allow to create the bank level, otherwise, it will break the roles", ApiEndpoint1,ApiEndpoint9, VersionOfApi) {
+      When("We make a request v4.0.0")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canCreateDynamicEndpoint.toString)
+      val requestSystemLevle = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
+      val responseSystemLevel = makePostRequest(requestSystemLevle, postDynamicEndpointSwagger)
+      Then("We should get a 201")
+      responseSystemLevel.code should equal(201)
+      responseSystemLevel.body.toString contains("dynamic_endpoint_id") should be (true)
+      
+      When("We make a request v4.0.0")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canCreateBankLevelDynamicEndpoint.toString)
+      val request = (v4_0_0_Request / "management" /"banks"/testBankId1.value/ "dynamic-endpoints").POST<@ (user1)
+      val responseWithRole = makePostRequest(request, postDynamicEndpointSwagger)
+      Then("We should get a 400")
+      responseWithRole.code should equal(400)
+      responseWithRole.body.toString contains(DynamicEndpointExists) should be (true)
+    }
+    
+    
     scenario(s"$ApiEndpoint9 $ApiEndpoint10 $ApiEndpoint11 $ApiEndpoint12 test the bank level role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canCreateBankLevelDynamicEndpoint.toString)
