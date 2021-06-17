@@ -340,6 +340,12 @@ object NewStyle {
       }
     }
 
+    def getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): OBPReturnType[AccountBalances] = {
+      Connector.connector.vend.getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
+      }
+    }
+
     def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccountRouting] = {
       Future(Connector.connector.vend.getAccountRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
         unboxFullOrFail(i, callContext,s"$AccountRoutingNotFound Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )

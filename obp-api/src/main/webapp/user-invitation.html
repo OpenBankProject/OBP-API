@@ -1,0 +1,81 @@
+<!--
+Open Bank Project - API
+Copyright (C) 2011-2017, TESOBE GmbH
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+-->
+<div id="register-consumer" data-lift="surround?with=default;at=content" tabindex="-1">
+    <div data-lift="UserInvitation.registerForm">
+
+        <div id="register-consumer-input" tabindex="-1">
+            <div id="register-consumer-explanation">
+                <h1>Complete your user invitation</h1>
+                <p>Please complete the information about the user invitation application below.</p>
+                <p>All fields are required unless marked as 'optional'</p>
+            </div>
+
+            <form method="post">
+                <style>
+                    .form-control[disabled],
+                    .form-control[readonly],
+                    fieldset[disabled] .form-control {
+                        background-color: #ffffff;
+                    }
+                </style>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-12">
+                        
+                        <div class="form-group">
+                            <label for="firstName">First name</label>
+                            <input readonly type="text" name="first-name" id="firstName" class="form-control" aria-describedby="consumer-registration-first-name-error">
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last name</label>
+                            <input readonly type="text" name="last-name" id="lastName" class="form-control" aria-describedby="consumer-registration-app-name-error">
+                        </div>
+                        <div class="form-group">
+                            <label for="devEmail">Developer email</label>
+                            <input readonly type="text" name="app-developer" id="devEmail" class="form-control" aria-describedby="consumer-registration-app-developer-error">
+                        </div>
+                        <div class="form-group">
+                            <label for="companyName">Company</label>
+                            <input readonly type="text" name="app-developer" id="companyName" class="form-control" aria-describedby="consumer-registration-company-error">
+                        </div>
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <input readonly type="text" name="country" id="country" class="form-control" aria-describedby="consumer-registration-company-error">
+                        </div>
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" name="username" id="username" class="form-control" aria-describedby="consumer-registration-company-error">
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="submit" value="Submit" class="btn btn-danger" aria-describedby="register-consumer-errors"/>
+                <div id = "register-consumer-errors-div" class="hide">
+                    <span data-lift="Msg?id=register-consumer-errors"/>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

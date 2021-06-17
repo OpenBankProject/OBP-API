@@ -81,7 +81,6 @@ object JwsUtil extends MdcLoggable {
     requestHeaders.find(_.name == "x-jws-signature").isDefined ||
     requestHeaders.find(_.name == "digest").isDefined
   }
-  def createDigestHeader(input: String): String = s"digest: SHA-256=$input"
   private def getDeferredCriticalHeaders() = {
     val deferredCriticalHeaders  = new util.HashSet[String]()
     deferredCriticalHeaders.add("sigT")

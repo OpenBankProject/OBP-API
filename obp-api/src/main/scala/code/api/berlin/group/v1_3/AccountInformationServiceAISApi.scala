@@ -260,33 +260,35 @@ of the PSU at this ASPSP.
 """,
        emptyObjectJson,
        json.parse("""{
-                    |  "accounts":[{
-                    |    "resourceId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-                    |    "iban":"DE91 1000 0000 0123 4567 89",
-                    |    "bban":" 1000 0000 0123 4567 89",
-                    |    "currency":"EUR",
-                    |    "name":"TOM",
-                    |    "product":"AC",
-                    |    "cashAccountType":"AC",
-                    |    "bic":"AAAADEBBXXX",
-                    |    "balances":{
-                    |      "balanceAmount":{
-                    |        "currency":"EUR",
-                    |        "amount":"50.89"
-                    |      },
-                    |      "balanceType":"AC",
-                    |      "lastChangeDateTime":"2020-07-02T10:23:57.81Z",
-                    |      "referenceDate":"2020-07-02",
-                    |      "lastCommittedTransaction":"entryReference of the last commited transaction to support the TPP in identifying whether all PSU transactions are already known."
+                    |  "accounts": [
+                    |    {
+                    |      "resourceId": "3dc3d5b3-7023-4848-9853-f5400a64e80f",
+                    |      "iban": "DE2310010010123456789",
+                    |      "currency": "EUR",
+                    |      "product": "Girokonto",
+                    |      "cashAccountType": "CACC",
+                    |      "name": "Main Account",
+                    |      "_links": {
+                    |        "balances": {
+                    |          "href": "/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances"
+                    |        }
+                    |      }
                     |    },
-                    |    "_links":{
-                    |      "balances":{
-                    |        "href":"/v1.3/accounts/8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0/balances"
+                    |    {
+                    |      "resourceId": "3dc3d5b3-7023-4848-9853-f5400a64e81g",
+                    |      "iban": "DE2310010010123456788",
+                    |      "currency": "USD",
+                    |      "product": "Fremdwährungskonto",
+                    |      "cashAccountType": "CACC",
+                    |      "name": "US Dollar Account",
+                    |      "_links": {
+                    |        "balances": {
+                    |          "href": "/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e81g/balances"
+                    |        }
                     |      }
                     |    }
-                    |  }]
-                    |}
-                    |""".stripMargin),
+                    |  ]
+                    |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil
      )
@@ -357,8 +359,9 @@ The account-id is constant at least throughout the lifecycle of a given consent.
             _ <- passesPsd2Aisp(callContext)
             (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(accountId, callContext)
             _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
+            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
           } yield {
-            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account), HttpCode.`200`(callContext))
+            (JSONFactory_BERLIN_GROUP_1_3.createAccountBalanceJSON(account, accountBalances), HttpCode.`200`(callContext))
            }
          }
        }
@@ -390,25 +393,9 @@ respectively the OAuth2 access token.
         "currency": "EUR",
         "amount": 15000
       },
-      "balances": [
-        {
-          "balanceType": "interimBooked",
-          "balanceAmount": {
-            "currency": "EUR",
-            "amount": 14355.78
-          }
-        },
-        {
-          "balanceType": "nonBilled",
-          "balanceAmount": {
-            "currency": "EUR",
-            "amount": 4175.86
-          }
-        }
-      ],
       "_links": {
-        "transactions": {
-          "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99/transactions"
+        "balances": {
+          "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99/balances"
         }
       }
     }
@@ -487,8 +474,9 @@ This account-id then can be retrieved by the
              _ <- passesPsd2Aisp(callContext)
              (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
              _ <- checkAccountAccess(ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), u, account, callContext)
+             (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(BankIdAccountId(account.bankId,account.accountId), callContext)
            } yield {
-             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account), HttpCode.`200`(callContext))
+             (JSONFactory_BERLIN_GROUP_1_3.createCardAccountBalanceJSON(account, accountBalances), HttpCode.`200`(callContext))
            }
        }
      }
@@ -942,24 +930,22 @@ Give detailed information about the addressed account together with balance info
             """,
        emptyObjectJson,
        json.parse("""{
-  "cashAccountType" : { },
-  "product" : "product",
-  "resourceId" : "resourceId",
-  "bban" : "BARC12345612345678",
-  "_links" : {
-    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "usage" : "PRIV",
-  "balances" : "",
-  "iban" : "FR7612345987650123456789014",
-  "linkedAccounts" : "linkedAccounts",
-  "name" : "name",
-  "currency" : "EUR",
-  "details" : "details",
-  "msisdn" : "+49 170 1234567",
-  "bic" : "AAAADEBBXXX",
-  "status" : { }
+  "account": {
+    "resourceId": "3dc3d5b3-7023-4848-9853-f5400a64e80f",
+    "iban": "FR7612345987650123456789014",
+    "currency": "EUR",
+    "product": "Girokonto",
+    "cashAccountType": "CACC",
+    "name": "Main Account",
+    "_links": {
+      "balances": {
+        "href": "/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/balances"
+      },
+      "transactions": {
+        "href": "/v1/accounts/3dc3d5b3-7023-4848-9853-f5400a64e80f/transactions"
+      }
+    }
+  }
 }"""),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)")  :: apiTagBerlinGroupM :: Nil
@@ -994,24 +980,27 @@ respectively the OAuth2 access token.
 """,
        emptyObjectJson,
        json.parse("""{
-  "balances" : "",
-  "product" : "product",
-  "resourceId" : "resourceId",
-  "maskedPan" : "123456xxxxxx1234",
-  "_links" : {
-    "balances" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983",
-    "transactions" : "/v1.3/payments/sepa-credit-transfers/1234-wertiq-983"
-  },
-  "usage" : "PRIV",
-  "name" : "name",
-  "creditLimit" : {
-    "amount" : "123",
-    "currency" : "EUR"
-  },
-  "currency" : "EUR",
-  "details" : "details",
-  "status" : { }
-}"""),
+                    |  "cardAccount": {
+                    |    "resourceId": "3d9a81b3-a47d-4130-8765-a9c0ff861b99",
+                    |    "maskedPan": "525412******3241",
+                    |    "currency": "EUR",
+                    |    "name": "Main",
+                    |    "product": "Basic Credit",
+                    |    "status": "enabled",
+                    |    "creditLimit": {
+                    |      "currency": "EUR",
+                    |      "amount": "15000"
+                    |    },
+                    |    "_links": {
+                    |      "balances": {
+                    |        "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99/balances"
+                    |      },
+                    |      "transactions": {
+                    |        "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99/transactions"
+                    |      }
+                    |    }
+                    |  }
+                    |}""".stripMargin),
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Information Service (AIS)") :: Nil
      )

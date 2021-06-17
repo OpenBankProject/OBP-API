@@ -17,6 +17,10 @@ class RemotedataUserInvitationActor extends Actor with ObpActorHelper with MdcLo
       logger.debug(s"createUserInvitation($bankId, $firstName, $lastName, $email, $company, $country, $purpose)")
       sender ! (mapper.createUserInvitation(bankId, firstName, lastName, email, company, country, purpose))
       
+    case cc.getUserInvitationBySecretLink(secretLink: Long) =>
+      logger.debug(s"getUserInvitationBySecretLink($secretLink)")
+      sender ! (mapper.getUserInvitationBySecretLink(secretLink))  
+      
     case cc.getUserInvitation(bankId: BankId, secretLink: Long) =>
       logger.debug(s"getUserInvitation($bankId, $secretLink)")
       sender ! (mapper.getUserInvitation(bankId, secretLink)) 

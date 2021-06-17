@@ -26,7 +26,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.transformToAtmFromV300
 import code.api.v3_1_0._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
+import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson,createAccountBalancesJson}
 import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
 import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
 import code.apicollection.MappedApiCollectionsProvider
@@ -3143,6 +3143,34 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
+      getBankAccountBalances,
+      implementedInApiVersion,
+      nameOf(getBankAccountBalances),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
+      "Get Account Balances",
+      """Get the Balances for one Account of the current User at one bank.""",
+      emptyObjectJson,
+      accountBalanceV400,
+      List($UserNotLoggedIn, $BankNotFound, CannotFindAccountAccess, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBankAccountBalances : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "balances" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u, bankId)
+            bankIdAcconutId <- NewStyle.function.tryons(s"$CannotFindAccountAccess AccountId(${accountId.value})", 400, cc.callContext) {availablePrivateAccounts.find(_.accountId==accountId).get}
+            (accountBalances, callContext)<- NewStyle.function.getBankAccountBalances(bankIdAcconutId, callContext)
+          } yield{
+            (createAccountBalancesJson(accountBalances), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       getFirehoseAccountsAtOneBank,
       implementedInApiVersion,
       nameOf(getFirehoseAccountsAtOneBank),
@@ -3317,7 +3345,7 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/registration/${invitation.secretKey}"
+            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
             val params = PlainMailBodyType(invitationText) :: List(To(invitation.email))
             Mailer.sendMail(From("invitation@tesobe.com"), Subject("User invitation"), params :_*)
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
