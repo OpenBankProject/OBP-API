@@ -54,41 +54,48 @@ class UserInvitation extends MdcLoggable {
 
     val secretLink = S.param("id").getOrElse("0")
     val userInvitation = UserInvitationProvider.userInvitationProvider.vend.getUserInvitationBySecretLink(secretLink.toLong)
-    val firstName = userInvitation.map(_.firstName).getOrElse("None")
-    firstNameVar.set(firstName)
-    val lastName = userInvitation.map(_.lastName).getOrElse("None")
-    lastNameVar.set(lastName)
+    firstNameVar.set(userInvitation.map(_.firstName).getOrElse("None"))
+    lastNameVar.set(userInvitation.map(_.lastName).getOrElse("None"))
     val email = userInvitation.map(_.email).getOrElse("None")
     devEmailVar.set(email)
     companyVar.set(userInvitation.map(_.company).getOrElse("None"))
     countryVar.set(userInvitation.map(_.country).getOrElse("None"))
-    val username = firstName.toLowerCase + "." + lastName.toLowerCase()
-    usernameVar.set(username)
+    usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
 
     def submitButtonDefense(): Unit = {
-      createResourceUser(
-        provider = "OBP-User-Invitation", 
-        providerId = Some(usernameVar.is), 
-        name = Some(firstName + " " + lastName), 
-        email = Some(email)
-      ).map{ u =>
-        createAuthUser(user = u, firstName = firstName, lastName = lastName, password = "")
-        val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
-        S.redirectTo(resetLink)
-      } 
-      
+      if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
+      else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
+      else {
+        createResourceUser(
+          provider = "OBP-User-Invitation",
+          providerId = Some(usernameVar.is),
+          name = Some(firstNameVar.is + " " + lastNameVar.is),
+          email = Some(email)
+        ).map{ u =>
+          createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
+          val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
+          S.redirectTo(resetLink)
+        }
+      }
     }
 
-    def showErrorsForUsername() = {
-      val usernameError = Helper.i18n("unique.username")
+    def showError(usernameError: String) = {
       S.error("register-consumer-errors", usernameError)
       register &
         "#register-consumer-errors *" #> {
           ".error *" #>
-            List(usernameError).map({ e=>
+            List(usernameError).map({ e =>
               ".errorContent *" #> e
             })
         }
+    }
+
+    def showErrorsForUsername() = {
+      showError(Helper.i18n("unique.username"))
+    }
+
+    def showErrorsForStatus() = {
+      showError(Helper.i18n("user.invitation.is.already.finished"))
     }
 
     def register = {
@@ -103,7 +110,7 @@ class UserInvitation extends MdcLoggable {
       } &
       "#register-consumer-success" #> ""
     }
-    if(Users.users.vend.getUserByUserName(username).isDefined) showErrorsForUsername() else register
+    register
   }
 
   private def createAuthUser(user: User, firstName: String, lastName: String, password: String): Box[AuthUser] = tryo {

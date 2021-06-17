@@ -1171,13 +1171,20 @@ def restoreSomeSessions(): Unit = {
   }
 
   override def passwordResetXhtml = {
-    (<form method="post" action={S.uri}>
-      <table><tr><td colspan="2">{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</td></tr>
-        <tr><td>{S.?("enter.your.new.password")}</td><td><input type="password" /></td></tr>
-        <tr><td>{S.?("repeat.your.new.password")}</td><td><input type="password" /></td></tr>
-        <tr><td>&nbsp;</td><td><input type="submit" /></td></tr>
-      </table>
-    </form>)
+    <div id="recover-password" tabindex="-1">
+      <h1>{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
+      <form action={S.uri} method="post">
+        <div class="form-group">
+          <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
+        </div>
+        <div class="form-group">
+          <label for="repeatpassword">{S.?("repeat.your.new.password")}</label> <span><input id="repeatpassword" class="form-control" type="password" /></span>
+        </div>
+        <div class="form-group">
+          <input type="submit" class="btn btn-danger" />
+        </div>
+      </form>
+    </div>
   }
   
   /**
