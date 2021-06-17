@@ -395,7 +395,7 @@ respectively the OAuth2 access token.
       },
       "_links": {
         "balances": {
-          "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99/transactions"
+          "href": "/v1/card-accounts/3d9a81b3-a47d-4130-8765-a9c0ff861b99/balances"
         }
       }
     }
