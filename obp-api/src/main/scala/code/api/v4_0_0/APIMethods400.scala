@@ -4534,19 +4534,7 @@ trait APIMethods400 {
           |client_certificate_content
           |-----END CERTIFICATE-----""".stripMargin
       ),
-      ConsumerPostJSON(
-        "Some app name",
-        "App type",
-        "Description",
-        "some.email@example.com",
-        "Some redirect url",
-        "Created by UUID",
-        true,
-        new Date(),
-        """-----BEGIN CERTIFICATE-----
-          |client_certificate_content
-          |-----END CERTIFICATE-----""".stripMargin
-      ),
+      consumerJsonV400,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
