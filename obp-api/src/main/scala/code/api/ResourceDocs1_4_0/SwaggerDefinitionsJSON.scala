@@ -2308,6 +2308,24 @@ object SwaggerDefinitionsJSON {
     created = DateWithDayExampleObject
   )
   
+  val consumerJsonV400 = ConsumerJson(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    key = ExampleValue.consumerSecretExample.value,
+    secret = ExampleValue.consumerKeyExample.value,
+    app_name = "SOFI",
+    app_type = "Web",
+    description = "Account Management",
+    client_certificate = """-----BEGIN CERTIFICATE-----
+                           |client_certificate_content
+                           |-----END CERTIFICATE-----""".stripMargin,
+    developer_email = ExampleValue.emailExample.value,
+    redirect_url = "www.openbankproject.com",
+    created_by_user_id = ExampleValue.userIdExample.value,
+    created_by_user = resourceUserJSON,
+    enabled = true,
+    created = DateWithDayExampleObject
+  )
+  
   val consumersJson310 = ConsumersJsonV310(
     List(consumerJsonV310)
   )
