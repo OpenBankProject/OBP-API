@@ -3199,7 +3199,7 @@ trait APIMethods400 {
          |""".stripMargin,
       emptyObjectJson,
       moderatedFirehoseAccountsJsonV400,
-      List($UserNotLoggedIn, $BankNotFound, $UserNoPermissionAccessView,UnknownError),
+      List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseAccountFirehoseAtAnyBank))
     )
@@ -3209,7 +3209,9 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), bank, view, callContext) <- SS.userBankView
+            (Full(u), bank, callContext) <- SS.userBank
+            // here must be a system view, not accountIds in the URL
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  , cc=callContext) {
               canUseAccountFirehose(u)
             }

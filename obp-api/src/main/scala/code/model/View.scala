@@ -161,7 +161,7 @@ case class ViewExtended(val view: View) {
         else None
 
       val transactionBalance =
-        if (view.canSeeTransactionBalance) transaction.balance.toString()
+        if (view.canSeeTransactionBalance && transaction.balance != null) transaction.balance.toString()
         else ""
 
       new ModeratedTransaction(
@@ -228,7 +228,7 @@ case class ViewExtended(val view: View) {
         else None
 
       val transactionBalance =
-        if (view.canSeeTransactionBalance) transactionCore.balance.toString()
+        if (view.canSeeTransactionBalance && transactionCore.balance != null) transactionCore.balance.toString()
         else ""
 
       new ModeratedTransactionCore(
@@ -312,7 +312,7 @@ case class ViewExtended(val view: View) {
     if(view.canSeeTransactionThisBankAccount)
     {
       val owners : Set[User] = if(view.canSeeBankAccountOwners) bankAccount.userOwners else Set()
-      val balance = if(view.canSeeBankAccountBalance) bankAccount.balance.toString else ""
+      val balance = if(view.canSeeBankAccountBalance && bankAccount.balance != null) bankAccount.balance.toString else ""
       val accountType = if(view.canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
@@ -362,7 +362,7 @@ case class ViewExtended(val view: View) {
     if(view.canSeeTransactionThisBankAccount)
     {
       val owners : Set[User] = if(view.canSeeBankAccountOwners) bankAccount.userOwners else Set()
-      val balance = if(view.canSeeBankAccountBalance) bankAccount.balance.toString else ""
+      val balance = if(view.canSeeBankAccountBalance && bankAccount.balance !=null) bankAccount.balance.toString else ""
       val accountType = if(view.canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
@@ -409,7 +409,7 @@ case class ViewExtended(val view: View) {
     if(view.canSeeTransactionThisBankAccount)
     {
       val owners : Set[User] = if(view.canSeeBankAccountOwners) bankAccount.userOwners else Set()
-      val balance = if(view.canSeeBankAccountBalance) Some(bankAccount.balance.toString) else None
+      val balance = if(view.canSeeBankAccountBalance && bankAccount.balance != null) Some(bankAccount.balance.toString) else None
       val accountType = if(view.canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(view.canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(view.canSeeBankAccountLabel) Some(bankAccount.label) else None
