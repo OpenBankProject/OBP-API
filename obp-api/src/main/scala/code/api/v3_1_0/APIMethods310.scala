@@ -465,10 +465,11 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank, cc=callContext) {
-              canUseCustomerFirehose(u)
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=callContext) {
+              ALLOW_CUSTOMER_FIREHOSE
             }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseCustomerFirehoseAtAnyBank, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)

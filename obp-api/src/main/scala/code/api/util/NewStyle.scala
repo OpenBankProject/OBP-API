@@ -882,12 +882,12 @@ object NewStyle {
       } map validateRequestPayload(callContext)
 
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
-      val errorMessage = if (bankId.isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
+      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
       hasAtLeastOneEntitlement(errorMessage)(bankId, userId, roles, callContext)
     }
 
     def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
-      val errorMessage = if (bankId.isEmpty) 
+      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) 
         s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required." 
       else 
         s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required for BankId($bankId)."
