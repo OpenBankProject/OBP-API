@@ -1191,8 +1191,10 @@ trait APIMethods310 {
       "/banks/BANK_ID/customers",
       "Create Customer",
       s"""
-         |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+         |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
          |Dates need to be in the format 2013-01-21T23:08:00Z
+         |
+         |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
          |
           |${authenticationRequiredMessage(true)}
          |""",
