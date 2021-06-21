@@ -1,9 +1,8 @@
 package code.api.v1_3_0
 
 import java.util.Date
-
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{CallContext, OBPQueryParam}
+import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
@@ -14,7 +13,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
   def v1_3Request = baseRequest / "obp" / "v1.3.0"
 
-  lazy val bank = createBank("a-bank")
+  lazy val bank = createBank(APIUtil.defaultBankId)
   lazy val accId = "a-account"
   lazy val accountCurrency = "EUR"
   lazy val account = createAccount(bank.bankId, AccountId(accId), accountCurrency)
@@ -94,6 +93,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     super.afterAll()
     //reset the default connector
     Connector.connector.default.set(Connector.buildOne)
+    wipeTestData()
   }
 
   feature("Getting details of physical cards") {
