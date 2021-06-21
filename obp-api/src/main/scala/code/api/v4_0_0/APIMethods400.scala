@@ -3199,7 +3199,7 @@ trait APIMethods400 {
          |""".stripMargin,
       emptyObjectJson,
       moderatedFirehoseAccountsJsonV400,
-      List($UserNotLoggedIn, $BankNotFound, $UserNoPermissionAccessView,UnknownError),
+      List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseAccountFirehoseAtAnyBank))
     )
@@ -3209,7 +3209,9 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), bank, view, callContext) <- SS.userBankView
+            (Full(u), bank, callContext) <- SS.userBank
+            // here must be a system view, not accountIds in the URL
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  , cc=callContext) {
               canUseAccountFirehose(u)
             }
@@ -3341,7 +3343,7 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/registration/${invitation.secretKey}"
+            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
             val params = PlainMailBodyType(invitationText) :: List(To(invitation.email))
             Mailer.sendMail(From("invitation@tesobe.com"), Subject("User invitation"), params :_*)
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
@@ -4534,19 +4536,7 @@ trait APIMethods400 {
           |client_certificate_content
           |-----END CERTIFICATE-----""".stripMargin
       ),
-      ConsumerPostJSON(
-        "Some app name",
-        "App type",
-        "Description",
-        "some.email@example.com",
-        "Some redirect url",
-        "Created by UUID",
-        true,
-        new Date(),
-        """-----BEGIN CERTIFICATE-----
-          |client_certificate_content
-          |-----END CERTIFICATE-----""".stripMargin
-      ),
+      consumerJsonV400,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,

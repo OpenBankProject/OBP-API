@@ -21,12 +21,14 @@ object UserInvitationProvider extends SimpleInjector {
 
 trait UserInvitationProvider {
   def createUserInvitation(bankId: BankId, firstName: String, lastName: String, email: String, company: String, country: String, purpose: String): Box[UserInvitation]
+  def getUserInvitationBySecretLink(secretLink: Long): Box[UserInvitation]
   def getUserInvitation(bankId: BankId, secretLink: Long): Box[UserInvitation]
   def getUserInvitations(bankId: BankId): Box[List[UserInvitation]]
 }
 
 class RemotedataUserInvitationProviderCaseClass {
   case class createUserInvitation(bankId: BankId, firstName: String, lastName: String, email: String, company: String, country: String, purpose: String)
+  case class getUserInvitationBySecretLink(secretLink: Long)
   case class getUserInvitation(bankId: BankId, secretLink: Long)
   case class getUserInvitations(bankId: BankId)
 }

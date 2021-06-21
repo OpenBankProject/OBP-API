@@ -531,6 +531,7 @@ object ErrorMessages {
   val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
   val KafkaServerUnavailable = "OBP-50016: The kafka server is unavailable."
   val NotAllowedEndpoint = "OBP-50017: The endpoint is forbidden at this API instance."
+  val UnderConstructionError = "OBP-50018: Under Construction Error."
 
 
   // Connector Data Exceptions (OBP-502XX)

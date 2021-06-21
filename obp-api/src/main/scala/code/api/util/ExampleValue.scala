@@ -322,6 +322,12 @@ object ExampleValue {
   lazy val keyExample = ConnectorField(s"CustomerNumber", s"This key should be used with Adapter.value together. They are a pair.")
   glossaryItems += makeGlossaryItem("Adapter.key", keyExample)
   
+  lazy val consumerSecretExample = ConnectorField(s"xwdgylv3vau0n2gkxu1aize4glapftfldp5y1bic", s"This key should be used with Adapter.value together. They are a pair.")
+  glossaryItems += makeGlossaryItem("Customer.secret", consumerSecretExample)  
+  
+  lazy val consumerKeyExample = ConnectorField(s"bwf0ykmwoirip1yjxcn15wnhuyxcziwgtcoaildq", s"This key should be used with Adapter.value together. They are a pair.")
+  glossaryItems += makeGlossaryItem("Customer.key", consumerKeyExample)
+  
   lazy val valueExample = ConnectorField(s"${customerNumberExample.value}", s"This key should be used with Adapter.key together. They are a pair.")
   glossaryItems += makeGlossaryItem("Adapter.value", valueExample)
 
