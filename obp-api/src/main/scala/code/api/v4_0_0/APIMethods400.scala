@@ -3211,7 +3211,7 @@ trait APIMethods400 {
           for {
             (Full(u), bank, callContext) <- SS.userBank
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
-              ALLOW_ACCOUNT_FIREHOSE
+              allowAccountFirehose
             }
             // here must be a system view, not accountIds in the URL
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)

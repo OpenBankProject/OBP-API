@@ -493,7 +493,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=cc.callContext) {
-              ALLOW_ACCOUNT_FIREHOSE
+              allowAccountFirehose
             }
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseAccountFirehoseAtAnyBank, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
@@ -580,7 +580,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=callContext) {
-              ALLOW_ACCOUNT_FIREHOSE
+              allowAccountFirehose
             }
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseAccountFirehoseAtAnyBank, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)

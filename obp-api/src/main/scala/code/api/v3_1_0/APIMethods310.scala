@@ -466,7 +466,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=callContext) {
-              ALLOW_CUSTOMER_FIREHOSE
+              allowCustomerFirehose
             }
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseCustomerFirehoseAtAnyBank, callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
