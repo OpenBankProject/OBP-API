@@ -2274,6 +2274,28 @@ object ExampleValue {
     case JField("swagger_string", _) => JField("swagger_string", "swagger" -> "2.0")
   }.asInstanceOf[JObject]
 
+  val endpointMappingExample =
+    """{
+      |    "operation_id": "OBPv4.0.0-dynamicEndpoint_POST_account",
+      |    "request_mapping": {
+      |        
+      |    },
+      |    "response_mapping": {
+      |    "name": {
+      |      "entity": "FooBar",
+      |      "field": "name",
+      |      "query": "number"
+      |    },
+      |    "balance": {
+      |      "entity": "FashionBrand",
+      |      "field": "number",
+      |      "query": "number"
+      |    }
+      |  }
+      |}""".stripMargin
+  lazy val endpointMappingRequestBodyExample: JObject = json.parse(endpointMappingExample).asInstanceOf[JObject]
+  lazy val endpointMappingResponseBodyExample: JObject = endpointMappingRequestBodyExample ~ ("endpoint_mapping_id", "b4e0352a-9a0f-4bfa-b30b-9003aa467f50")
+
   /**
    * parse date example value to Date type
    * @param exampleValue example value

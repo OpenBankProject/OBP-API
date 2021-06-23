@@ -42,7 +42,7 @@ class DynamicIntegrationTest extends V400ServerSetup {
   object ApiEndpoint14 extends Tag(nameOf(Implementations4_0_0.updateBankLevelDynamicEntity))
 
 
-  val mapping = endpointMappingJson.copy(endpointMappingId = None)
+  val mapping = endpointMappingRequestBodyExample
   val dynamicEntity = dynamicEntityRequestBodyExample.copy(bankId = None)
   val dynamicEndpoint = dynamicEndpointRequestBodyExample
   

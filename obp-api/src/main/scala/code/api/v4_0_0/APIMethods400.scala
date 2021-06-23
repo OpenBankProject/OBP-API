@@ -8293,8 +8293,8 @@ trait APIMethods400 {
          |
          |Note: at moment only support the dynamic endpoints
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8334,8 +8334,8 @@ trait APIMethods400 {
       "Update Endpoint Mapping",
       s"""Update an Endpoint Mapping.
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8382,7 +8382,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      endpointMappingJson,
+      endpointMappingResponseBodyExample,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8418,7 +8418,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      ListResult("endpoint-mappings", endpointMappingJson::Nil),
+      ListResult("endpoint-mappings", endpointMappingResponseBodyExample::Nil),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8489,8 +8489,8 @@ trait APIMethods400 {
          |
          |Note: at moment only support the dynamic endpoints
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
         $BankNotFound,
         $UserNotLoggedIn,
@@ -8517,8 +8517,8 @@ trait APIMethods400 {
       "Update Bank Level Endpoint Mapping",
       s"""Update an Bank Level Endpoint Mapping.
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
         $BankNotFound,
         $UserNotLoggedIn,
@@ -8547,7 +8547,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      endpointMappingJson,
+      endpointMappingResponseBodyExample,
       List(
         $BankNotFound,
         $UserNotLoggedIn,
@@ -8575,7 +8575,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      ListResult("endpoint-mappings", endpointMappingJson::Nil),
+      ListResult("endpoint-mappings", endpointMappingResponseBodyExample::Nil),
       List(
         $BankNotFound,
         $UserNotLoggedIn,

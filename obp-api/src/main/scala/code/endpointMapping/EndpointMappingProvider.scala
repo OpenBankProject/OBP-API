@@ -7,7 +7,7 @@ import com.openbankproject.commons.model.{Converter, JsonFieldReName}
 import net.liftweb.common.Box
 import net.liftweb.json
 import net.liftweb.json.Formats
-import net.liftweb.json.JsonAST.{JArray, JField, JNull, JObject, JString}
+import net.liftweb.json.JsonAST.{JArray, JField, JNull, JObject, JString, JValue}
 import net.liftweb.util.SimpleInjector
 
 object EndpointMappingProvider extends SimpleInjector {

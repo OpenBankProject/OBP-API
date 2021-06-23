@@ -1,9 +1,10 @@
 package code.api.v4_0_0
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{endpointMappingJson,jsonCodeTemplate}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.jsonCodeTemplate
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateEndpointMapping, _}
 import code.api.util.ErrorMessages.{UserNotLoggedIn, _}
+import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement
@@ -28,7 +29,7 @@ class EndpointMappingTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.updateEndpointMapping))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.deleteEndpointMapping))
 
-  val rightEntity = endpointMappingJson.copy(endpointMappingId = None)
+  val rightEntity = endpointMappingRequestBodyExample
   val wrongEntity = jsonCodeTemplate
   
   feature("Add a EndpointMapping v4.0.0- Unauthorized access") {

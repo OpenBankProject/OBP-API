@@ -415,7 +415,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
       dynamicEntitiesGetJson.values should have size 2
 
-      val JArray(head :: Nil) = dynamicEntitiesGetJson
+      val head= dynamicEntitiesGetJson.arr.head
 
       head should equal(expectUpdatedResponseJson)
 
@@ -437,6 +437,13 @@ class DynamicEntityTest extends V400ServerSetup {
       val response = makePostRequest(request, write(rightEntity))
       Then("We should get a 201")
       response.code should equal(201)
+      
+      {//Test the bank level create entity
+        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
+        val response = makePostRequest(request, write(rightEntityBankLevel))
+        Then("We should get a 201")
+        response.code should equal(201)
+      }
 
       val responseJson = response.body
       val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
@@ -528,9 +535,9 @@ class DynamicEntityTest extends V400ServerSetup {
       val json = responseGet.body \ "dynamic_entities"
       val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
 
-      dynamicEntitiesGetJson.values should have size 1
+      dynamicEntitiesGetJson.values should have size 2
 
-      val JArray(head :: Nil) = dynamicEntitiesGetJson
+      val head = dynamicEntitiesGetJson.arr.head
 
       head should equal(expectUpdatedResponseJson)
 

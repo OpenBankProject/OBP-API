@@ -4154,25 +4154,6 @@ object SwaggerDefinitionsJSON {
 
   val jsonCodeTemplate = "code" -> URLEncoder.encode("""println("hello")""", "UTF-8")
 
-  val endpointMappingJson = EndpointMappingCommons(
-    Some("b4e0352a-9a0f-4bfa-b30b-9003aa467f50"),
-    "OBPv4.0.0-dynamicEndpoint_POST_account",
-    """{}""".stripMargin,
-    """{
-      |    "name": {
-      |      "entity": "FooBar",
-      |      "field": "name",
-      |      "query": "number"
-      |    },
-      |    "balance": {
-      |      "entity": "FashionBrand",
-      |      "field": "number",
-      |      "query": "number"
-      |    }
-      |  }""".stripMargin,
-    Some(bankIdExample.value)
-  )
-
   val supportedCurrenciesJson = SupportedCurrenciesJson(
     supportedCurrenciesExample.value
       .replaceAll(""""""","").replace("""[""","")
