@@ -3210,12 +3210,11 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), bank, callContext) <- SS.userBank
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
+              allowAccountFirehose
+            }
             // here must be a system view, not accountIds in the URL
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  , cc=callContext) {
-              canUseAccountFirehose(u)
-            }
-
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId))
             }
