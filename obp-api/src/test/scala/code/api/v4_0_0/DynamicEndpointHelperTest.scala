@@ -3023,5 +3023,38 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
     expectedJson should equal(result)
   }
 
+  "isDynamicEntityResponse" should "work well" taggedAs FunctionsTag in {
 
+    // swagger with schemes:
+    val serverUrl1 = "https://dynamic_entity"
+    
+    // swagger not schemes:
+    val serverUrl2 = "//dynamic_entity"
+    
+    val result1= DynamicEndpointHelper.isDynamicEntityResponse(serverUrl1)
+    val result2= DynamicEndpointHelper.isDynamicEntityResponse(serverUrl2)
+
+    result1 should equal(true)
+    result2 should equal(true)
+    
+  }
+
+  "isMockedResponse" should "work well" taggedAs FunctionsTag in {
+
+    // swagger with schemes:
+    val serverUrl1 = "https://obp_mock:3/"
+
+    // swagger not schemes:
+    val serverUrl2 = "//obp_mock/"
+    val serverUrl3 = "//obp_mock"
+
+    val result1= DynamicEndpointHelper.isMockedResponse(serverUrl1)
+    val result2= DynamicEndpointHelper.isMockedResponse(serverUrl2)
+    val result3= DynamicEndpointHelper.isMockedResponse(serverUrl3)
+
+    result1 should equal(true)
+    result2 should equal(true)
+    result3 should equal(true)
+
+  }
 }

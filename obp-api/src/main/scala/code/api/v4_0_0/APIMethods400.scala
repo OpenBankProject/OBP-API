@@ -1716,6 +1716,7 @@ trait APIMethods400 {
         List(dynamicEntityResponseBodyExample)
       ),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -1831,6 +1832,7 @@ trait APIMethods400 {
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -1910,9 +1912,9 @@ trait APIMethods400 {
     }    
     
     private def updateBankLevelDynamicEntityDoc = ResourceDoc(
-      updateBankLevelDynamicEntityAtBank,
+      updateBankLevelDynamicEntity,
       implementedInApiVersion,
-      nameOf(updateBankLevelDynamicEntityAtBank),
+      nameOf(updateBankLevelDynamicEntity),
       "PUT",
       "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Update Bank Level Dynamic Entity",
@@ -1937,6 +1939,7 @@ trait APIMethods400 {
       dynamicEntityRequestBodyExample.copy(bankId=None),
       dynamicEntityResponseBodyExample,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -1944,7 +1947,7 @@ trait APIMethods400 {
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateBankLevelDynamicEntity, canUpdateDynamicEntity)))
-    lazy val updateBankLevelDynamicEntityAtBank: OBPEndpoint = {
+    lazy val updateBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
           updateDynamicEntityMethod(Some(bankId),dynamicEntityId, json, cc)
@@ -2005,6 +2008,7 @@ trait APIMethods400 {
       EmptyBody,
       EmptyBody,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -4680,6 +4684,7 @@ trait APIMethods400 {
       dynamicEndpointRequestBodyExample,
       dynamicEndpointResponseBodyExample,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         DynamicEndpointExists,
@@ -4690,9 +4695,9 @@ trait APIMethods400 {
       Some(List(canCreateBankLevelDynamicEndpoint, canCreateDynamicEndpoint)))
 
     lazy val createBankLevelDynamicEndpoint: OBPEndpoint = {
-      case "management" :: "banks" :: bankId ::"dynamic-endpoints" :: Nil JsonPost json -> _ => {
+      case "management" :: "banks" :: BankId(bankId) ::"dynamic-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
-          createDynamicEndpointMethod(Some(bankId), json, cc)
+          createDynamicEndpointMethod(Some(bankId.value), json, cc)
       }
     }
 
@@ -4751,6 +4756,7 @@ trait APIMethods400 {
       dynamicEndpointHostJson400,
       dynamicEndpointHostJson400,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         DynamicEntityNotFoundByDynamicEntityId,
@@ -4856,6 +4862,7 @@ trait APIMethods400 {
       EmptyBody,
       dynamicEndpointResponseBodyExample,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         DynamicEndpointNotFoundByDynamicEndpointId,
@@ -4900,6 +4907,7 @@ trait APIMethods400 {
         List(dynamicEndpointResponseBodyExample)
       ),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -4959,6 +4967,7 @@ trait APIMethods400 {
       EmptyBody,
       EmptyBody,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         DynamicEndpointNotFoundByDynamicEndpointId,
         UnknownError
@@ -8273,8 +8282,8 @@ trait APIMethods400 {
          |
          |Note: at moment only support the dynamic endpoints
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8314,8 +8323,8 @@ trait APIMethods400 {
       "Update Endpoint Mapping",
       s"""Update an Endpoint Mapping.
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8362,7 +8371,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      endpointMappingJson,
+      endpointMappingResponseBodyExample,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8398,7 +8407,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      ListResult("endpoint-mappings", endpointMappingJson::Nil),
+      ListResult("endpoint-mappings", endpointMappingResponseBodyExample::Nil),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -8469,9 +8478,10 @@ trait APIMethods400 {
          |
          |Note: at moment only support the dynamic endpoints
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -8496,9 +8506,10 @@ trait APIMethods400 {
       "Update Bank Level Endpoint Mapping",
       s"""Update an Bank Level Endpoint Mapping.
          |""",
-      endpointMappingJson.copy(endpointMappingId = None, bankId = None),
-      endpointMappingJson,
+      endpointMappingRequestBodyExample,
+      endpointMappingResponseBodyExample,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -8525,8 +8536,9 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      endpointMappingJson,
+      endpointMappingResponseBodyExample,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -8552,8 +8564,9 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      ListResult("endpoint-mappings", endpointMappingJson::Nil),
+      ListResult("endpoint-mappings", endpointMappingResponseBodyExample::Nil),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -8580,6 +8593,7 @@ trait APIMethods400 {
       EmptyBody,
       BooleanBody(true),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
