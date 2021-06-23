@@ -20,11 +20,11 @@ object UserAgreementProvider extends SimpleInjector {
 }
 
 trait UserAgreementProvider {
-  def createUserAgreement(userId: String, summary: String, agreementText: String): Box[UserAgreement]
+  def createOrUpdateUserAgreement(userId: String, summary: String, agreementText: String, acceptMarketingInfo: Boolean): Box[UserAgreement]
 }
 
 class RemotedataUserAgreementProviderCaseClass {
-  case class createUserAgreement(userId: String, summary: String, agreementText: String)
+  case class createOrUpdateUserAgreement(userId: String, summary: String, agreementText: String, acceptMarketingInfo: Boolean)
 }
 
 object RemotedataUserAgreementProviderCaseClass extends RemotedataUserAgreementProviderCaseClass
@@ -35,4 +35,5 @@ trait UserAgreementTrait {
   def summary: String
   def agreementText: String
   def agreementHash: String
+  def acceptMarketingInfo: Boolean
 }

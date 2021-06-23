@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.model.dataAccess.{AuthUser, ResourceUser}
-import code.users.{UserInvitationProvider, Users}
+import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
@@ -48,11 +48,12 @@ class UserInvitation extends MdcLoggable {
   private object devEmailVar extends RequestVar("")
   private object usernameVar extends RequestVar("")
   private object termsCheckboxVar extends RequestVar(false)
+  private object marketingInfoCheckboxVar extends RequestVar(false)
   private object privacyCheckboxVar extends RequestVar(false)
   
   val registrationConsumerButtonValue: String = getWebUiPropsValue("webui_post_user_invitation_submit_button_value", "Register as a Developer")
-  val privacyConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_privacy_conditions_value", "Privacy conditions")
-  val termsAndConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_value", "Terms and Conditions")
+  val privacyConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_privacy_conditions_value", "Privacy conditions.")
+  val termsAndConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_value", "Terms and Conditions.")
   val termsAndConditionsCheckboxValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_checkbox_value", "I agree to the above Developer Terms and Conditions")
   
   def registerForm: CssSel = {
@@ -73,16 +74,23 @@ class UserInvitation extends MdcLoggable {
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
       else {
+        // Resource User table
         createResourceUser(
           provider = "OBP-User-Invitation",
           providerId = Some(usernameVar.is),
           name = Some(firstNameVar.is + " " + lastNameVar.is),
           email = Some(email)
         ).map{ u =>
+          // AuthUser table
           createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
+          // Use Agreement table
+          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+            u.userId, privacyConditionsValue, termsAndConditionsValue, marketingInfoCheckboxVar.is)
+          // Set a new password
           val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
           S.redirectTo(resetLink)
         }
+        
       }
     }
 
@@ -122,6 +130,7 @@ class UserInvitation extends MdcLoggable {
           "#privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_)) &
           "#terms" #> SHtml.textarea(termsAndConditionsValue, termsAndConditionsValue => termsAndConditionsValue) &
           "#terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_)) &
+          "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#register-consumer-success" #> ""

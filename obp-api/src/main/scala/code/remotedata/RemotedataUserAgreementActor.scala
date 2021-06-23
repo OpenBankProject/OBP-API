@@ -12,9 +12,9 @@ class RemotedataUserAgreementActor extends Actor with ObpActorHelper with MdcLog
 
   def receive: PartialFunction[Any, Unit] = {
 
-    case cc.createUserAgreement(userId: String, summary: String, agreementText: String) =>
-      logger.debug(s"createUserAgreement($userId, $summary, $agreementText)")
-      sender ! (mapper.createUserAgreement(userId, summary, agreementText))
+    case cc.createOrUpdateUserAgreement(userId: String, summary: String, agreementText: String, acceptMarketingInfo: Boolean) =>
+      logger.debug(s"createOrUpdateUserAgreement($userId, $summary, $agreementText, $acceptMarketingInfo)")
+      sender ! (mapper.createOrUpdateUserAgreement(userId, summary, agreementText, acceptMarketingInfo))
       
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

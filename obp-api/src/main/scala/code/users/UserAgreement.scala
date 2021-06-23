@@ -3,21 +3,34 @@ package code.users
 import java.util.Date
 import java.util.UUID.randomUUID
 
-import code.api.util.{HashUtil, SecureRandomUtil}
+import code.api.util.HashUtil
 import code.util.UUIDString
-import com.openbankproject.commons.model.BankId
-import net.liftweb.common.Box
-import net.liftweb.mapper.{MappedDateTime, _}
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.mapper._
 
 object MappedUserAgreementProvider extends UserAgreementProvider {
-  override def createUserAgreement(userId: String, summary: String, agreementText: String): Box[UserAgreement] = tryo {
-    UserAgreement.create
-      .UserId(userId)
-      .Summary(summary)
-      .AgreementText(agreementText)
-      .Date(new Date)
-      .saveMe()
+  override def createOrUpdateUserAgreement(userId: String, summary: String, agreementText: String, acceptMarketingInfo: Boolean): Box[UserAgreement] = {
+    UserAgreement.find(By(UserAgreement.UserId, userId)) match {
+      case Full(existingUser) =>
+        Full(
+          existingUser
+            .Summary(summary)
+            .AgreementText(agreementText)
+            .AcceptMarketingInfo(acceptMarketingInfo)
+            .saveMe()
+        )
+      case Empty =>
+        Full(
+          UserAgreement.create
+            .UserId(userId)
+            .Summary(summary)
+            .AgreementText(agreementText)
+            .AcceptMarketingInfo(acceptMarketingInfo)
+            .Date(new Date)
+            .saveMe()
+        )
+      case everythingElse => everythingElse
+    }
   }
 }
 class UserAgreement extends UserAgreementTrait with LongKeyedMapper[UserAgreement] with IdPK with CreatedUpdated {
@@ -29,17 +42,19 @@ class UserAgreement extends UserAgreementTrait with LongKeyedMapper[UserAgreemen
   }
   object UserId extends MappedString(this, 255)
   object Date extends MappedDate(this)
-  object Summary extends MappedString(this, 50)
+  object Summary extends MappedText(this)
   object AgreementText extends MappedText(this)
-  object AgreementHash extends MappedString(this, 50) {
+  object AgreementHash extends MappedString(this, 64) {
     override def defaultValue: String = HashUtil.Sha256Hash(AgreementText.get)
   }
+  object AcceptMarketingInfo extends MappedBoolean(this)
 
   override def userInvitationId: String = UserAgreementId.get
   override def userId: String = UserId.get
   override def summary: String = Summary.get
   override def agreementText: String = AgreementText.get
   override def agreementHash: String = AgreementHash.get
+  override def acceptMarketingInfo: Boolean = AcceptMarketingInfo.get
 }
 
 object UserAgreement extends UserAgreement with LongKeyedMetaMapper[UserAgreement] {
