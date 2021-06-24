@@ -3119,8 +3119,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     Else just return the session
     Note there are Read and Write side effects here!
   */
+  // getPropsAsBoolValue cannot be called directly inside the function activeBrand due to java.lang.StackOverflowError
+  val brandsEnabled = APIUtil.getPropsAsBoolValue("brands_enabled", false)
   def activeBrand() : Option[String] = {
-    APIUtil.getPropsAsBoolValue("brands_enabled", false) match {
+    brandsEnabled match {
       case true =>
         getActiveBrand()
       case false =>
