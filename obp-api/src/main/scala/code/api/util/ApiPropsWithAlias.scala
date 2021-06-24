@@ -13,19 +13,19 @@ import net.liftweb.common.Full
   */
 object ApiPropsWithAlias {
   import HelperFunctions._
-  val requireScopesForAllRoles = getValueByNameOrAliasAsBoolean(
+  def requireScopesForAllRoles = getValueByNameOrAliasAsBoolean(
     name="require_scopes_for_all_roles", 
     alias="require_scopes", 
     defaultValue="false")
-  val migrationScriptsEnabled = getValueByNameOrAliasAsBoolean(
+  def migrationScriptsEnabled = getValueByNameOrAliasAsBoolean(
     name="migration_scripts.enabled",
     alias="migration_scripts.execute",
     defaultValue="false")
-  val allowAccountFirehose = getValueByNameOrAliasAsBoolean(
+  def allowAccountFirehose = getValueByNameOrAliasAsBoolean(
     name="allow_account_firehose",
     alias="allow_firehose_views",
     defaultValue="false")
-  val allowCustomerFirehose = getValueByNameOrAliasAsBoolean(
+  def allowCustomerFirehose = getValueByNameOrAliasAsBoolean(
     name="allow_customer_firehose",
     alias="allow_firehose_views",
     defaultValue="false")

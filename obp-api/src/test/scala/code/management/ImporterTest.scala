@@ -35,7 +35,7 @@ class ImporterTest extends ServerSetup with MdcLoggable with DefaultConnectorTes
   def fixture(accId : String) = new Fixture(accId)
   
   class  Fixture(accId : String) {
-    lazy val bank = createBank("a-bank")
+    lazy val bank = createBank(APIUtil.defaultBankId)
     lazy val accountCurrency = "EUR"
     lazy val account = createAccount(bank.bankId, AccountId(accId), accountCurrency)
     val originalBalance = account.balance.toString

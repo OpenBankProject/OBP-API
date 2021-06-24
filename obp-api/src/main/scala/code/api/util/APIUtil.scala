@@ -3177,14 +3177,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-  val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
-  val ALLOW_ACCOUNT_FIREHOSE: Boolean = ApiPropsWithAlias.allowAccountFirehose
-  val ALLOW_CUSTOMER_FIREHOSE: Boolean = ApiPropsWithAlias.allowCustomerFirehose
+  def allowPublicViews: Boolean = getPropsAsBoolValue("allow_public_views", false)
+  def allowAccountFirehose: Boolean = ApiPropsWithAlias.allowAccountFirehose
+  def allowCustomerFirehose: Boolean = ApiPropsWithAlias.allowCustomerFirehose
   def canUseAccountFirehose(user: User): Boolean = {
-    ALLOW_ACCOUNT_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
+    allowAccountFirehose && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
   }
   def canUseCustomerFirehose(user: User): Boolean = {
-    ALLOW_CUSTOMER_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
+    allowCustomerFirehose && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
   }
   /**
    * This will accept all kinds of view and user.
@@ -3214,7 +3214,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val customView = Views.views.vend.customView(viewId, bankIdAccountId)
     customView match { // CHECK CUSTOM VIEWS
       // 1st: View is Pubic and Public views are NOT allowed on this instance.
-      case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+      case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
       // 3rd: The user has account access to this custom view
@@ -3224,7 +3224,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val systemView = Views.views.vend.systemView(viewId)
         systemView match  { // CHECK SYSTEM VIEWS
           // 1st: View is Pubic and Public views are NOT allowed on this instance.
-          case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+          case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
           // 2nd: View is Pubic and Public views are allowed on this instance.
           case Full(v) if(isPublicView(v)) => systemView
           // 3rd: The user has account access to this system view
@@ -3252,7 +3252,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case true if view.isPublic => // Sanity check. We don't want a public owner view.
         logger.warn(s"Public owner encountered. Primary view id: ${view.id}")
         false
-      case _ => view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS
+      case _ => view.isPublic && APIUtil.allowPublicViews
     }
   }
   /**

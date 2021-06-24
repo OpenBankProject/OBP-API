@@ -53,7 +53,7 @@ object MapperViews extends Views with MdcLoggable {
         .map(v => v.bank_id(a.bank_id.get).account_id(a.account_id.get))
     ).filter(
         v =>
-          if (ALLOW_PUBLIC_VIEWS) {
+          if (allowPublicViews) {
             true // All views
           } else {
             v.isPrivate == true // Only private views
@@ -122,7 +122,7 @@ object MapperViews extends Views with MdcLoggable {
 
     viewDefinition match {
       case Full(v) => {
-        if(v.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+        if(v.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
         // SQL Select Count ViewPrivileges where
         // This is idempotent
         getOrGrantAccessToCustomView(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //privilege already exists, no need to create one
@@ -133,7 +133,7 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view: View, user: User): Box[View] = {
-    { view.isPublic && !ALLOW_PUBLIC_VIEWS } match {
+    { view.isPublic && !allowPublicViews } match {
       case true => Failure(PublicViewsNotAllowedOnThisInstance)
       case false => getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user, view)
     }
@@ -153,7 +153,7 @@ object MapperViews extends Views with MdcLoggable {
       //TODO: APIFailures with http response codes belong at a higher level in the code
     } else {
       viewDefinitions.foreach(v => {
-        if(v._1.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+        if(v._1.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
         val viewDefinition = v._1
         val viewIdBankIdAccountId = v._2
         // This is idempotent 
@@ -176,7 +176,7 @@ object MapperViews extends Views with MdcLoggable {
       //TODO: APIFailures with http response codes belong at a higher level in the code
     } else {
       viewDefinitions.foreach(v => {
-        if(v._1.isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+        if(v._1.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
         val viewDefinition = v._1
         val viewIdBankIdAccountId = v._2
         // This is idempotent 
@@ -300,7 +300,7 @@ object MapperViews extends Views with MdcLoggable {
 
   def customView(viewId : ViewId, account: BankIdAccountId) : Box[View] = {
     val view = ViewDefinition.findCustomView(account.bankId.value, account.accountId.value, viewId.value)
-    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(view.isDefined && view.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
 
     view
   }
@@ -360,7 +360,7 @@ object MapperViews extends Views with MdcLoggable {
   * */
   def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = {
 
-    if(view.is_public && !ALLOW_PUBLIC_VIEWS) {
+    if(view.is_public && !allowPublicViews) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
 
@@ -456,7 +456,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def publicViews: (List[View], List[AccountAccess]) = {
-    if (APIUtil.ALLOW_PUBLIC_VIEWS) {
+    if (APIUtil.allowPublicViews) {
       val publicViews = ViewDefinition.findAll(By(ViewDefinition.isPublic_, true)) // Custom and System views
       val publicAccountAccesses = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
       (publicViews, publicAccountAccesses)
@@ -466,7 +466,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def publicViewsForBank(bankId: BankId): (List[View], List[AccountAccess]) ={
-    if (APIUtil.ALLOW_PUBLIC_VIEWS) {
+    if (APIUtil.allowPublicViews) {
       val publicViews = 
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, false)) ::: // Custom views
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.isSystem_, true)) ::: // System views
@@ -723,7 +723,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def createDefaultPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    if(!ALLOW_PUBLIC_VIEWS) {
+    if(!allowPublicViews) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
     createAndSaveDefaultPublicView(bankId, accountId, "Public View")
@@ -739,12 +739,12 @@ object MapperViews extends Views with MdcLoggable {
 
   def getExistingView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     val res = ViewDefinition.findCustomView(bankId.value, accountId.value, name)
-    if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
   def getExistingSystemView(name: String): Box[View] = {
     val res = ViewDefinition.findSystemView(name)
-    if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !ALLOW_PUBLIC_VIEWS) return Failure(PublicViewsNotAllowedOnThisInstance)
+    if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
 
@@ -1135,7 +1135,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    if(!ALLOW_PUBLIC_VIEWS) {
+    if(!allowPublicViews) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
     val res = unsavedDefaultPublicView(bankId, accountId, description).saveMe

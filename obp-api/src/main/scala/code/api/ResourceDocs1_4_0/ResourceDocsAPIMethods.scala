@@ -6,6 +6,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
+import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.{APIUtil, _}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -588,6 +589,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                   successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
                 )
 
+              case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createEndpointMapping) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createBankLevelEndpointMapping) ) =>
+                doc.copy(
+                  exampleRequestBody = endpointMappingRequestBodyExample,
+                  successResponseBody = endpointMappingRequestBodyExample
+                )
+                
               case doc if ( doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) ||
                 doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getBankLevelDynamicEndpoint)) =>
                 doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
