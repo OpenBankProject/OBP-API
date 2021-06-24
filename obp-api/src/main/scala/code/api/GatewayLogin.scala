@@ -105,10 +105,14 @@ object GatewayLogin extends RestHelper with MdcLoggable {
 
   def parseJwt(parameters: Map[String, String]): Box[String] = {
     val jwt = getToken(parameters)
+    logger.debug("parseJwt says jwt.toString is: " + jwt.toString)
+    logger.debug("parseJwt says: validateJwtToken(jwt) is:" +  validateJwtToken(jwt))
     validateJwtToken(jwt) match {
       case Full(jwtPayload) =>
+        logger.debug("parseJwt says: Full: " + jwtPayload.toString)
         Full(compactRender(Extraction.decompose(jwtPayload)))
       case _  =>
+        logger.debug("parseJwt says: Not Full(jwtPayload)")
         Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
     }
   }
@@ -119,11 +123,16 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         val claim = CertificateUtil.decryptJwtWithRsa(token)
         Box(parse(claim.toString).extractOpt[PayloadOfJwtJSON])
       case false =>
+        logger.debug("validateJwtToken says: verifying jwt token: " + token)
+        logger.debug(CertificateUtil.verifywtWithHmacProtection(token).toString)
         CertificateUtil.verifywtWithHmacProtection(token) match {
           case true =>
+            logger.debug("validateJwtToken says: jwt is verified: " + token)
             val claim = CertificateUtil.parseJwtWithHmacProtection(token)
+            logger.debug("validateJwtToken says: this is claim of verified jwt: " + claim.toString())
             Box(parse(claim.toString).extractOpt[PayloadOfJwtJSON])
           case _ =>
+            logger.debug("validateJwtToken says: could not verify jwt")
             Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
         }
     }
@@ -418,7 +427,9 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   }
 
   private def getToken(params: Map[String, String]): String = {
+    logger.debug("getToken params are: " + params.toString())
     val token = params.getOrElse("token", "")
+    logger.debug("getToken wants to return token: " + token)
     token
   }
 
