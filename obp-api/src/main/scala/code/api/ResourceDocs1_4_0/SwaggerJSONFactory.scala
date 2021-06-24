@@ -491,13 +491,7 @@ object SwaggerJSONFactory extends MdcLoggable {
             tags = rd.tags.map(_.tag),
             summary = rd.summary,
             description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin).replaceAll("\n", ""),
-            operationId =
-              rd.partialFunctionName match {
-                //No longer need this special case since all transaction request Resource Docs have explicit URL
-                //case "createTransactionRequest" => s"${rd.apiVersion.toString }-${rd.apiFunction.toString}-${UUID.randomUUID().toString}"
-                // Note: The operationId should not start with a number becuase Javascript constructors may use it to build variables.
-                case _ => s"${rd.implementedInApiVersion.fullyQualifiedVersion }-${rd.partialFunctionName.toString }"
-              },
+            operationId =s"${rd.implementedInApiVersion.fullyQualifiedVersion }-${rd.partialFunctionName.toString }",
             parameters ={
               val description = rd.exampleRequestBody match {
                 case EmptyBody => ""
