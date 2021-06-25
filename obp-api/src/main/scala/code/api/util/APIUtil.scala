@@ -3119,12 +3119,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     Else just return the session
     Note there are Read and Write side effects here!
   */
+  // getPropsAsBoolValue cannot be called directly inside the function activeBrand due to java.lang.StackOverflowError
+  val brandsEnabled = APIUtil.getPropsAsBoolValue("brands_enabled", false)
   def activeBrand() : Option[String] = {
-
+    brandsEnabled match {
+      case true =>
+        getActiveBrand()
+      case false =>
+        None
+    }
+  }
+  
+  // TODO This function needs testing in a cluster environment
+  private def getActiveBrand(): Option[String] = {
     val brandParameter = "brand"
 
     // Use brand in parameter (query or form)
-    val brand : Option[String] = S.param(brandParameter) match {
+    val brand: Option[String] = S.param(brandParameter) match {
       case Full(value) => {
         // If found, and has a valid format, set the session.
         if (isValidID(value)) {
@@ -3132,11 +3143,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           logger.debug(s"activeBrand says: I found a $brandParameter param. $brandParameter session has been set to: ${S.getSessionAttribute(brandParameter)}")
           Some(value)
         } else {
-          logger.warn (s"activeBrand says: ${ErrorMessages.InvalidBankIdFormat}")
+          logger.warn(s"activeBrand says: ${ErrorMessages.InvalidBankIdFormat}")
           None
         }
       }
-      case _ =>  {
+      case _ => {
         // Else look in the session
         S.getSessionAttribute(brandParameter)
       }
