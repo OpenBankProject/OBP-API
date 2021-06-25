@@ -1253,4 +1253,21 @@ def restoreSomeSessions(): Unit = {
 
     innerSignup
   }
+
+  def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {
+    AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
+      case Full(user) =>
+        val newUser = user.firstName(Helpers.randomString(user.firstName.get.length))
+          .email(Helpers.randomString(10) + "@example.com")
+          .username(Helpers.randomString(user.username.get.length))
+          .firstName(Helpers.randomString(user.firstName.get.length))
+          .lastName(Helpers.randomString(user.lastName.get.length))
+          .password(Helpers.randomString(40))
+          .password(Helpers.randomString(40))
+          .validated(false)
+        newUser.save()
+      case _ => false
+    }
+  }
+  
 }

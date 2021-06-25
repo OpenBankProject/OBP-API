@@ -3472,6 +3472,42 @@ trait APIMethods400 {
     }
 
 
+    staticResourceDocs += ResourceDoc(
+      deleteUser,
+      implementedInApiVersion,
+      nameOf(deleteUser),
+      "DELETE",
+      "/users/USER_ID",
+      "Delete a User",
+      s"""Delete a User.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUser)))
+
+    lazy val deleteUser : OBPEndpoint = {
+      case "users" :: userId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user, callContext) <- NewStyle.function.findByUserId(userId, cc.callContext)
+            (userDeleted, callContext) <- NewStyle.function.deleteUser(user.userPrimaryKey, callContext)
+          } yield {
+            (Full(userDeleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
 
     staticResourceDocs += ResourceDoc(
       createBank,
