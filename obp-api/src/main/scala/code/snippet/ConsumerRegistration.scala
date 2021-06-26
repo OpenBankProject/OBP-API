@@ -53,10 +53,10 @@ class ConsumerRegistration extends MdcLoggable {
   private object redirectionURLVar extends RequestVar("")
   private object requestUriVar extends RequestVar("")
   private object authenticationURLVar extends RequestVar("")
-  private object appTypeVar extends RequestVar[AppType](AppType.Web)
+  private object appTypeVar extends RequestVar[AppType](AppType.Confidential)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
-  private object appType extends RequestVar("Web")
+  private object appType extends RequestVar("Unknown")
   private object clientCertificateVar extends RequestVar("")
   private object signingAlgVar extends RequestVar("")
   private object jwksUriVar extends RequestVar("")
@@ -79,7 +79,7 @@ class ConsumerRegistration extends MdcLoggable {
   
   def registerForm = {
 
-    val appTypes = List((AppType.Web.toString, AppType.Web.toString), (AppType.Mobile.toString, AppType.Mobile.toString))
+    val appTypes = List((AppType.Confidential.toString, AppType.Confidential.toString), (AppType.Public.toString, AppType.Public.toString))
     val signingAlgs = List(
       "ES256", "ES384", "ES512",
       //Hydra support alg: RS256, RS384, RS512, PS256, PS384, PS512, ES256, ES384 and ES512
@@ -93,9 +93,12 @@ class ConsumerRegistration extends MdcLoggable {
     def registerWithoutWarnings =
       register &
       "#register-consumer-errors" #> ""
+    
+    def displayAppType() = if(APIUtil.getPropsAsBoolValue("consumer_registration.display_app_type", true)) "display: block;" else "display: none" 
 
     def register = {
       "form" #> {
+          "#app-type-div [style] " #> displayAppType() &
           "#appType" #> SHtml.select(appTypes, Box!! appType.is, appType(_)) &
           "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
           "#redirect_url_label *" #> {

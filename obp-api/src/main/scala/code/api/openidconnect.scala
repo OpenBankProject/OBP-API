@@ -257,7 +257,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       JwtUtil.getSubject(idToken),
       Some(true),
       name = Some(Helpers.randomString(10).toLowerCase),
-      appType = Some(AppType.Web),
+      appType = Some(AppType.Confidential),
       description = Some(openIdConnect),
       developerEmail = getClaim(name = "email", idToken = idToken),
       redirectURL = None,

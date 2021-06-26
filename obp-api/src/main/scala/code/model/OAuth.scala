@@ -30,7 +30,7 @@ import java.util.{Collections, Date}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.DbFunction
 import code.consumer.{Consumers, ConsumersProvider}
-import code.model.AppType.{Mobile, Web}
+import code.model.AppType.{Public, Confidential}
 import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
 import code.token.TokensProvider
@@ -53,11 +53,15 @@ import scala.concurrent.Future
 
 sealed trait AppType
 object AppType {
-  case object Web extends AppType
-  case object Mobile extends AppType
+  case object Confidential extends AppType
+  case object Public extends AppType
+  case object Unknown extends AppType
   def valueOf(value: String): AppType = value match {
-    case "Web" => Web
-    case "Mobile" => Mobile
+    case "Web" => Confidential
+    case "Confidential" => Confidential
+    case "Mobile" => Public
+    case "Public" => Public
+    case "Unknown" => Unknown
   }
 }
 
@@ -154,8 +158,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       }
       appType match {
         case Some(v) => v match {
-          case Web => c.appType(Web.toString)
-          case Mobile => c.appType(Mobile.toString)
+          case Confidential => c.appType(Confidential.toString)
+          case Public => c.appType(Public.toString)
         }
         case None =>
       }
@@ -223,8 +227,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         }
         appType match {
           case Some(v) => v match {
-            case Web => c.appType(Web.toString)
-            case Mobile => c.appType(Mobile.toString)
+            case Confidential => c.appType(Confidential.toString)
+            case Public => c.appType(Public.toString)
           }
           case None =>
         }
@@ -395,8 +399,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           appType match {
             case Some(v) => v match {
-              case Web => c.appType(Web.toString)
-              case Mobile => c.appType(Mobile.toString)
+              case Confidential => c.appType(Confidential.toString)
+              case Public => c.appType(Public.toString)
             }
             case None =>
           }
