@@ -31,7 +31,7 @@ import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRo
 import code.model._
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
 import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
-import code.model.dataAccess.BankAccountRouting
+import code.model.dataAccess.{AuthUser, BankAccountRouting}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.users.{UserInvitation, UserInvitationProvider, Users}
@@ -935,7 +935,15 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-
+    
+    def deleteUser(userPrimaryKey: UserPrimaryKey, callContext: Option[CallContext]): OBPReturnType[Boolean] = Future {
+      AuthUser.scrambleAuthUser(userPrimaryKey) match {
+        case Full(true) =>
+          (Users.users.vend.scrambleDataOfResourceUser(userPrimaryKey).getOrElse(false), callContext)
+        case _ =>
+          (false, callContext)
+      }
+    }
 
     def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
       Future { UserX.findByUserId(userId).map(user =>(user, callContext))} map {

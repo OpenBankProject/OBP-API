@@ -957,3 +957,6 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 
 # Support multiple brands on one instance. Note this needs checking on a clustered environment 
 #brands_enabled=false
+
+# Support removing the app type checkbox during consumer registration 
+#consumer_registration.display_app_type=true

@@ -244,7 +244,11 @@ object DirectLogin extends RestHelper with MdcLoggable {
           else
             Map("error" -> "header incorrect")
         }
-        case _ => Map("error" -> "missing header")
+        case _ => 
+          a.header("DirectLogin") match {
+            case Full(header) => toMap(header)
+            case _ => Map("error" -> "missing header")
+          }
       }
       case _ => Map("error" -> "request incorrect")
     }

@@ -4,7 +4,7 @@ import code.api.util.{APIUtil, OBPQueryParam}
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
 import code.remotedata.RemotedataUsers
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -58,6 +58,8 @@ trait Users {
   def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser]
 
   def deleteResourceUser(userId: Long) : Box[Boolean]
+  
+  def scrambleDataOfResourceUser(userPrimaryKey: UserPrimaryKey) : Box[Boolean]
 
   def bulkDeleteAllResourceUsers() : Box[Boolean]
 }
@@ -82,6 +84,7 @@ class RemotedataUsersCaseClasses {
   case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class saveResourceUser(resourceUser: ResourceUser)
   case class deleteResourceUser(userId: Long)
+  case class scrambleDataOfResourceUser(userPrimaryKey: UserPrimaryKey)
   case class bulkDeleteAllResourceUsers()
 }
 

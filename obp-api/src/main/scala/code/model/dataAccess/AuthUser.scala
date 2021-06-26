@@ -455,12 +455,15 @@ import net.liftweb.util.Helpers._
     *
     */
   def getCurrentUser: Box[User] = {
-    val authorization = S.request.map(_.header("Authorization")).flatten
+    val authorization: Box[String] = S.request.map(_.header("Authorization")).flatten
+    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined)
         //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side
         Users.users.vend.getUserByUserName(AuthUser.currentUser.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).username.get)
-      else if (hasDirectLoginHeader(authorization))
+      else if (directLogin.isDefined) // Direct Login
+        DirectLogin.getUser
+      else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
         DirectLogin.getUser
       else if (hasAnOAuthHeader(authorization)) {
         OAuthHandshake.getUser
@@ -1253,4 +1256,21 @@ def restoreSomeSessions(): Unit = {
 
     innerSignup
   }
+
+  def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {
+    AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
+      case Full(user) =>
+        val newUser = user.firstName(Helpers.randomString(user.firstName.get.length))
+          .email(Helpers.randomString(10) + "@example.com")
+          .username(Helpers.randomString(user.username.get.length))
+          .firstName(Helpers.randomString(user.firstName.get.length))
+          .lastName(Helpers.randomString(user.lastName.get.length))
+          .password(Helpers.randomString(40))
+          .password(Helpers.randomString(40))
+          .validated(false)
+        newUser.save()
+      case _ => false
+    }
+  }
+  
 }

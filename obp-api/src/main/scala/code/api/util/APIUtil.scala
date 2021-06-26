@@ -161,6 +161,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
+  
+  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "DirectLogin").isDefined
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
@@ -298,6 +300,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     val authorization = S.request.map(_.header("Authorization")).flatten
+    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     if(getPropsAsBoolValue("write_metrics", false)) {
       val user =
         if (hasAnOAuthHeader(authorization)) {
@@ -305,7 +308,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             case Full(u) => Full(u)
             case _ => Empty
           }
-        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } // Direct Login
+        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
+          DirectLogin.getUser match {
+            case Full(u) => Full(u)
+            case _ => Empty
+          }
+        } // Direct Login Deprecated
+        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getUser match {
             case Full(u) => Full(u)
             case _ => Empty
@@ -320,7 +330,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             case Full(c) => Full(c)
             case _ => Empty
           }
-        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } // Direct Login 
+        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
+          DirectLogin.getConsumer match {
+            case Full(c) => Full(c)
+            case _ => Empty
+          }
+        } // Direct Login Deprecated
+        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
@@ -2626,11 +2643,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
           (user, callContext)
         }
-      // Direct Login
-      } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
+      } // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
+      else if (getPropsAsBoolValue("allow_direct_login", true) && has2021DirectLoginHeader(cc.requestHeaders)) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-      // Gateway Login
-      } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
+      } // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
+      else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
+        DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
+      } // Gateway Login
+      else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
         APIUtil.getPropsValue("gateway.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
             val (httpCode, message, parameters) = GatewayLogin.validator(s.request)

@@ -262,6 +262,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
   def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
     val authorization = S.request.map(_.header("Authorization")).flatten
+    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     val body: Box[String] = getRequestBody(S.request)
     val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
     val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
@@ -315,7 +316,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case Failure(msg, t, c) => Failure(msg, t, c)
         case _ => Failure("oauth error")
       }
-    } else if (APIUtil.getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+    }
+    // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
+    else if (APIUtil.getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
       DirectLogin.getUser match {
         case Full(u) => {
           val consumer = DirectLogin.getConsumer
@@ -326,7 +329,21 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           Full(errorJsonResponse(message, httpCode))
         }
       }
-    } else if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    }
+    // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
+    else if (APIUtil.getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+      DirectLogin.getUser match {
+        case Full(u) => {
+          val consumer = DirectLogin.getConsumer
+          fn(cc.copy(user = Full(u), consumer=consumer))
+        }// Authentication is successful
+        case _ => {
+          var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource")
+          Full(errorJsonResponse(message, httpCode))
+        }
+      }
+    }
+    else if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
       logger.info("allow_gateway_login-getRemoteIpAddress: " + remoteIpAddress )
       APIUtil.getPropsValue("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
