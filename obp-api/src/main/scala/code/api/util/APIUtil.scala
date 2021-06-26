@@ -162,7 +162,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
   
-  def isDirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "DirectLogin").isDefined
+  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "DirectLogin").isDefined
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
@@ -2644,7 +2644,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           (user, callContext)
         }
       } // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
-      else if (getPropsAsBoolValue("allow_direct_login", true) && isDirectLoginHeader(cc.requestHeaders)) {
+      else if (getPropsAsBoolValue("allow_direct_login", true) && has2021DirectLoginHeader(cc.requestHeaders)) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
       } // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
       else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
