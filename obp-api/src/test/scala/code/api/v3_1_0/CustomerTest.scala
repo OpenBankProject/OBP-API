@@ -28,18 +28,21 @@ package code.api.v3_1_0
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
 import code.api.util.ApiRole._
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
+import code.api.v3_0_0.ModeratedCoreAccountsJsonV300
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.customer.CustomerX
 import code.entitlement.Entitlement
+import code.setup.PropsReset
 import code.usercustomerlinks.UserCustomerLink
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
-class CustomerTest extends V310ServerSetup {
+class CustomerTest extends V310ServerSetup  with PropsReset{
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -70,6 +73,7 @@ class CustomerTest extends V310ServerSetup {
   object ApiEndpoint9 extends Tag(nameOf(Implementations3_1_0.updateCustomerBranch))
   object ApiEndpoint10 extends Tag(nameOf(Implementations3_1_0.updateCustomerData))
   object ApiEndpoint11 extends Tag(nameOf(Implementations3_1_0.updateCustomerNumber))
+  object ApiEndpoint12 extends Tag(nameOf(Implementations3_1_0.getFirehoseCustomers))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
@@ -580,6 +584,63 @@ class CustomerTest extends V310ServerSetup {
       responseGetByI310.code should equal(200)
       responseGetByI310.body.extract[CustomerJsonV310].customer_number should equal(putCustomerUpdateNumberJson.customer_number)
     }
+  }
+
+
+  feature(s" $ApiEndpoint12- Authorized access") {
+
+    //first we create the customers: 
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+    When("We make a request v3.1.0")
+    val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+    val response310 = makePostRequest(request310, write(postCustomerJson))
+    Then("We should get a 201")
+    response310.code should equal(201)
+    
+    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint4) {
+      setPropsValues("allow_customer_firehose" -> "true")
+      setPropsValues("enable.force_error"->"true")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseCustomerFirehoseAtAnyBank.toString)
+      When("We send the request")
+      val request = (v3_1_0_Request / "banks" / testBankId1.value /"firehose" / "customers" ).GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 200 and check the response body")
+      response.code should equal(200)
+      response.body.extract[ModeratedCoreAccountsJsonV300]
+    }
+
+    scenario("We will call the endpoint with user credentials, props alias", VersionOfApi, ApiEndpoint4) {
+      setPropsValues("allow_firehose_views" -> "true")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseCustomerFirehoseAtAnyBank.toString)
+      When("We send the request")
+      val request = (v3_1_0_Request / "banks" / testBankId1.value /"firehose" / "customers" ).GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 200 and check the response body")
+      response.code should equal(200)
+      response.body.extract[ModeratedCoreAccountsJsonV300]
+    }
+
+
+    scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint4) {
+      setPropsValues("allow_customer_firehose" -> "true")
+      When("We send the request")
+      val request = (v3_1_0_Request / "banks" / testBankId1.value / "firehose" / "customers").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 403 and check the response body")
+      response.code should equal(403)
+      response.body.toString contains (CanUseCustomerFirehoseAtAnyBank.toString()) should be(true)
+    }
+
+    scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint4) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseCustomerFirehoseAtAnyBank.toString)
+      When("We send the request")
+      val request = (v3_1_0_Request / "banks" / testBankId1.value /"firehose" / "customers" ).GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 400 and check the response body")
+      response.code should equal(400)
+      response.body.toString contains (AccountFirehoseNotAllowedOnThisInstance) should be (true)
+    }
+    
   }
 
 }

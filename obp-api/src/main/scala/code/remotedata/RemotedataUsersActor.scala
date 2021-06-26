@@ -10,6 +10,7 @@ import code.util.Helper.MdcLoggable
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.UserPrimaryKey
 
 class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
 
@@ -93,6 +94,10 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
     case cc.deleteResourceUser(id: Long) =>
       logger.debug("deleteResourceUser(" + id +")")
       sender ! (mapper.deleteResourceUser(id))
+      
+    case cc.scrambleDataOfResourceUser(userPrimaryKey: UserPrimaryKey) =>
+      logger.debug("scrambleDataOfResourceUser(" + userPrimaryKey +")")
+      sender ! (mapper.scrambleDataOfResourceUser(userPrimaryKey))
 
     case cc.bulkDeleteAllResourceUsers() =>
       logger.debug("bulkDeleteAllResourceUsers()")

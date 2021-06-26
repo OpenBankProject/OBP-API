@@ -3203,7 +3203,7 @@ trait APIMethods400 {
          |""".stripMargin,
       emptyObjectJson,
       moderatedFirehoseAccountsJsonV400,
-      List($UserNotLoggedIn, $BankNotFound, $UserNoPermissionAccessView,UnknownError),
+      List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseAccountFirehoseAtAnyBank))
     )
@@ -3213,11 +3213,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId):: "firehose" :: "accounts"  :: "views" :: ViewId(viewId):: Nil JsonGet req => {
         cc =>
           for {
-            (Full(u), bank, view, callContext) <- SS.userBankView
-            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  , cc=callContext) {
-              canUseAccountFirehose(u)
+            (Full(u), bank, callContext) <- SS.userBank
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
+              allowAccountFirehose
             }
-
+            // here must be a system view, not accountIds in the URL
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId))
             }
@@ -3466,6 +3467,42 @@ trait APIMethods400 {
             (invitations, callContext) <- NewStyle.function.getUserInvitations(bankId, cc.callContext)
           } yield {
             (JSONFactory400.createUserInvitationJson(invitations), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteUser,
+      implementedInApiVersion,
+      nameOf(deleteUser),
+      "DELETE",
+      "/users/USER_ID",
+      "Delete a User",
+      s"""Delete a User.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUser)))
+
+    lazy val deleteUser : OBPEndpoint = {
+      case "users" :: userId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user, callContext) <- NewStyle.function.findByUserId(userId, cc.callContext)
+            (userDeleted, callContext) <- NewStyle.function.deleteUser(user.userPrimaryKey, callContext)
+          } yield {
+            (Full(userDeleted), HttpCode.`200`(callContext))
           }
       }
     }
@@ -4538,19 +4575,7 @@ trait APIMethods400 {
           |client_certificate_content
           |-----END CERTIFICATE-----""".stripMargin
       ),
-      ConsumerPostJSON(
-        "Some app name",
-        "App type",
-        "Description",
-        "some.email@example.com",
-        "Some redirect url",
-        "Created by UUID",
-        true,
-        new Date(),
-        """-----BEGIN CERTIFICATE-----
-          |client_certificate_content
-          |-----END CERTIFICATE-----""".stripMargin
-      ),
+      consumerJsonV400,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
