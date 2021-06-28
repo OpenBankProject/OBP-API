@@ -2037,6 +2037,19 @@ object Glossary {
  """)
 
 
+
+	glossaryItems += GlossaryItem(
+		title = "Hola App log trace",
+		description =
+			s"""
+       Please see:
+				 [OBP Hola App Log Trace](https://github.com/OpenBankProject/OBP-API/wiki/Log-trace-of-the-Hola-App-performing-Georgian-flavour-of-Berlin-Group-authentication,-consent-generation-and-consuming-Berlin-Group-Account,-Balance-and-Transaction-resources)
+ """)
+
+
+
+
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////
