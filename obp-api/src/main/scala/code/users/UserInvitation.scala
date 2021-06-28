@@ -28,6 +28,14 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
       By(UserInvitation.SecretKey, secretLink)
     )
   }
+  override def updateStatusOfUserInvitation(userInvitationId: String, status: String): Box[Boolean] = tryo {
+    UserInvitation.find(
+      By(UserInvitation.UserInvitationId, userInvitationId)
+    ) match {
+      case Full(userInvitation) => userInvitation.Status(status).save()
+      case _ => false
+    }
+  }
   override def scrambleUserInvitation(userInvitationId: String): Box[Boolean] = tryo {
     UserInvitation.find(
       By(UserInvitation.UserInvitationId, userInvitationId)

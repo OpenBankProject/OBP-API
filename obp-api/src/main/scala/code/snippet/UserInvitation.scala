@@ -73,8 +73,8 @@ class UserInvitation extends MdcLoggable {
 
     def submitButtonDefense(): Unit = {
       if(secretLink.isEmpty || userInvitation.isEmpty) showErrorsForSecretLink()
-      else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
+      else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
       else {
@@ -92,6 +92,8 @@ class UserInvitation extends MdcLoggable {
           // Use Agreement table
           UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
             u.userId, privacyConditionsValue, termsAndConditionsValue, marketingInfoCheckboxVar.is)
+          // Set the status of the user invitation to "FINISHED"
+          UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
           // Set a new password
           val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
           S.redirectTo(resetLink)
