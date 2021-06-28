@@ -5,8 +5,9 @@ import java.util.UUID.randomUUID
 import code.api.util.SecureRandomUtil
 import code.util.UUIDString
 import com.openbankproject.commons.model.BankId
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
 object MappedUserInvitationProvider extends UserInvitationProvider {
@@ -26,6 +27,23 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
     UserInvitation.find(
       By(UserInvitation.SecretKey, secretLink)
     )
+  }
+  override def scrambleUserInvitation(userInvitationId: String): Box[Boolean] = tryo {
+    UserInvitation.find(
+      By(UserInvitation.UserInvitationId, userInvitationId)
+    ) match {
+      case Full(userInvitation) =>
+        userInvitation
+          .Email(Helpers.randomString(10) + "@example.com")
+          .FirstName(Helpers.randomString(userInvitation.firstName.length))
+          .LastName(Helpers.randomString(userInvitation.lastName.length))
+          .Company(Helpers.randomString(userInvitation.company.length))
+          .Country(Helpers.randomString(userInvitation.country.length))
+          .Purpose(Helpers.randomString(userInvitation.purpose.length))
+          .Status("DELETED")
+          .save()
+      case _ => false
+    }
   }
   override def getUserInvitation(bankId: BankId, secretLink: Long): Box[UserInvitation] = {
     UserInvitation.find(

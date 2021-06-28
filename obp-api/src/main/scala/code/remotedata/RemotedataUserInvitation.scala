@@ -17,6 +17,9 @@ object RemotedataUserInvitation extends ObpActorInit with UserInvitationProvider
   def getUserInvitationBySecretLink(secretLink: Long): Box[UserInvitation] =  getValueFromFuture(
     (actor ? cc.getUserInvitationBySecretLink(secretLink)).mapTo[Box[UserInvitation]]
   )
+  def scrambleUserInvitation(userInvitationId: String): Box[Boolean] =  getValueFromFuture(
+    (actor ? cc.scrambleUserInvitation(userInvitationId)).mapTo[Box[Boolean]]
+  )
   def getUserInvitation(bankId: BankId, secretLink: Long): Box[UserInvitation] =  getValueFromFuture(
     (actor ? cc.getUserInvitation(bankId, secretLink)).mapTo[Box[UserInvitation]]
   )

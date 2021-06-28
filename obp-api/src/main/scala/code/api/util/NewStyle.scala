@@ -1,5 +1,6 @@
 package code.api.util
 
+import java.io
 import java.util.Date
 import java.util.UUID.randomUUID
 
@@ -939,7 +940,13 @@ object NewStyle {
     def deleteUser(userPrimaryKey: UserPrimaryKey, callContext: Option[CallContext]): OBPReturnType[Boolean] = Future {
       AuthUser.scrambleAuthUser(userPrimaryKey) match {
         case Full(true) =>
-          (Users.users.vend.scrambleDataOfResourceUser(userPrimaryKey).getOrElse(false), callContext)
+          Users.users.vend.scrambleDataOfResourceUser(userPrimaryKey) match {
+            case Full(true) =>
+              val createdByUserInvitationId: String = Users.users.vend.getUserByResourceUserId(userPrimaryKey.value).flatMap(_.createdByUserInvitationId).getOrElse(generateUUID())
+              (UserInvitationProvider.userInvitationProvider.vend.scrambleUserInvitation(createdByUserInvitationId).getOrElse(false), callContext)
+            case _ =>
+              (false, callContext)
+          }
         case _ =>
           (false, callContext)
       }

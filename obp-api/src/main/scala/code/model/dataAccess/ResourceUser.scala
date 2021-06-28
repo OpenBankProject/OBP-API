@@ -103,6 +103,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     )
   
   override def createdByConsentId = if(CreatedByConsentId.get == null) None else if (CreatedByConsentId.get.isEmpty) None else Some(CreatedByConsentId.get) //null --> None
+  override def createdByUserInvitationId = if(CreatedByUserInvitationId.get == null) None else if (CreatedByUserInvitationId.get.isEmpty) None else Some(CreatedByUserInvitationId.get) //null --> None
 }
 
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
