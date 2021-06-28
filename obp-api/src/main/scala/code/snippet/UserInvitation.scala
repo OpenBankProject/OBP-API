@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.model.dataAccess.{AuthUser, ResourceUser}
+import code.users
 import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -58,8 +59,10 @@ class UserInvitation extends MdcLoggable {
   
   def registerForm: CssSel = {
 
-    val secretLink = S.param("id").getOrElse("0")
-    val userInvitation = UserInvitationProvider.userInvitationProvider.vend.getUserInvitationBySecretLink(secretLink.toLong)
+    val secretLink: Box[Long] = tryo {
+      S.param("id").getOrElse("0").toLong
+    }
+    val userInvitation: Box[users.UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitationBySecretLink(secretLink.getOrElse(0))
     firstNameVar.set(userInvitation.map(_.firstName).getOrElse("None"))
     lastNameVar.set(userInvitation.map(_.lastName).getOrElse("None"))
     val email = userInvitation.map(_.email).getOrElse("None")
@@ -69,7 +72,8 @@ class UserInvitation extends MdcLoggable {
     usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
 
     def submitButtonDefense(): Unit = {
-      if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
+      if(secretLink.isEmpty || userInvitation.isEmpty) showErrorsForSecretLink()
+      else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
@@ -107,6 +111,9 @@ class UserInvitation extends MdcLoggable {
         }
     }
 
+    def showErrorsForSecretLink() = {
+      showError(Helper.i18n("your.secret.link.is.not.valid"))
+    }
     def showErrorsForUsername() = {
       showError(Helper.i18n("unique.username"))
     }
