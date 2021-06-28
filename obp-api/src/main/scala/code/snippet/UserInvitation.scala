@@ -79,7 +79,8 @@ class UserInvitation extends MdcLoggable {
           provider = "OBP-User-Invitation",
           providerId = Some(usernameVar.is),
           name = Some(firstNameVar.is + " " + lastNameVar.is),
-          email = Some(email)
+          email = Some(email),
+          userInvitationId = userInvitation.map(_.userInvitationId).toOption
         ).map{ u =>
           // AuthUser table
           createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
@@ -152,14 +153,15 @@ class UserInvitation extends MdcLoggable {
     newUser.saveMe()
   }
 
-  private def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String]): Box[ResourceUser] = {
+  private def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userInvitationId: Option[String]): Box[ResourceUser] = {
     Users.users.vend.createResourceUser(
       provider = provider,
       providerId = providerId,
       createdByConsentId = None,
       name = name,
       email = email,
-      userId = None
+      userId = None,
+      createdByUserInvitationId = userInvitationId
     )
   }
   

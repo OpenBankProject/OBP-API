@@ -77,6 +77,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   }
 
   object CreatedByConsentId extends MappedString(this, 100)
+  object CreatedByUserInvitationId extends MappedString(this, 100)
   
   def emailAddress = {
     val e = email.get

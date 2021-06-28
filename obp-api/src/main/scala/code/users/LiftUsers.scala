@@ -60,7 +60,8 @@ object LiftUsers extends Users with MdcLoggable{
           createdByConsentId = consentId,
           name = name,
           email = email,
-          userId = None
+          userId = None,
+          createdByUserInvitationId = None
         )
         (newUser, true)
     }
@@ -174,7 +175,7 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
-  override def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
+  override def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], createdByUserInvitationId: Option[String]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)
     providerId match {
@@ -183,6 +184,10 @@ object LiftUsers extends Users with MdcLoggable{
     }
     createdByConsentId match {
       case Some(consentId) => ru.CreatedByConsentId(consentId)
+      case None    => ru.CreatedByConsentId(null)
+    }
+    createdByUserInvitationId match {
+      case Some(invitationId) => ru.CreatedByUserInvitationId(invitationId)
       case None    => ru.CreatedByConsentId(null)
     }
     name match {

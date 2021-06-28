@@ -184,7 +184,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
         createdByConsentId = None,
         name = getClaim(name = "given_name", idToken = idToken).orElse(subject),
         email = getClaim(name = "email", idToken = idToken),
-        userId = None
+        userId = None,
+        createdByUserInvitationId = None
       )
     }
   }
