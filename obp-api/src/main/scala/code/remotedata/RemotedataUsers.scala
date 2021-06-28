@@ -6,7 +6,7 @@ import code.api.util.OBPQueryParam
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
 import code.users.{RemotedataUsersCaseClasses, Users}
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.common.Box
 
 import scala.collection.immutable.List
@@ -85,6 +85,10 @@ object RemotedataUsers extends ObpActorInit with Users {
 
   def deleteResourceUser(userId: Long) : Box[Boolean] = getValueFromFuture(
     (actor ? cc.deleteResourceUser(userId)).mapTo[Box[Boolean]]
+  )
+  
+  def scrambleDataOfResourceUser(userPrimaryKey: UserPrimaryKey) : Box[Boolean] = getValueFromFuture(
+    (actor ? cc.scrambleDataOfResourceUser(userPrimaryKey)).mapTo[Box[Boolean]]
   )
 
   def bulkDeleteAllResourceUsers(): Box[Boolean] = getValueFromFuture(

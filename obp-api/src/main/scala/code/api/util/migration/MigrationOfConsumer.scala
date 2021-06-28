@@ -36,7 +36,7 @@ object MigrationOfConsumer {
             consumer <- Consumer.findAll() if consumer.appType.get.isEmpty()
           } yield {
             consumer
-              .appType(AppType.Web.toString())
+              .appType(AppType.Confidential.toString())
               .saveMe()
           }
         

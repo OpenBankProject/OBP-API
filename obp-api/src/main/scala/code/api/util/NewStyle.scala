@@ -31,7 +31,7 @@ import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRo
 import code.model._
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
 import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
-import code.model.dataAccess.BankAccountRouting
+import code.model.dataAccess.{AuthUser, BankAccountRouting}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
 import code.users.{UserInvitation, UserInvitationProvider, Users}
@@ -882,12 +882,12 @@ object NewStyle {
       } map validateRequestPayload(callContext)
 
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
-      val errorMessage = if (bankId.isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
+      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
       hasAtLeastOneEntitlement(errorMessage)(bankId, userId, roles, callContext)
     }
 
     def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
-      val errorMessage = if (bankId.isEmpty) 
+      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) 
         s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required." 
       else 
         s"$UserHasMissingRoles${roles.mkString(" and ")} entitlements are required for BankId($bankId)."
@@ -935,7 +935,15 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-
+    
+    def deleteUser(userPrimaryKey: UserPrimaryKey, callContext: Option[CallContext]): OBPReturnType[Boolean] = Future {
+      AuthUser.scrambleAuthUser(userPrimaryKey) match {
+        case Full(true) =>
+          (Users.users.vend.scrambleDataOfResourceUser(userPrimaryKey).getOrElse(false), callContext)
+        case _ =>
+          (false, callContext)
+      }
+    }
 
     def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
       Future { UserX.findByUserId(userId).map(user =>(user, callContext))} map {
@@ -2405,7 +2413,7 @@ object NewStyle {
     }
     
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
-      val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
+      val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
 
       if(existsDynamicEntity.isDefined) {
         val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
@@ -2429,7 +2437,7 @@ object NewStyle {
       val originEntityName = originEntity.map(_.entityName).orNull
       // if entityName changed and the new entityName already exists, return error message
       if(dynamicEntity.entityName != originEntityName) {
-        val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
+        val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.entityName)
 
         if(existsDynamicEntity.isDefined) {
           val errorMsg = s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
@@ -2480,7 +2488,7 @@ object NewStyle {
     }
 
     def getDynamicEntityByEntityName(bankId: Option[String], entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
-      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, entityName)
+      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
       (boxedDynamicEntity, callContext)
     }
 
@@ -2546,7 +2554,7 @@ object NewStyle {
                                queryParameters: Option[Map[String, List[String]]],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
-      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(bankId, entityName)
+      val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
       // do validate, any validate process fail will return immediately
       if(dynamicEntityBox.isEmpty) {
         return Helper.booleanToFuture(s"$DynamicEntityNotExists entity's name is '$entityName'", cc=callContext)(false)

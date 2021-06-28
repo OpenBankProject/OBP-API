@@ -161,6 +161,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
+  
+  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "DirectLogin").isDefined
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
@@ -298,6 +300,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def logAPICall(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
     val authorization = S.request.map(_.header("Authorization")).flatten
+    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     if(getPropsAsBoolValue("write_metrics", false)) {
       val user =
         if (hasAnOAuthHeader(authorization)) {
@@ -305,7 +308,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             case Full(u) => Full(u)
             case _ => Empty
           }
-        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } // Direct Login
+        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
+          DirectLogin.getUser match {
+            case Full(u) => Full(u)
+            case _ => Empty
+          }
+        } // Direct Login Deprecated
+        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getUser match {
             case Full(u) => Full(u)
             case _ => Empty
@@ -320,7 +330,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             case Full(c) => Full(c)
             case _ => Empty
           }
-        } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
+        } // Direct Login 
+        else if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
+          DirectLogin.getConsumer match {
+            case Full(c) => Full(c)
+            case _ => Empty
+          }
+        } // Direct Login Deprecated
+        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
           DirectLogin.getConsumer match {
             case Full(c) => Full(c)
             case _ => Empty
@@ -2626,11 +2643,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
           (user, callContext)
         }
-      // Direct Login
-      } else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
+      } // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
+      else if (getPropsAsBoolValue("allow_direct_login", true) && has2021DirectLoginHeader(cc.requestHeaders)) {
         DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
-      // Gateway Login
-      } else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
+      } // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
+      else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(cc.authReqHeaderField)) {
+        DirectLogin.getUserFromDirectLoginHeaderFuture(cc)
+      } // Gateway Login
+      else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
         APIUtil.getPropsValue("gateway.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
             val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
@@ -3119,12 +3139,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     Else just return the session
     Note there are Read and Write side effects here!
   */
+  // getPropsAsBoolValue cannot be called directly inside the function activeBrand due to java.lang.StackOverflowError
+  val brandsEnabled = APIUtil.getPropsAsBoolValue("brands_enabled", false)
   def activeBrand() : Option[String] = {
-
+    brandsEnabled match {
+      case true =>
+        getActiveBrand()
+      case false =>
+        None
+    }
+  }
+  
+  // TODO This function needs testing in a cluster environment
+  private def getActiveBrand(): Option[String] = {
     val brandParameter = "brand"
 
     // Use brand in parameter (query or form)
-    val brand : Option[String] = S.param(brandParameter) match {
+    val brand: Option[String] = S.param(brandParameter) match {
       case Full(value) => {
         // If found, and has a valid format, set the session.
         if (isValidID(value)) {
@@ -3132,11 +3163,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           logger.debug(s"activeBrand says: I found a $brandParameter param. $brandParameter session has been set to: ${S.getSessionAttribute(brandParameter)}")
           Some(value)
         } else {
-          logger.warn (s"activeBrand says: ${ErrorMessages.InvalidBankIdFormat}")
+          logger.warn(s"activeBrand says: ${ErrorMessages.InvalidBankIdFormat}")
           None
         }
       }
-      case _ =>  {
+      case _ => {
         // Else look in the session
         S.getSessionAttribute(brandParameter)
       }
@@ -3168,14 +3199,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-  val ALLOW_PUBLIC_VIEWS: Boolean = getPropsAsBoolValue("allow_public_views", false)
-  val ALLOW_ACCOUNT_FIREHOSE: Boolean = ApiPropsWithAlias.allowAccountFirehose
-  val ALLOW_CUSTOMER_FIREHOSE: Boolean = ApiPropsWithAlias.allowCustomerFirehose
+  def allowPublicViews: Boolean = getPropsAsBoolValue("allow_public_views", false)
+  def allowAccountFirehose: Boolean = ApiPropsWithAlias.allowAccountFirehose
+  def allowCustomerFirehose: Boolean = ApiPropsWithAlias.allowCustomerFirehose
   def canUseAccountFirehose(user: User): Boolean = {
-    ALLOW_ACCOUNT_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
+    allowAccountFirehose && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
   }
   def canUseCustomerFirehose(user: User): Boolean = {
-    ALLOW_CUSTOMER_FIREHOSE && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
+    allowCustomerFirehose && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
   }
   /**
    * This will accept all kinds of view and user.
@@ -3205,7 +3236,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val customView = Views.views.vend.customView(viewId, bankIdAccountId)
     customView match { // CHECK CUSTOM VIEWS
       // 1st: View is Pubic and Public views are NOT allowed on this instance.
-      case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+      case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
       // 3rd: The user has account access to this custom view
@@ -3215,7 +3246,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val systemView = Views.views.vend.systemView(viewId)
         systemView match  { // CHECK SYSTEM VIEWS
           // 1st: View is Pubic and Public views are NOT allowed on this instance.
-          case Full(v) if(v.isPublic && !ALLOW_PUBLIC_VIEWS) => Failure(PublicViewsNotAllowedOnThisInstance)
+          case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
           // 2nd: View is Pubic and Public views are allowed on this instance.
           case Full(v) if(isPublicView(v)) => systemView
           // 3rd: The user has account access to this system view
@@ -3243,7 +3274,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case true if view.isPublic => // Sanity check. We don't want a public owner view.
         logger.warn(s"Public owner encountered. Primary view id: ${view.id}")
         false
-      case _ => view.isPublic && APIUtil.ALLOW_PUBLIC_VIEWS
+      case _ => view.isPublic && APIUtil.allowPublicViews
     }
   }
   /**

@@ -25,7 +25,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
 import org.apache.commons.lang3.{StringUtils, Validate}
 import net.liftweb.util.{StringHelpers, ThreadGlobal}
-import org.apache.commons.collections4.MapUtils
+import org.apache.commons.collections4.{ListUtils, MapUtils}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 
@@ -40,7 +40,7 @@ import net.liftweb.json.Formats
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
 object DynamicEndpointHelper extends RestHelper {
@@ -51,9 +51,12 @@ object DynamicEndpointHelper extends RestHelper {
    */
   val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
   private val implementedInApiVersion = ApiVersion.v4_0_0
-  private val IsDynamicEntityUrl = """https?://dynamic_entity.*"""
+  private val IsDynamicEntityUrl = """.*dynamic_entity.*"""
+  private val IsMockUrlString = """.*obp_mock(?::\d+)?.*"""
+  private val IsMockUrl = IsMockUrlString.r
 
   def isDynamicEntityResponse (serverUrl : String) = serverUrl matches (IsDynamicEntityUrl)
+  def isMockedResponse (serverUrl : String) = serverUrl matches (IsMockUrlString)
   
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll(None)
@@ -96,7 +99,6 @@ object DynamicEndpointHelper extends RestHelper {
   object DynamicReq extends JsonTest with JsonBody {
 
     private val ExpressionRegx = """\{(.+?)\}""".r
-    private val IsMockUrl = """https?://obp_mock(?::\d+)?/.*""".r
     /**
      * unapply Request to (request url, json, http method, request parameters, path parameters, role)
      * request url is  current request target url to remote server
@@ -249,7 +251,7 @@ object DynamicEndpointHelper extends RestHelper {
           val opName = method.name().toLowerCase().capitalize
           s"Can${opName}DynamicEndpoint_"
         }
-        val roleName = if(StringUtils.isNotBlank(op.getOperationId)) {
+        var roleName = if(StringUtils.isNotBlank(op.getOperationId)) {
           val prettyOperationId = op.getOperationId
             .replaceAll("""(?i)(get|find|search|add|create|delete|update|of|new|the|one|that|\s)""", "")
             .capitalize
@@ -265,7 +267,10 @@ object DynamicEndpointHelper extends RestHelper {
 
           s"$roleNamePrefix$prettySummary${entitlementSuffix(path)}"
         }
-
+        // substring role name to avoid it have over the maximum length of db column.
+        if(roleName.size > 64) {
+          roleName = StringUtils.substring(roleName, 0, 53) + roleName.hashCode()
+        }
         Some(List(
           ApiRole.getOrCreateDynamicApiRole(roleName, bankId.isDefined)
         ))
@@ -477,103 +482,117 @@ object DynamicEndpointHelper extends RestHelper {
     implicit val formats = CustomJsonFormats.formats
 
     val example: Any = getExampleBySchema(openAPI, schema)
+    convertToProduct(example)
+  }
 
-    example match {
-      case null => EmptyBody
-      case v: String => StringBody(v)
-      case v: Boolean => BooleanBody(v)
-      case v: Int => IntBody(v)
-      case v: Long => LongBody(v)
-      case v: BigInt => BigIntBody(v)
-      case v: Float => FloatBody(v)
-      case v: Double => DoubleBody(v)
-      case v: BigDecimal => BigDecimalBody(v)
-      case v: JArray => JArrayBody(v)
-      case v: JObject => v
-      case v :scala.Product => v
-      case v => json.Extraction.decompose(v) match {
-        case o: JObject => o
-        case JArray(arr) => arr
-        case _ => throw new RuntimeException(s"Not supporting example type: $v, ${v.getClass}")
-      }
+  private def convertToProduct(example: Any): Product = example match {
+    case null => EmptyBody
+    case v: String => StringBody(v)
+    case v: Boolean => BooleanBody(v)
+    case v: Int => IntBody(v)
+    case v: Long => LongBody(v)
+    case v: BigInt => BigIntBody(v)
+    case v: Float => FloatBody(v)
+    case v: Double => DoubleBody(v)
+    case v: BigDecimal => BigDecimalBody(v)
+    case v: JArray => JArrayBody(v)
+    case v: JObject => v
+    case v :scala.Product => v
+    case v => json.Extraction.decompose(v) match {
+      case o: JObject => o
+      case JArray(arr) => arr
+      case _ => throw new RuntimeException(s"Not supporting example type: $v, ${v.getClass}")
     }
   }
 
   private def getExampleBySchema(openAPI: OpenAPI, schema: Schema[_]):Any = {
+
     def getDefaultValue[T](schema: Schema[_<:T], t: => T): T = Option(schema.getExample.asInstanceOf[T])
       .orElse(Option(schema.getDefault))
       .orElse{
-        Option(schema.getEnum())
-          .filterNot(_.isEmpty)
-          .map(_.get(0))
+        schema.getEnum() match {
+          case null => None
+          case l if l.isEmpty => None
+          case l => Option(l.get(0))
+        }
       }
       .getOrElse(t)
 
-    schema match {
-      case null => null
-      case v: BooleanSchema => getDefaultValue(v, true)
-      case v if v.getType() =="boolean" => true
-      case v: DateSchema => getDefaultValue(v, {
-        APIUtil.DateWithDayFormat.format(new Date())
-      })
-      case v if v.getFormat() == "date" => getDefaultValue(v, {
-        APIUtil.DateWithDayFormat.format(new Date())
-      })
-      case v: DateTimeSchema => getDefaultValue(v, {
-        APIUtil.DateWithSecondsFormat.format(new Date())
-      })
-      case v if v.getFormat() == "date-time" => getDefaultValue(v, {
-        APIUtil.DateWithSecondsFormat.format(new Date())
-      })
-      case v: IntegerSchema => getDefaultValue(v, 1)
-      case v if v.getFormat() == "int32" => 1
-      case v: NumberSchema => getDefaultValue(v, 1.2)
-      case v if v.getType() == "number" => 1.2
-      case v: StringSchema => getDefaultValue(v, "string")
-      case v: UUIDSchema => getDefaultValue(v, UUID.randomUUID())
-      case v if v.getFormat() == "uuid" =>  UUID.randomUUID()
-      case v: EmailSchema => getDefaultValue(v, "example@tesobe.com")
-      case v if v.getFormat() == "email" => "example@tesobe.com"
-      case v: FileSchema => getDefaultValue(v, "file_example.txt")
-      case v if v.getFormat() == "binary" =>  "file_example.txt"
-      case v: PasswordSchema => getDefaultValue(v, "very_complex_password_I_promise_!!")
-      case v if v.getFormat() == "password" => "very_complex_password_I_promise_!!"
-      case v: ArraySchema =>
-        getDefaultValue(v, {
-          val itemsSchema: Schema[_] = v.getItems
-          val singleItemExample = getExampleBySchema(openAPI, itemsSchema)
-          singleItemExample match {
-            case v: JValue => JArray(v::Nil)
-            case v => json.Extraction.decompose(Array(v))
-          }
+    val schemas:ListBuffer[Schema[_]] = ListBuffer()
+    def rec(schema: Schema[_]): Any = {
+      if(schema.isInstanceOf[ObjectSchema]) {
+        schemas += schema
+      }
+      // check whether this schema already recurse two times
+      if(schemas.count(schema ==) > 3) {
+        return JObject(Nil)
+      }
+
+      schema match {
+
+        case null => null
+        case v: BooleanSchema => getDefaultValue(v, true)
+        case v if v.getType() =="boolean" => true
+        case v: DateSchema => getDefaultValue(v, {
+          APIUtil.DateWithDayFormat.format(new Date())
         })
-      case v: MapSchema => getDefaultValue(v, Map("name"-> "John", "age" -> 12))
-      //The swagger object schema may not contain any properties: eg:
-      // "Account": {
-      //   "title": "accountTransactibility",
-      //   "type": "object"
-      // }
-      case v if v.isInstanceOf[ObjectSchema] && MapUtils.isEmpty(v.getProperties()) =>
-        EmptyBody
-        
-      case v if v.isInstanceOf[ObjectSchema] || MapUtils.isNotEmpty(v.getProperties()) =>
-        val properties: util.Map[String, Schema[_]] = v.getProperties
+        case v if v.getFormat() == "date" => getDefaultValue(v, {
+          APIUtil.DateWithDayFormat.format(new Date())
+        })
+        case v: DateTimeSchema => getDefaultValue(v, {
+          APIUtil.DateWithSecondsFormat.format(new Date())
+        })
+        case v if v.getFormat() == "date-time" => getDefaultValue(v, {
+          APIUtil.DateWithSecondsFormat.format(new Date())
+        })
+        case v: IntegerSchema => getDefaultValue(v, 1)
+        case v if v.getFormat() == "int32" => 1
+        case v: NumberSchema => getDefaultValue(v, 1.2)
+        case v if v.getType() == "number" => 1.2
+        case v: StringSchema => getDefaultValue(v, "string")
+        case v: UUIDSchema => getDefaultValue(v, UUID.randomUUID())
+        case v if v.getFormat() == "uuid" =>  UUID.randomUUID()
+        case v: EmailSchema => getDefaultValue(v, "example@tesobe.com")
+        case v if v.getFormat() == "email" => "example@tesobe.com"
+        case v: FileSchema => getDefaultValue(v, "file_example.txt")
+        case v if v.getFormat() == "binary" =>  "file_example.txt"
+        case v: PasswordSchema => getDefaultValue(v, "very_complex_password_I_promise_!!")
+        case v if v.getFormat() == "password" => "very_complex_password_I_promise_!!"
+        case v: ArraySchema =>
+          getDefaultValue(v, {
+            rec(v.getItems) match {
+              case v: JValue => JArray(v::Nil)
+              case v => json.Extraction.decompose(Array(v))
+            }
+          })
+        case v: MapSchema => getDefaultValue(v, Map("name"-> "John", "age" -> 12))
+        //The swagger object schema may not contain any properties: eg:
+        // "Account": {
+        //   "title": "accountTransactibility",
+        //   "type": "object"
+        // }
+        case v if v.isInstanceOf[ObjectSchema] && MapUtils.isEmpty(v.getProperties()) =>
+          EmptyBody
 
-        val jFields: mutable.Iterable[JField] = properties.asScala.map { kv =>
-          val (name, value) = kv
-          val valueExample = getExampleBySchema(openAPI, value)
-          JField(name, json.Extraction.decompose(valueExample))
-        }
-        JObject(jFields.toList)
+        case v if v.isInstanceOf[ObjectSchema] || MapUtils.isNotEmpty(v.getProperties()) =>
+          val properties: util.Map[String, Schema[_]] = v.getProperties
 
-      case v: Schema[_] if StringUtils.isNotBlank(v.get$ref()) =>
-        val refSchema = getRefSchema(openAPI, v.get$ref())
+          val jFields: mutable.Iterable[JField] = properties.asScala.map { kv =>
+            val (name, value) = kv
+            val valueExample = rec(value)
+            JField(name, json.Extraction.decompose(valueExample))
+          }
+          JObject(jFields.toList)
 
-        getExample(openAPI, refSchema)
+        case v: Schema[_] if StringUtils.isNotBlank(v.get$ref()) =>
+          val refSchema = getRefSchema(openAPI, v.get$ref())
+          convertToProduct(rec(refSchema))
 
-      case v if v.getType() == "string" => "string"
-      case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
+        case v if v.getType() == "string" => "string"
+        case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
+      }
     }
+    rec(schema)
   }
 
 

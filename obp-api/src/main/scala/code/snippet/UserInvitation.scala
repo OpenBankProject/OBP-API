@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.model.dataAccess.{AuthUser, ResourceUser}
-import code.users.{UserInvitationProvider, Users}
+import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
@@ -47,8 +47,14 @@ class UserInvitation extends MdcLoggable {
   private object countryVar extends RequestVar("None")
   private object devEmailVar extends RequestVar("")
   private object usernameVar extends RequestVar("")
+  private object termsCheckboxVar extends RequestVar(false)
+  private object marketingInfoCheckboxVar extends RequestVar(false)
+  private object privacyCheckboxVar extends RequestVar(false)
   
   val registrationConsumerButtonValue: String = getWebUiPropsValue("webui_post_user_invitation_submit_button_value", "Register as a Developer")
+  val privacyConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_privacy_conditions_value", "Privacy conditions.")
+  val termsAndConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_value", "Terms and Conditions.")
+  val termsAndConditionsCheckboxValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_checkbox_value", "I agree to the above Developer Terms and Conditions")
   
   def registerForm: CssSel = {
 
@@ -65,17 +71,26 @@ class UserInvitation extends MdcLoggable {
     def submitButtonDefense(): Unit = {
       if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
+      else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
+      else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
       else {
+        // Resource User table
         createResourceUser(
           provider = "OBP-User-Invitation",
           providerId = Some(usernameVar.is),
           name = Some(firstNameVar.is + " " + lastNameVar.is),
           email = Some(email)
         ).map{ u =>
+          // AuthUser table
           createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
+          // Use Agreement table
+          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+            u.userId, privacyConditionsValue, termsAndConditionsValue, marketingInfoCheckboxVar.is)
+          // Set a new password
           val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
           S.redirectTo(resetLink)
         }
+        
       }
     }
 
@@ -93,9 +108,14 @@ class UserInvitation extends MdcLoggable {
     def showErrorsForUsername() = {
       showError(Helper.i18n("unique.username"))
     }
-
     def showErrorsForStatus() = {
       showError(Helper.i18n("user.invitation.is.already.finished"))
+    }
+    def showErrorsForTermsAndConditions() = {
+      showError(Helper.i18n("terms.and.conditions.are.not.selected"))
+    }
+    def showErrorsForPrivacyConditions() = {
+      showError(Helper.i18n("privacy.conditions.are.not.selected"))
     }
 
     def register = {
@@ -106,6 +126,11 @@ class UserInvitation extends MdcLoggable {
           "#companyName" #> SHtml.text(companyVar.is, companyVar(_)) &
           "#devEmail" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           "#username" #> SHtml.text(usernameVar, usernameVar(_)) &
+          "#privacy" #> SHtml.textarea(privacyConditionsValue, privacyConditionsValue => privacyConditionsValue) &
+          "#privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_)) &
+          "#terms" #> SHtml.textarea(termsAndConditionsValue, termsAndConditionsValue => termsAndConditionsValue) &
+          "#terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_)) &
+          "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#register-consumer-success" #> ""
