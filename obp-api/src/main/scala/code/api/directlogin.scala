@@ -97,18 +97,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
       for{
         (httpCode: Int, message: String, userId:Long) <- createTokenFuture(getAllParameters)
-        _ <- if(!emailToSpaceMapping.isEmpty){
-          for{
-            resourceUser <- Future {UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")}
-            authUser <- Future { AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")}
-            _ <- Future {tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser)}
-              .openOr(logger.error(s"$authUser.directLogin.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception!"))}
-          } yield{
-            ""
-          }
-        } else{
-          Future.successful("")
-        }
+        _ <- Future{grantEntitlementsToUseDynamicEndpointsAtOneBankInDirectLogin(userId)}
       }   yield {
         if (httpCode == 200) {
           (JSONFactory.createTokenJSON(message), HttpCode.`201`(CallContext()))
@@ -119,6 +108,19 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
   }
 
+  
+  def grantEntitlementsToUseDynamicEndpointsAtOneBankInDirectLogin(userId:Long) = {
+    try {
+      if(!emailToSpaceMapping.isEmpty){
+          val resourceUser = UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")
+          val authUser = AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")
+          AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser)
+      } 
+    } catch {
+      case e: Throwable => // error handling, found wrong props value as early as possible.
+        this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception, details: $e" );
+    }
+  }
   /**
    * according username, password, consumer_key to generate a DirectLogin token
    * @param allParameters map {"username": "some_username", "password": "some_password", "consumer_key": "some_consumer_key"}

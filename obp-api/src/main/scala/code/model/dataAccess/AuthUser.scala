@@ -54,6 +54,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
 import code.util.HydraUtil._
+import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
 
@@ -928,7 +929,7 @@ def restoreSomeSessions(): Unit = {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()
-          if(!emailToSpaceMapping.isEmpty){
+          if(emailToSpaceMapping.nonEmpty){
             tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(user)}
               .openOr(logger.error(s"${user} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception! "))
           }
@@ -1113,11 +1114,6 @@ def restoreSomeSessions(): Unit = {
 
   /**
    * Spaces is the obp BankIds, each bank can create many dynamice endpoints, all of them are belong to one Bank.(Space)
-   * @param emailToSpaceMappings
-   * @return
-   */
-  /**
-   * Spaces is the obp BankIds, each bank can create many dynamice endpoints, all of them are belong to one Bank.(Space)
    *
    * @return
    */
@@ -1142,39 +1138,40 @@ def restoreSomeSessions(): Unit = {
     val createdByProcess = "grantEntitlementsToUseDynamicEndpointsAtOneBank"
     val userId = user.user.obj.map(_.userId).getOrElse("")
 
-    // current user's auto created entitlements.
-    val existEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    // user's already auto granted entitlements.
+    val allGrantedEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
       .map(_.filter(role => role.createdByProcess == createdByProcess))
       .getOrElse(Nil)
 
-    def existsRole(role:ApiRole, bankId: String): Boolean =
-      existEntitlements.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
+    def isEntitlementAlreadyBeGranted(role:ApiRole, bankId: String): Boolean =
+      allGrantedEntitlements.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
 
     //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
-    val dynamicRoleToBankId: List[(ApiRole, String)] = for {
+    val allCurrentDynamicRoleToBankIdPairs: List[(ApiRole, String)] = for {
       BankId(bankId) <- mySpaces(user: AuthUser)
       role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId))
     } yield {
-      if (!existsRole(role, bankId)) {
+      if (!isEntitlementAlreadyBeGranted(role, bankId)) {
         Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString, createdByProcess)
       }
 
       role -> bankId
     }
 
-    // if current user's auto created entitlement invalide, delete it.
+    // if user's auto granted entitlement invalid, delete it.
+    // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
     for {
-      entitlement <- existEntitlements
-      roleName = entitlement.roleName
-      bankId = entitlement.bankId
+      grantedEntitlement <- allGrantedEntitlements
+      grantedEntitlementRoleName = grantedEntitlement.roleName
+      grantedEntitlementBankId = grantedEntitlement.bankId
     } {
-      val isInValideEntitlement = ! dynamicRoleToBankId.exists { roleToBankId =>
-        val(role, roleBankId) = roleToBankId
-        role.toString() == roleName && roleBankId == bankId
+      val isInValidEntitlement = !allCurrentDynamicRoleToBankIdPairs.exists { roleToBankIdPair =>
+        val(role, roleBankId) = roleToBankIdPair
+        role.toString() == grantedEntitlementRoleName && roleBankId == grantedEntitlementBankId
       }
 
-      if(isInValideEntitlement) {
-        Entitlement.entitlement.vend.deleteEntitlement(Full(entitlement))
+      if(isInValidEntitlement) {
+        Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
       }
     }
   }

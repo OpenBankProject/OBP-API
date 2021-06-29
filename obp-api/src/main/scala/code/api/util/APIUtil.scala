@@ -78,7 +78,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue}
+import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue, JNothing}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
@@ -3995,10 +3995,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   val emailToSpaceMapping: List[EmailToSpaceMapping] = {
     def extractor(str: String) = try {
-      json.parse(str).extract[List[EmailToSpaceMapping]]
+      val emailToSpaceMappings =  json.parse(str).extract[List[EmailToSpaceMapping]]
+      //The props value can be parse to JNothing.
+      if(str.nonEmpty && emailToSpaceMappings == Nil) 
+        throw new RuntimeException("props [email_to_space_mapping] parse -> extract to Nil!")
+      else
+        emailToSpaceMappings
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
-        this.logger.error(s"props [email_to_space_mapping] value is invalid, the value is $str");
+        this.logger.error(s"props [email_to_space_mapping] value is invalid, it should be the class($EmailToSpaceMapping) json format, current value is $str ." );
         throw e;
     }
 
