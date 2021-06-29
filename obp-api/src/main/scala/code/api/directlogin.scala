@@ -29,11 +29,12 @@ package code.api
 import java.util.Date
 
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages.InvalidDirectLoginParameters
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
-import code.model.{Consumer, Token, TokenType}
+import code.model.{Consumer, Token, TokenType, UserX}
 import code.token.Tokens
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.nimbusds.jwt.JWTClaimsSet
@@ -43,6 +44,7 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
+import net.liftweb.util.Helpers.tryo
 
 import scala.compat.Platform
 import scala.concurrent.Future
@@ -93,9 +95,21 @@ object DirectLogin extends RestHelper with MdcLoggable {
   {
     //Handling get request for a token
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
-      for(
-        (httpCode: Int, message: String) <- createTokenFuture(getAllParameters)
-      ) yield {
+      for{
+        (httpCode: Int, message: String, userId:Long) <- createTokenFuture(getAllParameters)
+        _ <- if(!emailToSpaceMapping.isEmpty){
+          for{
+            resourceUser <- Future {UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")}
+            authUser <- Future { AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")}
+            _ <- Future {tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser, None)}
+              .openOr(logger.error(s"$authUser.directLogin.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception!"))}
+          } yield{
+            ""
+          }
+        } else{
+          Future.successful("")
+        }
+      }   yield {
         if (httpCode == 200) {
           (JSONFactory.createTokenJSON(message), HttpCode.`201`(CallContext()))
         } else {
@@ -110,7 +124,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
    * @param allParameters map {"username": "some_username", "password": "some_password", "consumer_key": "some_consumer_key"}
    * @return httpCode and token value
    */
-  def createTokenFuture(allParameters: Map[String, String]): Future[(Int, String)] = {
+  def createTokenFuture(allParameters: Map[String, String]): Future[(Int, String, Long)] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
       case _ => "GET"
@@ -134,12 +148,11 @@ object DirectLogin extends RestHelper with MdcLoggable {
     createTokenCommonPart(httpCode, message, directLoginParameters)
   }
 
-  def createTokenCommonPart(code: Int, msg: String, directLoginParameters: Map[String, String]): (Int, String) = {
+  def createTokenCommonPart(code: Int, msg: String, directLoginParameters: Map[String, String]): (Int, String, Long) = {
     var message = msg
     var httpCode = code
+    val userId: Long = (for {id <- getUserId(directLoginParameters)} yield id).getOrElse(0)       
     if (httpCode == 200) {
-      val userId: Long = (for {id <- getUserId(directLoginParameters)} yield id).getOrElse(0)
-
       if (userId == 0) {
         message = ErrorMessages.InvalidLoginCredentials
         httpCode = 401
@@ -164,7 +177,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
         }
       }
     }
-    (httpCode, message)
+    (httpCode, message, userId)
   }
 
   def getHttpMethod = S.request match {

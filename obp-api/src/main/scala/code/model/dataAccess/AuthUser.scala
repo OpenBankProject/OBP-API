@@ -31,9 +31,11 @@ import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, logger, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.api.v4_0_0.dynamic.DynamicEndpointHelper
 import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
+import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -926,6 +928,10 @@ def restoreSomeSessions(): Unit = {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()
+          if(!emailToSpaceMapping.isEmpty){
+            tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(user, None)}
+              .openOr(logger.error(s"${user} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception! "))
+          }
           S.redirectTo(redirect)
         })
       } else {
@@ -1102,6 +1108,39 @@ def restoreSomeSessions(): Unit = {
        u <- Users.users.vend.getUserByUserName(username)
        v <- Full (updateUserAccountViews(u, None))
       } yield v
+    }
+  }
+
+  /**
+   * Spaces is the obp BankIds, each bank can create many dynamice endpoints, all of them are belong to one Bank.(Space)
+   * @param emailToSpaceMappings
+   * @return
+   */
+  def mySpaces(user: AuthUser, emailToSpaceMappings: List[EmailToSpaceMapping]): List[BankId] ={
+    //1st: first check the user is validated
+    if (user.validated_?) {
+      //userEmail = robert.uk.29@example.com
+      // 2st get the email domain - `example.com`
+      val emailDomain = user.email.get.split("@").last
+
+      //3 return the bankIds
+      emailToSpaceMappings.find(_.domain==emailDomain).map(_.bank_ids).getOrElse(Nil).map(BankId(_))
+    } else {
+      Nil
+    }
+  }
+  
+  def grantEntitlementsToUseDynamicEndpointsAtOneBank(user: AuthUser, callContext: Option[CallContext]) = {
+    val userId = user.user.obj.map(_.userId).getOrElse("")
+    //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
+    for{
+      bankId <- mySpaces(user: AuthUser, emailToSpaceMapping)
+      role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId.value))
+    }yield{
+      //TODO, later we can add a diff here: we need create new roles, and remove the out of date ones.
+      if (!hasEntitlement(bankId.value, userId, role)) {
+        Entitlement.entitlement.vend.addEntitlement(bankId.value, userId, role.toString,"grantEntitlementsToUseDynamicEndpointsAtOneBank")
+      }
     }
   }
   

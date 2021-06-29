@@ -30,7 +30,7 @@ trait EntitlementProvider {
   def getEntitlementsByRole(roleName: String): Box[List[Entitlement]]
   def getEntitlementsFuture() : Future[Box[List[Entitlement]]]
   def getEntitlementsByRoleFuture(roleName: String) : Future[Box[List[Entitlement]]]
-  def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
+  def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String="manual") : Box[Entitlement]
   def deleteDynamicEntityEntitlement(entityName: String, bankId:Option[String]) : Box[Boolean]
   def deleteEntitlements(entityNames: List[String]) : Box[Boolean]
 }
@@ -40,6 +40,7 @@ trait Entitlement {
   def bankId : String
   def userId : String
   def roleName : String
+  def createdByProcess : String
 }
 
 class RemotedataEntitlementsCaseClasses {
@@ -53,7 +54,7 @@ class RemotedataEntitlementsCaseClasses {
   case class getEntitlementsByRole(roleName: String)
   case class getEntitlementsFuture()
   case class getEntitlementsByRoleFuture(roleName: String)
-  case class addEntitlement(bankId: String, userId: String, roleName: String)
+  case class addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String="manual")
   case class deleteDynamicEntityEntitlement(entityName: String, bankId:Option[String])
   case class deleteEntitlements(entityNames: List[String])
 }

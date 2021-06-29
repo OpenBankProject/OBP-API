@@ -55,9 +55,9 @@ class RemotedataEntitlementsActor extends Actor with ObpActorHelper with MdcLogg
       logger.debug(s"getEntitlementsByRole($role)")
       sender ! (mapper.getEntitlementsByRole(role))
 
-    case cc.addEntitlement(bankId: String, userId: String, roleName: String) =>
-      logger.debug(s"addEntitlement($bankId, $userId, $roleName)")
-      sender ! (mapper.addEntitlement(bankId, userId, roleName))
+    case cc.addEntitlement(bankId: String, userId: String, roleName: String,  createdByProcess: String) =>
+      logger.debug(s"addEntitlement($bankId, $userId, $roleName, $createdByProcess)")
+      sender ! (mapper.addEntitlement(bankId, userId, roleName,  createdByProcess: String))
 
     case cc.deleteDynamicEntityEntitlement(entityName: String, bankId:Option[String]) =>
       logger.debug(s"deleteDynamicEntityEntitlement($entityName) bankId($bankId)")

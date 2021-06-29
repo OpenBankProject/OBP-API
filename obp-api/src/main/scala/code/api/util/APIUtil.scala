@@ -523,6 +523,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
 
   case class CustomResponseHeaders(list: List[(String, String)])
+  //This is used for get the value from props `email_to_space_mapping`
+  case class EmailToSpaceMapping(
+    domain: String,
+    bank_ids: List[String]
+  )
 
   //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
   def noContentJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
@@ -2836,6 +2841,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
     } map {
       x =>
+        //TODO due to performance issue, first comment this out,
+        // val authUser = AuthUser.findUserByUsernameLocally(x._1.head.name).openOrThrowException("")
+        // tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser, x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception! "))
+
         // make sure, if `refreshUserIfRequired` throw exception, do not break the `authenticatedAccess`, 
         // TODO better move `refreshUserIfRequired` to other place.
         tryo{refreshUserIfRequired(x._1,x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.refreshUserIfRequired throw exception! "))
@@ -3983,4 +3992,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val berlinGroupV13AliasPath = APIUtil.getPropsValue("berlin_group_v1.3_alias.path","").split("/").toList.map(_.trim)
 
   val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
+
+  def emailToSpaceMapping = {
+    //TODO, error handling,
+    val emailToSpaceMapping = APIUtil.getPropsValue("email_to_space_mapping")
+    val emailToSpaceMappingJson = emailToSpaceMapping.map(json.parse(_))
+    emailToSpaceMappingJson.map(_.extractOrElse[List[EmailToSpaceMapping]](Nil)).getOrElse(Nil)
+  }
 }
