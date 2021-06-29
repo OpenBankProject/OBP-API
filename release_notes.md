@@ -2,7 +2,8 @@
 
 ### Most recent changes at top of file
 ```
-Date          Commit        Action 
+Date          Commit        Action
+29/06/2021    98c5503c      Existing Props authUser.skipEmailValidation now defaults to false (i.e. we now force email validation by default)
 29/06/2021    0b08199b      Added props: email_to_space_mapping, default is empty
                             We can grant all the dynamic roles automatic when the user login and create the directLogin Token.
 14/03/2021    e29001e2      Added props: webui_login_page_instruction_title, default is 'Log on to the Open Bank Project API'.

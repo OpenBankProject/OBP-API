@@ -424,8 +424,8 @@ import net.liftweb.util.Helpers._
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
   override def signupFields = List(firstName, lastName, email, username, password)
 
-  // If we want to validate email addresses set this to false
-  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", true)
+  // To force validation of email addresses set this to false (default as of 29 June 2021)
+  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
