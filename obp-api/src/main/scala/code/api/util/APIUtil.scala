@@ -3993,10 +3993,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
-  def emailToSpaceMapping = {
-    //TODO, error handling,
-    val emailToSpaceMapping = APIUtil.getPropsValue("email_to_space_mapping")
-    val emailToSpaceMappingJson = emailToSpaceMapping.map(json.parse(_))
-    emailToSpaceMappingJson.map(_.extractOrElse[List[EmailToSpaceMapping]](Nil)).getOrElse(Nil)
+  val emailToSpaceMapping: List[EmailToSpaceMapping] = {
+    def extractor(str: String) = try {
+      json.parse(str).extract[List[EmailToSpaceMapping]]
+    } catch {
+      case e: Throwable => // error handling, found wrong props value as early as possible.
+        this.logger.error(s"props [email_to_space_mapping] value is invalid, the value is $str");
+        throw e;
+    }
+
+    APIUtil.getPropsValue("email_to_space_mapping").map(extractor).getOrElse(Nil)
   }
 }

@@ -24,7 +24,7 @@ trait EntitlementProvider {
   def getEntitlementById(entitlementId: String) : Box[Entitlement]
   def getEntitlementsByUserId(userId: String) : Box[List[Entitlement]]
   def getEntitlementsByUserIdFuture(userId: String) : Future[Box[List[Entitlement]]]
-  def getEntitlementsByBankId(userId: String) : Future[Box[List[Entitlement]]]
+  def getEntitlementsByBankId(bankId: String) : Future[Box[List[Entitlement]]]
   def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean]
   def getEntitlements() : Box[List[Entitlement]]
   def getEntitlementsByRole(roleName: String): Box[List[Entitlement]]

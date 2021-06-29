@@ -929,7 +929,7 @@ def restoreSomeSessions(): Unit = {
           S.notice(S.?("logged.in"))
           preLoginState()
           if(!emailToSpaceMapping.isEmpty){
-            tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(user, None)}
+            tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(user)}
               .openOr(logger.error(s"${user} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception! "))
           }
           S.redirectTo(redirect)
@@ -1116,30 +1116,65 @@ def restoreSomeSessions(): Unit = {
    * @param emailToSpaceMappings
    * @return
    */
-  def mySpaces(user: AuthUser, emailToSpaceMappings: List[EmailToSpaceMapping]): List[BankId] ={
+  /**
+   * Spaces is the obp BankIds, each bank can create many dynamice endpoints, all of them are belong to one Bank.(Space)
+   *
+   * @return
+   */
+  def mySpaces(user: AuthUser): List[BankId] = {
     //1st: first check the user is validated
     if (user.validated_?) {
       //userEmail = robert.uk.29@example.com
       // 2st get the email domain - `example.com`
-      val emailDomain = user.email.get.split("@").last
+      val emailDomain = StringUtils.substringAfterLast(user.email.get, "@")
 
       //3 return the bankIds
-      emailToSpaceMappings.find(_.domain==emailDomain).map(_.bank_ids).getOrElse(Nil).map(BankId(_))
+      emailToSpaceMapping.collectFirst {
+        case EmailToSpaceMapping(`emailDomain`, ids) => ids.map(BankId(_));
+      } getOrElse Nil
+
     } else {
       Nil
     }
   }
-  
-  def grantEntitlementsToUseDynamicEndpointsAtOneBank(user: AuthUser, callContext: Option[CallContext]) = {
+
+  def grantEntitlementsToUseDynamicEndpointsAtOneBank(user: AuthUser) = {
+    val createdByProcess = "grantEntitlementsToUseDynamicEndpointsAtOneBank"
     val userId = user.user.obj.map(_.userId).getOrElse("")
+
+    // current user's auto created entitlements.
+    val existEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+      .map(_.filter(role => role.createdByProcess == createdByProcess))
+      .getOrElse(Nil)
+
+    def existsRole(role:ApiRole, bankId: String): Boolean =
+      existEntitlements.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId.value)
+
     //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
-    for{
-      bankId <- mySpaces(user: AuthUser, emailToSpaceMapping)
-      role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId.value))
-    }yield{
-      //TODO, later we can add a diff here: we need create new roles, and remove the out of date ones.
-      if (!hasEntitlement(bankId.value, userId, role)) {
-        Entitlement.entitlement.vend.addEntitlement(bankId.value, userId, role.toString,"grantEntitlementsToUseDynamicEndpointsAtOneBank")
+    val dynamicRoleToBankId: List[(ApiRole, String)] = for {
+      BankId(bankId) <- mySpaces(user: AuthUser)
+      role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId))
+    } yield {
+      if (!existsRole(role, bankId)) {
+        Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString, createdByProcess)
+      }
+
+      role -> bankId
+    }
+
+    // if current user's auto created entitlement invalide, delete it.
+    for {
+      entitlement <- existEntitlements
+      roleName = entitlement.roleName
+      bankId = entitlement.bankId
+    } {
+      val isInValideEntitlement = ! dynamicRoleToBankId.exists { roleToBankId =>
+        val(role, roleBankId) = roleToBankId
+        role.toString() == roleName && roleBankId == bankId
+      }
+
+      if(isInValideEntitlement) {
+        Entitlement.entitlement.vend.deleteEntitlement(Full(entitlement))
       }
     }
   }

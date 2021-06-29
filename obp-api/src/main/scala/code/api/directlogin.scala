@@ -101,7 +101,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
           for{
             resourceUser <- Future {UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")}
             authUser <- Future { AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")}
-            _ <- Future {tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser, None)}
+            _ <- Future {tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser)}
               .openOr(logger.error(s"$authUser.directLogin.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception!"))}
           } yield{
             ""
