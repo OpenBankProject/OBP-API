@@ -960,3 +960,24 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 
 # Support removing the app type checkbox during consumer registration 
 #consumer_registration.display_app_type=true
+
+# if set this props, it will grant all the dynamic roles automatically to the users whose emails contain the following domain.
+# the default value is empty
+#email_to_space_mapping=
+# And here we provide an example to show how to prepare the mappings
+#email_to_space_mapping=[ \
+#                         { \
+#                           "domain": "example.com", \
+#                           "bank_ids": [ \
+#                             "gh.29.uk", \
+#                             "gh.29.fr" \
+#                           ] \
+#                         }, \
+#                         { \
+#                           "domain": "example2.com", \
+#                           "bank_ids": [ \
+#                             "gh.29.uk", \
+#                             "gh.29.it" \
+#                           ] \
+#                         }\
+#                       ]\

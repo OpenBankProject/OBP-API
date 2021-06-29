@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
+29/06/2021    0b08199b      Added props: email_to_space_mapping, default is empty
+                            We can grant all the dynamic roles automatic when the user login and create the directLogin Token.
 14/03/2021    e29001e2      Added props: webui_login_page_instruction_title, default is 'Log on to the Open Bank Project API'.
                             The clients can customise the login page instraction title.
 13/03/2021    3c9880a9      Added props: featured_api_collection_ids, default is Empty.
