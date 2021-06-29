@@ -2070,7 +2070,7 @@ object Glossary {
  """)
 
 
-
+// TODO put the following wiki text here in source code with soft coded hosts etc. The problem is the text is currently too long
 	glossaryItems += GlossaryItem(
 		title = "Hola App log trace",
 		description =
