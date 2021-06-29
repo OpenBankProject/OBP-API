@@ -1148,7 +1148,7 @@ def restoreSomeSessions(): Unit = {
       .getOrElse(Nil)
 
     def existsRole(role:ApiRole, bankId: String): Boolean =
-      existEntitlements.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId.value)
+      existEntitlements.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
 
     //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
     val dynamicRoleToBankId: List[(ApiRole, String)] = for {
