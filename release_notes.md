@@ -3,12 +3,14 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+30/06/2021    cf2dd987      Added props: email_domain_to_entitlement_mappings, default is empty
+                            We can automatically grant the Entitlements required to the User has access to via their validated email domain. 
+                            Entitlements are generated /refreshed both following manual locin and Direct Login token generation (POST).
 29/06/2021    98c5503c      Existing Props authUser.skipEmailValidation now defaults to false (i.e. we now force email validation by default)
 29/06/2021    0b08199b      Added props: email_domain_to_space_mappings, default is empty
                             We can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging to 
                             the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are 
-sam                            generated /refreshed both following manual locin and Direct Login token generation (POST).
-Date          Commit        Action 
+                            generated /refreshed both following manual locin and Direct Login token generation (POST).
 26/06/2021    62fe53d9      Added props: consumer_registration.display_app_type, default is 'true'.
                             Support removing the app type checkbox during consumer registration
 24/06/2021    e863c9dd      Added props: brands_enabled, default is 'false'.
