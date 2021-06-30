@@ -97,7 +97,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
       for{
         (httpCode: Int, message: String, userId:Long) <- createTokenFuture(getAllParameters)
-        _ <- Future{grantEntitlementsToUseDynamicEndpointsAtOneBankInDirectLogin(userId)}
+        _ <- Future{grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId)}
       }   yield {
         if (httpCode == 200) {
           (JSONFactory.createTokenJSON(message), HttpCode.`201`(CallContext()))
@@ -109,16 +109,16 @@ object DirectLogin extends RestHelper with MdcLoggable {
   }
 
   
-  def grantEntitlementsToUseDynamicEndpointsAtOneBankInDirectLogin(userId:Long) = {
+  def grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId:Long) = {
     try {
       if(!emailToSpaceMapping.isEmpty){
           val resourceUser = UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")
           val authUser = AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")
-          AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser)
+          AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
       } 
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
-        this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception, details: $e" );
+        this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception, details: $e" );
     }
   }
   /**

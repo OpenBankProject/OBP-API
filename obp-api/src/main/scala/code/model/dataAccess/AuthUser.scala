@@ -930,8 +930,8 @@ def restoreSomeSessions(): Unit = {
           S.notice(S.?("logged.in"))
           preLoginState()
           if(emailToSpaceMapping.nonEmpty){
-            tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(user)}
-              .openOr(logger.error(s"${user} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception! "))
+            tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
+              .openOr(logger.error(s"${user} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
           }
           S.redirectTo(redirect)
         })
@@ -1113,7 +1113,9 @@ def restoreSomeSessions(): Unit = {
   }
 
   /**
-   * Spaces is the obp BankIds, each bank can create many dynamice endpoints, all of them are belong to one Bank.(Space)
+   * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space, 
+   * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create 
+   * and modify Dynamic Endpoints and other objects in that Bank / Space.
    *
    * @return
    */
@@ -1134,24 +1136,24 @@ def restoreSomeSessions(): Unit = {
     }
   }
 
-  def grantEntitlementsToUseDynamicEndpointsAtOneBank(user: AuthUser) = {
-    val createdByProcess = "grantEntitlementsToUseDynamicEndpointsAtOneBank"
+  def grantEntitlementsToUseDynamicEndpointsInSpaces(user: AuthUser) = {
+    val createdByProcess = "grantEntitlementsToUseDynamicEndpointsInSpaces"
     val userId = user.user.obj.map(_.userId).getOrElse("")
 
     // user's already auto granted entitlements.
-    val allGrantedEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
       .map(_.filter(role => role.createdByProcess == createdByProcess))
       .getOrElse(Nil)
 
-    def isEntitlementAlreadyBeGranted(role:ApiRole, bankId: String): Boolean =
-      allGrantedEntitlements.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
+    def alreadyHasEntitlement(role:ApiRole, bankId: String): Boolean =
+      entitlementsGrantedByThisProcess.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
 
     //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
     val allCurrentDynamicRoleToBankIdPairs: List[(ApiRole, String)] = for {
       BankId(bankId) <- mySpaces(user: AuthUser)
       role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId))
     } yield {
-      if (!isEntitlementAlreadyBeGranted(role, bankId)) {
+      if (!alreadyHasEntitlement(role, bankId)) {
         Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString, createdByProcess)
       }
 
@@ -1161,7 +1163,7 @@ def restoreSomeSessions(): Unit = {
     // if user's auto granted entitlement invalid, delete it.
     // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
     for {
-      grantedEntitlement <- allGrantedEntitlements
+      grantedEntitlement <- entitlementsGrantedByThisProcess
       grantedEntitlementRoleName = grantedEntitlement.roleName
       grantedEntitlementBankId = grantedEntitlement.bankId
     } {

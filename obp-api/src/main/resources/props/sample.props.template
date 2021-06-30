@@ -961,7 +961,9 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 # Support removing the app type checkbox during consumer registration 
 #consumer_registration.display_app_type=true
 
-# if set this props, it will grant all the dynamic roles automatically to the users whose emails contain the following domain.
+# if set this props, we can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging 
+# to the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are generated /refreshed 
+# both following manual locin and Direct Login token generation (POST).
 # the default value is empty
 #email_to_space_mapping=
 # And here we provide an example to show how to prepare the mappings

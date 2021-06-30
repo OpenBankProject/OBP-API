@@ -2843,7 +2843,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x =>
         //TODO due to performance issue, first comment this out,
         // val authUser = AuthUser.findUserByUsernameLocally(x._1.head.name).openOrThrowException("")
-        // tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsAtOneBank(authUser, x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsAtOneBank throw exception! "))
+        // tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser, x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
 
         // make sure, if `refreshUserIfRequired` throw exception, do not break the `authenticatedAccess`, 
         // TODO better move `refreshUserIfRequired` to other place.
