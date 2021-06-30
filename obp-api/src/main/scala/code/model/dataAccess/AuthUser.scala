@@ -58,6 +58,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
 
+import scala.concurrent.Future
+
 /**
  * An O-R mapped "User" class that includes first name, last name, password
   *
@@ -930,13 +932,15 @@ def restoreSomeSessions(): Unit = {
           S.notice(S.?("logged.in"))
           preLoginState()
           if(emailDomainToSpaceMappings.nonEmpty){
-            tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
-              .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
-          }
+            Future{
+              tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
+                .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
+            }}
           if(emailDomainToEntitlementMappings.nonEmpty){
-            tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
-              .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEmailDomainEntitlementsToUser throw exception! "))
-          }
+            Future{
+                tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
+                  .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEmailDomainEntitlementsToUser throw exception! "))
+            }}
           S.redirectTo(redirect)
         })
       } else {
