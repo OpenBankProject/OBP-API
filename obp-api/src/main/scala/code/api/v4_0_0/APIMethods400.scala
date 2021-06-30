@@ -3546,8 +3546,8 @@ trait APIMethods400 {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
             }
 
-            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.", cc=cc.callContext) {
-              bank.id.length > 5
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be greater than 3 characters.", cc=cc.callContext) {
+              bank.id.length > 3
             }
 
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters", cc=cc.callContext) {
