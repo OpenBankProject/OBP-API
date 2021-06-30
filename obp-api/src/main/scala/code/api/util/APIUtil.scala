@@ -47,6 +47,7 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.util.JwsUtil.getJwsHeaderValue
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
+import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.{DirectLogin, _}
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
@@ -78,7 +79,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue, JNothing}
+import net.liftweb.json.JsonAST.{JField, JNothing, JObject, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
@@ -524,9 +525,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   case class CustomResponseHeaders(list: List[(String, String)])
   //This is used for get the value from props `email_domain_to_space_mappings`
-  case class EmailToSpaceMapping(
+  case class EmailDomainToSpaceMapping(
     domain: String,
     bank_ids: List[String]
+  )
+  
+  case class EmailDomainToEntitlementMapping(
+    domain: String,
+    entitlements: List[CreateEntitlementJSON]
   )
 
   //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
@@ -3993,9 +3999,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
-  val emailToSpaceMapping: List[EmailToSpaceMapping] = {
+  val emailDomainToSpaceMappings: List[EmailDomainToSpaceMapping] = {
     def extractor(str: String) = try {
-      val emailToSpaceMappings =  json.parse(str).extract[List[EmailToSpaceMapping]]
+      val emailToSpaceMappings =  json.parse(str).extract[List[EmailDomainToSpaceMapping]]
       //The props value can be parse to JNothing.
       if(str.nonEmpty && emailToSpaceMappings == Nil) 
         throw new RuntimeException("props [email_domain_to_space_mappings] parse -> extract to Nil!")
@@ -4003,10 +4009,27 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         emailToSpaceMappings
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
-        this.logger.error(s"props [email_domain_to_space_mappings] value is invalid, it should be the class($EmailToSpaceMapping) json format, current value is $str ." );
+        this.logger.error(s"props [email_domain_to_space_mappings] value is invalid, it should be the class($EmailDomainToSpaceMapping) json format, current value is $str ." );
         throw e;
     }
 
     APIUtil.getPropsValue("email_domain_to_space_mappings").map(extractor).getOrElse(Nil)
+  }
+
+  val emailDomainToEntitlementMappings: List[EmailDomainToEntitlementMapping] = {
+    def extractor(str: String) = try {
+      val emailDomainToEntitlementMappings =  json.parse(str).extract[List[EmailDomainToEntitlementMapping]]
+      //The props value can be parse to JNothing.
+      if(str.nonEmpty && emailDomainToEntitlementMappings == Nil)
+        throw new RuntimeException("props [email_domain_to_entitlement_mappings] parse -> extract to Nil!")
+      else
+        emailDomainToEntitlementMappings
+    } catch {
+      case e: Throwable => // error handling, found wrong props value as early as possible.
+        this.logger.error(s"props [email_domain_to_entitlement_mappings] value is invalid, it should be the class($EmailDomainToEntitlementMapping) json format, current value is $str ." );
+        throw e;
+    }
+
+    APIUtil.getPropsValue("email_domain_to_entitlement_mappings").map(extractor).getOrElse(Nil)
   }
 }

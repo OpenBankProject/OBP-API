@@ -111,14 +111,17 @@ object DirectLogin extends RestHelper with MdcLoggable {
   
   def grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId:Long) = {
     try {
-      if(!emailToSpaceMapping.isEmpty){
-          val resourceUser = UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")
-          val authUser = AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")
-          AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
+      val resourceUser = UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")
+      val authUser = AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")
+      if(!emailDomainToSpaceMappings.isEmpty){
+        AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
+      } 
+      if(!emailDomainToEntitlementMappings.isEmpty){
+        AuthUser.grantEmailDomainEntitlementsToUser(authUser)
       } 
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
-        this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception, details: $e" );
+        this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin throw exception, details: $e" );
     }
   }
   /**
