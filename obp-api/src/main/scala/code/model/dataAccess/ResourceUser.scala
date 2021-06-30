@@ -75,8 +75,9 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   object providerId extends MappedString(this, 100){
     override def defaultValue = java.util.UUID.randomUUID.toString
   }
-
+  object Company extends MappedString(this, 50)
   object CreatedByConsentId extends MappedString(this, 100)
+  object CreatedByUserInvitationId extends MappedString(this, 100)
   
   def emailAddress = {
     val e = email.get
@@ -90,6 +91,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
 
   def name : String = name_.get
   def provider = provider_.get
+  def company: String = Company.get
 
   def toCaseClass: ResourceUserCaseClass =
     ResourceUserCaseClass(
@@ -102,6 +104,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     )
   
   override def createdByConsentId = if(CreatedByConsentId.get == null) None else if (CreatedByConsentId.get.isEmpty) None else Some(CreatedByConsentId.get) //null --> None
+  override def createdByUserInvitationId = if(CreatedByUserInvitationId.get == null) None else if (CreatedByUserInvitationId.get.isEmpty) None else Some(CreatedByUserInvitationId.get) //null --> None
 }
 
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{

@@ -929,9 +929,13 @@ def restoreSomeSessions(): Unit = {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()
-          if(emailToSpaceMapping.nonEmpty){
+          if(emailDomainToSpaceMappings.nonEmpty){
             tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
-              .openOr(logger.error(s"${user} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
+              .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
+          }
+          if(emailDomainToEntitlementMappings.nonEmpty){
+            tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
+              .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEmailDomainEntitlementsToUser throw exception! "))
           }
           S.redirectTo(redirect)
         })
@@ -1127,8 +1131,8 @@ def restoreSomeSessions(): Unit = {
       val emailDomain = StringUtils.substringAfterLast(user.email.get, "@")
 
       //3 return the bankIds
-      emailToSpaceMapping.collectFirst {
-        case EmailToSpaceMapping(`emailDomain`, ids) => ids.map(BankId(_));
+      emailDomainToSpaceMappings.collectFirst {
+        case EmailDomainToSpaceMapping(`emailDomain`, ids) => ids.map(BankId(_));
       } getOrElse Nil
 
     } else {
@@ -1174,6 +1178,51 @@ def restoreSomeSessions(): Unit = {
 
       if(isInValidEntitlement) {
         Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
+      }
+    }
+  }
+  
+  def grantEmailDomainEntitlementsToUser(user: AuthUser) = {
+    if(emailDomainToEntitlementMappings.nonEmpty){
+      val createdByProcess = "grantEmailDomainEntitlementsToUser"
+      val userId = user.user.obj.map(_.userId).getOrElse("")
+
+      // user's already auto granted entitlements.
+      val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+        .map(_.filter(role => role.createdByProcess == createdByProcess))
+        .getOrElse(Nil)
+
+      def alreadyHasEntitlement(bankId: String, roleName:String): Boolean =
+        entitlementsGrantedByThisProcess.exists(entitlement => entitlement.roleName == roleName && entitlement.bankId == bankId)
+
+      val allEntitlementsFromCurrentProps: List[(String, String)] = for{
+        emailDomainToEntitlementMapping <- emailDomainToEntitlementMappings
+        domain = emailDomainToEntitlementMapping.domain
+        entitlement <- emailDomainToEntitlementMapping.entitlements if StringUtils.substringAfterLast(user.email.get, "@") == domain
+        roleName = entitlement.role_name
+        roleBankId = entitlement.bank_id
+      } yield {
+        if (!alreadyHasEntitlement(roleBankId, roleName)) {
+          Entitlement.entitlement.vend.addEntitlement(roleBankId, userId, roleName, createdByProcess)
+        }
+        roleName -> roleBankId
+      }
+
+      // if user's auto granted entitlement invalid, delete it.
+      // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
+      for {
+        grantedEntitlement <- entitlementsGrantedByThisProcess
+        grantedEntitlementRoleName = grantedEntitlement.roleName
+        grantedEntitlementBankId = grantedEntitlement.bankId
+      } {
+        val isInValidEntitlement = !allEntitlementsFromCurrentProps.exists { roleNameToBankIdPair =>
+          val(roleName, roleBankId) = roleNameToBankIdPair
+          roleName == grantedEntitlementRoleName && roleBankId == grantedEntitlementBankId
+        }
+
+        if(isInValidEntitlement) {
+          Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
+        }
       }
     }
   }

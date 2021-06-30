@@ -60,7 +60,9 @@ object LiftUsers extends Users with MdcLoggable{
           createdByConsentId = consentId,
           name = name,
           email = email,
-          userId = None
+          userId = None,
+          createdByUserInvitationId = None,
+          company = None
         )
         (newUser, true)
     }
@@ -174,7 +176,14 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
-  override def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
+  override def createResourceUser(provider: String, 
+                                  providerId: Option[String], 
+                                  createdByConsentId: Option[String], 
+                                  name: Option[String], 
+                                  email: Option[String], 
+                                  userId: Option[String], 
+                                  createdByUserInvitationId: Option[String], 
+                                  company: Option[String]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)
     providerId match {
@@ -183,6 +192,10 @@ object LiftUsers extends Users with MdcLoggable{
     }
     createdByConsentId match {
       case Some(consentId) => ru.CreatedByConsentId(consentId)
+      case None    => ru.CreatedByConsentId(null)
+    }
+    createdByUserInvitationId match {
+      case Some(invitationId) => ru.CreatedByUserInvitationId(invitationId)
       case None    => ru.CreatedByConsentId(null)
     }
     name match {
@@ -195,6 +208,10 @@ object LiftUsers extends Users with MdcLoggable{
     }
     userId match {
       case Some(v) => ru.userId_(v)
+      case None    =>
+    }
+    company match {
+      case Some(v) => ru.Company(v)
       case None    =>
     }
     Full(ru.saveMe())
@@ -242,7 +259,9 @@ object LiftUsers extends Users with MdcLoggable{
     for {
       u <- ResourceUser.find(By(ResourceUser.id, userPrimaryKey.value))
     } yield {
-      u.name_(Helpers.randomString(u.name.length))
+      u
+        .name_(Helpers.randomString(u.name.length))
+        .Company(Helpers.randomString(u.company.length))
         .email(Helpers.randomString(10) + "@example.com")
         .save()
     }

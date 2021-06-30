@@ -132,7 +132,9 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                               developerEmail: Option[String],
                               redirectURL: Option[String],
                               createdByUserId: Option[String],
-                              clientCertificate: Option[String] = None): Box[Consumer] = {
+                              clientCertificate: Option[String] = None,
+                              company: Option[String] = None
+                             ): Box[Consumer] = {
     tryo {
       val c = Consumer.create
       key match {
@@ -177,6 +179,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       }
       createdByUserId match {
         case Some(v) => c.createdByUserId(v)
+        case None =>
+      }
+      company match {
+        case Some(v) => c.company(v)
         case None =>
       }
 
@@ -572,6 +578,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def defaultValue = -1
   }
   object clientCertificate extends MappedString(this, 4000)
+  object company extends MappedString(this, 100) {
+    override def displayName = "Company:"
+  }
 }
 
 /**
