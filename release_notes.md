@@ -4,7 +4,7 @@
 ```
 Date          Commit        Action
 29/06/2021    98c5503c      Existing Props authUser.skipEmailValidation now defaults to false (i.e. we now force email validation by default)
-29/06/2021    0b08199b      Added props: email_to_space_mapping, default is empty
+29/06/2021    0b08199b      Added props: email_domain_to_space_mappings, default is empty
                             We can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging to 
                             the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are 
 sam                            generated /refreshed both following manual locin and Direct Login token generation (POST).

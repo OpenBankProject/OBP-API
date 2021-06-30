@@ -965,9 +965,9 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 # to the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are generated /refreshed 
 # both following manual locin and Direct Login token generation (POST).
 # the default value is empty
-#email_to_space_mapping=
+#email_domain_to_space_mappings=
 # And here we provide an example to show how to prepare the mappings
-#email_to_space_mapping=[ \
+#email_domain_to_space_mappings=[ \
 #                         { \
 #                           "domain": "example.com", \
 #                           "bank_ids": [ \

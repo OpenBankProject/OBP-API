@@ -523,7 +523,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
 
   case class CustomResponseHeaders(list: List[(String, String)])
-  //This is used for get the value from props `email_to_space_mapping`
+  //This is used for get the value from props `email_domain_to_space_mappings`
   case class EmailToSpaceMapping(
     domain: String,
     bank_ids: List[String]
@@ -3998,15 +3998,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val emailToSpaceMappings =  json.parse(str).extract[List[EmailToSpaceMapping]]
       //The props value can be parse to JNothing.
       if(str.nonEmpty && emailToSpaceMappings == Nil) 
-        throw new RuntimeException("props [email_to_space_mapping] parse -> extract to Nil!")
+        throw new RuntimeException("props [email_domain_to_space_mappings] parse -> extract to Nil!")
       else
         emailToSpaceMappings
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
-        this.logger.error(s"props [email_to_space_mapping] value is invalid, it should be the class($EmailToSpaceMapping) json format, current value is $str ." );
+        this.logger.error(s"props [email_domain_to_space_mappings] value is invalid, it should be the class($EmailToSpaceMapping) json format, current value is $str ." );
         throw e;
     }
 
-    APIUtil.getPropsValue("email_to_space_mapping").map(extractor).getOrElse(Nil)
+    APIUtil.getPropsValue("email_domain_to_space_mappings").map(extractor).getOrElse(Nil)
   }
 }
