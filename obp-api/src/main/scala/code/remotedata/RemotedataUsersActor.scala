@@ -79,9 +79,9 @@ class RemotedataUsersActor extends Actor with ObpActorHelper with MdcLoggable  {
       logger.debug(s"getAllUsersF(queryParams: ($queryParams))")
       sender ! (mapper.getAllUsersFF(queryParams))
 
-    case cc.createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
-      logger.debug("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
-      sender ! (mapper.createResourceUser(provider, providerId, createdByConsentId, name, email, userId))
+    case cc.createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], createdByUserInvitationId: Option[String], company: Option[String]) =>
+      logger.debug("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ", " + createdByUserInvitationId.getOrElse("None") + ", " + company.getOrElse("None") + ")")
+      sender ! (mapper.createResourceUser(provider, providerId, createdByConsentId, name, email, userId, createdByUserInvitationId, company))
 
     case cc.createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.debug("createUnsavedResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
