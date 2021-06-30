@@ -19,7 +19,15 @@ class RemotedataUserInvitationActor extends Actor with ObpActorHelper with MdcLo
       
     case cc.getUserInvitationBySecretLink(secretLink: Long) =>
       logger.debug(s"getUserInvitationBySecretLink($secretLink)")
-      sender ! (mapper.getUserInvitationBySecretLink(secretLink))  
+      sender ! (mapper.getUserInvitationBySecretLink(secretLink))
+      
+    case cc.updateStatusOfUserInvitation(userInvitationId: String, status: String) =>
+      logger.debug(s"updateStatusOfUserInvitation($userInvitationId, $status)")
+      sender ! (mapper.updateStatusOfUserInvitation(userInvitationId, status)) 
+      
+    case cc.scrambleUserInvitation(userInvitationId: String) =>
+      logger.debug(s"scrambleUserInvitation($userInvitationId)")
+      sender ! (mapper.scrambleUserInvitation(userInvitationId))  
       
     case cc.getUserInvitation(bankId: BankId, secretLink: Long) =>
       logger.debug(s"getUserInvitation($bankId, $secretLink)")

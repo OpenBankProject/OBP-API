@@ -56,6 +56,7 @@ class ConsumerRegistration extends MdcLoggable {
   private object appTypeVar extends RequestVar[AppType](AppType.Confidential)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
+  private object companyVar extends RequestVar("")
   private object appType extends RequestVar("Unknown")
   private object clientCertificateVar extends RequestVar("")
   private object signingAlgVar extends RequestVar("")
@@ -106,6 +107,7 @@ class ConsumerRegistration extends MdcLoggable {
           } &
           "#appRedirectUrl" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           "#appDev" #> SHtml.text(devEmailVar, devEmailVar(_)) &
+          "#company" #> SHtml.text(companyVar, companyVar(_)) &
           "#appDesc" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
           "#appUserAuthenticationUrl" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) & {
             if(HydraUtil.integrateWithHydra) {
@@ -309,6 +311,7 @@ class ConsumerRegistration extends MdcLoggable {
       appTypeVar.set(appTypeSelected.get)
       descriptionVar.set(descriptionVar.is)
       devEmailVar.set(devEmailVar.is)
+      companyVar.set(companyVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
       requestUriVar.set(requestUri)
@@ -348,7 +351,8 @@ class ConsumerRegistration extends MdcLoggable {
           Some(devEmailVar.is),
           Some(redirectionURLVar.is),
           Some(AuthUser.getCurrentResourceUserUserId),
-          Some(clientCertificate))
+          Some(clientCertificate),
+          company = Some(companyVar.is))
         logger.debug("consumer: " + consumer)
         consumer match {
           case Full(x) =>
@@ -474,7 +478,7 @@ class ConsumerRegistration extends MdcLoggable {
         while(matcher.find()) {
           val userName = matcher.group(1)
           val password = matcher.group(2)
-          val (code, token) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
+          val (code, token, userId) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
           val authHeader = code match {
             case 200 => (userName, password) -> s"""Authorization: DirectLogin token="$token""""
             case _ => (userName, password) ->  "username or password is invalid, generate token fail"

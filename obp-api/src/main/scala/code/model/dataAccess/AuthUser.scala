@@ -31,9 +31,11 @@ import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, logger, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.api.v4_0_0.dynamic.DynamicEndpointHelper
 import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
+import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -52,6 +54,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
 import code.util.HydraUtil._
+import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
 
@@ -421,8 +424,8 @@ import net.liftweb.util.Helpers._
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
   override def signupFields = List(firstName, lastName, email, username, password)
 
-  // If we want to validate email addresses set this to false
-  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", true)
+  // To force validation of email addresses set this to false (default as of 29 June 2021)
+  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
@@ -926,6 +929,10 @@ def restoreSomeSessions(): Unit = {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()
+          if(emailToSpaceMapping.nonEmpty){
+            tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
+              .openOr(logger.error(s"${user} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
+          }
           S.redirectTo(redirect)
         })
       } else {
@@ -1102,6 +1109,72 @@ def restoreSomeSessions(): Unit = {
        u <- Users.users.vend.getUserByUserName(username)
        v <- Full (updateUserAccountViews(u, None))
       } yield v
+    }
+  }
+
+  /**
+   * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space, 
+   * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create 
+   * and modify Dynamic Endpoints and other objects in that Bank / Space.
+   *
+   * @return
+   */
+  def mySpaces(user: AuthUser): List[BankId] = {
+    //1st: first check the user is validated
+    if (user.validated_?) {
+      //userEmail = robert.uk.29@example.com
+      // 2st get the email domain - `example.com`
+      val emailDomain = StringUtils.substringAfterLast(user.email.get, "@")
+
+      //3 return the bankIds
+      emailToSpaceMapping.collectFirst {
+        case EmailToSpaceMapping(`emailDomain`, ids) => ids.map(BankId(_));
+      } getOrElse Nil
+
+    } else {
+      Nil
+    }
+  }
+
+  def grantEntitlementsToUseDynamicEndpointsInSpaces(user: AuthUser) = {
+    val createdByProcess = "grantEntitlementsToUseDynamicEndpointsInSpaces"
+    val userId = user.user.obj.map(_.userId).getOrElse("")
+
+    // user's already auto granted entitlements.
+    val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+      .map(_.filter(role => role.createdByProcess == createdByProcess))
+      .getOrElse(Nil)
+
+    def alreadyHasEntitlement(role:ApiRole, bankId: String): Boolean =
+      entitlementsGrantedByThisProcess.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
+
+    //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
+    val allCurrentDynamicRoleToBankIdPairs: List[(ApiRole, String)] = for {
+      BankId(bankId) <- mySpaces(user: AuthUser)
+      role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId))
+    } yield {
+      if (!alreadyHasEntitlement(role, bankId)) {
+        Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString, createdByProcess)
+      }
+
+      role -> bankId
+    }
+
+    // if user's auto granted entitlement invalid, delete it.
+    // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
+    for {
+      grantedEntitlement <- entitlementsGrantedByThisProcess
+      grantedEntitlementRoleName = grantedEntitlement.roleName
+      grantedEntitlementBankId = grantedEntitlement.bankId
+    } {
+      val isInValidEntitlement = !allCurrentDynamicRoleToBankIdPairs.exists { roleToBankIdPair =>
+        val(role, roleBankId) = roleToBankIdPair
+        role.toString() == grantedEntitlementRoleName && roleBankId == grantedEntitlementBankId
+      }
+
+      if(isInValidEntitlement) {
+        Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
+      }
     }
   }
   
