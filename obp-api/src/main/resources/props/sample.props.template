@@ -983,3 +983,18 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 #                           ] \
 #                         }\
 #                       ]\
+
+
+
+# Use this Props to automatically grant entitlements to a user who has a validated email address from the following domains.
+# Default is empty.
+# TO BE IMPLEMENTED / WIP
+#email_domain_to_entitlement_mappings = [ \
+# { \
+#   "domain": "example.com", \
+#   "entitlement": { \
+#                    "role": "CanReadResourceDoc", \
+#                    "bank_id": "" \
+#                  } \
+# } \
+# ] \
