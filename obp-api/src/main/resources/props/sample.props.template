@@ -963,7 +963,7 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 
 # if set this props, we can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging 
 # to the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are generated /refreshed 
-# both following manual locin and Direct Login token generation (POST).
+# both following manual login and Direct Login token generation (POST).
 # the default value is empty
 #email_domain_to_space_mappings=
 # And here we provide an example to show how to prepare the mappings
@@ -983,18 +983,21 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 #                           ] \
 #                         }\
 #                       ]\
-
-
-
-# Use this Props to automatically grant entitlements to a user who has a validated email address from the following domains.
-# Default is empty.
-# TO BE IMPLEMENTED / WIP
-#email_domain_to_entitlement_mappings = [ \
-# { \
-#   "domain": "example.com", \
-#   "entitlement": { \
-#                    "role": "CanReadResourceDoc", \
-#                    "bank_id": "" \
-#                  } \
-# } \
-# ] \
+#
+# if set this props, we can automatically grant the Entitlements required to the User has access to via their validated email domain.
+# Entitlements are generated /refreshed both following manual login and Direct Login token generation (POST).
+# the default value is empty
+#email_domain_to_entitlement_mappings=
+# And here we provide an example to show how to prepare the mappings
+#email_domain_to_entitlement_mappings = [\
+#                                         {\
+#                                           "domain": "example.com",\
+#                                           "entitlements": [\
+#                                             {\
+#                                               "role_name": "CanReadResourceDoc",\
+#                                               "bank_id": ""\
+#                                             }\
+#                                           ]\
+#                                         }\
+#                                       ]\
+#
