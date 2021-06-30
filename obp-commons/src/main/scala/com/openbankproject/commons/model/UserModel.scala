@@ -62,6 +62,7 @@ trait User {
   
   //this will be consentId which create the user, if the user is created by obp or other approaches, it will be None. 
   def createdByConsentId: Option[String]
+  def createdByUserInvitationId: Option[String]
   def isOriginalUser  = createdByConsentId.isEmpty
   def isConsentUser  = createdByConsentId.nonEmpty
 }

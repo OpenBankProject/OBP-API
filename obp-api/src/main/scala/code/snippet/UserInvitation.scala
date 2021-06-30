@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import code.model.dataAccess.{AuthUser, ResourceUser}
+import code.users
 import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -58,8 +59,10 @@ class UserInvitation extends MdcLoggable {
   
   def registerForm: CssSel = {
 
-    val secretLink = S.param("id").getOrElse("0")
-    val userInvitation = UserInvitationProvider.userInvitationProvider.vend.getUserInvitationBySecretLink(secretLink.toLong)
+    val secretLink: Box[Long] = tryo {
+      S.param("id").getOrElse("0").toLong
+    }
+    val userInvitation: Box[users.UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitationBySecretLink(secretLink.getOrElse(0))
     firstNameVar.set(userInvitation.map(_.firstName).getOrElse("None"))
     lastNameVar.set(userInvitation.map(_.lastName).getOrElse("None"))
     val email = userInvitation.map(_.email).getOrElse("None")
@@ -69,8 +72,9 @@ class UserInvitation extends MdcLoggable {
     usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
 
     def submitButtonDefense(): Unit = {
-      if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
+      if(secretLink.isEmpty || userInvitation.isEmpty) showErrorsForSecretLink()
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
+      else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
       else {
@@ -79,13 +83,17 @@ class UserInvitation extends MdcLoggable {
           provider = "OBP-User-Invitation",
           providerId = Some(usernameVar.is),
           name = Some(firstNameVar.is + " " + lastNameVar.is),
-          email = Some(email)
+          email = Some(email),
+          userInvitationId = userInvitation.map(_.userInvitationId).toOption,
+          company = userInvitation.map(_.company).toOption
         ).map{ u =>
           // AuthUser table
           createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
           // Use Agreement table
           UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
             u.userId, privacyConditionsValue, termsAndConditionsValue, marketingInfoCheckboxVar.is)
+          // Set the status of the user invitation to "FINISHED"
+          UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
           // Set a new password
           val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
           S.redirectTo(resetLink)
@@ -105,6 +113,9 @@ class UserInvitation extends MdcLoggable {
         }
     }
 
+    def showErrorsForSecretLink() = {
+      showError(Helper.i18n("your.secret.link.is.not.valid"))
+    }
     def showErrorsForUsername() = {
       showError(Helper.i18n("unique.username"))
     }
@@ -152,14 +163,22 @@ class UserInvitation extends MdcLoggable {
     newUser.saveMe()
   }
 
-  private def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String]): Box[ResourceUser] = {
+  private def createResourceUser(provider: String, 
+                                 providerId: Option[String], 
+                                 name: Option[String], 
+                                 email: Option[String], 
+                                 userInvitationId: Option[String],
+                                 company: Option[String]
+                                ): Box[ResourceUser] = {
     Users.users.vend.createResourceUser(
       provider = provider,
       providerId = providerId,
       createdByConsentId = None,
       name = name,
       email = email,
-      userId = None
+      userId = None,
+      createdByUserInvitationId = userInvitationId,
+      company = company
     )
   }
   

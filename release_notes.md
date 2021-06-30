@@ -8,6 +8,11 @@ Date          Commit        Action
                             We can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging to 
                             the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are 
 sam                            generated /refreshed both following manual locin and Direct Login token generation (POST).
+Date          Commit        Action 
+26/06/2021    62fe53d9      Added props: consumer_registration.display_app_type, default is 'true'.
+                            Support removing the app type checkbox during consumer registration
+24/06/2021    e863c9dd      Added props: brands_enabled, default is 'false'.
+                            Support multiple brands on one instance. Note this needs checking on a clustered environment
 14/03/2021    e29001e2      Added props: webui_login_page_instruction_title, default is 'Log on to the Open Bank Project API'.
                             The clients can customise the login page instraction title.
 13/03/2021    3c9880a9      Added props: featured_api_collection_ids, default is Empty.

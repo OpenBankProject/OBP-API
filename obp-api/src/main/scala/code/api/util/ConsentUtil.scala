@@ -196,7 +196,9 @@ object Consent {
         createdByConsentId = consentId,
         name = name,
         email = email,
-        userId = None
+        userId = None,
+        createdByUserInvitationId = None,
+        company = None
       )
     }
   }
