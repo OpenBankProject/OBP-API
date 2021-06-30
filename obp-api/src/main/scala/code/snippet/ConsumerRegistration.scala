@@ -474,7 +474,7 @@ class ConsumerRegistration extends MdcLoggable {
         while(matcher.find()) {
           val userName = matcher.group(1)
           val password = matcher.group(2)
-          val (code, token) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
+          val (code, token, userId) = DirectLogin.createToken(Map(("username", userName), ("password", password), ("consumer_key", consumerKey)))
           val authHeader = code match {
             case 200 => (userName, password) -> s"""Authorization: DirectLogin token="$token""""
             case _ => (userName, password) ->  "username or password is invalid, generate token fail"

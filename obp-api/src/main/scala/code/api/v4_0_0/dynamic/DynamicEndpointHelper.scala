@@ -85,6 +85,13 @@ object DynamicEndpointHelper extends RestHelper {
     roles
   }
 
+  def listOfRolesToUseAllDynamicEndpointsAOneBank(bankId: Option[String]): List[ApiRole] = {
+    val foundInfos: List[DynamicEndpointInfo] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll(bankId)
+      .map(dynamicEndpoint => buildDynamicEndpointInfo(dynamicEndpoint.swaggerString, dynamicEndpoint.dynamicEndpointId.get, dynamicEndpoint.bankId))
+
+    foundInfos.map(getRoles(_)).flatten.toSet.toList
+  }
+
   def getRoles(dynamicEndpointInfo: DynamicEndpointInfo): List[ApiRole] =
     for {
       resourceDoc <- dynamicEndpointInfo.resourceDocs.toList

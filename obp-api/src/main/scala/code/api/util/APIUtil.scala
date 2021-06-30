@@ -78,7 +78,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue}
+import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue, JNothing}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
@@ -523,6 +523,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
 
   case class CustomResponseHeaders(list: List[(String, String)])
+  //This is used for get the value from props `email_domain_to_space_mappings`
+  case class EmailToSpaceMapping(
+    domain: String,
+    bank_ids: List[String]
+  )
 
   //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
   def noContentJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
@@ -2836,6 +2841,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
     } map {
       x =>
+        //TODO due to performance issue, first comment this out,
+        // val authUser = AuthUser.findUserByUsernameLocally(x._1.head.name).openOrThrowException("")
+        // tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser, x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
+
         // make sure, if `refreshUserIfRequired` throw exception, do not break the `authenticatedAccess`, 
         // TODO better move `refreshUserIfRequired` to other place.
         tryo{refreshUserIfRequired(x._1,x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.refreshUserIfRequired throw exception! "))
@@ -3983,4 +3992,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val berlinGroupV13AliasPath = APIUtil.getPropsValue("berlin_group_v1.3_alias.path","").split("/").toList.map(_.trim)
 
   val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
+
+  val emailToSpaceMapping: List[EmailToSpaceMapping] = {
+    def extractor(str: String) = try {
+      val emailToSpaceMappings =  json.parse(str).extract[List[EmailToSpaceMapping]]
+      //The props value can be parse to JNothing.
+      if(str.nonEmpty && emailToSpaceMappings == Nil) 
+        throw new RuntimeException("props [email_domain_to_space_mappings] parse -> extract to Nil!")
+      else
+        emailToSpaceMappings
+    } catch {
+      case e: Throwable => // error handling, found wrong props value as early as possible.
+        this.logger.error(s"props [email_domain_to_space_mappings] value is invalid, it should be the class($EmailToSpaceMapping) json format, current value is $str ." );
+        throw e;
+    }
+
+    APIUtil.getPropsValue("email_domain_to_space_mappings").map(extractor).getOrElse(Nil)
+  }
 }
