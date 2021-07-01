@@ -169,7 +169,7 @@ object DynamicEndpointHelper extends RestHelper {
   }
 
 
-  def findExistsEndpoints(openAPI: OpenAPI): List[(HttpMethod, String)] = {
+  def findExistingDynamicEndpoints(openAPI: OpenAPI): List[(HttpMethod, String)] = {
      for {
       (path, pathItem) <- openAPI.getPaths.asScala.toList
       (method: HttpMethod, _) <- pathItem.readOperationsMap.asScala
