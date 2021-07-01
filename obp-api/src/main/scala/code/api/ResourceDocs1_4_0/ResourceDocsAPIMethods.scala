@@ -204,8 +204,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     // if upload DynamicEntity, will generate corresponding endpoints, when current cache timeout, the new endpoints will be shown.
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
-    val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "3600").toInt
     val getDynamicResourceDocsTTL : Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
+    val getStaticResourceDocsTTL : Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "86400").toInt
 
     /**
      * 
@@ -215,7 +215,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      * @param contentParam if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
      * @return
      */
-    private def getResourceDocsObpCached(requestedApiVersion : ApiVersion,
+    private def getStaticResourceDocsObpCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]]
     ) : Box[JValue] = {
@@ -227,7 +227,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
           logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersion")
 
           val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames)
@@ -256,7 +256,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
           val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
             .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
             .map(it => it.specifiedUrl match {
@@ -497,7 +497,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions)
                     dynamicDocs.map(successJsonResponse(_))
                   case Some(STATIC) =>
-                    val staticDocs: Box[JValue] = getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+                    val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
                     staticDocs.map(successJsonResponse(_))
                   case _ =>
                     import net.liftweb.util.Helpers.now
@@ -574,7 +574,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
           logger.debug(s"Generating Swagger requestedApiVersion is $requestedApiVersionString")
 
           Box.tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) match {
