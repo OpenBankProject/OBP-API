@@ -239,35 +239,38 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]]
                                         ): Option[JValue] = {
-      val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
-        .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
-        .map(it => it.specifiedUrl match {
-          case Some(_) => it
-          case _ =>
-            it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
-            it
-        })
-        .toList
-
-      val filteredDocs = resourceDocTags match {
-        // We have tags
-        case Some(tags) => {
-          // This can create duplicates to use toSet below
-          for {
-            r <- dynamicDocs
-            t <- tags
-            if r.tags.contains(t)
-          } yield {
-            r
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
+          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
+            .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
+            .map(it => it.specifiedUrl match {
+              case Some(_) => it
+              case _ =>
+                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+                it
+            })
+            .toList
+    
+          val filteredDocs = resourceDocTags match {
+            // We have tags
+            case Some(tags) => {
+              // This can create duplicates to use toSet below
+              for {
+                r <- dynamicDocs
+                t <- tags
+                if r.tags.contains(t)
+              } yield {
+                r
+              }
+            }
+            // tags param was not mentioned in url or was empty, so return all
+            case None => dynamicDocs
           }
-        }
-        // tags param was not mentioned in url or was empty, so return all
-        case None => dynamicDocs
-      }
-
-      val resourceDocJson = resourceDocsToResourceDocJson(Some(filteredDocs), resourceDocTags, partialFunctionNames)
-      resourceDocJson.map(resourceDocsJsonToJsonResponse)
-    }
+    
+          val resourceDocJson = resourceDocsToResourceDocJson(Some(filteredDocs), resourceDocTags, partialFunctionNames)
+          resourceDocJson.map(resourceDocsJsonToJsonResponse)
+    }}}
 
 
 
