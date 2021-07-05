@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.UUID.randomUUID
+
 import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
@@ -18,7 +19,7 @@ import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.ListResult
+import com.openbankproject.commons.model.{ListResult, User}
 import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
 import com.openbankproject.commons.model.enums.LanguageParam._
 import com.openbankproject.commons.model.enums.{ContentParam, LanguageParam}
@@ -32,9 +33,13 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-
 import java.util.concurrent.ConcurrentHashMap
+
+import code.api.util.NewStyle.HttpCode
+import code.util.Helper
+
 import scala.collection.immutable.{List, Nil}
+import scala.concurrent.Future
 
 // JObject creation
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
@@ -49,6 +54,8 @@ import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
 
 import scala.concurrent.duration._
+
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
@@ -468,47 +475,46 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        cc =>{
+        cc => 
           for {
-            _ <- if (resourceDocsRequireRole)//If set resource_docs_requires_role=true, we need check the authentication and the roles
-              for{
-                u <- cc.user ?~  UserNotLoggedIn
-                hasCanReadResourceDocRole <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canReadResourceDoc, cc.callContext)
-              } yield{
-                hasCanReadResourceDocRole
-              }
-            else
-              Full()//If set resource_docs_requires_role=false, just return the response directly..
-
-            (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
-            requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
-            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
+            (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match { 
+              case false => anonymousAccess(cc)
+              case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
+            }
+            _ <- resourceDocsRequireRole match { 
+              case false => Future()
+              case true => // If set resource_docs_requires_role=true, we need check the the roles as well
+                Future(NewStyle.function.ownEntitlement("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc, cc.callContext))
+            }
+            (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- Future(ResourceDocsAPIMethodsUtil.getParams())
+            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
+            _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
             json <- languageParam match {
-              case Some(ZH) => getChineseVersionResourceDocs
+              case Some(ZH) => Future(getChineseVersionResourceDocs)
               case _ if(apiCollectionIdParam.isDefined) =>
                 val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
                 val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
                 val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs)
                 val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
-                resourceDocsJsonJValue.map(successJsonResponse(_))
+                Future(resourceDocsJsonJValue.map(successJsonResponse(_)))
               case _ =>
                 contentParam match {
                   case Some(DYNAMIC) =>
                     val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions)
-                    dynamicDocs.map(successJsonResponse(_))
+                    Future(dynamicDocs.map(successJsonResponse(_)))
                   case Some(STATIC) =>
                     val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
-                    staticDocs.map(successJsonResponse(_))
+                    Future(staticDocs.map(successJsonResponse(_)))
                   case _ =>
                     import net.liftweb.util.Helpers.now
                     val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
-                    docs.map(successJsonResponse(_))
+                    Future(docs.map(successJsonResponse(_)))
                 }
             }
           } yield {
-            json
+            (json, HttpCode.`200`(callContext))
           }
-        }
+        
       }
     }
 
