@@ -10,22 +10,27 @@ import org.apache.commons.lang3.StringUtils
 
 object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJsonFormats with MdcLoggable {
 
-  override def getById(dynamicEntityId: String): Box[DynamicEntityT] =  DynamicEntity.find(
-    By(DynamicEntity.DynamicEntityId, dynamicEntityId)
-  )
-
-  override def getByEntityName(entityName: String): Box[DynamicEntityT] = DynamicEntity.find(
-    By(DynamicEntity.EntityName, entityName)
-  )
-
-  override def getDynamicEntities(): List[DynamicEntity] = {
-    DynamicEntity.findAll()
+  override def getById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntityT] = {
+    if (bankId.isEmpty) 
+      DynamicEntity.find(By(DynamicEntity.DynamicEntityId, dynamicEntityId))
+    else
+      DynamicEntity.find(
+        By(DynamicEntity.DynamicEntityId, dynamicEntityId),
+        By(DynamicEntity.BankId, bankId.getOrElse("")
+        ))
   }
 
-  override def getDynamicEntitiesByBankId(bankId: String): List[DynamicEntity] = {
-    DynamicEntity.findAll(By(DynamicEntity.BankId, bankId))
+  override def getByEntityName(entityName: String): Box[DynamicEntityT] = 
+    DynamicEntity.find(By(DynamicEntity.EntityName, entityName))
+      
+
+  override def getDynamicEntities(bankId: Option[String]): List[DynamicEntity] = {
+    if (bankId.isEmpty)
+      DynamicEntity.findAll()
+    else
+      DynamicEntity.findAll(By(DynamicEntity.BankId, bankId.getOrElse("")))
   }
-  
+
   override def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity] = {
     DynamicEntity.findAll(By(DynamicEntity.UserId, userId))
   }

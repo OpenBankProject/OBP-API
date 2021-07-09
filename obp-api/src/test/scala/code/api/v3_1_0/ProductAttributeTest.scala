@@ -144,7 +144,9 @@ class ProductAttributeTest extends V310ServerSetup {
       response310.code should equal(403)
       val createProductEntitlementsRequiredText = UserHasMissingRoles + canCreateProductAttribute
       And("error should be " + createProductEntitlementsRequiredText)
-      response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
     }
     scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
@@ -176,7 +178,9 @@ class ProductAttributeTest extends V310ServerSetup {
       response310.code should equal(403)
       val createProductEntitlementsRequiredText = UserHasMissingRoles + canGetProductAttribute
       And("error should be " + createProductEntitlementsRequiredText)
-      response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canGetProductAttribute.toString()) should be (true)
     }
   }
   
@@ -198,7 +202,9 @@ class ProductAttributeTest extends V310ServerSetup {
       response310.code should equal(403)
       val createProductEntitlementsRequiredText = UserHasMissingRoles + canUpdateProductAttribute
       And("error should be " + createProductEntitlementsRequiredText)
-      response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
     }
   }
   
@@ -220,7 +226,9 @@ class ProductAttributeTest extends V310ServerSetup {
       response310.code should equal(403)
       val createProductEntitlementsRequiredText = UserHasMissingRoles + canDeleteProductAttribute
       And("error should be " + createProductEntitlementsRequiredText)
-      response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canDeleteProductAttribute.toString()) should be (true)
     }
   }
 

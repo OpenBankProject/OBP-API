@@ -455,6 +455,11 @@ object ErrorMessages {
   val InvalidEndpointMapping = "OBP-36006: Invalid Endpoint Mapping. "
   // General Resource related messages above here
 
+  // User Invitation
+  val CannotCreateUserInvitation = "OBP-37081: Cannot create user invitation."
+  val CannotGetUserInvitation = "OBP-37882: Cannot get user invitation."
+  val CannotFindUserInvitation = "OBP-37883: Cannot find user invitation."
+
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
@@ -526,6 +531,7 @@ object ErrorMessages {
   val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
   val KafkaServerUnavailable = "OBP-50016: The kafka server is unavailable."
   val NotAllowedEndpoint = "OBP-50017: The endpoint is forbidden at this API instance."
+  val UnderConstructionError = "OBP-50018: Under Construction Error."
 
 
   // Connector Data Exceptions (OBP-502XX)

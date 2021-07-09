@@ -5,13 +5,15 @@ import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
 import code.loginattempts.MappedBadLoginAttempt
 import code.model.dataAccess.ResourceUser
+import code.util.Helper
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.util.Helpers
 
 import scala.collection.immutable
 import scala.concurrent.Future
@@ -58,7 +60,9 @@ object LiftUsers extends Users with MdcLoggable{
           createdByConsentId = consentId,
           name = name,
           email = email,
-          userId = None
+          userId = None,
+          createdByUserInvitationId = None,
+          company = None
         )
         (newUser, true)
     }
@@ -172,7 +176,14 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
-  override def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
+  override def createResourceUser(provider: String, 
+                                  providerId: Option[String], 
+                                  createdByConsentId: Option[String], 
+                                  name: Option[String], 
+                                  email: Option[String], 
+                                  userId: Option[String], 
+                                  createdByUserInvitationId: Option[String], 
+                                  company: Option[String]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)
     providerId match {
@@ -181,6 +192,10 @@ object LiftUsers extends Users with MdcLoggable{
     }
     createdByConsentId match {
       case Some(consentId) => ru.CreatedByConsentId(consentId)
+      case None    => ru.CreatedByConsentId(null)
+    }
+    createdByUserInvitationId match {
+      case Some(invitationId) => ru.CreatedByUserInvitationId(invitationId)
       case None    => ru.CreatedByConsentId(null)
     }
     name match {
@@ -193,6 +208,10 @@ object LiftUsers extends Users with MdcLoggable{
     }
     userId match {
       case Some(v) => ru.userId_(v)
+      case None    =>
+    }
+    company match {
+      case Some(v) => ru.Company(v)
       case None    =>
     }
     Full(ru.saveMe())
@@ -234,6 +253,17 @@ object LiftUsers extends Users with MdcLoggable{
       u <- ResourceUser.find(By(ResourceUser.id, userId))
     } yield {
       u.delete_!
+    }
+  }
+  override def scrambleDataOfResourceUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = {
+    for {
+      u <- ResourceUser.find(By(ResourceUser.id, userPrimaryKey.value))
+    } yield {
+      u
+        .name_(Helpers.randomString(u.name.length))
+        .Company(Helpers.randomString(u.company.length))
+        .email(Helpers.randomString(10) + "@example.com")
+        .save()
     }
   }
   

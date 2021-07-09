@@ -465,10 +465,11 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = CustomerFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseCustomerFirehoseAtAnyBank, cc=callContext) {
-              canUseCustomerFirehose(u)
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=callContext) {
+              allowCustomerFirehose
             }
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseCustomerFirehoseAtAnyBank, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
@@ -1191,8 +1192,10 @@ trait APIMethods310 {
       "/banks/BANK_ID/customers",
       "Create Customer",
       s"""
-         |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+         |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
          |Dates need to be in the format 2013-01-21T23:08:00Z
+         |
+         |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
          |
           |${authenticationRequiredMessage(true)}
          |""",

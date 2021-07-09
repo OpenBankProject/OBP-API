@@ -1794,11 +1794,14 @@ object Glossary {
 |
 |```
 |{
-|  "username": "simonr",
-|  "is_first": true,
-|  "timestamp": "timestamp",
-|  "consumer_id": "123",
-|  "consumer_name": "Name of Consumer"
+|    "login_user_name": "username",
+|    "is_first": false,
+|    "app_id": "85a965f0-0d55-4e0a-8b1c-649c4b01c4fb",
+|    "app_name": "GWL",
+|    "time_stamp": "2018-08-20T14:13:40Z",
+|    "cbs_token": "your_token",
+|    "cbs_id": "your_cbs_id",
+|    "session_id": "123456789"
 |}
 |```
 |VERIFY SIGNATURE
@@ -1883,6 +1886,36 @@ object Glossary {
 |GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
 |AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
 |KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU"
+|
+|### Example python script
+|```
+|import jwt
+|from datetime import datetime, timezone
+|from obp_python.config import obp_api_host
+|import requests
+|
+|env = 'local'
+|DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+|
+|payload = {
+|    "login_user_name": "username",
+|    "is_first": False,
+|    "app_id": "85a965f0-0d55-4e0a-8b1c-649c4b01c4fb",
+|    "app_name": "Name",
+|    "time_stamp": datetime.now(timezone.utc).strftime(DATE_FORMAT),
+|    "cbs_token": "yourtokenforcbs",
+|    "cbs_id": "yourcbs_id",
+|    "session_id": "123456789"
+|}
+|
+|
+|token = jwt.encode(payload, 'secretsecretsecretstsecretssssss', algorithm='HS256')
+|authorization = 'GatewayLogin token="{}"'.format(token)
+|headers = {'Authorization': authorization}
+|url = obp_api_host + '/obp/v4.0.0/users/current'
+|req = requests.get(url, headers=headers)
+|print(req.text)
+|```
 |
 |### Under the hood
 |
@@ -2035,6 +2068,19 @@ object Glossary {
 |You can use the [OBP Hola App](https://github.com/OpenBankProject/OBP-Hydra-OAuth2) as an example / starting point for your App.
 |
  """)
+
+
+// TODO put the following wiki text here in source code with soft coded hosts etc. The problem is the text is currently too long
+	glossaryItems += GlossaryItem(
+		title = "Hola App log trace",
+		description =
+			s"""
+       Please see:
+				 [OBP Hola App Log Trace](https://github.com/OpenBankProject/OBP-API/wiki/Log-trace-of-the-Hola-App-performing-Georgian-flavour-of-Berlin-Group-authentication,-consent-generation-and-consuming-Berlin-Group-Account,-Balance-and-Transaction-resources)
+ """)
+
+
+
 
 
 	///////////////////////////////////////////////////////////////////

@@ -1691,6 +1691,24 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     entitlements = entitlementJSONs
   )
+  
+  val userInvitationPostJsonV400 = PostUserInvitationJsonV400(
+    first_name = ExampleValue.nameExample.value,
+    last_name = ExampleValue.nameExample.value,
+    email = ExampleValue.emailExample.value,
+    company = "Tesobe",
+    country = "Germany",
+    purpose = "Developer"
+  ) 
+  val userInvitationJsonV400 = UserInvitationJsonV400(
+    first_name = ExampleValue.nameExample.value,
+    last_name = ExampleValue.nameExample.value,
+    email = ExampleValue.emailExample.value,
+    company = "TESOBE",
+    country = "Germany",
+    purpose = "Developer",
+    status = "CREATED"
+  )
 
   val entitlementRequestJSON =
     code.api.v3_0_0.EntitlementRequestJSON(
@@ -2285,6 +2303,24 @@ object SwaggerDefinitionsJSON {
     description = "Account Management",
     developer_email = ExampleValue.emailExample.value,
     redirect_url = "www.openbankproject.com",
+    created_by_user = resourceUserJSON,
+    enabled = true,
+    created = DateWithDayExampleObject
+  )
+  
+  val consumerJsonV400 = ConsumerJson(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    key = ExampleValue.consumerSecretExample.value,
+    secret = ExampleValue.consumerKeyExample.value,
+    app_name = "SOFI",
+    app_type = "Web",
+    description = "Account Management",
+    client_certificate = """-----BEGIN CERTIFICATE-----
+                           |client_certificate_content
+                           |-----END CERTIFICATE-----""".stripMargin,
+    developer_email = ExampleValue.emailExample.value,
+    redirect_url = "www.openbankproject.com",
+    created_by_user_id = ExampleValue.userIdExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,
     created = DateWithDayExampleObject
@@ -4135,13 +4171,6 @@ object SwaggerDefinitionsJSON {
   )
 
   val jsonCodeTemplate = "code" -> URLEncoder.encode("""println("hello")""", "UTF-8")
-
-  val endpointMappingJson = EndpointMappingCommons(
-    Some("b4e0352a-9a0f-4bfa-b30b-9003aa467f50"),
-    "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
-    """{}""".stripMargin,
-    """{}""".stripMargin
-  )
 
   val supportedCurrenciesJson = SupportedCurrenciesJson(
     supportedCurrenciesExample.value

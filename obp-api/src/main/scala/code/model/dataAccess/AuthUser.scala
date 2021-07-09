@@ -31,9 +31,11 @@ import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, logger, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
+import code.api.v4_0_0.dynamic.DynamicEndpointHelper
 import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
+import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
@@ -52,8 +54,11 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import org.apache.commons.lang3.StringUtils
 import code.util.HydraUtil._
+import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
+
+import scala.concurrent.Future
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -421,8 +426,8 @@ import net.liftweb.util.Helpers._
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
   override def signupFields = List(firstName, lastName, email, username, password)
 
-  // If we want to validate email addresses set this to false
-  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", true)
+  // To force validation of email addresses set this to false (default as of 29 June 2021)
+  override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
 
   override def loginXhtml = {
     val loginXml = Templates(List("templates-hidden","_login")).map({
@@ -455,12 +460,15 @@ import net.liftweb.util.Helpers._
     *
     */
   def getCurrentUser: Box[User] = {
-    val authorization = S.request.map(_.header("Authorization")).flatten
+    val authorization: Box[String] = S.request.map(_.header("Authorization")).flatten
+    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined)
         //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side
         Users.users.vend.getUserByUserName(AuthUser.currentUser.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).username.get)
-      else if (hasDirectLoginHeader(authorization))
+      else if (directLogin.isDefined) // Direct Login
+        DirectLogin.getUser
+      else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
         DirectLogin.getUser
       else if (hasAnOAuthHeader(authorization)) {
         OAuthHandshake.getUser
@@ -923,6 +931,16 @@ def restoreSomeSessions(): Unit = {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
           preLoginState()
+          if(emailDomainToSpaceMappings.nonEmpty){
+            Future{
+              tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
+                .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
+            }}
+          if(emailDomainToEntitlementMappings.nonEmpty){
+            Future{
+                tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
+                  .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEmailDomainEntitlementsToUser throw exception! "))
+            }}
           S.redirectTo(redirect)
         })
       } else {
@@ -1101,6 +1119,117 @@ def restoreSomeSessions(): Unit = {
       } yield v
     }
   }
+
+  /**
+   * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space, 
+   * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create 
+   * and modify Dynamic Endpoints and other objects in that Bank / Space.
+   *
+   * @return
+   */
+  def mySpaces(user: AuthUser): List[BankId] = {
+    //1st: first check the user is validated
+    if (user.validated_?) {
+      //userEmail = robert.uk.29@example.com
+      // 2st get the email domain - `example.com`
+      val emailDomain = StringUtils.substringAfterLast(user.email.get, "@")
+
+      //3 return the bankIds
+      emailDomainToSpaceMappings.collectFirst {
+        case EmailDomainToSpaceMapping(`emailDomain`, ids) => ids.map(BankId(_));
+      } getOrElse Nil
+
+    } else {
+      Nil
+    }
+  }
+
+  def grantEntitlementsToUseDynamicEndpointsInSpaces(user: AuthUser) = {
+    val createdByProcess = "grantEntitlementsToUseDynamicEndpointsInSpaces"
+    val userId = user.user.obj.map(_.userId).getOrElse("")
+
+    // user's already auto granted entitlements.
+    val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+      .map(_.filter(role => role.createdByProcess == createdByProcess))
+      .getOrElse(Nil)
+
+    def alreadyHasEntitlement(role:ApiRole, bankId: String): Boolean =
+      entitlementsGrantedByThisProcess.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
+
+    //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
+    val allCurrentDynamicRoleToBankIdPairs: List[(ApiRole, String)] = for {
+      BankId(bankId) <- mySpaces(user: AuthUser)
+      role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId))
+    } yield {
+      if (!alreadyHasEntitlement(role, bankId)) {
+        Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString, createdByProcess)
+      }
+
+      role -> bankId
+    }
+
+    // if user's auto granted entitlement invalid, delete it.
+    // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
+    for {
+      grantedEntitlement <- entitlementsGrantedByThisProcess
+      grantedEntitlementRoleName = grantedEntitlement.roleName
+      grantedEntitlementBankId = grantedEntitlement.bankId
+    } {
+      val isInValidEntitlement = !allCurrentDynamicRoleToBankIdPairs.exists { roleToBankIdPair =>
+        val(role, roleBankId) = roleToBankIdPair
+        role.toString() == grantedEntitlementRoleName && roleBankId == grantedEntitlementBankId
+      }
+
+      if(isInValidEntitlement) {
+        Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
+      }
+    }
+  }
+  
+  def grantEmailDomainEntitlementsToUser(user: AuthUser) = {
+    if(emailDomainToEntitlementMappings.nonEmpty){
+      val createdByProcess = "grantEmailDomainEntitlementsToUser"
+      val userId = user.user.obj.map(_.userId).getOrElse("")
+
+      // user's already auto granted entitlements.
+      val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+        .map(_.filter(role => role.createdByProcess == createdByProcess))
+        .getOrElse(Nil)
+
+      def alreadyHasEntitlement(bankId: String, roleName:String): Boolean =
+        entitlementsGrantedByThisProcess.exists(entitlement => entitlement.roleName == roleName && entitlement.bankId == bankId)
+
+      val allEntitlementsFromCurrentProps: List[(String, String)] = for{
+        emailDomainToEntitlementMapping <- emailDomainToEntitlementMappings
+        domain = emailDomainToEntitlementMapping.domain
+        entitlement <- emailDomainToEntitlementMapping.entitlements if StringUtils.substringAfterLast(user.email.get, "@") == domain
+        roleName = entitlement.role_name
+        roleBankId = entitlement.bank_id
+      } yield {
+        if (!alreadyHasEntitlement(roleBankId, roleName)) {
+          Entitlement.entitlement.vend.addEntitlement(roleBankId, userId, roleName, createdByProcess)
+        }
+        roleName -> roleBankId
+      }
+
+      // if user's auto granted entitlement invalid, delete it.
+      // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
+      for {
+        grantedEntitlement <- entitlementsGrantedByThisProcess
+        grantedEntitlementRoleName = grantedEntitlement.roleName
+        grantedEntitlementBankId = grantedEntitlement.bankId
+      } {
+        val isInValidEntitlement = !allEntitlementsFromCurrentProps.exists { roleNameToBankIdPair =>
+          val(roleName, roleBankId) = roleNameToBankIdPair
+          roleName == grantedEntitlementRoleName && roleBankId == grantedEntitlementBankId
+        }
+
+        if(isInValidEntitlement) {
+          Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
+        }
+      }
+    }
+  }
   
   /**
     * This is a helper method 
@@ -1149,7 +1278,7 @@ def restoreSomeSessions(): Unit = {
     * Find the authUser by author user name(authUser and resourceUser are the same).
     * Only search for the local database. 
     */
-  protected def findUserByUsernameLocally(name: String): Box[TheUserType] = {
+  def findUserByUsernameLocally(name: String): Box[TheUserType] = {
     find(By(this.username, name))
   }
 
@@ -1169,6 +1298,24 @@ def restoreSomeSessions(): Unit = {
         case _ => ""
     }
   }
+
+  override def passwordResetXhtml = {
+    <div id="recover-password" tabindex="-1">
+      <h1>{if(S.queryString.isDefined) Helper.i18n("set.your.password") else S.?("reset.your.password")}</h1>
+      <form action={S.uri} method="post">
+        <div class="form-group">
+          <label for="password">{S.?("enter.your.new.password")}</label> <span><input id="password" class="form-control" type="password" /></span>
+        </div>
+        <div class="form-group">
+          <label for="repeatpassword">{S.?("repeat.your.new.password")}</label> <span><input id="repeatpassword" class="form-control" type="password" /></span>
+        </div>
+        <div class="form-group">
+          <input type="submit" class="btn btn-danger" />
+        </div>
+      </form>
+    </div>
+  }
+  
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).
     * Only search for the local database. 
@@ -1235,4 +1382,21 @@ def restoreSomeSessions(): Unit = {
 
     innerSignup
   }
+
+  def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {
+    AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
+      case Full(user) =>
+        val newUser = user.firstName(Helpers.randomString(user.firstName.get.length))
+          .email(Helpers.randomString(10) + "@example.com")
+          .username(Helpers.randomString(user.username.get.length))
+          .firstName(Helpers.randomString(user.firstName.get.length))
+          .lastName(Helpers.randomString(user.lastName.get.length))
+          .password(Helpers.randomString(40))
+          .password(Helpers.randomString(40))
+          .validated(false)
+        newUser.save()
+      case _ => false
+    }
+  }
+  
 }

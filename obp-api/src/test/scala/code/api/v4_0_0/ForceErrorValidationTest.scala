@@ -64,7 +64,10 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       response310.code should equal(403)
       val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
       And("error should be " + errorMsg)
-      response310.body.extract[ErrorMessage].message should equal(errorMsg)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains(UserHasMissingRoles) should be (true)
+      errorMessage contains(canCreateCustomer.toString()) should be (true)
+      errorMessage contains(canCreateCustomerAtAnyBank.toString()) should be (true)
     }
 
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {

@@ -69,6 +69,7 @@ object CertificateUtil extends MdcLoggable {
     val jkspath = APIUtil.getPropsValue("keystore.path").getOrElse("")
     val jkspasswd = APIUtil.getPropsValue("keystore.password").getOrElse(APIUtil.initPasswd)
     val keypasswd = APIUtil.getPropsValue("keystore.passphrase").getOrElse(APIUtil.initPasswd)
+    // This is used for QWAC certificate. Alias needs to be of that certificate.
     val alias = APIUtil.getPropsValue("keystore.alias").getOrElse("")
     val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
     val inputStream = new FileInputStream(jkspath)
@@ -103,7 +104,14 @@ object CertificateUtil extends MdcLoggable {
       .keyIDFromThumbprint()
       .build()
     jwk.toJSONString()
-  }  
+  }
+
+  /**
+   * This is used for QWAC certificate.
+   * x5s is the part of te JOSE Protected header we use it in case of Java Web Signature.
+   * We sign response with rsaSigner and send it via "x-jws-signature" response header.
+   * it's verified via x5c value at third party app.
+   */
   lazy val (rsaSigner, x5c, rsaPublicKey) = {
     val (privateKey: PrivateKey, certificate: Certificate) =
       Props.mode match {

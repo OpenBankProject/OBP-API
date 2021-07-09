@@ -84,7 +84,8 @@ connectorMethod.cache.ttl.seconds=40
 ## swagger file should not generated for every request, this is a time-to-live in seconds for the generated swagger of OBP api,
 ## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.
 ## So if you want the new endpoints shown timely, set this value to a small number.
-resourceDocsObp.cache.ttl.seconds=3600
+dynamicResourceDocsObp.cache.ttl.seconds=3600
+staticResourceDocsObp.cache.ttl.seconds=86400
 
 ## This can change the behavior of  `Get Resource Docs`/`Get API Glossary`. If we set it to `true`, OBP will check the authentication and CanReadResourceDoc/CanReadGlossary Role
 # the default value is false, so the `Get Resource Docs`/`Get API Glossary` is anonymous as default. 
@@ -953,3 +954,51 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 
 # the alias prefix path for BerlinGroupV1.3 (OBP built-in is berlin-group/v1.3), the format must be xxx/yyy, eg: 0.6/v1 
 #berlin_group_v1.3_alias.path=
+
+
+# Support multiple brands on one instance. Note this needs checking on a clustered environment 
+#brands_enabled=false
+
+# Support removing the app type checkbox during consumer registration 
+#consumer_registration.display_app_type=true
+
+# if set this props, we can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging 
+# to the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are generated /refreshed 
+# both following manual login and Direct Login token generation (POST).
+# the default value is empty
+#email_domain_to_space_mappings=
+# And here we provide an example to show how to prepare the mappings
+#email_domain_to_space_mappings=[ \
+#                         { \
+#                           "domain": "example.com", \
+#                           "bank_ids": [ \
+#                             "gh.29.uk", \
+#                             "gh.29.fr" \
+#                           ] \
+#                         }, \
+#                         { \
+#                           "domain": "example2.com", \
+#                           "bank_ids": [ \
+#                             "gh.29.uk", \
+#                             "gh.29.it" \
+#                           ] \
+#                         }\
+#                       ]\
+#
+# if set this props, we can automatically grant the Entitlements required to the User has access to via their validated email domain.
+# Entitlements are generated /refreshed both following manual login and Direct Login token generation (POST).
+# the default value is empty
+#email_domain_to_entitlement_mappings=
+# And here we provide an example to show how to prepare the mappings
+#email_domain_to_entitlement_mappings = [\
+#                                         {\
+#                                           "domain": "example.com",\
+#                                           "entitlements": [\
+#                                             {\
+#                                               "role_name": "CanReadResourceDoc",\
+#                                               "bank_id": ""\
+#                                             }\
+#                                           ]\
+#                                         }\
+#                                       ]\
+#

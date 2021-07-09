@@ -137,7 +137,9 @@ case class CallContext(
   def authType: AuthenticationType = {
     if(hasGatewayHeader(authReqHeaderField)) {
       GatewayLogin
-    } else if(hasDirectLoginHeader(authReqHeaderField)) {
+    } else if(has2021DirectLoginHeader(requestHeaders)) { // Direct Login
+      DirectLogin
+    }  else if(hasDirectLoginHeader(authReqHeaderField)) { // Direct Login Deprecated
       DirectLogin
     } else if(hasAnOAuthHeader(authReqHeaderField)) {
       AuthenticationType.`OAuth1.0a`

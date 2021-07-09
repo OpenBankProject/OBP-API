@@ -30,7 +30,7 @@ import java.util.{Collections, Date}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.DbFunction
 import code.consumer.{Consumers, ConsumersProvider}
-import code.model.AppType.{Mobile, Web}
+import code.model.AppType.{Public, Confidential}
 import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
 import code.token.TokensProvider
@@ -53,11 +53,15 @@ import scala.concurrent.Future
 
 sealed trait AppType
 object AppType {
-  case object Web extends AppType
-  case object Mobile extends AppType
+  case object Confidential extends AppType
+  case object Public extends AppType
+  case object Unknown extends AppType
   def valueOf(value: String): AppType = value match {
-    case "Web" => Web
-    case "Mobile" => Mobile
+    case "Web" => Confidential
+    case "Confidential" => Confidential
+    case "Mobile" => Public
+    case "Public" => Public
+    case "Unknown" => Unknown
   }
 }
 
@@ -128,7 +132,9 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
                               developerEmail: Option[String],
                               redirectURL: Option[String],
                               createdByUserId: Option[String],
-                              clientCertificate: Option[String] = None): Box[Consumer] = {
+                              clientCertificate: Option[String] = None,
+                              company: Option[String] = None
+                             ): Box[Consumer] = {
     tryo {
       val c = Consumer.create
       key match {
@@ -154,8 +160,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       }
       appType match {
         case Some(v) => v match {
-          case Web => c.appType(Web.toString)
-          case Mobile => c.appType(Mobile.toString)
+          case Confidential => c.appType(Confidential.toString)
+          case Public => c.appType(Public.toString)
         }
         case None =>
       }
@@ -173,6 +179,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       }
       createdByUserId match {
         case Some(v) => c.createdByUserId(v)
+        case None =>
+      }
+      company match {
+        case Some(v) => c.company(v)
         case None =>
       }
 
@@ -223,8 +233,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         }
         appType match {
           case Some(v) => v match {
-            case Web => c.appType(Web.toString)
-            case Mobile => c.appType(Mobile.toString)
+            case Confidential => c.appType(Confidential.toString)
+            case Public => c.appType(Public.toString)
           }
           case None =>
         }
@@ -395,8 +405,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           appType match {
             case Some(v) => v match {
-              case Web => c.appType(Web.toString)
-              case Mobile => c.appType(Mobile.toString)
+              case Confidential => c.appType(Confidential.toString)
+              case Public => c.appType(Public.toString)
             }
             case None =>
           }
@@ -568,6 +578,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def defaultValue = -1
   }
   object clientCertificate extends MappedString(this, 4000)
+  object company extends MappedString(this, 100) {
+    override def displayName = "Company:"
+  }
 }
 
 /**

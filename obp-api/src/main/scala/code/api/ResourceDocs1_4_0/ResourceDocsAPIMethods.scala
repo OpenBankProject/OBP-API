@@ -1,11 +1,13 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.UUID.randomUUID
+
 import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
 import code.api.util.ApiTag._
+import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.{APIUtil, _}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
@@ -17,7 +19,7 @@ import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.ListResult
+import com.openbankproject.commons.model.{ListResult, User}
 import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
 import com.openbankproject.commons.model.enums.LanguageParam._
 import com.openbankproject.commons.model.enums.{ContentParam, LanguageParam}
@@ -31,9 +33,13 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-
 import java.util.concurrent.ConcurrentHashMap
+
+import code.api.util.NewStyle.HttpCode
+import code.util.Helper
+
 import scala.collection.immutable.{List, Nil}
+import scala.concurrent.Future
 
 // JObject creation
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
@@ -48,6 +54,8 @@ import code.api.util.ErrorMessages._
 import code.util.Helper.booleanToBox
 
 import scala.concurrent.duration._
+
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 
 trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
@@ -203,7 +211,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     // if upload DynamicEntity, will generate corresponding endpoints, when current cache timeout, the new endpoints will be shown.
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
-    val getResourceDocsTTL : Int = APIUtil.getPropsValue(s"resourceDocsObp.cache.ttl.seconds", "3600").toInt
+    val getDynamicResourceDocsTTL : Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
+    val getStaticResourceDocsTTL : Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "86400").toInt
 
     /**
      * 
@@ -213,7 +222,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      * @param contentParam if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
      * @return
      */
-    private def getResourceDocsObpCached(requestedApiVersion : ApiVersion,
+    private def getStaticResourceDocsObpCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]]
     ) : Box[JValue] = {
@@ -225,7 +234,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
           logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersion")
 
           val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames)
@@ -234,39 +243,99 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
 
-    private def getResourceDocsObpDynamic(requestedApiVersion : ApiVersion,
+    /**
+     *
+     * @param requestedApiVersion
+     * @param resourceDocTags
+     * @param partialFunctionNames
+     * @param contentParam if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
+     * @return
+     */
+    private def getAllResourceDocsObpCached(requestedApiVersion : ApiVersion,
+      resourceDocTags: Option[List[ResourceDocTag]],
+      partialFunctionNames: Option[List[String]]
+    ) : Box[JValue] = {
+      /**
+       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+       * is just a temporary value field with UUID values in order to prevent any ambiguity.
+       * The real value will be assigned by Macro during compile time at this line of a code:
+       * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+       */
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
+          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
+            .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
+            .map(it => it.specifiedUrl match {
+              case Some(_) => it
+              case _ =>
+                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+                it
+            })
+            .toList
+
+          val filteredDocs = resourceDocTags match {
+            // We have tags
+            case Some(tags) => {
+              // This can create duplicates to use toSet below
+              for {
+                r <- dynamicDocs
+                t <- tags
+                if r.tags.contains(t)
+              } yield {
+                r
+              }
+            }
+            // tags param was not mentioned in url or was empty, so return all
+            case None => dynamicDocs
+          }
+
+          val staticDocs = getResourceDocsList(requestedApiVersion)
+          
+          val allDocs = staticDocs.map( _ ++ filteredDocs)
+          
+          val resourceDocJson = resourceDocsToResourceDocJson(allDocs, resourceDocTags, partialFunctionNames)
+          resourceDocJson.map(resourceDocsJsonToJsonResponse)
+        }
+      }
+    }
+    
+    private def getResourceDocsObpDynamicCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]]
                                         ): Option[JValue] = {
-      val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
-        .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
-        .map(it => it.specifiedUrl match {
-          case Some(_) => it
-          case _ =>
-            it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
-            it
-        })
-        .toList
-
-      val filteredDocs = resourceDocTags match {
-        // We have tags
-        case Some(tags) => {
-          // This can create duplicates to use toSet below
-          for {
-            r <- dynamicDocs
-            t <- tags
-            if r.tags.contains(t)
-          } yield {
-            r
+      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicResourceDocsTTL second) {
+          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
+            .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
+            .map(it => it.specifiedUrl match {
+              case Some(_) => it
+              case _ =>
+                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+                it
+            })
+            .toList
+    
+          val filteredDocs = resourceDocTags match {
+            // We have tags
+            case Some(tags) => {
+              // This can create duplicates to use toSet below
+              for {
+                r <- dynamicDocs
+                t <- tags
+                if r.tags.contains(t)
+              } yield {
+                r
+              }
+            }
+            // tags param was not mentioned in url or was empty, so return all
+            case None => dynamicDocs
           }
-        }
-        // tags param was not mentioned in url or was empty, so return all
-        case None => dynamicDocs
-      }
-
-      val resourceDocJson = resourceDocsToResourceDocJson(Some(filteredDocs), resourceDocTags, partialFunctionNames)
-      resourceDocJson.map(resourceDocsJsonToJsonResponse)
-    }
+    
+          val resourceDocJson = resourceDocsToResourceDocJson(Some(filteredDocs), resourceDocTags, partialFunctionNames)
+          resourceDocJson.map(resourceDocsJsonToJsonResponse)
+    }}}
 
 
 
@@ -406,54 +475,46 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        cc =>{
+        cc => 
           for {
-            _ <- if (resourceDocsRequireRole)//If set resource_docs_requires_role=true, we need check the authentication and the roles
-              for{
-                u <- cc.user ?~  UserNotLoggedIn
-                hasCanReadResourceDocRole <- NewStyle.function.ownEntitlement("", u.userId, ApiRole.canReadResourceDoc, cc.callContext)
-              } yield{
-                hasCanReadResourceDocRole
-              }
-            else
-              Full()//If set resource_docs_requires_role=false, just return the response directly..
-
-            (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- Full(ResourceDocsAPIMethodsUtil.getParams())
-            requestedApiVersion <- tryo {ApiVersionUtils.valueOf(requestedApiVersionString)} ?~! s"$InvalidApiVersionString $requestedApiVersionString"
-            _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported $requestedApiVersionString")
+            (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match { 
+              case false => anonymousAccess(cc)
+              case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
+            }
+            _ <- resourceDocsRequireRole match { 
+              case false => Future()
+              case true => // If set resource_docs_requires_role=true, we need check the the roles as well
+                Future(NewStyle.function.ownEntitlement("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc, cc.callContext))
+            }
+            (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- Future(ResourceDocsAPIMethodsUtil.getParams())
+            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
+            _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
             json <- languageParam match {
-              case Some(ZH) => getChineseVersionResourceDocs
+              case Some(ZH) => Future(getChineseVersionResourceDocs)
               case _ if(apiCollectionIdParam.isDefined) =>
                 val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
                 val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
                 val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs)
                 val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
-                resourceDocsJsonJValue.map(successJsonResponse(_))
+                Future(resourceDocsJsonJValue.map(successJsonResponse(_)))
               case _ =>
                 contentParam match {
                   case Some(DYNAMIC) =>
-                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamic(requestedApiVersion, tags, partialFunctions)
-                    dynamicDocs.map(successJsonResponse(_))
+                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions)
+                    Future(dynamicDocs.map(successJsonResponse(_)))
                   case Some(STATIC) =>
-                    val staticDocs: Box[JValue] = getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
-                    staticDocs.map(successJsonResponse(_))
+                    val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+                    Future(staticDocs.map(successJsonResponse(_)))
                   case _ =>
-                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamic(requestedApiVersion, tags, partialFunctions)
-                    val staticDocs: Box[JValue] = getResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
-
-                    for {
-                      dDocs <- dynamicDocs
-                      sDocs <- staticDocs
-                    } yield {
-                      val mergedJson = dDocs.merge(sDocs)
-                      successJsonResponse(mergedJson)
-                    }
+                    import net.liftweb.util.Helpers.now
+                    val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+                    Future(docs.map(successJsonResponse(_)))
                 }
             }
           } yield {
-            json
+            (json, HttpCode.`200`(callContext))
           }
-        }
+        
       }
     }
 
@@ -519,7 +580,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
        */
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getResourceDocsTTL second) {
+        Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
           logger.debug(s"Generating Swagger requestedApiVersion is $requestedApiVersionString")
 
           Box.tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) match {
@@ -582,16 +643,26 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                * dynamic endpoints related structure is not STABLE structure, no need be parsed to a static structure.
                * So here filter out them.
                */
-              case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) =>
+              case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createDynamicEndpoint) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createBankLevelDynamicEndpoint) ) =>
                 doc.copy(exampleRequestBody =  ExampleValue.dynamicEndpointRequestBodyEmptyExample,
                   successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample
                 )
 
-              case doc if doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) =>
+              case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createEndpointMapping) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.createBankLevelEndpointMapping) ) =>
+                doc.copy(
+                  exampleRequestBody = endpointMappingRequestBodyExample,
+                  successResponseBody = endpointMappingRequestBodyExample
+                )
+                
+              case doc if ( doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoint) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getBankLevelDynamicEndpoint)) =>
                 doc.copy(successResponseBody = ExampleValue.dynamicEndpointResponseBodyEmptyExample)
 
               case doc if (doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getDynamicEndpoints) ||
-                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints)
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getMyDynamicEndpoints) ||
+                doc.partialFunctionName == nameOf(APIMethods400.Implementations4_0_0.getBankLevelDynamicEndpoints)
                 )=>
                 doc.copy(successResponseBody = ListResult(
                   "dynamic_endpoints",

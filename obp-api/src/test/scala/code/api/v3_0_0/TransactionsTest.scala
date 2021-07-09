@@ -401,9 +401,9 @@ class TransactionsTest extends V300ServerSetup {
       val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" /  "AccountId(accountId)" / "views" / "ViewId(viewId)" / "transactions").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
-      And("We should get a 403")
-      responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].message should equal(AccountFirehoseNotAllowedOnThisInstance +" or " + UserHasMissingRoles + CanUseAccountFirehoseAtAnyBank  )
+      And("We should get a 400")
+      responseGet.code should equal(400)
+      responseGet.body.extract[ErrorMessage].message contains AccountFirehoseNotAllowedOnThisInstance should be (true)
     }}
 
 

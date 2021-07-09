@@ -118,6 +118,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
+import code.users.{UserAgreement, UserInvitation}
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
@@ -499,6 +500,7 @@ class Boot extends MdcLoggable {
           Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
 
           Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
+          Menu("User Invitation", "User Invitation") / "user-invitation",
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
@@ -821,6 +823,8 @@ object ToSchemify {
     AccountAccess,
     ViewDefinition,
     ResourceUser,
+    UserInvitation,
+    UserAgreement,
     MappedComment,
     MappedTag,
     MappedWhereTag,

@@ -102,12 +102,13 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     }
   }
 
-  override def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
+  override def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String ="manual"): Box[Entitlement] = {
     // Return a Box so we can handle errors later.
     val addEntitlement = MappedEntitlement.create
       .mBankId(bankId)
       .mUserId(userId)
       .mRoleName(roleName)
+      .mCreatedByProcess(createdByProcess)
       .saveMe()
     Some(addEntitlement)
   }
@@ -122,11 +123,14 @@ class MappedEntitlement extends Entitlement
   object mBankId extends UUIDString(this)
   object mUserId extends UUIDString(this)
   object mRoleName extends MappedString(this, 64)
+  object mCreatedByProcess extends MappedString(this, 255)
 
   override def entitlementId: String = mEntitlementId.get.toString
   override def bankId: String = mBankId.get
   override def userId: String = mUserId.get
   override def roleName: String = mRoleName.get
+  override def createdByProcess: String = 
+    if(mCreatedByProcess.get == null || mCreatedByProcess.get.isEmpty) "manual" else mCreatedByProcess.get
 }
 
 
