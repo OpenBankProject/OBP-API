@@ -4501,7 +4501,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       locatedAt=Some("string"),
       moreInfo=Some("string"),
       hasDepositCapability=Some(true))))
-    ),
+      ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   // url example: /getAtms

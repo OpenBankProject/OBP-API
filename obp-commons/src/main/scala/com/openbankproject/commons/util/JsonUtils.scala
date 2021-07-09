@@ -1,6 +1,7 @@
 package com.openbankproject.commons.util
 
 import com.openbankproject.commons.util.Functions.Implicits._
+import net.liftweb
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
@@ -58,7 +59,7 @@ object JsonUtils {
    */
   def buildJson(source: JValue, schema: JValue): JValue = {
     if(source==JNothing) JNothing else{
-    transformField(schema){
+    val convertedJson = transformField(schema){
       case (jField, path) if path.contains("$default") =>
         jField
 
@@ -86,46 +87,7 @@ object JsonUtils {
         if(jFields.isEmpty) {
           JField(newName, JArray(Nil))
         } else if(allValueIsSameSizeArray(jFields)) {
-          /*convert the follow structure
-           * {
-           *  "foo[]": {
-           *    "name": ["Ken", "Billy"],
-           *    "address": [{
-           *        "name": "Berlin",
-           *        "PostCode" : 116100
-           *      }, {
-           *        "name": "DaLian",
-           *        "PostCode": 11660
-           *      }]
-           *  }
-           * }
-           * to real list:
-           *{
-           *  "foo": [{
-           *     "name": "Ken",
-           *     "address": {
-           *        "name": "Berlin",
-           *        "PostCode" : 116100
-           *      }
-           *    }, {
-           *    "name": "Billy",
-           *    "address": {
-           *        "name": "DaLian",
-           *        "PostCode": 11660
-           *    }
-           * }]
-           */
-
-          val arraySize = jFields.head.value.asInstanceOf[JArray].arr.size
-          val allFields = for {
-            i <- (0 until arraySize).toList
-            newJFields = jFields.collect {
-              case JField(fieldName, JArray(arr)) => JField(fieldName, arr(i))
-            }
-          } yield {
-            JObject(newJFields)
-          }
-          JField(newName, JArray(allFields))
+          buildSingleJFieldFromArray(newName,jFields)
         } else {
           JField(newName, JArray(jObj :: Nil))
         }
@@ -180,16 +142,81 @@ object JsonUtils {
 
       }
 
+      case (JField(name, jObj @JObject(jFields)), _)  =>
+        if(jFields.isEmpty) {
+          JField(name, JObject(Nil))
+        } else if(allValueIsSameSizeArray(jFields)) {
+          buildSingleJFieldFromArray(name, jFields)
+        } else {
+          JField(name, jObj)
+        }
+        
       case (JField(name, JString(s)), _) =>
         JField(name, calculateValue(source, s))
 
     }
+    convertedJson match {
+        //support the root object, eg: {"$root":[]} --> [].
+      case JObject(JField("$root", value)::Nil) =>
+        value
+      case v => v
     }
+    }
+  }
+  
+  /*convert the follow structure
+   * {
+   *  "foo[]": {
+   *    "name": ["Ken", "Billy"],
+   *    "address": [{
+   *        "name": "Berlin",
+   *        "PostCode" : 116100
+   *      }, {
+   *        "name": "DaLian",
+   *        "PostCode": 11660
+   *      }]
+   *  }
+   * }
+   * to real list:
+   *{
+   *  "foo": [{
+   *     "name": "Ken",
+   *     "address": {
+   *        "name": "Berlin",
+   *        "PostCode" : 116100
+   *      }
+   *    }, {
+   *    "name": "Billy",
+   *    "address": {
+   *        "name": "DaLian",
+   *        "PostCode": 11660
+   *    }
+   * }]
+   */
+  //TODO, this method is in processing, may contain bugs here....
+  private def buildSingleJFieldFromArray(newName: String, jFields: List[JField]) = {
+    val arraySize = jFields.head.value.asInstanceOf[JArray].arr.size
+    val allFields = for {
+      i <- (0 until arraySize).toList
+      newJFields = jFields.collect {
+        //This is for [][], eg: "photoUrls[][]": "field5", search for it in the JsonUtilsTest.scala, you will know the usages.
+        case JField(fieldName, JArray(arr)) if fieldName.endsWith("[]") => {
+          val newFileName = StringUtils.substringBeforeLast(fieldName, "[]")
+          JField(newFileName, JArray(List(arr(i))))
+        }
+        case JField(fieldName, JArray(arr)) => JField(fieldName, arr(i))
+      }
+    } yield {
+      JObject(newJFields)
+    }
+    JField(newName, JArray(allFields))
   }
 
   def buildJson(source: String, schema: JValue): JValue = buildJson(json.parse(source), schema)
 
   def buildJson(source: String, schema: String): JValue = buildJson(source, json.parse(schema))
+  
+  def buildJson(source: JValue, schema: String): JValue = buildJson(source, json.parse(schema))
 
   /**
    * Get given index value from path value, get direct index value if it JArray, escape IndexOutOfBoundsException
@@ -225,17 +252,32 @@ object JsonUtils {
    * @return
    */
   def mapField(jValue: JValue)(f: (JField, String) => JField): JValue = {
+    //get the path of the field, if it is root, just return the field name, if not, concatenate its parent. 
+    //This will be used in recursive function, so it will store the full path of the field.
     def buildPath(parentPath: String, currentFieldName: String): String =
       if(parentPath == "") currentFieldName else s"$parentPath.$currentFieldName"
-
+    //If it is a JObject or JArray, it will call `rec` itself until it is single object, eg:  
+    // (JNothing, JString, JDouble, JBool, JInt or JNUll)
     def rec(v: JValue, path: String): JValue = v match {
+      //If it is the JObject, we need to loop the JObject(obj: List[JField]) obj field: 
+      //for each field, we need to call `rec` until to Stop flag                                                                      
       case JObject(l) => JObject(l.map { field =>
         f(field.copy(value = rec(field.value, buildPath(path, field.name))), path)
       }
       )
       case JArray(l) => JArray(l.map(rec(_, path)))
+       //stop Flag: other JValue cases: mean the following ones: we just need to return it directly.
+      // They do not have any nest classes, so do not need call `rec` again.
+      //JNothing
+      //JString
+      //JDouble
+      //JBool
+      //JInt 
+      //JNull
       case x => x
     }
+    
+    //path="", mean it is the root of the JValue.
     rec(jValue, "")
   }
 
@@ -434,6 +476,7 @@ object JsonUtils {
 
   /**
    * according path express, calculate JValue
+   * If jValue=JArray, it will return multiple values.
    * @param jValue source json
    * @param pathExp path expression, e.g: "result.price * 'int: 2' + result.count"
    * @return calculated JValue

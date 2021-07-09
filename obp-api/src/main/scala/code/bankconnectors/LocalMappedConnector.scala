@@ -2457,12 +2457,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     branchToReturn
   }
 
-
-  // TODO This should accept a normal case class not "json" case class i.e. don't rely on REST json structures
-  override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
+  override def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{
+    (createOrUpdateAtmLegacy(atm), callContext)
+  }
+  
+  override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
     val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)
+    val supportedLanguagesString = atm.supportedLanguages.map(_.mkString(",")).getOrElse("")
+    val servicesString = atm.services.map(_.mkString(",")).getOrElse("")
+    val accessibilityFeaturesString = atm.accessibilityFeatures.map(_.mkString(",")).getOrElse("")
+    val supportedCurrenciesString = atm.supportedCurrencies.map(_.mkString(",")).getOrElse("")
+    val notesString = atm.notes.map(_.mkString(",")).getOrElse("")
+    val locationCategoriesString = atm.locationCategories.map(_.mkString(",")).getOrElse("")
 
     //check the atm existence and update or insert data
     getAtmLegacy(atm.bankId, atm.atmId) match {
@@ -2505,6 +2513,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLocatedAt(atm.locatedAt.orNull)
             .mMoreInfo(atm.moreInfo.orNull)
             .mHasDepositCapability(hasDepositCapabilityString)
+            .mSupportedLanguages(supportedLanguagesString)
+            .mServices(servicesString)
+            .mNotes(notesString)
+            .mAccessibilityFeatures(accessibilityFeaturesString)
+            .mSupportedCurrencies(supportedCurrenciesString)
+            .mLocationCategories(locationCategoriesString)
+            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
+            .mBranchIdentification(atm.branchIdentification.orNull)
+            .mSiteIdentification(atm.siteIdentification.orNull)
+            .mSiteName(atm.siteName.orNull)
+            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
+            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
+            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
             .saveMe()
         }
       case _ =>
@@ -2549,6 +2570,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mLocatedAt(atm.locatedAt.orNull)
             .mMoreInfo(atm.moreInfo.orNull)
             .mHasDepositCapability(hasDepositCapabilityString)
+            .mSupportedLanguages(supportedLanguagesString)
+            .mServices(servicesString)
+            .mNotes(notesString)
+            .mAccessibilityFeatures(accessibilityFeaturesString)
+            .mSupportedCurrencies(supportedCurrenciesString)
+            .mLocationCategories(locationCategoriesString)
+            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
+            .mBranchIdentification(atm.branchIdentification.orNull)
+            .mSiteIdentification(atm.siteIdentification.orNull)
+            .mSiteName(atm.siteName.orNull)
+            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
+            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
+            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
             .saveMe()
         }
     }
@@ -2654,12 +2688,72 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getAtmLegacy(bankId, atmId).map(atm => (atm, callContext))
     }
 
+  override def updateAtmSupportedLanguages(bankId: BankId, atmId: AtmId, supportedLanguages: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val supportedLanguagesString = supportedLanguages.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mSupportedLanguages(supportedLanguagesString).saveMe()).map(atm => (atm, callContext))
+    }
+
+  override def updateAtmSupportedCurrencies(bankId: BankId, atmId: AtmId, supportedCurrencies: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val supportedCurrenciesString = supportedCurrencies.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mSupportedCurrencies(supportedCurrenciesString).saveMe()).map(atm => (atm, callContext))
+    }
+
+
+  override def updateAtmAccessibilityFeatures(bankId: BankId, atmId: AtmId, accessibilityFeatures: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val accessibilityFeaturesString = accessibilityFeatures.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mAccessibilityFeatures(accessibilityFeaturesString).saveMe()).map(atm => (atm, callContext))
+    }
+
+  override def updateAtmServices(bankId: BankId, atmId: AtmId, services: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val servicesString = services.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mServices(servicesString).saveMe()).map(atm => (atm, callContext))
+    }
+
+  override def updateAtmNotes(bankId: BankId, atmId: AtmId, notes: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val notesString = notes.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mNotes(notesString).saveMe()).map(atm => (atm, callContext))
+    }
+
+  override def updateAtmLocationCategories(bankId: BankId, atmId: AtmId, locationCategories: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
+    Future {
+      val locationCategoriesString = locationCategories.mkString(",")
+      MappedAtm
+        .find(
+          By(MappedAtm.mBankId, bankId.value),
+          By(MappedAtm.mAtmId, atmId.value)).map(_.mLocationCategories(locationCategoriesString).saveMe()).map(atm => (atm, callContext))
+    }
+
   override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
     Future {
       Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)), callContext)
     }
   }
 
+  override def getAllAtms(callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
+    Future {
+      Full(MappedAtm.findAll(), callContext)
+    }
+  }
 
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.

@@ -3,7 +3,8 @@ package code.util
 import org.scalatest.{FlatSpec, Matchers, Tag}
 import com.openbankproject.commons.util.JsonUtils.buildJson
 import net.liftweb.json
-import net.liftweb.json.JsonAST.JNothing
+import net.liftweb.json.JBool
+import net.liftweb.json.JsonAST.{JNothing, JValue}
 
 class JsonUtilsTest extends FlatSpec with Matchers {
   object JsonUtilsTag extends Tag("JsonUtils")
@@ -59,9 +60,9 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       | "meta$default": {
       |   "count": 10,
       |   "classInfo": {
-      |       "someInfo[]": "hello"
+      |       "someInfo": "hello"
       |   }
-      | }
+      | },
       | "result[]": {
       |   "bkId": "banks.id",
       |   "bkName": "'hello:' + banks.short_name+ ' +  ' + banks.full_name",
@@ -85,7 +86,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       |  "meta":{
       |    "count":10,
       |    "classInfo":{
-      |      "someInfo[]":"hello"
+      |      "someInfo":"hello"
       |    }
       |  },
       |  "result":[
@@ -127,8 +128,9 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(zson, schema)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+//    println(str1)
     val str2 = json.prettyRender(expectedJson)
+//    println(str2)
     str1 shouldEqual str2
   }
 
@@ -164,7 +166,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   }
 
 
-  "buildJson" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
+  """buildJson-request single{}, mapping is {"photoUrls[]":"field5"}""" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
     val zson = (
       """{
         |    "field1": "field1-1",
@@ -177,7 +179,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |    "field8": "field8-1"
         |}""".stripMargin)
 
-    val schema = (
+    val mapping = (
       """{
         |  "id":"field1",
         |  "category":{
@@ -185,11 +187,11 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |    "name":"field3"
         |  },
         |  "name":"field4",
-        |  "photoUrls":["field5"],
-        |  "tags":[{
+        |  "photoUrls[]":"field5",
+        |  "tags[]":{
         |    "id":"field6",
         |    "name":"field7"
-        |  }],
+        |  },
         |  "status":"field8"
         |}
         |""".stripMargin)
@@ -203,7 +205,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |  },
         |  "name":"field4-1",
         |  "photoUrls":[
-        |    "field5"
+        |    "field5-1"
         |  ],
         |  "tags":[
         |    {
@@ -215,7 +217,41 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |}
         |""".stripMargin)
 
-    val resultJson = buildJson(zson, schema)
+    val resultJson = buildJson(zson, mapping)
+
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+  
+  """buildJson-request Array[{}], mapping is {"photoUrls[]":"field5"}""" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
+    val requestJson = (
+      """[
+        |  {
+        |    "field5": "field5-1",
+        |  },
+        |    {
+        |    "field5": "field5-2",
+        |  }
+        |]""".stripMargin)
+    val mapping = (
+      """{
+        |  "$root[]": {
+        |    "photoUrls[][]": "field5",
+        |  }
+        |}""".stripMargin)
+    
+    val expectedJson = json.parse(
+      """[
+        |  {
+        |    "photoUrls":["field5-1"]
+        |  },
+        |  {
+        |    "photoUrls":["field5-2"]
+        |  }
+        |]""".stripMargin)
+    val resultJson = buildJson(requestJson, mapping)
 
     val str1 = json.prettyRender(resultJson)
     println(str1)
@@ -223,7 +259,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
-  "buildJson" should "generate JValue according schema4" taggedAs JsonUtilsTag in {
+  """buildJson - request is Array.tags[], mapping is {"field5[0]": "photoUrls"}""" should "generate JValue according schema4" taggedAs JsonUtilsTag in{
     val zson = (
       """{
         |    "id": 1,
@@ -277,7 +313,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual str2
   }
 
-  "buildJson" should "generate JValue according schema5" taggedAs JsonUtilsTag in {
+  "buildJson request is Array, mapping is data[]:{}" should "generate JValue according schema5" taggedAs JsonUtilsTag in {
     
     val requestJson = (
       """[
@@ -408,7 +444,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |]
         |""".stripMargin)
     val mapping = ("""{
-                     |  "data[]": {
+                     |  "$root[]": {
                      |    "id": "field1",
                      |    "category[]": {
                      |      "id": "field2",
@@ -424,8 +460,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
                      |  }
                      |}""".stripMargin)
     val expectedJson = json.parse(
-      """{
-        |  "data":[
+      """[
         |    {
         |      "id":11,
         |      "category":{
@@ -455,7 +490,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |      "status":"field8-value-2"
         |    }
         |  ]
-        |}""".stripMargin)
+        """.stripMargin)
    
     val resultJson = buildJson(requestJson, mapping)
     val str1 = json.prettyRender(resultJson)
@@ -656,6 +691,205 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val str1 = json.prettyRender(resultJson)
     println(str1)
     val str2 = json.prettyRender(expectListResult)
+    str1 shouldEqual str2
+  }
+
+  "$root name field" should "properly be converted" taggedAs JsonUtilsTag in {
+    val schema = json.parse(
+      """
+        |{
+        | "$root":{
+        |     "bankId":{
+        |      "value":"id"
+        |    },
+        |    "shortName":"short_name",
+        |    "fullName":"full_name"
+        | }
+        |}
+        |""".stripMargin)
+    val sourceValue = json.parse(
+      """
+        |{
+        |    "id":"dmo.01.uk.uk",
+        |    "short_name":"uk",
+        |    "full_name":"uk"
+        |}""".stripMargin)
+
+    val expectedJson =
+      """{
+        |  "bankId":{
+        |    "value":"dmo.01.uk.uk"
+        |  },
+        |  "shortName":"uk",
+        |  "fullName":"uk"
+        |}""".stripMargin
+    val resultJson = buildJson(sourceValue, schema)
+
+    val str1 = json.prettyRender(resultJson)
+
+    str1 shouldEqual expectedJson
+
+  }
+  "$root[] name field and subField[][] type field" should "properly be converted" taggedAs JsonUtilsTag in {
+    val jsonList = json.parse(
+      """
+        |[
+        |  {
+        |    "id": "xrest-bank-x--uk",
+        |    "shortName": "bank shortName string",
+        |    "fullName": "bank fullName x from rest connector",
+        |    "logo": "bank logoUrl string",
+        |    "websiteUrl": "bank websiteUrl string",
+        |    "bankRouting": [{
+        |      "Scheme": "BIC",
+        |      "Address": "GENODEM1GLS"
+        |    }],
+        |    "swiftBic": "bank swiftBic string",
+        |    "nationalIdentifier": "bank nationalIdentifier string"
+        |  },
+        |  {
+        |    "id": "xrest-bank-y--uk",
+        |    "shortName": "bank shortName y",
+        |    "fullName": "bank fullName y  from rest connector",
+        |    "logo": "bank logoUrl y",
+        |    "websiteUrl": "bank websiteUrl y",
+        |    "bankRouting": [{
+        |      "Scheme": "BIC2",
+        |      "Address": "GENODEM1GLS2"
+        |    }],
+        |    "swiftBic": "bank swiftBic string",
+        |    "nationalIdentifier": "bank nationalIdentifier string"
+        |  }
+        |]
+        |""".stripMargin)
+    
+    val schema = json.parse(
+      """
+        |{
+        | "$root[]":{
+        |     "bankId[]":{
+        |      "value":"id"
+        |    },
+        |    "shortName[]":"shortName",
+        |    "fullName[]":"fullName",
+        |    "nationalIdentifier[][]":"swiftBic"
+        | }
+        |}
+        |""".stripMargin)
+    val expectedJson = json.parse(
+      """
+        |[
+        |  {
+        |    "bankId":{
+        |      "value":"xrest-bank-x--uk"
+        |    },
+        |    "shortName":"bank shortName string",
+        |    "fullName":"bank fullName x from rest connector",
+        |    "nationalIdentifier":[
+        |      "bank swiftBic string"
+        |    ]
+        |  },
+        |  {
+        |    "bankId":{
+        |      "value":"xrest-bank-y--uk"
+        |    },
+        |    "shortName":"bank shortName y",
+        |    "fullName":"bank fullName y  from rest connector",
+        |    "nationalIdentifier":[
+        |      "bank swiftBic string"
+        |    ]
+        |  }
+        |]""".stripMargin)
+    val resultJson = buildJson(jsonList, schema)
+    val str1 = json.prettyRender(resultJson)
+//    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+
+  }
+
+  "buildJson - request is Array, mapping is []nest object" should "work well" taggedAs JsonUtilsTag in {
+    val requestJson = (
+      """[
+        |  {
+        |    "field1": 1
+        |  },
+        |  {
+        |    "field1": 2
+        |  }
+        |]
+        |""".stripMargin)
+    val mapping = ("""{
+                     |  "$root[]": {
+                     |    "category": {
+                     |      "id": "field1"
+                     |    }
+                     |  }
+                     |}""".stripMargin)
+    val expectedJson = json.parse(
+      """[
+        |  {
+        |    "category":{
+        |      "id":1
+        |    }
+        |  },
+        |  {
+        |    "category":{
+        |      "id":2
+        |    }
+        |  }
+        |]
+        """.stripMargin)
+
+    val resultJson = buildJson(requestJson, mapping)
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+  
+  "buildJson - request is Array, mapping is []object" should "work well" taggedAs JsonUtilsTag in {
+    val requestJson = (
+      """[
+        |  {
+        |    "field1": 1
+        |  },
+        |  {
+        |    "field1": 2
+        |  }
+        |]
+        |""".stripMargin)
+    val mapping = ("""{
+                     |  "$root[]": {
+                     |    "category[][]":  "field1"
+                     |  }
+                     |}""".stripMargin)
+    val expectedJson = json.parse(
+      """[
+        |  {
+        |    "category":[1]
+        |  },
+        |  {
+        |    "category":[2]
+        |  }
+        |]""".stripMargin)
+
+    val resultJson = buildJson(requestJson, mapping)
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+
+  "buildJson - request is JBool, mapping is {}" should "work well" taggedAs JsonUtilsTag in {
+    val requestJson: JValue = JBool(true)
+    val mapping = ("""{}""".stripMargin)
+    val expectedJson = json.parse("""{}""".stripMargin)
+
+    val resultJson = buildJson(requestJson, mapping)
+    val str1 = json.prettyRender(resultJson)
+    println(str1)
+    val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
 }

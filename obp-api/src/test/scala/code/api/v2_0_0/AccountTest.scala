@@ -2,12 +2,12 @@ package code.api.v2_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
+import code.setup.{DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData}
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
-import code.setup.DefaultUsers
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 
-class AccountTest extends V200ServerSetup with DefaultUsers {
+class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2AccountsAndSetUpWithTestData {
   val mockAccountId1 = "NEW_ACCOUNT_ID_01"
   val mockAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
   
@@ -126,6 +126,27 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       }
       Then("We should have the error: " + ErrorMessages.InvalidAccountIdFormat)
       error.toString contains (ErrorMessages.InvalidAccountIdFormat) should be (true)
+    }
+  }
+
+  feature("Information about the public bank accounts for all banks"){
+    scenario("we get the public bank accounts"){
+      accountTestsSpecificDBSetup()
+      Given("We will not use an access token")
+      When("the request is sent")
+      val reply = getPublicAccountsForAllBanks()
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val publicAccountsInfo = reply.body.extract[BasicAccountsJSON]
+      And("some fields should not be empty")
+      publicAccountsInfo.accounts.foreach(a => {
+        a.id.nonEmpty should equal (true)
+        a.views_available.nonEmpty should equal (true)
+        a.views_available.foreach(
+          //check that all the views are public
+          v => v.is_public should equal (true)
+        )
+      })
     }
   }
 

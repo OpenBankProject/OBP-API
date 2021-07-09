@@ -86,10 +86,12 @@ object ErrorMessages {
   val InvalidOutBoundMapping = "OBP-10031: Incorrect outBoundMapping Format, it should be a json structure."
   val InvalidInBoundMapping = "OBP-10032: Incorrect inBoundMapping Format, it should be a json structure."
   val invalidIban = "OBP-10033: Invalid IBAN."
+  val InvalidUrlParameters = "OBP-10034: Invalid URL parameters."
   val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
     "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
   val ResourceDoesNotExist = "OBP-10405: Resource does not exist."
-
+  val InvalidJsonValue = "OBP-10035: Incorrect json value."
+  
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023
   val FilterOffersetError = "OBP-10024: wrong value for obp_offset parameter. Please send a positive integer (=>0)!" // was OBP-20024
@@ -329,6 +331,18 @@ object ErrorMessages {
   
   val InvalidAuthContextUpdateRequestKey = "OBP-30088: Invalid Auth Context Update Request Key."
 
+  val UpdateAtmSupportedLanguagesException = "OBP-30089: Could not update the Atm Supported Languages."
+  
+  val UpdateAtmSupportedCurrenciesException = "OBP-30091: Could not update the Atm Supported Currencies."
+  
+  val UpdateAtmAccessibilityFeaturesException = "OBP-30092: Could not update the Atm Accessibility Features."
+  
+  val UpdateAtmServicesException = "OBP-30093: Could not update the Atm Services."
+  
+  val UpdateAtmNotesException = "OBP-30094: Could not update the Atm Notes."
+  
+  val UpdateAtmLocationCategoriesException = "OBP-30095: Could not update the Atm Location Categories."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -438,6 +452,7 @@ object ErrorMessages {
   //EndpointMappings
   val EndpointMappingNotFoundByEndpointMappingId = "OBP-36004: Endpoint Mapping not found. Please specify valid values for ENDPOINT_MAPPING_ID. "
   val EndpointMappingNotFoundByOperationId = "OBP-36005: Endpoint Mapping not found. Please specify valid values for OPERATION_ID. "
+  val InvalidEndpointMapping = "OBP-36006: Invalid Endpoint Mapping. "
   // General Resource related messages above here
 
 

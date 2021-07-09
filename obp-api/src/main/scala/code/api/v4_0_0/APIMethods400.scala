@@ -4,7 +4,7 @@ import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.{ChargePolicy, JsonResponseException}
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, logoutLinkV400, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -22,6 +22,7 @@ import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.JSONFactory300.transformToAtmFromV300
 import code.api.v3_1_0._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
@@ -58,9 +59,9 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.JsonAST.{JField, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
@@ -71,11 +72,9 @@ import net.liftweb.util.{Helpers, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.Date
-
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
-
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
 import net.liftweb.json
@@ -4324,6 +4323,9 @@ trait APIMethods400 {
          |
          |Create dynamic endpoints with one json format swagger content.
          |
+         |If the host of swagger is `dynamic_entity`, then you need link the swagger fields to the dynamic entity fields, 
+         |please check `Endpoint Mapping` endpoints.
+         |
          |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
          |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
          |
@@ -4365,6 +4367,43 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      updateDynamicEndpointHost,
+      implementedInApiVersion,
+      nameOf(updateDynamicEndpointHost),
+      "PUT",
+      "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID/host",
+      " Update Dynamic Endpoint Host",
+      s"""Update dynamic endpoint Host.
+         |The value can be obp_mock, dynamic_entity, or some service url.
+         |""",
+      dynamicEndpointHostJson400,
+      dynamicEndpointHostJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicSwaggerDoc, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateDynamicEndpoint)))
+
+    lazy val updateDynamicEndpointHost: OBPEndpoint = {
+      case "management" :: "dynamic-endpoints" :: dynamicEndpointId :: "host" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getDynamicEndpoint(dynamicEndpointId, cc.callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $DynamicEndpointHostJson400"
+            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              json.extract[DynamicEndpointHostJson400]
+            }
+            (dynamicEndpoint, callContext) <- NewStyle.function.updateDynamicEndpointHost(dynamicEndpointId, postedData.host, cc.callContext)
+          } yield {
+            (postedData, HttpCode.`201`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       getDynamicEndpoint,
@@ -4573,23 +4612,21 @@ trait APIMethods400 {
                 } else{
                   Future.successful((EndpointMappingCommons(None,"","",""), callContext))
                 }
-//                requestMappingString = endpointMapping.requestMapping
+                requestMappingString = endpointMapping.requestMapping
 //                requestMappingJvalue = net.liftweb.json.parse(requestMappingString)
                 responseMappingString = endpointMapping.responseMapping
                 responseMappingJvalue = net.liftweb.json.parse(responseMappingString)
 
-                entityName <- NewStyle.function.tryons(s"$InvalidDynamicEndpointSwagger `entity` must contain at least one valid dynamic entity!", 400, cc.callContext) {
-                  //TODO Here need to be refactor later, only support one Entity and one Id here: 
-                  DynamicEndpointHelper.getAllEntitiesFromMappingJson(responseMappingString).head
+                (entityName, entityIdKey, entityIdValueFromUrl) <- if (method.value.equalsIgnoreCase("get")) {
+                  NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                    DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
+                  } 
+                } else {
+                  NewStyle.function.tryons(s"$InvalidEndpointMapping `request_mapping` must  be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                    DynamicEndpointHelper.getEntityNameKeyAndValue(requestMappingString, pathParams)
+                  }
                 }
 
-                (entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidDynamicEndpointSwagger `query` must contain at least one valid dynamic entity field !", 400, cc.callContext) {
-                  //TODO Here need to be refactor later, only support one Entity and one Id here: 
-                  val entityIdKey = DynamicEndpointHelper.getEntityQueryIdsFromMapping(responseMappingString).head
-                  //TODO, here need more logic to check if the Id is proper one!
-                  val entityIdFromUrl = pathParams.find(parameter => parameter._1.toLowerCase.contains("id")).map(_._2)
-                  (entityIdKey, entityIdFromUrl)
-                }
                 dynamicData <- Future{DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)}
                 dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
 
@@ -4605,16 +4642,16 @@ trait APIMethods400 {
                 result = if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isDefined) {
                   DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                 } else if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isEmpty) {
-                  val result = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
-                  DynamicEndpointHelper.getObjectsByKeyValuePair(dynamicJsonData, result.get.head._1, result.get.head._2.head)
+                  val newParams = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
+                  DynamicEndpointHelper.getObjectsByParams(dynamicJsonData, newParams)
 //                } else if (method.value.equalsIgnoreCase("post")) {
 //                  //this post need the dynamicId to update it.
 //                  //1st: we need to find the data by json.field1 --> dynamicId --> update the table.
 //                  dynamicJsonData
 //                } else if (method.value.equalsIgnoreCase("put")) {
 //                  dynamicJsonData
-//                } else if (method.value.equalsIgnoreCase("delete") && entityId.isDefined) {
-//                  dynamicJsonData
+                } else if (method.value.equalsIgnoreCase("delete") && entityIdValueFromUrl.isDefined) {
+                  DynamicEndpointHelper.deleteObjectByKeyValuePair(dynamicData, dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                 } else {
                   throw new RuntimeException(s"$NotImplemented Only support Http Method `GET` yet, current  is ${method.value}")
                 }
@@ -7933,6 +7970,387 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      updateAtmSupportedCurrencies,
+      implementedInApiVersion,
+      nameOf(updateAtmSupportedCurrencies),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/supported-currencies",
+      "Update ATM Supported Currencies",
+      s"""Update ATM Supported Currencies.
+         |""",
+      supportedCurrenciesJson,
+      atmSupportedCurrenciesJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmSupportedCurrencies : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "supported-currencies" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            supportedCurrencies <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SupportedCurrenciesJson]}", 400, cc.callContext) {
+              json.extract[SupportedCurrenciesJson].supported_currencies
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmSupportedCurrencies(bankId, atmId, supportedCurrencies, cc.callContext)
+          } yield {
+            (AtmSupportedCurrenciesJson(atm.atmId.value, atm.supportedCurrencies.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmSupportedLanguages,
+      implementedInApiVersion,
+      nameOf(updateAtmSupportedLanguages),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/supported-languages",
+      "Update ATM Supported Languages",
+      s"""Update ATM Supported Languages.
+         |""",
+      supportedLanguagesJson,
+      atmSupportedLanguagesJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmSupportedLanguages : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "supported-languages" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            supportedLanguages <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[SupportedLanguagesJson]}", 400, cc.callContext) {
+              json.extract[SupportedLanguagesJson].supported_languages
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmSupportedLanguages(bankId, atmId, supportedLanguages, cc.callContext)
+          } yield {
+            (AtmSupportedLanguagesJson(atm.atmId.value, atm.supportedLanguages.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmAccessibilityFeatures,
+      implementedInApiVersion,
+      nameOf(updateAtmAccessibilityFeatures),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/accessibility-features",
+      "Update ATM Accessibility Features",
+      s"""Update ATM Accessibility Features.
+         |""",
+      accessibilityFeaturesJson,
+      atmAccessibilityFeaturesJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmAccessibilityFeatures : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "accessibility-features" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            accessibilityFeatures <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AccessibilityFeaturesJson]}", 400, cc.callContext) {
+              json.extract[AccessibilityFeaturesJson].accessibility_features
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmAccessibilityFeatures(bankId, atmId, accessibilityFeatures, cc.callContext)
+          } yield {
+            (AtmAccessibilityFeaturesJson(atm.atmId.value, atm.accessibilityFeatures.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmServices,
+      implementedInApiVersion,
+      nameOf(updateAtmServices),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/services",
+      "Update ATM Services",
+      s"""Update ATM Services.
+         |""",
+      atmServicesJson,
+      atmServicesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmServices : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "services" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            services <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmServicesJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmServicesJsonV400].services
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmServices(bankId, atmId, services, cc.callContext)
+          } yield {
+            (AtmServicesResponseJsonV400(atm.atmId.value, atm.services.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmNotes,
+      implementedInApiVersion,
+      nameOf(updateAtmNotes),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/notes",
+      "Update ATM Notes",
+      s"""Update ATM Notes.
+         |""",
+      atmNotesJson,
+      atmNotesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmNotes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "notes" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            notes <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmNotesJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmNotesJsonV400].notes
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmNotes(bankId, atmId, notes, cc.callContext)
+          } yield {
+            (AtmServicesResponseJsonV400(atm.atmId.value, atm.notes.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmLocationCategories,
+      implementedInApiVersion,
+      nameOf(updateAtmLocationCategories),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/location-categories",
+      "Update ATM Location Categories",
+      s"""Update ATM Location Categories.
+         |""",
+      atmLocationCategoriesJsonV400,
+      atmLocationCategoriesResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    
+    lazy val updateAtmLocationCategories : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "location-categories" :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            locationCategories <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmLocationCategoriesJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmLocationCategoriesJsonV400].location_categories
+            }
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atm, callContext) <- NewStyle.function.updateAtmLocationCategories(bankId, atmId, locationCategories, cc.callContext)
+          } yield {
+            (AtmLocationCategoriesResponseJsonV400(atm.atmId.value, atm.locationCategories.getOrElse(Nil)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createAtm,
+      implementedInApiVersion,
+      nameOf(createAtm),
+      "POST",
+      "/banks/BANK_ID/atms",
+      "Create ATM",
+      s"""Create ATM.""",
+      atmJsonV400,
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canCreateAtm,canCreateAtmAtAnyBank))
+    )
+    lazy val createAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            atmJsonV400 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}", 400, cc.callContext) {
+              val atm = json.extract[AtmJsonV400]
+              //Make sure the Create contains proper ATM ID
+              atm.id.get
+              atm
+            }
+            _ <-  Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc.callContext){atmJsonV400.bank_id == bankId.value}
+            atm <- NewStyle.function.tryons(ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm", 400, cc.callContext) {
+              JSONFactory400.transformToAtmFromV400(atmJsonV400)
+            }
+            (atm, callContext) <- NewStyle.function.createOrUpdateAtm(atm, cc.callContext)
+          } yield {
+            (JSONFactory400.createAtmJsonV400(atm), HttpCode.`201`(callContext))
+          }
+      }
+    }    
+    
+    staticResourceDocs += ResourceDoc(
+      updateAtm,
+      implementedInApiVersion,
+      nameOf(updateAtm),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "UPDATE ATM",
+      s"""Update ATM.""",
+      atmJsonV400.copy(id= None),
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canUpdateAtm, canUpdateAtmAtAnyBank))
+    )
+    lazy val updateAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            atmJsonV400 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}", 400, cc.callContext) {
+              json.extract[AtmJsonV400]
+            }
+            _ <-  Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc.callContext){atmJsonV400.bank_id == bankId.value}
+            atm <- NewStyle.function.tryons(ErrorMessages.CouldNotTransformJsonToInternalModel + " Atm", 400, cc.callContext) {
+              JSONFactory400.transformToAtmFromV400(atmJsonV400.copy(id = Some(atmId.value)))
+            }
+            (atm, callContext) <- NewStyle.function.createOrUpdateAtm(atm, cc.callContext)
+          } yield {
+            (JSONFactory400.createAtmJsonV400(atm), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getAtms,
+      implementedInApiVersion,
+      nameOf(getAtms),
+      "GET",
+      "/banks/BANK_ID/atms",
+      "Get Bank ATMS",
+      s"""Get Bank ATMS.""",
+      EmptyBody,
+      atmsJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    lazy val getAtms : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
+        cc =>
+          val limit = S.param("limit")
+          val offset = S.param("offset")
+          for {
+            (_, callContext) <- getAtmsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"${InvalidNumber } limit:${limit.getOrElse("")}", cc=callContext) {
+              limit match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c) == true)
+                case _ => true
+              }
+            }
+            _ <- Helper.booleanToFuture(failMsg = maximumLimitExceeded, cc=callContext) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
+                case _ => true
+              }
+            }
+            (atms, callContext) <- Connector.connector.vend.getAtms(bankId, callContext) map {
+              case Empty =>
+                fullBoxOrException(Empty ?~! atmsNotFound)
+              case Full((List(), callContext)) =>
+                Full(List())
+              case Full((list, _)) =>
+                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
+                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
+                else Full(branchesWithLicense)
+              case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
+              case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
+            } map { unboxFull(_) } map {
+              branch =>
+                // Before we slice we need to sort in order to keep consistent results
+                (branch.sortWith(_.atmId.value < _.atmId.value)
+                  // Slice the result in next way: from=offset and until=offset + limit
+                  .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+                  ,callContext)
+            }
+          } yield {
+            (JSONFactory400.createAtmsJsonV400(atms), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAtm,
+      implementedInApiVersion,
+      nameOf(getAtm),
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Get Bank ATM",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}
+         |""".stripMargin,
+      EmptyBody,
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    lazy val getAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
+        cc =>
+          for {
+            (_, callContext) <- getAtmsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, callContext)
+          } yield {
+            (JSONFactory400.createAtmJsonV400(atm), HttpCode.`200`(callContext))
+          }
+      }
+    }
   }
 }
 

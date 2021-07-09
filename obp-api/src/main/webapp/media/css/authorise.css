@@ -118,6 +118,9 @@
     margin-bottom: 48px;
 }
 
+#authorise #manual-redirect{
+    height: 20px;
+}
 #authorise #manual-redirect .btn-danger{
     margin: 0;
 }
