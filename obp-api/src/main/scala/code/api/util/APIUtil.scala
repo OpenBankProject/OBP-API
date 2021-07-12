@@ -3220,6 +3220,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def canUseAccountFirehose(user: User): Boolean = {
     allowAccountFirehose && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
   }
+  def canUseAccountFirehoseAtBank(user: User, bankId: BankId): Boolean = {
+    allowAccountFirehose && hasEntitlement(bankId.value, user.userId, ApiRole.canUseAccountFirehose)
+  }
   def canUseCustomerFirehose(user: User): Boolean = {
     allowCustomerFirehose && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
   }
@@ -3236,6 +3239,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       true
     else
       user match {
+        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => true //Login User and Firehose access
         case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
         case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
         case _ =>
@@ -3268,6 +3272,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
           // 4th: The user has firehose access to this system view
           case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
+          // 5th: The user has firehose access at a bank to this system view
+          case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
           // The user has NO account access at all
           case _ => Empty
         }
@@ -3297,6 +3303,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def hasAccountFirehoseAccess(view: View, user: User) : Boolean = {
     if(view.isFirehose && canUseAccountFirehose(user)) true
+    else false
+  }
+  /**
+   * This view Firehose is true and set `allow_account_firehose = true` and the user has  `CanUseAccountFirehoseAtAnyBank` role
+   */
+  def hasAccountFirehoseAccessAtBank(view: View, user: User, bankId: BankId) : Boolean = {
+    if(view.isFirehose && canUseAccountFirehoseAtBank(user, bankId)) true
     else false
   }
 
