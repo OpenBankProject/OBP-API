@@ -495,7 +495,7 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=cc.callContext) {
               allowAccountFirehose
             }
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseAccountFirehoseAtAnyBank, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
             availableBankIdAccountIdList <- Future {
