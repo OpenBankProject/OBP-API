@@ -260,9 +260,8 @@ object LiftUsers extends Users with MdcLoggable{
       u <- ResourceUser.find(By(ResourceUser.id, userPrimaryKey.value))
     } yield {
       u
-        .name_(Helpers.randomString(u.name.length))
-        .Company(Helpers.randomString(u.company.length))
-        .email(Helpers.randomString(10) + "@example.com")
+        .Company(Helpers.randomString(16))
+        .Deleted(true)
         .save()
     }
   }
