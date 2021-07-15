@@ -1,6 +1,6 @@
 package code.users
 
-import code.api.util.{OBPDeletedStatus, OBPLimit, OBPLockedStatus, OBPOffset, OBPQueryParam}
+import code.api.util.{OBPIsDeleted, OBPLimit, OBPLockedStatus, OBPOffset, OBPQueryParam}
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
 import code.loginattempts.MappedBadLoginAttempt
@@ -129,7 +129,14 @@ object LiftUsers extends Users with MdcLoggable{
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
     val offset: Option[StartAt[ResourceUser]] = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
     val locked: Option[String] = queryParams.collect { case OBPLockedStatus(value) => value }.headOption
-    val deleted = queryParams.collect { case OBPDeletedStatus(value) => By(ResourceUser.IsDeleted, value) }.headOption
+    val deleted = queryParams.collect { 
+      case OBPIsDeleted(value) if value == true => // ?is_deleted=true
+        By(ResourceUser.IsDeleted, true)
+      case OBPIsDeleted(value) if value == false => // ?is_deleted=false
+        By(ResourceUser.IsDeleted, false)
+    }.headOption.orElse(
+      Some(By(ResourceUser.IsDeleted, false)) // There is no query parameter "is_deleted"
+    )
   
     val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq, deleted.toSeq).flatten
     

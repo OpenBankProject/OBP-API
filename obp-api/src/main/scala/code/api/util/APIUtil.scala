@@ -907,8 +907,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           }yield anon
         case "is_deleted" =>
           for {
-            value <- tryo(values.head.toBoolean) ?~! FilterDeletedStatusFormatError
-            deleted = OBPDeletedStatus(value)
+            value <- tryo(values.head.toBoolean) ?~! FilterIsDeletedFormatError
+            deleted = OBPIsDeleted(value)
           } yield deleted
         case "consumer_id" => Full(OBPConsumerId(values.head))
         case "user_id" => Full(OBPUserId(values.head))
@@ -1013,7 +1013,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val limit =  getHttpRequestUrlParam(httpRequestUrl,"limit")
     val offset =  getHttpRequestUrlParam(httpRequestUrl,"offset")
     val anon =  getHttpRequestUrlParam(httpRequestUrl,"anon")
-    val deletedStatus = getHttpRequestUrlParam(httpRequestUrl, "is_deleted")
+    val isDeleted = getHttpRequestUrlParam(httpRequestUrl, "is_deleted")
     val consumerId =  getHttpRequestUrlParam(httpRequestUrl,"consumer_id")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1052,7 +1052,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("account_id", accountId),
       HTTPParam("connector_name", connectorName),
       HTTPParam("customer_id", customerId),
-      HTTPParam("is_deleted", deletedStatus),
+      HTTPParam("is_deleted", isDeleted),
       HTTPParam("locked_status", lockedStatus)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
