@@ -99,6 +99,7 @@ object ErrorMessages {
   val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
   val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!"
   val FilterDurationFormatError = s"OBP-10029: wrong value for `duration` parameter. Please send a positive integer (=>0)!"
+  val FilterIsDeletedFormatError = s"OBP-10036: is_deleted parameter can only take two values: TRUE or FALSE!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
   val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name: "

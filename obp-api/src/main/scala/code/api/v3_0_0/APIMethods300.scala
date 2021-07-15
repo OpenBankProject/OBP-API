@@ -483,7 +483,7 @@ trait APIMethods300 {
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,AccountFirehoseNotAllowedOnThisInstance,UnknownError),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseAccountFirehoseAtAnyBank))
+      Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
     )
 
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
@@ -495,9 +495,9 @@ trait APIMethods300 {
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=cc.callContext) {
               allowAccountFirehose
             }
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseAccountFirehoseAtAnyBank, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, ApiRole.canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, AccountId("")), Some(u), callContext)
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId)) 
             }

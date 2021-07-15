@@ -77,6 +77,7 @@ object Migration extends MdcLoggable {
       alterColumnStatusAtTableMappedConsent()
       alterColumnDetailsAtTableTransactionRequest()
       deleteDuplicatedRowsInTheTableUserAuthContext()
+      populateTheFieldDeletedAtResourceUser()
     }
     
     private def dummyScript(): Boolean = {
@@ -230,6 +231,12 @@ object Migration extends MdcLoggable {
       val name = nameOf(deleteDuplicatedRowsInTheTableUserAuthContext)
       runOnce(name) {
         MigrationOfUserAuthContext.removeDuplicates(name)
+      }
+    }
+    private def populateTheFieldDeletedAtResourceUser(): Boolean = {
+      val name = nameOf(populateTheFieldDeletedAtResourceUser)
+      runOnce(name) {
+        MigrationOfResourceUser.populateNewFieldIsDeleted(name)
       }
     }
     
