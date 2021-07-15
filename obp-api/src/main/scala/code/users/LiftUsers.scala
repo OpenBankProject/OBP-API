@@ -129,7 +129,7 @@ object LiftUsers extends Users with MdcLoggable{
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
     val offset: Option[StartAt[ResourceUser]] = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
     val locked: Option[String] = queryParams.collect { case OBPLockedStatus(value) => value }.headOption
-    val deleted = queryParams.collect { case OBPDeletedStatus(value) => By(ResourceUser.Deleted, value) }.headOption
+    val deleted = queryParams.collect { case OBPDeletedStatus(value) => By(ResourceUser.IsDeleted, value) }.headOption
   
     val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq, deleted.toSeq).flatten
     
@@ -262,7 +262,7 @@ object LiftUsers extends Users with MdcLoggable{
     } yield {
       u
         .Company(Helpers.randomString(16))
-        .Deleted(true)
+        .IsDeleted(true)
         .save()
     }
   }

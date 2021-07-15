@@ -905,7 +905,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             value <- tryo(values.head.toBoolean)?~! FilterAnonFormatError
             anon = OBPAnon(value)
           }yield anon
-        case "deleted_status" =>
+        case "is_deleted" =>
           for {
             value <- tryo(values.head.toBoolean) ?~! FilterDeletedStatusFormatError
             deleted = OBPDeletedStatus(value)
@@ -952,7 +952,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       offset <- getOffset(httpParams)
       //all optional fields
       anon <- getHttpParamValuesByName(httpParams,"anon")
-      deletedStatus <- getHttpParamValuesByName(httpParams,"deleted_status")
+      deletedStatus <- getHttpParamValuesByName(httpParams,"is_deleted")
       consumerId <- getHttpParamValuesByName(httpParams,"consumer_id")
       userId <- getHttpParamValuesByName(httpParams, "user_id")
       bankId <- getHttpParamValuesByName(httpParams, "bank_id")
@@ -1013,7 +1013,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val limit =  getHttpRequestUrlParam(httpRequestUrl,"limit")
     val offset =  getHttpRequestUrlParam(httpRequestUrl,"offset")
     val anon =  getHttpRequestUrlParam(httpRequestUrl,"anon")
-    val deletedStatus = getHttpRequestUrlParam(httpRequestUrl, "deleted_status")
+    val deletedStatus = getHttpRequestUrlParam(httpRequestUrl, "is_deleted")
     val consumerId =  getHttpRequestUrlParam(httpRequestUrl,"consumer_id")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1052,7 +1052,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("account_id", accountId),
       HTTPParam("connector_name", connectorName),
       HTTPParam("customer_id", customerId),
-      HTTPParam("deleted_status", deletedStatus),
+      HTTPParam("is_deleted", deletedStatus),
       HTTPParam("locked_status", lockedStatus)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }

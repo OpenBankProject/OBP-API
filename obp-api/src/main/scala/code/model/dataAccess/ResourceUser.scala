@@ -78,7 +78,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   object Company extends MappedString(this, 50)
   object CreatedByConsentId extends MappedString(this, 100)
   object CreatedByUserInvitationId extends MappedString(this, 100)
-  object Deleted extends MappedBoolean(this) {
+  object IsDeleted extends MappedBoolean(this) {
     override def defaultValue = false
   }
   
@@ -108,7 +108,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   
   override def createdByConsentId = if(CreatedByConsentId.get == null) None else if (CreatedByConsentId.get.isEmpty) None else Some(CreatedByConsentId.get) //null --> None
   override def createdByUserInvitationId = if(CreatedByUserInvitationId.get == null) None else if (CreatedByUserInvitationId.get.isEmpty) None else Some(CreatedByUserInvitationId.get) //null --> None
-  def deleted: Boolean = if(Deleted.get == null) false else Deleted.get // null --> false
+  def isDeleted: Boolean = if(IsDeleted.get == null) false else IsDeleted.get // null --> false
 }
 
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
