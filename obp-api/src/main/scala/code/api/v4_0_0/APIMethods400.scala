@@ -26,7 +26,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.transformToAtmFromV300
 import code.api.v3_1_0._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson,createAccountBalancesJson}
+import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
 import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
 import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
 import code.apicollection.MappedApiCollectionsProvider
@@ -73,11 +73,14 @@ import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.{Calendar, Date}
+
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
+
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.json
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 
@@ -3346,9 +3349,12 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
+            val subject = getWebUiPropsValue("webui_user_invitation_email_subject", "User invitation")
+            val from = getWebUiPropsValue("webui_user_invitation_email_from", "invitation@tesobe.com")
+            val customText = getWebUiPropsValue("webui_user_invitation_email_text", "Your registration link: ")
+            val invitationText = s"$customText${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
             val params = PlainMailBodyType(invitationText) :: List(To(invitation.email))
-            Mailer.sendMail(From("invitation@tesobe.com"), Subject("User invitation"), params :_*)
+            Mailer.sendMail(From(from), Subject(subject), params :_*)
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
       }
