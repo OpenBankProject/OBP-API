@@ -1613,6 +1613,34 @@ trait APIMethods300 {
         }
       }
     }
+    
+    resourceDocs += ResourceDoc(
+      getCurrentUserId,
+      implementedInApiVersion,
+      nameOf(getCurrentUserId),
+      "GET",
+      "/users/current/user_id",
+      "Get User Id (Current)",
+      s"""Get the USER_ID of the logged in user
+        |
+        |${authenticationRequiredMessage(true)}
+      """.stripMargin,
+      emptyObjectJson,
+      userIdJsonV400,
+      List(UserNotLoggedIn, UnknownError),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val getCurrentUserId: OBPEndpoint = {
+      case "users" :: "current" :: "user_id" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+          } yield {
+            (JSONFactory400.createUserIdInfoJson(u), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       privateAccountsAtOneBank,
