@@ -23,6 +23,9 @@ object MigrationOfResourceUser {
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
+        // Make back up
+        DbFunction.makeBackUpOfTable(ResourceUser)
+
         val emptyDeletedField = 
           for {
             user <- ResourceUser.findAll() if user.isDeleted == false

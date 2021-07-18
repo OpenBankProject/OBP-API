@@ -298,7 +298,7 @@ class Boot extends MdcLoggable {
       case true => // DB already exist
         // Migration Scripts are used to update the model of OBP-API DB to a latest version.
         // Please note that migration scripts are executed before Lift Mapper Schemifier
-        Migration.database.executeScripts()
+        Migration.database.executeScripts(startedBeforeSchemifier = true)
         logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
       case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
         logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
@@ -617,7 +617,7 @@ class Boot extends MdcLoggable {
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
     // Please note that migration scripts are executed after Lift Mapper Schemifier
-    Migration.database.executeScripts()
+    Migration.database.executeScripts(startedBeforeSchemifier = false)
 
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>

@@ -140,6 +140,8 @@ case class UserInvitationJsonV400(first_name: String,
                                   status: String)
 case class UserInvitationsJsonV400(user_invitations: List[UserInvitationJsonV400])
 
+case class UserIdJsonV400(user_id: String)
+
 case class APIInfoJson400(
                         version : String,
                         version_status: String,
@@ -804,6 +806,10 @@ object JSONFactory400 {
 
   def createBanksJson(l: List[Bank]): BanksJson400 = {
     BanksJson400(l.map(createBankJSON400))
+  }
+
+  def createUserIdInfoJson(user : User) : UserIdJsonV400 = {
+    UserIdJsonV400(user_id = user.userId)
   }
 
   def createSettlementAccountJson(userId: String, account: BankAccount, accountAttributes: List[AccountAttribute]): SettlementAccountResponseJson =
