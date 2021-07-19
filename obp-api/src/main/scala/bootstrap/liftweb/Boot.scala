@@ -571,6 +571,13 @@ class Boot extends MdcLoggable {
 
     implicit val formats = CustomJsonFormats.formats
     LiftRules.exceptionHandler.prepend{
+      case(_, r, e) if DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed => {
+        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
+        JsonResponse(
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+          500
+        )
+      }
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
