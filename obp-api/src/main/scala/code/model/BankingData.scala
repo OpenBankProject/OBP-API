@@ -198,6 +198,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
         val name : String = bankAccount.accountHolder
         val createdByConsentId = None
         val createdByUserInvitationId = None
+        val isDeleted = None
       })
     } else {
       accountHolders
