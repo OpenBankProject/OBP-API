@@ -337,13 +337,6 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     }
   }
 
-  def getResourceUsers(): List[ResourceUser] = {
-    Users.users.vend.getAllUsers match {
-      case Full(userList) => userList
-      case _ => List()
-    }
-  }
-
   def getResourceUserByUsername(username: String) : Box[User] = {
     Users.users.vend.getUserByUserName(username)
   }
@@ -1385,7 +1378,7 @@ def restoreSomeSessions(): Unit = {
 
   def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {
     AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
-      case Full(user) =>
+      case Full(user) => 
         val scrambledUser = user.firstName(Helpers.randomString(16))
           .email(Helpers.randomString(10) + "@example.com")
           .username("DELETED-" + Helpers.randomString(16))
@@ -1394,7 +1387,8 @@ def restoreSomeSessions(): Unit = {
           .password(Helpers.randomString(40))
           .validated(false)
         scrambledUser.save()
-      case _ => false
+      case Empty => true // There is a resource user but no the correlated Auth user 
+      case _ => false // Error case
     }
   }
   
