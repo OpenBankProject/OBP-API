@@ -31,7 +31,7 @@ class UserTest extends V400ServerSetup {
     }
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "current" / "user_id").GET <@(user1)
       val response400 = makeGetRequest(request400)
