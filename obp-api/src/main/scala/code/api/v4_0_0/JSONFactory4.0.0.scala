@@ -28,17 +28,18 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
+
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
-import code.api.v2_0_0.TransactionRequestChargeJsonV200
+import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON, createLocationJson, createMetaJson, transformToAddressFromV300}
-import code.api.v3_0_0.{AccountRuleJsonV300, AddressJsonV300, CustomerAttributeResponseJsonV300, OpeningTimesV300}
+import code.api.v3_0_0.{AccountRuleJsonV300, AddressJsonV300, CustomerAttributeResponseJsonV300, OpeningTimesV300, ViewJSON300, ViewsJSON300}
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
 import code.apicollection.ApiCollectionTrait
@@ -766,7 +767,31 @@ case class AtmJsonV400 (
 
 case class AtmsJsonV400(atms : List[AtmJsonV400])
 
+case class UserJsonV400(
+                         user_id: String,
+                         email : String,
+                         provider_id: String,
+                         provider : String,
+                         username : String,
+                         entitlements : EntitlementJSONs,
+                         views: Option[ViewsJSON300],
+                         is_deleted: Boolean
+                       )
+
 object JSONFactory400 {
+
+  def createUserInfoJSON(user : User, entitlements: List[Entitlement]) : UserJsonV400 = {
+    UserJsonV400(
+      user_id = user.userId,
+      email = user.emailAddress,
+      username = stringOrNull(user.name),
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
+      views = None,
+      is_deleted = user.isDeleted.getOrElse(false)
+    )
+  }
 
   def createCallsLimitJson(rateLimiting: RateLimiting) : CallLimitJsonV400 = {
     CallLimitJsonV400(

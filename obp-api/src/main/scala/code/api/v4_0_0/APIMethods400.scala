@@ -3337,6 +3337,42 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
+      getUserByUserId,
+      implementedInApiVersion,
+      nameOf(getUserByUserId),
+      "GET",
+      "/users/user_id/USER_ID",
+      "Get User by USER_ID",
+      s"""Get user by USER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJsonV200,
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+
+    lazy val getUserByUserId: OBPEndpoint = {
+      case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
+            user <- Users.users.vend.getUserByUserIdFuture(userId) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
+          } yield {
+            (JSONFactory400.createUserInfoJSON(user, entitlements), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       createUserInvitation,
       implementedInApiVersion,
       nameOf(createUserInvitation),
@@ -3376,11 +3412,29 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val subject = getWebUiPropsValue("webui_user_invitation_email_subject", "User invitation")
-            val from = getWebUiPropsValue("webui_user_invitation_email_from", "invitation@tesobe.com")
-            val customText = getWebUiPropsValue("webui_user_invitation_email_text", "Your registration link: ")
-            val invitationText = s"$customText${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
-            val params = PlainMailBodyType(invitationText) :: List(To(invitation.email))
+            val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
+            val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
+            val link = s"${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
+            val text =
+              """
+                |Hi _EMAIL_RECIPIENT_,
+                |Welcome to Open Bank Project API. Your account has been registered. Please use the below link to activate it.
+                |
+                |Activate your account: _ACTIVATE_YOUR_ACCOUNT_
+                |
+                |Our operations team has granted you the appropriate access to the API Playground. If you have any questions, or you need any assistance, please contact our support.
+                |
+                |Thanks, 
+                |Your OBP API team
+                |
+                |
+                |
+                |Please do not reply to this email. Should you wish to contact us, please raise a ticket at our support page. We maintain strict security standards and procedures to prevent unauthorised access to information about you. We will never contact you by email or otherwise and ask you to validate personal information such as your user ID, password or account numbers. This e-mail is confidential. It may also be legally privileged. If you are not the addressee you may not copy, forward, disclose or use any part of it. If you have received this message in error, please delete it and all copies from your system. Internet communications cannot be guaranteed to be timely, secure, error or virus-free. The sender does not accept liability for any errors or omissions.
+                |""".stripMargin
+            val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", text)
+              .replace("_EMAIL_RECIPIENT_", invitation.firstName)
+              .replace("_ACTIVATE_YOUR_ACCOUNT_", link)
+            val params = PlainMailBodyType(customText) :: List(To(invitation.email)) 
             Mailer.sendMail(From(from), Subject(subject), params :_*)
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
