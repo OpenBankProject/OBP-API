@@ -80,14 +80,16 @@ import java.net.URLEncoder
 
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
+import code.snippet.WebUITemplate
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.json
-import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
+import scala.xml.XML
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -3415,27 +3417,11 @@ trait APIMethods400 {
             val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
             val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
             val link = s"${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
-            val text =
-              """
-                |Hi _EMAIL_RECIPIENT_,
-                |Welcome to Open Bank Project API. Your account has been registered. Please use the below link to activate it.
-                |
-                |Activate your account: _ACTIVATE_YOUR_ACCOUNT_
-                |
-                |Our operations team has granted you the appropriate access to the API Playground. If you have any questions, or you need any assistance, please contact our support.
-                |
-                |Thanks, 
-                |Your OBP API team
-                |
-                |
-                |
-                |Please do not reply to this email. Should you wish to contact us, please raise a ticket at our support page. We maintain strict security standards and procedures to prevent unauthorised access to information about you. We will never contact you by email or otherwise and ask you to validate personal information such as your user ID, password or account numbers. This e-mail is confidential. It may also be legally privileged. If you are not the addressee you may not copy, forward, disclose or use any part of it. If you have received this message in error, please delete it and all copies from your system. Internet communications cannot be guaranteed to be timely, secure, error or virus-free. The sender does not accept liability for any errors or omissions.
-                |""".stripMargin
-            val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", text)
+            val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
+            val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
               .replace("_EMAIL_RECIPIENT_", invitation.firstName)
               .replace("_ACTIVATE_YOUR_ACCOUNT_", link)
-            val params = PlainMailBodyType(customText) :: List(To(invitation.email)) 
-            Mailer.sendMail(From(from), Subject(subject), params :_*)
+            Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
       }
