@@ -16,11 +16,11 @@ object WebUITemplate {
   val webUiDeveloperUserInvitationEmailText =
     """
       |Hi _EMAIL_RECIPIENT_,
-      |Welcome to Open Bank Project API. Your account has been registered. Please use the below link to activate it.
+      |Welcome to the Open Bank Project API. Your account has been registered. Please use the below link to activate it.
       |
       |Activate your account: _ACTIVATE_YOUR_ACCOUNT_
       |
-      |Our operations team has granted you the appropriate access to the API Playground. If you have any questions, or you need any assistance, please contact our support.
+      |Our operations team has granted you the appropriate access to the OBP-API. If you have any questions, or you need any assistance, please contact our support.
       |
       |Thanks, 
       |Your OBP API team
@@ -61,9 +61,9 @@ object WebUITemplate {
       |<img src="https://static.openbankproject.com/images/OBP_full_web_25pc.png"></img>
       |<hr></hr><br></br>
       |<p>Hi _EMAIL_RECIPIENT_,<br></br>
-      |Welcome to Open Bank Project API. Your account has been registered. Please use the below link to activate it.</p>
+      |Welcome to the Open Bank Project API. Your account has been registered. Please use the below link to activate it.</p>
       |<a href="_ACTIVATE_YOUR_ACCOUNT_" class="a a1">Activate your account</a>
-      |<p>Our operations team has granted you the appropriate access to the API Playground. If you have any questions, or you need any assistance, please contact our support.</p>
+      |<p>Our operations team has granted you the appropriate access to the OBP-API. If you have any questions, or you need any assistance, please contact our support.</p>
       |<p>Thanks,<br></br> Your OBP API team</p><br></br>
       |<hr></hr>
       |<p>
