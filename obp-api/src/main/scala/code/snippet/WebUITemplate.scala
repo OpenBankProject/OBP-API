@@ -1,6 +1,18 @@
 package code.snippet
 
+import scala.collection.mutable.ArrayBuffer
+
+case class WebUIDoc(webUiPropsName: String, defaultValue: String, typeOfValue: String)
+
 object WebUITemplate {
+  val webUIDoc = ArrayBuffer[WebUIDoc]()
+
+
+  webUIDoc += WebUIDoc(
+    webUiPropsName = "webui_developer_user_invitation_email_text", 
+    defaultValue = webUiDeveloperUserInvitationEmailText, 
+    typeOfValue = "plain_text"
+  )
   val webUiDeveloperUserInvitationEmailText =
     """
       |Hi _EMAIL_RECIPIENT_,
@@ -17,6 +29,13 @@ object WebUITemplate {
       |
       |Please do not reply to this email. Should you wish to contact us, please raise a ticket at our support page. We maintain strict security standards and procedures to prevent unauthorised access to information about you. We will never contact you by email or otherwise and ask you to validate personal information such as your user ID, password or account numbers. This e-mail is confidential. It may also be legally privileged. If you are not the addressee you may not copy, forward, disclose or use any part of it. If you have received this message in error, please delete it and all copies from your system. Internet communications cannot be guaranteed to be timely, secure, error or virus-free. The sender does not accept liability for any errors or omissions.
       |""".stripMargin
+
+
+  webUIDoc += WebUIDoc(
+    webUiPropsName = "webui_developer_user_invitation_email_html_text",
+    defaultValue = webUiDeveloperUserInvitationEmailHtmlText,
+    typeOfValue = "html"
+  )
   val webUiDeveloperUserInvitationEmailHtmlText =
     """<!DOCTYPE html>
       |<html>
