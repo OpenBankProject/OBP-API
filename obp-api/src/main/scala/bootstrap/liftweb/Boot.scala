@@ -129,6 +129,7 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
+import javax.mail.{Authenticator, PasswordAuthentication}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -484,31 +485,31 @@ class Boot extends MdcLoggable {
 
     logger.info (s"props_identifier is : ${APIUtil.getPropsValue("props_identifier", "NONE-SET")}")
 
-
-    // Build SiteMap
-    val indexPage = APIUtil.getPropsValue("server_mode", "apis,portal") match {
-      case mode if mode == "portal" => List(Menu.i("Home") / "index")
-      case mode if mode == "apis" => List()
-      case mode if mode.contains("apis") && mode.contains("portal") => List(Menu.i("Home") / "index")
-      case _ => List(Menu.i("Home") / "index")
-    }
-    val sitemap = indexPage ::: List(
-          Menu.i("Plain") / "plain",
-          Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
-          	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
-          Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
-
-          Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
-          Menu("User Invitation", "User Invitation") / "user-invitation",
-          // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
-          Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-          Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
-          OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
-          Menu.i("INTRODUCTION") / "introduction",
-          Menu.i("add-user-auth-context-update-request") / "add-user-auth-context-update-request",
-          Menu.i("confirm-user-auth-context-update-request") / "confirm-user-auth-context-update-request"
+    val commonMap = List(Menu.i("Home") / "index") ::: List(
+      Menu.i("Plain") / "plain",
+      Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
+        submenus(Consumer.menus : _*),
+      Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
+      Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
+    
+      Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
+      Menu("User Invitation", "User Invitation") / "user-invitation",
+      // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
+      Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
+      Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
+      OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
+      Menu.i("Introduction") / "introduction",
+      Menu.i("add-user-auth-context-update-request") / "add-user-auth-context-update-request",
+      Menu.i("confirm-user-auth-context-update-request") / "confirm-user-auth-context-update-request"
     ) ++ accountCreation ++ Admin.menus
+    
+    // Build SiteMap
+    val sitemap = APIUtil.getPropsValue("server_mode", "apis,portal") match {
+      case mode if mode == "portal" => commonMap
+      case mode if mode == "apis" => List()
+      case mode if mode.contains("apis") && mode.contains("portal") => commonMap
+      case _ => commonMap
+    }
 
     def sitemapMutators = AuthUser.sitemapMutator
 
