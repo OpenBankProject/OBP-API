@@ -65,6 +65,7 @@ trait User {
   def createdByUserInvitationId: Option[String]
   def isOriginalUser  = createdByConsentId.isEmpty
   def isConsentUser  = createdByConsentId.nonEmpty
+  def isDeleted: Option[Boolean]
 }
 
 case class UserPrimaryKey(val value : Long) {

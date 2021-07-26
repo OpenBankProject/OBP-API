@@ -26,6 +26,9 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.snippet
 
+import java.time.{Duration, ZoneId, ZoneOffset, ZonedDateTime}
+
+import code.api.util.APIUtil
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users
 import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
@@ -52,6 +55,8 @@ class UserInvitation extends MdcLoggable {
   private object marketingInfoCheckboxVar extends RequestVar(false)
   private object privacyCheckboxVar extends RequestVar(false)
   
+  val ttl = APIUtil.getPropsAsLongValue("user_invitation.ttl.seconds", 86400)
+  
   val registrationConsumerButtonValue: String = getWebUiPropsValue("webui_post_user_invitation_submit_button_value", "Register as a Developer")
   val privacyConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_privacy_conditions_value", "Privacy conditions.")
   val termsAndConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_value", "Terms and Conditions.")
@@ -72,8 +77,16 @@ class UserInvitation extends MdcLoggable {
     usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
 
     def submitButtonDefense(): Unit = {
+      val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
+      val createdAt = userInvitation.map(_.createdAt.get).getOrElse(time(239932800))
+      val timeOfCreation = ZonedDateTime.ofInstant(createdAt.toInstant(), ZoneId.systemDefault())
+      val timeDifference = Duration.between(verifyingTime, timeOfCreation)
+      logger.debug("User invitation TTL time: " + ttl)
+      logger.debug("User invitation expiration time: " + timeDifference.abs.getSeconds)
+      
       if(secretLink.isEmpty || userInvitation.isEmpty) showErrorsForSecretLink()
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
+      else if(timeDifference.abs.getSeconds > ttl) showErrorsForTtl()
       else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
@@ -121,6 +134,9 @@ class UserInvitation extends MdcLoggable {
     }
     def showErrorsForStatus() = {
       showError(Helper.i18n("user.invitation.is.already.finished"))
+    }
+    def showErrorsForTtl() = {
+      showError(Helper.i18n("user.invitation.is.expired"))
     }
     def showErrorsForTermsAndConditions() = {
       showError(Helper.i18n("terms.and.conditions.are.not.selected"))

@@ -26,7 +26,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.transformToAtmFromV300
 import code.api.v3_1_0._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson,createAccountBalancesJson}
+import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
 import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
 import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
 import code.apicollection.MappedApiCollectionsProvider
@@ -73,18 +73,23 @@ import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.util.{Calendar, Date}
+
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
+
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
+import code.snippet.WebUITemplate
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.json
-import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
+import scala.xml.XML
 
 trait APIMethods400 {
   self: RestHelper =>
@@ -3205,7 +3210,7 @@ trait APIMethods400 {
       moderatedFirehoseAccountsJsonV400,
       List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseAccountFirehoseAtAnyBank))
+      Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
     )
 
     lazy val getFirehoseAccountsAtOneBank : OBPEndpoint = {
@@ -3218,7 +3223,7 @@ trait APIMethods400 {
               allowAccountFirehose
             }
             // here must be a system view, not accountIds in the URL
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(BankId(""), AccountId("")), Some(u), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, AccountId("")), Some(u), callContext)
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId))
             }
@@ -3305,6 +3310,69 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getCurrentUserId,
+      implementedInApiVersion,
+      nameOf(getCurrentUserId),
+      "GET",
+      "/users/current/user_id",
+      "Get User Id (Current)",
+      s"""Get the USER_ID of the logged in user
+         |
+         |${authenticationRequiredMessage(true)}
+      """.stripMargin,
+      emptyObjectJson,
+      userIdJsonV400,
+      List(UserNotLoggedIn, UnknownError),
+      List(apiTagUser, apiTagNewStyle))
+
+    lazy val getCurrentUserId: OBPEndpoint = {
+      case "users" :: "current" :: "user_id" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+          } yield {
+            (JSONFactory400.createUserIdInfoJson(u), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserByUserId,
+      implementedInApiVersion,
+      nameOf(getUserByUserId),
+      "GET",
+      "/users/user_id/USER_ID",
+      "Get User by USER_ID",
+      s"""Get user by USER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJsonV200,
+      List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+
+    lazy val getUserByUserId: OBPEndpoint = {
+      case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
+            user <- Users.users.vend.getUserByUserIdFuture(userId) map {
+              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
+          } yield {
+            (JSONFactory400.createUserInfoJSON(user, entitlements), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createUserInvitation,
@@ -3346,9 +3414,14 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val invitationText = s"Your registration link: ${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
-            val params = PlainMailBodyType(invitationText) :: List(To(invitation.email))
-            Mailer.sendMail(From("invitation@tesobe.com"), Subject("User invitation"), params :_*)
+            val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
+            val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
+            val link = s"${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
+            val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
+            val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
+              .replace("_EMAIL_RECIPIENT_", invitation.firstName)
+              .replace("_ACTIVATE_YOUR_ACCOUNT_", link)
+            Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
       }

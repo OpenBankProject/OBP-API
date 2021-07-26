@@ -1002,3 +1002,7 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 #                                         }\
 #                                       ]\
 #
+
+
+# User Invitation Time To Live
+# user_invitation.ttl.seconds=86400
