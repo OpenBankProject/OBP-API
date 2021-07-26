@@ -80,7 +80,7 @@ import java.net.URLEncoder
 
 import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
 import code.endpointMapping.EndpointMappingCommons
-import code.snippet.WebUITemplate
+import code.snippet.{WebUIPlaceholder, WebUITemplate}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import net.liftweb.json
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
@@ -3419,8 +3419,8 @@ trait APIMethods400 {
             val link = s"${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
             val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
             val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
-              .replace("_EMAIL_RECIPIENT_", invitation.firstName)
-              .replace("_ACTIVATE_YOUR_ACCOUNT_", link)
+              .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
+              .replace(WebUIPlaceholder.activateYourAccount, link)
             Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
