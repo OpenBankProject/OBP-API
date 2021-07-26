@@ -475,6 +475,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => 
           for {
             (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match { 
@@ -486,7 +487,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               case true => // If set resource_docs_requires_role=true, we need check the the roles as well
                 Future(NewStyle.function.ownEntitlement("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc, cc.callContext))
             }
-            (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- Future(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
             _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
             json <- languageParam match {
