@@ -143,6 +143,27 @@ Please use next values:
     User Name:
     Password:
 
+
+### Notes on the basic ussage of Postgres:
+Once postgres is installed: (On Mac use brew)
+
+psql postgres
+
+create database obpdb; (or any other name of your choosing)
+
+create user obp; (this is the user that OBP-API will use to create and access tables etc)
+
+alter user obp with password 'daniel.says'; (put this password in the OBP-API Props)
+
+grant all on database obpdb to obp; (So OBP-API can create tables etc.)
+
+Then set the db.url in your Props: 
+
+db.driver=org.postgresql.Driver
+db.url=jdbc:postgresql://localhost:5432/obpdb?user=obp&password=daniel.says
+
+The restart OBP-API
+
 ### Notes on using Postgres with SSL:
 
 Postgres needs to be compiled with SSL support.
