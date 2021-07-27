@@ -88,6 +88,10 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
     case cc.getCounterpartyByIban(iban: String) =>
       logger.debug(s"getOrCreateMetadata($iban)")
       sender ! (mapper.getCounterpartyByIban(iban: String))
+      
+    case cc.getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId) =>
+      logger.debug(s"getCounterpartyByIbanAndBankAccountId($iban, $bankId, $accountId)")
+      sender ! (mapper.getCounterpartyByIbanAndBankAccountId(iban, bankId, accountId))
 
     case cc.getPublicAlias(counterpartyId: String) =>
       logger.debug(s"getPublicAlias($counterpartyId)")
