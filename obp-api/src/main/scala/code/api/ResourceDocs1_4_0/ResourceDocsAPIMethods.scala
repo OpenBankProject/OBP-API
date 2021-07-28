@@ -224,7 +224,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      */
     private def getStaticResourceDocsObpCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
-                                         partialFunctionNames: Option[List[String]]
+                                         partialFunctionNames: Option[List[String]],
+                                         languageParam: Option[LanguageParam],
+                                         contentParam: Option[ContentParam],
+                                         cacheModifierParam: Option[String]
     ) : Box[JValue] = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -253,7 +256,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      */
     private def getAllResourceDocsObpCached(requestedApiVersion : ApiVersion,
       resourceDocTags: Option[List[ResourceDocTag]],
-      partialFunctionNames: Option[List[String]]
+      partialFunctionNames: Option[List[String]],
+      languageParam: Option[LanguageParam],
+      contentParam: Option[ContentParam],
+      cacheModifierParam: Option[String]
     ) : Box[JValue] = {
       /**
        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
@@ -302,7 +308,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     
     private def getResourceDocsObpDynamicCached(requestedApiVersion : ApiVersion,
                                          resourceDocTags: Option[List[ResourceDocTag]],
-                                         partialFunctionNames: Option[List[String]]
+                                         partialFunctionNames: Option[List[String]],
+                                         languageParam: Option[LanguageParam],
+                                         contentParam: Option[ContentParam],
+                                         cacheModifierParam: Option[String]
                                         ): Option[JValue] = {
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
@@ -475,7 +484,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => 
           for {
             (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match { 
@@ -500,13 +509,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               case _ =>
                 contentParam match {
                   case Some(DYNAMIC) =>
-                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions)
+                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam)
                     Future(dynamicDocs.map(successJsonResponse(_)))
                   case Some(STATIC) =>
-                    val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+                    val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam)
                     Future(staticDocs.map(successJsonResponse(_)))
                   case _ =>
-                    val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
+                    val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam)
                     Future(docs.map(successJsonResponse(_)))
                 }
             }
@@ -557,7 +566,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
         cc =>{
           for {
-            (resourceDocTags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
+            (resourceDocTags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) <- tryo(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- tryo(ApiVersionUtils.valueOf(requestedApiVersionString)) ?~! s"$InvalidApiVersionString Current Version is $requestedApiVersionString"
             _ <- booleanToBox(versionIsAllowed(requestedApiVersion), s"$ApiVersionNotSupported Current Version is $requestedApiVersionString")
             staticJson <- getResourceDocsSwaggerCached(requestedApiVersionString, resourceDocTags, partialFunctions)
@@ -802,7 +811,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
     case _ => None
   }
 
-  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam], Option[ContentParam], Option[String]) = {
+  def getParams() : (Option[List[ResourceDocTag]], Option[List[String]], Option[LanguageParam], Option[ContentParam], Option[String], Option[String]) = {
 
     val rawTagsParam = S.param("tags")
 
@@ -868,8 +877,13 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
       x <- S.param("api-collection-id")
     } yield x
     logger.info(s"apiCollectionIdParam is $apiCollectionIdParam")
+    
+    val cacheModifierParam = for {
+      x <- S.param("cache-modifier")
+    } yield x
+    logger.info(s"cacheModifierParam is $cacheModifierParam")
 
-    (tags, partialFunctionNames, languageParam, contentParam, apiCollectionIdParam)
+    (tags, partialFunctionNames, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam)
   }
 
 
