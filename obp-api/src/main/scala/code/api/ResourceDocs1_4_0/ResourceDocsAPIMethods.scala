@@ -211,8 +211,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     // if upload DynamicEntity, will generate corresponding endpoints, when current cache timeout, the new endpoints will be shown.
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
-    val getDynamicResourceDocsTTL : Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "0").toInt
-    val getStaticResourceDocsTTL : Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "0").toInt
+    val getDynamicResourceDocsTTL : Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
+    val getStaticResourceDocsTTL : Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "86400").toInt
 
     /**
      * 
