@@ -2,25 +2,33 @@ package code.snippet
 
 import scala.collection.mutable.ArrayBuffer
 
-case class WebUIDoc(webUiPropsName: String, defaultValue: String, typeOfValue: String)
+case class WebUIDoc(webUiPropsName: String, defaultValue: String, typeOfValue: String, placeholders: List[String])
+
+object WebUIPlaceholder {
+  val emailRecipient = "@EMAIL_RECIPIENT"
+  val activateYourAccount = "@ACTIVATE_YOUR_ACCOUNT"
+}
 
 object WebUITemplate {
+  import WebUIPlaceholder._
+  
   val webUIDoc = ArrayBuffer[WebUIDoc]()
 
 
   webUIDoc += WebUIDoc(
     webUiPropsName = "webui_developer_user_invitation_email_text", 
     defaultValue = webUiDeveloperUserInvitationEmailText, 
-    typeOfValue = "plain_text"
+    typeOfValue = "plain_text",
+    placeholders = List(emailRecipient, activateYourAccount)
   )
   val webUiDeveloperUserInvitationEmailText =
-    """
-      |Hi _EMAIL_RECIPIENT_,
-      |Welcome to Open Bank Project API. Your account has been registered. Please use the below link to activate it.
+    s"""
+      |Hi ${emailRecipient},
+      |Welcome to the Open Bank Project API. Your account has been registered. Please use the below link to activate it.
       |
-      |Activate your account: _ACTIVATE_YOUR_ACCOUNT_
+      |Activate your account: ${activateYourAccount}
       |
-      |Our operations team has granted you the appropriate access to the API Playground. If you have any questions, or you need any assistance, please contact our support.
+      |Our operations team has granted you the appropriate access to the OBP-API. If you have any questions, or you need any assistance, please contact our support.
       |
       |Thanks, 
       |Your OBP API team
@@ -34,10 +42,11 @@ object WebUITemplate {
   webUIDoc += WebUIDoc(
     webUiPropsName = "webui_developer_user_invitation_email_html_text",
     defaultValue = webUiDeveloperUserInvitationEmailHtmlText,
-    typeOfValue = "html"
+    typeOfValue = "html",
+    placeholders = List(emailRecipient, activateYourAccount)
   )
   val webUiDeveloperUserInvitationEmailHtmlText =
-    """<!DOCTYPE html>
+    s"""<!DOCTYPE html>
       |<html>
       |<head>
       |<style>
@@ -60,10 +69,10 @@ object WebUITemplate {
       |<body>
       |<img src="https://static.openbankproject.com/images/OBP_full_web_25pc.png"></img>
       |<hr></hr><br></br>
-      |<p>Hi _EMAIL_RECIPIENT_,<br></br>
-      |Welcome to Open Bank Project API. Your account has been registered. Please use the below link to activate it.</p>
-      |<a href="_ACTIVATE_YOUR_ACCOUNT_" class="a a1">Activate your account</a>
-      |<p>Our operations team has granted you the appropriate access to the API Playground. If you have any questions, or you need any assistance, please contact our support.</p>
+      |<p>Hi ${emailRecipient},<br></br>
+      |Welcome to the Open Bank Project API. Your account has been registered. Please use the below link to activate it.</p>
+      |<a href="${activateYourAccount}" class="a a1">Activate your account</a>
+      |<p>Our operations team has granted you the appropriate access to the OBP-API. If you have any questions, or you need any assistance, please contact our support.</p>
       |<p>Thanks,<br></br> Your OBP API team</p><br></br>
       |<hr></hr>
       |<p>
