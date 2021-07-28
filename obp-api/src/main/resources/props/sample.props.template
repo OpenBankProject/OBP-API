@@ -1020,7 +1020,12 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 # User Invitation Time To Live
 # user_invitation.ttl.seconds=86400
 
-# User Invitation
+# User (Developer) Invitation
+webui_post_user_invitation_submit_button_value=Register as a Developer
+webui_post_user_invitation_privacy_conditions_value=Privacy conditions..
+webui_post_user_invitation_terms_and_conditions_value=Terms and Conditions..
+webui_post_user_invitation_terms_and_conditions_checkbox_value=I agree to the above Developer Terms and Conditions
+
 webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\
                                                   <html>\
                                                   <head>\
