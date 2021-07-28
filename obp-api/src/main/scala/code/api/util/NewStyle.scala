@@ -3,7 +3,6 @@ package code.api.util
 import java.io
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
@@ -68,6 +67,7 @@ import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
+import code.endpointTag.EndpointTagT
 import net.liftweb.json
 
 object NewStyle {
@@ -272,6 +272,18 @@ object NewStyle {
       Connector.connector.vend.createOrUpdateAtm(atm, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateAtmError", 400), i._2)
       } 
+    }
+    
+    def createOrUpdateEndpointTag(endpointTag: EndpointTagT, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+      Connector.connector.vend.createOrUpdateEndpointTag(endpointTag, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateEndpointTagError", 400), i._2)
+      }
+    }
+
+    def getEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[EndpointTagT] = {
+      Connector.connector.vend.getEndpointTag(endpointTagId, callContext) map {
+        i => (unboxFullOrFail(i._1,  callContext, s"$EndpointTagNotFoundByEndpointTagId Current ENDPOINT_TAG_ID is $endpointTagId", 404), i._2)
+      }
     }
     
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {

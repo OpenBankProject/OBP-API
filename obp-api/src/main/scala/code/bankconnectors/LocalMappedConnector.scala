@@ -2,7 +2,6 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -32,6 +31,7 @@ import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
 import code.database.authorisation.Authorisations
 import code.directdebit.DirectDebits
+import code.endpointTag.{EndpointTag, EndpointTagT}
 import code.fx.fx.TTL
 import code.fx.{MappedFXRate, fx}
 import code.kycchecks.KycChecks
@@ -2478,6 +2478,33 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{
     (createOrUpdateAtmLegacy(atm), callContext)
+  }
+
+  override def getEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(
+    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)), callContext)
+  )
+  
+   override def createOrUpdateEndpointTag(endpointTag: EndpointTagT, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (EndpointTag.find(
+       By(EndpointTag.EndpointTagId, endpointTag.endpointTagId.getOrElse("")),
+     ) match {
+          case Full(x) =>
+            tryo {
+              x
+                .OperationId(endpointTag.operationId)
+                .TagName(endpointTag.tagName)
+                .saveMe()
+            } ?~! UpdateEndpointTagError
+          case Empty =>
+            tryo {
+              EndpointTag.create
+                .OperationId(endpointTag.operationId)
+                .TagName(endpointTag.tagName)
+                .saveMe()
+            } ?~! CreateEndpointTagError
+          case _ =>
+            Failure(UnknownEndpointTagError)
+        }, callContext)
   }
   
   override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {

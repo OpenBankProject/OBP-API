@@ -344,6 +344,11 @@ object ErrorMessages {
   
   val UpdateAtmLocationCategoriesException = "OBP-30095: Could not update the Atm Location Categories."
 
+  val CreateEndpointTagError = "OBP-30096: Could not insert the Endpoint Tag."
+  val UpdateEndpointTagError = "OBP-30097: Could not update the Endpoint Tag."
+  val UnknownEndpointTagError = "OBP-30098: Unknown Endpoint Tag error. "
+  val EndpointTagNotFoundByEndpointTagId = "OBP-30099: Invalid ENDPOINT_TAG_ID. Please specify a valid value for ENDPOINT_TAG_ID."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

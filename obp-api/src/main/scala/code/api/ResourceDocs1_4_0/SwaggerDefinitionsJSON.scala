@@ -2436,6 +2436,16 @@ object SwaggerDefinitionsJSON {
     host = "dynamic_entity"
   )
 
+  val endpointTagJson400 = EndpointTagJson400(
+    tag_name = tagNameExample.value
+  )
+  
+  val endpointTagResponseJson400 = EndpointTagResponseJson400(
+    endpoint_tag_id = endpointTagIdExample.value,
+    operation_id = operationIdExample.value,
+    tag_name = tagNameExample.value
+  )
+  
   val metricsJson = MetricsJson(
     metrics = List(metricJson)
   )

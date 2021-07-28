@@ -9099,6 +9099,81 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      createEndpointTag,
+      implementedInApiVersion,
+      nameOf(createEndpointTag),
+      "POST",
+      "/management/endpoints/OPERATION_ID/tag",
+      "Create Endpoint Tag",
+      s"""Create Endpoint Tag""",
+      endpointTagJson400,
+      endpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateDynamicEndpoint)))
+    lazy val createEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tag" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (endpointTagT, callContext) <- NewStyle.function.createOrUpdateEndpointTag(code.endpointTag.EndpointTagCommons(None,operationId,endpointTag.tag_name), cc.callContext)
+          } yield {
+            (EndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateEndpointTag,
+      implementedInApiVersion,
+      nameOf(updateEndpointTag),
+      "PUT",
+      "/management/endpoints/OPERATION_ID/tag/ENDPOINT_TAG_ID",
+      "Update Endpoint Tag",
+      s"""Update Endpoint Tag""",
+      endpointTagJson400,
+      endpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        EndpointTagNotFoundByEndpointTagId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateDynamicEndpoint)))
+    lazy val updateEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tag" :: endpointTagId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            (endpointTagT, callContext) <- NewStyle.function.createOrUpdateEndpointTag(code.endpointTag.EndpointTagCommons(Some(endpointTagId),operationId,endpointTag.tag_name), cc.callContext)
+          } yield {
+            (EndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+    
   }
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {
