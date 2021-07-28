@@ -3416,7 +3416,7 @@ trait APIMethods400 {
           } yield {
             val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
             val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
-            val link = s"${APIUtil.getPropsValue("hostname", "")}/user-invitation?id=${invitation.secretKey}"
+            val link = s"${APIUtil.getPropsValue("portal_hostname", APIUtil.getPropsValue("hostname", ""))}/user-invitation?id=${invitation.secretKey}"
             val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
             val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
               .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
