@@ -1,6 +1,9 @@
 #this is a sample props file you should edit and rename
 #see https://www.assembla.com/wiki/show/liftweb/Properties for all the naming options, or just use "default.props" in this same folder
 
+# See notes about WebUI Props below
+
+
 ### OBP-API configuration
 
 
@@ -337,6 +340,16 @@ BankMockKey=change_me
 # Add WebUiProps
 # Delete WebUiProps
 # Get WebUiProps
+
+# Please note: The non-commented-out webui_ props in this file are used to generate the default webui_ props used by the getWebUiProps endpoint which is used by API Manager -> Configurations -> WebUi Props
+# i.e. If you add a webui_ props in code but don't add it here, it will be missing from the API Manager screen where users can set it.
+
+# A note about WebUi Props precedence
+# If a database WebUI Props is found it will be used first.
+# If a database WebUI Props is not found, the version in the Props file will be used.
+# Note: Props can also be loaded from the environment.
+
+
 ####################################################################################
 
 
