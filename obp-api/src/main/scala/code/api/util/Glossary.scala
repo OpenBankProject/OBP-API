@@ -2080,7 +2080,26 @@ object Glossary {
  """)
 
 
-
+	glossaryItems += GlossaryItem(
+		title = "API Collection",
+		description =
+			s"""|An API Collection is a collection of endpoints grouped together for a certain purpose.
+|
+|Having read access to a Collection does not constitute execute access on the endpoints in the Collection.
+|
+|(Execute access is governed by Entitlements to Roles - and in some cases, Views.)
+|
+|Collections can be created and shared. You can make a collection non-sharable but the default is sharable.
+|
+|Your "Favourites" in API Explorer is actually a collection you control named "Favourites".
+|
+|To share a Collection (e.g. your Favourites) just click on your Favourites in the API Explorer and share the URL in the browser. If you want to share the Collection via an API, just share the collection_id with a developer.
+|
+|If you share a Collection it can't be modified by anyone else, but anyone can use it as a basis for their own Favourites or another collection.
+|
+|At the time of writing (July 2021), there are 13 endpoints for controlling Collections.
+|
+ """)
 
 
 	///////////////////////////////////////////////////////////////////
