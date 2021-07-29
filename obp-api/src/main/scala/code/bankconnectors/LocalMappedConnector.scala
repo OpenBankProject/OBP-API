@@ -2491,7 +2491,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case Full(x) =>
             tryo {
               x
-                .OperationId(endpointTag.operationId)
                 .TagName(endpointTag.tagName)
                 .saveMe()
             } ?~! UpdateEndpointTagError
@@ -2505,6 +2504,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case _ =>
             Failure(UnknownEndpointTagError)
         }, callContext)
+  }
+   
+  override def getEndpointTag(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (EndpointTag.find(
+       By(EndpointTag.OperationId, operationId),
+       By(EndpointTag.TagName, tagName),
+     ), callContext)
   }
   
   override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {

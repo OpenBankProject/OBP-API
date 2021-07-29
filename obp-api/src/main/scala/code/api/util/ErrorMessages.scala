@@ -348,6 +348,7 @@ object ErrorMessages {
   val UpdateEndpointTagError = "OBP-30097: Could not update the Endpoint Tag."
   val UnknownEndpointTagError = "OBP-30098: Unknown Endpoint Tag error. "
   val EndpointTagNotFoundByEndpointTagId = "OBP-30099: Invalid ENDPOINT_TAG_ID. Please specify a valid value for ENDPOINT_TAG_ID."
+  val EndpointTagAlreadyExists = "OBP-30100: EndpointTag already exists."
 
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

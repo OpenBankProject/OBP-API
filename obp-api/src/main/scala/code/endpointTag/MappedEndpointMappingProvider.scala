@@ -57,5 +57,5 @@ class EndpointTag extends EndpointTagT with LongKeyedMapper[EndpointTag] with Id
 }
 
 object EndpointTag extends EndpointTag with LongKeyedMetaMapper[EndpointTag] {
-  override def dbIndexes = UniqueIndex(EndpointTagId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(EndpointTagId) :: UniqueIndex(OperationId, TagName) ::super.dbIndexes
 }

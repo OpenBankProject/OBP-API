@@ -279,6 +279,12 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateEndpointTagError", 400), i._2)
       }
     }
+    
+    def checkEndpointTagExists(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.getEndpointTag(operationId: String, tagName:String, callContext) map {
+        i => (i._1.isDefined, i._2)
+      }
+    }
 
     def getEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[EndpointTagT] = {
       Connector.connector.vend.getEndpointTag(endpointTagId, callContext) map {

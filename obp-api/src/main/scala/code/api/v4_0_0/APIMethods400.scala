@@ -9116,7 +9116,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
       Some(List(canCreateDynamicEndpoint)))
     lazy val createEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tag" :: Nil JsonPost json -> _ => {
@@ -9124,6 +9124,10 @@ trait APIMethods400 {
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
               json.extract[EndpointTagJson400]
+            }
+            (endpointTagExisted, callContext) <- NewStyle.function.checkEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name})", cc=callContext) {
+              (!endpointTagExisted)
             }
             (endpointTagT, callContext) <- NewStyle.function.createOrUpdateEndpointTag(code.endpointTag.EndpointTagCommons(None,operationId,endpointTag.tag_name), cc.callContext)
           } yield {
@@ -9143,7 +9147,7 @@ trait APIMethods400 {
       "PUT",
       "/management/endpoints/OPERATION_ID/tag/ENDPOINT_TAG_ID",
       "Update Endpoint Tag",
-      s"""Update Endpoint Tag""",
+      s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
       endpointTagJson400,
       endpointTagResponseJson400,
       List(
@@ -9153,7 +9157,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagManageDynamicEndpoint, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
       Some(List(canUpdateDynamicEndpoint)))
     lazy val updateEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tag" :: endpointTagId :: Nil JsonPut json -> _ => {
@@ -9162,7 +9166,12 @@ trait APIMethods400 {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
               json.extract[EndpointTagJson400]
             }
+            
             (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            (endpointTagExisted, callContext) <- NewStyle.function.checkEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name}), please choose another tag_name", cc=callContext) {
+              (!endpointTagExisted)
+            }
             (endpointTagT, callContext) <- NewStyle.function.createOrUpdateEndpointTag(code.endpointTag.EndpointTagCommons(Some(endpointTagId),operationId,endpointTag.tag_name), cc.callContext)
           } yield {
             (EndpointTagResponseJson400(

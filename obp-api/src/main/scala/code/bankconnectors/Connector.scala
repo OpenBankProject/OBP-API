@@ -1560,6 +1560,8 @@ trait Connector extends MdcLoggable {
   def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{Failure(setUnimplementedError)}
   
   def createOrUpdateEndpointTag(endpointTag: EndpointTagT, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
+  
+  def getEndpointTag(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
 
   def getEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(Failure(setUnimplementedError))
   
