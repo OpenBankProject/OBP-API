@@ -9216,33 +9216,31 @@ trait APIMethods400 {
     }
     
     staticResourceDocs += ResourceDoc(
-      getEndpointTags,
+      deleteEndpointTag,
       implementedInApiVersion,
-      nameOf(getEndpointTags),
-      "GET",
-      "/management/endpoints/OPERATION_ID/tags",
-      "Get Endpoint Tags",
-      s"""Get Endpoint Tags.""",
+      nameOf(deleteEndpointTag),
+      "DELETE",
+      "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Delete Endpoint Tag",
+      s"""Delete Endpoint Tag.""",
       EmptyBody,
-      endpointTagResponseJson400 :: Nil,
+      Full(true),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
       ),
       List(apiTagApi, apiTagApi, apiTagNewStyle),
-      Some(List(canGetEndpointTag)))
-    lazy val getEndpointTags: OBPEndpoint = {
-      case "management" :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+      Some(List(canDeleteEndpointTag)))
+    lazy val deleteEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (endpointTags, callContext) <- NewStyle.function.getEndpointTags(operationId, cc.callContext)
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            
+            (deleted, callContext) <- NewStyle.function.deleteEndpointTag(endpointTagId, cc.callContext)
           } yield {
-            (endpointTags.map(endpointTagT => EndpointTagResponseJson400(
-              endpointTagT.endpointTagId.getOrElse(""),
-              endpointTagT.operationId,
-              endpointTagT.tagName
-            )), HttpCode.`201`(cc.callContext))
+            (Full(deleted), HttpCode.`200`(callContext))
           }
       }
     }

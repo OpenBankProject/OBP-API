@@ -292,6 +292,12 @@ object NewStyle {
       }
     }
 
+    def deleteEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteEndpointTag(endpointTagId, callContext) map {
+        i => (unboxFullOrFail(i._1,  callContext, s"$UnknownEndpointTagError Current ENDPOINT_TAG_ID is $endpointTagId", 404), i._2)
+      }
+    }
+
     def getEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[List[EndpointTagT]] = {
       Connector.connector.vend.getEndpointTags(operationId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetEndpointTags Current OPERATION_ID is $operationId", 404), i._2)

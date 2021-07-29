@@ -2484,6 +2484,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)), callContext)
   )
 
+  override def deleteEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future(
+    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)).map(_.delete_!), callContext)
+  )
+
   override def getEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(
     (tryo{EndpointTag.findAll(By(EndpointTag.OperationId, operationId))}, callContext)
   )
