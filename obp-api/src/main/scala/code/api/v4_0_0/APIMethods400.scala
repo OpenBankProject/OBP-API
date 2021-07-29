@@ -9105,7 +9105,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(createEndpointTag),
       "POST",
-      "/management/endpoints/OPERATION_ID/tag",
+      "/management/endpoints/OPERATION_ID/tags",
       "Create Endpoint Tag",
       s"""Create Endpoint Tag""",
       endpointTagJson400,
@@ -9117,9 +9117,9 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagApi, apiTagApi, apiTagNewStyle),
-      Some(List(canCreateDynamicEndpoint)))
+      Some(List(canCreateEndpointTag)))
     lazy val createEndpointTag: OBPEndpoint = {
-      case "management" :: "endpoints" :: operationId :: "tag" :: Nil JsonPost json -> _ => {
+      case "management" :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
@@ -9145,7 +9145,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(updateEndpointTag),
       "PUT",
-      "/management/endpoints/OPERATION_ID/tag/ENDPOINT_TAG_ID",
+      "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
       "Update Endpoint Tag",
       s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
       endpointTagJson400,
@@ -9158,9 +9158,9 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagApi, apiTagApi, apiTagNewStyle),
-      Some(List(canUpdateDynamicEndpoint)))
+      Some(List(canUpdateEndpointTag)))
     lazy val updateEndpointTag: OBPEndpoint = {
-      case "management" :: "endpoints" :: operationId :: "tag" :: endpointTagId :: Nil JsonPut json -> _ => {
+      case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
         cc =>
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
@@ -9179,6 +9179,70 @@ trait APIMethods400 {
               endpointTagT.operationId,
               endpointTagT.tagName
             ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getEndpointTags,
+      implementedInApiVersion,
+      nameOf(getEndpointTags),
+      "GET",
+      "/management/endpoints/OPERATION_ID/tags",
+      "Get Endpoint Tags",
+      s"""Get Endpoint Tags.""",
+      EmptyBody,
+      endpointTagResponseJson400 :: Nil,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canGetEndpointTag)))
+    lazy val getEndpointTags: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointTags, callContext) <- NewStyle.function.getEndpointTags(operationId, cc.callContext)
+          } yield {
+            (endpointTags.map(endpointTagT => EndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            )), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getEndpointTags,
+      implementedInApiVersion,
+      nameOf(getEndpointTags),
+      "GET",
+      "/management/endpoints/OPERATION_ID/tags",
+      "Get Endpoint Tags",
+      s"""Get Endpoint Tags.""",
+      EmptyBody,
+      endpointTagResponseJson400 :: Nil,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canGetEndpointTag)))
+    lazy val getEndpointTags: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointTags, callContext) <- NewStyle.function.getEndpointTags(operationId, cc.callContext)
+          } yield {
+            (endpointTags.map(endpointTagT => EndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            )), HttpCode.`201`(cc.callContext))
           }
       }
     }

@@ -1565,6 +1565,8 @@ trait Connector extends MdcLoggable {
 
   def getEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(Failure(setUnimplementedError))
   
+  def getEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(Failure(setUnimplementedError))
+  
   def createOrUpdateProduct(
                              bankId : String,
                              code : String,
