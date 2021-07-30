@@ -50,12 +50,14 @@ class EndpointTag extends EndpointTagT with LongKeyedMapper[EndpointTag] with Id
   object EndpointTagId extends MappedUUID(this)
   object OperationId extends MappedString(this, 255)
   object TagName extends MappedString(this, 255)
+  object BankId extends MappedString(this, 255)
 
   override def endpointTagId: Option[String] = Option(EndpointTagId.get)
   override def operationId: String = OperationId.get
   override def tagName: String = TagName.get
+  override def bankId: Option[String] = if (BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get) 
 }
 
 object EndpointTag extends EndpointTag with LongKeyedMetaMapper[EndpointTag] {
-  override def dbIndexes = UniqueIndex(EndpointTagId) :: UniqueIndex(OperationId, TagName) ::super.dbIndexes
+  override def dbIndexes = UniqueIndex(EndpointTagId) ::super.dbIndexes
 }

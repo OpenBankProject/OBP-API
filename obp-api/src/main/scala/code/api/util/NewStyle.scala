@@ -280,7 +280,7 @@ object NewStyle {
       }
     }
     
-    def checkEndpointTagExists(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+    def checkEndpointTagExists(bankId: Option[String], operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.getEndpointTag(operationId: String, tagName:String, callContext) map {
         i => (i._1.isDefined, i._2)
       }

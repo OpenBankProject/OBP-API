@@ -18,13 +18,15 @@ object EndpointTagProvider extends SimpleInjector {
 trait EndpointTagT {
   def endpointTagId: Option[String]
   def operationId: String
-  def tagName: String 
+  def tagName: String
+  def bankId: Option[String]
 }
 
 case class EndpointTagCommons(
   endpointTagId: Option[String],
   operationId: String,
   tagName: String,
+  bankId: Option[String],
   ) extends EndpointTagT with JsonFieldReName {
   /**
     * when serialized to json, the  Option field will be not shown, this endpoint just generate a full fields json, include all None value fields
@@ -34,7 +36,8 @@ case class EndpointTagCommons(
     JObject(List(
       JField("operation_id", JString(this.operationId)),
       JField("endpoint_mapping_id", this.endpointTagId.map(JString(_)).getOrElse(JNull)),
-      JField("tagName", JString(this.tagName))
+      JField("tagName", JString(this.tagName)),
+      JField("bankId", JString(this.bankId.getOrElse("")))
     ))
   }
 }

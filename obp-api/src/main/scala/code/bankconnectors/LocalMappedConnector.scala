@@ -2525,7 +2525,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        By(EndpointTag.TagName, tagName),
      ), callContext)
   }
+
+  override def getBankLevelEndpointTag(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+    (EndpointTag.find(
+      By(EndpointTag.OperationId, operationId),
+      By(EndpointTag.TagName, tagName),
+      By(EndpointTag.TagName, tagName),
+    ), callContext)
+  }
+
   
+
   override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)

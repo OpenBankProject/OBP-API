@@ -9101,13 +9101,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      createEndpointTag,
+      createSystemLevelEndpointTag,
       implementedInApiVersion,
-      nameOf(createEndpointTag),
+      nameOf(createSystemLevelEndpointTag),
       "POST",
       "/management/endpoints/OPERATION_ID/tags",
-      "Create Endpoint Tag",
-      s"""Create Endpoint Tag""",
+      "Create System Level Endpoint Tag",
+      s"""Create System Level Endpoint Tag""",
       endpointTagJson400,
       endpointTagResponseJson400,
       List(
@@ -9118,14 +9118,14 @@ trait APIMethods400 {
       ),
       List(apiTagApi, apiTagApi, apiTagNewStyle),
       Some(List(canCreateEndpointTag)))
-    lazy val createEndpointTag: OBPEndpoint = {
+    lazy val createSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
               json.extract[EndpointTagJson400]
             }
-            (endpointTagExisted, callContext) <- NewStyle.function.checkEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            (endpointTagExisted, callContext) <- NewStyle.function.checkEndpointTagExists(None, operationId, endpointTag.tag_name, cc.callContext)
             _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name})", cc=callContext) {
               (!endpointTagExisted)
             }
