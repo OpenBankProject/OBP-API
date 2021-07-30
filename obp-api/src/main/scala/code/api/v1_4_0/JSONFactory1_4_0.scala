@@ -6,6 +6,7 @@ import java.util.Date
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, PegdownOptions}
+import code.bankconnectors.LocalMappedConnector.getEndpointTagsBox
 import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
@@ -17,7 +18,6 @@ import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.{Formats, JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
-
 import code.util.Helper.MdcLoggable
 import org.apache.commons.lang3.StringUtils
 
@@ -480,6 +480,8 @@ object JSONFactory1_4_0 extends MdcLoggable{
       }
 
       val description = rd.description.stripMargin.trim ++ fieldsDescription
+      
+      val endpointTags = getEndpointTagsBox(rd.operationId).map(_.tagName)
 
       ResourceDocJson(
         operation_id = rd.operationId,
@@ -493,7 +495,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
         success_response_body = rd.successResponseBody,
         error_response_bodies = rd.errorResponseBodies,
         implemented_by = ImplementedByJson(rd.implementedInApiVersion.fullyQualifiedVersion, rd.partialFunctionName), // was rd.implementedInApiVersion.noV
-        tags = rd.tags.map(i => i.tag),
+        tags = endpointTags ++ rd.tags.map(i => i.tag),
         typed_request_body = createTypedBody(rd.exampleRequestBody),
         typed_success_response_body = createTypedBody(rd.successResponseBody),
         roles = rd.roles,

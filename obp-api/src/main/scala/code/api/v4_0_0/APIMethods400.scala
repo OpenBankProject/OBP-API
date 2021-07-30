@@ -9245,6 +9245,154 @@ trait APIMethods400 {
       }
     }
     
+    staticResourceDocs += ResourceDoc(
+      createBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(createBankLevelEndpointTag),
+      "POST",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
+      "Create Bank Level Endpoint Tag",
+      s"""Create Bank Level Endpoint Tag""",
+      endpointTagJson400,
+      endpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canBankLevelCreateEndpointTag)))
+    lazy val createBankLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (endpointTagExisted, callContext) <- NewStyle.function.checkEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name})", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.createOrUpdateEndpointTag(code.endpointTag.EndpointTagCommons(None,operationId,endpointTag.tag_name), cc.callContext)
+          } yield {
+            (EndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(updateBankLevelEndpointTag),
+      "PUT",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Update Bank Level Endpoint Tag",
+      s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
+      endpointTagJson400,
+      endpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        EndpointTagNotFoundByEndpointTagId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canBankLevelUpdateEndpointTag)))
+    lazy val updateBankLevelEndpointTag: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            (endpointTagExisted, callContext) <- NewStyle.function.checkEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name}), please choose another tag_name", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.createOrUpdateEndpointTag(code.endpointTag.EndpointTagCommons(Some(endpointTagId),operationId,endpointTag.tag_name), cc.callContext)
+          } yield {
+            (EndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelEndpointTags,
+      implementedInApiVersion,
+      nameOf(getBankLevelEndpointTags),
+      "GET",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
+      "Get Bank Level Endpoint Tags",
+      s"""Get Bank Level Endpoint Tags.""",
+      EmptyBody,
+      endpointTagResponseJson400 :: Nil,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canBankLevelGetEndpointTag)))
+    lazy val getBankLevelEndpointTags: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointTags, callContext) <- NewStyle.function.getEndpointTags(operationId, cc.callContext)
+          } yield {
+            (endpointTags.map(endpointTagT => EndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            )), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelEndpointTag),
+      "DELETE",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Delete Bank Level Endpoint Tag",
+      s"""Delete Bank Level Endpoint Tag.""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canBankLevelDeleteEndpointTag)))
+    lazy val deleteBankLevelEndpointTag: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+
+            (deleted, callContext) <- NewStyle.function.deleteEndpointTag(endpointTagId, cc.callContext)
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
   }
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {

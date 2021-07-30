@@ -43,7 +43,7 @@ object MappedEndpointTagProvider extends EndpointTagProvider with CustomJsonForm
   override def getAllEndpointTags: List[EndpointTagT] = EndpointTag.findAll() 
 }
 
-class EndpointTag extends EndpointTagT with LongKeyedMapper[EndpointTag] with IdPK with CustomJsonFormats{
+class EndpointTag extends EndpointTagT with LongKeyedMapper[EndpointTag] with IdPK with CreatedUpdated with CustomJsonFormats{
 
   override def getSingleton = EndpointTag
 
