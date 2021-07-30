@@ -905,7 +905,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             value <- tryo(values.head.toBoolean)?~! FilterAnonFormatError
             anon = OBPAnon(value)
           }yield anon
-
+        case "is_deleted" =>
+          for {
+            value <- tryo(values.head.toBoolean) ?~! FilterIsDeletedFormatError
+            deleted = OBPIsDeleted(value)
+          } yield deleted
         case "consumer_id" => Full(OBPConsumerId(values.head))
         case "user_id" => Full(OBPUserId(values.head))
         case "bank_id" => Full(OBPBankId(values.head))
@@ -948,6 +952,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       offset <- getOffset(httpParams)
       //all optional fields
       anon <- getHttpParamValuesByName(httpParams,"anon")
+      deletedStatus <- getHttpParamValuesByName(httpParams,"is_deleted")
       consumerId <- getHttpParamValuesByName(httpParams,"consumer_id")
       userId <- getHttpParamValuesByName(httpParams, "user_id")
       bankId <- getHttpParamValuesByName(httpParams, "bank_id")
@@ -985,7 +990,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       List(limit, offset, ordering, fromDate, toDate,
         anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, deletedStatus
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1008,6 +1013,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val limit =  getHttpRequestUrlParam(httpRequestUrl,"limit")
     val offset =  getHttpRequestUrlParam(httpRequestUrl,"offset")
     val anon =  getHttpRequestUrlParam(httpRequestUrl,"anon")
+    val isDeleted = getHttpRequestUrlParam(httpRequestUrl, "is_deleted")
     val consumerId =  getHttpRequestUrlParam(httpRequestUrl,"consumer_id")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1046,6 +1052,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("account_id", accountId),
       HTTPParam("connector_name", connectorName),
       HTTPParam("customer_id", customerId),
+      HTTPParam("is_deleted", isDeleted),
       HTTPParam("locked_status", lockedStatus)
     ).filter(_.values.head != ""))//Here filter the field when value = "".
   }
@@ -3220,6 +3227,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def canUseAccountFirehose(user: User): Boolean = {
     allowAccountFirehose && hasEntitlement("", user.userId, ApiRole.canUseAccountFirehoseAtAnyBank)
   }
+  def canUseAccountFirehoseAtBank(user: User, bankId: BankId): Boolean = {
+    allowAccountFirehose && hasEntitlement(bankId.value, user.userId, ApiRole.canUseAccountFirehose)
+  }
   def canUseCustomerFirehose(user: User): Boolean = {
     allowCustomerFirehose && hasEntitlement("", user.userId, ApiRole.canUseCustomerFirehoseAtAnyBank)
   }
@@ -3236,6 +3246,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       true
     else
       user match {
+        case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => true //Login User and Firehose access
         case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
         case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
         case _ =>
@@ -3268,6 +3279,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
           // 4th: The user has firehose access to this system view
           case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
+          // 5th: The user has firehose access at a bank to this system view
+          case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
           // The user has NO account access at all
           case _ => Empty
         }
@@ -3297,6 +3310,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def hasAccountFirehoseAccess(view: View, user: User) : Boolean = {
     if(view.isFirehose && canUseAccountFirehose(user)) true
+    else false
+  }
+  /**
+   * This view Firehose is true and set `allow_account_firehose = true` and the user has  `CanUseAccountFirehoseAtAnyBank` role
+   */
+  def hasAccountFirehoseAccessAtBank(view: View, user: User, bankId: BankId) : Boolean = {
+    if(view.isFirehose && canUseAccountFirehoseAtBank(user, bankId)) true
     else false
   }
 

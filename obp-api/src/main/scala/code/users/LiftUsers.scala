@@ -1,21 +1,19 @@
 package code.users
 
-import code.api.util.{OBPLimit, OBPLockedStatus, OBPOffset, OBPQueryParam}
+import code.api.util._
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
 import code.loginattempts.MappedBadLoginAttempt
-import code.model.dataAccess.ResourceUser
-import code.util.Helper
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{User, UserPrimaryKey}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.mapper._
-
-import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{User, UserPrimaryKey}
+import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.mapper._
 import net.liftweb.util.Helpers
 
 import scala.collection.immutable
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object LiftUsers extends Users with MdcLoggable{
@@ -129,8 +127,16 @@ object LiftUsers extends Users with MdcLoggable{
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
     val offset: Option[StartAt[ResourceUser]] = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
     val locked: Option[String] = queryParams.collect { case OBPLockedStatus(value) => value }.headOption
+    val deleted = queryParams.collect { 
+      case OBPIsDeleted(value) if value == true => // ?is_deleted=true
+        By(ResourceUser.IsDeleted, true)
+      case OBPIsDeleted(value) if value == false => // ?is_deleted=false
+        By(ResourceUser.IsDeleted, false)
+    }.headOption.orElse(
+      Some(By(ResourceUser.IsDeleted, false)) // There is no query parameter "is_deleted"
+    )
   
-    val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq).flatten
+    val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq, deleted.toSeq).flatten
     
     def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*)
     val showUsers: List[ResourceUser] = locked.map(_.toLowerCase()) match {
@@ -159,22 +165,7 @@ object LiftUsers extends Users with MdcLoggable{
       }
     }
   }
-
-  def getAllUsersFF(queryParams: List[OBPQueryParam]): List[(ResourceUser, Box[List[Entitlement]])] = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
   
-    val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq).flatten
-  
-    logger.debug(s"getAllUsersFF parameters $optionalParams")
-    val users = ResourceUser.findAll(optionalParams: _*)
-    logger.debug(s"getAllUsersFF response $users")
-    for {
-      user <- users
-    } yield {
-      (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
-    }
-  }
 
   override def createResourceUser(provider: String, 
                                   providerId: Option[String], 
@@ -259,11 +250,21 @@ object LiftUsers extends Users with MdcLoggable{
     for {
       u <- ResourceUser.find(By(ResourceUser.id, userPrimaryKey.value))
     } yield {
-      u
-        .name_(Helpers.randomString(u.name.length))
-        .Company(Helpers.randomString(u.company.length))
-        .email(Helpers.randomString(10) + "@example.com")
-        .save()
+      AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {
+        case Empty =>
+          u
+            .Company(Helpers.randomString(16))
+            .IsDeleted(true)
+            .name_("DELETED-" + Helpers.randomString(16))
+            .email(Helpers.randomString(10) + "@example.com")
+            .providerId(Helpers.randomString(16))
+            .save()
+        case _ =>
+          u
+            .Company(Helpers.randomString(16))
+            .IsDeleted(true)
+            .save()
+      }
     }
   }
   

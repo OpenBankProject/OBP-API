@@ -1691,6 +1691,9 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     entitlements = entitlementJSONs
   )
+  val userIdJsonV400 = UserIdJsonV400(
+    user_id = ExampleValue.userIdExample.value
+  )
   
   val userInvitationPostJsonV400 = PostUserInvitationJsonV400(
     first_name = ExampleValue.nameExample.value,

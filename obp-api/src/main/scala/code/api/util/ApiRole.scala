@@ -320,6 +320,9 @@ object ApiRole {
   case class CanUseAccountFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUseAccountFirehoseAtAnyBank = CanUseAccountFirehoseAtAnyBank()
   
+  case class CanUseAccountFirehose(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUseAccountFirehose = CanUseAccountFirehose()
+  
   case class CanUseCustomerFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUseCustomerFirehoseAtAnyBank = CanUseCustomerFirehoseAtAnyBank()
 

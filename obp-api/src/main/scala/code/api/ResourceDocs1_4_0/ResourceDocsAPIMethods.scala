@@ -211,8 +211,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     //implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
     // if upload DynamicEntity, will generate corresponding endpoints, when current cache timeout, the new endpoints will be shown.
     // so if you want the new generated endpoints shown timely, set this value to a small number, or set to a big number
-    val getDynamicResourceDocsTTL : Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "3600").toInt
-    val getStaticResourceDocsTTL : Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "86400").toInt
+    val getDynamicResourceDocsTTL : Int = APIUtil.getPropsValue(s"dynamicResourceDocsObp.cache.ttl.seconds", "0").toInt
+    val getStaticResourceDocsTTL : Int = APIUtil.getPropsValue(s"staticResourceDocsObp.cache.ttl.seconds", "0").toInt
 
     /**
      * 
@@ -475,6 +475,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => 
           for {
             (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match { 
@@ -486,7 +487,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               case true => // If set resource_docs_requires_role=true, we need check the the roles as well
                 Future(NewStyle.function.ownEntitlement("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc, cc.callContext))
             }
-            (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) <- Future(ResourceDocsAPIMethodsUtil.getParams())
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
             _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
             json <- languageParam match {
@@ -506,7 +506,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                     val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
                     Future(staticDocs.map(successJsonResponse(_)))
                   case _ =>
-                    import net.liftweb.util.Helpers.now
                     val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions)
                     Future(docs.map(successJsonResponse(_)))
                 }
