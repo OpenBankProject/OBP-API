@@ -2440,7 +2440,14 @@ object SwaggerDefinitionsJSON {
     tag_name = tagNameExample.value
   )
   
-  val endpointTagResponseJson400 = EndpointTagResponseJson400(
+  val systemLevelEndpointTagResponseJson400 = SystemLevelEndpointTagResponseJson400(
+    endpoint_tag_id = endpointTagIdExample.value,
+    operation_id = operationIdExample.value,
+    tag_name = tagNameExample.value
+  )
+  
+  val bankLevelEndpointTagResponseJson400 = BankLevelEndpointTagResponseJson400(
+    bank_id = bankIdExample.value,
     endpoint_tag_id = endpointTagIdExample.value,
     operation_id = operationIdExample.value,
     tag_name = tagNameExample.value

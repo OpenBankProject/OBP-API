@@ -6,7 +6,7 @@ import java.util.Date
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, PegdownOptions}
-import code.bankconnectors.LocalMappedConnector.getEndpointTagsBox
+import code.bankconnectors.LocalMappedConnector.getAllEndpointTagsBox
 import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
@@ -481,7 +481,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
       val description = rd.description.stripMargin.trim ++ fieldsDescription
       
-      val endpointTags = getEndpointTagsBox(rd.operationId).map(_.tagName)
+      val endpointTags = getAllEndpointTagsBox(rd.operationId).map(_.tagName)
 
       ResourceDocJson(
         operation_id = rd.operationId,

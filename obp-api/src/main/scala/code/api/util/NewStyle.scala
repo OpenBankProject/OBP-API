@@ -273,21 +273,45 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateAtmError", 400), i._2)
       } 
     }
-    
-    def createOrUpdateEndpointTag(endpointTag: EndpointTagT, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
-      Connector.connector.vend.createOrUpdateEndpointTag(endpointTag, callContext) map {
+
+    def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+      Connector.connector.vend.createSystemLevelEndpointTag(operationId, tagName, callContext) map { 
         i => (unboxFullOrFail(i._1, callContext, s"$CreateEndpointTagError", 400), i._2)
       }
     }
     
-    def checkEndpointTagExists(bankId: Option[String], operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
-      Connector.connector.vend.getEndpointTag(operationId: String, tagName:String, callContext) map {
+    def updateSystemLevelEndpointTag(endpointTagId: String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+     Connector.connector.vend.updateSystemLevelEndpointTag(endpointTagId: String, operationId:String, tagName:String, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateEndpointTagError", 400), i._2)
+      }
+    }
+
+    def createBankLevelEndpointTag(bankId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+      Connector.connector.vend.createBankLevelEndpointTag(bankId, operationId, tagName, callContext) map { 
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateEndpointTagError", 400), i._2)
+      }
+    }
+    
+    def updateBankLevelEndpointTag(bankId:String, endpointTagId: String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+     Connector.connector.vend.updateBankLevelEndpointTag(bankId, endpointTagId, operationId, tagName, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateEndpointTagError", 400), i._2)
+      }
+    }
+    
+    def checkSystemLevelEndpointTagExists(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.getSystemLevelEndpointTag(operationId: String, tagName: String, callContext) map {
+        i => (i._1.isDefined, i._2)
+      }
+    }
+    
+    def checkBankLevelEndpointTagExists(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.getBankLevelEndpointTag(bankId: String, operationId: String, tagName: String, callContext) map {
         i => (i._1.isDefined, i._2)
       }
     }
 
     def getEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[EndpointTagT] = {
-      Connector.connector.vend.getEndpointTag(endpointTagId, callContext) map {
+      Connector.connector.vend.getEndpointTagById(endpointTagId, callContext) map {
         i => (unboxFullOrFail(i._1,  callContext, s"$EndpointTagNotFoundByEndpointTagId Current ENDPOINT_TAG_ID is $endpointTagId", 404), i._2)
       }
     }
@@ -298,8 +322,14 @@ object NewStyle {
       }
     }
 
-    def getEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[List[EndpointTagT]] = {
-      Connector.connector.vend.getEndpointTags(operationId, callContext) map {
+    def getSystemLevelEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[List[EndpointTagT]] = {
+      Connector.connector.vend.getSystemLevelEndpointTags(operationId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetEndpointTags Current OPERATION_ID is $operationId", 404), i._2)
+      }
+    }
+
+    def getBankLevelEndpointTags(bankId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[List[EndpointTagT]] = {
+      Connector.connector.vend.getBankLevelEndpointTags(bankId, operationId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetEndpointTags Current OPERATION_ID is $operationId", 404), i._2)
       }
     }

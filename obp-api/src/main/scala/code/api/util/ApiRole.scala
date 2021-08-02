@@ -764,29 +764,29 @@ object ApiRole {
   case class CanGetUserInvitation(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetUserInvitation = CanGetUserInvitation()
 
-  case class CanCreateEndpointTag(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateEndpointTag = CanCreateEndpointTag()
+  case class CanCreateSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSystemLevelCreateEndpointTag = CanCreateSystemLevelEndpointTag()
   
-  case class CanUpdateEndpointTag(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUpdateEndpointTag = CanUpdateEndpointTag()
+  case class CanUpdateSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateSystemLevelEndpointTag = CanUpdateSystemLevelEndpointTag()
   
-  case class CanDeleteEndpointTag(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteEndpointTag = CanDeleteEndpointTag()
+  case class CanDeleteSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSystemLevelEndpointTag = CanDeleteSystemLevelEndpointTag()
   
-  case class CanGetEndpointTag(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetEndpointTag = CanGetEndpointTag()
+  case class CanGetSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSystemLevelEndpointTag = CanGetSystemLevelEndpointTag()
 
-  case class CanBankLevelCreateEndpointTag(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canBankLevelCreateEndpointTag = CanBankLevelCreateEndpointTag()
+  case class CanCreateBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateBankLevelEndpointTag = CanCreateBankLevelEndpointTag()
 
-  case class CanBankLevelUpdateEndpointTag(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canBankLevelUpdateEndpointTag = CanBankLevelUpdateEndpointTag()
+  case class CanUpdateBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankLevelEndpointTag = CanUpdateBankLevelEndpointTag()
 
-  case class CanBankLevelDeleteEndpointTag(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canBankLevelDeleteEndpointTag = CanBankLevelDeleteEndpointTag()
+  case class CanDeleteBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankLevelEndpointTag = CanDeleteBankLevelEndpointTag()
 
-  case class CanBankLevelGetEndpointTag(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canBankLevelGetEndpointTag = CanBankLevelGetEndpointTag()
+  case class CanGetBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankLevelEndpointTag = CanGetBankLevelEndpointTag()
   
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
