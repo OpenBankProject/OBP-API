@@ -3241,7 +3241,7 @@ trait APIMethods310 {
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
-          val (resourceDocTags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+          val (resourceDocTags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)
