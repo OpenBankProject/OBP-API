@@ -10,6 +10,23 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 object Glossary {
 
+	def getGlossaryItemAsHtml(title: String): String = {
+		glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
+			case Some(foundItem) =>
+				val buttonTitle = foundItem.title
+				val id = foundItem.title.replace(" ", "-").toLowerCase
+					s"""
+					|<div>
+					|		<button type="button" id="collapsible-button-${id}" class="collapsible" onclick="collapse('collapsible-${id}', 'collapsible-button-${id}')">$buttonTitle</button>
+					|		<div id="collapsible-${id}" style="display:none;">${foundItem.htmlDescription}</div>
+					|</div>
+					|<br></br>
+					|""".stripMargin
+				case None => ""
+		}
+		
+	}
+
 	// reason of description is function: because we want make description is dynamic, so description can read
 	// webui_ props dynamic instead of a constant string.
  case class GlossaryItem(
