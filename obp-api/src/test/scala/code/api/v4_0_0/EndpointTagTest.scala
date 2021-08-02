@@ -100,9 +100,8 @@ class EndpointTagTest extends V400ServerSetup {
 
       val getEndpointTags = responseGet.body.extract[List[SystemLevelEndpointTagResponseJson400]]
 
-//      getEndpointTags.length should be (1)
-//      getEndpointTags.head should be (updatedEndpointTag)
-      
+      getEndpointTags.length should be (1)
+      getEndpointTags.head should be (updatedEndpointTag)
 
       Then(s"we test the $ApiEndpoint4")
       val requestDelete = (v4_0_0_Request  / "management" / "endpoints" / operationIdInUrl /"tags"/ endpointTagId).DELETE <@ (user1)
@@ -118,6 +117,49 @@ class EndpointTagTest extends V400ServerSetup {
       val endpointTagsJsonGetAfterDelete = responseGetAfterDelete.body.extract[List[SystemLevelEndpointTagResponseJson400]]
 
       endpointTagsJsonGetAfterDelete.length should be (0)
+    }
+
+    scenario("We test roles the Endpoint Tag Endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+      When(s"First we test the $ApiEndpoint1")
+      val request = (v4_0_0_Request / "management" / "endpoints" / operationIdInUrl /"tags").POST <@ (user1)
+      lazy val endpointTagJson= SwaggerDefinitionsJSON.endpointTagJson400
+
+      val response = makePostRequest(request, write(endpointTagJson))
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.toString contains(s"${ApiRole.CanCreateSystemLevelEndpointTag.toString}") should be (true)
+      
+      
+      Then(s"we test the $ApiEndpoint2")
+      val updateRequestEndpointTag = (v4_0_0_Request / "management" / "endpoints" / operationIdInUrl /"tags"/ "1").PUT <@ (user1)
+
+      lazy val endpointTagUpdatedJson = endpointTagJson.copy(tag_name = "update1")
+
+      val updateResponseEndpointTagJson = makePutRequest(updateRequestEndpointTag, write(endpointTagUpdatedJson))
+      Then("We should get a 403")
+      updateResponseEndpointTagJson.code should equal(403)
+      updateResponseEndpointTagJson.body.toString contains(s"${ApiRole.CanUpdateSystemLevelEndpointTag.toString}") should be (true)
+
+
+      Then(s"we test the $ApiEndpoint3")
+      val requestGet = (v4_0_0_Request  / "management" / "endpoints" / operationIdInUrl /"tags").GET <@ (user1)
+
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 403")
+      responseGet.code should equal(403)
+
+     responseGet.body.toString contains(s"${ApiRole.CanGetSystemLevelEndpointTag.toString}") should be (true)
+
+
+
+      Then(s"we test the $ApiEndpoint4")
+      val requestDelete = (v4_0_0_Request  / "management" / "endpoints" / operationIdInUrl /"tags"/ "1").DELETE <@ (user1)
+
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("We should get a 403")
+      responseDelete.code should equal(403)
+      responseDelete.body.toString contains(s"${ApiRole.CanDeleteSystemLevelEndpointTag.toString}") should be (true)
+     
     }
   }
   
@@ -183,6 +225,47 @@ class EndpointTagTest extends V400ServerSetup {
       val endpointTagsJsonGetAfterDelete = responseGetAfterDelete.body.extract[List[BankLevelEndpointTagResponseJson400]]
 
       endpointTagsJsonGetAfterDelete.length should be (0)
+    }
+    
+    scenario("We test roles the Endpoint Tag Endpoints", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
+      When(s"First we test the $ApiEndpoint5")
+      val request = (v4_0_0_Request / "management" /"banks"/testBankId1.value / "endpoints" / operationIdInUrl /"tags").POST <@ (user1)
+      lazy val endpointTagJson= SwaggerDefinitionsJSON.endpointTagJson400
+
+      val response = makePostRequest(request, write(endpointTagJson))
+      Then("We should get a 403")
+      response.code should equal(403)
+
+      response.body.toString contains(s"${ApiRole.CanCreateBankLevelEndpointTag.toString}") should be (true)
+      
+      Then(s"we test the $ApiEndpoint6")
+      val updateRequestEndpointTag = (v4_0_0_Request / "management" /"banks"/testBankId1.value / "endpoints" / operationIdInUrl /"tags"/ "1").PUT <@ (user1)
+
+      lazy val endpointTagUpdatedJson = endpointTagJson.copy(tag_name = "update1")
+
+      val updateResponseEndpointTagJson = makePutRequest(updateRequestEndpointTag, write(endpointTagUpdatedJson))
+      Then("We should get a 403")
+      updateResponseEndpointTagJson.code should equal(403)
+      updateResponseEndpointTagJson.body.toString contains(s"${ApiRole.CanUpdateBankLevelEndpointTag.toString}") should be (true)
+
+      
+      Then(s"we test the $ApiEndpoint7")
+      val requestGet = (v4_0_0_Request  / "management" /"banks"/testBankId1.value / "endpoints" / operationIdInUrl /"tags").GET <@ (user1)
+
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 403")
+      responseGet.code should equal(403)
+      responseGet.body.toString contains(s"${ApiRole.CanGetBankLevelEndpointTag.toString}") should be (true)
+      
+
+      Then(s"we test the $ApiEndpoint8")
+      val requestDelete = (v4_0_0_Request  / "management" /"banks"/testBankId1.value / "endpoints" / operationIdInUrl /"tags"/ "1").DELETE <@ (user1)
+
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("We should get a 403")
+      responseDelete.code should equal(403)
+      responseDelete.body.toString contains(s"${ApiRole.CanDeleteBankLevelEndpointTag.toString}") should be (true)
+
     }
   }
 
