@@ -10,18 +10,21 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 object Glossary {
 
-	def getGlossaryItemAsHtml(title: String): String = {
+	def getGlossaryItem(title: String): String = {
 		glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
 			case Some(foundItem) =>
-				val buttonTitle = foundItem.title
-				val id = foundItem.title.replace(" ", "-").toLowerCase
-					s"""
-					|<div>
-					|		<button type="button" id="collapsible-button-${id}" class="collapsible" onclick="collapse('collapsible-${id}', 'collapsible-button-${id}')">$buttonTitle</button>
-					|		<div id="collapsible-${id}" style="display:none;">${foundItem.htmlDescription}</div>
-					|</div>
-					|<br></br>
-					|""".stripMargin
+				/**
+				 * Two important rules:
+				 * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
+				 * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
+				 */
+				s"""
+				 |<details>
+				 |  <summary>${foundItem.title}</summary>
+				 |  
+				 |  ${foundItem.description.apply()}
+				 |</details>
+				 |""".stripMargin
 				case None => ""
 		}
 		
@@ -113,7 +116,7 @@ object Glossary {
 		title = "Cheat Sheet",
 		description =
 			s"""
-				 |## A selection of links to get you started using the Open Bank Project API platform, applications and tools.
+				 |### A selection of links to get you started using the Open Bank Project API platform, applications and tools.
 				 				 |
 				 |[OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
 				 				 |
