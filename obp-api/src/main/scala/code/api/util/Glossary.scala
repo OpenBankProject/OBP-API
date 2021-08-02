@@ -10,6 +10,26 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 object Glossary {
 
+	def getGlossaryItem(title: String): String = {
+		glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
+			case Some(foundItem) =>
+				/**
+				 * Two important rules:
+				 * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
+				 * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
+				 */
+				s"""
+				 |<details>
+				 |  <summary>${foundItem.title}</summary>
+				 |  
+				 |  ${foundItem.description.apply()}
+				 |</details>
+				 |""".stripMargin
+				case None => ""
+		}
+		
+	}
+
 	// reason of description is function: because we want make description is dynamic, so description can read
 	// webui_ props dynamic instead of a constant string.
  case class GlossaryItem(
@@ -96,7 +116,7 @@ object Glossary {
 		title = "Cheat Sheet",
 		description =
 			s"""
-				 |## A selection of links to get you started using the Open Bank Project API platform, applications and tools.
+				 |### A selection of links to get you started using the Open Bank Project API platform, applications and tools.
 				 				 |
 				 |[OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
 				 				 |
