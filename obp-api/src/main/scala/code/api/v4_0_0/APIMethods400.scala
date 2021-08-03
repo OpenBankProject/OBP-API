@@ -7140,6 +7140,9 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
+         |${Glossary.getGlossaryItem("API Collection")}
+         |
+         |
          |""",
       EmptyBody,
       Full(true),
@@ -7171,6 +7174,9 @@ trait APIMethods400 {
       "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
       "Create My Api Collection Endpoint",
       s"""Create Api Collection Endpoint.
+         |
+         |${Glossary.getGlossaryItem("API Collection")}
+         |
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -7317,6 +7323,9 @@ trait APIMethods400 {
       "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
       "Delete My Api Collection Endpoint",
       s"""Delete Api Collection Endpoint By Id
+         |
+         |
+         |${Glossary.getGlossaryItem("API Collection")}
          |
          |${authenticationRequiredMessage(true)}
          |

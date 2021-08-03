@@ -2,16 +2,19 @@ package code.api.util
 
 import code.api.util.APIUtil.{getOAuth2ServerUrl, getObpApiRoot, getServerUrl}
 import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
+import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer
-
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 
-object Glossary {
+object Glossary extends MdcLoggable  {
 
 	def getGlossaryItem(title: String): String = {
-		glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
+
+		logger.debug(s"getGlossaryItem says Hello. title to find is: $title")
+
+		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
 			case Some(foundItem) =>
 				/**
 				 * Two important rules:
@@ -24,10 +27,12 @@ object Glossary {
 				 |  
 				 |  ${foundItem.description.apply()}
 				 |</details>
+				 |
 				 |""".stripMargin
 				case None => ""
 		}
-		
+		logger.debug(s"getGlossaryItem says markdown to return is $something")
+		something
 	}
 
 	// reason of description is function: because we want make description is dynamic, so description can read
