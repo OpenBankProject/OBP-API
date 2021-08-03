@@ -765,7 +765,7 @@ object ApiRole {
   lazy val canGetUserInvitation = CanGetUserInvitation()
 
   case class CanCreateSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canSystemLevelCreateEndpointTag = CanCreateSystemLevelEndpointTag()
+  lazy val canCreateSystemLevelEndpointTag = CanCreateSystemLevelEndpointTag()
   
   case class CanUpdateSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateSystemLevelEndpointTag = CanUpdateSystemLevelEndpointTag()

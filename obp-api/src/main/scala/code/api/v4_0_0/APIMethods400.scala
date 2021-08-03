@@ -9112,7 +9112,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagApi, apiTagApi, apiTagNewStyle),
-      Some(List(canSystemLevelCreateEndpointTag)))
+      Some(List(canCreateSystemLevelEndpointTag)))
     lazy val createSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
         cc =>
