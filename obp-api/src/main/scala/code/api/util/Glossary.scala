@@ -23,7 +23,7 @@ object Glossary extends MdcLoggable  {
 				 */
 				s"""
 				 |<details>
-				 |  <summary>${foundItem.title}</summary>
+				 |  <summary style="display:list-item;cursor:s-resize;">${foundItem.title}</summary>
 				 |  
 				 |  ${foundItem.htmlDescription}
 				 |</details>
