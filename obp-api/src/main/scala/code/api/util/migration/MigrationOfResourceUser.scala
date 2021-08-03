@@ -28,7 +28,7 @@ object MigrationOfResourceUser {
 
         val emptyDeletedField = 
           for {
-            user <- ResourceUser.findAll() if user.isDeleted == false
+            user <- ResourceUser.findAll() if user.isDeleted.getOrElse(false) == false
           } yield {
             user.IsDeleted(false).saveMe()
           }
