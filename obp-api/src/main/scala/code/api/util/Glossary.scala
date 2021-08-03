@@ -25,9 +25,9 @@ object Glossary extends MdcLoggable  {
 				 |<details>
 				 |  <summary>${foundItem.title}</summary>
 				 |  
-				 |  ${foundItem.description.apply()}
+				 |  ${foundItem.htmlDescription}
 				 |</details>
-				 |
+				 |<br></br>
 				 |""".stripMargin
 				case None => ""
 		}
