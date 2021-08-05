@@ -890,7 +890,7 @@ object NewStyle {
     
     
     def isValidCurrencyISOCode(currencyCode: String,  callContext: Option[CallContext]) = {
-      tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
+      tryons(failMsg = InvalidISOCurrencyCode+s" Current currencyCode is $currencyCode",400, callContext) {
         assert(APIUtil.isValidCurrencyISOCode(currencyCode))
       }
     }
