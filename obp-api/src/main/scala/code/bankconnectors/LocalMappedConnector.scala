@@ -2498,18 +2498,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
    def getAllEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
      By(EndpointTag.OperationId, operationId),
-     OrderBy(EndpointTag.updatedAt, Descending)
+     OrderBy(EndpointTag.TagName, Ascending)
    )
   
    def getSystemLevelEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
      By(EndpointTag.OperationId, operationId),
-     OrderBy(EndpointTag.updatedAt, Descending)
+     OrderBy(EndpointTag.TagName, Ascending)
    ).filter(_.bankId == None)
 
    def getBankLevelEndpointTagsBox(bankId:String, operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
      By(EndpointTag.BankId, bankId),
      By(EndpointTag.OperationId, operationId),
-     OrderBy(EndpointTag.updatedAt, Descending)
+     OrderBy(EndpointTag.TagName, Ascending)
    )
   
    override def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
