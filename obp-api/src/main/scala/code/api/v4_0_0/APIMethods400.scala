@@ -3,7 +3,6 @@ package code.api.v4_0_0
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
-import code.api.{ChargePolicy, JsonResponseException}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
@@ -23,25 +22,29 @@ import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.transformToAtmFromV300
 import code.api.v3_1_0._
+import code.api.v4_0_0.JSONFactory400._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
-import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
-import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
+import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
+import code.api.v4_0_0.dynamic._
+import code.api.{ChargePolicy, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentStatus, Consents, MappedConsent}
+import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
+import code.dynamicMessageDoc.JsonDynamicMessageDoc
+import code.dynamicResourceDoc.JsonDynamicResourceDoc
+import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
 import code.ratelimiting.RateLimitingDI
+import code.snippet.{WebUIPlaceholder, WebUITemplate}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
@@ -53,38 +56,30 @@ import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{ListResult, _}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
+import com.openbankproject.commons.model.{ListResult, _}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
-import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
+import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
-import net.liftweb.json.JsonAST.{JField, JValue}
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, prettyRender, _}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.now
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-import java.util.{Calendar, Date}
 
-import code.dynamicMessageDoc.JsonDynamicMessageDoc
-import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import java.net.URLEncoder
-
-import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
-import code.endpointMapping.EndpointMappingCommons
-import code.snippet.{WebUIPlaceholder, WebUITemplate}
-import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
-import net.liftweb.json
-import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
-
+import java.util.{Calendar, Date}
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -4888,7 +4883,7 @@ trait APIMethods400 {
       nameOf(getDynamicEndpoint),
       "GET",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
-      " Get Dynamic Endpoint",
+      "Get Dynamic Endpoint",
       s"""Get a Dynamic Endpoint.
          |
          |
@@ -9108,6 +9103,302 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      createSystemLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(createSystemLevelEndpointTag),
+      "POST",
+      "/management/endpoints/OPERATION_ID/tags",
+      "Create System Level Endpoint Tag",
+      s"""Create System Level Endpoint Tag""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateSystemLevelEndpointTag)))
+    lazy val createSystemLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (endpointTagExisted, callContext) <- NewStyle.function.checkSystemLevelEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name})", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTag, callContext) <- NewStyle.function.createSystemLevelEndpointTag(operationId,endpointTag.tag_name, cc.callContext)
+          } yield {
+            (SystemLevelEndpointTagResponseJson400(
+              endpointTag.endpointTagId.getOrElse(""),
+              endpointTag.operationId,
+              endpointTag.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateSystemLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(updateSystemLevelEndpointTag),
+      "PUT",
+      "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Update System Level Endpoint Tag",
+      s"""Update System Level Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        EndpointTagNotFoundByEndpointTagId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateSystemLevelEndpointTag)))
+    lazy val updateSystemLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            (endpointTagExisted, callContext) <- NewStyle.function.checkSystemLevelEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name}), please choose another tag_name", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.updateSystemLevelEndpointTag(endpointTagId, operationId,endpointTag.tag_name, cc.callContext)
+          } yield {
+            (SystemLevelEndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSystemLevelEndpointTags,
+      implementedInApiVersion,
+      nameOf(getSystemLevelEndpointTags),
+      "GET",
+      "/management/endpoints/OPERATION_ID/tags",
+      "Get System Level Endpoint Tags",
+      s"""Get System Level Endpoint Tags.""",
+      EmptyBody,
+      bankLevelEndpointTagResponseJson400 :: Nil,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canGetSystemLevelEndpointTag)))
+    lazy val getSystemLevelEndpointTags: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointTags, callContext) <- NewStyle.function.getSystemLevelEndpointTags(operationId, cc.callContext)
+          } yield {
+            (endpointTags.map(endpointTagT => SystemLevelEndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            )), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteSystemLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(deleteSystemLevelEndpointTag),
+      "DELETE",
+      "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Delete System Level Endpoint Tag",
+      s"""Delete System Level Endpoint Tag.""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteSystemLevelEndpointTag)))
+    lazy val deleteSystemLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            
+            (deleted, callContext) <- NewStyle.function.deleteEndpointTag(endpointTagId, cc.callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      createBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(createBankLevelEndpointTag),
+      "POST",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
+      "Create Bank Level Endpoint Tag",
+      s"""Create Bank Level Endpoint Tag""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateBankLevelEndpointTag)))
+    lazy val createBankLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (endpointTagExisted, callContext) <- NewStyle.function.checkBankLevelEndpointTagExists(bankId, operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name})", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.createBankLevelEndpointTag(bankId, operationId, endpointTag.tag_name, cc.callContext)
+          } yield {
+            (BankLevelEndpointTagResponseJson400(
+              endpointTagT.bankId.getOrElse(""),
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(updateBankLevelEndpointTag),
+      "PUT",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Update Bank Level Endpoint Tag",
+      s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        EndpointTagNotFoundByEndpointTagId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateBankLevelEndpointTag)))
+    lazy val updateBankLevelEndpointTag: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            (endpointTagExisted, callContext) <- NewStyle.function.checkBankLevelEndpointTagExists(bankId, operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists BANK_ID($bankId), OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name}), please choose another tag_name", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.updateBankLevelEndpointTag(bankId, endpointTagId, operationId, endpointTag.tag_name, cc.callContext)
+          } yield {
+            (BankLevelEndpointTagResponseJson400(
+              endpointTagT.bankId.getOrElse(""),
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelEndpointTags,
+      implementedInApiVersion,
+      nameOf(getBankLevelEndpointTags),
+      "GET",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
+      "Get Bank Level Endpoint Tags",
+      s"""Get Bank Level Endpoint Tags.""",
+      EmptyBody,
+      bankLevelEndpointTagResponseJson400 :: Nil,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canGetBankLevelEndpointTag)))
+    lazy val getBankLevelEndpointTags: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointTags, callContext) <- NewStyle.function.getBankLevelEndpointTags(bankId, operationId, cc.callContext)
+          } yield {
+            (endpointTags.map(endpointTagT => BankLevelEndpointTagResponseJson400(
+              endpointTagT.bankId.getOrElse(""),
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            )), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelEndpointTag),
+      "DELETE",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Delete Bank Level Endpoint Tag",
+      s"""Delete Bank Level Endpoint Tag.""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteBankLevelEndpointTag)))
+    lazy val deleteBankLevelEndpointTag: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+
+            (deleted, callContext) <- NewStyle.function.deleteEndpointTag(endpointTagId, cc.callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
   }
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {

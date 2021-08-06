@@ -2,7 +2,6 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -32,6 +31,7 @@ import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
 import code.database.authorisation.Authorisations
 import code.directdebit.DirectDebits
+import code.endpointTag.{EndpointTag, EndpointTagT}
 import code.fx.fx.TTL
 import code.fx.{MappedFXRate, fx}
 import code.kycchecks.KycChecks
@@ -2479,7 +2479,112 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{
     (createOrUpdateAtmLegacy(atm), callContext)
   }
+
+  override def getEndpointTagById(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(
+    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)), callContext)
+  )
+
+  override def deleteEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future(
+    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)).map(_.delete_!), callContext)
+  )
+
+  override def getSystemLevelEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(
+    (tryo{getSystemLevelEndpointTagsBox(operationId : String)}, callContext)
+  )
+
+  override def getBankLevelEndpointTags(bankId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(
+    (tryo{getBankLevelEndpointTagsBox(bankId:String, operationId : String)}, callContext)
+  )
+
+   def getAllEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
+     By(EndpointTag.OperationId, operationId),
+     OrderBy(EndpointTag.TagName, Ascending)
+   )
   
+   def getSystemLevelEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
+     By(EndpointTag.OperationId, operationId),
+     OrderBy(EndpointTag.TagName, Ascending)
+   ).filter(_.bankId == None)
+
+   def getBankLevelEndpointTagsBox(bankId:String, operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
+     By(EndpointTag.BankId, bankId),
+     By(EndpointTag.OperationId, operationId),
+     OrderBy(EndpointTag.TagName, Ascending)
+   )
+  
+   override def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       tryo {
+         EndpointTag.create
+           .BankId(null)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       } ?~! CreateEndpointTagError, 
+       callContext
+     )
+  }
+  
+   override def updateSystemLevelEndpointTag(endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       EndpointTag.find(
+         By(EndpointTag.EndpointTagId, endpointTagId)
+       ).map(endpointTag =>
+         endpointTag
+           .BankId(null)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       )
+       , callContext
+     )
+  }
+   
+   override def createBankLevelEndpointTag(bankId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       tryo {
+         EndpointTag.create
+           .BankId(bankId)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       } ?~! CreateEndpointTagError, 
+       callContext
+     )
+  }
+  
+   override def updateBankLevelEndpointTag(bankId:String, endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       EndpointTag.find(
+         By(EndpointTag.EndpointTagId, endpointTagId)
+       ).map(endpointTag =>
+         endpointTag
+           .BankId(bankId)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       )
+       , callContext
+     )
+  }
+   
+  override def getSystemLevelEndpointTag(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (EndpointTag.find(
+       By(EndpointTag.OperationId, operationId),
+       By(EndpointTag.TagName, tagName),
+     ).filter(_.bankId == None), callContext)
+  }
+
+  override def getBankLevelEndpointTag(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+    (EndpointTag.find(
+      By(EndpointTag.OperationId, operationId),
+      By(EndpointTag.TagName, tagName),
+      By(EndpointTag.TagName, tagName),
+    ), callContext)
+  }
+
+  
+
   override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)

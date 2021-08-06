@@ -3,7 +3,6 @@ package code.api.util
 import java.io
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
@@ -68,6 +67,7 @@ import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
+import code.endpointTag.EndpointTagT
 import net.liftweb.json
 
 object NewStyle {
@@ -272,6 +272,66 @@ object NewStyle {
       Connector.connector.vend.createOrUpdateAtm(atm, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateAtmError", 400), i._2)
       } 
+    }
+
+    def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+      Connector.connector.vend.createSystemLevelEndpointTag(operationId, tagName, callContext) map { 
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateEndpointTagError", 400), i._2)
+      }
+    }
+    
+    def updateSystemLevelEndpointTag(endpointTagId: String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+     Connector.connector.vend.updateSystemLevelEndpointTag(endpointTagId: String, operationId:String, tagName:String, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateEndpointTagError", 400), i._2)
+      }
+    }
+
+    def createBankLevelEndpointTag(bankId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+      Connector.connector.vend.createBankLevelEndpointTag(bankId, operationId, tagName, callContext) map { 
+        i => (unboxFullOrFail(i._1, callContext, s"$CreateEndpointTagError", 400), i._2)
+      }
+    }
+    
+    def updateBankLevelEndpointTag(bankId:String, endpointTagId: String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+     Connector.connector.vend.updateBankLevelEndpointTag(bankId, endpointTagId, operationId, tagName, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UpdateEndpointTagError", 400), i._2)
+      }
+    }
+    
+    def checkSystemLevelEndpointTagExists(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.getSystemLevelEndpointTag(operationId: String, tagName: String, callContext) map {
+        i => (i._1.isDefined, i._2)
+      }
+    }
+    
+    def checkBankLevelEndpointTagExists(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.getBankLevelEndpointTag(bankId: String, operationId: String, tagName: String, callContext) map {
+        i => (i._1.isDefined, i._2)
+      }
+    }
+
+    def getEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[EndpointTagT] = {
+      Connector.connector.vend.getEndpointTagById(endpointTagId, callContext) map {
+        i => (unboxFullOrFail(i._1,  callContext, s"$EndpointTagNotFoundByEndpointTagId Current ENDPOINT_TAG_ID is $endpointTagId", 404), i._2)
+      }
+    }
+
+    def deleteEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteEndpointTag(endpointTagId, callContext) map {
+        i => (unboxFullOrFail(i._1,  callContext, s"$UnknownEndpointTagError Current ENDPOINT_TAG_ID is $endpointTagId", 404), i._2)
+      }
+    }
+
+    def getSystemLevelEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[List[EndpointTagT]] = {
+      Connector.connector.vend.getSystemLevelEndpointTags(operationId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetEndpointTags Current OPERATION_ID is $operationId", 404), i._2)
+      }
+    }
+
+    def getBankLevelEndpointTags(bankId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[List[EndpointTagT]] = {
+      Connector.connector.vend.getBankLevelEndpointTags(bankId, operationId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetEndpointTags Current OPERATION_ID is $operationId", 404), i._2)
+      }
     }
     
     def getBank(bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[Bank] = {
@@ -830,7 +890,7 @@ object NewStyle {
     
     
     def isValidCurrencyISOCode(currencyCode: String,  callContext: Option[CallContext]) = {
-      tryons(failMsg = InvalidISOCurrencyCode,400, callContext) {
+      tryons(failMsg = InvalidISOCurrencyCode+s" Current currencyCode is $currencyCode",400, callContext) {
         assert(APIUtil.isValidCurrencyISOCode(currencyCode))
       }
     }
