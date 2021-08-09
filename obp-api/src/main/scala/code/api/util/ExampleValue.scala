@@ -232,6 +232,13 @@ object ExampleValue {
   
   lazy val operationIdExample = ConnectorField("OBPv4.0.0-getBanks", "A uniquely identify the obp endpoint on OBP instance, you can get it from Get Resource endpoints.")
   glossaryItems += makeGlossaryItem("ApiCollectionEndpoint.operationId", operationIdExample)
+
+  lazy val tagNameExample = ConnectorField("BankAccountTag1", "The endpoint tag name")
+  glossaryItems += makeGlossaryItem("EndpointTag.tagName", tagNameExample)
+  
+  lazy val endpointTagIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", "A string that MUST uniquely identify the endpointTag on this OBP instance, can be used in all cache.")
+  glossaryItems += makeGlossaryItem("EndpointTag.endpointTagId", endpointTagIdExample)
+  
   
   lazy val accountTypeExample = ConnectorField("AC","A short code that represents the type of the account as provided by the bank.")
 

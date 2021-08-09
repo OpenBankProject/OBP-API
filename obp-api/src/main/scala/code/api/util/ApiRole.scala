@@ -764,6 +764,30 @@ object ApiRole {
   case class CanGetUserInvitation(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetUserInvitation = CanGetUserInvitation()
 
+  case class CanCreateSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateSystemLevelEndpointTag = CanCreateSystemLevelEndpointTag()
+  
+  case class CanUpdateSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateSystemLevelEndpointTag = CanUpdateSystemLevelEndpointTag()
+  
+  case class CanDeleteSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSystemLevelEndpointTag = CanDeleteSystemLevelEndpointTag()
+  
+  case class CanGetSystemLevelEndpointTag(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSystemLevelEndpointTag = CanGetSystemLevelEndpointTag()
+
+  case class CanCreateBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateBankLevelEndpointTag = CanCreateBankLevelEndpointTag()
+
+  case class CanUpdateBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankLevelEndpointTag = CanUpdateBankLevelEndpointTag()
+
+  case class CanDeleteBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankLevelEndpointTag = CanDeleteBankLevelEndpointTag()
+
+  case class CanGetBankLevelEndpointTag(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankLevelEndpointTag = CanGetBankLevelEndpointTag()
+  
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{

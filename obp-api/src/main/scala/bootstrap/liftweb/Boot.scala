@@ -104,6 +104,7 @@ import code.connectormethod.ConnectorMethod
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
+import code.endpointTag.EndpointTag
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -928,7 +929,8 @@ object ToSchemify {
     AuthenticationTypeValidation,
     ConnectorMethod,
     DynamicResourceDoc,
-    DynamicMessageDoc
+    DynamicMessageDoc,
+    EndpointTag
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server
