@@ -4,8 +4,10 @@ import code.api.berlin.group.v1_3.JvalueCaseClass
 
 import java.util.Date
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
+import code.api.util.ApiTag.ResourceDocTag
 import code.api.util.Glossary.glossaryItems
 import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, PegdownOptions}
+import code.bankconnectors.LocalMappedConnector.getAllEndpointTagsBox
 import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
@@ -17,7 +19,6 @@ import net.liftweb.json.Extraction.decompose
 import net.liftweb.json.{Formats, JDouble, JInt, JString}
 import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
-
 import code.util.Helper.MdcLoggable
 import org.apache.commons.lang3.StringUtils
 
@@ -447,7 +448,9 @@ object JSONFactory1_4_0 extends MdcLoggable{
   def createResourceDocJson(rd: ResourceDoc) : ResourceDocJson = {
     // if this calculate conversion already happened before, just return that value
     // if not calculated before, just do conversion
-    createResourceDocJsonMemo.computeIfAbsent(rd, _=>{
+    val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
+    val resourceDocUpdatedTags = rd.copy(tags = endpointTags++ rd.tags)
+    createResourceDocJsonMemo.computeIfAbsent(resourceDocUpdatedTags, _=>{
       // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
       // But we don't want to have to escape underscores (\_) in our documentation
       // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
@@ -458,51 +461,51 @@ object JSONFactory1_4_0 extends MdcLoggable{
       // 2rd: Dynamic endpoint endpoints,
       // 3rd: all the user created endpoints,
       val fieldsDescription =
-      if(rd.tags.toString.contains("Dynamic-Entity")
-        ||rd.tags.toString.contains("Dynamic-Endpoint")
-        ||rd.roles.toString.contains("DynamicEntity")
-        ||rd.roles.toString.contains("DynamicEntities")
-        ||rd.roles.toString.contains("DynamicEndpoint")) {
+      if(resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")
+        ||resourceDocUpdatedTags.tags.toString.contains("Dynamic-Endpoint")
+        ||resourceDocUpdatedTags.roles.toString.contains("DynamicEntity")
+        ||resourceDocUpdatedTags.roles.toString.contains("DynamicEntities")
+        ||resourceDocUpdatedTags.roles.toString.contains("DynamicEndpoint")) {
         ""
       } else{
         //1st: prepare the description from URL
-        val urlParametersDescription: String = prepareUrlParameterDescription(rd.requestUrl)
+        val urlParametersDescription: String = prepareUrlParameterDescription(resourceDocUpdatedTags.requestUrl)
         //2rd: get the fields description from the post json body:
         val exampleRequestBodyFieldsDescription =
-          if (rd.requestVerb=="POST" ){
-            prepareJsonFieldDescription(rd.exampleRequestBody,"request")
+          if (resourceDocUpdatedTags.requestVerb=="POST" ){
+            prepareJsonFieldDescription(resourceDocUpdatedTags.exampleRequestBody,"request")
           } else {
             ""
           }
         //3rd: get the fields description from the response body:
-        val responseFieldsDescription = prepareJsonFieldDescription(rd.successResponseBody,"response")
+        val responseFieldsDescription = prepareJsonFieldDescription(resourceDocUpdatedTags.successResponseBody,"response")
         urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }
 
-      val description = rd.description.stripMargin.trim ++ fieldsDescription
-
+      val description = resourceDocUpdatedTags.description.stripMargin.trim ++ fieldsDescription
+      
       ResourceDocJson(
-        operation_id = rd.operationId,
-        request_verb = rd.requestVerb,
-        request_url = rd.requestUrl,
-        summary = rd.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary
+        operation_id = resourceDocUpdatedTags.operationId,
+        request_verb = resourceDocUpdatedTags.requestVerb,
+        request_url = resourceDocUpdatedTags.requestUrl,
+        summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary
         // Strip the margin character (|) and line breaks and convert from markdown to html
         description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
         description_markdown = description,
-        example_request_body = rd.exampleRequestBody,
-        success_response_body = rd.successResponseBody,
-        error_response_bodies = rd.errorResponseBodies,
-        implemented_by = ImplementedByJson(rd.implementedInApiVersion.fullyQualifiedVersion, rd.partialFunctionName), // was rd.implementedInApiVersion.noV
-        tags = rd.tags.map(i => i.tag),
-        typed_request_body = createTypedBody(rd.exampleRequestBody),
-        typed_success_response_body = createTypedBody(rd.successResponseBody),
-        roles = rd.roles,
-        is_featured = rd.isFeatured,
-        special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(rd.specialInstructions.getOrElse("").stripMargin),
-        specified_url = rd.specifiedUrl.getOrElse(""),
-        connector_methods = rd.connectorMethods
+        example_request_body = resourceDocUpdatedTags.exampleRequestBody,
+        success_response_body = resourceDocUpdatedTags.successResponseBody,
+        error_response_bodies = resourceDocUpdatedTags.errorResponseBodies,
+        implemented_by = ImplementedByJson(resourceDocUpdatedTags.implementedInApiVersion.fullyQualifiedVersion, resourceDocUpdatedTags.partialFunctionName), // was resourceDocUpdatedTags.implementedInApiVersion.noV
+        tags = resourceDocUpdatedTags.tags.map(i => i.tag),
+        typed_request_body = createTypedBody(resourceDocUpdatedTags.exampleRequestBody),
+        typed_success_response_body = createTypedBody(resourceDocUpdatedTags.successResponseBody),
+        roles = resourceDocUpdatedTags.roles,
+        is_featured = resourceDocUpdatedTags.isFeatured,
+        special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
+        specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
+        connector_methods = resourceDocUpdatedTags.connectorMethods
       )
-    })
+    }) 
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc]) : ResourceDocsJson = {

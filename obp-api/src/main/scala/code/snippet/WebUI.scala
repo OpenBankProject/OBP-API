@@ -236,7 +236,10 @@ class WebUI extends MdcLoggable{
 
     "#api_documentation_content *" #> scala.xml.Unparsed(htmlDescription)
   }
-
+  // Points to the documentation. Probably a sandbox specific link is good.
+  def apiDocumentationLink: CssSel = {
+    ".api-documentation-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
+  }
   // For example customers and credentials
   // This relies on the page for sandbox documentation having an anchor called example-customer-logins
   def exampleSandboxCredentialsLink: CssSel = {

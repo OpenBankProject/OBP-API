@@ -545,6 +545,23 @@ case class DynamicEndpointHostJson400(
   host: String
 )
 
+case class EndpointTagJson400(
+  tag_name: String,
+)
+
+case class SystemLevelEndpointTagResponseJson400(
+  endpoint_tag_id: String,
+  operation_id: String,
+  tag_name: String
+)
+
+case class BankLevelEndpointTagResponseJson400(
+  bank_id: String,
+  endpoint_tag_id: String,
+  operation_id: String,
+  tag_name: String
+)
+
 case class CounterpartyJson400(
                                  name: String,
                                  description: String,
