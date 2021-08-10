@@ -31,7 +31,7 @@ object Glossary extends MdcLoggable  {
 				 |""".stripMargin
 				case None => ""
 		}
-		logger.debug(s"getGlossaryItem says markdown to return is $something")
+		logger.debug(s"getGlossaryItem says the text to return is $something")
 		something
 	}
 
@@ -2106,9 +2106,8 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "API Collection",
-		description =
-			s"""|An API Collection is a collection of endpoints grouped together for a certain purpose.
+		title = "API Collections",
+		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
 |Having read access to a Collection does not constitute execute access on the endpoints in the Collection.
 |
@@ -2122,7 +2121,8 @@ object Glossary extends MdcLoggable  {
 |
 |If you share a Collection it can't be modified by anyone else, but anyone can use it as a basis for their own Favourites or another collection.
 |
-|At the time of writing (July 2021), there are 13 endpoints for controlling Collections.
+|There are over 13 endpoints for controlling Collections.
+|Some of these endpoints require Entitlements to Roles and some operate on your own personal collections such as your favourites.
 |
  """)
 
