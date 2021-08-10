@@ -602,8 +602,19 @@ object Glossary extends MdcLoggable  {
 		title = "Bank",
 		description =
 		"""
-		  |The entity that represents the financial institution or bank within a financial group.
-		  |Open Bank Project is a multi-bank API. Each bank resource contains basic identifying information such as name, logo and website.
+		  |A Bank (aka Space) represents a financial institution, brand or organisaitonal unit under which resources such as endpoints and entities exist.
+|
+|Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
+|
+|The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
+|
+|A User creating a Bank (if they have the right so to do), automatically gets the Entitlement to grant any Role for that Bank. Thus the creator of a Bank / Space becomes the "god" of that Bank / Space.
+|
+|Basic attributes for the bank resource include identifying information such as name, logo and website.
+|
+|Using the OBP endpoints for bank accounts it's possible to view accounts at one Bank or aggregate accounts from all Banks connected to the OBP instance.
+|
+|See also Props settings named "brand".
 		""")
 
 
