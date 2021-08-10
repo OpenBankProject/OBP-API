@@ -1,11 +1,11 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.UUID.randomUUID
-
 import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
+import code.api.util.ApiRole.canReadResourceDoc
 import code.api.util.ApiTag._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.{APIUtil, _}
@@ -479,7 +479,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       List(apiTagDocumentation, apiTagApi)
     )
 
-    val resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
+    def resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp : OBPEndpoint = {
@@ -494,7 +494,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             _ <- resourceDocsRequireRole match { 
               case false => Future()
               case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-                Future(NewStyle.function.ownEntitlement("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc, cc.callContext))
+                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc::Nil, cc.callContext)
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
             _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
