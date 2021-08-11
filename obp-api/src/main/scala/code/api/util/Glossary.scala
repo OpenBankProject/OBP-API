@@ -434,42 +434,60 @@ object Glossary extends MdcLoggable  {
 
 
 
+	// ***Note***! Don't use "--" (double hyphen) in the description because API Explorer scala.xml.XML.loadString cannot parse.
+
 	glossaryItems += GlossaryItem(
 		title = "Connector",
 		description =
-			s"""In OBP, we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
+			s"""In OBP, most internal functions / methods can have different implementations which follow the same interface.
 				 |
-					|Several Connectors are present in the OBP source code and all must implement the Connector interface
-|- but, except when using the Star Connector, only one of them is active at any one time.
-|
-| The active connector is defined in the OBP Props file.
-|
-| A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
-|
-| i.e. API -> Connector -> CBS
-|
-| An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
-|
-| i.e. API -> Connector -> Adapter -> CBS
-|
-| The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
-|
-| The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
-|
-| The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
-|
-|If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
-|
-|
-| There is a special Connector called the Star Connector which can use functions from all the normal connectors.
-|
-| Using the Star Connector we can dynamically reroute function calls to different Connectors per function per bank_id.
-|
-| The OBP API Manager has a GUI to manage this or you can use the OBP Method Routing APIs to set destinations for each function call.
-|
-| Note: We generate the source code for individual connectors automatically.
-|
- |"""
+				 |These functions are called connector methods and their implementations.
+				 |
+				 |The default implementation of the connector is the "mapped" connector.
+				 |
+				 |It's called "mapped" because the default datasource on OBP is a relational database, and access to that database is always done through an Object-Relational Mapper (ORM) called Mapper (from a framework we use called Liftweb).
+				 |
+				 |However, there are multiple available connector implementations (aka connectors) and you can mix and match them using the Star connector and you can write your own in Scala. You can also write Adapters in any language which respond to messages sent by the connector.
+				 |
+				 |Let's start with an ASCII art diagram:
+				 |
+|					<pre>
+				 |[=============]                                                                      [============]       [============]
+				 |[.............]                                                                      [............]       [............]
+				 |[...OBP API...] ===> OBP Endpoints call multiple connector functions / methods. ===> [  Connector ] ===>  [  Database  ]
+				 |[.............]        Each method has input parameters and a return type            [  (Mapped)  ]       [  (Adapter) ]
+				 |[=============]          Every implementation must respect the interface             [============]       [============]
+				 |
+				 |</pre>
+				 |we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
+				 |
+				 |
+				 | A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
+				 |
+				 | i.e. API -> Connector -> CBS
+				 |
+				 | An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
+				 |
+				 | i.e. API -> Connector -> Adapter -> CBS
+				 |
+				 | The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
+				 |
+				 | The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
+				 |
+				 | The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
+				 |
+				 |If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
+				 |
+				 |
+				 | There is a special Connector called the Star Connector which can use functions from all the normal connectors.
+				 |
+				 | Using the Star Connector we can dynamically reroute function calls to different Connectors per function per bank_id.
+				 |
+				 | The OBP API Manager has a GUI to manage this or you can use the OBP Method Routing APIs to set destinations for each function call.
+				 |
+				 | Note: We generate the source code for individual connectors automatically.
+				 |
+				 |"""
 	)
 
 
