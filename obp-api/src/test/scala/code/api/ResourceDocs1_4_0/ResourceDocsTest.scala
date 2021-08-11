@@ -1,10 +1,12 @@
 package code.api.ResourceDocs1_4_0
 
-import java.util
+import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.APIUtil.OAuth._
 
+import java.util
 import code.api.util.{ApiRole, CustomJsonFormats}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
-import code.setup.PropsReset
+import code.setup.{DefaultUsers, PropsReset}
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import io.swagger.parser.OpenAPIParser
 import net.liftweb.json
@@ -15,7 +17,7 @@ import org.scalatest.Tag
 
 import scala.xml.NodeSeq
 
-class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset {
+class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with DefaultUsers{
   object VersionOfApi extends Tag(ApiVersion.v1_4_0.toString)
   object ApiEndpoint1 extends Tag("Get OBP ResourceDoc")
   object ApiEndpoint2 extends Tag("Get Swagger ResourceDoc ")
@@ -301,6 +303,31 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset {
       //This should not throw any exceptions
       responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
     }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -v4.0.0 - resource_docs_requires_role props", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "true",
+      )
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "obp").GET
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(401)
+      responseGetObp.toString contains(UserNotLoggedIn) should be (true)
+    }
+
+    scenario(s"We will test ${ApiEndpoint1.name} Api -v4.0.0 - resource_docs_requires_role props- login in user", ApiEndpoint1, VersionOfApi) {
+      setPropsValues(
+        "resource_docs_requires_role" -> "true",
+      )
+      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "obp").GET <@ (user1)
+      val responseGetObp = makeGetRequest(requestGetObp)
+      And("We should get  200 and the response can be extract to case classes")
+      val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
+      responseGetObp.code should equal(403)
+      responseGetObp.toString contains(UserHasMissingRoles) should be (true)
+    }
+    
   }
 
   feature(s"test ${ApiEndpoint2.name} ") {
