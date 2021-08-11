@@ -7133,9 +7133,10 @@ trait APIMethods400 {
       "Delete My Api Collection",
       s"""Delete Api Collection By API_COLLECTION_ID
          |
+         |${Glossary.getGlossaryItem("API Collections")}
+         |
          |${authenticationRequiredMessage(true)}
          |
-         |${Glossary.getGlossaryItem("API Collection")}
          |
          |
          |""",
@@ -7170,7 +7171,7 @@ trait APIMethods400 {
       "Create My Api Collection Endpoint",
       s"""Create Api Collection Endpoint.
          |
-         |${Glossary.getGlossaryItem("API Collection")}
+         |${Glossary.getGlossaryItem("API Collections")}
          |
          |
          |${authenticationRequiredMessage(true)}
@@ -7317,10 +7318,10 @@ trait APIMethods400 {
       "DELETE",
       "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
       "Delete My Api Collection Endpoint",
-      s"""Delete Api Collection Endpoint By Id
+      s"""${Glossary.getGlossaryItem("API Collections")}
          |
          |
-         |${Glossary.getGlossaryItem("API Collection")}
+         |Delete Api Collection Endpoint By Id
          |
          |${authenticationRequiredMessage(true)}
          |
