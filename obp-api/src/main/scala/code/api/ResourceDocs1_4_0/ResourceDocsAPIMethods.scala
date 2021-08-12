@@ -311,12 +311,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                                          partialFunctionNames: Option[List[String]],
                                          languageParam: Option[LanguageParam],
                                          contentParam: Option[ContentParam],
-                                         cacheModifierParam: Option[String]
+                                         cacheModifierParam: Option[String],
+                                         bankId:Option[String]
                                         ): Option[JValue] = {
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicResourceDocsTTL second) {
           val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
+            .filter(rd => if (bankId.isDefined) rd.bankId == bankId else true)
             .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
             .map(it => it.specifiedUrl match {
               case Some(_) => it
@@ -423,13 +425,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
 
-    localResourceDocs += ResourceDoc(
-      getResourceDocsObp,
-      implementedInApiVersion,
-      "getResourceDocsObp",
-      "GET",
-      "/resource-docs/API_VERSION/obp",
-      "Get Resource Docs.",
+    def getResourceDocsDescription(bankUrl: String) =
       s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
          |
          |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
@@ -456,12 +452,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |See the Resource Doc endpoint for more information.
          |
          |Following are more examples:
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?language=zh
-         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?content=static,dynamic,all
-         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v3.1.0/obp
+         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v3.1.0/obp?tags=Account,Bank
+         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v3.1.0/obp?functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v4.0.0/obp?language=zh
+         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v4.0.0/obp?content=static,dynamic,all
+         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
          |
          |<ul>
          |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -472,7 +468,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |<li> summary is a short description inline with the swagger terminology. </li>
          |<li> description may contain html markup (generated from markdown on the server).</li>
          |</ul>
-      """,
+      """
+      
+    
+    
+    localResourceDocs += ResourceDoc(
+      getResourceDocsObp,
+      implementedInApiVersion,
+      "getResourceDocsObp",
+      "GET",
+      "/resource-docs/API_VERSION/obp",
+      "Get Resource Docs.",
+      getResourceDocsDescription(""),
       emptyObjectJson,
       emptyObjectJson, //exampleResourceDocsJson
       UnknownError :: Nil,
@@ -509,7 +516,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
               case _ =>
                 contentParam match {
                   case Some(DYNAMIC) =>
-                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam)
+                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, None)
                     Future(dynamicDocs.map(successJsonResponse(_)))
                   case Some(STATIC) =>
                     val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam)
@@ -533,49 +540,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "GET",
       "/banks/BANK_ID/resource-docs/API_VERSION/obp",
       "Get Bank Level Dynamic Resource Docs.",
-      s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
-         |
-         |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
-         |
-         | This endpoint is used by OBP API Explorer to display and work with the API documentation.
-         |
-         | Most (but not all) fields are also available in swagger format. (The Swagger endpoint is built from Resource Docs.)
-         |
-         | API_VERSION is the version you want documentation about e.g. v3.0.0
-         |
-         | You may filter this endpoint with tags parameter e.g. ?tags=Account,Bank
-         |
-         | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
-         |
-         | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
-         |
-         | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic
-         | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
-         |
-         | You may need some other language resource docs, now we support en and zh , e.g. ?language=zh
-         | 
-         | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters. 
-         |
-         |See the Resource Doc endpoint for more information.
-         |
-         |Following are more examples:
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?tags=Account,Bank
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?language=zh
-         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?content=static,dynamic,all
-         |${getObpApiRoot}/v3.1.0/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
-         |
-         |<ul>
-         |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
-         |<li> version references the version that the API call is defined in.</li>
-         |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
-         |<li> request_url is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the implemented version (the version where this endpoint was defined) e.g. /obp/v1.2.0/resource</li>
-         |<li> specified_url (recommended to use) is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the version specified in the call e.g. /obp/v3.1.0/resource. In OBP, endpoints are first made available at the request_url, but the same resource (function call) is often made available under later versions (specified_url). To access the latest version of all endpoints use the latest version available on your OBP instance e.g. /obp/v3.1.0 - To get the original version use the request_url. We recommend to use the specified_url since non semantic improvements are more likely to be applied to later implementations of the call.</li>
-         |<li> summary is a short description inline with the swagger terminology. </li>
-         |<li> description may contain html markup (generated from markdown on the server).</li>
-         |</ul>
-      """,
+      getResourceDocsDescription("/banks/BANK_ID"),
       emptyObjectJson,
       emptyObjectJson,
       UnknownError :: Nil,
@@ -602,8 +567,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                 )
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
-            json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) { 
-              getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam).map(successJsonResponse(_)).get
+            json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
+              getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, Some(bankId)).map(successJsonResponse(_)).get
             }
           } yield {
             (Full(json), HttpCode.`200`(callContext))

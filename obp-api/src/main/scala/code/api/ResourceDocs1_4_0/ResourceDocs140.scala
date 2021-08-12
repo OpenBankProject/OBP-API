@@ -25,7 +25,8 @@ object ResourceDocs200 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
-    ImplementationsResourceDocs.getResourceDocsSwagger
+    ImplementationsResourceDocs.getResourceDocsSwagger,
+    ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -39,7 +40,8 @@ object ResourceDocs210 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
-    ImplementationsResourceDocs.getResourceDocsSwagger
+    ImplementationsResourceDocs.getResourceDocsSwagger,
+    ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -52,7 +54,8 @@ object ResourceDocs220 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
-    ImplementationsResourceDocs.getResourceDocsSwagger
+    ImplementationsResourceDocs.getResourceDocsSwagger,
+    ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -65,7 +68,8 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   val versionStatus = "DRAFT"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
-    ImplementationsResourceDocs.getResourceDocsSwagger
+    ImplementationsResourceDocs.getResourceDocsSwagger,
+    ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -77,7 +81,8 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     val versionStatus = "DRAFT"
     val routes = List(
       ImplementationsResourceDocs.getResourceDocsObp,
-      ImplementationsResourceDocs.getResourceDocsSwagger
+      ImplementationsResourceDocs.getResourceDocsSwagger,
+      ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp
     )
     routes.foreach(route => {
       oauthServe(apiPrefix {
@@ -91,7 +96,8 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     val versionStatus = "BLEEDING-EDGE"
     val routes = List(
       ImplementationsResourceDocs.getResourceDocsObp,
-      ImplementationsResourceDocs.getResourceDocsSwagger
+      ImplementationsResourceDocs.getResourceDocsSwagger,
+      ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp
     )
     routes.foreach(route => {
       oauthServe(apiPrefix {

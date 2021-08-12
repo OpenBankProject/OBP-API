@@ -154,7 +154,8 @@ object DynamicEntityHelper {
         UnknownError
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      Some(List(dynamicEntityInfo.canGetRole))
+      Some(List(dynamicEntityInfo.canGetRole)),
+      bankId= dynamicEntityInfo.bankId
     )
     resourceDocs += (DynamicEntityOperation.GET_ONE, entityName) -> ResourceDoc(
       endPoint,
@@ -180,7 +181,8 @@ object DynamicEntityHelper {
         UnknownError
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      Some(List(dynamicEntityInfo.canGetRole))
+      Some(List(dynamicEntityInfo.canGetRole)),
+      bankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, entityName) -> ResourceDoc(
@@ -209,7 +211,8 @@ object DynamicEntityHelper {
         UnknownError
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      Some(List(dynamicEntityInfo.canCreateRole))
+      Some(List(dynamicEntityInfo.canCreateRole)),
+      bankId= dynamicEntityInfo.bankId
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, entityName) -> ResourceDoc(
@@ -238,7 +241,8 @@ object DynamicEntityHelper {
         UnknownError
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      Some(List(dynamicEntityInfo.canUpdateRole))
+      Some(List(dynamicEntityInfo.canUpdateRole)),
+      bankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, entityName) -> ResourceDoc(
@@ -264,7 +268,8 @@ object DynamicEntityHelper {
         UnknownError
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      Some(List(dynamicEntityInfo.canDeleteRole))
+      Some(List(dynamicEntityInfo.canDeleteRole)),
+      bankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs
