@@ -10,6 +10,7 @@ object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   val versionStatus = "STABLE"
   val routes = List(
     ImplementationsResourceDocs.getResourceDocsObp,
+    ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
     ImplementationsResourceDocs.getResourceDocsSwagger
   )
   routes.foreach(route => {
