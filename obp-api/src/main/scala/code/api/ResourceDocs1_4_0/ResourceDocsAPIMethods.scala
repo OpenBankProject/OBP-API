@@ -385,35 +385,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "GET",
       "/dummy",
       "Test Resource Doc.",
-      """
-        |I am only a test Resource Doc
-        |
-        |It's turtles all the way down.
-        |
-        |#This should be H1
-        |
-        |##This should be H2
-        |
-        |###This should be H3
-        |
-        |####This should be H4
-        |
-        |Here is a list with two items:
-        |
-        |* One
-        |* Two
-        |
-        |There are underscores by them selves _
-        |
-        |There are _underscores_ around a word
-        |
-        |There are underscores_in_words
-        |
-        |There are 'underscores_in_words_inside_quotes'
-        |
-        |There are (underscores_in_words_in_brackets)
-        |
-        |_etc_...""",
+      """I am only a test Resource Doc""",
       emptyObjectJson,
       emptyObjectJson,
       UnknownError :: Nil,
@@ -425,7 +397,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
 
-    def getResourceDocsDescription(bankUrl: String) =
+    def getResourceDocsDescription(isBankLevelResourceDoc: Boolean) = {
+
+      val endpointBankIdPath = if (isBankLevelResourceDoc) "/banks/BANK_ID" else ""
+    
       s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
          |
          |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
@@ -452,12 +427,12 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |See the Resource Doc endpoint for more information.
          |
          |Following are more examples:
-         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v3.1.0/obp
-         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v3.1.0/obp?tags=Account,Bank
-         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v3.1.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v4.0.0/obp?language=zh
-         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v4.0.0/obp?content=static,dynamic,all
-         |${getObpApiRoot}/v3.1.0$bankUrl/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v3.1.0/obp
+         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v3.1.0/obp?tags=Account,Bank
+         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v3.1.0/obp?functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v4.0.0/obp?language=zh
+         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
+         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
          |
          |<ul>
          |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -469,7 +444,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          |<li> description may contain html markup (generated from markdown on the server).</li>
          |</ul>
       """
-      
+    }
     
     
     localResourceDocs += ResourceDoc(
@@ -479,9 +454,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "GET",
       "/resource-docs/API_VERSION/obp",
       "Get Resource Docs.",
-      getResourceDocsDescription(""),
+      getResourceDocsDescription(false),
       emptyObjectJson,
-      emptyObjectJson, //exampleResourceDocsJson
+      exampleResourceDocsJson, 
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi)
     )
@@ -540,9 +515,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       "GET",
       "/banks/BANK_ID/resource-docs/API_VERSION/obp",
       "Get Bank Level Dynamic Resource Docs.",
-      getResourceDocsDescription("/banks/BANK_ID"),
+      getResourceDocsDescription(true),
       emptyObjectJson,
-      emptyObjectJson,
+      exampleResourceDocsJson,
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi)
     )
