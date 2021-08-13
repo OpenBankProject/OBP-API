@@ -5443,6 +5443,186 @@ trait APIMethods400 {
       }
     }
 
+
+    val productAttributeGeneralInfo =
+      s"""
+         |Product Attributes are used to describe a financial Product with a list of typed key value pairs.
+         |
+         |Each Product Attribute is linked to its Product by PRODUCT_CODE
+         |
+         |
+       """.stripMargin
+
+    staticResourceDocs += ResourceDoc(
+      createProductAttribute,
+      implementedInApiVersion,
+      nameOf(createProductAttribute),
+      "POST",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
+      "Create Product Attribute",
+      s""" Create Product Attribute
+         |
+         |$productAttributeGeneralInfo
+         |
+         |Typical product attributes might be:
+         |
+         |ISIN (for International bonds)
+         |VKN (for German bonds)
+         |REDCODE (markit short code for credit derivative)
+         |LOAN_ID (e.g. used for Anacredit reporting)
+         |
+         |ISSUE_DATE (When the bond was issued in the market)
+         |MATURITY_DATE (End of life time of a product)
+         |TRADABLE
+         |
+         |See [FPML](http://www.fpml.org/) for more examples.
+         |
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeJson,
+      productAttributeResponseJson,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductAttribute))
+    )
+
+    lazy val createProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canCreateProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJson]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(bankId),
+              ProductCode(productCode),
+              None,
+              postedData.name,
+              productAttributeType,
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateProductAttribute,
+      implementedInApiVersion,
+      nameOf(updateProductAttribute),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Update Product Attribute",
+      s""" Update Product Attribute. 
+         |
+
+         |$productAttributeGeneralInfo
+         |
+         |Update one Product Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeJson,
+      productAttributeResponseJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val updateProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJson]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+            (_, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(bankId),
+              ProductCode(productCode),
+              Some(productAttributeId),
+              postedData.name,
+              productAttributeType,
+              postedData.value,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductAttribute,
+      implementedInApiVersion,
+      nameOf(getProductAttribute),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Get Product Attribute",
+      s""" Get Product Attribute
+         |
+         |$productAttributeGeneralInfo
+         |
+         |Get one product attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productAttributeResponseJson,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val getProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canGetProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (productAttribute, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
+
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       createOrUpdateTransactionAttributeDefinition,
       implementedInApiVersion,

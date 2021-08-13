@@ -2,10 +2,11 @@ package code.productAttributeattribute
 
 import code.productattribute.ProductAttributeProvider
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.ProductAttributeType
 import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.{BaseMappedField, _}
+import net.liftweb.mapper.{BaseMappedField, MappedBoolean, _}
 import net.liftweb.util.Helpers.tryo
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 
@@ -82,6 +83,10 @@ class MappedProductAttribute extends ProductAttribute with LongKeyedMapper[Mappe
 
   object mValue extends MappedString(this, 255)
 
+  object IsActive extends MappedBoolean(this) {
+    override def defaultValue = true
+  }
+
 
   override def bankId: BankId = BankId(mBankId.get)
 
@@ -94,8 +99,9 @@ class MappedProductAttribute extends ProductAttribute with LongKeyedMapper[Mappe
   override def attributeType: ProductAttributeType.Value = ProductAttributeType.withName(mType.get)
 
   override def value: String = mValue.get
-
-
+  
+  override def isActive: Option[Boolean] = if (IsActive.jdbcFriendly(IsActive.calcFieldName) == null) { None } else Some(IsActive.get)
+  
 }
 
 //

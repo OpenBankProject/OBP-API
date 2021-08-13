@@ -81,6 +81,7 @@ object Migration extends MdcLoggable {
       alterColumnDetailsAtTableTransactionRequest()
       deleteDuplicatedRowsInTheTableUserAuthContext()
       populateTheFieldDeletedAtResourceUser(startedBeforeSchemifier)
+      populateTheFieldIsActiveAtProductAttribute(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -244,6 +245,17 @@ object Migration extends MdcLoggable {
         val name = nameOf(populateTheFieldDeletedAtResourceUser(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfResourceUser.populateNewFieldIsDeleted(name)
+        }
+      }
+    }
+    private def populateTheFieldIsActiveAtProductAttribute(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.populateTheFieldIsActiveAtProductAttribute(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(populateTheFieldIsActiveAtProductAttribute(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfProductAttribute.populateTheFieldIsActive(name)
         }
       }
     }
