@@ -1347,7 +1347,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
-                          var specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          bankId: Option[String] = None //we need to filter the resource Doc by BankId
                         ) {
     // this code block will be merged to constructor.
     {

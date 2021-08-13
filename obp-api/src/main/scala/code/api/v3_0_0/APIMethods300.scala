@@ -2027,8 +2027,11 @@ trait APIMethods300 {
       nameOf(getApiGlossary),
       "GET",
       "/api/glossary",
-      "Get API Glossary",
-      """Returns the glossary of the API
+      "Get Glossary of the API",
+      """Get API Glossary
+        |
+        |Returns the glossary of the API
+        |
         |""",
       emptyObjectJson,
       glossaryItemsJsonV300,
