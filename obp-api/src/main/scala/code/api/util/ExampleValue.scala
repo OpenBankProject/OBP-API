@@ -1292,9 +1292,6 @@ object ExampleValue {
   lazy val chargeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("charge", chargeExample)
 
-  lazy val connectorExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("connector", connectorExample)
-
   lazy val kycDocumentIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("kyc_document_id", kycDocumentIdExample)
 
