@@ -325,7 +325,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
     function : String // The val / partial function that implements the call e.g. "getBranches"
   )
 
-
+  case class ResourceDocMeta(
+    response_date: Date,
+    count: Int
+  )
   // Used to describe the OBP API calls for documentation and API discovery purposes
   case class ResourceDocJson(operation_id: String,
                              implemented_by: ImplementedByJson,
@@ -350,7 +353,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
 
   // Creates the json resource_docs
-  case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
+  case class ResourceDocsJson (
+    resource_docs : List[ResourceDocJson],
+    meta: Option[ResourceDocMeta] = None
+  )
 
   /**
    * get the glossaryItem.title by the input string
@@ -508,8 +514,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }) 
   }
 
-  def createResourceDocsJson(resourceDocList: List[ResourceDoc]) : ResourceDocsJson = {
-    ResourceDocsJson(resourceDocList.map(createResourceDocJson))
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc], withMeta:Boolean) : ResourceDocsJson = {
+    if(withMeta){
+      ResourceDocsJson(
+        resourceDocList.map(createResourceDocJson),
+        meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
+      )
+    } else {
+      ResourceDocsJson(resourceDocList.map(createResourceDocJson))
+    }
   }
   
   //please check issue first: https://github.com/OpenBankProject/OBP-API/issues/877

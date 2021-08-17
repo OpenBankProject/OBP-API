@@ -9423,7 +9423,7 @@ trait APIMethods400 {
         DynamicEndpointHelper.getRoles(dynamicEndpointInfo)
       }
       _ <- NewStyle.function.tryons(InvalidJsonFormat+"Can not generate OBP external Resource Docs", 400, cc.callContext) {
-        JSONFactory1_4_0.createResourceDocsJson(dynamicEndpointInfo.resourceDocs.toList)
+        JSONFactory1_4_0.createResourceDocsJson(dynamicEndpointInfo.resourceDocs.toList, false)
       }
       (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(bankId, cc.userId, postedJson.swaggerString, cc.callContext)
       _ <- NewStyle.function.tryons(InvalidJsonFormat+s"Can not grant these roles ${roles.toString} ", 400, cc.callContext) {
