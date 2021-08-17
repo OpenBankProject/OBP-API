@@ -447,18 +447,33 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |It's called "mapped" because the default datasource on OBP is a relational database, and access to that database is always done through an Object-Relational Mapper (ORM) called Mapper (from a framework we use called Liftweb).
 				 |
-				 |However, there are multiple available connector implementations (aka connectors) and you can mix and match them using the Star connector and you can write your own in Scala. You can also write Adapters in any language which respond to messages sent by the connector.
 				 |
-				 |Let's start with an ASCII art diagram:
-				 |
-|					<pre>
-				 |[=============]                                                                      [============]       [============]
-				 |[.............]                                                                      [............]       [............]
-				 |[...OBP API...] ===> OBP Endpoints call multiple connector functions / methods. ===> [  Connector ] ===>  [  Database  ]
-				 |[.............]        Each method has input parameters and a return type            [  (Mapped)  ]       [  (Adapter) ]
-				 |[=============]          Every implementation must respect the interface             [============]       [============]
+				 |<pre>
+				 |[=============]                                                                     [============]       [============]
+				 |[.............]                                                                     [            ]       [            ]
+				 |[...OBP API...] ===> OBP Endpoints call connector functions (aka methods) ===>      [  Connector ] ===>  [  Database  ]
+				 |[.............]          The default implementation is called "Mapped"              [  (Mapped)  ]       [  (Adapter) ]
+				 |[=============]              The Mapped Connector talks to a Database               [============]       [============]
 				 |
 				 |</pre>
+				 |
+				 |However, there are multiple available connector implementations - and you can also mix and create your own.|
+				 |
+				 |E.g. Kafka
+				 |
+				 |<pre>
+				 |[=============]                              [============]       [============]     [============]       [============]
+				 |[             ]                              [            ]       [            ]     [            ]       [            ]
+				 |[   OBP API   ] ===> Kafka Connector   ===>  [  Kafka     ] ===>  [  Kafka     ]     [  OBP Kafka ]  ===> [  CBS       ]
+				 |[             ]      Puts OBP Messages       [  Connector ]       [  Cluster   ]     [  Adapter   ]       [            ]
+				 |[=============]       onto a Kafka           [============]       [============]     [============]       [============]
+				 |
+				 |</pre>
+				 |
+				 |
+				 |
+				 |You can mix and match them using the Star connector and you can write your own in Scala. You can also write Adapters in any language which respond to messages sent by the connector.
+				 |
 				 |we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
 				 |
 				 |
