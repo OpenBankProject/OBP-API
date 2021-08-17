@@ -452,7 +452,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
 
-  def createResourceDocJson(rd: ResourceDoc, isNewVersion:Boolean) : ResourceDocJson = {
+  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean) : ResourceDocJson = {
     // if this calculate conversion already happened before, just return that value
     // if not calculated before, just do conversion
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
@@ -511,15 +511,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
         special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
         specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
         connector_methods = resourceDocUpdatedTags.connectorMethods,
-        created_by_bank_id= if (isNewVersion) rd.createdByBankId else None // only for V400 we show the bankId
+        created_by_bank_id= if (isVersion4OrHigher) rd.createdByBankId else None // only for V400 we show the bankId
       )
     }) 
   }
 
-  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isNewVersion:Boolean) : ResourceDocsJson = {
-    if(isNewVersion){
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean) : ResourceDocsJson = {
+    if(isVersion4OrHigher){
       ResourceDocsJson(
-        resourceDocList.map(createResourceDocJson(_,isNewVersion)),
+        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher)),
         meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
       )
     } else {
