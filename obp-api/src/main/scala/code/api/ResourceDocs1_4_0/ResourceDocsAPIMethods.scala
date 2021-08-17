@@ -473,44 +473,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     def getResourceDocsObp : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
-        cc => 
-          for {
-            (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match { 
-              case false => anonymousAccess(cc)
-              case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
-            }
-            _ <- resourceDocsRequireRole match { 
-              case false => Future()
-              case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc::Nil, cc.callContext)
-            }
-            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
-            _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
-            json <- languageParam match {
-              case Some(ZH) => Future(getChineseVersionResourceDocs)
-              case _ if(apiCollectionIdParam.isDefined) =>
-                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
-                val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs,false)
-                val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
-                Future(resourceDocsJsonJValue.map(successJsonResponse(_)))
-              case _ =>
-                contentParam match {
-                  case Some(DYNAMIC) =>
-                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, None, false)
-                    Future(dynamicDocs.map(successJsonResponse(_)))
-                  case Some(STATIC) =>
-                    val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, false)
-                    Future(staticDocs.map(successJsonResponse(_)))
-                  case _ =>
-                    val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, false)
-                    Future(docs.map(successJsonResponse(_)))
-                }
-            }
-          } yield {
-            (json, HttpCode.`200`(callContext))
-          }
-        
+        cc =>
+          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, false)
       }
     }
     
@@ -532,43 +496,57 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
-          for {
-            (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
-              case false => anonymousAccess(cc)
-              case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
-            }
-            _ <- resourceDocsRequireRole match {
-              case false => Future()
-              case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc::Nil, cc.callContext)
-            }
-            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
-            _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
-            json <- languageParam match {
-              case Some(ZH) => Future(getChineseVersionResourceDocs)
-              case _ if(apiCollectionIdParam.isDefined) =>
-                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
-                val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs,true)
-                val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
-                Future(resourceDocsJsonJValue.map(successJsonResponse(_)))
-              case _ =>
-                contentParam match {
-                  case Some(DYNAMIC) =>
-                    val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, None, true)
-                    Future(dynamicDocs.map(successJsonResponse(_)))
-                  case Some(STATIC) =>
-                    val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, true)
-                    Future(staticDocs.map(successJsonResponse(_)))
-                  case _ =>
-                    val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, true)
-                    Future(docs.map(successJsonResponse(_)))
-                }
-            }
-          } yield {
-            (json, HttpCode.`200`(callContext))
-          }
+          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, true)
       }
+    }
+
+    private def getApiLevelResourceDocs(
+      cc: CallContext,
+      requestedApiVersionString: String,
+      tags: Option[List[ResourceDocTag]],
+      partialFunctions: Option[List[String]],
+      languageParam: Option[LanguageParam],
+      contentParam: Option[ContentParam],
+      apiCollectionIdParam: Option[String],
+      cacheModifierParam: Option[String],
+      withMeta: Boolean
+    ) = {
+        for {
+          (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
+            case false => anonymousAccess(cc)
+            case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
+          }
+          _ <- resourceDocsRequireRole match {
+            case false => Future()
+            case true => // If set resource_docs_requires_role=true, we need check the the roles as well
+              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+          }
+          requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
+          _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
+          json <- languageParam match {
+            case Some(ZH) => Future(getChineseVersionResourceDocs)
+            case _ if (apiCollectionIdParam.isDefined) =>
+              val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+              val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
+              val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, withMeta)
+              val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
+              Future(resourceDocsJsonJValue.map(successJsonResponse(_)))
+            case _ =>
+              contentParam match {
+                case Some(DYNAMIC) =>
+                  val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, None, withMeta)
+                  Future(dynamicDocs.map(successJsonResponse(_)))
+                case Some(STATIC) =>
+                  val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, withMeta)
+                  Future(staticDocs.map(successJsonResponse(_)))
+                case _ =>
+                  val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, withMeta)
+                  Future(docs.map(successJsonResponse(_)))
+              }
+          }
+        } yield {
+          (json, HttpCode.`200`(callContext))
+        }
     }
 
     localResourceDocs += ResourceDoc(
