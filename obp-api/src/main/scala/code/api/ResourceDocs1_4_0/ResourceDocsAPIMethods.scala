@@ -167,9 +167,13 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       requestedApiVersion match
       {
         // only `obp` standard show the `localResouceDocs`
-        case version: ScannedApiVersion if(version.apiStandard == obp.toString) => activePlusLocalResourceDocs ++= localResourceDocs
-        // all other standards only show their own apis.
-        case _ => ;
+        case version: ScannedApiVersion 
+          if(version.apiStandard == obp.toString && version==ApiVersion.v4_0_0) =>  
+            activePlusLocalResourceDocs ++= localResourceDocs.filterNot(_.partialFunctionName == nameOf(getResourceDocsObp))
+        case version: ScannedApiVersion 
+          if(version.apiStandard == obp.toString && version!=ApiVersion.v4_0_0) => 
+            activePlusLocalResourceDocs ++= localResourceDocs.filterNot(_.partialFunctionName == nameOf(getResourceDocsObpV400))
+        case _ => ; // all other standards only show their own apis.
       }
 
 
@@ -484,7 +488,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       nameOf(getResourceDocsObpV400),
       "GET",
       "/resource-docs/API_VERSION/obp",
-      "Get Resource Docs with Meta",
+      "Get Resource Docs",
       getResourceDocsDescription(false),
       emptyObjectJson,
       exampleResourceDocsJsonV400,
