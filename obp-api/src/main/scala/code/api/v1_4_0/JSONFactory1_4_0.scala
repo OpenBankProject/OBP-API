@@ -347,7 +347,8 @@ object JSONFactory1_4_0 extends MdcLoggable{
                              is_featured: Boolean,
                              special_instructions: String,
                              specified_url: String, // Derived value. The Url when called under a certain version.
-                             connector_methods: List[String] // this is the connector methods which need to be connected by this endpoint.
+                             connector_methods: List[String], // this is the connector methods which need to be connected by this endpoint.
+                             created_by_bank_id: Option[String] = None
                             )
 
 
@@ -451,7 +452,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
 
-  def createResourceDocJson(rd: ResourceDoc) : ResourceDocJson = {
+  def createResourceDocJson(rd: ResourceDoc, isNewVersion:Boolean) : ResourceDocJson = {
     // if this calculate conversion already happened before, just return that value
     // if not calculated before, just do conversion
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
@@ -509,19 +510,20 @@ object JSONFactory1_4_0 extends MdcLoggable{
         is_featured = resourceDocUpdatedTags.isFeatured,
         special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
         specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
-        connector_methods = resourceDocUpdatedTags.connectorMethods
+        connector_methods = resourceDocUpdatedTags.connectorMethods,
+        created_by_bank_id= if (isNewVersion) rd.createdByBankId else None // only for V400 we show the bankId
       )
     }) 
   }
 
-  def createResourceDocsJson(resourceDocList: List[ResourceDoc], withMeta:Boolean) : ResourceDocsJson = {
-    if(withMeta){
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isNewVersion:Boolean) : ResourceDocsJson = {
+    if(isNewVersion){
       ResourceDocsJson(
-        resourceDocList.map(createResourceDocJson),
+        resourceDocList.map(createResourceDocJson(_,isNewVersion)),
         meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
       )
     } else {
-      ResourceDocsJson(resourceDocList.map(createResourceDocJson))
+      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false)))
     }
   }
   

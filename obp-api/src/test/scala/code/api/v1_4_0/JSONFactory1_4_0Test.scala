@@ -79,7 +79,7 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
     
     scenario("createResourceDocJson should work well,  no exception is good enough") {
       val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)
-      val result: ResourceDocJson = JSONFactory1_4_0.createResourceDocJson(resourceDoc)
+      val result: ResourceDocJson = JSONFactory1_4_0.createResourceDocJson(resourceDoc,false)
     }
 
     scenario("createResourceDocsJson should work well, no exception is good enough") {

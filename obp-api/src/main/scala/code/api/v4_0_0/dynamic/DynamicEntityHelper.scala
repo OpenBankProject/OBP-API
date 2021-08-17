@@ -155,7 +155,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      bankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId
     )
     resourceDocs += (DynamicEntityOperation.GET_ONE, entityName) -> ResourceDoc(
       endPoint,
@@ -182,7 +182,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      bankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, entityName) -> ResourceDoc(
@@ -212,7 +212,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole)),
-      bankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, entityName) -> ResourceDoc(
@@ -242,7 +242,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
-      bankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, entityName) -> ResourceDoc(
@@ -269,7 +269,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole)),
-      bankId= dynamicEntityInfo.bankId
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs
