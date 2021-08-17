@@ -38,8 +38,8 @@ import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, Transac
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
-import code.api.v3_0_0.JSONFactory300.{createAccountRoutingsJSON, createAccountRulesJSON, createLocationJson, createMetaJson, transformToAddressFromV300}
-import code.api.v3_0_0.{AccountRuleJsonV300, AddressJsonV300, CustomerAttributeResponseJsonV300, OpeningTimesV300, ViewJSON300, ViewsJSON300}
+import code.api.v3_0_0.JSONFactory300._
+import code.api.v3_0_0._
 import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
 import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
 import code.apicollection.ApiCollectionTrait
@@ -649,6 +649,16 @@ case class JsonSchemaV400(
 case class JsonValidationV400(operation_id: String, json_schema: JsonSchemaV400)
 // Validation related END
 
+
+case class ProductAttributeResponseJson(
+                                         bank_id: String,
+                                         product_code: String,
+                                         product_attribute_id: String,
+                                         name: String,
+                                         `type`: String,
+                                         value: String,
+                                         is_active: Option[Boolean]
+                                       )
 
 case class IbanCheckerJsonV400(
                                 is_valid: Boolean,
@@ -1357,6 +1367,18 @@ object JSONFactory400 {
       apiCollectionEndpoint.operationId
     )
   }
+
+
+  def createProductAttributeJson(productAttribute: ProductAttribute): ProductAttributeResponseJson =
+    ProductAttributeResponseJson(
+      bank_id = productAttribute.bankId.value,
+      product_code = productAttribute.productCode.value,
+      product_attribute_id = productAttribute.productAttributeId,
+      name = productAttribute.name,
+      `type` = productAttribute.attributeType.toString,
+      value = productAttribute.value,
+      is_active = productAttribute.isActive
+    )
 
   def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
     ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))

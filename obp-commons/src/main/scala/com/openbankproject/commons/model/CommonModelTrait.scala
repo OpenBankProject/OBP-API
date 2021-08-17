@@ -257,6 +257,8 @@ trait ProductAttribute {
   def attributeType: ProductAttributeType.Value
 
   def value: String
+
+  def isActive: Option[Boolean]
 }
 
 
