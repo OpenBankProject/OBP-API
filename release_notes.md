@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+18/08/2021    5924c820      Added props: webui_api_documentation_bottom_url, default is https://github.com/OpenBankProject/OBP-API/wiki
+                            Added props: webui_privacy_policy_url, default is https://openbankproject.com/privacy-policy
 30/06/2021    cf2dd987      Changed props, static will cache 24 hours, dynamic only 1 hour as default.
                             dynamicResourceDocsObp.cache.ttl.seconds=3600
                             staticResourceDocsObp.cache.ttl.seconds=86400
