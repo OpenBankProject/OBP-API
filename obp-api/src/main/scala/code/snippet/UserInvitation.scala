@@ -36,7 +36,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.User
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
@@ -161,6 +161,17 @@ class UserInvitation extends MdcLoggable {
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#register-consumer-success" #> ""
+    }
+    userInvitation match {
+      case Full(payload) if payload.status == "CREATED" => // All good
+      case _ =>
+        firstNameVar.set("None")
+        lastNameVar.set("None")
+        devEmailVar.set("None")
+        companyVar.set("None")
+        countryVar.set("None")
+        usernameVar.set("None")
+        S.error("Cannot complete your user invitation. Please check the invitation link. Your invitation could be invalid or completed.")
     }
     register
   }
