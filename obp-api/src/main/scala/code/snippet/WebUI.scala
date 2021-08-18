@@ -326,6 +326,9 @@ class WebUI extends MdcLoggable{
     "#main_style_sheet [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_main_style_sheet", "/media/css/website.css"))
   }
 
+ def faviconLink: CssSel = {
+    "#favicon_link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_favicon_link_url", "/favicon.ico"))
+  }
 
 
   def getStartedText: CssSel = {

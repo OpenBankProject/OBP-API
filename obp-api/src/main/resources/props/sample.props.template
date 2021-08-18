@@ -462,6 +462,9 @@ webui_main_partners=[\
 # Prefix for all page titles (note the trailing space!)
 webui_page_title_prefix = Open Bank Project: 
 
+# set the favicon icon
+#webui_favicon_link_url =/favicon.ico
+
 # Main style sheet. Add your own if need be.
 webui_main_style_sheet = /media/css/website.css
 
