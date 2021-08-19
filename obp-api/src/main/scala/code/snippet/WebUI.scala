@@ -201,6 +201,11 @@ class WebUI extends MdcLoggable{
     ".termsAndConditions-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_agree_terms_url", ""))
   }
 
+  // Points to the documentation. Probably a sandbox specific link is good.
+  def privacyPolicyLink: CssSel = {
+    ".privacy-policy-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_privacy_policy_url", "https://openbankproject.com/privacy-policy"))
+  }
+  
   def sandboxIntroductionLink: CssSel = {
     val webUiApiDocumentation = getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction")
     val apiDocumentation = 
@@ -238,7 +243,7 @@ class WebUI extends MdcLoggable{
   }
   // Points to the documentation. Probably a sandbox specific link is good.
   def apiDocumentationLink: CssSel = {
-    ".api-documentation-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
+    ".api-documentation-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_bottom_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
   }
   // For example customers and credentials
   // This relies on the page for sandbox documentation having an anchor called example-customer-logins
@@ -321,6 +326,9 @@ class WebUI extends MdcLoggable{
     "#main_style_sheet [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_main_style_sheet", "/media/css/website.css"))
   }
 
+ def faviconLink: CssSel = {
+    "#favicon_link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_favicon_link_url", "/favicon.ico"))
+  }
 
 
   def getStartedText: CssSel = {

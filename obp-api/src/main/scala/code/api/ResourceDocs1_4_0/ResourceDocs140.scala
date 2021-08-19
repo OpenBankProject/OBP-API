@@ -95,7 +95,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     val version: ApiVersion = ApiVersion.v4_0_0 // = "4.0.0" // We match other api versions so API explorer can easily use the path.
     val versionStatus = "BLEEDING-EDGE"
     val routes = List(
-      ImplementationsResourceDocs.getResourceDocsObp,
+      ImplementationsResourceDocs.getResourceDocsObpV400,
       ImplementationsResourceDocs.getResourceDocsSwagger,
       ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp
     )

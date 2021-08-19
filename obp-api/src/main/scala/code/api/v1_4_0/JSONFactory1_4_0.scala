@@ -325,7 +325,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
     function : String // The val / partial function that implements the call e.g. "getBranches"
   )
 
-
+  case class ResourceDocMeta(
+    response_date: Date,
+    count: Int
+  )
   // Used to describe the OBP API calls for documentation and API discovery purposes
   case class ResourceDocJson(operation_id: String,
                              implemented_by: ImplementedByJson,
@@ -344,13 +347,17 @@ object JSONFactory1_4_0 extends MdcLoggable{
                              is_featured: Boolean,
                              special_instructions: String,
                              specified_url: String, // Derived value. The Url when called under a certain version.
-                             connector_methods: List[String] // this is the connector methods which need to be connected by this endpoint.
+                             connector_methods: List[String], // this is the connector methods which need to be connected by this endpoint.
+                             created_by_bank_id: Option[String] = None
                             )
 
 
 
   // Creates the json resource_docs
-  case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
+  case class ResourceDocsJson (
+    resource_docs : List[ResourceDocJson],
+    meta: Option[ResourceDocMeta] = None
+  )
 
   /**
    * get the glossaryItem.title by the input string
@@ -445,7 +452,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
 
-  def createResourceDocJson(rd: ResourceDoc) : ResourceDocJson = {
+  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean) : ResourceDocJson = {
     // if this calculate conversion already happened before, just return that value
     // if not calculated before, just do conversion
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
@@ -503,13 +510,21 @@ object JSONFactory1_4_0 extends MdcLoggable{
         is_featured = resourceDocUpdatedTags.isFeatured,
         special_instructions = PegdownOptions.convertPegdownToHtmlTweaked(resourceDocUpdatedTags.specialInstructions.getOrElse("").stripMargin),
         specified_url = resourceDocUpdatedTags.specifiedUrl.getOrElse(""),
-        connector_methods = resourceDocUpdatedTags.connectorMethods
+        connector_methods = resourceDocUpdatedTags.connectorMethods,
+        created_by_bank_id= if (isVersion4OrHigher) rd.createdByBankId else None // only for V400 we show the bankId
       )
     }) 
   }
 
-  def createResourceDocsJson(resourceDocList: List[ResourceDoc]) : ResourceDocsJson = {
-    ResourceDocsJson(resourceDocList.map(createResourceDocJson))
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean) : ResourceDocsJson = {
+    if(isVersion4OrHigher){
+      ResourceDocsJson(
+        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher)),
+        meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
+      )
+    } else {
+      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false)))
+    }
   }
   
   //please check issue first: https://github.com/OpenBankProject/OBP-API/issues/877

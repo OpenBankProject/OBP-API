@@ -409,6 +409,8 @@ webui_sandbox_introduction=
 # NOTE: if this is *not set*, the Introduction Button on /index will link the user to /introduction
 # If this is set, the Introduction Button will link the user to the URL defined above. (but the page /introduction will still exist so you might want to populate webui_sandbox_introduction anyway.)
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
+# now, we hava a new props for the bottom ` API Documentation` menu.
+#webui_api_documentation_bottom_url =https://github.com/OpenBankProject/OBP-API/wiki
 ###################################################################################
 
 # Link for SDKs
@@ -460,6 +462,9 @@ webui_main_partners=[\
 # Prefix for all page titles (note the trailing space!)
 webui_page_title_prefix = Open Bank Project: 
 
+# set the favicon icon
+#webui_favicon_link_url =/favicon.ico
+
 # Main style sheet. Add your own if need be.
 webui_main_style_sheet = /media/css/website.css
 
@@ -468,6 +473,9 @@ webui_override_style_sheet =
 
 ## Link to agree to Terms & Conditions, shown on signup page
 webui_agree_terms_url =
+
+## Link to Privacy Policy, shown in the bottom page
+#webui_privacy_policy_url =
 
 # URL to load (additional) vendor support content
 #webui_vendor_support_content_url = http://127.0.0.1:8080/plain.html

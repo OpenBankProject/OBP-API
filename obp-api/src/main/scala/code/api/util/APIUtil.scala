@@ -1349,7 +1349,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
-                          bankId: Option[String] = None //we need to filter the resource Doc by BankId
+                          createdByBankId: Option[String] = None //we need to filter the resource Doc by BankId
                         ) {
     // this code block will be merged to constructor.
     {
@@ -2659,8 +2659,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         for {
           (user, callContext) <- OAuth2Login.getUserFuture(cc)
         } yield {
-          if (!APIUtil.isSandboxMode && user.isDefined)
-            AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
           (user, callContext)
         }
       } // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
@@ -2838,7 +2836,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Better also check the logic for needToRefreshUser method.
    */
   def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
-    if(!APIUtil.isSandboxMode && user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
+    if(user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
       user.map(AuthUser.updateUserAccountViewsFuture(_, callContext))
     else
       None
@@ -3052,9 +3050,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                                     otherAccountRoutingScheme: String,
                                     otherAccountRoutingAddress: String
                                   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
-
-  //TODO, now we have the star connector, it will break the isSandboxMode method logic. Need to double check how to use this method now. 
-  val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 
   def isDataFromOBPSide (methodName: String, argNameToValue: Array[(String, AnyRef)] = Array.empty): Boolean = {
     val connectorNameInProps = APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox)
