@@ -36,7 +36,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.User
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
@@ -74,7 +74,8 @@ class UserInvitation extends MdcLoggable {
     devEmailVar.set(email)
     companyVar.set(userInvitation.map(_.company).getOrElse("None"))
     countryVar.set(userInvitation.map(_.country).getOrElse("None"))
-    usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
+    // Propose the username only for the first time. In case an end user manually change it we must not override it.
+    if(usernameVar.isEmpty) usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
 
     def submitButtonDefense(): Unit = {
       val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
@@ -130,7 +131,7 @@ class UserInvitation extends MdcLoggable {
       showError(Helper.i18n("your.secret.link.is.not.valid"))
     }
     def showErrorsForUsername() = {
-      showError(Helper.i18n("unique.username"))
+      showError(Helper.i18n("your.username.is.not.unique"))
     }
     def showErrorsForStatus() = {
       showError(Helper.i18n("user.invitation.is.already.finished"))
@@ -161,6 +162,17 @@ class UserInvitation extends MdcLoggable {
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#register-consumer-success" #> ""
+    }
+    userInvitation match {
+      case Full(payload) if payload.status == "CREATED" => // All good
+      case _ =>
+        firstNameVar.set("None")
+        lastNameVar.set("None")
+        devEmailVar.set("None")
+        companyVar.set("None")
+        countryVar.set("None")
+        usernameVar.set("None")
+        S.error("Cannot complete your user invitation. Please check the invitation link. Your invitation could be invalid or completed.")
     }
     register
   }
