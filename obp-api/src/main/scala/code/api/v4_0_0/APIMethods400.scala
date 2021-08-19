@@ -1105,8 +1105,10 @@ trait APIMethods400 {
               }
             }
           } yield {
-            //TODO, remove this `isSandboxMode` logic, the challenges should come from other places.
-            val challenges : List[ChallengeJson] = if(APIUtil.isSandboxMode){
+            //TODO, remove this `connector` guard logic, the challenges should come from other places.
+            // The OBP mapped V400 payment.challenges are not done yet, the we should use `createChallengesC2` instead of `createChallenges` in createTransactionRequestv400 method,
+            // and get the challenges from connector level, not prepare them here.
+            val challenges : List[ChallengeJson] = if(APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString.equalsIgnoreCase("mapped")){
                MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
                 .map(mappedExpectedChallengeAnswer => 

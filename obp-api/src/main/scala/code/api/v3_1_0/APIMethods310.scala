@@ -1973,7 +1973,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", userId, canRefreshUser, callContext)
             startTime <- Future{Helpers.now}
             _ <- NewStyle.function.findByUserId(userId, callContext)
-            _ <- if (APIUtil.isSandboxMode) Future{} else AuthUser.updateUserAccountViewsFuture(u, callContext) 
+            _ <- Future{refreshUserIfRequired(Full(u), callContext)} 
             endTime <- Future{Helpers.now}
             durationTime = endTime.getTime - startTime.getTime
           } yield {
