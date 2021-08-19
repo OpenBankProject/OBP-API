@@ -74,7 +74,8 @@ class UserInvitation extends MdcLoggable {
     devEmailVar.set(email)
     companyVar.set(userInvitation.map(_.company).getOrElse("None"))
     countryVar.set(userInvitation.map(_.country).getOrElse("None"))
-    usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
+    // Propose the username only for the first time. In case an end user manually change it we must not override it.
+    if(usernameVar.isEmpty) usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
 
     def submitButtonDefense(): Unit = {
       val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
@@ -130,7 +131,7 @@ class UserInvitation extends MdcLoggable {
       showError(Helper.i18n("your.secret.link.is.not.valid"))
     }
     def showErrorsForUsername() = {
-      showError(Helper.i18n("unique.username"))
+      showError(Helper.i18n("your.username.is.not.unique"))
     }
     def showErrorsForStatus() = {
       showError(Helper.i18n("user.invitation.is.already.finished"))
