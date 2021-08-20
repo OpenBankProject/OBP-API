@@ -28,7 +28,7 @@ package code.model.dataAccess
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
-import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, logger, _}
+import code.api.util.APIUtil.{hasAnOAuthHeader, validatePasswordOnCreation, logger, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper
@@ -268,7 +268,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
             invalidMsg = Helper.i18n("please.enter.your.password")
             S.error("authuser_password_repeat", Text(Helper.i18n("please.re-enter.your.password")))
           case false =>
-            if (isValidStrongPassword(passwordValue))
+            if (validatePasswordOnCreation(passwordValue))
               invalidPw = false
             else {
               invalidPw = true
