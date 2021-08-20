@@ -15,7 +15,8 @@ import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelp
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, CustomerAttributeType, ProductAttributeType, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
+import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, ProductAttributeType, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.parse
@@ -306,8 +307,48 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2020-06-17T14:19:04Z
+// ---------- created on 2021-08-19T16:36:57Z
 
+  messageDocs += validateAndCheckIbanNumberDoc
+  def validateAndCheckIbanNumberDoc = MessageDoc(
+    process = "obp.validateAndCheckIbanNumber",
+    messageFormat = messageFormat,
+    description = "Validate And Check Iban Number",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundValidateAndCheckIbanNumber(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      iban=ibanExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundValidateAndCheckIbanNumber(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= IbanChecker(isValid=true,
+      details=Some( IbanDetails(bic=bicExample.value,
+      bank=bankExample.value,
+      branch="string",
+      address=addressExample.value,
+      city=cityExample.value,
+      zip="string",
+      phone=phoneExample.value,
+      country="string",
+      countryIso="string",
+      sepaCreditTransfer=sepaCreditTransferExample.value,
+      sepaDirectDebit=sepaDirectDebitExample.value,
+      sepaSddCore=sepaSddCoreExample.value,
+      sepaB2b=sepaB2bExample.value,
+      sepaCardClearing=sepaCardClearingExample.value))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = {
+        import com.openbankproject.commons.dto.{InBoundValidateAndCheckIbanNumber => InBound, OutBoundValidateAndCheckIbanNumber => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[IbanChecker](callContext))        
+  }
+          
   messageDocs += getChallengeThresholdDoc
   def getChallengeThresholdDoc = MessageDoc(
     process = "obp.getChallengeThreshold",
@@ -323,19 +364,19 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value,
       userId=userIdExample.value,
-      username="string")
+      username=usernameExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetChallengeThreshold(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= AmountOfMoney(currency=currencyExample.value,
-      amount="string"))
+      amount=amountExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, username: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetChallengeThreshold => OutBound, InBoundGetChallengeThreshold => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetChallengeThreshold => InBound, OutBoundGetChallengeThreshold => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, transactionRequestType, currency, userId, username)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AmountOfMoney](callContext))        
@@ -354,7 +395,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountId=AccountId(accountIdExample.value),
       viewId=ViewId(viewIdExample.value),
       userId=userIdExample.value,
-      username="string",
+      username=usernameExample.value,
       transactionRequestType=transactionRequestTypeExample.value,
       currency=currencyExample.value)
     ),
@@ -362,14 +403,53 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      InBoundGetChargeLevel(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= AmountOfMoney(currency=currencyExample.value,
-      amount="string"))
+      amount=amountExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, username: String, transactionRequestType: String, currency: String, callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetChargeLevel => OutBound, InBoundGetChargeLevel => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetChargeLevel => InBound, OutBoundGetChargeLevel => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, username, transactionRequestType, currency)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[AmountOfMoney](callContext))        
+  }
+          
+  messageDocs += getChargeLevelC2Doc
+  def getChargeLevelC2Doc = MessageDoc(
+    process = "obp.getChargeLevelC2",
+    messageFormat = messageFormat,
+    description = "Get Charge Level C2",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChargeLevelC2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value),
+      viewId=ViewId(viewIdExample.value),
+      userId=userIdExample.value,
+      username=usernameExample.value,
+      transactionRequestType=transactionRequestTypeExample.value,
+      currency=currencyExample.value,
+      amount=amountExample.value,
+      toAccountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      customAttributes=List( CustomAttribute(name=nameExample.value,
+      attributeType=com.openbankproject.commons.model.enums.AttributeType.example,
+      value=valueExample.value)))
+    ),
+    exampleInboundMessage = (
+     InBoundGetChargeLevelC2(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChargeLevelC2(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, username: String, transactionRequestType: String, currency: String, amount: String, toAccountRoutings: List[AccountRouting], customAttributes: List[CustomAttribute], callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChargeLevelC2 => InBound, OutBoundGetChargeLevelC2 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, viewId, userId, username, transactionRequestType, currency, amount, toAccountRoutings, customAttributes)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AmountOfMoney](callContext))        
   }
@@ -387,7 +467,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountId=AccountId(accountIdExample.value),
       userId=userIdExample.value,
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
-      transactionRequestId="string",
+      transactionRequestId=transactionRequestIdExample.value,
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
     ),
     exampleInboundMessage = (
@@ -399,7 +479,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[String]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateChallenge => OutBound, InBoundCreateChallenge => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateChallenge => InBound, OutBoundCreateChallenge => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, userId, transactionRequestType, transactionRequestId, scaMethod)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[String](callContext))        
@@ -416,24 +496,66 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateChallenges(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      userIds=List(userIdExample.value),
+      userIds=listExample.value.split("[,;]").toList,
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
-      transactionRequestId="string",
+      transactionRequestId=transactionRequestIdExample.value,
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
     ),
     exampleInboundMessage = (
      InBoundCreateChallenges(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List("string"))
+      data=listExample.value.split("[,;]").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createChallenges(bankId: BankId, accountId: AccountId, userIds: List[String], transactionRequestType: TransactionRequestType, transactionRequestId: String, scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateChallenges => OutBound, InBoundCreateChallenges => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateChallenges => InBound, OutBoundCreateChallenges => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, userIds, transactionRequestType, transactionRequestId, scaMethod)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[String]](callContext))        
+  }
+          
+  messageDocs += createChallengesC2Doc
+  def createChallengesC2Doc = MessageDoc(
+    process = "obp.createChallengesC2",
+    messageFormat = messageFormat,
+    description = "Create Challenges C2",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCreateChallengesC2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      userIds=listExample.value.split("[,;]").toList,
+      challengeType=com.openbankproject.commons.model.enums.ChallengeType.example,
+      transactionRequestId=Some(transactionRequestIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      consentId=Some(consentIdExample.value),
+      authenticationMethodId=Some("string"))
+    ),
+    exampleInboundMessage = (
+     InBoundCreateChallengesC2(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def createChallengesC2(userIds: List[String], challengeType: ChallengeType.Value, transactionRequestId: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], scaStatus: Option[SCAStatus], consentId: Option[String], authenticationMethodId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundCreateChallengesC2 => InBound, OutBoundCreateChallengesC2 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userIds, challengeType, transactionRequestId, scaMethod, scaStatus, consentId, authenticationMethodId)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
   }
           
   messageDocs += validateChallengeAnswerDoc
@@ -445,8 +567,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundValidateChallengeAnswer(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      challengeId="string",
-      hashOfSuppliedAnswer="string")
+      challengeId=challengeIdExample.value,
+      hashOfSuppliedAnswer=hashOfSuppliedAnswerExample.value)
     ),
     exampleInboundMessage = (
      InBoundValidateChallengeAnswer(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -457,10 +579,157 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundValidateChallengeAnswer => OutBound, InBoundValidateChallengeAnswer => InBound}  
+        import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswer => InBound, OutBoundValidateChallengeAnswer => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, challengeId, hashOfSuppliedAnswer)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
+  }
+          
+  messageDocs += validateChallengeAnswerC2Doc
+  def validateChallengeAnswerC2Doc = MessageDoc(
+    process = "obp.validateChallengeAnswerC2",
+    messageFormat = messageFormat,
+    description = "Validate Challenge Answer C2",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundValidateChallengeAnswerC2(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionRequestId=Some(transactionRequestIdExample.value),
+      consentId=Some(consentIdExample.value),
+      challengeId=challengeIdExample.value,
+      hashOfSuppliedAnswer=hashOfSuppliedAnswerExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundValidateChallengeAnswerC2(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string")))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def validateChallengeAnswerC2(transactionRequestId: Option[String], consentId: Option[String], challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundValidateChallengeAnswerC2 => InBound, OutBoundValidateChallengeAnswerC2 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId, consentId, challengeId, hashOfSuppliedAnswer)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[ChallengeCommons](callContext))        
+  }
+          
+  messageDocs += getChallengesByTransactionRequestIdDoc
+  def getChallengesByTransactionRequestIdDoc = MessageDoc(
+    process = "obp.getChallengesByTransactionRequestId",
+    messageFormat = messageFormat,
+    description = "Get Challenges By Transaction Request Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChallengesByTransactionRequestId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionRequestId=transactionRequestIdExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetChallengesByTransactionRequestId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChallengesByTransactionRequestId(transactionRequestId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChallengesByTransactionRequestId => InBound, OutBoundGetChallengesByTransactionRequestId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
+  }
+          
+  messageDocs += getChallengesByConsentIdDoc
+  def getChallengesByConsentIdDoc = MessageDoc(
+    process = "obp.getChallengesByConsentId",
+    messageFormat = messageFormat,
+    description = "Get Challenges By Consent Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChallengesByConsentId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      consentId=consentIdExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetChallengesByConsentId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string"))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChallengesByConsentId(consentId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ChallengeTrait]]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChallengesByConsentId => InBound, OutBoundGetChallengesByConsentId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, consentId)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[List[ChallengeCommons]](callContext))        
+  }
+          
+  messageDocs += getChallengeDoc
+  def getChallengeDoc = MessageDoc(
+    process = "obp.getChallenge",
+    messageFormat = messageFormat,
+    description = "Get Challenge",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetChallenge(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      challengeId=challengeIdExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetChallenge(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= ChallengeCommons(challengeId=challengeIdExample.value,
+      transactionRequestId=transactionRequestIdExample.value,
+      expectedAnswer="string",
+      expectedUserId="string",
+      salt="string",
+      successful=true,
+      challengeType=challengeTypeExample.value,
+      consentId=Some(consentIdExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
+      authenticationMethodId=Some("string")))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getChallenge(challengeId: String, callContext: Option[CallContext]): OBPReturnType[Box[ChallengeTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundGetChallenge => InBound, OutBoundGetChallenge => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, challengeId)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[ChallengeCommons](callContext))        
   }
           
   messageDocs += getUserDoc
@@ -471,24 +740,97 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     outboundTopic = None,
     inboundTopic = None,
     exampleOutboundMessage = (
-     OutBoundGetUser(name=usernameExample.value,
-      password="string")
+     OutBoundGetUser(name=userNameExample.value,
+      password=passwordExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetUser(status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= InboundUser(email=emailExample.value,
-      password="string",
-      displayName="string"))
+      password=passwordExample.value,
+      displayName=displayNameExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getUser(name: String, password: String): Box[InboundUser] = {
-        import com.openbankproject.commons.dto.{OutBoundGetUser => OutBound, InBoundGetUser => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetUser => InBound, OutBoundGetUser => OutBound}  
         val callContext: Option[CallContext] = None
         val req = OutBound(name, password)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[InboundUser](callContext))        
+  }
+          
+  messageDocs += checkExternalUserCredentialsDoc
+  def checkExternalUserCredentialsDoc = MessageDoc(
+    process = "obp.checkExternalUserCredentials",
+    messageFormat = messageFormat,
+    description = "Check External User Credentials",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCheckExternalUserCredentials(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      username=usernameExample.value,
+      password=passwordExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundCheckExternalUserCredentials(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= InboundExternalUser(aud=audExample.value,
+      exp=expExample.value,
+      iat=iatExample.value,
+      iss=issExample.value,
+      sub=subExample.value,
+      azp=Some("string"),
+      email=Some(emailExample.value),
+      emailVerified=Some(emailVerifiedExample.value),
+      name=Some(userNameExample.value),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value)))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def checkExternalUserCredentials(username: String, password: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
+        import com.openbankproject.commons.dto.{InBoundCheckExternalUserCredentials => InBound, OutBoundCheckExternalUserCredentials => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username, password)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[InboundExternalUser](callContext))        
+  }
+          
+  messageDocs += checkExternalUserExistsDoc
+  def checkExternalUserExistsDoc = MessageDoc(
+    process = "obp.checkExternalUserExists",
+    messageFormat = messageFormat,
+    description = "Check External User Exists",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCheckExternalUserExists(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      username=usernameExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundCheckExternalUserExists(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= InboundExternalUser(aud=audExample.value,
+      exp=expExample.value,
+      iat=iatExample.value,
+      iss=issExample.value,
+      sub=subExample.value,
+      azp=Some("string"),
+      email=Some(emailExample.value),
+      emailVerified=Some(emailVerifiedExample.value),
+      name=Some(userNameExample.value),
+      userAuthContext=Some(List( BasicUserAuthContext(key=keyExample.value,
+      value=valueExample.value)))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def checkExternalUserExists(username: String, callContext: Option[CallContext]): Box[InboundExternalUser] = {
+        import com.openbankproject.commons.dto.{InBoundCheckExternalUserExists => InBound, OutBoundCheckExternalUserExists => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, username)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[InboundExternalUser](callContext))        
   }
           
   messageDocs += getBankAccountOldDoc
@@ -506,25 +848,28 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      InBoundGetBankAccountOld(status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getBankAccountOld(bankId: BankId, accountId: AccountId): Box[BankAccount] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccountOld => OutBound, InBoundGetBankAccountOld => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountOld => InBound, OutBoundGetBankAccountOld => OutBound}  
         val callContext: Option[CallContext] = None
         val req = OutBound(bankId, accountId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
@@ -547,25 +892,28 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccountByIban => OutBound, InBoundGetBankAccountByIban => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountByIban => InBound, OutBoundGetBankAccountByIban => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -581,33 +929,36 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
      OutBoundGetBankAccountByRouting(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=Some(BankId(bankIdExample.value)),
-      scheme="string",
-      address="string")
+      scheme=schemeExample.value,
+      address=addressExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetBankAccountByRouting(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccountByRouting => OutBound, InBoundGetBankAccountByRouting => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountByRouting => InBound, OutBoundGetBankAccountByRouting => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, scheme, address)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -630,25 +981,28 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value)))
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value))))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccounts => OutBound, InBoundGetBankAccounts => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBankAccounts => InBound, OutBoundGetBankAccounts => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[BankAccountCommons]](callContext))        
@@ -669,7 +1023,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetBankAccountsBalances(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= AccountsBalances(accounts=List( AccountBalance(id=accountIdExample.value,
+      data= AccountsBalances(accounts=List( AccountBalance(id=idExample.value,
       label=labelExample.value,
       bankId=bankIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
@@ -677,14 +1031,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       balance= AmountOfMoney(currency=balanceCurrencyExample.value,
       amount=balanceAmountExample.value))),
       overallBalance= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      overallBalanceDate=new Date()))
+      amount=amountExample.value),
+      overallBalanceDate=toDate(overallBalanceDateExample)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[AccountsBalances]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsBalances => OutBound, InBoundGetBankAccountsBalances => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountsBalances => InBound, OutBoundGetBankAccountsBalances => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AccountsBalances](callContext))        
@@ -705,10 +1059,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetBankAccountsHeld(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( AccountHeld(id="string",
-      label = labelExample.value,
+      data=List( AccountHeld(id=idExample.value,
+      label=labelExample.value,
       bankId=bankIdExample.value,
-      number="string",
+      number=numberExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)))))
     ),
@@ -716,7 +1070,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getBankAccountsHeld(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountHeld]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBankAccountsHeld => OutBound, InBoundGetBankAccountsHeld => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBankAccountsHeld => InBound, OutBoundGetBankAccountsHeld => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankIdAccountIds)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[AccountHeld]](callContext))        
@@ -738,22 +1092,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetCounterpartyTrait(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
+      data= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=nameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))))
@@ -762,7 +1116,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, couterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCounterpartyTrait => OutBound, InBoundGetCounterpartyTrait => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCounterpartyTrait => InBound, OutBoundGetCounterpartyTrait => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, couterpartyId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
@@ -782,22 +1136,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetCounterpartyByCounterpartyId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
+      data= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=nameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))))
@@ -806,7 +1160,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCounterpartyByCounterpartyId => OutBound, InBoundGetCounterpartyByCounterpartyId => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCounterpartyByCounterpartyId => InBound, OutBoundGetCounterpartyByCounterpartyId => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, counterpartyId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
@@ -826,22 +1180,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetCounterpartyByIban(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
+      data= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=nameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))))
@@ -850,8 +1204,54 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCounterpartyByIban => OutBound, InBoundGetCounterpartyByIban => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCounterpartyByIban => InBound, OutBoundGetCounterpartyByIban => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
+  }
+          
+  messageDocs += getCounterpartyByIbanAndBankAccountIdDoc
+  def getCounterpartyByIbanAndBankAccountIdDoc = MessageDoc(
+    process = "obp.getCounterpartyByIbanAndBankAccountId",
+    messageFormat = messageFormat,
+    description = "Get Counterparty By Iban And Bank Account Id",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetCounterpartyByIbanAndBankAccountId(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      iban=ibanExample.value,
+      bankId=BankId(bankIdExample.value),
+      accountId=AccountId(accountIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundGetCounterpartyByIbanAndBankAccountId(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=nameExample.value,
+      description=descriptionExample.value,
+      currency=currencyExample.value,
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
+      counterpartyId=counterpartyIdExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      isBeneficiary=isBeneficiaryExample.value.toBoolean,
+      bespoke=List( CounterpartyBespoke(key=keyExample.value,
+      value=valueExample.value))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
+        import com.openbankproject.commons.dto.{InBoundGetCounterpartyByIbanAndBankAccountId => InBound, OutBoundGetCounterpartyByIbanAndBankAccountId => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, iban, bankId, accountId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
   }
@@ -865,29 +1265,29 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetCounterparties(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      thisBankId=BankId(bankIdExample.value),
-      thisAccountId=AccountId(accountIdExample.value),
+      thisBankId=BankId(thisBankIdExample.value),
+      thisAccountId=AccountId(thisAccountIdExample.value),
       viewId=ViewId(viewIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundGetCounterparties(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
+      data=List( CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=nameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value)))))
@@ -896,7 +1296,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId, callContext: Option[CallContext]): OBPReturnType[Box[List[CounterpartyTrait]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCounterparties => OutBound, InBoundGetCounterparties => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCounterparties => InBound, OutBoundGetCounterparties => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, thisBankId, thisAccountId, viewId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[CounterpartyTraitCommons]](callContext))        
@@ -915,55 +1315,130 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountId=AccountId(accountIdExample.value),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
-      fromDate="string",
-      toDate="string")
+      fromDate=fromDateExample.value,
+      toDate=toDateExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetTransactionsCore(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( TransactionCore(id=TransactionId(transactionIdExample.value),
+      data=List( TransactionCore(id=TransactionId(idExample.value),
       thisAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      otherAccount= CounterpartyCore(kind="string",
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      otherAccount= CounterpartyCore(kind=kindExample.value,
       counterpartyId=counterpartyIdExample.value,
       counterpartyName=counterpartyNameExample.value,
-      thisBankId=BankId(bankIdExample.value),
-      thisAccountId=AccountId(accountIdExample.value),
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=Some(bankRoutingAddressExample.value),
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=Some(accountRoutingAddressExample.value),
+      thisBankId=BankId(thisBankIdExample.value),
+      thisAccountId=AccountId(thisAccountIdExample.value),
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=Some(otherBankRoutingAddressExample.value),
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=Some(otherAccountRoutingAddressExample.value),
       otherAccountProvider=otherAccountProviderExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean),
       transactionType=transactionTypeExample.value,
-      amount=BigDecimal("123.321"),
+      amount=BigDecimal(amountExample.value),
       currency=currencyExample.value,
-      description=Some("string"),
-      startDate=new Date(),
-      finishDate=new Date(),
-      balance=BigDecimal(balanceAmountExample.value))))
+      description=Some(descriptionExample.value),
+      startDate=toDate(startDateExample),
+      finishDate=toDate(finishDateExample),
+      balance=BigDecimal(balanceExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetTransactionsCore => OutBound, InBoundGetTransactionsCore => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetTransactionsCore => InBound, OutBoundGetTransactionsCore => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[TransactionCore]](callContext))        
+  }
+          
+  messageDocs += getPhysicalCardsForUserDoc
+  def getPhysicalCardsForUserDoc = MessageDoc(
+    process = "obp.getPhysicalCardsForUser",
+    messageFormat = messageFormat,
+    description = "Get Physical Cards For User",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+          OutBoundGetPhysicalCardsForUser( UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      userId=userIdExample.value,
+      idGivenByProvider="string",
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)))
+    ),
+    exampleInboundMessage = (
+     InBoundGetPhysicalCardsForUser(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( PhysicalCard(cardId=cardIdExample.value,
+      bankId=bankIdExample.value,
+      bankCardNumber=bankCardNumberExample.value,
+      cardType=cardTypeExample.value,
+      nameOnCard=nameOnCardExample.value,
+      issueNumber=issueNumberExample.value,
+      serialNumber=serialNumberExample.value,
+      validFrom=toDate(validFromExample),
+      expires=toDate(expiresDateExample),
+      enabled=enabledExample.value.toBoolean,
+      cancelled=cancelledExample.value.toBoolean,
+      onHotList=onHotListExample.value.toBoolean,
+      technology=technologyExample.value,
+      networks=networksExample.value.split("[,;]").toList,
+      allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
+      account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
+      accountType=accountTypeExample.value,
+      balance=BigDecimal(balanceExample.value),
+      currency=currencyExample.value,
+      name=bankAccountNameExample.value,
+      label=labelExample.value,
+      number=accountNumberExample.value,
+      bankId=BankId(bankIdExample.value),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
+      branchId=branchIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
+      value=accountRuleValueExample.value)),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
+      reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
+      reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
+      collected=Some(CardCollectionInfo(toDate(collectedExample))),
+      posted=Some(CardPostedInfo(toDate(postedExample))),
+      customerId=customerIdExample.value)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getPhysicalCardsForUser(user: User): Box[List[PhysicalCard]] = {
+        import com.openbankproject.commons.dto.{InBoundGetPhysicalCardsForUser => InBound, OutBoundGetPhysicalCardsForUser => OutBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(user)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[List[PhysicalCard]](callContext))        
   }
           
   messageDocs += getPhysicalCardForBankDoc
@@ -988,42 +1463,45 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
+      validFrom=toDate(validFromExample),
+      expires=toDate(expiresDateExample),
+      enabled=enabledExample.value.toBoolean,
+      cancelled=cancelledExample.value.toBoolean,
+      onHotList=onHotListExample.value.toBoolean,
+      technology=technologyExample.value,
+      networks=networksExample.value.split("[,;]").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
+      collected=Some(CardCollectionInfo(toDate(collectedExample))),
+      posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getPhysicalCardForBank(bankId: BankId, cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCardTrait]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardForBank => OutBound, InBoundGetPhysicalCardForBank => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetPhysicalCardForBank => InBound, OutBoundGetPhysicalCardForBank => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, cardId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[PhysicalCard](callContext))        
@@ -1050,7 +1528,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def deletePhysicalCardForBank(bankId: BankId, cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundDeletePhysicalCardForBank => OutBound, InBoundDeletePhysicalCardForBank => InBound}  
+        import com.openbankproject.commons.dto.{InBoundDeletePhysicalCardForBank => InBound, OutBoundDeletePhysicalCardForBank => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, cardId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
@@ -1077,13 +1555,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       user= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
-      fromDate="string",
-      toDate="string")
+      fromDate=fromDateExample.value,
+      toDate=toDateExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetPhysicalCardsForBank(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -1095,42 +1576,45 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
+      validFrom=toDate(validFromExample),
+      expires=toDate(expiresDateExample),
+      enabled=enabledExample.value.toBoolean,
+      cancelled=cancelledExample.value.toBoolean,
+      onHotList=onHotListExample.value.toBoolean,
+      technology=technologyExample.value,
+      networks=networksExample.value.split("[,;]").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
+      collected=Some(CardCollectionInfo(toDate(collectedExample))),
+      posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetPhysicalCardsForBank => OutBound, InBoundGetPhysicalCardsForBank => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetPhysicalCardsForBank => InBound, OutBoundGetPhysicalCardsForBank => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bank, user, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[PhysicalCard]](callContext))        
@@ -1150,22 +1634,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       cardType=cardTypeExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
-      allows=List("string"),
+      validFrom=toDate(validFromExample),
+      expires=toDate(expiresDateExample),
+      enabled=enabledExample.value.toBoolean,
+      cancelled=cancelledExample.value.toBoolean,
+      onHotList=onHotListExample.value.toBoolean,
+      technology=technologyExample.value,
+      networks=networksExample.value.split("[,;]").toList,
+      allows=allowsExample.value.split("[,;]").toList,
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
+      collected=Some(CardCollectionInfo(toDate(collectedExample))),
+      posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value)
     ),
     exampleInboundMessage = (
@@ -1178,42 +1662,45 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
+      validFrom=toDate(validFromExample),
+      expires=toDate(expiresDateExample),
+      enabled=enabledExample.value.toBoolean,
+      cancelled=cancelledExample.value.toBoolean,
+      onHotList=onHotListExample.value.toBoolean,
+      technology=technologyExample.value,
+      networks=networksExample.value.split("[,;]").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
+      collected=Some(CardCollectionInfo(toDate(collectedExample))),
+      posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreatePhysicalCard => OutBound, InBoundCreatePhysicalCard => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreatePhysicalCard => InBound, OutBoundCreatePhysicalCard => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[PhysicalCard](callContext))        
@@ -1234,22 +1721,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       cardType=cardTypeExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
-      allows=List("string"),
+      validFrom=toDate(validFromExample),
+      expires=toDate(expiresDateExample),
+      enabled=enabledExample.value.toBoolean,
+      cancelled=cancelledExample.value.toBoolean,
+      onHotList=onHotListExample.value.toBoolean,
+      technology=technologyExample.value,
+      networks=networksExample.value.split("[,;]").toList,
+      allows=allowsExample.value.split("[,;]").toList,
       accountId=accountIdExample.value,
       bankId=bankIdExample.value,
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
+      collected=Some(CardCollectionInfo(toDate(collectedExample))),
+      posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value)
     ),
     exampleInboundMessage = (
@@ -1262,42 +1749,45 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       nameOnCard=nameOnCardExample.value,
       issueNumber=issueNumberExample.value,
       serialNumber=serialNumberExample.value,
-      validFrom=new Date(),
-      expires=new Date(),
-      enabled=true,
-      cancelled=true,
-      onHotList=true,
-      technology="string",
-      networks=List("string"),
+      validFrom=toDate(validFromExample),
+      expires=toDate(expiresDateExample),
+      enabled=enabledExample.value.toBoolean,
+      cancelled=cancelledExample.value.toBoolean,
+      onHotList=onHotListExample.value.toBoolean,
+      technology=technologyExample.value,
+      networks=networksExample.value.split("[,;]").toList,
       allows=List(com.openbankproject.commons.model.CardAction.DEBIT),
       account= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=accountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      replacement=Some( CardReplacementInfo(requestedDate=new Date(),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      replacement=Some( CardReplacementInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.CardReplacementReason.FIRST)),
-      pinResets=List( PinResetInfo(requestedDate=new Date(),
+      pinResets=List( PinResetInfo(requestedDate=toDate(requestedDateExample),
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
-      collected=Some(CardCollectionInfo(new Date())),
-      posted=Some(CardPostedInfo(new Date())),
+      collected=Some(CardCollectionInfo(toDate(collectedExample))),
+      posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def updatePhysicalCard(cardId: String, bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCardTrait]] = {
-        import com.openbankproject.commons.dto.{OutBoundUpdatePhysicalCard => OutBound, InBoundUpdatePhysicalCard => InBound}  
+        import com.openbankproject.commons.dto.{InBoundUpdatePhysicalCard => InBound, OutBoundUpdatePhysicalCard => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, cardId, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[PhysicalCard](callContext))        
@@ -1314,42 +1804,48 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundMakePaymentv210(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
       toAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      transactionRequestId = TransactionRequestId(uuidExample.value),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      transactionRequestId=TransactionRequestId(transactionRequestIdExample.value),
       transactionRequestCommonBody= TransactionRequestCommonBodyJSONCommons(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
-      amount=BigDecimal("123.321"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value),
+      amount=BigDecimal(amountExample.value),
+      description=descriptionExample.value,
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
-      chargePolicy="string")
+      chargePolicy=chargePolicyExample.value)
     ),
     exampleInboundMessage = (
      InBoundMakePaymentv210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -1360,12 +1856,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def makePaymentv210(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestId: TransactionRequestId, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amount: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
-        import com.openbankproject.commons.dto.{OutBoundMakePaymentv210 => OutBound, InBoundMakePaymentv210 => InBound}
-        val fromAccountCommons: BankAccountCommons = fromAccount
-        val toAccountCommons: BankAccountCommons = toAccount
-        val transactionRequestCommonBodyJSONCommons: TransactionRequestCommonBodyJSONCommons = transactionRequestCommonBody
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccountCommons, toAccountCommons, transactionRequestId, transactionRequestCommonBodyJSONCommons, amount, description, transactionRequestType, chargePolicy)
-        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
+        import com.openbankproject.commons.dto.{InBoundMakePaymentv210 => InBound, OutBoundMakePaymentv210 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, transactionRequestId, transactionRequestCommonBody, amount, description, transactionRequestType, chargePolicy)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionId](callContext))        
   }
           
@@ -1381,109 +1874,118 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       viewId=ViewId(viewIdExample.value),
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
       toAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
       transactionRequestCommonBody= TransactionRequestCommonBodyJSONCommons(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       detailsPlain="string",
-      chargePolicy="string",
-      challengeType=Some("string"),
+      chargePolicy=chargePolicyExample.value,
+      challengeType=Some(challengeTypeExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
-      to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
-      to=ToAccountTransferToPhone("string"))),
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
       to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
+      nickname=nicknameExample.value),
       to= ToAccountTransferToAtm(legal_name="string",
       date_of_birth="string",
       mobile_phone_number="string",
-      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
-      number="string")))),
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
       to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
       transfer_type="string",
       future_date="string",
-      to= ToAccountTransferToAccount(name="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
       bank_code="string",
       branch_number="string",
       account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
       iban=ibanExample.value)))),
       to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
       instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
+      amount=amountExample.value),
       creditorAccount=PaymentAccount("string"),
       creditorName="string")),
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transaction_ids="string",
-      status="string",
-      start_date=new Date(),
-      end_date=new Date(),
-      challenge= TransactionRequestChallenge(id="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
-      charge= TransactionRequestCharge(summary="string",
+      charge= TransactionRequestCharge(summary=summaryExample.value,
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string")),
+      amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
-      name="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
       this_view_id=ViewId(viewIdExample.value),
@@ -1498,134 +2000,188 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createTransactionRequestv210(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv210 => OutBound, InBoundCreateTransactionRequestv210 => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv210 => InBound, OutBoundCreateTransactionRequestv210 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionRequest](callContext))        
   }
-
-  messageDocs += notifyTransactionRequestDoc
-  def notifyTransactionRequestDoc = MessageDoc(
-    process = "obp.notifyTransactionRequest",
+          
+  messageDocs += createTransactionRequestv400Doc
+  def createTransactionRequestv400Doc = MessageDoc(
+    process = "obp.createTransactionRequestv400",
     messageFormat = messageFormat,
-    description = "Notify Transaction Request",
+    description = "Create Transaction Requestv400",
     outboundTopic = None,
     inboundTopic = None,
-    exampleOutboundMessage = OutBoundNotifyTransactionRequest(outboundAdapterCallContext = MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      fromAccount = BankAccountCommons(accountId = AccountId(accountIdExample.value),
-        accountType = accountTypeExample.value,
-        balance = BigDecimal(balanceAmountExample.value),
-        currency = currencyExample.value,
-        name = bankAccountNameExample.value,
-        label = labelExample.value,
-        number = bankAccountNumberExample.value,
-        bankId = BankId(bankIdExample.value),
-        lastUpdate = parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-        branchId = branchIdExample.value,
-        accountRoutings = List(AccountRouting(scheme = accountRoutingSchemeExample.value,
-          address = accountRoutingAddressExample.value)),
-        accountRules = List(AccountRule(scheme = accountRuleSchemeExample.value,
-          value = accountRuleValueExample.value)),
-        accountHolder = bankAccountAccountHolderExample.value),
-      toAccount = BankAccountCommons(accountId = AccountId(accountIdExample.value),
-        accountType = accountTypeExample.value,
-        balance = BigDecimal(balanceAmountExample.value),
-        currency = currencyExample.value,
-        name = bankAccountNameExample.value,
-        label = labelExample.value,
-        number = bankAccountNumberExample.value,
-        bankId = BankId(bankIdExample.value),
-        lastUpdate = parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
-        branchId = branchIdExample.value,
-        accountRoutings = List(AccountRouting(scheme = accountRoutingSchemeExample.value,
-          address = accountRoutingAddressExample.value)),
-        accountRules = List(AccountRule(scheme = accountRuleSchemeExample.value,
-          value = accountRuleValueExample.value)),
-        accountHolder = bankAccountAccountHolderExample.value),
-      transactionRequest = TransactionRequest(id = TransactionRequestId("string"),
-        `type` = transactionRequestTypeExample.value,
-        from = TransactionRequestAccount(bank_id = "string",
-          account_id = "string"),
-        body = TransactionRequestBodyAllTypes(to_sandbox_tan = Some(TransactionRequestAccount(bank_id = "string",
-          account_id = "string")),
-          to_sepa = Some(TransactionRequestIban("string")),
-          to_counterparty = Some(TransactionRequestCounterpartyId("string")),
-          to_transfer_to_phone = Some(TransactionRequestTransferToPhone(value = AmountOfMoneyJsonV121(currency = currencyExample.value,
-            amount = "string"),
-            description = "string",
-            message = "string",
-            from = FromAccountTransfer(mobile_phone_number = "string",
-              nickname = "string"),
-            to = ToAccountTransferToPhone("string"))),
-          to_transfer_to_atm = Some(TransactionRequestTransferToAtm(value = AmountOfMoneyJsonV121(currency = currencyExample.value,
-            amount = "string"),
-            description = "string",
-            message = "string",
-            from = FromAccountTransfer(mobile_phone_number = "string",
-              nickname = "string"),
-            to = ToAccountTransferToAtm(legal_name = "string",
-              date_of_birth = "string",
-              mobile_phone_number = "string",
-              kyc_document = ToAccountTransferToAtmKycDocument(`type` = "string",
-                number = "string")))),
-          to_transfer_to_account = Some(TransactionRequestTransferToAccount(value = AmountOfMoneyJsonV121(currency = currencyExample.value,
-            amount = "string"),
-            description = "string",
-            transfer_type = "string",
-            future_date = "string",
-            to = ToAccountTransferToAccount(name = "string",
-              bank_code = "string",
-              branch_number = "string",
-              account = ToAccountTransferToAccountAccount(number = accountNumberExample.value,
-                iban = ibanExample.value)))),
-          to_sepa_credit_transfers = Some(SepaCreditTransfers(debtorAccount = PaymentAccount("string"),
-            instructedAmount = AmountOfMoneyJsonV121(currency = currencyExample.value,
-              amount = "string"),
-            creditorAccount = PaymentAccount("string"),
-            creditorName = "string")),
-          value = AmountOfMoney(currency = currencyExample.value,
-            amount = "string"),
-          description = "string"),
-        transaction_ids = "string",
-        status = "string",
-        start_date = new Date(),
-        end_date = new Date(),
-        challenge = TransactionRequestChallenge(id = "string",
-          allowed_attempts = 123,
-          challenge_type = "string"),
-        charge = TransactionRequestCharge(summary = "string",
-          value = AmountOfMoney(currency = currencyExample.value,
-            amount = "string")),
-        charge_policy = "string",
-        counterparty_id = CounterpartyId(counterpartyIdExample.value),
-        name = "string",
-        this_bank_id = BankId(bankIdExample.value),
-        this_account_id = AccountId(accountIdExample.value),
-        this_view_id = ViewId(viewIdExample.value),
-        other_account_routing_scheme = "string",
-        other_account_routing_address = "string",
-        other_bank_routing_scheme = "string",
-        other_bank_routing_address = "string",
-        is_beneficiary = true,
-        future_date = Some("string"))
+    exampleOutboundMessage = (
+     OutBoundCreateTransactionRequestv400(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
+      userId=userIdExample.value,
+      idGivenByProvider="string",
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
+      viewId=ViewId(viewIdExample.value),
+      fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
+      accountType=accountTypeExample.value,
+      balance=BigDecimal(balanceExample.value),
+      currency=currencyExample.value,
+      name=bankAccountNameExample.value,
+      label=labelExample.value,
+      number=bankAccountNumberExample.value,
+      bankId=BankId(bankIdExample.value),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
+      branchId=branchIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
+      value=accountRuleValueExample.value)),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      toAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
+      accountType=accountTypeExample.value,
+      balance=BigDecimal(balanceExample.value),
+      currency=currencyExample.value,
+      name=bankAccountNameExample.value,
+      label=labelExample.value,
+      number=bankAccountNumberExample.value,
+      bankId=BankId(bankIdExample.value),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
+      branchId=branchIdExample.value,
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)),
+      accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
+      value=accountRuleValueExample.value)),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
+      transactionRequestCommonBody= TransactionRequestCommonBodyJSONCommons(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value),
+      detailsPlain="string",
+      chargePolicy=chargePolicyExample.value,
+      challengeType=Some(challengeTypeExample.value),
+      scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
+      reasons=Some(List( TransactionRequestReason(code=codeExample.value,
+      documentNumber=Some(documentNumberExample.value),
+      amount=Some(amountExample.value),
+      currency=Some(currencyExample.value),
+      description=Some(descriptionExample.value)))),
+      berlinGroupPayments=Some( SepaCreditTransfersBerlinGroupV13(endToEndIdentification=Some("string"),
+      instructionIdentification=Some("string"),
+      debtorName=Some("string"),
+      debtorAccount=PaymentAccount("string"),
+      debtorId=Some("string"),
+      ultimateDebtor=Some("string"),
+      instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      currencyOfTransfer=Some("string"),
+      exchangeRateInformation=Some("string"),
+      creditorAccount=PaymentAccount("string"),
+      creditorAgent=Some("string"),
+      creditorAgentName=Some("string"),
+      creditorName="string",
+      creditorId=Some("string"),
+      creditorAddress=Some("string"),
+      creditorNameAndAddress=Some("string"),
+      ultimateCreditor=Some("string"),
+      purposeCode=Some("string"),
+      chargeBearer=Some("string"),
+      serviceLevel=Some("string"),
+      remittanceInformationUnstructured=Some("string"),
+      remittanceInformationUnstructuredArray=Some("string"),
+      remittanceInformationStructured=Some("string"),
+      remittanceInformationStructuredArray=Some("string"),
+      requestedExecutionDate=Some("string"),
+      requestedExecutionTime=Some("string"))))
     ),
-    exampleInboundMessage = InBoundNotifyTransactionRequest(
-      inboundAdapterCallContext = MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-      status = MessageDocsSwaggerDefinitions.inboundStatus,
-      data = TransactionRequestStatusValue(TransactionRequestStatus.FORWARDED.toString)
+    exampleInboundMessage = (
+     InBoundCreateTransactionRequestv400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
+      `type`=transactionRequestTypeExample.value,
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
+      from= FromAccountTransfer(mobile_phone_number="string",
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
+      to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
+      from= FromAccountTransfer(mobile_phone_number="string",
+      nickname=nicknameExample.value),
+      to= ToAccountTransferToAtm(legal_name="string",
+      date_of_birth="string",
+      mobile_phone_number="string",
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
+      to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      transfer_type="string",
+      future_date="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
+      bank_code="string",
+      branch_number="string",
+      account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
+      iban=ibanExample.value)))),
+      to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
+      instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      creditorAccount=PaymentAccount("string"),
+      creditorName="string")),
+      value= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value),
+      transaction_ids="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
+      allowed_attempts=123,
+      challenge_type="string"),
+      charge= TransactionRequestCharge(summary=summaryExample.value,
+      value= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value)),
+      charge_policy="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
+      this_bank_id=BankId(bankIdExample.value),
+      this_account_id=AccountId(accountIdExample.value),
+      this_view_id=ViewId(viewIdExample.value),
+      other_account_routing_scheme="string",
+      other_account_routing_address="string",
+      other_bank_routing_scheme="string",
+      other_bank_routing_address="string",
+      is_beneficiary=true,
+      future_date=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def notifyTransactionRequest(fromAccount: BankAccount, toAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatusValue]] = {
-    import com.openbankproject.commons.dto.{OutBoundNotifyTransactionRequest => OutBound, InBoundNotifyTransactionRequest => InBound}
-    val fromAccountCommons: BankAccountCommons = fromAccount
-    val toAccountCommons: BankAccountCommons = toAccount
-    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccountCommons, toAccountCommons, transactionRequest)
-    val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
-    response.map(convertToTuple[TransactionRequestStatusValue](callContext))
+  override def createTransactionRequestv400(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, challengeType: Option[String], scaMethod: Option[StrongCustomerAuthentication.SCA], reasons: Option[List[TransactionRequestReason]], berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13], callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
+        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv400 => InBound, OutBoundCreateTransactionRequestv400 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy, challengeType, scaMethod, reasons, berlinGroupPayments)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[TransactionRequest](callContext))        
   }
-
+          
   messageDocs += getTransactionRequests210Doc
   def getTransactionRequests210Doc = MessageDoc(
     process = "obp.getTransactionRequests210",
@@ -1638,85 +2194,91 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))))
     ),
     exampleInboundMessage = (
      InBoundGetTransactionRequests210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( TransactionRequest(id=TransactionRequestId("string"),
+      data=List( TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
-      to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
-      to=ToAccountTransferToPhone("string"))),
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
       to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
+      nickname=nicknameExample.value),
       to= ToAccountTransferToAtm(legal_name="string",
       date_of_birth="string",
       mobile_phone_number="string",
-      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
-      number="string")))),
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
       to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
       transfer_type="string",
       future_date="string",
-      to= ToAccountTransferToAccount(name="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
       bank_code="string",
       branch_number="string",
       account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
       iban=ibanExample.value)))),
       to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
       instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
+      amount=amountExample.value),
       creditorAccount=PaymentAccount("string"),
       creditorName="string")),
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transaction_ids="string",
-      status="string",
-      start_date=new Date(),
-      end_date=new Date(),
-      challenge= TransactionRequestChallenge(id="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
-      charge= TransactionRequestCharge(summary="string",
+      charge= TransactionRequestCharge(summary=summaryExample.value,
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string")),
+      amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
-      name="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
       this_view_id=ViewId(viewIdExample.value),
@@ -1731,7 +2293,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getTransactionRequests210(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]): Box[(List[TransactionRequest], Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{OutBoundGetTransactionRequests210 => OutBound, InBoundGetTransactionRequests210 => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetTransactionRequests210 => InBound, OutBoundGetTransactionRequests210 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, fromAccount)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[TransactionRequest]](callContext))        
@@ -1746,68 +2308,68 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetTransactionRequestImpl(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      transactionRequestId=TransactionRequestId("string"))
+      transactionRequestId=TransactionRequestId(transactionRequestIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundGetTransactionRequestImpl(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
-      to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
-      to=ToAccountTransferToPhone("string"))),
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
       to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
+      nickname=nicknameExample.value),
       to= ToAccountTransferToAtm(legal_name="string",
       date_of_birth="string",
       mobile_phone_number="string",
-      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
-      number="string")))),
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
       to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
       transfer_type="string",
       future_date="string",
-      to= ToAccountTransferToAccount(name="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
       bank_code="string",
       branch_number="string",
       account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
       iban=ibanExample.value)))),
       to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
       instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
+      amount=amountExample.value),
       creditorAccount=PaymentAccount("string"),
       creditorName="string")),
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transaction_ids="string",
-      status="string",
-      start_date=new Date(),
-      end_date=new Date(),
-      challenge= TransactionRequestChallenge(id="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
-      charge= TransactionRequestCharge(summary="string",
+      charge= TransactionRequestCharge(summary=summaryExample.value,
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string")),
+      amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
-      name="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
       this_view_id=ViewId(viewIdExample.value),
@@ -1822,7 +2384,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Box[(TransactionRequest, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{OutBoundGetTransactionRequestImpl => OutBound, InBoundGetTransactionRequestImpl => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetTransactionRequestImpl => InBound, OutBoundGetTransactionRequestImpl => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequestId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -1839,76 +2401,79 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateTransactionAfterChallengeV210(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      transactionRequest= TransactionRequest(id=TransactionRequestId("string"),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      transactionRequest= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
-      to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
-      to=ToAccountTransferToPhone("string"))),
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
       to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
+      nickname=nicknameExample.value),
       to= ToAccountTransferToAtm(legal_name="string",
       date_of_birth="string",
       mobile_phone_number="string",
-      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
-      number="string")))),
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
       to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
       transfer_type="string",
       future_date="string",
-      to= ToAccountTransferToAccount(name="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
       bank_code="string",
       branch_number="string",
       account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
       iban=ibanExample.value)))),
       to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
       instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
+      amount=amountExample.value),
       creditorAccount=PaymentAccount("string"),
       creditorName="string")),
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transaction_ids="string",
-      status="string",
-      start_date=new Date(),
-      end_date=new Date(),
-      challenge= TransactionRequestChallenge(id="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
-      charge= TransactionRequestCharge(summary="string",
+      charge= TransactionRequestCharge(summary=summaryExample.value,
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string")),
+      amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
-      name="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
       this_view_id=ViewId(viewIdExample.value),
@@ -1922,63 +2487,63 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundCreateTransactionAfterChallengeV210(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
-      to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
-      to=ToAccountTransferToPhone("string"))),
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
       to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
+      nickname=nicknameExample.value),
       to= ToAccountTransferToAtm(legal_name="string",
       date_of_birth="string",
       mobile_phone_number="string",
-      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
-      number="string")))),
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
       to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
       transfer_type="string",
       future_date="string",
-      to= ToAccountTransferToAccount(name="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
       bank_code="string",
       branch_number="string",
       account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
       iban=ibanExample.value)))),
       to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
       instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
+      amount=amountExample.value),
       creditorAccount=PaymentAccount("string"),
       creditorName="string")),
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transaction_ids="string",
-      status="string",
-      start_date=new Date(),
-      end_date=new Date(),
-      challenge= TransactionRequestChallenge(id="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
-      charge= TransactionRequestCharge(summary="string",
+      charge= TransactionRequestCharge(summary=summaryExample.value,
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string")),
+      amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
-      name="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
       this_view_id=ViewId(viewIdExample.value),
@@ -1993,7 +2558,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallengeV210 => OutBound, InBoundCreateTransactionAfterChallengeV210 => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateTransactionAfterChallengeV210 => InBound, OutBoundCreateTransactionAfterChallengeV210 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, transactionRequest)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -2013,33 +2578,36 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       accountType=accountTypeExample.value,
       accountLabel="string",
       branchId=branchIdExample.value,
-      accountRoutings=List(AccountRouting(accountRoutingSchemeExample.value, accountRoutingAddressExample.value))
-     )
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)))
     ),
     exampleInboundMessage = (
      InBoundUpdateBankAccount(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def updateBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, branchId: String, accountRoutings: List[AccountRouting], callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{OutBoundUpdateBankAccount => OutBound, InBoundUpdateBankAccount => InBound}  
+        import com.openbankproject.commons.dto.{InBoundUpdateBankAccount => InBound, OutBoundUpdateBankAccount => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, accountType, accountLabel, branchId, accountRoutings)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -2062,33 +2630,36 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       initialBalance=BigDecimal("123.321"),
       accountHolderName="string",
       branchId=branchIdExample.value,
-      accountRoutings=List(AccountRouting(accountRoutingSchemeExample.value, accountRoutingAddressExample.value))
-      )
+      accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
+      address=accountRoutingAddressExample.value)))
     ),
     exampleInboundMessage = (
      InBoundCreateBankAccount(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value))
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createBankAccount(bankId: BankId, accountId: AccountId, accountType: String, accountLabel: String, currency: String, initialBalance: BigDecimal, accountHolderName: String, branchId: String, accountRoutings: List[AccountRouting], callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateBankAccount => OutBound, InBoundCreateBankAccount => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateBankAccount => InBound, OutBoundCreateBankAccount => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName, branchId, accountRoutings)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[BankAccountCommons](callContext))        
@@ -2113,11 +2684,86 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def accountExists(bankId: BankId, accountNumber: String): Box[Boolean] = {
-        import com.openbankproject.commons.dto.{OutBoundAccountExists => OutBound, InBoundAccountExists => InBound}  
+        import com.openbankproject.commons.dto.{InBoundAccountExists => InBound, OutBoundAccountExists => OutBound}  
         val callContext: Option[CallContext] = None
         val req = OutBound(bankId, accountNumber)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
+  }
+          
+  messageDocs += getProductsDoc
+  def getProductsDoc = MessageDoc(
+    process = "obp.getProducts",
+    messageFormat = messageFormat,
+    description = "Get Products",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetProducts(bankId=BankId(bankIdExample.value),
+      params=List( GetProductsParam(name=nameExample.value,
+      value=valueExample.value.split("[,;]").toList)))
+    ),
+    exampleInboundMessage = (
+     InBoundGetProducts(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=List( ProductCommons(bankId=BankId(bankIdExample.value),
+      code=ProductCode(productCodeExample.value),
+      parentProductCode=ProductCode(parentProductCodeExample.value),
+      name=nameExample.value,
+      category=categoryExample.value,
+      family=familyExample.value,
+      superFamily=superFamilyExample.value,
+      moreInfoUrl=moreInfoUrlExample.value,
+      details=detailsExample.value,
+      description=descriptionExample.value,
+      meta=Meta( License(id=idExample.value,
+      name=nameExample.value)))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getProducts(bankId: BankId, params: List[GetProductsParam]): Box[List[Product]] = {
+        import com.openbankproject.commons.dto.{InBoundGetProducts => InBound, OutBoundGetProducts => OutBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(bankId, params)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[List[ProductCommons]](callContext))        
+  }
+          
+  messageDocs += getProductDoc
+  def getProductDoc = MessageDoc(
+    process = "obp.getProduct",
+    messageFormat = messageFormat,
+    description = "Get Product",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetProduct(bankId=BankId(bankIdExample.value),
+      productCode=ProductCode(productCodeExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundGetProduct(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= ProductCommons(bankId=BankId(bankIdExample.value),
+      code=ProductCode(productCodeExample.value),
+      parentProductCode=ProductCode(parentProductCodeExample.value),
+      name=nameExample.value,
+      category=categoryExample.value,
+      family=familyExample.value,
+      superFamily=superFamilyExample.value,
+      moreInfoUrl=moreInfoUrlExample.value,
+      details=detailsExample.value,
+      description=descriptionExample.value,
+      meta=Meta( License(id=idExample.value,
+      name=nameExample.value))))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
+        import com.openbankproject.commons.dto.{InBoundGetProduct => InBound, OutBoundGetProduct => OutBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(bankId, productCode)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[ProductCommons](callContext))        
   }
           
   messageDocs += getBranchDoc
@@ -2137,67 +2783,67 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= BranchTCommons(branchId=BranchId(branchIdExample.value),
       bankId=BankId(bankIdExample.value),
-      name="string",
-      address= Address(line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county=Some("string"),
-      state="string",
-      postCode="string",
-      countryCode="string"),
-      location= Location(latitude=123.123,
-      longitude=123.123,
-      date=Some(new Date()),
+      name=nameExample.value,
+      address= Address(line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=Some(countyExample.value),
+      state=stateExample.value,
+      postCode=postCodeExample.value,
+      countryCode=countryCodeExample.value),
+      location= Location(latitude=latitudeExample.value.toDouble,
+      longitude=longitudeExample.value.toDouble,
+      date=Some(toDate(dateExample)),
       user=Some( BasicResourceUser(userId=userIdExample.value,
-      provider="string",
+      provider=providerExample.value,
       username=usernameExample.value))),
       lobbyString=Some(LobbyString("string")),
       driveUpString=Some(DriveUpString("string")),
-      meta=Meta( License(id="string",
-      name="string")),
+      meta=Meta( License(id=idExample.value,
+      name=nameExample.value)),
       branchRouting=Some( Routing(scheme=branchRoutingSchemeExample.value,
       address=branchRoutingAddressExample.value)),
-      lobby=Some( Lobby(monday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      tuesday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      wednesday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      thursday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      friday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      saturday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      sunday=List( OpeningTimes(openingTime="string",
-      closingTime="string")))),
-      driveUp=Some( DriveUp(monday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      tuesday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      wednesday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      thursday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      friday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      saturday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      sunday= OpeningTimes(openingTime="string",
-      closingTime="string"))),
-      isAccessible=Some(true),
+      lobby=Some( Lobby(monday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      tuesday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      wednesday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      thursday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      friday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      saturday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      sunday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)))),
+      driveUp=Some( DriveUp(monday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      tuesday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      wednesday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      thursday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      friday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      saturday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      sunday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value))),
+      isAccessible=Some(isAccessibleExample.value.toBoolean),
       accessibleFeatures=Some("string"),
-      branchType=Some("string"),
-      moreInfo=Some("string"),
-      phoneNumber=Some("string"),
+      branchType=Some(branchTypeExample.value),
+      moreInfo=Some(moreInfoExample.value),
+      phoneNumber=Some(phoneNumberExample.value),
       isDeleted=Some(true)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getBranch(bankId: BankId, branchId: BranchId, callContext: Option[CallContext]): Future[Box[(BranchT, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBranch => OutBound, InBoundGetBranch => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBranch => InBound, OutBoundGetBranch => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, branchId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[BranchTCommons](callContext))        
@@ -2215,75 +2861,75 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       bankId=BankId(bankIdExample.value),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
-      fromDate="string",
-      toDate="string")
+      fromDate=fromDateExample.value,
+      toDate=toDateExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetBranches(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( BranchTCommons(branchId=BranchId(branchIdExample.value),
       bankId=BankId(bankIdExample.value),
-      name="string",
-      address= Address(line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county=Some("string"),
-      state="string",
-      postCode="string",
-      countryCode="string"),
-      location= Location(latitude=123.123,
-      longitude=123.123,
-      date=Some(new Date()),
+      name=nameExample.value,
+      address= Address(line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=Some(countyExample.value),
+      state=stateExample.value,
+      postCode=postCodeExample.value,
+      countryCode=countryCodeExample.value),
+      location= Location(latitude=latitudeExample.value.toDouble,
+      longitude=longitudeExample.value.toDouble,
+      date=Some(toDate(dateExample)),
       user=Some( BasicResourceUser(userId=userIdExample.value,
-      provider="string",
+      provider=providerExample.value,
       username=usernameExample.value))),
       lobbyString=Some(LobbyString("string")),
       driveUpString=Some(DriveUpString("string")),
-      meta=Meta( License(id="string",
-      name="string")),
+      meta=Meta( License(id=idExample.value,
+      name=nameExample.value)),
       branchRouting=Some( Routing(scheme=branchRoutingSchemeExample.value,
       address=branchRoutingAddressExample.value)),
-      lobby=Some( Lobby(monday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      tuesday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      wednesday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      thursday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      friday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      saturday=List( OpeningTimes(openingTime="string",
-      closingTime="string")),
-      sunday=List( OpeningTimes(openingTime="string",
-      closingTime="string")))),
-      driveUp=Some( DriveUp(monday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      tuesday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      wednesday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      thursday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      friday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      saturday= OpeningTimes(openingTime="string",
-      closingTime="string"),
-      sunday= OpeningTimes(openingTime="string",
-      closingTime="string"))),
-      isAccessible=Some(true),
+      lobby=Some( Lobby(monday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      tuesday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      wednesday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      thursday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      friday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      saturday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)),
+      sunday=List( OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value)))),
+      driveUp=Some( DriveUp(monday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      tuesday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      wednesday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      thursday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      friday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      saturday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value),
+      sunday= OpeningTimes(openingTime=openingTimeExample.value,
+      closingTime=closingTimeExample.value))),
+      isAccessible=Some(isAccessibleExample.value.toBoolean),
       accessibleFeatures=Some("string"),
-      branchType=Some("string"),
-      moreInfo=Some("string"),
-      phoneNumber=Some("string"),
+      branchType=Some(branchTypeExample.value),
+      moreInfo=Some(moreInfoExample.value),
+      phoneNumber=Some(phoneNumberExample.value),
       isDeleted=Some(true))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetBranches => OutBound, InBoundGetBranches => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetBranches => InBound, OutBoundGetBranches => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[BranchTCommons]](callContext))        
@@ -2299,30 +2945,30 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
      OutBoundGetAtm(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
-      atmId=AtmId("string"))
+      atmId=AtmId(atmIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundGetAtm(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= AtmTCommons(atmId=AtmId("string"),
+      data= AtmTCommons(atmId=AtmId(atmIdExample.value),
       bankId=BankId(bankIdExample.value),
-      name="string",
-      address= Address(line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county=Some("string"),
-      state="string",
-      postCode="string",
-      countryCode="string"),
-      location= Location(latitude=123.123,
-      longitude=123.123,
-      date=Some(new Date()),
+      name=nameExample.value,
+      address= Address(line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=Some(countyExample.value),
+      state=stateExample.value,
+      postCode=postCodeExample.value,
+      countryCode=countryCodeExample.value),
+      location= Location(latitude=latitudeExample.value.toDouble,
+      longitude=longitudeExample.value.toDouble,
+      date=Some(toDate(dateExample)),
       user=Some( BasicResourceUser(userId=userIdExample.value,
-      provider="string",
+      provider=providerExample.value,
       username=usernameExample.value))),
-      meta=Meta( License(id="string",
-      name="string")),
+      meta=Meta( License(id=idExample.value,
+      name=nameExample.value)),
       OpeningTimeOnMonday=Some("string"),
       ClosingTimeOnMonday=Some("string"),
       OpeningTimeOnTuesday=Some("string"),
@@ -2337,16 +2983,29 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       ClosingTimeOnSaturday=Some("string"),
       OpeningTimeOnSunday=Some("string"),
       ClosingTimeOnSunday=Some("string"),
-      isAccessible=Some(true),
-      locatedAt=Some("string"),
-      moreInfo=Some("string"),
-      hasDepositCapability=Some(true)))
+      isAccessible=Some(isAccessibleExample.value.toBoolean),
+      locatedAt=Some(locatedAtExample.value),
+      moreInfo=Some(moreInfoExample.value),
+      hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
+      supportedLanguages=Some(supportedLanguagesExample.value.split("[,;]").toList),
+      services=Some(listExample.value.split("[,;]").toList),
+      accessibilityFeatures=Some(accessibilityFeaturesExample.value.split("[,;]").toList),
+      supportedCurrencies=Some(supportedCurrenciesExample.value.split("[,;]").toList),
+      notes=Some(listExample.value.split("[,;]").toList),
+      locationCategories=Some(listExample.value.split("[,;]").toList),
+      minimumWithdrawal=Some("string"),
+      branchIdentification=Some("string"),
+      siteIdentification=Some(siteIdentification.value),
+      siteName=Some("string"),
+      cashWithdrawalNationalFee=Some(cashWithdrawalNationalFeeExample.value),
+      cashWithdrawalInternationalFee=Some(cashWithdrawalInternationalFeeExample.value),
+      balanceInquiryFee=Some(balanceInquiryFeeExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getAtm(bankId: BankId, atmId: AtmId, callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetAtm => OutBound, InBoundGetAtm => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetAtm => InBound, OutBoundGetAtm => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, atmId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AtmTCommons](callContext))        
@@ -2364,31 +3023,31 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       bankId=BankId(bankIdExample.value),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
-      fromDate="string",
-      toDate="string")
+      fromDate=fromDateExample.value,
+      toDate=toDateExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetAtms(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( AtmTCommons(atmId=AtmId("string"),
+      data=List( AtmTCommons(atmId=AtmId(atmIdExample.value),
       bankId=BankId(bankIdExample.value),
-      name="string",
-      address= Address(line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county=Some("string"),
-      state="string",
-      postCode="string",
-      countryCode="string"),
-      location= Location(latitude=123.123,
-      longitude=123.123,
-      date=Some(new Date()),
+      name=nameExample.value,
+      address= Address(line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=Some(countyExample.value),
+      state=stateExample.value,
+      postCode=postCodeExample.value,
+      countryCode=countryCodeExample.value),
+      location= Location(latitude=latitudeExample.value.toDouble,
+      longitude=longitudeExample.value.toDouble,
+      date=Some(toDate(dateExample)),
       user=Some( BasicResourceUser(userId=userIdExample.value,
-      provider="string",
+      provider=providerExample.value,
       username=usernameExample.value))),
-      meta=Meta( License(id="string",
-      name="string")),
+      meta=Meta( License(id=idExample.value,
+      name=nameExample.value)),
       OpeningTimeOnMonday=Some("string"),
       ClosingTimeOnMonday=Some("string"),
       OpeningTimeOnTuesday=Some("string"),
@@ -2403,19 +3062,64 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       ClosingTimeOnSaturday=Some("string"),
       OpeningTimeOnSunday=Some("string"),
       ClosingTimeOnSunday=Some("string"),
-      isAccessible=Some(true),
-      locatedAt=Some("string"),
-      moreInfo=Some("string"),
-      hasDepositCapability=Some(true)))) 
+      isAccessible=Some(isAccessibleExample.value.toBoolean),
+      locatedAt=Some(locatedAtExample.value),
+      moreInfo=Some(moreInfoExample.value),
+      hasDepositCapability=Some(hasDepositCapabilityExample.value.toBoolean),
+      supportedLanguages=Some(supportedLanguagesExample.value.split("[,;]").toList),
+      services=Some(listExample.value.split("[,;]").toList),
+      accessibilityFeatures=Some(accessibilityFeaturesExample.value.split("[,;]").toList),
+      supportedCurrencies=Some(supportedCurrenciesExample.value.split("[,;]").toList),
+      notes=Some(listExample.value.split("[,;]").toList),
+      locationCategories=Some(listExample.value.split("[,;]").toList),
+      minimumWithdrawal=Some("string"),
+      branchIdentification=Some("string"),
+      siteIdentification=Some(siteIdentification.value),
+      siteName=Some("string"),
+      cashWithdrawalNationalFee=Some(cashWithdrawalNationalFeeExample.value),
+      cashWithdrawalInternationalFee=Some(cashWithdrawalInternationalFeeExample.value),
+      balanceInquiryFee=Some(balanceInquiryFeeExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetAtms => OutBound, InBoundGetAtms => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetAtms => InBound, OutBoundGetAtms => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[AtmTCommons]](callContext))        
+  }
+          
+  messageDocs += getCurrentFxRateDoc
+  def getCurrentFxRateDoc = MessageDoc(
+    process = "obp.getCurrentFxRate",
+    messageFormat = messageFormat,
+    description = "Get Current Fx Rate",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundGetCurrentFxRate(bankId=BankId(bankIdExample.value),
+      fromCurrencyCode=fromCurrencyCodeExample.value,
+      toCurrencyCode=toCurrencyCodeExample.value)
+    ),
+    exampleInboundMessage = (
+     InBoundGetCurrentFxRate(status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= FXRateCommons(bankId=BankId(bankIdExample.value),
+      fromCurrencyCode=fromCurrencyCodeExample.value,
+      toCurrencyCode=toCurrencyCodeExample.value,
+      conversionValue=conversionValueExample.value.toDouble,
+      inverseConversionValue=inverseConversionValueExample.value.toDouble,
+      effectiveDate=toDate(effectiveDateExample)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+        import com.openbankproject.commons.dto.{InBoundGetCurrentFxRate => InBound, OutBoundGetCurrentFxRate => OutBound}  
+        val callContext: Option[CallContext] = None
+        val req = OutBound(bankId, fromCurrencyCode, toCurrencyCode)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[FXRateCommons](callContext))        
   }
           
   messageDocs += createTransactionAfterChallengev300Doc
@@ -2430,87 +3134,93 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      transReqId=TransactionRequestId("string"),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      transReqId=TransactionRequestId(transactionRequestIdExample.value),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value))
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionAfterChallengev300(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
-      to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
-      to=ToAccountTransferToPhone("string"))),
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
       to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
+      nickname=nicknameExample.value),
       to= ToAccountTransferToAtm(legal_name="string",
       date_of_birth="string",
       mobile_phone_number="string",
-      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
-      number="string")))),
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
       to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
       transfer_type="string",
       future_date="string",
-      to= ToAccountTransferToAccount(name="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
       bank_code="string",
       branch_number="string",
       account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
       iban=ibanExample.value)))),
       to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
       instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
+      amount=amountExample.value),
       creditorAccount=PaymentAccount("string"),
       creditorName="string")),
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transaction_ids="string",
-      status="string",
-      start_date=new Date(),
-      end_date=new Date(),
-      challenge= TransactionRequestChallenge(id="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
-      charge= TransactionRequestCharge(summary="string",
+      charge= TransactionRequestCharge(summary=summaryExample.value,
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string")),
+      amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
-      name="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
       this_view_id=ViewId(viewIdExample.value),
@@ -2525,7 +3235,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createTransactionAfterChallengev300(initiator: User, fromAccount: BankAccount, transReqId: TransactionRequestId, transactionRequestType: TransactionRequestType, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateTransactionAfterChallengev300 => OutBound, InBoundCreateTransactionAfterChallengev300 => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateTransactionAfterChallengev300 => InBound, OutBoundCreateTransactionAfterChallengev300 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, fromAccount, transReqId, transactionRequestType)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionRequest](callContext))        
@@ -2543,63 +3253,72 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
       toAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      toCounterparty= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=counterpartyNameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=counterpartyOtherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=counterpartyOtherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=counterpartyOtherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=counterpartyOtherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))),
       transactionRequestCommonBody= TransactionRequestCommonBodyJSONCommons(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
-      chargePolicy="string")
+      chargePolicy=chargePolicyExample.value)
     ),
     exampleInboundMessage = (
      InBoundMakePaymentv300(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -2610,108 +3329,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def makePaymentv300(initiator: User, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, transactionRequestType: TransactionRequestType, chargePolicy: String, callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundMakePaymentv300 => OutBound, InBoundMakePaymentv300 => InBound}  
+        import com.openbankproject.commons.dto.{InBoundMakePaymentv300 => InBound, OutBoundMakePaymentv300 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, fromAccount, toAccount, toCounterparty, transactionRequestCommonBody, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionId](callContext))        
   }
-
-  messageDocs += makePaymentV400Doc
-  def makePaymentV400Doc = MessageDoc(
-    process = "obp.makePaymentV400",
-    messageFormat = messageFormat,
-    description = "Make Payment V400",
-    outboundTopic = None,
-    inboundTopic = None,
-    exampleOutboundMessage = (
-      OutBoundMakePaymentV400(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-        transactionRequest= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
-          `type`=transactionRequestTypeExample.value,
-          from= TransactionRequestAccount(bank_id=bank_idExample.value,
-            account_id=account_idExample.value),
-          body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
-            account_id=account_idExample.value)),
-            to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
-            to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
-            to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-              amount=amountExample.value),
-              description=descriptionExample.value,
-              message=messageExample.value,
-              from= FromAccountTransfer(mobile_phone_number="string",
-                nickname=nicknameExample.value),
-              to=ToAccountTransferToPhone(toExample.value))),
-            to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-              amount=amountExample.value),
-              description=descriptionExample.value,
-              message=messageExample.value,
-              from= FromAccountTransfer(mobile_phone_number="string",
-                nickname=nicknameExample.value),
-              to= ToAccountTransferToAtm(legal_name="string",
-                date_of_birth="string",
-                mobile_phone_number="string",
-                kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
-                  number=numberExample.value)))),
-            to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-              amount=amountExample.value),
-              description=descriptionExample.value,
-              transfer_type="string",
-              future_date="string",
-              to= ToAccountTransferToAccount(name=nameExample.value,
-                bank_code="string",
-                branch_number="string",
-                account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
-                  iban=ibanExample.value)))),
-            to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
-              instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-                amount=amountExample.value),
-              creditorAccount=PaymentAccount("string"),
-              creditorName="string")),
-            value= AmountOfMoney(currency=currencyExample.value,
-              amount=amountExample.value),
-            description=descriptionExample.value),
-          transaction_ids="string",
-          status=statusExample.value,
-          start_date=toDate(transactionRequestStartDateExample),
-          end_date=toDate(transactionRequestEndDateExample),
-          challenge= TransactionRequestChallenge(id=challengeIdExample.value,
-            allowed_attempts=123,
-            challenge_type="string"),
-          charge= TransactionRequestCharge(summary=summaryExample.value,
-            value= AmountOfMoney(currency=currencyExample.value,
-              amount=amountExample.value)),
-          charge_policy="string",
-          counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
-          name=nameExample.value,
-          this_bank_id=BankId(bankIdExample.value),
-          this_account_id=AccountId(accountIdExample.value),
-          this_view_id=ViewId(viewIdExample.value),
-          other_account_routing_scheme="string",
-          other_account_routing_address="string",
-          other_bank_routing_scheme="string",
-          other_bank_routing_address="string",
-          is_beneficiary=true,
-          future_date=Some("string")),
-        reasons=Some(List( TransactionRequestReason(code=codeExample.value,
-          documentNumber=Some(documentNumberExample.value),
-          amount=Some(amountExample.value),
-          currency=Some(currencyExample.value),
-          description=Some(descriptionExample.value)))))
-      ),
-    exampleInboundMessage = (
-      InBoundMakePaymentV400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
-        status=MessageDocsSwaggerDefinitions.inboundStatus,
-        data=TransactionId(transactionIdExample.value))
-      ),
-    adapterImplementation = Some(AdapterImplementation("- Core", 1))
-  )
-
-  override def makePaymentV400(transactionRequest: TransactionRequest, reasons: Option[List[TransactionRequestReason]], callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = {
-    import com.openbankproject.commons.dto.{InBoundMakePaymentV400 => InBound, OutBoundMakePaymentV400 => OutBound}
-    val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequest, reasons)
-    val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
-    response.map(convertToTuple[TransactionId](callContext))
-  }
-
+          
   messageDocs += createTransactionRequestv300Doc
   def createTransactionRequestv300Doc = MessageDoc(
     process = "obp.createTransactionRequestv300",
@@ -2724,126 +3347,135 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       initiator= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       viewId=ViewId(viewIdExample.value),
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
       toAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      toCounterparty= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      toCounterparty= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=counterpartyNameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=counterpartyOtherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=counterpartyOtherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=counterpartyOtherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=counterpartyOtherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=counterpartyOtherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=counterpartyOtherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))),
       transactionRequestType=TransactionRequestType(transactionRequestTypeExample.value),
       transactionRequestCommonBody= TransactionRequestCommonBodyJSONCommons(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       detailsPlain="string",
-      chargePolicy="string")
+      chargePolicy=chargePolicyExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreateTransactionRequestv300(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= TransactionRequest(id=TransactionRequestId("string"),
+      data= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
       `type`=transactionRequestTypeExample.value,
-      from= TransactionRequestAccount(bank_id="string",
-      account_id="string"),
-      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id="string",
-      account_id="string")),
-      to_sepa=Some(TransactionRequestIban("string")),
-      to_counterparty=Some(TransactionRequestCounterpartyId("string")),
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
-      to=ToAccountTransferToPhone("string"))),
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
       to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
-      message="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
       from= FromAccountTransfer(mobile_phone_number="string",
-      nickname="string"),
+      nickname=nicknameExample.value),
       to= ToAccountTransferToAtm(legal_name="string",
       date_of_birth="string",
       mobile_phone_number="string",
-      kyc_document= ToAccountTransferToAtmKycDocument(`type`="string",
-      number="string")))),
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
       to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
-      description="string",
+      amount=amountExample.value),
+      description=descriptionExample.value,
       transfer_type="string",
       future_date="string",
-      to= ToAccountTransferToAccount(name="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
       bank_code="string",
       branch_number="string",
       account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
       iban=ibanExample.value)))),
       to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
       instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
-      amount="string"),
+      amount=amountExample.value),
       creditorAccount=PaymentAccount("string"),
       creditorName="string")),
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string"),
-      description="string"),
+      amount=amountExample.value),
+      description=descriptionExample.value),
       transaction_ids="string",
-      status="string",
-      start_date=new Date(),
-      end_date=new Date(),
-      challenge= TransactionRequestChallenge(id="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
       allowed_attempts=123,
       challenge_type="string"),
-      charge= TransactionRequestCharge(summary="string",
+      charge= TransactionRequestCharge(summary=summaryExample.value,
       value= AmountOfMoney(currency=currencyExample.value,
-      amount="string")),
+      amount=amountExample.value)),
       charge_policy="string",
-      counterparty_id=CounterpartyId(counterpartyIdExample.value),
-      name="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
       this_bank_id=BankId(bankIdExample.value),
       this_account_id=AccountId(accountIdExample.value),
       this_view_id=ViewId(viewIdExample.value),
@@ -2858,10 +3490,133 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createTransactionRequestv300(initiator: User, viewId: ViewId, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, transactionRequestType: TransactionRequestType, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, detailsPlain: String, chargePolicy: String, callContext: Option[CallContext]): Future[Box[(TransactionRequest, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateTransactionRequestv300 => OutBound, InBoundCreateTransactionRequestv300 => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateTransactionRequestv300 => InBound, OutBoundCreateTransactionRequestv300 => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, initiator, viewId, fromAccount, toAccount, toCounterparty, transactionRequestType, transactionRequestCommonBody, detailsPlain, chargePolicy)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionRequest](callContext))        
+  }
+          
+  messageDocs += makePaymentV400Doc
+  def makePaymentV400Doc = MessageDoc(
+    process = "obp.makePaymentV400",
+    messageFormat = messageFormat,
+    description = "Make Payment V400",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundMakePaymentV400(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionRequest= TransactionRequest(id=TransactionRequestId(transactionRequestIdExample.value),
+      `type`=transactionRequestTypeExample.value,
+      from= TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value),
+      body= TransactionRequestBodyAllTypes(to_sandbox_tan=Some( TransactionRequestAccount(bank_id=bank_idExample.value,
+      account_id=account_idExample.value)),
+      to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
+      to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
+      from= FromAccountTransfer(mobile_phone_number="string",
+      nickname=nicknameExample.value),
+      to=ToAccountTransferToPhone(toExample.value))),
+      to_transfer_to_atm=Some( TransactionRequestTransferToAtm(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      message=messageExample.value,
+      from= FromAccountTransfer(mobile_phone_number="string",
+      nickname=nicknameExample.value),
+      to= ToAccountTransferToAtm(legal_name="string",
+      date_of_birth="string",
+      mobile_phone_number="string",
+      kyc_document= ToAccountTransferToAtmKycDocument(`type`=typeExample.value,
+      number=numberExample.value)))),
+      to_transfer_to_account=Some( TransactionRequestTransferToAccount(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value,
+      transfer_type="string",
+      future_date="string",
+      to= ToAccountTransferToAccount(name=nameExample.value,
+      bank_code="string",
+      branch_number="string",
+      account= ToAccountTransferToAccountAccount(number=accountNumberExample.value,
+      iban=ibanExample.value)))),
+      to_sepa_credit_transfers=Some( SepaCreditTransfers(debtorAccount=PaymentAccount("string"),
+      instructedAmount= AmountOfMoneyJsonV121(currency=currencyExample.value,
+      amount=amountExample.value),
+      creditorAccount=PaymentAccount("string"),
+      creditorName="string")),
+      value= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value),
+      description=descriptionExample.value),
+      transaction_ids="string",
+      status=statusExample.value,
+      start_date=toDate(transactionRequestStartDateExample),
+      end_date=toDate(transactionRequestEndDateExample),
+      challenge= TransactionRequestChallenge(id=challengeIdExample.value,
+      allowed_attempts=123,
+      challenge_type="string"),
+      charge= TransactionRequestCharge(summary=summaryExample.value,
+      value= AmountOfMoney(currency=currencyExample.value,
+      amount=amountExample.value)),
+      charge_policy="string",
+      counterparty_id=CounterpartyId(transactionRequestCounterpartyIdExample.value),
+      name=nameExample.value,
+      this_bank_id=BankId(bankIdExample.value),
+      this_account_id=AccountId(accountIdExample.value),
+      this_view_id=ViewId(viewIdExample.value),
+      other_account_routing_scheme="string",
+      other_account_routing_address="string",
+      other_bank_routing_scheme="string",
+      other_bank_routing_address="string",
+      is_beneficiary=true,
+      future_date=Some("string")),
+      reasons=Some(List( TransactionRequestReason(code=codeExample.value,
+      documentNumber=Some(documentNumberExample.value),
+      amount=Some(amountExample.value),
+      currency=Some(currencyExample.value),
+      description=Some(descriptionExample.value)))))
+    ),
+    exampleInboundMessage = (
+     InBoundMakePaymentV400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data=TransactionId(transactionIdExample.value))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def makePaymentV400(transactionRequest: TransactionRequest, reasons: Option[List[TransactionRequestReason]], callContext: Option[CallContext]): Future[Box[(TransactionId, Option[CallContext])]] = {
+        import com.openbankproject.commons.dto.{InBoundMakePaymentV400 => InBound, OutBoundMakePaymentV400 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionRequest, reasons)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[TransactionId](callContext))        
+  }
+          
+  messageDocs += cancelPaymentV400Doc
+  def cancelPaymentV400Doc = MessageDoc(
+    process = "obp.cancelPaymentV400",
+    messageFormat = messageFormat,
+    description = "Cancel Payment V400",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+     OutBoundCancelPaymentV400(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
+      transactionId=TransactionId(transactionIdExample.value))
+    ),
+    exampleInboundMessage = (
+     InBoundCancelPaymentV400(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
+      status=MessageDocsSwaggerDefinitions.inboundStatus,
+      data= CancelPayment(canBeCancelled=true,
+      startSca=Some(true)))
+    ),
+    adapterImplementation = Some(AdapterImplementation("- Core", 1))
+  )
+
+  override def cancelPaymentV400(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[CancelPayment]] = {
+        import com.openbankproject.commons.dto.{InBoundCancelPaymentV400 => InBound, OutBoundCancelPaymentV400 => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionId)
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[CancelPayment](callContext))        
   }
           
   messageDocs += createCounterpartyDoc
@@ -2873,21 +3628,21 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateCounterparty(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      name="string",
-      description="string",
+      name=nameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      createdByUserId="string",
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      createdByUserId=createdByUserIdExample.value,
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value)))
@@ -2895,22 +3650,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundCreateCounterparty(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CounterpartyTraitCommons(createdByUserId="string",
-      name="string",
-      description="string",
+      data= CounterpartyTraitCommons(createdByUserId=createdByUserIdExample.value,
+      name=nameExample.value,
+      description=descriptionExample.value,
       currency=currencyExample.value,
-      thisBankId="string",
-      thisAccountId="string",
-      thisViewId="string",
+      thisBankId=thisBankIdExample.value,
+      thisAccountId=thisAccountIdExample.value,
+      thisViewId=thisViewIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      otherAccountRoutingScheme=accountRoutingSchemeExample.value,
-      otherAccountRoutingAddress=accountRoutingAddressExample.value,
-      otherAccountSecondaryRoutingScheme="string",
-      otherAccountSecondaryRoutingAddress="string",
-      otherBankRoutingScheme=bankRoutingSchemeExample.value,
-      otherBankRoutingAddress=bankRoutingAddressExample.value,
-      otherBranchRoutingScheme=branchRoutingSchemeExample.value,
-      otherBranchRoutingAddress=branchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value,
+      otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
       isBeneficiary=isBeneficiaryExample.value.toBoolean,
       bespoke=List( CounterpartyBespoke(key=keyExample.value,
       value=valueExample.value))))
@@ -2919,7 +3674,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createCounterparty(name: String, description: String, currency: String, createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherAccountSecondaryRoutingScheme: String, otherAccountSecondaryRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, otherBranchRoutingScheme: String, otherBranchRoutingAddress: String, isBeneficiary: Boolean, bespoke: List[CounterpartyBespoke], callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateCounterparty => OutBound, InBoundCreateCounterparty => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateCounterparty => InBound, OutBoundCreateCounterparty => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, name, description, currency, createdByUserId, thisBankId, thisAccountId, thisViewId, otherAccountRoutingScheme, otherAccountRoutingAddress, otherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress, otherBranchRoutingScheme, otherBranchRoutingAddress, isBeneficiary, bespoke)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CounterpartyTraitCommons](callContext))        
@@ -2946,7 +3701,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def checkCustomerNumberAvailable(bankId: BankId, customerNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundCheckCustomerNumberAvailable => OutBound, InBoundCheckCustomerNumberAvailable => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCheckCustomerNumberAvailable => InBound, OutBoundCheckCustomerNumberAvailable => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerNumber)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
@@ -2965,16 +3720,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
       highestEducationAttained=highestEducationAttainedExample.value,
       employmentStatus=employmentStatusExample.value,
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(outBoundCreateCustomerLastOkDateExample.value).getOrElse(sys.error("outBoundCreateCustomerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(outBoundCreateCustomerLastOkDateExample),
       creditRating=Some( CreditRating(rating=ratingExample.value,
       source=sourceExample.value)),
       creditLimit=Some( AmountOfMoney(currency=currencyExample.value,
@@ -2992,9 +3747,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3005,7 +3760,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3014,7 +3769,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createCustomer(bankId: BankId, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImageTrait, dateOfBirth: Date, relationshipStatus: String, dependents: Int, dobOfDependents: List[Date], highestEducationAttained: String, employmentStatus: String, kycStatus: Boolean, lastOkDate: Date, creditRating: Option[CreditRatingTrait], creditLimit: Option[AmountOfMoneyTrait], title: String, branchId: String, nameSuffix: String, callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateCustomer => OutBound, InBoundCreateCustomer => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateCustomer => InBound, OutBoundCreateCustomer => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, legalName, mobileNumber, email, faceImage, dateOfBirth, relationshipStatus, dependents, dobOfDependents, highestEducationAttained, employmentStatus, kycStatus, lastOkDate, creditRating, creditLimit, title, branchId, nameSuffix)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3043,9 +3798,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3056,7 +3811,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3065,7 +3820,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def updateCustomerScaData(customerId: String, mobileNumber: Option[String], email: Option[String], customerNumber: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerScaData => OutBound, InBoundUpdateCustomerScaData => InBound}  
+        import com.openbankproject.commons.dto.{InBoundUpdateCustomerScaData => InBound, OutBoundUpdateCustomerScaData => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, mobileNumber, email, customerNumber)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3081,7 +3836,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
      OutBoundUpdateCustomerCreditData(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       customerId=customerIdExample.value,
-      creditRating=Some("string"),
+      creditRating=Some(creditRatingExample.value),
       creditSource=Some("string"),
       creditLimit=Some( AmountOfMoney(currency=currencyExample.value,
       amount=creditLimitAmountExample.value)))
@@ -3095,9 +3850,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3108,7 +3863,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3117,7 +3872,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def updateCustomerCreditData(customerId: String, creditRating: Option[String], creditSource: Option[String], creditLimit: Option[AmountOfMoney], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerCreditData => OutBound, InBoundUpdateCustomerCreditData => InBound}  
+        import com.openbankproject.commons.dto.{InBoundUpdateCustomerCreditData => InBound, OutBoundUpdateCustomerCreditData => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, creditRating, creditSource, creditLimit)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3134,9 +3889,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundUpdateCustomerGeneralData(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       customerId=customerIdExample.value,
       legalName=Some(legalNameExample.value),
-      faceImage=Some( CustomerFaceImage(date=new Date(),
+      faceImage=Some( CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value)),
-      dateOfBirth=Some(parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format."))),
+      dateOfBirth=Some(toDate(dateOfBirthExample)),
       relationshipStatus=Some(relationshipStatusExample.value),
       dependents=Some(dependentsExample.value.toInt),
       highestEducationAttained=Some(highestEducationAttainedExample.value),
@@ -3154,9 +3909,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3167,7 +3922,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3176,7 +3931,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def updateCustomerGeneralData(customerId: String, legalName: Option[String], faceImage: Option[CustomerFaceImageTrait], dateOfBirth: Option[Date], relationshipStatus: Option[String], dependents: Option[Int], highestEducationAttained: Option[String], employmentStatus: Option[String], title: Option[String], branchId: Option[String], nameSuffix: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[Customer]] = {
-        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerGeneralData => OutBound, InBoundUpdateCustomerGeneralData => InBound}  
+        import com.openbankproject.commons.dto.{InBoundUpdateCustomerGeneralData => InBound, OutBoundUpdateCustomerGeneralData => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, legalName, faceImage, dateOfBirth, relationshipStatus, dependents, highestEducationAttained, employmentStatus, title, branchId, nameSuffix)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3202,9 +3957,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3215,7 +3970,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3224,7 +3979,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCustomerByCustomerId(customerId: String, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerId => OutBound, InBoundGetCustomerByCustomerId => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomerByCustomerId => InBound, OutBoundGetCustomerByCustomerId => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3251,9 +4006,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3264,7 +4019,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value))
@@ -3273,7 +4028,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCustomerByCustomerNumber(customerNumber: String, bankId: BankId, callContext: Option[CallContext]): Future[Box[(Customer, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomerByCustomerNumber => OutBound, InBoundGetCustomerByCustomerNumber => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomerByCustomerNumber => InBound, OutBoundGetCustomerByCustomerNumber => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerNumber, bankId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerCommons](callContext))        
@@ -3294,24 +4049,24 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      InBoundGetCustomerAddress(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( CustomerAddressCommons(customerId=customerIdExample.value,
-      customerAddressId="string",
-      line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county="string",
-      state="string",
-      postcode="string",
-      countryCode="string",
-      status="string",
-      tags="string",
-      insertDate=new Date())))
+      customerAddressId=customerAddressIdExample.value,
+      line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=countyExample.value,
+      state=stateExample.value,
+      postcode=postcodeExample.value,
+      countryCode=countryCodeExample.value,
+      status=statusExample.value,
+      tags=tagsExample.value,
+      insertDate=toDate(insertDateExample))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getCustomerAddress(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAddress]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomerAddress => OutBound, InBoundGetCustomerAddress => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomerAddress => InBound, OutBoundGetCustomerAddress => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[CustomerAddressCommons]](callContext))        
@@ -3327,39 +4082,39 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
      OutBoundCreateCustomerAddress(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       customerId=customerIdExample.value,
-      line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county="string",
-      state="string",
-      postcode="string",
-      countryCode="string",
-      tags="string",
-      status="string")
+      line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=countyExample.value,
+      state=stateExample.value,
+      postcode=postcodeExample.value,
+      countryCode=countryCodeExample.value,
+      tags=tagsExample.value,
+      status=statusExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreateCustomerAddress(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= CustomerAddressCommons(customerId=customerIdExample.value,
-      customerAddressId="string",
-      line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county="string",
-      state="string",
-      postcode="string",
-      countryCode="string",
-      status="string",
-      tags="string",
-      insertDate=new Date()))
+      customerAddressId=customerAddressIdExample.value,
+      line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=countyExample.value,
+      state=stateExample.value,
+      postcode=postcodeExample.value,
+      countryCode=countryCodeExample.value,
+      status=statusExample.value,
+      tags=tagsExample.value,
+      insertDate=toDate(insertDateExample)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createCustomerAddress(customerId: String, line1: String, line2: String, line3: String, city: String, county: String, state: String, postcode: String, countryCode: String, tags: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateCustomerAddress => OutBound, InBoundCreateCustomerAddress => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateCustomerAddress => InBound, OutBoundCreateCustomerAddress => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, line1, line2, line3, city, county, state, postcode, countryCode, tags, status)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerAddressCommons](callContext))        
@@ -3374,40 +4129,40 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundUpdateCustomerAddress(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      customerAddressId="string",
-      line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county="string",
-      state="string",
-      postcode="string",
-      countryCode="string",
-      tags="string",
-      status="string")
+      customerAddressId=customerAddressIdExample.value,
+      line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=countyExample.value,
+      state=stateExample.value,
+      postcode=postcodeExample.value,
+      countryCode=countryCodeExample.value,
+      tags=tagsExample.value,
+      status=statusExample.value)
     ),
     exampleInboundMessage = (
      InBoundUpdateCustomerAddress(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= CustomerAddressCommons(customerId=customerIdExample.value,
-      customerAddressId="string",
-      line1="string",
-      line2="string",
-      line3="string",
-      city="string",
-      county="string",
-      state="string",
-      postcode="string",
-      countryCode="string",
-      status="string",
-      tags="string",
-      insertDate=new Date()))
+      customerAddressId=customerAddressIdExample.value,
+      line1=line1Example.value,
+      line2=line2Example.value,
+      line3=line3Example.value,
+      city=cityExample.value,
+      county=countyExample.value,
+      state=stateExample.value,
+      postcode=postcodeExample.value,
+      countryCode=countryCodeExample.value,
+      status=statusExample.value,
+      tags=tagsExample.value,
+      insertDate=toDate(insertDateExample)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def updateCustomerAddress(customerAddressId: String, line1: String, line2: String, line3: String, city: String, county: String, state: String, postcode: String, countryCode: String, tags: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAddress]] = {
-        import com.openbankproject.commons.dto.{OutBoundUpdateCustomerAddress => OutBound, InBoundUpdateCustomerAddress => InBound}  
+        import com.openbankproject.commons.dto.{InBoundUpdateCustomerAddress => InBound, OutBoundUpdateCustomerAddress => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAddressId, line1, line2, line3, city, county, state, postcode, countryCode, tags, status)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerAddressCommons](callContext))        
@@ -3422,7 +4177,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundDeleteCustomerAddress(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      customerAddressId="string")
+      customerAddressId=customerAddressIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundDeleteCustomerAddress(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -3433,7 +4188,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def deleteCustomerAddress(customerAddressId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundDeleteCustomerAddress => OutBound, InBoundDeleteCustomerAddress => InBound}  
+        import com.openbankproject.commons.dto.{InBoundDeleteCustomerAddress => InBound, OutBoundDeleteCustomerAddress => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAddressId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
@@ -3449,22 +4204,22 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
      OutBoundCreateTaxResidence(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       customerId=customerIdExample.value,
-      domain="string",
-      taxNumber="string")
+      domain=domainExample.value,
+      taxNumber=taxNumberExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreateTaxResidence(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= TaxResidenceCommons(customerId=customerIdExample.value,
-      taxResidenceId="string",
-      domain="string",
-      taxNumber="string"))
+      taxResidenceId=taxResidenceIdExample.value,
+      domain=domainExample.value,
+      taxNumber=taxNumberExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createTaxResidence(customerId: String, domain: String, taxNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[TaxResidence]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateTaxResidence => OutBound, InBoundCreateTaxResidence => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateTaxResidence => InBound, OutBoundCreateTaxResidence => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId, domain, taxNumber)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TaxResidenceCommons](callContext))        
@@ -3485,15 +4240,15 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      InBoundGetTaxResidence(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( TaxResidenceCommons(customerId=customerIdExample.value,
-      taxResidenceId="string",
-      domain="string",
-      taxNumber="string")))
+      taxResidenceId=taxResidenceIdExample.value,
+      domain=domainExample.value,
+      taxNumber=taxNumberExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getTaxResidence(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[TaxResidence]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetTaxResidence => OutBound, InBoundGetTaxResidence => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetTaxResidence => InBound, OutBoundGetTaxResidence => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[TaxResidenceCommons]](callContext))        
@@ -3519,7 +4274,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def deleteTaxResidence(taxResourceId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundDeleteTaxResidence => OutBound, InBoundDeleteTaxResidence => InBound}  
+        import com.openbankproject.commons.dto.{InBoundDeleteTaxResidence => InBound, OutBoundDeleteTaxResidence => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, taxResourceId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
@@ -3537,8 +4292,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       bankId=BankId(bankIdExample.value),
       limit=limitExample.value.toInt,
       offset=offsetExample.value.toInt,
-      fromDate="string",
-      toDate="string")
+      fromDate=fromDateExample.value,
+      toDate=toDateExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetCustomers(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -3549,9 +4304,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3562,7 +4317,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
@@ -3571,7 +4326,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCustomers(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomers => OutBound, InBoundGetCustomers => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomers => InBound, OutBoundGetCustomers => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, OBPQueryParam.getLimit(queryParams), OBPQueryParam.getOffset(queryParams), OBPQueryParam.getFromDate(queryParams), OBPQueryParam.getToDate(queryParams))
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[CustomerCommons]](callContext))        
@@ -3587,7 +4342,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
      OutBoundGetCustomersByCustomerPhoneNumber(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
-      phoneNumber="string")
+      phoneNumber=phoneNumberExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetCustomersByCustomerPhoneNumber(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -3598,9 +4353,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -3611,7 +4366,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
@@ -3620,7 +4375,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String, callContext: Option[CallContext]): OBPReturnType[Box[List[Customer]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomersByCustomerPhoneNumber => OutBound, InBoundGetCustomersByCustomerPhoneNumber => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomersByCustomerPhoneNumber => InBound, OutBoundGetCustomersByCustomerPhoneNumber => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, phoneNumber)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[CustomerCommons]](callContext))        
@@ -3641,18 +4396,18 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetCheckbookOrders(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= CheckbookOrdersJson(account= AccountV310Json(bank_id="string",
-      account_id="string",
+      data= CheckbookOrdersJson(account= AccountV310Json(bank_id=bank_idExample.value,
+      account_id=account_idExample.value,
       account_type="string",
-      account_routings=List( AccountRoutingJsonV121(scheme="string",
-      address="string")),
-      branch_routings=List( BranchRoutingJsonV141(scheme="string",
-      address="string"))),
+      account_routings=List( AccountRoutingJsonV121(scheme=schemeExample.value,
+      address=addressExample.value)),
+      branch_routings=List( BranchRoutingJsonV141(scheme=schemeExample.value,
+      address=addressExample.value))),
       orders=List(OrderJson( OrderObjectJson(order_id="string",
       order_date="string",
       number_of_checkbooks="string",
       distribution_channel="string",
-      status="string",
+      status=statusExample.value,
       first_check_number="string",
       shipping_code="string")))))
     ),
@@ -3660,7 +4415,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCheckbookOrders(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(CheckbookOrdersJson, Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCheckbookOrders => OutBound, InBoundGetCheckbookOrders => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCheckbookOrders => InBound, OutBoundGetCheckbookOrders => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CheckbookOrdersJson](callContext))        
@@ -3689,7 +4444,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getStatusOfCreditCardOrder(bankId: String, accountId: String, callContext: Option[CallContext]): Future[Box[(List[CardObjectJson], Option[CallContext])]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetStatusOfCreditCardOrder => OutBound, InBoundGetStatusOfCreditCardOrder => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetStatusOfCreditCardOrder => InBound, OutBoundGetStatusOfCreditCardOrder => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[CardObjectJson]](callContext))        
@@ -3711,7 +4466,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundCreateUserAuthContext(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= UserAuthContextCommons(userAuthContextId="string",
+      data= UserAuthContextCommons(userAuthContextId=userAuthContextIdExample.value,
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value))
@@ -3720,7 +4475,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createUserAuthContext(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContext]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateUserAuthContext => OutBound, InBoundCreateUserAuthContext => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateUserAuthContext => InBound, OutBoundCreateUserAuthContext => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId, key, value)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[UserAuthContextCommons](callContext))        
@@ -3742,18 +4497,18 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundCreateUserAuthContextUpdate(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= UserAuthContextUpdateCommons(userAuthContextUpdateId="string",
+      data= UserAuthContextUpdateCommons(userAuthContextUpdateId=userAuthContextUpdateIdExample.value,
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      challenge="string",
-      status="string"))
+      challenge=challengeExample.value,
+      status=statusExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createUserAuthContextUpdate(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateUserAuthContextUpdate => OutBound, InBoundCreateUserAuthContextUpdate => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateUserAuthContextUpdate => InBound, OutBoundCreateUserAuthContextUpdate => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId, key, value)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[UserAuthContextUpdateCommons](callContext))        
@@ -3779,7 +4534,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def deleteUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundDeleteUserAuthContexts => OutBound, InBoundDeleteUserAuthContexts => InBound}  
+        import com.openbankproject.commons.dto.{InBoundDeleteUserAuthContexts => InBound, OutBoundDeleteUserAuthContexts => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
@@ -3794,7 +4549,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundDeleteUserAuthContextById(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      userAuthContextId="string")
+      userAuthContextId=userAuthContextIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundDeleteUserAuthContextById(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -3805,7 +4560,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundDeleteUserAuthContextById => OutBound, InBoundDeleteUserAuthContextById => InBound}  
+        import com.openbankproject.commons.dto.{InBoundDeleteUserAuthContextById => InBound, OutBoundDeleteUserAuthContextById => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userAuthContextId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
@@ -3825,7 +4580,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetUserAuthContexts(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( UserAuthContextCommons(userAuthContextId="string",
+      data=List( UserAuthContextCommons(userAuthContextId=userAuthContextIdExample.value,
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value)))
@@ -3834,7 +4589,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getUserAuthContexts(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAuthContext]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetUserAuthContexts => OutBound, InBoundGetUserAuthContexts => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetUserAuthContexts => InBound, OutBoundGetUserAuthContexts => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, userId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[UserAuthContextCommons]](callContext))        
@@ -3850,9 +4605,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
      OutBoundCreateOrUpdateProductAttribute(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId=Some("string"),
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      productAttributeId=Some(productAttributeIdExample.value),
+      name=nameExample.value,
       productAttributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value)
     ),
@@ -3860,17 +4615,18 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      InBoundCreateOrUpdateProductAttribute(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      productAttributeId=productAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value))
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateProductAttribute => OutBound, InBoundCreateOrUpdateProductAttribute => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateProductAttribute => InBound, OutBoundCreateOrUpdateProductAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[ProductAttributeCommons](callContext))        
@@ -3885,23 +4641,24 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetProductAttributeById(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      productAttributeId="string")
+      productAttributeId=productAttributeIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetProductAttributeById(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      productAttributeId=productAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value))
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getProductAttributeById(productAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductAttributeById => OutBound, InBoundGetProductAttributeById => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetProductAttributeById => InBound, OutBoundGetProductAttributeById => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, productAttributeId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[ProductAttributeCommons](callContext))        
@@ -3916,24 +4673,25 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetProductAttributesByBankAndCode(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      bank=BankId(bankIdExample.value),
-      productCode=ProductCode("string"))
+      bank=BankId(bankExample.value),
+      productCode=ProductCode(productCodeExample.value))
     ),
     exampleInboundMessage = (
      InBoundGetProductAttributesByBankAndCode(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      productAttributeId=productAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)))
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getProductAttributesByBankAndCode(bank: BankId, productCode: ProductCode, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductAttribute]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductAttributesByBankAndCode => OutBound, InBoundGetProductAttributesByBankAndCode => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetProductAttributesByBankAndCode => InBound, OutBoundGetProductAttributesByBankAndCode => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bank, productCode)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ProductAttributeCommons]](callContext))        
@@ -3948,7 +4706,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundDeleteProductAttribute(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      productAttributeId="string")
+      productAttributeId=productAttributeIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundDeleteProductAttribute(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -3959,7 +4717,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def deleteProductAttribute(productAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundDeleteProductAttribute => OutBound, InBoundDeleteProductAttribute => InBound}  
+        import com.openbankproject.commons.dto.{InBoundDeleteProductAttribute => InBound, OutBoundDeleteProductAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, productAttributeId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
@@ -3974,16 +4732,16 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetAccountAttributeById(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      accountAttributeId="string")
+      accountAttributeId=accountAttributeIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetAccountAttributeById(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= AccountAttributeCommons(bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      productCode=ProductCode("string"),
-      accountAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      accountAttributeId=accountAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value))
     ),
@@ -3991,7 +4749,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getAccountAttributeById(accountAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetAccountAttributeById => OutBound, InBoundGetAccountAttributeById => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetAccountAttributeById => InBound, OutBoundGetAccountAttributeById => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountAttributeId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AccountAttributeCommons](callContext))        
@@ -4022,7 +4780,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getTransactionAttributeById(transactionAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetTransactionAttributeById => OutBound, InBoundGetTransactionAttributeById => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetTransactionAttributeById => InBound, OutBoundGetTransactionAttributeById => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, transactionAttributeId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionAttributeCommons](callContext))        
@@ -4039,9 +4797,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateOrUpdateAccountAttribute(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId=Some("string"),
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      productAttributeId=Some(productAttributeIdExample.value),
+      name=nameExample.value,
       accountAttributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value)
     ),
@@ -4050,9 +4808,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= AccountAttributeCommons(bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      productCode=ProductCode("string"),
-      accountAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      accountAttributeId=accountAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value))
     ),
@@ -4060,7 +4818,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateAccountAttribute => OutBound, InBoundCreateOrUpdateAccountAttribute => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateAccountAttribute => InBound, OutBoundCreateOrUpdateAccountAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AccountAttributeCommons](callContext))        
@@ -4078,7 +4836,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       bankId=BankId(bankIdExample.value),
       customerId=CustomerId(customerIdExample.value),
       customerAttributeId=Some(customerAttributeIdExample.value),
-      name="string",
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.CustomerAttributeType.example,
       value=valueExample.value)
     ),
@@ -4096,7 +4854,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createOrUpdateCustomerAttribute(bankId: BankId, customerId: CustomerId, customerAttributeId: Option[String], name: String, attributeType: CustomerAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateCustomerAttribute => OutBound, InBoundCreateOrUpdateCustomerAttribute => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateCustomerAttribute => InBound, OutBoundCreateOrUpdateCustomerAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, customerAttributeId, name, attributeType, value)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerAttributeCommons](callContext))        
@@ -4114,7 +4872,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       bankId=BankId(bankIdExample.value),
       transactionId=TransactionId(transactionIdExample.value),
       transactionAttributeId=Some(transactionAttributeIdExample.value),
-      name="string",
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.TransactionAttributeType.example,
       value=valueExample.value)
     ),
@@ -4132,7 +4890,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createOrUpdateTransactionAttribute(bankId: BankId, transactionId: TransactionId, transactionAttributeId: Option[String], name: String, attributeType: TransactionAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateTransactionAttribute => OutBound, InBoundCreateOrUpdateTransactionAttribute => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateTransactionAttribute => InBound, OutBoundCreateOrUpdateTransactionAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, transactionId, transactionAttributeId, name, attributeType, value)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionAttributeCommons](callContext))        
@@ -4149,22 +4907,23 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateAccountAttributes(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      productCode=ProductCode("string"),
+      productCode=ProductCode(productCodeExample.value),
       accountAttributes=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-      productCode=ProductCode("string"),
-      productAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      productAttributeId=productAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)))
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean))))
     ),
     exampleInboundMessage = (
      InBoundCreateAccountAttributes(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( AccountAttributeCommons(bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      productCode=ProductCode("string"),
-      accountAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      accountAttributeId=accountAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value)))
     ),
@@ -4172,7 +4931,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateAccountAttributes => OutBound, InBoundCreateAccountAttributes => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateAccountAttributes => InBound, OutBoundCreateAccountAttributes => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, accountAttributes)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[AccountAttributeCommons]](callContext))        
@@ -4195,9 +4954,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data=List( AccountAttributeCommons(bankId=BankId(bankIdExample.value),
       accountId=AccountId(accountIdExample.value),
-      productCode=ProductCode("string"),
-      accountAttributeId="string",
-      name="string",
+      productCode=ProductCode(productCodeExample.value),
+      accountAttributeId=accountAttributeIdExample.value,
+      name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
       value=valueExample.value)))
     ),
@@ -4205,7 +4964,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getAccountAttributesByAccount(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetAccountAttributesByAccount => OutBound, InBoundGetAccountAttributesByAccount => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetAccountAttributesByAccount => InBound, OutBoundGetAccountAttributesByAccount => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[AccountAttributeCommons]](callContext))        
@@ -4237,7 +4996,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCustomerAttributes(bankId: BankId, customerId: CustomerId, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAttribute]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributes => OutBound, InBoundGetCustomerAttributes => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomerAttributes => InBound, OutBoundGetCustomerAttributes => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[CustomerAttributeCommons]](callContext))        
@@ -4258,13 +5017,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetCustomerIdsByAttributeNameValues(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List("string"))
+      data=listExample.value.split("[,;]").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getCustomerIdsByAttributeNameValues(bankId: BankId, nameValues: Map[String,List[String]], callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomerIdsByAttributeNameValues => OutBound, InBoundGetCustomerIdsByAttributeNameValues => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomerIdsByAttributeNameValues => InBound, OutBoundGetCustomerIdsByAttributeNameValues => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, nameValues)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[String]](callContext))        
@@ -4285,9 +5044,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       legalName=legalNameExample.value,
       mobileNumber=mobileNumberExample.value,
       email=emailExample.value,
-      faceImage= CustomerFaceImage(date=parseDate(customerFaceImageDateExample.value).getOrElse(sys.error("customerFaceImageDateExample.value is not validate date format.")),
+      faceImage= CustomerFaceImage(date=toDate(customerFaceImageDateExample),
       url=urlExample.value),
-      dateOfBirth=parseDate(dateOfBirthExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")),
+      dateOfBirth=toDate(dateOfBirthExample),
       relationshipStatus=relationshipStatusExample.value,
       dependents=dependentsExample.value.toInt,
       dobOfDependents=dobOfDependentsExample.value.split("[,;]").map(parseDate).flatMap(_.toSeq).toList,
@@ -4298,7 +5057,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       creditLimit= CreditLimit(currency=currencyExample.value,
       amount=creditLimitAmountExample.value),
       kycStatus=kycStatusExample.value.toBoolean,
-      lastOkDate=parseDate(customerLastOkDateExample.value).getOrElse(sys.error("customerLastOkDateExample.value is not validate date format.")),
+      lastOkDate=toDate(customerLastOkDateExample),
       title=customerTitleExample.value,
       branchId=branchIdExample.value,
       nameSuffix=nameSuffixExample.value)))
@@ -4306,7 +5065,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetCustomerAttributesForCustomers(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data = List(
+      data= List(
          CustomerAndAttribute(
              MessageDocsSwaggerDefinitions.customerCommons,
              List(MessageDocsSwaggerDefinitions.customerAttribute)
@@ -4318,10 +5077,10 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCustomerAttributesForCustomers(customers: List[Customer], callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAndAttribute]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributesForCustomers => OutBound, InBoundGetCustomerAttributesForCustomers => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomerAttributesForCustomers => InBound, OutBoundGetCustomerAttributesForCustomers => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customers)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
-        response.map(convertToTuple[List[CustomerAndAttribute]](callContext))
+        response.map(convertToTuple[List[CustomerAndAttribute]](callContext))        
   }
           
   messageDocs += getTransactionIdsByAttributeNameValuesDoc
@@ -4339,13 +5098,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetTransactionIdsByAttributeNameValues(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List("string"))
+      data=listExample.value.split("[,;]").toList)
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getTransactionIdsByAttributeNameValues(bankId: BankId, nameValues: Map[String,List[String]], callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetTransactionIdsByAttributeNameValues => OutBound, InBoundGetTransactionIdsByAttributeNameValues => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetTransactionIdsByAttributeNameValues => InBound, OutBoundGetTransactionIdsByAttributeNameValues => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, nameValues)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[String]](callContext))        
@@ -4377,7 +5136,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getTransactionAttributes(bankId: BankId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionAttribute]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetTransactionAttributes => OutBound, InBoundGetTransactionAttributes => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetTransactionAttributes => InBound, OutBoundGetTransactionAttributes => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, transactionId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[TransactionAttributeCommons]](callContext))        
@@ -4408,7 +5167,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCustomerAttributeById(customerAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCustomerAttributeById => OutBound, InBoundGetCustomerAttributeById => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCustomerAttributeById => InBound, OutBoundGetCustomerAttributeById => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAttributeId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerAttributeCommons](callContext))        
@@ -4426,7 +5185,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       bankId=Some(BankId(bankIdExample.value)),
       cardId=Some(cardIdExample.value),
       cardAttributeId=Some(cardAttributeIdExample.value),
-      name="string",
+      name=nameExample.value,
       cardAttributeType=com.openbankproject.commons.model.enums.CardAttributeType.example,
       value=valueExample.value)
     ),
@@ -4444,7 +5203,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def createOrUpdateCardAttribute(bankId: Option[BankId], cardId: Option[String], cardAttributeId: Option[String], name: String, cardAttributeType: CardAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[CardAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateCardAttribute => OutBound, InBoundCreateOrUpdateCardAttribute => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateCardAttribute => InBound, OutBoundCreateOrUpdateCardAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, cardId, cardAttributeId, name, cardAttributeType, value)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CardAttributeCommons](callContext))        
@@ -4475,7 +5234,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCardAttributeById(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[CardAttribute]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCardAttributeById => OutBound, InBoundGetCardAttributeById => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCardAttributeById => InBound, OutBoundGetCardAttributeById => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, cardAttributeId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CardAttributeCommons](callContext))        
@@ -4506,7 +5265,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetCardAttributesFromProvider => OutBound, InBoundGetCardAttributesFromProvider => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetCardAttributesFromProvider => InBound, OutBoundGetCardAttributesFromProvider => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, cardId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[CardAttributeCommons]](callContext))        
@@ -4521,25 +5280,25 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundCreateAccountApplication(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      productCode=ProductCode("string"),
+      productCode=ProductCode(productCodeExample.value),
       userId=Some(userIdExample.value),
       customerId=Some(customerIdExample.value))
     ),
     exampleInboundMessage = (
      InBoundCreateAccountApplication(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= AccountApplicationCommons(accountApplicationId="string",
-      productCode=ProductCode("string"),
+      data= AccountApplicationCommons(accountApplicationId=accountApplicationIdExample.value,
+      productCode=ProductCode(productCodeExample.value),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=new Date(),
-      status="string"))
+      dateOfApplication=toDate(dateOfApplicationExample),
+      status=statusExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateAccountApplication => OutBound, InBoundCreateAccountApplication => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateAccountApplication => InBound, OutBoundCreateAccountApplication => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, productCode, userId, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AccountApplicationCommons](callContext))        
@@ -4558,18 +5317,18 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleInboundMessage = (
      InBoundGetAllAccountApplication(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( AccountApplicationCommons(accountApplicationId="string",
-      productCode=ProductCode("string"),
+      data=List( AccountApplicationCommons(accountApplicationId=accountApplicationIdExample.value,
+      productCode=ProductCode(productCodeExample.value),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=new Date(),
-      status="string")))
+      dateOfApplication=toDate(dateOfApplicationExample),
+      status=statusExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getAllAccountApplication(callContext: Option[CallContext]): OBPReturnType[Box[List[AccountApplication]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetAllAccountApplication => OutBound, InBoundGetAllAccountApplication => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetAllAccountApplication => InBound, OutBoundGetAllAccountApplication => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[AccountApplicationCommons]](callContext))        
@@ -4584,23 +5343,23 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetAccountApplicationById(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      accountApplicationId="string")
+      accountApplicationId=accountApplicationIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetAccountApplicationById(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= AccountApplicationCommons(accountApplicationId="string",
-      productCode=ProductCode("string"),
+      data= AccountApplicationCommons(accountApplicationId=accountApplicationIdExample.value,
+      productCode=ProductCode(productCodeExample.value),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=new Date(),
-      status="string"))
+      dateOfApplication=toDate(dateOfApplicationExample),
+      status=statusExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getAccountApplicationById(accountApplicationId: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetAccountApplicationById => OutBound, InBoundGetAccountApplicationById => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetAccountApplicationById => InBound, OutBoundGetAccountApplicationById => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountApplicationId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AccountApplicationCommons](callContext))        
@@ -4615,24 +5374,24 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundUpdateAccountApplicationStatus(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      accountApplicationId="string",
-      status="string")
+      accountApplicationId=accountApplicationIdExample.value,
+      status=statusExample.value)
     ),
     exampleInboundMessage = (
      InBoundUpdateAccountApplicationStatus(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= AccountApplicationCommons(accountApplicationId="string",
-      productCode=ProductCode("string"),
+      data= AccountApplicationCommons(accountApplicationId=accountApplicationIdExample.value,
+      productCode=ProductCode(productCodeExample.value),
       userId=userIdExample.value,
       customerId=customerIdExample.value,
-      dateOfApplication=new Date(),
-      status="string"))
+      dateOfApplication=toDate(dateOfApplicationExample),
+      status=statusExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def updateAccountApplicationStatus(accountApplicationId: String, status: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountApplication]] = {
-        import com.openbankproject.commons.dto.{OutBoundUpdateAccountApplicationStatus => OutBound, InBoundUpdateAccountApplicationStatus => InBound}  
+        import com.openbankproject.commons.dto.{InBoundUpdateAccountApplicationStatus => InBound, OutBoundUpdateAccountApplicationStatus => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, accountApplicationId, status)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[AccountApplicationCommons](callContext))        
@@ -4647,20 +5406,20 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetOrCreateProductCollection(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      collectionCode="string",
-      productCodes=List("string"))
+      collectionCode=collectionCodeExample.value,
+      productCodes=listExample.value.split("[,;]").toList)
     ),
     exampleInboundMessage = (
      InBoundGetOrCreateProductCollection(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( ProductCollectionCommons(collectionCode="string",
-      productCode="string")))
+      data=List( ProductCollectionCommons(collectionCode=collectionCodeExample.value,
+      productCode=productCodeExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getOrCreateProductCollection(collectionCode: String, productCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetOrCreateProductCollection => OutBound, InBoundGetOrCreateProductCollection => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetOrCreateProductCollection => InBound, OutBoundGetOrCreateProductCollection => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, productCodes)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ProductCollectionCommons]](callContext))        
@@ -4675,19 +5434,19 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetProductCollection(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      collectionCode="string")
+      collectionCode=collectionCodeExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetProductCollection(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( ProductCollectionCommons(collectionCode="string",
-      productCode="string")))
+      data=List( ProductCollectionCommons(collectionCode=collectionCodeExample.value,
+      productCode=productCodeExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getProductCollection(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollection]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductCollection => OutBound, InBoundGetProductCollection => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetProductCollection => InBound, OutBoundGetProductCollection => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ProductCollectionCommons]](callContext))        
@@ -4702,20 +5461,20 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetOrCreateProductCollectionItem(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      collectionCode="string",
-      memberProductCodes=List("string"))
+      collectionCode=collectionCodeExample.value,
+      memberProductCodes=listExample.value.split("[,;]").toList)
     ),
     exampleInboundMessage = (
      InBoundGetOrCreateProductCollectionItem(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( ProductCollectionItemCommons(collectionCode="string",
-      memberProductCode="string")))
+      data=List( ProductCollectionItemCommons(collectionCode=collectionCodeExample.value,
+      memberProductCode=memberProductCodeExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getOrCreateProductCollectionItem(collectionCode: String, memberProductCodes: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetOrCreateProductCollectionItem => OutBound, InBoundGetOrCreateProductCollectionItem => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetOrCreateProductCollectionItem => InBound, OutBoundGetOrCreateProductCollectionItem => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, memberProductCodes)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ProductCollectionItemCommons]](callContext))        
@@ -4730,24 +5489,24 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetProductCollectionItem(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      collectionCode="string")
+      collectionCode=collectionCodeExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetProductCollectionItem(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( ProductCollectionItemCommons(collectionCode="string",
-      memberProductCode="string")))
+      data=List( ProductCollectionItemCommons(collectionCode=collectionCodeExample.value,
+      memberProductCode=memberProductCodeExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getProductCollectionItem(collectionCode: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItem]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItem => OutBound, InBoundGetProductCollectionItem => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetProductCollectionItem => InBound, OutBoundGetProductCollectionItem => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[ProductCollectionItemCommons]](callContext))        
   }
-
+          
   messageDocs += getProductCollectionItemsTreeDoc
   def getProductCollectionItemsTreeDoc = MessageDoc(
     process = "obp.getProductCollectionItemsTree",
@@ -4757,41 +5516,42 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetProductCollectionItemsTree(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-      collectionCode="string",
+      collectionCode=collectionCodeExample.value,
       bankId=bankIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetProductCollectionItemsTree(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List(ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode="string",
-        memberProductCode="string"),
-        product= ProductCommons(bankId=BankId(bankIdExample.value),
-          code=ProductCode("string"),
-          parentProductCode=ProductCode("string"),
-          name="string",
-          category="string",
-          family="string",
-          superFamily="string",
-          moreInfoUrl="string",
-          details="string",
-          description="string",
-          meta=Meta( License(id="string",
-            name="string"))),
-        attributes=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
-          productCode=ProductCode("string"),
-          productAttributeId="string",
-          name="string",
-          attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-          value=valueExample.value)))))
+      data=List( ProductCollectionItemsTree(productCollectionItem= ProductCollectionItemCommons(collectionCode=collectionCodeExample.value,
+      memberProductCode=memberProductCodeExample.value),
+      product= ProductCommons(bankId=BankId(bankIdExample.value),
+      code=ProductCode(productCodeExample.value),
+      parentProductCode=ProductCode(parentProductCodeExample.value),
+      name=nameExample.value,
+      category=categoryExample.value,
+      family=familyExample.value,
+      superFamily=superFamilyExample.value,
+      moreInfoUrl=moreInfoUrlExample.value,
+      details=detailsExample.value,
+      description=descriptionExample.value,
+      meta=Meta( License(id=idExample.value,
+      name=nameExample.value))),
+      attributes=List( ProductAttributeCommons(bankId=BankId(bankIdExample.value),
+      productCode=ProductCode(productCodeExample.value),
+      productAttributeId=productAttributeIdExample.value,
+      name=nameExample.value,
+      attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean))))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getProductCollectionItemsTree(collectionCode: String, bankId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[ProductCollectionItemsTree]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetProductCollectionItemsTree => OutBound, InBoundGetProductCollectionItemsTree => InBound}
+        import com.openbankproject.commons.dto.{InBoundGetProductCollectionItemsTree => InBound, OutBoundGetProductCollectionItemsTree => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, collectionCode, bankId)
-        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _)
-        response.map(convertToTuple[List[ProductCollectionItemsTree]](callContext))
+        val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
+        response.map(convertToTuple[List[ProductCollectionItemsTree]](callContext))        
   }
           
   messageDocs += createMeetingDoc
@@ -4807,55 +5567,61 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       staffUser= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       customerUser= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
-      providerId="string",
-      purposeId="string",
-      when=new Date(),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
+      providerId=providerIdExample.value,
+      purposeId=purposeIdExample.value,
+      when=toDate(whenExample),
       sessionId=sessionIdExample.value,
-      customerToken="string",
-      staffToken="string",
-      creator= ContactDetails(name="string",
-      phone="string",
+      customerToken=customerTokenExample.value,
+      staffToken=staffTokenExample.value,
+      creator= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      invitees=List( Invitee(contactDetails= ContactDetails(name="string",
-      phone="string",
+      invitees=List( Invitee(contactDetails= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      status="string")))
+      status=statusExample.value)))
     ),
     exampleInboundMessage = (
      InBoundCreateMeeting(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= MeetingCommons(meetingId="string",
-      providerId="string",
-      purposeId="string",
+      data= MeetingCommons(meetingId=meetingIdExample.value,
+      providerId=providerIdExample.value,
+      purposeId=purposeIdExample.value,
       bankId=bankIdExample.value,
-      present= MeetingPresent(staffUserId="string",
-      customerUserId="string"),
+      present= MeetingPresent(staffUserId=staffUserIdExample.value,
+      customerUserId=customerUserIdExample.value),
       keys= MeetingKeys(sessionId=sessionIdExample.value,
-      customerToken="string",
-      staffToken="string"),
-      when=new Date(),
-      creator= ContactDetails(name="string",
-      phone="string",
+      customerToken=customerTokenExample.value,
+      staffToken=staffTokenExample.value),
+      when=toDate(whenExample),
+      creator= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      invitees=List( Invitee(contactDetails= ContactDetails(name="string",
-      phone="string",
+      invitees=List( Invitee(contactDetails= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      status="string"))))
+      status=statusExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createMeeting(bankId: BankId, staffUser: User, customerUser: User, providerId: String, purposeId: String, when: Date, sessionId: String, customerToken: String, staffToken: String, creator: ContactDetails, invitees: List[Invitee], callContext: Option[CallContext]): OBPReturnType[Box[Meeting]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateMeeting => OutBound, InBoundCreateMeeting => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateMeeting => InBound, OutBoundCreateMeeting => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, staffUser, customerUser, providerId, purposeId, when, sessionId, customerToken, staffToken, creator, invitees)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[MeetingCommons](callContext))        
@@ -4874,36 +5640,39 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       user= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value))
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)))
     ),
     exampleInboundMessage = (
      InBoundGetMeetings(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data=List( MeetingCommons(meetingId="string",
-      providerId="string",
-      purposeId="string",
+      data=List( MeetingCommons(meetingId=meetingIdExample.value,
+      providerId=providerIdExample.value,
+      purposeId=purposeIdExample.value,
       bankId=bankIdExample.value,
-      present= MeetingPresent(staffUserId="string",
-      customerUserId="string"),
+      present= MeetingPresent(staffUserId=staffUserIdExample.value,
+      customerUserId=customerUserIdExample.value),
       keys= MeetingKeys(sessionId=sessionIdExample.value,
-      customerToken="string",
-      staffToken="string"),
-      when=new Date(),
-      creator= ContactDetails(name="string",
-      phone="string",
+      customerToken=customerTokenExample.value,
+      staffToken=staffTokenExample.value),
+      when=toDate(whenExample),
+      creator= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      invitees=List( Invitee(contactDetails= ContactDetails(name="string",
-      phone="string",
+      invitees=List( Invitee(contactDetails= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      status="string")))))
+      status=statusExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getMeetings(bankId: BankId, user: User, callContext: Option[CallContext]): OBPReturnType[Box[List[Meeting]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetMeetings => OutBound, InBoundGetMeetings => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetMeetings => InBound, OutBoundGetMeetings => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, user)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[MeetingCommons]](callContext))        
@@ -4922,37 +5691,40 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       user= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
-      meetingId="string")
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
+      meetingId=meetingIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetMeeting(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= MeetingCommons(meetingId="string",
-      providerId="string",
-      purposeId="string",
+      data= MeetingCommons(meetingId=meetingIdExample.value,
+      providerId=providerIdExample.value,
+      purposeId=purposeIdExample.value,
       bankId=bankIdExample.value,
-      present= MeetingPresent(staffUserId="string",
-      customerUserId="string"),
+      present= MeetingPresent(staffUserId=staffUserIdExample.value,
+      customerUserId=customerUserIdExample.value),
       keys= MeetingKeys(sessionId=sessionIdExample.value,
-      customerToken="string",
-      staffToken="string"),
-      when=new Date(),
-      creator= ContactDetails(name="string",
-      phone="string",
+      customerToken=customerTokenExample.value,
+      staffToken=staffTokenExample.value),
+      when=toDate(whenExample),
+      creator= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      invitees=List( Invitee(contactDetails= ContactDetails(name="string",
-      phone="string",
+      invitees=List( Invitee(contactDetails= ContactDetails(name=nameExample.value,
+      phone=phoneExample.value,
       email=emailExample.value),
-      status="string"))))
+      status=statusExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getMeeting(bankId: BankId, user: User, meetingId: String, callContext: Option[CallContext]): OBPReturnType[Box[Meeting]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetMeeting => OutBound, InBoundGetMeeting => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetMeeting => InBound, OutBoundGetMeeting => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, user, meetingId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[MeetingCommons](callContext))        
@@ -4969,14 +5741,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateOrUpdateKycCheck(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=bankIdExample.value,
       customerId=customerIdExample.value,
-      id="string",
+      id=idExample.value,
       customerNumber=customerNumberExample.value,
-      date=new Date(),
-      how="string",
-      staffUserId="string",
+      date=toDate(dateExample),
+      how=howExample.value,
+      staffUserId=staffUserIdExample.value,
       mStaffName="string",
       mSatisfied=true,
-      comments="string")
+      comments=commentsExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateKycCheck(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4985,18 +5757,18 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       customerId=customerIdExample.value,
       idKycCheck="string",
       customerNumber=customerNumberExample.value,
-      date=new Date(),
-      how="string",
-      staffUserId="string",
-      staffName="string",
-      satisfied=true,
-      comments="string"))
+      date=toDate(dateExample),
+      how=howExample.value,
+      staffUserId=staffUserIdExample.value,
+      staffName=staffNameExample.value,
+      satisfied=satisfiedExample.value.toBoolean,
+      comments=commentsExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createOrUpdateKycCheck(bankId: String, customerId: String, id: String, customerNumber: String, date: Date, how: String, staffUserId: String, mStaffName: String, mSatisfied: Boolean, comments: String, callContext: Option[CallContext]): OBPReturnType[Box[KycCheck]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycCheck => OutBound, InBoundCreateOrUpdateKycCheck => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycCheck => InBound, OutBoundCreateOrUpdateKycCheck => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[KycCheckCommons](callContext))        
@@ -5013,13 +5785,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateOrUpdateKycDocument(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=bankIdExample.value,
       customerId=customerIdExample.value,
-      id="string",
+      id=idExample.value,
       customerNumber=customerNumberExample.value,
-      `type`="string",
-      number="string",
-      issueDate=new Date(),
-      issuePlace="string",
-      expiryDate=new Date())
+      `type`=typeExample.value,
+      number=numberExample.value,
+      issueDate=toDate(issueDateExample),
+      issuePlace=issuePlaceExample.value,
+      expiryDate=toDate(expiryDateExample))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateKycDocument(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5028,17 +5800,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       customerId=customerIdExample.value,
       idKycDocument="string",
       customerNumber=customerNumberExample.value,
-      `type`="string",
-      number="string",
-      issueDate=new Date(),
-      issuePlace="string",
-      expiryDate=new Date()))
+      `type`=typeExample.value,
+      number=numberExample.value,
+      issueDate=toDate(issueDateExample),
+      issuePlace=issuePlaceExample.value,
+      expiryDate=toDate(expiryDateExample)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createOrUpdateKycDocument(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycDocument]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycDocument => OutBound, InBoundCreateOrUpdateKycDocument => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycDocument => InBound, OutBoundCreateOrUpdateKycDocument => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, id, customerNumber, `type`, number, issueDate, issuePlace, expiryDate)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[KycDocument](callContext))        
@@ -5055,13 +5827,13 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundCreateOrUpdateKycMedia(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       bankId=bankIdExample.value,
       customerId=customerIdExample.value,
-      id="string",
+      id=idExample.value,
       customerNumber=customerNumberExample.value,
-      `type`="string",
+      `type`=typeExample.value,
       url=urlExample.value,
-      date=new Date(),
-      relatesToKycDocumentId="string",
-      relatesToKycCheckId="string")
+      date=toDate(dateExample),
+      relatesToKycDocumentId=relatesToKycDocumentIdExample.value,
+      relatesToKycCheckId=relatesToKycCheckIdExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateKycMedia(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5070,17 +5842,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       customerId=customerIdExample.value,
       idKycMedia="string",
       customerNumber=customerNumberExample.value,
-      `type`="string",
+      `type`=typeExample.value,
       url=urlExample.value,
-      date=new Date(),
-      relatesToKycDocumentId="string",
-      relatesToKycCheckId="string"))
+      date=toDate(dateExample),
+      relatesToKycDocumentId=relatesToKycDocumentIdExample.value,
+      relatesToKycCheckId=relatesToKycCheckIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createOrUpdateKycMedia(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String, callContext: Option[CallContext]): OBPReturnType[Box[KycMedia]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycMedia => OutBound, InBoundCreateOrUpdateKycMedia => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycMedia => InBound, OutBoundCreateOrUpdateKycMedia => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, id, customerNumber, `type`, url, date, relatesToKycDocumentId, relatesToKycCheckId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[KycMediaCommons](callContext))        
@@ -5098,8 +5870,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       bankId=bankIdExample.value,
       customerId=customerIdExample.value,
       customerNumber=customerNumberExample.value,
-      ok=true,
-      date=new Date())
+      ok=okExample.value.toBoolean,
+      date=toDate(dateExample))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateKycStatus(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5107,14 +5879,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       data= KycStatusCommons(bankId=bankIdExample.value,
       customerId=customerIdExample.value,
       customerNumber=customerNumberExample.value,
-      ok=true,
-      date=new Date()))
+      ok=okExample.value.toBoolean,
+      date=toDate(dateExample)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createOrUpdateKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date, callContext: Option[CallContext]): OBPReturnType[Box[KycStatus]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateOrUpdateKycStatus => OutBound, InBoundCreateOrUpdateKycStatus => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateOrUpdateKycStatus => InBound, OutBoundCreateOrUpdateKycStatus => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, customerId, customerNumber, ok, date)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[KycStatusCommons](callContext))        
@@ -5138,18 +5910,18 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       customerId=customerIdExample.value,
       idKycCheck="string",
       customerNumber=customerNumberExample.value,
-      date=new Date(),
-      how="string",
-      staffUserId="string",
-      staffName="string",
-      satisfied=true,
-      comments="string")))
+      date=toDate(dateExample),
+      how=howExample.value,
+      staffUserId=staffUserIdExample.value,
+      staffName=staffNameExample.value,
+      satisfied=satisfiedExample.value.toBoolean,
+      comments=commentsExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getKycChecks(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycCheck]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetKycChecks => OutBound, InBoundGetKycChecks => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetKycChecks => InBound, OutBoundGetKycChecks => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[KycCheckCommons]](callContext))        
@@ -5173,17 +5945,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       customerId=customerIdExample.value,
       idKycDocument="string",
       customerNumber=customerNumberExample.value,
-      `type`="string",
-      number="string",
-      issueDate=new Date(),
-      issuePlace="string",
-      expiryDate=new Date())))
+      `type`=typeExample.value,
+      number=numberExample.value,
+      issueDate=toDate(issueDateExample),
+      issuePlace=issuePlaceExample.value,
+      expiryDate=toDate(expiryDateExample))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getKycDocuments(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycDocument]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetKycDocuments => OutBound, InBoundGetKycDocuments => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetKycDocuments => InBound, OutBoundGetKycDocuments => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[KycDocumentCommons]](callContext))        
@@ -5207,17 +5979,17 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       customerId=customerIdExample.value,
       idKycMedia="string",
       customerNumber=customerNumberExample.value,
-      `type`="string",
+      `type`=typeExample.value,
       url=urlExample.value,
-      date=new Date(),
-      relatesToKycDocumentId="string",
-      relatesToKycCheckId="string")))
+      date=toDate(dateExample),
+      relatesToKycDocumentId=relatesToKycDocumentIdExample.value,
+      relatesToKycCheckId=relatesToKycCheckIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getKycMedias(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycMedia]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetKycMedias => OutBound, InBoundGetKycMedias => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetKycMedias => InBound, OutBoundGetKycMedias => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[KycMediaCommons]](callContext))        
@@ -5240,14 +6012,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       data=List( KycStatusCommons(bankId=bankIdExample.value,
       customerId=customerIdExample.value,
       customerNumber=customerNumberExample.value,
-      ok=true,
-      date=new Date())))
+      ok=okExample.value.toBoolean,
+      date=toDate(dateExample))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def getKycStatuses(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[KycStatus]]] = {
-        import com.openbankproject.commons.dto.{OutBoundGetKycStatuses => OutBound, InBoundGetKycStatuses => InBound}  
+        import com.openbankproject.commons.dto.{InBoundGetKycStatuses => InBound, OutBoundGetKycStatuses => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[List[KycStatusCommons]](callContext))        
@@ -5265,28 +6037,31 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       user= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",
-      provider="string",
-      emailAddress=emailExample.value,
-      name=usernameExample.value),
+      provider=providerExample.value,
+      emailAddress=emailAddressExample.value,
+      name=userNameExample.value,
+      createdByConsentId=Some("string"),
+      createdByUserInvitationId=Some("string"),
+      isDeleted=Some(true)),
       bankId=BankId(bankIdExample.value),
-      message="string",
-      fromDepartment="string",
-      fromPerson="string")
+      message=messageExample.value,
+      fromDepartment=fromDepartmentExample.value,
+      fromPerson=fromPersonExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreateMessage(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
       data= CustomerMessageCommons(messageId="string",
-      date=new Date(),
-      message="string",
-      fromDepartment="string",
-      fromPerson="string"))
+      date=toDate(dateExample),
+      message=messageExample.value,
+      fromDepartment=fromDepartmentExample.value,
+      fromPerson=fromPersonExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createMessage(user: User, bankId: BankId, message: String, fromDepartment: String, fromPerson: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerMessage]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateMessage => OutBound, InBoundCreateMessage => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateMessage => InBound, OutBoundCreateMessage => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, user, bankId, message, fromDepartment, fromPerson)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[CustomerMessageCommons](callContext))        
@@ -5303,41 +6078,47 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
      OutBoundMakeHistoricalPayment(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
       fromAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
       toAccount= BankAccountCommons(accountId=AccountId(accountIdExample.value),
       accountType=accountTypeExample.value,
-      balance=BigDecimal(balanceAmountExample.value),
+      balance=BigDecimal(balanceExample.value),
       currency=currencyExample.value,
       name=bankAccountNameExample.value,
       label=labelExample.value,
       number=bankAccountNumberExample.value,
       bankId=BankId(bankIdExample.value),
-      lastUpdate=parseDate(bankAccountLastUpdateExample.value).getOrElse(sys.error("bankAccountLastUpdateExample.value is not validate date format.")),
+      lastUpdate=toDate(bankAccountLastUpdateExample),
       branchId=branchIdExample.value,
       accountRoutings=List( AccountRouting(scheme=accountRoutingSchemeExample.value,
       address=accountRoutingAddressExample.value)),
       accountRules=List( AccountRule(scheme=accountRuleSchemeExample.value,
       value=accountRuleValueExample.value)),
-      accountHolder=bankAccountAccountHolderExample.value),
-      posted=new Date(),
-      completed=new Date(),
-      amount=BigDecimal("123.321"),
+      accountHolder=bankAccountAccountHolderExample.value,
+      attributes=Some(List( Attribute(name=attributeNameExample.value,
+      `type`=attributeTypeExample.value,
+      value=attributeValueExample.value)))),
+      posted=toDate(postedExample),
+      completed=toDate(completedExample),
+      amount=BigDecimal(amountExample.value),
       currency=currencyExample.value,
-      description="string",
+      description=descriptionExample.value,
       transactionRequestType=transactionRequestTypeExample.value,
-      chargePolicy="string")
+      chargePolicy=chargePolicyExample.value)
     ),
     exampleInboundMessage = (
      InBoundMakeHistoricalPayment(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5348,7 +6129,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def makeHistoricalPayment(fromAccount: BankAccount, toAccount: BankAccount, posted: Date, completed: Date, amount: BigDecimal, currency: String, description: String, transactionRequestType: String, chargePolicy: String, callContext: Option[CallContext]): OBPReturnType[Box[TransactionId]] = {
-        import com.openbankproject.commons.dto.{OutBoundMakeHistoricalPayment => OutBound, InBoundMakeHistoricalPayment => InBound}  
+        import com.openbankproject.commons.dto.{InBoundMakeHistoricalPayment => InBound, OutBoundMakeHistoricalPayment => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, fromAccount, toAccount, posted, completed, amount, currency, description, transactionRequestType, chargePolicy)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[TransactionId](callContext))        
@@ -5368,30 +6149,30 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       customerId=customerIdExample.value,
       userId=userIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      dateSigned=new Date(),
-      dateStarts=new Date(),
-      dateExpires=Some(new Date()))
+      dateSigned=toDate(dateSignedExample),
+      dateStarts=toDate(dateStartsExample),
+      dateExpires=Some(toDate(dateExpiresExample)))
     ),
     exampleInboundMessage = (
      InBoundCreateDirectDebit(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
       status=MessageDocsSwaggerDefinitions.inboundStatus,
-      data= DirectDebitTraitCommons(directDebitId="string",
+      data= DirectDebitTraitCommons(directDebitId=directDebitIdExample.value,
       bankId=bankIdExample.value,
       accountId=accountIdExample.value,
       customerId=customerIdExample.value,
       userId=userIdExample.value,
       counterpartyId=counterpartyIdExample.value,
-      dateSigned=new Date(),
-      dateCancelled=new Date(),
-      dateStarts=new Date(),
-      dateExpires=new Date(),
-      active=true))
+      dateSigned=toDate(dateSignedExample),
+      dateCancelled=toDate(dateCancelledExample),
+      dateStarts=toDate(dateStartsExample),
+      dateExpires=toDate(dateExpiresExample),
+      active=activeExample.value.toBoolean))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
   override def createDirectDebit(bankId: String, accountId: String, customerId: String, userId: String, counterpartyId: String, dateSigned: Date, dateStarts: Date, dateExpires: Option[Date], callContext: Option[CallContext]): OBPReturnType[Box[DirectDebitTrait]] = {
-        import com.openbankproject.commons.dto.{OutBoundCreateDirectDebit => OutBound, InBoundCreateDirectDebit => InBound}  
+        import com.openbankproject.commons.dto.{InBoundCreateDirectDebit => InBound, OutBoundCreateDirectDebit => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, customerId, userId, counterpartyId, dateSigned, dateStarts, dateExpires)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[DirectDebitTraitCommons](callContext))        
@@ -5417,12 +6198,12 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   )
 
   override def deleteCustomerAttribute(customerAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
-        import com.openbankproject.commons.dto.{OutBoundDeleteCustomerAttribute => OutBound, InBoundDeleteCustomerAttribute => InBound}  
+        import com.openbankproject.commons.dto.{InBoundDeleteCustomerAttribute => InBound, OutBoundDeleteCustomerAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, customerAttributeId)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2020-06-17T14:19:04Z
-//---------------- dynamic end ---------------------please don't modify this line
+// ---------- created on 2021-08-19T16:36:57Z
+//---------------- dynamic end ---------------------please don't modify this line  
 }
