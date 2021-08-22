@@ -69,7 +69,7 @@ object Caching {
       override def get(key: List[Any], compute: => V): V = {
         val cacheKey = bucketId + "_" + key.mkString("_")
         if(isFuture) {
-          val result = memoizeWithProvider(Some(cacheKey))(ttl ){println("call Future method"); compute.asInstanceOf[Future[Any]]}
+          val result = memoizeWithProvider(Some(cacheKey))(ttl)(compute.asInstanceOf[Future[Any]])
           result.asInstanceOf[V]
         } else if(implicitly[TypeTag[V]].tpe =:= typeOf[Any] && !fixedReturnType) {
           val result = compute
@@ -77,7 +77,7 @@ object Caching {
           fixedReturnType = true
           this.get(key, result)
         } else {
-          val result = memoizeSyncWithProvider(Some(cacheKey))(ttl ){println("call common method"); compute}
+          val result = memoizeSyncWithProvider(Some(cacheKey))(ttl)(compute)
           if(result.isInstanceOf[Future[_]]) {
             isFuture = true
           }
