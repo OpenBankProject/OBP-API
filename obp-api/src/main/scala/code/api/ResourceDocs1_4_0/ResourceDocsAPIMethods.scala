@@ -5,7 +5,7 @@ import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.canReadResourceDoc
+import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.{APIUtil, _}
@@ -34,7 +34,6 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import java.util.concurrent.ConcurrentHashMap
-
 import code.api.util.NewStyle.HttpCode
 import code.util.Helper
 
@@ -468,7 +467,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       exampleResourceDocsJson, 
       UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagDocumentation, apiTagApi),
+      Some(List(canReadResourceDoc))
     )
 
     def resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
@@ -493,7 +493,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       exampleResourceDocsJsonV400,
       UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagDocumentation, apiTagApi),
+      Some(List(canReadResourceDoc))
     )
     
     def getResourceDocsObpV400 : OBPEndpoint = {
@@ -564,7 +565,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       exampleResourceDocsJson,
       UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi)
+      List(apiTagDocumentation, apiTagApi),
+      Some(List(canReadDynamicResourceDocsAtOneBank))
     )
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
