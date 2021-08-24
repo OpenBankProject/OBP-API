@@ -8,7 +8,7 @@
     <groupId>com.tesobe</groupId>
     <artifactId>obp-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.9.0</version>
+    <version>1.10.0</version>
   </parent>
   <artifactId>obp-api</artifactId>
   <packaging>war</packaging>
@@ -475,6 +475,13 @@
       <groupId>org.iban4j</groupId>
       <artifactId>iban4j</artifactId>
       <version>3.2.1</version>
+    </dependency>
+
+    <!--macro cache-->
+    <dependency>
+      <groupId>com.github.oldbig</groupId>
+      <artifactId>macmemo</artifactId>
+      <version>0.6-OBP-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
