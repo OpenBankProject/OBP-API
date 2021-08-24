@@ -86,6 +86,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
 
   val user1Import = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "user.name_1")
   val user2Import = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "user.name_2")
+  val differentUsername = "user_one"
+  val secondUserName = "user_two"
 
   val standardUsers = user1Import :: user2Import :: Nil
   
@@ -102,8 +104,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //we need to delete the test uses manully here.
     AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))
     AuthUser.bulkDelete_!!(By(AuthUser.username, user2Import.user_name))
+    AuthUser.bulkDelete_!!(By(AuthUser.username, differentUsername))
+    AuthUser.bulkDelete_!!(By(AuthUser.username, secondUserName))
     ResourceUser.bulkDelete_!!(By(ResourceUser.name_, user1Import.user_name ))
     ResourceUser.bulkDelete_!!(By(ResourceUser.name_, user2Import.user_name ))
+    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, differentUsername ))
+    ResourceUser.bulkDelete_!!(By(ResourceUser.name_, secondUserName ))
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateSandbox.toString)
   }
 
@@ -756,11 +762,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     }
 
     //emails of the user we will eventually create to show multiple users with different ids are possible
-    val secondUserName = "user_two"
 
     val user1Json = Extraction.decompose(user1Import)
-
-    val differentUsername = "user_one"
+    
     differentUsername should not equal(user1Import.user_name)
     val userWithSameUsernameAsUser1 = user1Json
 

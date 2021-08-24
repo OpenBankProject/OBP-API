@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+20/08/2021    2ad1a3b0      Updated implementations of Akka, Rest and Stored Procedure connectors via the builder.  
 18/08/2021    83c3b4fa      Added props: webui_favicon_link_url, default is /favicon.ico
 18/08/2021    5924c820      Added props: webui_api_documentation_bottom_url, default is https://github.com/OpenBankProject/OBP-API/wiki
                             Added props: webui_privacy_policy_url, default is https://openbankproject.com/privacy-policy

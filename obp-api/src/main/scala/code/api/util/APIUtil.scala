@@ -643,10 +643,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /** enforce the password.
    * The rules :
-   * 1) length is >16 characters without validations
+   * 1) length is >16 characters without validations but max length <= 512
    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character.
    * */
-  def isValidStrongPassword(password: String): Boolean = {
+  def validatePasswordOnCreation(password: String): Boolean = {
     /**
      * (?=.*\d)                    //should contain at least one digit
      * (?=.*[a-z])                 //should contain at least one lower case
@@ -657,7 +657,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val regex =
       """^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~])([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]{10,16})$""".r
     password match {
-      case password if (password.length > 16) => true
+      case password if(validatePasswordOnUsage(password) ==SILENCE_IS_GOLDEN) => true
+      case password if(password.length > 16 && password.length <= 512) => true
       case regex(password) => true
       case _ => false
     }
@@ -693,7 +694,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
   /** also support space now  */
-  def checkMediumPassword(value:String): String ={
+  def validatePasswordOnUsage(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~ ]+)$""".r
     value match {
