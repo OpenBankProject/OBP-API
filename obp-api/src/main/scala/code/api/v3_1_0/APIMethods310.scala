@@ -2058,6 +2058,7 @@ trait APIMethods310 {
               postedData.name,
               productAttributeType,
               postedData.value,
+              None,
               callContext: Option[CallContext]
             )
           } yield {
@@ -2154,6 +2155,7 @@ trait APIMethods310 {
               postedData.name,
               productAttributeType,
               postedData.value,
+              None,
               callContext: Option[CallContext]
             )
           } yield {

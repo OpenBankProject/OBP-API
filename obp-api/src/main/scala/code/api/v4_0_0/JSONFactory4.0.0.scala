@@ -649,8 +649,13 @@ case class JsonSchemaV400(
 case class JsonValidationV400(operation_id: String, json_schema: JsonSchemaV400)
 // Validation related END
 
-
-case class ProductAttributeResponseJson(
+case class ProductAttributeJsonV400(
+                                     name: String,
+                                     `type`: String,
+                                     value: String,
+                                     is_active: Option[Boolean]
+                                   )
+case class ProductAttributeResponseJsonV400(
                                          bank_id: String,
                                          product_code: String,
                                          product_attribute_id: String,
@@ -659,6 +664,14 @@ case class ProductAttributeResponseJson(
                                          value: String,
                                          is_active: Option[Boolean]
                                        )
+case class ProductAttributeResponseWithoutBankIdJsonV400(
+                                                      product_code: String,
+                                                      product_attribute_id: String,
+                                                      name: String,
+                                                      `type`: String,
+                                                      value: String,
+                                                      is_active: Option[Boolean]
+                                                    )
 
 case class IbanCheckerJsonV400(
                                 is_valid: Boolean,
@@ -1369,8 +1382,8 @@ object JSONFactory400 {
   }
 
 
-  def createProductAttributeJson(productAttribute: ProductAttribute): ProductAttributeResponseJson =
-    ProductAttributeResponseJson(
+  def createProductAttributeJson(productAttribute: ProductAttribute): ProductAttributeResponseJsonV400 =
+    ProductAttributeResponseJsonV400(
       bank_id = productAttribute.bankId.value,
       product_code = productAttribute.productCode.value,
       product_attribute_id = productAttribute.productAttributeId,

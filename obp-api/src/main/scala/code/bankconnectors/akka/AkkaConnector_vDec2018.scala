@@ -307,7 +307,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2021-08-19T16:36:57Z
+// ---------- created on 2021-08-24T13:21:14Z
 
   messageDocs += validateAndCheckIbanNumberDoc
   def validateAndCheckIbanNumberDoc = MessageDoc(
@@ -4609,7 +4609,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       productAttributeId=Some(productAttributeIdExample.value),
       name=nameExample.value,
       productAttributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateProductAttribute(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4625,9 +4626,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
+  override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, isActive: Option[Boolean], callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
         import com.openbankproject.commons.dto.{InBoundCreateOrUpdateProductAttribute => InBound, OutBoundCreateOrUpdateProductAttribute => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value, isActive)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[ProductAttributeCommons](callContext))        
   }
@@ -6204,6 +6205,6 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2021-08-19T16:36:57Z
-//---------------- dynamic end ---------------------please don't modify this line  
+// ---------- created on 2021-08-24T13:21:14Z
+//---------------- dynamic end ---------------------please don't modify this line   
 }

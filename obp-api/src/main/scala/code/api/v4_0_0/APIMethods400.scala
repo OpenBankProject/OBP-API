@@ -5487,8 +5487,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      productAttributeJson,
-      productAttributeResponseJson,
+      productAttributeJsonV400,
+      productAttributeResponseJsonV400,
       List(
         InvalidJsonFormat,
         UnknownError
@@ -5506,14 +5506,16 @@ trait APIMethods400 {
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[ProductAttributeJson]
+              json.extract[ProductAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
             productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
               ProductAttributeType.withName(postedData.`type`)
             }
-
+            _  <- Future(Connector.connector.vend.getProduct(BankId(bankId), ProductCode(productCode))) map {
+              getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + productCode + "}", 400)
+            }
             (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankId),
               ProductCode(productCode),
@@ -5521,6 +5523,7 @@ trait APIMethods400 {
               postedData.name,
               productAttributeType,
               postedData.value,
+              postedData.is_active,
               callContext: Option[CallContext]
             )
           } yield {
@@ -5546,8 +5549,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      productAttributeJson,
-      productAttributeResponseJson,
+      productAttributeJsonV400,
+      productAttributeResponseJsonV400,
       List(
         UserHasMissingRoles,
         UnknownError
@@ -5563,7 +5566,7 @@ trait APIMethods400 {
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[ProductAttributeJson]
+              json.extract[ProductAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
@@ -5578,6 +5581,7 @@ trait APIMethods400 {
               postedData.name,
               productAttributeType,
               postedData.value,
+              postedData.is_active,
               callContext: Option[CallContext]
             )
           } yield {
@@ -5603,7 +5607,7 @@ trait APIMethods400 {
          |
          |""",
       emptyObjectJson,
-      productAttributeResponseJson,
+      productAttributeResponseJsonV400,
       List(
         UserHasMissingRoles,
         UnknownError

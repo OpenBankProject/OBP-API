@@ -378,7 +378,8 @@ case class OutBoundCreateOrUpdateProductAttribute(outboundAdapterCallContext: Ou
                                                   productAttributeId: Option[String],
                                                   name: String,
                                                   productAttributeType: enums.ProductAttributeType.Value,
-                                                  value: String) extends TopicTrait
+                                                  value: String,
+                                                  isActive: Option[Boolean]) extends TopicTrait
 case class InBoundCreateOrUpdateProductAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: ProductAttributeCommons) extends InBoundTrait[ProductAttributeCommons]
 
 
