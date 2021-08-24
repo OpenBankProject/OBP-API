@@ -7,7 +7,7 @@
         <groupId>com.tesobe</groupId>
         <artifactId>obp-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>1.9.0</version>
+        <version>1.10.0</version>
     </parent>
     <artifactId>obp-commons</artifactId>
     <packaging>jar</packaging>
@@ -66,6 +66,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>23.0</version>
         </dependency>
     </dependencies>
 
