@@ -76,7 +76,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2021-08-19T16:41:22Z
+// ---------- created on 2021-08-24T13:22:36Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -4777,7 +4777,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       productAttributeId=Some(productAttributeIdExample.value),
       name=nameExample.value,
       productAttributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateProductAttribute(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4793,9 +4794,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
+  override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, isActive: Option[Boolean], callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
         import com.openbankproject.commons.dto.{InBoundCreateOrUpdateProductAttribute => InBound, OutBoundCreateOrUpdateProductAttribute => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value, isActive)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_or_update_product_attribute", req, callContext)
         response.map(convertToTuple[ProductAttributeCommons](callContext))        
   }
@@ -6372,8 +6373,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2021-08-19T16:41:22Z
-//---------------- dynamic end ---------------------please don't modify this line                      
+// ---------- created on 2021-08-24T13:22:36Z
+//---------------- dynamic end ---------------------please don't modify this line                       
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

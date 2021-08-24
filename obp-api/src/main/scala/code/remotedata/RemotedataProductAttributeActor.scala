@@ -31,14 +31,16 @@ class RemotedataProductAttributeActor extends Actor with ObpActorHelper with Mdc
             productAttributeId: Option[String],
             name: String,
             attributType: ProductAttributeType.Value,
-            value: String) =>
-      logger.debug(s"createOrUpdateProductAttribute(${bankId}, ${productCode}, ${productAttributeId}, ${name}, ${attributType}, ${value})")
+            value: String, 
+            isActive: Option[Boolean]) =>
+      logger.debug(s"createOrUpdateProductAttribute(${bankId}, ${productCode}, ${productAttributeId}, ${name}, ${attributType}, ${value}, ${isActive})")
       mapper.createOrUpdateProductAttribute(bankId,
         productCode,
         productAttributeId,
         name,
         attributType,
-        value) pipeTo sender
+        value, 
+        isActive) pipeTo sender
 
     case cc.deleteProductAttribute(productAttributeId: String) =>
       logger.debug(s"deleteProductAttribute(${productAttributeId})")

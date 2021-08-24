@@ -1989,6 +1989,7 @@ trait Connector extends MdcLoggable {
                                       name: String,
                                       productAttributeType: ProductAttributeType.Value,
                                       value: String,
+                                      isActive: Option[Boolean],
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 

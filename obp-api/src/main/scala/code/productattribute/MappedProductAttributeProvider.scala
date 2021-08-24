@@ -8,7 +8,6 @@ import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.{BaseMappedField, MappedBoolean, _}
 import net.liftweb.util.Helpers.tryo
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
@@ -32,7 +31,8 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
                                               productAttributeId: Option[String],
                                               name: String,
                                               attributType: ProductAttributeType.Value,
-                                              value: String): Future[Box[ProductAttribute]] =  {
+                                              value: String,
+                                              isActive: Option[Boolean]): Future[Box[ProductAttribute]] =  {
      productAttributeId match {
       case Some(id) => Future {
          MappedProductAttribute.find(By(MappedProductAttribute.mProductAttributeId, id)) match {
@@ -42,6 +42,7 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
                 .mName(name)
                 .mType(attributType.toString)
                 .mValue(value)
+                .IsActive(isActive.getOrElse(true))
                 .saveMe()
             }
             case _ => Empty
@@ -55,6 +56,7 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
             .mName(name)
             .mType(attributType.toString())
             .mValue(value)
+            .IsActive(isActive.getOrElse(true))
             .saveMe()
         }
       }

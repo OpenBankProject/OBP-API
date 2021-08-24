@@ -3402,6 +3402,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                name: String,
                                                attributType: ProductAttributeType.Value,
                                                value: String,
+                                               isActive: Option[Boolean],
                                                callContext: Option[CallContext]
                                              ): OBPReturnType[Box[ProductAttribute]] =
     ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
@@ -3410,7 +3411,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       productAttributeId: Option[String],
       name: String,
       attributType: ProductAttributeType.Value,
-      value: String) map {
+      value: String, isActive: Option[Boolean]) map {
       (_, callContext)
     }
 

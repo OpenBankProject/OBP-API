@@ -3452,6 +3452,12 @@ object SwaggerDefinitionsJSON {
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
+  )  
+  val productAttributeJsonV400 = ProductAttributeJsonV400(
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
   )
   val productAttributeResponseJson = ProductAttributeResponseWithoutBankIdJson(
     product_code = "saving1",
@@ -3459,6 +3465,14 @@ object SwaggerDefinitionsJSON {
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
+  )
+  val productAttributeResponseJsonV400 = ProductAttributeResponseWithoutBankIdJsonV400(
+    product_code = "saving1",
+    product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
   )
 
   val accountAttributeJson = AccountAttributeJson(

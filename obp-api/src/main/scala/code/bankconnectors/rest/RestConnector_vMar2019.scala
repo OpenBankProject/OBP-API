@@ -95,7 +95,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2021-08-19T16:37:18Z
+// ---------- created on 2021-08-24T13:22:01Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -4796,7 +4796,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       productAttributeId=Some(productAttributeIdExample.value),
       name=nameExample.value,
       productAttributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
-      value=valueExample.value)
+      value=valueExample.value,
+      isActive=Some(isActiveExample.value.toBoolean))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateProductAttribute(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -4812,9 +4813,9 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
+  override def createOrUpdateProductAttribute(bankId: BankId, productCode: ProductCode, productAttributeId: Option[String], name: String, productAttributeType: ProductAttributeType.Value, value: String, isActive: Option[Boolean], callContext: Option[CallContext]): OBPReturnType[Box[ProductAttribute]] = {
         import com.openbankproject.commons.dto.{InBoundCreateOrUpdateProductAttribute => InBound, OutBoundCreateOrUpdateProductAttribute => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, productCode, productAttributeId, name, productAttributeType, value, isActive)
         val response: Future[Box[InBound]] = sendRequest[InBound](getUrl(callContext, "createOrUpdateProductAttribute"), HttpMethods.POST, req, callContext)
         response.map(convertToTuple[ProductAttributeCommons](callContext))        
   }
@@ -6391,8 +6392,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2021-08-19T16:37:18Z
-//---------------- dynamic end ---------------------please don't modify this line 
+// ---------- created on 2021-08-24T13:22:01Z
+//---------------- dynamic end ---------------------please don't modify this line   
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

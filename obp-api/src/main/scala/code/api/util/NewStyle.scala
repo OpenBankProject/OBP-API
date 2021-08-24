@@ -1322,6 +1322,7 @@ object NewStyle {
       name: String,
       attributType: ProductAttributeType.Value,
       value: String,
+      isActive: Option[Boolean],
       callContext: Option[CallContext]
     ): OBPReturnType[ProductAttribute] = {
       Connector.connector.vend.createOrUpdateProductAttribute(
@@ -1331,6 +1332,7 @@ object NewStyle {
         name: String,
         attributType: ProductAttributeType.Value,
         value: String,
+        isActive: Option[Boolean],
         callContext: Option[CallContext]
       ) map {
           i => (connectorEmptyResponse(i._1, callContext), i._2)
