@@ -5,7 +5,7 @@ import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
+import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadSystemResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.{APIUtil, _}
@@ -478,7 +478,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, false)
+          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, false, false)
       }
     }
     
@@ -501,7 +501,40 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, true)
+          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, true, false)
+      }
+    }
+
+    localResourceDocs += ResourceDoc(
+      getSystemResourceDocsObp,
+      implementedInApiVersion,
+      nameOf(getSystemResourceDocsObp),
+      "GET",
+      "/system-resource-docs/API_VERSION/obp",
+      "Get System Resource Docs",
+      getResourceDocsDescription(false),
+      emptyObjectJson,
+      exampleResourceDocsJsonV400,
+      UnknownError :: Nil,
+      List(apiTagDocumentation, apiTagApi),
+      Some(List(canReadSystemResourceDoc))
+    )
+
+    def getSystemResourceDocsObp : OBPEndpoint = {
+      case "system-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
+        cc =>
+          getApiLevelResourceDocs(
+            cc,requestedApiVersionString, 
+            tags, 
+            partialFunctions, 
+            languageParam, 
+            Some(ContentParam.STATIC) ,//Note: here it set to default STATIC value.
+            apiCollectionIdParam, 
+            cacheModifierParam, 
+            true,
+            true
+          )
       }
     }
 
@@ -514,7 +547,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       contentParam: Option[ContentParam],
       apiCollectionIdParam: Option[String],
       cacheModifierParam: Option[String],
-      isVersion4OrHigher: Boolean
+      isVersion4OrHigher: Boolean,
+      isSystemResource: Boolean,
     ) = {
         for {
           (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
@@ -524,7 +558,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           _ <- resourceDocsRequireRole match {
             case false => Future()
             case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+              if(isSystemResource) 
+                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadSystemResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadSystemResourceDoc :: Nil, cc.callContext)
+              else
+                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
           }
           requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
           _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))

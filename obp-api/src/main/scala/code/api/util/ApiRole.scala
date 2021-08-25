@@ -594,6 +594,9 @@ object ApiRole {
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()
   
+  case class CanReadSystemResourceDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canReadSystemResourceDoc = CanReadSystemResourceDoc()
+  
   case class CanReadDynamicResourceDocsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canReadDynamicResourceDocsAtOneBank = CanReadDynamicResourceDocsAtOneBank()
   
