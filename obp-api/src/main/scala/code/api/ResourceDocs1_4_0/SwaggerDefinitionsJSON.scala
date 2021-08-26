@@ -504,7 +504,8 @@ object SwaggerDefinitionsJSON {
     connector = "String",
     hosted_by = hostedBy400,
     hosted_at = hostedAt400,
-    energy_source = energySource400
+    energy_source = energySource400,
+    resource_docs_requires_role = false
   )
   val apiInfoJSON = APIInfoJSON(
     version = "String",
@@ -2451,6 +2452,10 @@ object SwaggerDefinitionsJSON {
     endpoint_tag_id = endpointTagIdExample.value,
     operation_id = operationIdExample.value,
     tag_name = tagNameExample.value
+  )
+  
+  val mySpaces = MySpaces(
+    bank_ids = List(bankIdExample.value),
   )
   
   val metricsJson = MetricsJson(

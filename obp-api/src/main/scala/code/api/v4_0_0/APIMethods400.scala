@@ -2536,8 +2536,9 @@ trait APIMethods400 {
       val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
 
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+      val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
 
-      APIInfoJson400(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource)
+      APIInfoJson400(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource, resourceDocsRequiresRole)
     }
 
 
@@ -9582,6 +9583,39 @@ trait APIMethods400 {
             (deleted, callContext) <- NewStyle.function.deleteEndpointTag(endpointTagId, cc.callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMySpaces,
+      implementedInApiVersion,
+      nameOf(getMySpaces),
+      "GET",
+      "/my/spaces",
+      "Get My Spaces",
+      s"""Get My Spaces.""",
+      EmptyBody,
+      mySpaces,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle)
+    )
+    lazy val getMySpaces: OBPEndpoint = {
+      case "my" :: "spaces" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
+          } yield {
+            (
+              MySpaces(entitlements
+                .filter(_.roleName == canReadDynamicResourceDocsAtOneBank.toString())
+                .map(entitlement => entitlement.bankId)), 
+              HttpCode.`200`(callContext)
+            )
           }
       }
     }

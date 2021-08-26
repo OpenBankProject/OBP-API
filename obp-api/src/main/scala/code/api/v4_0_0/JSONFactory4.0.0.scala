@@ -150,7 +150,8 @@ case class APIInfoJson400(
                         connector : String,
                         hosted_by : HostedBy400,
                         hosted_at : HostedAt400,
-                        energy_source : EnergySource400
+                        energy_source : EnergySource400,
+                        resource_docs_requires_role: Boolean
                       )
 case class HostedBy400(
                      organisation : String,
@@ -560,6 +561,10 @@ case class BankLevelEndpointTagResponseJson400(
   endpoint_tag_id: String,
   operation_id: String,
   tag_name: String
+)
+
+case class MySpaces(
+  bank_ids: List[String],
 )
 
 case class CounterpartyJson400(
