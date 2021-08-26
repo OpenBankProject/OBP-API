@@ -649,6 +649,19 @@ case class JsonSchemaV400(
 case class JsonValidationV400(operation_id: String, json_schema: JsonSchemaV400)
 // Validation related END
 
+
+case class ProductJsonV400(bank_id: String,
+                           code : String,
+                           parent_product_code : String,
+                           name : String,
+                           category: String,
+                           family : String,
+                           super_family : String,
+                           more_info_url: String,
+                           details: String,
+                           description: String,
+                           meta : MetaJsonV140,
+                           product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJsonV400]])
 case class ProductAttributeJsonV400(
                                      name: String,
                                      `type`: String,
@@ -1392,6 +1405,36 @@ object JSONFactory400 {
       value = productAttribute.value,
       is_active = productAttribute.isActive
     )
+
+  def createProductAttributesJson(productAttributes: List[ProductAttribute]): List[ProductAttributeResponseWithoutBankIdJsonV400] = {
+    productAttributes.map(
+      productAttribute =>
+        ProductAttributeResponseWithoutBankIdJsonV400(
+          product_code = productAttribute.productCode.value,
+          product_attribute_id = productAttribute.productAttributeId,
+          name = productAttribute.name,
+          `type` = productAttribute.attributeType.toString,
+          value = productAttribute.value,
+          is_active = productAttribute.isActive
+        )
+    )
+  }
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute]) : ProductJsonV400 = {
+    ProductJsonV400(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      category = product.category,
+      family = product.family,
+      super_family = product.superFamily,
+      more_info_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      product_attributes = Some(createProductAttributesJson(productAttributes))
+    )
+  }
 
   def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
     ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))

@@ -3536,7 +3536,21 @@ object SwaggerDefinitionsJSON {
     Some(List(productAttributeResponseJson))
   )
   val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
-  
+
+  val productJsonV400 = ProductJsonV400(
+    bank_id = bankIdExample.value,
+    code = "product_code",
+    parent_product_code = "parent",
+    name = "product name",
+    category = "category",
+    family = "family",
+    super_family = "super family",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    details = "Details",
+    description = "Description",
+    meta = metaJson,
+    Some(List(productAttributeResponseJsonV400))
+  )
   
   val productCollectionItemJsonV310 = ProductCollectionItemJsonV310(member_product_code = "A")
   val productCollectionJsonV310 = ProductCollectionJsonV310(
