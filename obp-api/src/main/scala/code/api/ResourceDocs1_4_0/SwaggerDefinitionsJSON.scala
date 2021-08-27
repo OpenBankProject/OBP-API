@@ -3466,7 +3466,16 @@ object SwaggerDefinitionsJSON {
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
   )
-  val productAttributeResponseJsonV400 = ProductAttributeResponseWithoutBankIdJsonV400(
+  val productAttributeResponseJsonV400 = ProductAttributeResponseJsonV400(
+    bank_id = bankIdExample.value,
+    product_code = "saving1",
+    product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
+  )
+  val productAttributeResponseWithoutBankIdJsonV400 = ProductAttributeResponseWithoutBankIdJsonV400(
     product_code = "saving1",
     product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
@@ -3549,7 +3558,7 @@ object SwaggerDefinitionsJSON {
     details = "Details",
     description = "Description",
     meta = metaJson,
-    Some(List(productAttributeResponseJsonV400))
+    Some(List(productAttributeResponseWithoutBankIdJsonV400))
   )
   
   val productCollectionItemJsonV310 = ProductCollectionItemJsonV310(member_product_code = "A")
