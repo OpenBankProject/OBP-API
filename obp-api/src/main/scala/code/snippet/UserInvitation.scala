@@ -172,7 +172,7 @@ class UserInvitation extends MdcLoggable {
         companyVar.set("None")
         countryVar.set("None")
         usernameVar.set("None")
-        S.error("Cannot complete your user invitation. Please check the invitation link. Your invitation could be invalid or completed.")
+        S.error(Helper.i18n("user.invitation.is.already.finished"))
     }
     register
   }
