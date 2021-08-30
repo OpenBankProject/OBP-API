@@ -582,7 +582,6 @@ case class ProductJsonV400(
 case class ProductsJsonV400(products: List[ProductJsonV400])
 
 case class PutProductJsonV400(
-  bank_id: String,
   parent_product_code: String,
   name: String,
   more_info_url: String,
@@ -1548,7 +1547,7 @@ object JSONFactory400 {
       parent_product_code = product.parentProductCode.value,
       name = product.name,
       more_info_url = product.moreInfoUrl,
-      terms_and_conditions_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.termsAndConditionsUrl,
       details = product.details,
       description = product.description,
       meta = createMetaJson(product.meta),
