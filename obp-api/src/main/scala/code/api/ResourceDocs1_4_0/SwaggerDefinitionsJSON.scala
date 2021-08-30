@@ -4334,6 +4334,33 @@ object SwaggerDefinitionsJSON {
   )
 
   val atmsJsonV400 = AtmsJsonV400(List(atmJsonV400))
+
+  val productJsonV400 = ProductJsonV400(
+    bank_id = bankIdExample.value,
+    code = "product_code",
+    parent_product_code = "parent",
+    name = "product name",
+    more_info_url = moreInfoUrlExample.value,
+    terms_and_conditions_url = termsAndConditionsUrlExample.value,
+    details = "Details",
+    description = "Description",
+    meta = metaJson,
+    Some(List(productAttributeResponseJson))
+  )
+
+  val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400))
+
+  val putProductJsonV400 = PutProductJsonV400(
+    bank_id = bankIdExample.value,
+    parent_product_code = "parent",
+    name = "product name",
+    more_info_url = moreInfoUrlExample.value,
+    terms_and_conditions_url = termsAndConditionsUrlExample.value,
+    details = "Details",
+    description = "Description",
+    meta = metaJson
+  )
+  
   
   //The common error or success format.
   //Just some helper format to use in Json 

@@ -28,7 +28,6 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
@@ -40,8 +39,8 @@ import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, R
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300._
 import code.api.v3_0_0._
-import code.api.v3_1_0.JSONFactory310.createAccountAttributeJson
-import code.api.v3_1_0.{AccountAttributeResponseJson, RedisCallLimitJson}
+import code.api.v3_1_0.JSONFactory310.{createAccountAttributeJson, createProductAttributesJson}
+import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
 import code.apicollection.ApiCollectionTrait
 import code.apicollectionendpoint.ApiCollectionEndpointTrait
 import code.atms.Atms.Atm
@@ -567,6 +566,31 @@ case class MySpaces(
   bank_ids: List[String],
 )
 
+case class ProductJsonV400(
+  bank_id: String,
+  code: String,
+  parent_product_code: String,
+  name: String,
+  more_info_url: String,
+  terms_and_conditions_url: String,
+  details: String,
+  description: String,
+  meta: MetaJsonV140,
+  product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]]
+)
+
+case class ProductsJsonV400(products: List[ProductJsonV400])
+
+case class PutProductJsonV400(
+  bank_id: String,
+  parent_product_code: String,
+  name: String,
+  more_info_url: String,
+  terms_and_conditions_url: String,
+  details: String,
+  description: String,
+  meta: MetaJsonV140
+)
 case class CounterpartyJson400(
                                  name: String,
                                  description: String,
@@ -1516,6 +1540,38 @@ object JSONFactory400 {
       balanceInquiryFee = Some(atmJsonV400.balance_inquiry_fee)
     )
   }
-  
+
+  def createProductJson(product: Product) : ProductJsonV400 = {
+    ProductJsonV400(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      more_info_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.moreInfoUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      None
+    )
+  }
+  def createProductsJson(productsList: List[Product]) : ProductsJsonV400 = {
+    ProductsJsonV400(productsList.map(createProductJson))
+  }
+
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute]) : ProductJsonV400 = {
+    ProductJsonV400(
+      bank_id = product.bankId.toString,
+      code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      more_info_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.termsAndConditionsUrl,
+      details = product.details,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      product_attributes = Some(createProductAttributesJson(productAttributes))
+    )
+  }
 }
 

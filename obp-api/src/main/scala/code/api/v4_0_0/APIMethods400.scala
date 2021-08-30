@@ -59,6 +59,7 @@ import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{ListResult, _}
@@ -9619,7 +9620,186 @@ trait APIMethods400 {
           }
       }
     }
-    
+
+    staticResourceDocs += ResourceDoc(
+      getProducts,
+      implementedInApiVersion,
+      "getProducts",
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Products",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+         |
+         |* Name
+         |* Code
+         |* Parent Product Code
+         |* More info URL
+         |* Terms And Conditions URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |
+         |Can filter with attributes name and values.
+         |URL params example: /banks/some-bank-id/products?manager=John&count=8
+         |
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
+      emptyObjectJson,
+      productsJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle)
+    )
+    lazy val getProducts : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet req => {
+        cc => {
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            products <- Future(Connector.connector.vend.getProducts(bankId, params)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
+            }
+          } yield {
+            (JSONFactory400.createProductsJson(products), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createProduct,
+      implementedInApiVersion,
+      nameOf(createProduct),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Create Product",
+      s"""Create or Update Product for the Bank.
+         |
+         |
+         |Typical Super Family values / Asset classes are:
+         |
+         |Debt
+         |Equity
+         |FX
+         |Commodity
+         |Derivative
+         |
+         |$productHiearchyAndCollectionNote
+         |
+         |
+         |${authenticationRequiredMessage(true) }
+         |
+         |
+         |""",
+      putProductJsonV400,
+      productJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProduct, canCreateProductAtAnyBank))
+    )
+    lazy val createProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductJsonV400 "
+            product <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutProductJsonV400]
+            }
+            parentProductCode <- product.parent_product_code.trim.nonEmpty match {
+              case false =>
+                Future(Empty)
+              case true =>
+                Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
+                  getFullBoxOrFail(_, callContext, ParentProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                }
+            }
+            success <- Future(Connector.connector.vend.createOrUpdateProduct(
+              bankId = bankId.value,
+              code = productCode.value,
+              parentProductCode = parentProductCode.map(_.code.value).toOption,
+              name = product.name,
+              category = null,
+              family = null,
+              superFamily = null,
+              moreInfoUrl = product.more_info_url,
+              termsAndConditionsUrl = product.terms_and_conditions_url,
+              details = product.details,
+              description = product.description,
+              metaLicenceId = product.meta.license.id,
+              metaLicenceName = product.meta.license.name
+            )) map {
+              connectorEmptyResponse(_, callContext)
+            }
+          } yield {
+            (JSONFactory400.createProductJson(success), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProduct,
+      implementedInApiVersion,
+      nameOf(getProduct),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
+         |
+         |* Name
+         |* Code
+         |* Parent Product Code
+         |* Category
+         |* Family
+         |* Super Family
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
+      emptyObjectJson,
+      productJsonV400,
+      List(
+        UserNotLoggedIn,
+        $BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle)
+    )
+
+    lazy val getProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
+            }
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
+          } yield {
+            (JSONFactory400.createProductJson(product, productAttributes), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
   }
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {
