@@ -268,6 +268,17 @@ class Boot extends MdcLoggable {
        }
      }
     }
+    implicit val formats = CustomJsonFormats.formats 
+    LiftRules.statelessDispatch.prepend {
+      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty => 
+        () =>
+          Full(
+            JsonResponse(
+              Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+              500
+            )
+          )
+    }
     
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
 
@@ -571,8 +582,7 @@ class Boot extends MdcLoggable {
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
-
-    implicit val formats = CustomJsonFormats.formats
+    
     LiftRules.exceptionHandler.prepend{
       case(_, r, e) if DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
