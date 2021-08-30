@@ -270,14 +270,17 @@ class Boot extends MdcLoggable {
     }
     implicit val formats = CustomJsonFormats.formats 
     LiftRules.statelessDispatch.prepend {
-      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty => 
-        () =>
-          Full(
-            JsonResponse(
-              Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
-              500
-            )
-          )
+      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
+        Props.mode match {
+          case Props.RunModes.Development =>
+            () =>
+              Full(
+                JsonResponse(
+                  Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+                  500
+                )
+              )
+        }
     }
     
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
