@@ -505,38 +505,38 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
 
-    localResourceDocs += ResourceDoc(
-      getStaticResourceDocsObp,
-      implementedInApiVersion,
-      nameOf(getStaticResourceDocsObp),
-      "GET",
-      "/static-resource-docs/API_VERSION/obp",
-      "Get Static Resource Docs",
-      getResourceDocsDescription(false),
-      emptyObjectJson,
-      exampleResourceDocsJsonV400,
-      UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi),
-      Some(List(canReadStaticResourceDoc))
-    )
-
-    def getStaticResourceDocsObp : OBPEndpoint = {
-      case "static-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
-        cc =>
-          getApiLevelResourceDocs(
-            cc,requestedApiVersionString, 
-            tags, 
-            partialFunctions, 
-            languageParam, 
-            Some(ContentParam.STATIC) ,//Note: here it set to default STATIC value.
-            apiCollectionIdParam, 
-            cacheModifierParam, 
-            true,
-            true
-          )
-      }
-    }
+//    localResourceDocs += ResourceDoc(
+//      getStaticResourceDocsObp,
+//      implementedInApiVersion,
+//      nameOf(getStaticResourceDocsObp),
+//      "GET",
+//      "/static-resource-docs/API_VERSION/obp",
+//      "Get Static Resource Docs",
+//      getResourceDocsDescription(false),
+//      emptyObjectJson,
+//      exampleResourceDocsJsonV400,
+//      UnknownError :: Nil,
+//      List(apiTagDocumentation, apiTagApi),
+//      Some(List(canReadStaticResourceDoc))
+//    )
+//
+//    def getStaticResourceDocsObp : OBPEndpoint = {
+//      case "static-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+//        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
+//        cc =>
+//          getApiLevelResourceDocs(
+//            cc,requestedApiVersionString,
+//            tags,
+//            partialFunctions,
+//            languageParam,
+//            Some(ContentParam.STATIC) ,//Note: here it set to default STATIC value.
+//            apiCollectionIdParam,
+//            cacheModifierParam,
+//            true,
+//            true
+//          )
+//      }
+//    }
 
 
     //API level just mean, this response will be forward to liftweb directly.
