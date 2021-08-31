@@ -12,7 +12,7 @@ object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     ImplementationsResourceDocs.getResourceDocsObp,
     ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
     ImplementationsResourceDocs.getResourceDocsSwagger,
-    ImplementationsResourceDocs.getSystemResourceDocsObp
+    ImplementationsResourceDocs.getStaticResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -28,7 +28,7 @@ object ResourceDocs200 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     ImplementationsResourceDocs.getResourceDocsObp,
     ImplementationsResourceDocs.getResourceDocsSwagger,
     ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
-    ImplementationsResourceDocs.getSystemResourceDocsObp
+    ImplementationsResourceDocs.getStaticResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -44,7 +44,7 @@ object ResourceDocs210 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     ImplementationsResourceDocs.getResourceDocsObp,
     ImplementationsResourceDocs.getResourceDocsSwagger,
     ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
-    ImplementationsResourceDocs.getSystemResourceDocsObp
+    ImplementationsResourceDocs.getStaticResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -59,7 +59,7 @@ object ResourceDocs220 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     ImplementationsResourceDocs.getResourceDocsObp,
     ImplementationsResourceDocs.getResourceDocsSwagger,
     ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
-    ImplementationsResourceDocs.getSystemResourceDocsObp
+    ImplementationsResourceDocs.getStaticResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -74,7 +74,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
     ImplementationsResourceDocs.getResourceDocsObp,
     ImplementationsResourceDocs.getResourceDocsSwagger,
     ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
-    ImplementationsResourceDocs.getSystemResourceDocsObp
+    ImplementationsResourceDocs.getStaticResourceDocsObp
   )
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
@@ -88,7 +88,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
       ImplementationsResourceDocs.getResourceDocsObp,
       ImplementationsResourceDocs.getResourceDocsSwagger,
       ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
-      ImplementationsResourceDocs.getSystemResourceDocsObp
+      ImplementationsResourceDocs.getStaticResourceDocsObp
     )
     routes.foreach(route => {
       oauthServe(apiPrefix {
@@ -104,7 +104,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
       ImplementationsResourceDocs.getResourceDocsObpV400,
       ImplementationsResourceDocs.getResourceDocsSwagger,
       ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
-      ImplementationsResourceDocs.getSystemResourceDocsObp
+      ImplementationsResourceDocs.getStaticResourceDocsObp
     )
     routes.foreach(route => {
       oauthServe(apiPrefix {

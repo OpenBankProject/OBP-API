@@ -5,7 +5,7 @@ import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadSystemResourceDoc}
+import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadStaticResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.{APIUtil, _}
@@ -506,22 +506,22 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
     localResourceDocs += ResourceDoc(
-      getSystemResourceDocsObp,
+      getStaticResourceDocsObp,
       implementedInApiVersion,
-      nameOf(getSystemResourceDocsObp),
+      nameOf(getStaticResourceDocsObp),
       "GET",
-      "/system-resource-docs/API_VERSION/obp",
-      "Get System Resource Docs",
+      "/static-resource-docs/API_VERSION/obp",
+      "Get Static Resource Docs",
       getResourceDocsDescription(false),
       emptyObjectJson,
       exampleResourceDocsJsonV400,
       UnknownError :: Nil,
       List(apiTagDocumentation, apiTagApi),
-      Some(List(canReadSystemResourceDoc))
+      Some(List(canReadStaticResourceDoc))
     )
 
-    def getSystemResourceDocsObp : OBPEndpoint = {
-      case "system-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+    def getStaticResourceDocsObp : OBPEndpoint = {
+      case "static-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
           getApiLevelResourceDocs(
@@ -538,6 +538,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
 
+
+    //API level just mean, this response will be forward to liftweb directly.
     private def getApiLevelResourceDocs(
       cc: CallContext,
       requestedApiVersionString: String,
@@ -548,7 +550,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       apiCollectionIdParam: Option[String],
       cacheModifierParam: Option[String],
       isVersion4OrHigher: Boolean,
-      isSystemResource: Boolean,
+      isStaticResource: Boolean,
     ) = {
         for {
           (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
@@ -558,8 +560,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           _ <- resourceDocsRequireRole match {
             case false => Future()
             case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-              if(isSystemResource) 
-                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadSystemResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadSystemResourceDoc :: Nil, cc.callContext)
+              if(isStaticResource)
+                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadStaticResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadStaticResourceDoc :: Nil, cc.callContext)
               else
                 NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
           }

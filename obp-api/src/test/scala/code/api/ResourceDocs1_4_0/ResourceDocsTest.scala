@@ -24,7 +24,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
   object ApiEndpoint1 extends Tag(nameOf(ImplementationsResourceDocs.getResourceDocsObp))
   object ApiEndpoint2 extends Tag(nameOf(ImplementationsResourceDocs.getResourceDocsSwagger))
   object ApiEndpoint3 extends Tag(nameOf(ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp))
-  object ApiEndpoint4 extends Tag(nameOf(ImplementationsResourceDocs.getSystemResourceDocsObp))
+  object ApiEndpoint4 extends Tag(nameOf(ImplementationsResourceDocs.getStaticResourceDocsObp))
 
   
   override def beforeEach() = {
@@ -704,7 +704,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
 
   feature(s"test ${ApiEndpoint4.name} ") {
     scenario(s"We will test ${ApiEndpoint1.name} Api -v4.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v4.0.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v4.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -714,7 +714,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv4.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv4.0.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv4.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -724,7 +724,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v3.1.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v3.1.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v3.1.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -735,7 +735,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv3.1.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv3.1.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv3.1.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -745,7 +745,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v3.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v3.0.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v3.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -755,7 +755,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv3.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv3.0.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv3.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -765,7 +765,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.2.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v2.2.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v2.2.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -775,7 +775,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv2.2.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv2.2.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv2.2.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -785,7 +785,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.1.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v2.1.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v2.1.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -795,7 +795,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv2.1.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv2.1.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv2.1.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -805,7 +805,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v2.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v2.0.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v2.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -815,7 +815,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv2.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv2.0.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv2.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -825,7 +825,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.4.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v1.4.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v1.4.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       responseGetObp.body.extract[ResourceDocsJson]
@@ -833,7 +833,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv1.4.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv1.4.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv1.4.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -843,7 +843,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.3.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v1.3.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v1.3.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -853,7 +853,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv1.3.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv1.3.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv1.3.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -863,7 +863,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.2.1", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v1.2.1" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v1.2.1" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -873,7 +873,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -OBPv1.2.1", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "OBPv1.2.1" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "OBPv1.2.1" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -884,7 +884,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
 
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -BGv1", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "BGv1" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "BGv1" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -894,7 +894,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.3", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v1.3" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v1.3" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -904,7 +904,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -BGv1.3", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "BGv1.3" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "BGv1.3" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -914,7 +914,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v3.1", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v3.1" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v3.1" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -924,7 +924,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -UKv3.1", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "UKv3.1" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "UKv3.1" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -937,7 +937,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       setPropsValues(
         "resource_docs_requires_role" -> "true",
       )
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v4.0.0" / "obp").GET
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v4.0.0" / "obp").GET
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
@@ -949,13 +949,13 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       setPropsValues(
         "resource_docs_requires_role" -> "true",
       )
-      val requestGetObp = (ResourceDocsV4_0Request / "system-resource-docs" / "v4.0.0" / "obp").GET <@ (user1)
+      val requestGetObp = (ResourceDocsV4_0Request / "static-resource-docs" / "v4.0.0" / "obp").GET <@ (user1)
       val responseGetObp = makeGetRequest(requestGetObp)
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(403)
       responseGetObp.toString contains(UserHasMissingRoles) should be (true)
-      responseGetObp.toString contains( ApiRole.canReadSystemResourceDoc.toString()) should be (true)
+      responseGetObp.toString contains( ApiRole.canReadStaticResourceDoc.toString()) should be (true)
     }
 
   }
