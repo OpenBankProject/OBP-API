@@ -1372,8 +1372,11 @@ def restoreSomeSessions(): Unit = {
       val bind = "type=submit" #> signupSubmitButton(signupSubmitButtonValue, testSignup _)
       bind(signupXhtml(theUser))
     }
-
-    innerSignup
+    
+    if(APIUtil.getPropsAsBoolValue("user_invitation.mandatory", false)) 
+      S.redirectTo("/user-invitation-info") 
+    else 
+      innerSignup
   }
 
   def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {

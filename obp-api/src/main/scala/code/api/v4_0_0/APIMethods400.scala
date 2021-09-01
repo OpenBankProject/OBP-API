@@ -5629,6 +5629,60 @@ trait APIMethods400 {
       }
     }
 
+
+    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
+
+    staticResourceDocs += ResourceDoc(
+      getProduct,
+      implementedInApiVersion,
+      "getProduct",
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
+         |
+         |* Name
+         |* Code
+         |* Parent Product Code
+         |* Category
+         |* Family
+         |* Super Family
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
+      emptyObjectJson,
+      productJsonV400,
+      List(
+        UserNotLoggedIn,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle)
+    )
+
+    lazy val getProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
+            }
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
+          } yield {
+            (JSONFactory400.createProductJson(product, productAttributes), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       createOrUpdateTransactionAttributeDefinition,
       implementedInApiVersion,

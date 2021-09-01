@@ -268,6 +268,20 @@ class Boot extends MdcLoggable {
        }
      }
     }
+    implicit val formats = CustomJsonFormats.formats 
+    LiftRules.statelessDispatch.prepend {
+      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
+        Props.mode match {
+          case Props.RunModes.Development =>
+            () =>
+              Full(
+                JsonResponse(
+                  Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+                  500
+                )
+              )
+        }
+    }
     
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
 
@@ -495,6 +509,8 @@ class Boot extends MdcLoggable {
     
       Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
       Menu("User Invitation", "User Invitation") / "user-invitation",
+      Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
+      Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
       // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
       Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
       Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
@@ -570,8 +586,7 @@ class Boot extends MdcLoggable {
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
-
-    implicit val formats = CustomJsonFormats.formats
+    
     LiftRules.exceptionHandler.prepend{
       case(_, r, e) if DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)

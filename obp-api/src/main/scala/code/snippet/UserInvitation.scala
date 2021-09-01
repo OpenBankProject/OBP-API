@@ -166,13 +166,15 @@ class UserInvitation extends MdcLoggable {
     userInvitation match {
       case Full(payload) if payload.status == "CREATED" => // All good
       case _ =>
+        // Clear all data
         firstNameVar.set("None")
         lastNameVar.set("None")
         devEmailVar.set("None")
         companyVar.set("None")
         countryVar.set("None")
         usernameVar.set("None")
-        S.error("Cannot complete your user invitation. Please check the invitation link. Your invitation could be invalid or completed.")
+        // and the redirect
+        S.redirectTo("/user-invitation-invalid")
     }
     register
   }
