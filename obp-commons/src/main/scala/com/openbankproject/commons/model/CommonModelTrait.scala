@@ -380,6 +380,7 @@ trait Product {
   def family : String
   def superFamily : String
   def moreInfoUrl: String
+  def termsAndConditionsUrl: String
   def details :String
   def description: String
   def meta : Meta

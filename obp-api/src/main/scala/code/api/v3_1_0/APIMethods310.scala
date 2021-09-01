@@ -2430,22 +2430,6 @@ trait APIMethods310 {
       }
     }
 
-
-    val productHiearchyAndCollectionNote =
-      """
-        |
-        |Product hiearchy vs Product Collections:
-        |
-        |* You can define a hierarchy of products - so that a child Product inherits attributes of its parent Product -  using the parent_product_code in Product.
-        |
-        |* You can define a collection (also known as baskets or buckets) of products using Product Collections.
-        |
-      """.stripMargin
-    
-    
-    val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
-    val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
-
     resourceDocs += ResourceDoc(
       createProduct,
       implementedInApiVersion,
@@ -2511,6 +2495,7 @@ trait APIMethods310 {
               family = product.family,
               superFamily = product.super_family,
               moreInfoUrl = product.more_info_url,
+              termsAndConditionsUrl = null,
               details = product.details,
               description = product.description,
               metaLicenceId = product.meta.license.id,
@@ -2526,8 +2511,6 @@ trait APIMethods310 {
     }
 
 
-    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
-    
     resourceDocs += ResourceDoc(
       getProduct,
       implementedInApiVersion,

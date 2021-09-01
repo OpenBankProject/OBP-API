@@ -196,15 +196,15 @@ class AccountTest extends V400ServerSetup {
     scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
 
       val testBankId = randomBankId
-      val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
+      val putProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
       val postAccountAttributeJson = accountAttributeJson
       
       When("We will first prepare the product")
-      val product: ProductJsonV310 =
+      val product: ProductJsonV400 =
         createProductViaEndpoint(
           bankId=testBankId,
           code=APIUtil.generateUUID(),
-          json=parentPostPutProductJsonV310
+          json=putProductJsonV400
         )
       
       Then("We will prepare the account attribute")

@@ -369,6 +369,7 @@ case class ProductCommons(bankId: BankId,
                        family : String,
                        superFamily : String,
                        moreInfoUrl: String,
+                       termsAndConditionsUrl: String,
                        details: String,
                        description: String,
                        meta: Meta) extends Product
