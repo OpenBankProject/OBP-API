@@ -2721,6 +2721,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      family: String,
                                      superFamily: String,
                                      moreInfoUrl: String,
+                                     termsAndConditionsUrl: String,
                                      details: String,
                                      description: String,
                                      metaLicenceId: String,
@@ -2742,6 +2743,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mFamily(family)
             .mSuperFamily(superFamily)
             .mMoreInfoUrl(moreInfoUrl)
+            .mTermsAndConditionsUrl(termsAndConditionsUrl)
             .mDetails(details)
             .mDescription(description)
             .mLicenseId(metaLicenceId)
@@ -2759,6 +2761,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mFamily(family)
             .mSuperFamily(superFamily)
             .mMoreInfoUrl(moreInfoUrl)
+            .mTermsAndConditionsUrl(termsAndConditionsUrl)
             .mDetails(details)
             .mDescription(description)
             .mLicenseId(metaLicenceId)

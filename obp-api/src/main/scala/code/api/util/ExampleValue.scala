@@ -1221,8 +1221,8 @@ object ExampleValue {
   lazy val roleNameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("role_name", roleNameExample)
 
-  lazy val refundExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("refund", refundExample)
+  lazy val termsAndConditionsUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("terms_and_conditions_url_example", termsAndConditionsUrlExample)
 
   lazy val canAddUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_add_url", canAddUrlExample)

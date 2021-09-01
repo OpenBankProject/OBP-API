@@ -5,7 +5,7 @@ import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
+import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadStaticResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
 import code.api.util.{APIUtil, _}
@@ -433,15 +433,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
          | 
          | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters. 
          |
+         | You can easily pass the cache, use different value for cache-modifier, eg: ?cache-modifier= 123
+         |
          |See the Resource Doc endpoint for more information.
          |
          |Following are more examples:
-         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v3.1.0/obp
-         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v3.1.0/obp?tags=Account,Bank
-         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v3.1.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v4.0.0/obp?language=zh
-         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
-         |${getObpApiRoot}/v3.1.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?tags=Account,Bank
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?functions=getBanks,bankById
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?language=zh
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?cache-modifier=3141592653
          |
          |<ul>
          |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
@@ -478,7 +481,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, false)
+          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, false, false)
       }
     }
     
@@ -501,10 +504,45 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc =>
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, true)
+          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam, true, false)
       }
     }
 
+//    localResourceDocs += ResourceDoc(
+//      getStaticResourceDocsObp,
+//      implementedInApiVersion,
+//      nameOf(getStaticResourceDocsObp),
+//      "GET",
+//      "/static-resource-docs/API_VERSION/obp",
+//      "Get Static Resource Docs",
+//      getResourceDocsDescription(false),
+//      emptyObjectJson,
+//      exampleResourceDocsJsonV400,
+//      UnknownError :: Nil,
+//      List(apiTagDocumentation, apiTagApi),
+//      Some(List(canReadStaticResourceDoc))
+//    )
+//
+//    def getStaticResourceDocsObp : OBPEndpoint = {
+//      case "static-resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+//        val (tags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
+//        cc =>
+//          getApiLevelResourceDocs(
+//            cc,requestedApiVersionString,
+//            tags,
+//            partialFunctions,
+//            languageParam,
+//            Some(ContentParam.STATIC) ,//Note: here it set to default STATIC value.
+//            apiCollectionIdParam,
+//            cacheModifierParam,
+//            true,
+//            true
+//          )
+//      }
+//    }
+
+
+    //API level just mean, this response will be forward to liftweb directly.
     private def getApiLevelResourceDocs(
       cc: CallContext,
       requestedApiVersionString: String,
@@ -514,7 +552,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       contentParam: Option[ContentParam],
       apiCollectionIdParam: Option[String],
       cacheModifierParam: Option[String],
-      isVersion4OrHigher: Boolean
+      isVersion4OrHigher: Boolean,
+      isStaticResource: Boolean,
     ) = {
         for {
           (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
@@ -524,7 +563,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           _ <- resourceDocsRequireRole match {
             case false => Future()
             case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+              if(isStaticResource)
+                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadStaticResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadStaticResourceDoc :: Nil, cc.callContext)
+              else
+                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
           }
           requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
           _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))

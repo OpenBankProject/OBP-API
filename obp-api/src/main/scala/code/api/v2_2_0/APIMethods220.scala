@@ -607,6 +607,7 @@ trait APIMethods220 {
                 family = product.family,
                 superFamily = product.super_family,
                 moreInfoUrl = product.more_info_url,
+                termsAndConditionsUrl = null,
                 details = product.details,
                 description = product.description,
                 metaLicenceId = product.meta.license.id,

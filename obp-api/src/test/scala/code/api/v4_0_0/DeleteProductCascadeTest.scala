@@ -60,14 +60,13 @@ class DeleteProductCascadeTest extends V400ServerSetup {
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
 
       val testBankId = randomBankId
-      val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
+      val putProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
 
       When("We first prepare the product")
-      val product: ProductJsonV310 =
-        createProductViaEndpoint(
+      val product = createProductViaEndpoint(
           bankId = testBankId,
           code = APIUtil.generateUUID(),
-          json = parentPostPutProductJsonV310
+          json = putProductJsonV400
         )
 
       val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310

@@ -33,7 +33,6 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -42,6 +41,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
+import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.JwsUtil.getJwsHeaderValue
@@ -4050,4 +4050,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     APIUtil.getPropsValue("email_domain_to_entitlement_mappings").map(extractor).getOrElse(Nil)
   }
+
+  val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
+
+  val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
+  
+  val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
+
+  val productHiearchyAndCollectionNote =
+    """
+      |
+      |Product hiearchy vs Product Collections:
+      |
+      |* You can define a hierarchy of products - so that a child Product inherits attributes of its parent Product -  using the parent_product_code in Product.
+      |
+      |* You can define a collection (also known as baskets or buckets) of products using Product Collections.
+      |
+      """.stripMargin
 }

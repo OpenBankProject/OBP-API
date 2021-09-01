@@ -39,6 +39,7 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   object mFamily extends MappedString(this, 50)
   object mSuperFamily extends MappedString(this, 50)
   object mMoreInfoUrl extends MappedString(this, 2000) // use URL field?
+  object mTermsAndConditionsUrl extends MappedString(this, 2000) // use URL field?
   object mDetails extends MappedString(this, 2000)
   object mDescription extends MappedString(this, 2000)
 
@@ -57,6 +58,7 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   override def family : String = mFamily.get
   override def superFamily : String = mSuperFamily.get
   override def moreInfoUrl: String = mMoreInfoUrl.get
+  override def termsAndConditionsUrl: String = mTermsAndConditionsUrl.get
   override def details: String = mDetails.get
   override def description: String = mDescription.get
 

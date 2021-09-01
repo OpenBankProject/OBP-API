@@ -1140,11 +1140,12 @@ object KafkaMappedConnector_JVMcompatible extends Connector with KafkaHelper wit
                                      family : String,
                                      superFamily : String,
                                      moreInfoUrl : String,
+                                     termsAndConditionsUrl: String,
                                      details : String,
                                      description : String,
                                      metaLicenceId : String,
                                      metaLicenceName : String): Box[Product] = {
-    LocalMappedConnector.createOrUpdateProduct(bankId, code, parentProductCode, name, category, family, superFamily, moreInfoUrl, details, description, metaLicenceId, metaLicenceName)
+    LocalMappedConnector.createOrUpdateProduct(bankId, code, parentProductCode, name, category, family, superFamily, moreInfoUrl, termsAndConditionsUrl, details, description, metaLicenceId, metaLicenceName)
   }
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {

@@ -1588,6 +1588,7 @@ trait Connector extends MdcLoggable {
                              family : String,
                              superFamily : String,
                              moreInfoUrl : String,
+                             termsAndConditionsUrl : String,
                              details : String,
                              description : String,
                              metaLicenceId : String,

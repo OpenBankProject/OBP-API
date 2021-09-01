@@ -2170,6 +2170,15 @@ object Glossary extends MdcLoggable  {
 |
  """)
 
+	glossaryItems += GlossaryItem(
+		title = "Space",
+		description =
+			s"""Space is actually relevant to one bank and all these bank's dynamic endpoints.
+				 |The developer first creates his own bank and then creates the bank-level dynamic endpoints or entities.
+				 |Then the developer can use the space to organise his new endpoints.
+				 |He can grant the role CanReadDynamicResourceDocsAtOneBank to himself or others.
+			   |Then they can see the new endpoints in API_Explorer under the Space menu.""".stripMargin)
+
 
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
