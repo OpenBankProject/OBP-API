@@ -82,6 +82,8 @@ object Migration extends MdcLoggable {
       deleteDuplicatedRowsInTheTableUserAuthContext()
       populateTheFieldDeletedAtResourceUser(startedBeforeSchemifier)
       populateTheFieldIsActiveAtProductAttribute(startedBeforeSchemifier)
+      alterColumnUsernameProviderFirstnameAndLastnameAtAuthUser(startedBeforeSchemifier)
+      alterColumnEmailAtResourceUser(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -256,6 +258,28 @@ object Migration extends MdcLoggable {
         val name = nameOf(populateTheFieldIsActiveAtProductAttribute(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfProductAttribute.populateTheFieldIsActive(name)
+        }
+      }
+    }
+    private def alterColumnUsernameProviderFirstnameAndLastnameAtAuthUser(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.alterColumnUsernameProviderFirstnameAndLastnameAtAuthUser(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(alterColumnUsernameProviderFirstnameAndLastnameAtAuthUser(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfAuthUser.alterColumnUsernameProviderEmailFirstnameAndLastname(name)
+        }
+      }
+    }
+    private def alterColumnEmailAtResourceUser(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.alterColumnEmailAtResourceUser(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(alterColumnEmailAtResourceUser(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfResourceUser.alterColumnEmail(name)
         }
       }
     }

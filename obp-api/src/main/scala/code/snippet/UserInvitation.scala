@@ -58,8 +58,8 @@ class UserInvitation extends MdcLoggable {
   val ttl = APIUtil.getPropsAsLongValue("user_invitation.ttl.seconds", 86400)
   
   val registrationConsumerButtonValue: String = getWebUiPropsValue("webui_post_user_invitation_submit_button_value", "Register as a Developer")
-  val privacyConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_privacy_conditions_value", "Privacy conditions..")
-  val termsAndConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_value", "Terms and Conditions..")
+  val privacyConditionsValue: String = getWebUiPropsValue("webui_privacy_policy", "Privacy conditions..")
+  val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "Terms and Conditions..")
   val termsAndConditionsCheckboxValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_checkbox_value", "I agree to the above Developer Terms and Conditions")
   
   def registerForm: CssSel = {

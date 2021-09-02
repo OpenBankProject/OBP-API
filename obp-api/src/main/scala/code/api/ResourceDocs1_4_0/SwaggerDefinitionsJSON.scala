@@ -3551,7 +3551,7 @@ object SwaggerDefinitionsJSON {
   )
   val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
 
-  val productJsonV400 = ProductJsonV400(
+  val productJsonV400b = ProductJsonV400b(
     bank_id = bankIdExample.value,
     code = "product_code",
     parent_product_code = "parent",

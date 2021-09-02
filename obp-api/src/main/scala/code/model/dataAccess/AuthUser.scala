@@ -89,7 +89,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
 
   override lazy val firstName = new MyFirstName
   
-  protected class MyFirstName extends MappedString(this, 32) {
+  protected class MyFirstName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -114,7 +114,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
   
   override lazy val lastName = new MyLastName
 
-  protected class MyLastName extends MappedString(this, 32) {
+  protected class MyLastName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -160,7 +160,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     * The username field for the User.
     */
   lazy val username: userName = new userName()
-  class userName extends MappedString(this, 64) {
+  class userName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -309,7 +309,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
    * The provider field for the User.
    */
   lazy val provider: userProvider = new userProvider()
-  class userProvider extends MappedString(this, 64) {
+  class userProvider extends MappedString(this, 100) {
     override def displayName = S.?("provider")
     override val fieldId = Some(Text("txtProvider"))
   }

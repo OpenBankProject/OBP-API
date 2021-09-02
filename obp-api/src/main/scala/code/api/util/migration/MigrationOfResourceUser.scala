@@ -5,10 +5,11 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
+import code.model.Consumer
 import code.model.dataAccess.ResourceUser
-import code.model.{AppType, Consumer}
-import net.liftweb.mapper.DB
-import net.liftweb.util.{DefaultConnectionIdentifier, Helpers}
+import net.liftweb.common.Full
+import net.liftweb.mapper.{DB, Schemifier}
+import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfResourceUser {
   
@@ -53,4 +54,48 @@ object MigrationOfResourceUser {
         isSuccessful
     }
   }
+
+  def alterColumnEmail(name: String): Boolean = {
+    DbFunction.tableExists(ResourceUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+      case true =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        var isSuccessful = false
+
+        val executedSql =
+          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+            APIUtil.getPropsValue("db.driver") match    {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  """ALTER TABLE resourceuser ALTER COLUMN email varchar(100);
+                    |""".stripMargin
+              case _ =>
+                () =>
+                  """ALTER TABLE resourceuser ALTER COLUMN email type varchar(100);
+                    |""".stripMargin
+            }
+
+          }
+
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""Executed SQL: 
+             |$executedSql
+             |""".stripMargin
+        isSuccessful = true
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+
+      case false =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = false
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""${ResourceUser._dbTableNameLC} table does not exist""".stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+    }
+  }
+  
 }
