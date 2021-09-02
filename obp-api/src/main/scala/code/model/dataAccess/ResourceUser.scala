@@ -59,7 +59,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
 
   object id extends MappedLongIndex(this)
   object userId_ extends MappedUUID(this)
-  object email extends MappedEmail(this, 48){
+  object email extends MappedEmail(this, 100){
     override def required_? = false
   }
   object name_ extends MappedString(this, 100){
