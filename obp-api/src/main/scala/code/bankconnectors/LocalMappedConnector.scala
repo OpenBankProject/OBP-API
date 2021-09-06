@@ -3403,7 +3403,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                productCode: ProductCode,
                                                productAttributeId: Option[String],
                                                name: String,
-                                               attributType: ProductAttributeType.Value,
+                                               attributeType: ProductAttributeType.Value,
                                                value: String,
                                                isActive: Option[Boolean],
                                                callContext: Option[CallContext]
@@ -3413,7 +3413,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       productCode: ProductCode,
       productAttributeId: Option[String],
       name: String,
-      attributType: ProductAttributeType.Value,
+      attributeType: ProductAttributeType.Value,
       value: String, isActive: Option[Boolean]) map {
       (_, callContext)
     }
@@ -3460,7 +3460,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                productCode: ProductCode,
                                                accountAttributeId: Option[String],
                                                name: String,
-                                               attributType: AccountAttributeType.Value,
+                                               attributeType: AccountAttributeType.Value,
                                                value: String,
                                                callContext: Option[CallContext]
                                              ): OBPReturnType[Box[AccountAttribute]] = {
@@ -3469,7 +3469,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       productCode: ProductCode,
       accountAttributeId: Option[String],
       name: String,
-      attributType: AccountAttributeType.Value,
+      attributeType: AccountAttributeType.Value,
       value: String) map {
       (_, callContext)
     }

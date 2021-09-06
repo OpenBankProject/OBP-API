@@ -1320,7 +1320,7 @@ object NewStyle {
       productCode: ProductCode,
       productAttributeId: Option[String],
       name: String,
-      attributType: ProductAttributeType.Value,
+      attributeType: ProductAttributeType.Value,
       value: String,
       isActive: Option[Boolean],
       callContext: Option[CallContext]
@@ -1330,7 +1330,7 @@ object NewStyle {
         productCode: ProductCode,
         productAttributeId: Option[String],
         name: String,
-        attributType: ProductAttributeType.Value,
+        attributeType: ProductAttributeType.Value,
         value: String,
         isActive: Option[Boolean],
         callContext: Option[CallContext]

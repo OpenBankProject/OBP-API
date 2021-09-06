@@ -4380,7 +4380,7 @@ object SwaggerDefinitionsJSON {
     terms_and_conditions_url = termsAndConditionsUrlExample.value,
     description = descriptionExample.value,
     meta = metaJson,
-    fees = Some(List())
+    fees = Some(List(feeJson))
   )
   
   
