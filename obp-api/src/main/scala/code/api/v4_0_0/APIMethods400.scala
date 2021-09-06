@@ -9738,7 +9738,7 @@ trait APIMethods400 {
               superFamily = null,
               moreInfoUrl = product.more_info_url,
               termsAndConditionsUrl = product.terms_and_conditions_url,
-              details = product.details,
+              details = null,
               description = product.description,
               metaLicenceId = product.meta.license.id,
               metaLicenceName = product.meta.license.name

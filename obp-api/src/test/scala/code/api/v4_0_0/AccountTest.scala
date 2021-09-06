@@ -210,7 +210,7 @@ class AccountTest extends V400ServerSetup {
       Then("We will prepare the account attribute")
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
       When(s"We make a request $VersionOfApi")
-      val requestCreate310 = (v4_0_0_Request / "banks" / testBankId / "accounts" / testAccountId0.value / "products" / product.code / "attribute").POST <@(user1)
+      val requestCreate310 = (v4_0_0_Request / "banks" / testBankId / "accounts" / testAccountId0.value / "products" / product.product_code / "attribute").POST <@(user1)
       val responseCreate310 = makePostRequest(requestCreate310, write(postAccountAttributeJson))
       Then("We should get a 201")
       responseCreate310.code should equal(201)

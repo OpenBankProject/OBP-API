@@ -568,27 +568,41 @@ case class MySpaces(
 
 case class ProductJsonV400(
   bank_id: String,
-  code: String,
+  product_code: String,
   parent_product_code: String,
   name: String,
   more_info_url: String,
   terms_and_conditions_url: String,
-  details: String,
   description: String,
   meta: MetaJsonV140,
-  product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]]
+  attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]],
+  fees: Option[List[FeeJson]]
 )
 
 case class ProductsJsonV400(products: List[ProductJsonV400])
+
+case class FeeJsonValue(
+  currency: String,
+  amount: String,
+  frequency: String,
+  `type`: String,
+)
+case class FeeJson(
+  fee_id: String,
+  name: String,
+  isActive: Boolean,
+  moreInfo: String,
+  value:FeeJsonValue,
+)
 
 case class PutProductJsonV400(
   parent_product_code: String,
   name: String,
   more_info_url: String,
   terms_and_conditions_url: String,
-  details: String,
   description: String,
-  meta: MetaJsonV140
+  meta: MetaJsonV140,
+  fees: Option[List[FeeJson]]
 )
 case class CounterpartyJson400(
                                  name: String,
@@ -677,19 +691,6 @@ case class JsonSchemaV400(
 case class JsonValidationV400(operation_id: String, json_schema: JsonSchemaV400)
 // Validation related END
 
-
-case class ProductJsonV400b(bank_id: String,
-                           code : String,
-                           parent_product_code : String,
-                           name : String,
-                           category: String,
-                           family : String,
-                           super_family : String,
-                           more_info_url: String,
-                           details: String,
-                           description: String,
-                           meta : MetaJsonV140,
-                           product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJsonV400]])
 case class ProductAttributeJsonV400(
                                      name: String,
                                      `type`: String,
@@ -1557,14 +1558,14 @@ object JSONFactory400 {
   def createProductJson(product: Product) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
-      code = product.code.value,
+      product_code = product.code.value,
       parent_product_code = product.parentProductCode.value,
       name = product.name,
       more_info_url = product.moreInfoUrl,
       terms_and_conditions_url = product.termsAndConditionsUrl,
-      details = product.details,
       description = product.description,
       meta = createMetaJson(product.meta),
+      None,
       None
     )
   }
@@ -1575,15 +1576,15 @@ object JSONFactory400 {
   def createProductJson(product: Product, productAttributes: List[ProductAttribute]) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
-      code = product.code.value,
+      product_code = product.code.value,
       parent_product_code = product.parentProductCode.value,
       name = product.name,
       more_info_url = product.moreInfoUrl,
       terms_and_conditions_url = product.termsAndConditionsUrl,
-      details = product.details,
       description = product.description,
       meta = createMetaJson(product.meta),
-      product_attributes = Some(createProductAttributesJson(productAttributes))
+      attributes = Some(createProductAttributesJson(productAttributes)),
+      fees= None
     )
   }
 }
