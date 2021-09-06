@@ -58,8 +58,8 @@ class UserInvitation extends MdcLoggable {
   val ttl = APIUtil.getPropsAsLongValue("user_invitation.ttl.seconds", 86400)
   
   val registrationConsumerButtonValue: String = getWebUiPropsValue("webui_post_user_invitation_submit_button_value", "Register as a Developer")
-  val privacyConditionsValue: String = getWebUiPropsValue("webui_privacy_policy", "Privacy conditions..")
-  val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "Terms and Conditions..")
+  val privacyConditionsValue: String = getWebUiPropsValue("webui_privacy_policy", "Privacy conditions...")
+  val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "Terms and Conditions...")
   val termsAndConditionsCheckboxValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_checkbox_value", "I agree to the above Developer Terms and Conditions")
   
   def registerForm: CssSel = {
@@ -105,7 +105,11 @@ class UserInvitation extends MdcLoggable {
           createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
           // Use Agreement table
           UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
-            u.userId, privacyConditionsValue, termsAndConditionsValue, marketingInfoCheckboxVar.is)
+            u.userId, "privacy_conditions", privacyConditionsValue)
+          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+            u.userId, "terms_and_conditions", termsAndConditionsValue)
+          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+            u.userId, "accept_marketing_info", marketingInfoCheckboxVar.is.toString)
           // Set the status of the user invitation to "FINISHED"
           UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
           // Set a new password
