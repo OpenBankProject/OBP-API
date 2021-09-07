@@ -82,4 +82,19 @@ object WebUITemplate {
       |</html>
       |
       |""".stripMargin
+
+  webUIDoc += WebUIDoc(
+    webUiPropsName = "webui_terms_and_conditions",
+    defaultValue = "",
+    typeOfValue = "markdown",
+    placeholders = List()
+  )
+  
+  webUIDoc += WebUIDoc(
+    webUiPropsName = "webui_privacy_policy",
+    defaultValue = "",
+    typeOfValue = "markdown",
+    placeholders = List()
+  )
+  
 }
