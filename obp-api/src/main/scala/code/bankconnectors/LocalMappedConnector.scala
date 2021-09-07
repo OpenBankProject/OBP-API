@@ -53,6 +53,7 @@ import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
+import code.productfee.ProductFeeX
 import code.products.MappedProduct
 import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
@@ -2712,6 +2713,45 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def createOrUpdateProductFee(
+    bankId: BankId,
+    productCode: ProductCode,
+    feeId: Option[String],
+    name: String,
+    isActive: Boolean,
+    moreInfo: String,
+    currency: String,
+    amount: BigDecimal,
+    frequency: String,
+    `type`: String, 
+    callContext: Option[CallContext]
+  ): Future[Box[ProductFee]] = {
+    ProductFeeX.productFeeProvider.vend.createOrUpdateProductFee(
+      bankId: BankId,
+      productCode: ProductCode,
+      feeId: Option[String],
+      name: String,
+      isActive: Boolean,
+      moreInfo: String,
+      currency: String,
+      amount: BigDecimal,
+      frequency: String,
+      `type`: String
+    ) map {
+      (_, callContext)
+    }
+  }
+
+  override def getProductFeesFromProvider(
+    bankId: BankId, 
+    productCode: ProductCode,
+    callContext: Option[CallContext]
+  ): Future[Box[List[ProductFee]]] = {
+    ProductFeeX.productFeeProvider.vend.getProductFeesFromProvider(bankId: BankId, productCode: ProductCode) map {
+      (_, callContext)
+    }
+  }
+  
 
   override def createOrUpdateProduct(bankId: String,
                                      code: String,

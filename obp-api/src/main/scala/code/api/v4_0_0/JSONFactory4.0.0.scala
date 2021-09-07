@@ -47,16 +47,19 @@ import code.atms.Atms.Atm
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
+import code.productfee.MappedProductFee
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import code.users.UserInvitation
-import com.openbankproject.commons.model.{DirectDebitTrait, _}
+import com.openbankproject.commons.model.{DirectDebitTrait, ProductFee, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
+import net.liftweb.mapper.By
 
 import scala.collection.immutable.List
+import scala.math.BigDecimal
 import scala.util.Try
 
 
@@ -583,7 +586,7 @@ case class ProductsJsonV400(products: List[ProductJsonV400])
 
 case class FeeJsonValue(
   currency: String,
-  amount: String,
+  amount: BigDecimal,
   frequency: String,
   `type`: String,
 )
@@ -1555,7 +1558,7 @@ object JSONFactory400 {
     )
   }
 
-  def createProductJson(product: Product) : ProductJsonV400 = {
+  def createProductWithFeeJson(product: Product, productFees:List[ProductFee]) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
       product_code = product.code.value,
@@ -1566,14 +1569,34 @@ object JSONFactory400 {
       description = product.description,
       meta = createMetaJson(product.meta),
       None,
-      None
+      fees = Some(productFees.map(productFee =>FeeJson(
+        fee_id = productFee.feeId,
+        name = productFee.name,
+        isActive = productFee.isActive,
+        moreInfo = productFee.moreInfo,
+        value = FeeJsonValue(
+          currency = productFee.currency,
+          amount = productFee.amount,
+          frequency = productFee.frequency,
+          `type` = productFee.`type`
+        ))))
     )
   }
   def createProductsJson(productsList: List[Product]) : ProductsJsonV400 = {
-    ProductsJsonV400(productsList.map(createProductJson))
-  }
+    ProductsJsonV400(productsList.map(
+      product =>{
+        val productFrees = MappedProductFee.findAll( //TODO move this to connector
+          By(MappedProductFee.BankId, product.bankId.value),
+          By(MappedProductFee.ProductCode,product.code.value)
+        )
+        createProductWithFeeJson(
+          product,
+          productFrees
+        )
+      }
+    ))}
 
-  def createProductJson(product: Product, productAttributes: List[ProductAttribute]) : ProductJsonV400 = {
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees:List[ProductFee]) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
       product_code = product.code.value,
@@ -1584,7 +1607,17 @@ object JSONFactory400 {
       description = product.description,
       meta = createMetaJson(product.meta),
       attributes = Some(createProductAttributesJson(productAttributes)),
-      fees= None
+      fees = Some(productFees.map(productFee =>FeeJson(
+      fee_id = productFee.feeId,
+      name = productFee.name,
+      isActive = productFee.isActive,
+      moreInfo = productFee.moreInfo,
+      value = FeeJsonValue(
+        currency = productFee.currency,
+        amount = productFee.amount,
+        frequency = productFee.frequency,
+        `type` = productFee.`type`
+      ))))
     )
   }
 }

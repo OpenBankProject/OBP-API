@@ -47,7 +47,7 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatu
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{AccountApplication, Bank, Customer, CustomerAddress, Product, ProductCollection, ProductCollectionItem, TaxResidence, UserAuthContext, UserAuthContextUpdate, _}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Empty, Full, ParamFailure}
+import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
@@ -62,6 +62,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.api.v4_0_0.FeeJson
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityInfo}
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
@@ -69,6 +70,8 @@ import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceD
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import net.liftweb.json
+
+import scala.util.Success
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -1336,6 +1339,52 @@ object NewStyle {
         callContext: Option[CallContext]
       ) map {
           i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
+    def createProductFees(
+      bankId: BankId,
+      productCode: ProductCode,
+      fees: List[FeeJson],
+      callContext: Option[CallContext]
+    ): OBPReturnType[List[ProductFee]] = {
+      val abc: List[Future[ProductFee]] = fees.map(
+        fee =>
+          Connector.connector.vend.createOrUpdateProductFee(
+            bankId: BankId,
+            productCode: ProductCode,
+            feeId = None,
+            name = fee.name,
+            isActive = fee.isActive,
+            moreInfo = fee.moreInfo,
+            currency = fee.value.currency,
+            amount = fee.value.amount,
+            frequency = fee.value.frequency,
+            `type` = fee.value.`type`,
+            callContext: Option[CallContext]) map {
+            i => (connectorEmptyResponse(i, callContext), callContext)
+          }
+      ).map( i =>i.map(_._1))
+
+      val seq = Future.sequence(abc.map(_.transform(Success(_))))
+      
+      val successes = seq.map(_.collect{case Success(x)=>x})
+
+      successes.map(success => (success, callContext))
+      
+    }
+
+    def getProductFeesFromProvider(
+      bankId: BankId,
+      productCode: ProductCode,
+      callContext: Option[CallContext]
+    ): OBPReturnType[List[ProductFee]] = {
+      Connector.connector.vend.getProductFeesFromProvider(
+        bankId: BankId,
+        productCode: ProductCode,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i, callContext), callContext)
       }
     }
 

@@ -4345,7 +4345,7 @@ object SwaggerDefinitionsJSON {
 
   val feeJsonValue=  FeeJsonValue(
     currency = currencyExample.value,
-    amount = amountExample.value,
+    amount = 10.12,
     frequency = frequencyExample.value,
     `type` = typeExample.value
   )

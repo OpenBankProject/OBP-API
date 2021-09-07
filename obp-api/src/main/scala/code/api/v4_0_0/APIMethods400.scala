@@ -85,6 +85,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
+import scala.math.BigDecimal
 import scala.xml.XML
 
 trait APIMethods400 {
@@ -9646,7 +9647,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
-      productsJsonV310,
+      productJsonV400.copy(attributes = None),
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -9745,8 +9746,16 @@ trait APIMethods400 {
             )) map {
               connectorEmptyResponse(_, callContext)
             }
+
+            (productFees, callContext) <- NewStyle.function.createProductFees(
+              bankId,
+              productCode,
+              product.fees.getOrElse(Nil),
+              callContext
+            )
+            
           } yield {
-            (JSONFactory400.createProductJson(success), HttpCode.`201`(callContext))
+            (JSONFactory400.createProductWithFeeJson(success, productFees), HttpCode.`201`(callContext))
           }
       }
     }
@@ -9795,8 +9804,11 @@ trait APIMethods400 {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
+            
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(bankId, productCode, callContext)
+            
           } yield {
-            (JSONFactory400.createProductJson(product, productAttributes), HttpCode.`200`(callContext))
+            (JSONFactory400.createProductJson(product, productAttributes, productFees), HttpCode.`200`(callContext))
           }
         }
       }
