@@ -209,7 +209,11 @@ class WebUI extends MdcLoggable{
 
   // Points to the documentation. Probably a sandbox specific link is good.
   def privacyPolicyLink: CssSel = {
-    ".privacy-policy-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_privacy_policy_url", "https://openbankproject.com/privacy-policy"))
+    ".privacy-policy-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_privacy_policy_url", "/privacy-policy"))
+  }
+  def privacyPolicyText = {
+    val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
+    "#privacy-policy-page" #> scala.xml.Unparsed(makeHtml(webUiPropsValue))
   }
   
   def sandboxIntroductionLink: CssSel = {

@@ -512,6 +512,7 @@ class Boot extends MdcLoggable {
       Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
       Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
       Menu("Terms and Conditions", "Terms and Conditions") / "terms-and-conditions",
+      Menu("Privacy Policy", "Privacy Policy") / "privacy-policy",
       // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
       Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
       Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
