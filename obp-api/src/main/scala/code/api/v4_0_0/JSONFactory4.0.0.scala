@@ -47,7 +47,6 @@ import code.atms.Atms.Atm
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
-import code.productfee.MappedProductFee
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes

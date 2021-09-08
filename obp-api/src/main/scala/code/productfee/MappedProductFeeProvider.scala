@@ -17,14 +17,14 @@ object MappedProductFeeProvider extends ProductFeeProvider {
 
   override def getProductFeesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductFeeTrait]]] =
     Future {
-      Box !!  MappedProductFee.findAll(
-          By(MappedProductFee.BankId, bankId.value),
-          By(MappedProductFee.ProductCode, productCode.value)
+      Box !!  ProductFee.findAll(
+          By(ProductFee.BankId, bankId.value),
+          By(ProductFee.ProductCode, productCode.value)
         )
     }
 
   override def getProductFeeById(productFeeId: String): Future[Box[ProductFeeTrait]] = Future {
-     MappedProductFee.find(By(MappedProductFee.ProductFeeId, productFeeId))
+     ProductFee.find(By(ProductFee.ProductFeeId, productFeeId))
   }
 
   override def createOrUpdateProductFee(
@@ -41,7 +41,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
   ): Future[Box[ProductFeeTrait]] =  {
      productFeeId match {
       case Some(id) => Future {
-         MappedProductFee.find(By(MappedProductFee.ProductFeeId, id)) match {
+         ProductFee.find(By(ProductFee.ProductFeeId, id)) match {
             case Full(productFee) => tryo {
               productFee
                 .BankId(bankId.value)
@@ -60,7 +60,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
       }
       case None => Future {
         Full {
-          MappedProductFee
+          ProductFee
             .create
             .ProductFeeId(APIUtil.generateUUID)
             .BankId(bankId.value)
@@ -80,14 +80,14 @@ object MappedProductFeeProvider extends ProductFeeProvider {
 
   override def deleteProductFee(productFeeId: String): Future[Box[Boolean]] = Future {
     tryo(
-      MappedProductFee.bulkDelete_!!(By(MappedProductFee.ProductFeeId, productFeeId))
+      ProductFee.bulkDelete_!!(By(ProductFee.ProductFeeId, productFeeId))
     )
   }
 }
 
-class MappedProductFee extends ProductFeeTrait with LongKeyedMapper[MappedProductFee] with IdPK {
+class ProductFee extends ProductFeeTrait with LongKeyedMapper[ProductFee] with IdPK {
 
-  override def getSingleton = MappedProductFee
+  override def getSingleton = ProductFee
 
   object BankId extends UUIDString(this) 
 
@@ -134,7 +134,7 @@ class MappedProductFee extends ProductFeeTrait with LongKeyedMapper[MappedProduc
   
 }
 
-object MappedProductFee extends MappedProductFee with LongKeyedMetaMapper[MappedProductFee]  {
+object ProductFee extends ProductFee with LongKeyedMetaMapper[ProductFee]  {
   override def dbIndexes = Index(BankId) :: Index(ProductFeeId) :: super.dbIndexes 
 }
 

@@ -104,7 +104,7 @@ import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
-import code.productfee.MappedProductFee
+import code.productfee.ProductFee
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -947,7 +947,7 @@ object ToSchemify {
     DynamicResourceDoc,
     DynamicMessageDoc,
     EndpointTag,
-    MappedProductFee
+    ProductFee
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server
