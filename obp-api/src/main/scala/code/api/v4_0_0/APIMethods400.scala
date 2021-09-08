@@ -5837,7 +5837,7 @@ trait APIMethods400 {
             (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
             (productFee, callContext) <- NewStyle.function.deleteProductFee(productFeeId, Some(cc))
           } yield {
-            (productFee, HttpCode.`200`(callContext))
+            (productFee, HttpCode.`204`(callContext))
           }
       }
     }
