@@ -9647,7 +9647,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
-      productJsonV400.copy(attributes = None),
+      productJsonV400.copy(attributes = None, fees = None),
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -9701,7 +9701,7 @@ trait APIMethods400 {
          |
          |""",
       putProductJsonV400,
-      productJsonV400,
+      productJsonV400.copy(attributes = None, fees = None),
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -9746,16 +9746,8 @@ trait APIMethods400 {
             )) map {
               connectorEmptyResponse(_, callContext)
             }
-
-            (productFees, callContext) <- NewStyle.function.createProductFees(
-              bankId,
-              productCode,
-              product.fees.getOrElse(Nil),
-              callContext
-            )
-            
           } yield {
-            (JSONFactory400.createProductWithFeeJson(success, productFees), HttpCode.`201`(callContext))
+            (JSONFactory400.createProductJson(success), HttpCode.`201`(callContext))
           }
       }
     }

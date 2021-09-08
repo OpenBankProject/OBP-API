@@ -605,7 +605,6 @@ case class PutProductJsonV400(
   terms_and_conditions_url: String,
   description: String,
   meta: MetaJsonV140,
-  fees: Option[List[FeeJson]]
 )
 case class CounterpartyJson400(
                                  name: String,
@@ -1558,7 +1557,7 @@ object JSONFactory400 {
     )
   }
 
-  def createProductWithFeeJson(product: Product, productFees:List[ProductFee]) : ProductJsonV400 = {
+  def createProductJson(product: Product) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
       product_code = product.code.value,
@@ -1569,32 +1568,11 @@ object JSONFactory400 {
       description = product.description,
       meta = createMetaJson(product.meta),
       None,
-      fees = Some(productFees.map(productFee =>FeeJson(
-        fee_id = productFee.feeId,
-        name = productFee.name,
-        isActive = productFee.isActive,
-        moreInfo = productFee.moreInfo,
-        value = FeeJsonValue(
-          currency = productFee.currency,
-          amount = productFee.amount,
-          frequency = productFee.frequency,
-          `type` = productFee.`type`
-        ))))
+      None
     )
   }
   def createProductsJson(productsList: List[Product]) : ProductsJsonV400 = {
-    ProductsJsonV400(productsList.map(
-      product =>{
-        val productFrees = MappedProductFee.findAll( //TODO move this to connector
-          By(MappedProductFee.BankId, product.bankId.value),
-          By(MappedProductFee.ProductCode,product.code.value)
-        )
-        createProductWithFeeJson(
-          product,
-          productFrees
-        )
-      }
-    ))}
+    ProductsJsonV400(productsList.map(createProductJson))}
 
   def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees:List[ProductFee]) : ProductJsonV400 = {
     ProductJsonV400(

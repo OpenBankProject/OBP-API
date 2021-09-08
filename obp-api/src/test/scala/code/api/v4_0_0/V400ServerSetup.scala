@@ -156,7 +156,6 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       terms_and_conditions_url = "www.example.com/prod1/terms_and_conditions_url.html",
       description = "Description",
       meta = SwaggerDefinitionsJSON.metaJson,
-      fees = None
     )
     val product: ProductJsonV400 =
       createProductViaEndpoint(
