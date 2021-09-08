@@ -419,6 +419,18 @@ object ApiRole {
   case class CanCreateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateProductAttribute = CanCreateProductAttribute()
 
+  case class CanUpdateProductFee(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateProductFee = CanUpdateProductFee()
+
+  case class CanGetProductFee(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetProductFee = CanGetProductFee()
+
+  case class CanDeleteProductFee(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteProductFee = CanDeleteProductFee()
+
+  case class CanCreateProductFee(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateProductFee = CanCreateProductFee()
+  
   case class CanMaintainProductCollection(requiresBankId: Boolean = true) extends ApiRole
   lazy val canMaintainProductCollection = CanMaintainProductCollection()
 

@@ -264,7 +264,7 @@ trait ProductAttribute {
 trait ProductFee {
   def bankId: BankId
   def productCode: ProductCode
-  def feeId: String
+  def productFeeId: String
   def name: String
   def isActive: Boolean
   def moreInfo: String

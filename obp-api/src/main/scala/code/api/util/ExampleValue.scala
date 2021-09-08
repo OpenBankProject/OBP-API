@@ -1605,8 +1605,8 @@ object ExampleValue {
   lazy val nameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("name", nameExample)
 
-  lazy val feeIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("fee_id", nameExample)
+  lazy val productFeeIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("product_fee_id", nameExample)
 
   lazy val emailAddressExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("email_address", emailAddressExample)

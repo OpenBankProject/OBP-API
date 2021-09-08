@@ -62,7 +62,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
-import code.api.v4_0_0.FeeJson
+import code.api.v4_0_0.ProductFeeJsonV400
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityInfo}
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
@@ -1342,37 +1342,46 @@ object NewStyle {
       }
     }
     
-    def createProductFees(
+    def createOrUpdateProductFee(
       bankId: BankId,
       productCode: ProductCode,
-      fees: List[FeeJson],
+      productFeeId: Option[String],
+      name: String,
+      isActive: Boolean,
+      moreInfo: String,
+      currency: String,
+      amount: BigDecimal,
+      frequency: String,
+      `type`: String,
       callContext: Option[CallContext]
-    ): OBPReturnType[List[ProductFee]] = {
-      val abc: List[Future[ProductFee]] = fees.map(
-        fee =>
-          Connector.connector.vend.createOrUpdateProductFee(
-            bankId: BankId,
-            productCode: ProductCode,
-            feeId = None,
-            name = fee.name,
-            isActive = fee.isActive,
-            moreInfo = fee.moreInfo,
-            currency = fee.value.currency,
-            amount = fee.value.amount,
-            frequency = fee.value.frequency,
-            `type` = fee.value.`type`,
-            callContext: Option[CallContext]) map {
-            i => (connectorEmptyResponse(i, callContext), callContext)
-          }
-      ).map( i =>i.map(_._1))
-
-      val seq = Future.sequence(abc.map(_.transform(Success(_))))
-      
-      val successes = seq.map(_.collect{case Success(x)=>x})
-
-      successes.map(success => (success, callContext))
-      
+    ): OBPReturnType[ProductFee] = {
+      Connector.connector.vend.createOrUpdateProductFee(
+        bankId: BankId,
+        productCode: ProductCode,
+        productFeeId: Option[String],
+        name: String,
+        isActive: Boolean,
+        moreInfo: String,
+        currency: String,
+        amount: BigDecimal,
+        frequency: String,
+        `type`: String,
+        callContext: Option[CallContext]
+      ) map { 
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
+
+    def getProductFeeById(
+      productFeeId: String, 
+      callContext: Option[CallContext]
+    ) : OBPReturnType[ProductFee] =
+      Connector.connector.vend.getProductFeeById(
+        productFeeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, ProductFeeNotFoundById + " {" + productFeeId + "}", 404), i._2)
+      }
 
     def getProductFeesFromProvider(
       bankId: BankId,
@@ -1384,7 +1393,7 @@ object NewStyle {
         productCode: ProductCode,
         callContext: Option[CallContext]
       ) map {
-        i => (connectorEmptyResponse(i, callContext), callContext)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 

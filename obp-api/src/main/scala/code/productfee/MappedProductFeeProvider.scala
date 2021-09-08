@@ -23,14 +23,14 @@ object MappedProductFeeProvider extends ProductFeeProvider {
         )
     }
 
-  override def getProductFeeById(feeId: String): Future[Box[ProductFee]] = Future {
-     MappedProductFee.find(By(MappedProductFee.FeeId, feeId))
+  override def getProductFeeById(productFeeId: String): Future[Box[ProductFee]] = Future {
+     MappedProductFee.find(By(MappedProductFee.ProductFeeId, productFeeId))
   }
 
   override def createOrUpdateProductFee(
     bankId: BankId,
     productCode: ProductCode,
-    feeId: Option[String],
+    productFeeId: Option[String],
     name: String,
     isActive: Boolean,
     moreInfo: String,
@@ -39,9 +39,9 @@ object MappedProductFeeProvider extends ProductFeeProvider {
     frequency: String,
     `type`: String
   ): Future[Box[ProductFee]] =  {
-     feeId match {
+     productFeeId match {
       case Some(id) => Future {
-         MappedProductFee.find(By(MappedProductFee.FeeId, id)) match {
+         MappedProductFee.find(By(MappedProductFee.ProductFeeId, id)) match {
             case Full(productFee) => tryo {
               productFee
                 .BankId(bankId.value)
@@ -62,7 +62,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
         Full {
           MappedProductFee
             .create
-            .FeeId(APIUtil.generateUUID)
+            .ProductFeeId(APIUtil.generateUUID)
             .BankId(bankId.value)
             .ProductCode(productCode.value)
             .Name(name)
@@ -78,9 +78,9 @@ object MappedProductFeeProvider extends ProductFeeProvider {
     }
   }
 
-  override def deleteProductFee(feeId: String): Future[Box[Boolean]] = Future {
+  override def deleteProductFee(productFeeId: String): Future[Box[Boolean]] = Future {
     tryo(
-      MappedProductFee.bulkDelete_!!(By(MappedProductFee.FeeId, feeId))
+      MappedProductFee.bulkDelete_!!(By(MappedProductFee.ProductFeeId, productFeeId))
     )
   }
 }
@@ -93,7 +93,7 @@ class MappedProductFee extends ProductFee with LongKeyedMapper[MappedProductFee]
 
   object ProductCode extends MappedString(this, 50) 
   
-  object FeeId extends UUIDString(this) 
+  object ProductFeeId extends UUIDString(this) 
 
   object Name extends MappedString(this, 50)
   
@@ -116,7 +116,7 @@ class MappedProductFee extends ProductFee with LongKeyedMapper[MappedProductFee]
 
   override def productCode: ProductCode = com.openbankproject.commons.model.ProductCode(ProductCode.get)
   
-  override def feeId: String = FeeId.get
+  override def productFeeId: String = ProductFeeId.get
 
   override def name: String = Name.get
 
@@ -135,6 +135,6 @@ class MappedProductFee extends ProductFee with LongKeyedMapper[MappedProductFee]
 }
 
 object MappedProductFee extends MappedProductFee with LongKeyedMetaMapper[MappedProductFee]  {
-  override def dbIndexes = Index(BankId) :: Index(FeeId) :: super.dbIndexes 
+  override def dbIndexes = Index(BankId) :: Index(ProductFeeId) :: super.dbIndexes 
 }
 

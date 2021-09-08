@@ -1599,7 +1599,7 @@ trait Connector extends MdcLoggable {
   def createOrUpdateProductFee(
     bankId: BankId,
     productCode: ProductCode,
-    feeId: Option[String],
+    productFeeId: Option[String],
     name: String,
     isActive: Boolean,
     moreInfo: String,
@@ -1608,14 +1608,19 @@ trait Connector extends MdcLoggable {
     frequency: String,
     `type`: String,
     callContext: Option[CallContext]
-  ): Future[Box[ProductFee]]= Future(Failure(setUnimplementedError))
+  ): OBPReturnType[Box[ProductFee]]= Future(Failure(setUnimplementedError))
 
   def getProductFeesFromProvider(
     bankId: BankId,
     productCode: ProductCode,
     callContext: Option[CallContext]
-  ): Future[Box[List[ProductFee]]] = Future(Failure(setUnimplementedError))
-  
+  ): OBPReturnType[Box[List[ProductFee]]] = Future(Failure(setUnimplementedError))
+
+  def getProductFeeById(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFee]] = Future(Failure(setUnimplementedError))
+    
   
   def createOrUpdateFXRate(
                             bankId: String,

@@ -579,24 +579,12 @@ case class ProductJsonV400(
   description: String,
   meta: MetaJsonV140,
   attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]],
-  fees: Option[List[FeeJson]]
+  fees: Option[List[ProductFeeJsonV400]]
 )
 
 case class ProductsJsonV400(products: List[ProductJsonV400])
 
-case class FeeJsonValue(
-  currency: String,
-  amount: BigDecimal,
-  frequency: String,
-  `type`: String,
-)
-case class FeeJson(
-  fee_id: String,
-  name: String,
-  isActive: Boolean,
-  moreInfo: String,
-  value:FeeJsonValue,
-)
+
 
 case class PutProductJsonV400(
   parent_product_code: String,
@@ -716,6 +704,35 @@ case class ProductAttributeResponseWithoutBankIdJsonV400(
                                                       value: String,
                                                       is_active: Option[Boolean]
                                                     )
+
+case class ProductFeeValueJsonV400(
+  currency: String,
+  amount: BigDecimal,
+  frequency: String,
+  `type`: String,
+)
+
+case class ProductFeeJsonV400(
+  product_fee_id:Option[String],
+  name: String,
+  is_active: Boolean,
+  more_info: String,
+  value:ProductFeeValueJsonV400,
+)
+
+case class ProductFeeResponseJsonV400(
+  bank_id: String,
+  product_code: String,
+  product_fee_id: String,
+  name: String,
+  is_active: Boolean,
+  more_info: String,
+  value:ProductFeeValueJsonV400,
+)
+
+case class ProductFeesResponseJsonV400(
+  product_fees: List[ProductFeeResponseJsonV400]
+)
 
 case class IbanCheckerJsonV400(
                                 is_valid: Boolean,
@@ -1436,7 +1453,26 @@ object JSONFactory400 {
       value = productAttribute.value,
       is_active = productAttribute.isActive
     )
-  
+    
+  def createProductFeeJson(productFee: ProductFee): ProductFeeResponseJsonV400 =
+    ProductFeeResponseJsonV400(
+      bank_id = productFee.bankId.value,
+      product_code = productFee.productCode.value,
+      product_fee_id = productFee.productFeeId,
+      name = productFee.name,
+      is_active = productFee.isActive,
+      more_info = productFee.moreInfo,
+      value = ProductFeeValueJsonV400(
+        currency = productFee.currency,
+        amount = productFee.amount,
+        frequency= productFee.frequency,
+        `type`= productFee.`type`
+      )
+    )
+
+  def createProductFeesJson(productFees: List[ProductFee]): ProductFeesResponseJsonV400 =
+    ProductFeesResponseJsonV400(productFees.map(createProductFeeJson))
+    
 
   def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
     ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))
@@ -1585,12 +1621,12 @@ object JSONFactory400 {
       description = product.description,
       meta = createMetaJson(product.meta),
       attributes = Some(createProductAttributesJson(productAttributes)),
-      fees = Some(productFees.map(productFee =>FeeJson(
-      fee_id = productFee.feeId,
-      name = productFee.name,
-      isActive = productFee.isActive,
-      moreInfo = productFee.moreInfo,
-      value = FeeJsonValue(
+      fees = Some(productFees.map(productFee =>ProductFeeJsonV400(
+        product_fee_id= Some(productFee.productFeeId),
+        name = productFee.name,
+        is_active = productFee.isActive,
+        more_info = productFee.moreInfo,
+        value = ProductFeeValueJsonV400(
         currency = productFee.currency,
         amount = productFee.amount,
         frequency = productFee.frequency,

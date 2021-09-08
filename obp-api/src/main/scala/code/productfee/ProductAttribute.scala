@@ -34,12 +34,12 @@ trait ProductFeeProvider {
 
   def getProductFeesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductFee]]]
 
-  def getProductFeeById(feeId: String): Future[Box[ProductFee]]
+  def getProductFeeById(productFeeId: String): Future[Box[ProductFee]]
 
   def createOrUpdateProductFee(
     bankId: BankId,
     productCode: ProductCode,
-    feeId: Option[String],
+    productFeeId: Option[String],
     name: String,
     isActive: Boolean,
     moreInfo: String,
@@ -49,18 +49,18 @@ trait ProductFeeProvider {
     `type`: String
   ): Future[Box[ProductFee]]
   
-  def deleteProductFee(feeId: String): Future[Box[Boolean]]
+  def deleteProductFee(productFeeId: String): Future[Box[Boolean]]
 }
 
 class RemotedataProductFeeCaseClasses {
   case class getProductFeesFromProvider(bankId: BankId, productCode: ProductCode)
 
-  case class getProductFeeById(feeId: String)
+  case class getProductFeeById(productFeeId: String)
 
   case class createOrUpdateProductFee(
     bankId: BankId,
     productCode: ProductCode,
-    feeId: Option[String],
+    productFeeId: Option[String],
     name: String,
     isActive: Boolean,
     moreInfo: String,
@@ -70,7 +70,7 @@ class RemotedataProductFeeCaseClasses {
     `type`: String
   )
 
-  case class deleteProductFee(feeId: String)
+  case class deleteProductFee(productFeeId: String)
 }
 
 object RemotedataProductFeeCaseClasses extends RemotedataProductFeeCaseClasses

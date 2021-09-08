@@ -4343,20 +4343,33 @@ object SwaggerDefinitionsJSON {
 
   val atmsJsonV400 = AtmsJsonV400(List(atmJsonV400))
 
-  val feeJsonValue=  FeeJsonValue(
+  val productFeeValueJsonV400 =  ProductFeeValueJsonV400(
     currency = currencyExample.value,
     amount = 10.12,
     frequency = frequencyExample.value,
     `type` = typeExample.value
   )
 
-  val feeJson = FeeJson(
-    fee_id = feeIdExample.value,
+  val productFeeJsonV400 = ProductFeeJsonV400(
+    product_fee_id = Some(productFeeIdExample.value),
     name = nameExample.value,
-    isActive = true,
-    moreInfo = moreInfoExample.value,
-    value = feeJsonValue 
+    is_active = true,
+    more_info = moreInfoExample.value,
+    value = productFeeValueJsonV400 
   )
+  
+  val productFeeResponseJsonV400 = ProductFeeResponseJsonV400(
+    bank_id = bankIdExample.value,
+    product_code = productCodeExample.value,
+    product_fee_id = productFeeIdExample.value,
+    name = nameExample.value,
+    is_active = true,
+    more_info = moreInfoExample.value,
+    value = productFeeValueJsonV400
+  )
+  
+  val productFeesResponseJsonV400 = ProductFeesResponseJsonV400(List(productFeeResponseJsonV400))
+  
   
   val productJsonV400 = ProductJsonV400(
     bank_id = bankIdExample.value,
@@ -4368,7 +4381,7 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value,
     meta = metaJson,
     attributes = Some(List(productAttributeResponseJson)),
-    fees = Some(List(feeJson))
+    fees = Some(List(productFeeJsonV400))
   )
 
   val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400))

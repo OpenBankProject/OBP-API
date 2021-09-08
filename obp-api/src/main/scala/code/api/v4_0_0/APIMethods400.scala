@@ -5632,7 +5632,179 @@ trait APIMethods400 {
       }
     }
 
-    
+    staticResourceDocs += ResourceDoc(
+      createProductFee,
+      implementedInApiVersion,
+      nameOf(createProductFee),
+      "POST",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fee",
+      "Create Product Fee",
+      s"""Create Product Fee
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productFeeJsonV400.copy(product_fee_id = None),
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductFee))
+    )
+
+    lazy val createProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fee" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 " , 400, Some(cc)) {
+              json.extract[ProductFeeJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), Some(cc))
+            (productFee, callContext) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankId),
+              ProductCode(productCode),
+              None,
+              postedData.name,
+              postedData.is_active,
+              postedData.more_info,
+              postedData.value.currency,
+              postedData.value.amount,
+              postedData.value.frequency,
+              postedData.value.`type`,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateProductFee,
+      implementedInApiVersion,
+      nameOf(updateProductFee),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Update Product Fee",
+      s""" Update Product Fee. 
+         |
+         |Update one Product Fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productFeeJsonV400.copy(product_fee_id = None),
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductFee)))
+
+    lazy val updateProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 ", 400, Some(cc)) {
+              json.extract[ProductFeeJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), Some(cc))
+            (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, callContext)
+            (productFee, callContext) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankId),
+              ProductCode(productCode),
+              Some(productFeeId),
+              postedData.name,
+              postedData.is_active,
+              postedData.more_info,
+              postedData.value.currency,
+              postedData.value.amount,
+              postedData.value.frequency,
+              postedData.value.`type`,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductFee,
+      implementedInApiVersion,
+      nameOf(getProductFee),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Get Product Fee",
+      s""" Get Product Fee
+         |
+         |Get one product fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductFee)))
+
+    lazy val getProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (productFee, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductFees,
+      implementedInApiVersion,
+      nameOf(getProductFees),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees",
+      "Get Product Fees",
+      s"""Get Product Fees
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productFeesResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductFee)))
+
+    lazy val getProductFees : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(BankId(bankId), ProductCode(productCode), Some(cc))
+          } yield {
+            (createProductFeesJson(productFees), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createOrUpdateTransactionAttributeDefinition,
