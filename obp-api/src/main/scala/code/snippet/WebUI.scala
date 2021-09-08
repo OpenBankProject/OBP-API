@@ -63,6 +63,8 @@ class WebUI extends MdcLoggable{
     }
   }
 
+
+
   // Cookie Consent button.
   // Note we don't currently (7th Jan 2017) need to display the cookie consent message due to our limited use of cookies
   // If a deployment does make more use of cookies we would need to add a No button and we might want to make use of the
@@ -198,12 +200,20 @@ class WebUI extends MdcLoggable{
   
   // Terms&Conditions
   def termsAndConditions: CssSel = {
-    ".termsAndConditions-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_agree_terms_url", ""))
+    ".termsAndConditions-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_agree_terms_url", "/terms-and-conditions"))
+  }
+  def termsAndConditionsText = {
+    val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
+    "#terms-and-conditions-page" #> scala.xml.Unparsed(makeHtml(webUiPropsValue))
   }
 
   // Points to the documentation. Probably a sandbox specific link is good.
   def privacyPolicyLink: CssSel = {
-    ".privacy-policy-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_privacy_policy_url", "https://openbankproject.com/privacy-policy"))
+    ".privacy-policy-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_privacy_policy_url", "/privacy-policy"))
+  }
+  def privacyPolicyText = {
+    val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
+    "#privacy-policy-page" #> scala.xml.Unparsed(makeHtml(webUiPropsValue))
   }
   
   def sandboxIntroductionLink: CssSel = {
