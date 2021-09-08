@@ -6,6 +6,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.model.dataAccess.MappedBankAccount
 import code.productAttributeattribute.MappedProductAttribute
+import code.productfee.ProductFee
 import code.products.MappedProduct
 import com.openbankproject.commons.model.{BankId, ProductCode}
 import deletion.DeletionUtil.databaseAtomicTask
@@ -22,6 +23,7 @@ object DeleteProductCascade {
         deleteProductAttributes(bankId, code) ::
         deleteProductAttributeDefinitions(bankId, code) ::
         deleteProduct(bankId, code) ::
+        deleteProductFee(bankId, code) ::
         Nil
     doneTasks.forall(_ == true)
   }
@@ -66,6 +68,12 @@ object DeleteProductCascade {
     MappedProduct.bulkDelete_!!(
       By(MappedProduct.mBankId, bankId.value),
       By(MappedProduct.mCode, code.value)
+    )
+  }
+  private def deleteProductFee(bankId: BankId, code: ProductCode): Boolean = {
+    ProductFee.bulkDelete_!!(
+      By(ProductFee.BankId, bankId.value),
+      By(ProductFee.ProductCode, code.value)
     )
   }
 
