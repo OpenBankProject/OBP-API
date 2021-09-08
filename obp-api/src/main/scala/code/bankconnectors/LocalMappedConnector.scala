@@ -2761,6 +2761,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
   
+  override def deleteProductFee(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] =  {
+    ProductFeeX.productFeeProvider.vend.deleteProductFee(productFeeId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateProduct(bankId: String,
                                      code: String,

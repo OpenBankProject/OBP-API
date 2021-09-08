@@ -1383,6 +1383,17 @@ object NewStyle {
         i => (unboxFullOrFail(i._1, callContext, ProductFeeNotFoundById + " {" + productFeeId + "}", 404), i._2)
       }
 
+    def deleteProductFee(
+      productFeeId: String, 
+      callContext: Option[CallContext]
+    ) : OBPReturnType[Boolean] =
+      Connector.connector.vend.deleteProductFee(
+        productFeeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, ProductFeeNotFoundById + " {" + productFeeId + "}", 404), i._2)
+      }
+
     def getProductFeesFromProvider(
       bankId: BankId,
       productCode: ProductCode,

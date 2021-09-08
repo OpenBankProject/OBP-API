@@ -1620,6 +1620,11 @@ trait Connector extends MdcLoggable {
     productFeeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[ProductFeeTrait]] = Future(Failure(setUnimplementedError))
+
+  def deleteProductFee(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future(Failure(setUnimplementedError))
     
   
   def createOrUpdateFXRate(

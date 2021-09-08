@@ -5805,6 +5805,42 @@ trait APIMethods400 {
           }
       }
     }
+    staticResourceDocs += ResourceDoc(
+      deleteProductFee,
+      implementedInApiVersion,
+      nameOf(deleteProductFee),
+      "DELETE",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Delete Product Fee",
+      s"""Delete Product Fee
+         |
+         |Delete one product fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteProductFee)))
+
+    lazy val deleteProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (productFee, callContext) <- NewStyle.function.deleteProductFee(productFeeId, Some(cc))
+          } yield {
+            (productFee, HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createOrUpdateTransactionAttributeDefinition,
