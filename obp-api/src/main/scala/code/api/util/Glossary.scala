@@ -2173,11 +2173,48 @@ object Glossary extends MdcLoggable  {
 	glossaryItems += GlossaryItem(
 		title = "Space",
 		description =
-			s"""Space is actually relevant to one bank and all these bank's dynamic endpoints.
-				 |The developer first creates his own bank and then creates the bank-level dynamic endpoints or entities.
-				 |Then the developer can use the space to organise his new endpoints.
-				 |He can grant the role CanReadDynamicResourceDocsAtOneBank to himself or others.
-			   |Then they can see the new endpoints in API_Explorer under the Space menu.""".stripMargin)
+			s"""In OBP, if you have access to a "Space", you have access to a set of Dynamic Endpoints and Dynamic Entities that belong to that Space.
+|Internally, Spaces are defined as a "Banks" thus Spaces are synonymous with OBP Banks.
+|
+|A user can have access to several spaces. The API Explorer shows these under the Spaces menu.
+|
+|In order to see the documentation for the Dynamic Endpoints and Dynamic Entities, a user may need to have access to the CanReadDynamicResourceDocsAtOneBank Role.
+|
+|You can create your own Space by creating an OBP Bank.
+|
+""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Entity",
+		description =
+			s"""If you want to create, store and custom data in OBP, you can create "Dynamic Entities".
+|You define your Dynamic Entities in JSON.
+|
+|Fields are typed, have an example value and a (markdown) description. They can also be constrained in size.
+|
+|You can also create field "references" to other fields in other Entities. These are like foreign keys to other Dynamic or Static (built in) entities.
+|In other words, if you create an Entity called X which has a field called A, you can force the values of X.A to match the values of Y.B where Y is another Dynamic Entity or Z.B where Z is a Static (OBP) Entity.
+|
+|Dynamic Entities can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|
+|Upon successful creation of a Dynamic Entity, OBP automatically:
+|
+|*Creates Create, Read, Update and Delete endpoints to operate on the Entity so you can insert, get, modify and delete records.
+|*Creates Roles to guard the above endpoints.
+|
+|Following the creation of a Dynamic Entity you will need to grant yourself or others the appropriate roles before you can insert or get records.
+|
+|Each Dynamic Entity gets a dynamicEntityId which uniquely identifies it and the userId which identifies the user who created the Entity.
+|
+|For more information see the endpoints.
+|
+|The following videos are available:
+|
+|	* [Introduction to Dynamic Entities](https://vimeo.com/426524451)
+|	* [Features of Dynamic Entities](https://vimeo.com/446465797)
+|
+""".stripMargin)
 
 
 	///////////////////////////////////////////////////////////////////
