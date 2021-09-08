@@ -261,7 +261,7 @@ trait ProductAttribute {
   def isActive: Option[Boolean]
 }
 
-trait ProductFee {
+trait ProductFeeTrait {
   def bankId: BankId
   def productCode: ProductCode
   def productFeeId: String

@@ -53,7 +53,7 @@ import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import code.users.UserInvitation
-import com.openbankproject.commons.model.{DirectDebitTrait, ProductFee, _}
+import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import net.liftweb.mapper.By
@@ -1454,7 +1454,7 @@ object JSONFactory400 {
       is_active = productAttribute.isActive
     )
     
-  def createProductFeeJson(productFee: ProductFee): ProductFeeResponseJsonV400 =
+  def createProductFeeJson(productFee: ProductFeeTrait): ProductFeeResponseJsonV400 =
     ProductFeeResponseJsonV400(
       bank_id = productFee.bankId.value,
       product_code = productFee.productCode.value,
@@ -1470,7 +1470,7 @@ object JSONFactory400 {
       )
     )
 
-  def createProductFeesJson(productFees: List[ProductFee]): ProductFeesResponseJsonV400 =
+  def createProductFeesJson(productFees: List[ProductFeeTrait]): ProductFeesResponseJsonV400 =
     ProductFeesResponseJsonV400(productFees.map(createProductFeeJson))
     
 
@@ -1610,7 +1610,7 @@ object JSONFactory400 {
   def createProductsJson(productsList: List[Product]) : ProductsJsonV400 = {
     ProductsJsonV400(productsList.map(createProductJson))}
 
-  def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees:List[ProductFee]) : ProductJsonV400 = {
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees:List[ProductFeeTrait]) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
       product_code = product.code.value,

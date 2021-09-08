@@ -1354,7 +1354,7 @@ object NewStyle {
       frequency: String,
       `type`: String,
       callContext: Option[CallContext]
-    ): OBPReturnType[ProductFee] = {
+    ): OBPReturnType[ProductFeeTrait] = {
       Connector.connector.vend.createOrUpdateProductFee(
         bankId: BankId,
         productCode: ProductCode,
@@ -1375,7 +1375,7 @@ object NewStyle {
     def getProductFeeById(
       productFeeId: String, 
       callContext: Option[CallContext]
-    ) : OBPReturnType[ProductFee] =
+    ) : OBPReturnType[ProductFeeTrait] =
       Connector.connector.vend.getProductFeeById(
         productFeeId: String,
         callContext: Option[CallContext]
@@ -1387,7 +1387,7 @@ object NewStyle {
       bankId: BankId,
       productCode: ProductCode,
       callContext: Option[CallContext]
-    ): OBPReturnType[List[ProductFee]] = {
+    ): OBPReturnType[List[ProductFeeTrait]] = {
       Connector.connector.vend.getProductFeesFromProvider(
         bankId: BankId,
         productCode: ProductCode,

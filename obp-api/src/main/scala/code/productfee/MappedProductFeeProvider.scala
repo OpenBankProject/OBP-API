@@ -2,7 +2,7 @@ package code.productfee
 
 import code.api.util.APIUtil
 import code.util.UUIDString
-import com.openbankproject.commons.model.{BankId, ProductCode, ProductFee}
+import com.openbankproject.commons.model.{BankId, ProductCode, ProductFeeTrait}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper.{MappedBoolean, _}
 import net.liftweb.util.Helpers.tryo
@@ -15,7 +15,7 @@ import scala.concurrent.Future
 
 object MappedProductFeeProvider extends ProductFeeProvider {
 
-  override def getProductFeesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductFee]]] =
+  override def getProductFeesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductFeeTrait]]] =
     Future {
       Box !!  MappedProductFee.findAll(
           By(MappedProductFee.BankId, bankId.value),
@@ -23,7 +23,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
         )
     }
 
-  override def getProductFeeById(productFeeId: String): Future[Box[ProductFee]] = Future {
+  override def getProductFeeById(productFeeId: String): Future[Box[ProductFeeTrait]] = Future {
      MappedProductFee.find(By(MappedProductFee.ProductFeeId, productFeeId))
   }
 
@@ -38,7 +38,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
     amount: BigDecimal,
     frequency: String,
     `type`: String
-  ): Future[Box[ProductFee]] =  {
+  ): Future[Box[ProductFeeTrait]] =  {
      productFeeId match {
       case Some(id) => Future {
          MappedProductFee.find(By(MappedProductFee.ProductFeeId, id)) match {
@@ -85,7 +85,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
   }
 }
 
-class MappedProductFee extends ProductFee with LongKeyedMapper[MappedProductFee] with IdPK {
+class MappedProductFee extends ProductFeeTrait with LongKeyedMapper[MappedProductFee] with IdPK {
 
   override def getSingleton = MappedProductFee
 

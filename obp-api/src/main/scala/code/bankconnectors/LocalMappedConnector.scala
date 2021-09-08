@@ -2725,7 +2725,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     frequency: String,
     `type`: String, 
     callContext: Option[CallContext]
-  ): OBPReturnType[Box[ProductFee]] = {
+  ): OBPReturnType[Box[ProductFeeTrait]] = {
     ProductFeeX.productFeeProvider.vend.createOrUpdateProductFee(
       bankId: BankId,
       productCode: ProductCode,
@@ -2746,7 +2746,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     bankId: BankId, 
     productCode: ProductCode,
     callContext: Option[CallContext]
-  ): OBPReturnType[Box[List[ProductFee]]] = {
+  ): OBPReturnType[Box[List[ProductFeeTrait]]] = {
     ProductFeeX.productFeeProvider.vend.getProductFeesFromProvider(bankId: BankId, productCode: ProductCode) map {
       (_, callContext)
     }
@@ -2755,7 +2755,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getProductFeeById(
     productFeeId: String,
     callContext: Option[CallContext]
-  ): OBPReturnType[Box[ProductFee]] =  {
+  ): OBPReturnType[Box[ProductFeeTrait]] =  {
     ProductFeeX.productFeeProvider.vend.getProductFeeById(productFeeId) map {
       (_, callContext)
     }

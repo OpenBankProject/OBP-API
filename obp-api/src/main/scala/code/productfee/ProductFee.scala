@@ -3,7 +3,7 @@ package code.productfee
 /* For ProductFee */
 
 import code.api.util.APIUtil
-import com.openbankproject.commons.model.{BankId, ProductCode, ProductFee}
+import com.openbankproject.commons.model.{BankId, ProductCode, ProductFeeTrait}
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
@@ -17,7 +17,7 @@ object ProductFeeX extends SimpleInjector {
   def buildOne: ProductFeeProvider = MappedProductFeeProvider
 
   // Helper to get the count out of an option
-  def countOfProductFee(listOpt: Option[List[ProductFee]]): Int = {
+  def countOfProductFee(listOpt: Option[List[ProductFeeTrait]]): Int = {
     val count = listOpt match {
       case Some(list) => list.size
       case None => 0
@@ -32,9 +32,9 @@ trait ProductFeeProvider {
 
   private val logger = Logger(classOf[ProductFeeProvider])
 
-  def getProductFeesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductFee]]]
+  def getProductFeesFromProvider(bankId: BankId, productCode: ProductCode): Future[Box[List[ProductFeeTrait]]]
 
-  def getProductFeeById(productFeeId: String): Future[Box[ProductFee]]
+  def getProductFeeById(productFeeId: String): Future[Box[ProductFeeTrait]]
 
   def createOrUpdateProductFee(
     bankId: BankId,
@@ -47,7 +47,7 @@ trait ProductFeeProvider {
     amount: BigDecimal,
     frequency: String,
     `type`: String
-  ): Future[Box[ProductFee]]
+  ): Future[Box[ProductFeeTrait]]
   
   def deleteProductFee(productFeeId: String): Future[Box[Boolean]]
 }
