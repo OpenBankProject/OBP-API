@@ -100,6 +100,7 @@ import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
 import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apicollection.ApiCollection
+import code.bankattribute.BankAttribute
 import code.connectormethod.ConnectorMethod
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
@@ -888,6 +889,7 @@ object ToSchemify {
     MappedCustomerAttribute,
     MappedTransactionAttribute,
     MappedCardAttribute,
+    BankAttribute,
     RateLimiting,
     MappedCustomerDependant,
     AttributeDefinition

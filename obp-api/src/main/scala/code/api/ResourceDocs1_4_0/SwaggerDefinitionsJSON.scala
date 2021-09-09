@@ -839,7 +839,8 @@ object SwaggerDefinitionsJSON {
     full_name = "full_name",
     logo = "logo",
     website = "www.openbankproject.com",
-    bank_routings = List(bankRoutingJsonV121)
+    bank_routings = List(bankRoutingJsonV121),
+    None
   )
 
   val banksJSON400 = BanksJson400(
@@ -3489,6 +3490,22 @@ object SwaggerDefinitionsJSON {
     is_active = Some(true)
   )
 
+  val bankAttributeJsonV400 = BankAttributeJsonV400(
+    name = "TAX_ID",
+    `type` = "INTEGER",
+    value = "12345678",
+    is_active = Some(true)
+  )
+  val bankAttributeResponseJsonV400 = BankAttributeResponseJsonV400(
+    bank_id = bankIdExample.value,
+    bank_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
+  )
+  
+
   val accountAttributeJson = AccountAttributeJson(
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
@@ -4121,8 +4138,14 @@ object SwaggerDefinitionsJSON {
   val productAttributeDefinitionJsonV400 =
     templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Product.toString)
   
+  val bankAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Bank.toString)
+  
   val productAttributeDefinitionResponseJsonV400 =
     templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val bankAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Bank.toString)
   
   val transactionAttributeDefinitionJsonV400 = 
     templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Transaction.toString)

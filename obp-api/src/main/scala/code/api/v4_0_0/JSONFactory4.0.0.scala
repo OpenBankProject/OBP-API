@@ -28,6 +28,7 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
+
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
@@ -44,6 +45,7 @@ import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWi
 import code.apicollection.ApiCollectionTrait
 import code.apicollectionendpoint.ApiCollectionEndpointTrait
 import code.atms.Atms.Atm
+import code.bankattribute.BankAttribute
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
@@ -95,7 +97,8 @@ case class BankJson400(
                         full_name: String,
                         logo: String,
                         website: String,
-                        bank_routings: List[BankRoutingJsonV121]
+                        bank_routings: List[BankRoutingJsonV121],
+                        attributes: Option[List[BankAttributeBankResponseJsonV400]]
                       )
 
 case class BanksJson400(banks: List[BankJson400])
@@ -714,6 +717,24 @@ case class ProductAttributeResponseWithoutBankIdJsonV400(
                                                       is_active: Option[Boolean]
                                                     )
 
+case class BankAttributeJsonV400(
+                                  name: String,
+                                  `type`: String,
+                                  value: String,
+                                  is_active: Option[Boolean])
+
+case class BankAttributeResponseJsonV400(
+                                          bank_id: String,
+                                          bank_attribute_id: String,
+                                          name: String,
+                                          `type`: String,
+                                          value: String,
+                                          is_active: Option[Boolean]
+                                        )
+case class BankAttributeBankResponseJsonV400(name: String,
+                                             value: String)
+case class BankAttributesResponseJson(list: List[BankAttributeBankResponseJsonV400])
+
 case class IbanCheckerJsonV400(
                                 is_valid: Boolean,
                                 details: Option[IbanDetailsJsonV400]
@@ -892,7 +913,7 @@ object JSONFactory400 {
 
   }
   
-  def createBankJSON400(bank: Bank): BankJson400 = {
+  def createBankJSON400(bank: Bank, attributes: List[BankAttribute] = Nil): BankJson400 = {
     val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
     val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
     val routings = bank.bankRoutingScheme match {
@@ -906,12 +927,18 @@ object JSONFactory400 {
       stringOrNull(bank.fullName),
       stringOrNull(bank.logoUrl),
       stringOrNull(bank.websiteUrl),
-      routings.filter(a => stringOrNull(a.address) != null)
+      routings.filter(a => stringOrNull(a.address) != null),
+      Option(
+        attributes.filter(_.isActive == Some(true)).map(a => BankAttributeBankResponseJsonV400(
+          name = a.name, 
+          value = a.value)
+        )
+      )
     )
   }
 
   def createBanksJson(l: List[Bank]): BanksJson400 = {
-    BanksJson400(l.map(createBankJSON400))
+    BanksJson400(l.map(i => createBankJSON400(i, Nil)))
   }
 
   def createUserIdInfoJson(user : User) : UserIdJsonV400 = {
@@ -1432,6 +1459,15 @@ object JSONFactory400 {
       `type` = productAttribute.attributeType.toString,
       value = productAttribute.value,
       is_active = productAttribute.isActive
+    )
+  def createBakAttributeJson(bankAttribute: BankAttribute): BankAttributeResponseJsonV400 =
+    BankAttributeResponseJsonV400(
+      bank_id = bankAttribute.bankId.value,
+      bank_attribute_id = bankAttribute.bankAttributeId,
+      name = bankAttribute.name,
+      `type` = bankAttribute.attributeType.toString,
+      value = bankAttribute.value,
+      is_active = bankAttribute.isActive
     )
   
 

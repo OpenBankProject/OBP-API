@@ -3,6 +3,7 @@ package code.api.util
 import java.io
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
@@ -63,6 +64,7 @@ import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityInfo}
+import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
@@ -1338,7 +1340,37 @@ object NewStyle {
           i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+    
+    def createOrUpdateBankAttribute(
+      bankId: BankId,
+      bankAttributeId: Option[String],
+      name: String,
+      attributeType: BankAttributeType.Value,
+      value: String,
+      isActive: Option[Boolean],
+      callContext: Option[CallContext]
+    ): OBPReturnType[BankAttribute] = {
+      Connector.connector.vend.createOrUpdateBankAttribute(
+        bankId: BankId,
+        bankAttributeId: Option[String],
+        name: String,
+        attributeType: BankAttributeType.Value,
+        value: String,
+        isActive: Option[Boolean],
+        callContext: Option[CallContext]
+      ) map {
+          i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
 
+    def getBankAttributesByBank(bank: BankId,callContext: Option[CallContext]): OBPReturnType[List[BankAttribute]] = {
+      Connector.connector.vend.getBankAttributesByBank(
+        bank: BankId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
     def getProductAttributesByBankAndCode(
                                            bank: BankId,
                                            productCode: ProductCode,

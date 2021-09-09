@@ -441,6 +441,15 @@ trait CustomerMessage {
   def fromPerson : String
 }
 
+trait BankAttributeTrait {
+  def bankId: BankId
+  def bankAttributeId: String
+  def attributeType: BankAttributeType.Value
+  def name: String
+  def value: String
+  def isActive: Option[Boolean]
+}
+
 trait CustomerAttribute {
   def bankId: BankId
   def customerId: CustomerId

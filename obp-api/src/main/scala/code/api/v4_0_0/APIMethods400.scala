@@ -256,6 +256,38 @@ trait APIMethods400 {
 
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      getBank,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
+      emptyObjectJson,
+      bankJson400,
+      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBank : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (bank, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, callContext)
+          } yield
+            (JSONFactory400.createBankJSON400(bank, attributes), HttpCode.`200`(callContext))
+      }
+    }
+    
     
     staticResourceDocs += ResourceDoc(
       ibanChecker,
@@ -5627,6 +5659,141 @@ trait APIMethods400 {
 
           } yield {
             (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    
+
+    staticResourceDocs += ResourceDoc(
+      createOrUpdateBankAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateBankAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/bank",
+      "Create or Update Bank Attribute Definition",
+      s""" Create or Update Bank Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Bank}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      bankAttributeDefinitionJsonV400,
+      bankAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canCreateBankAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateBankAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "bank" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
+              s"${AttributeCategory.Bank}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createBankAttribute,
+      implementedInApiVersion,
+      nameOf(createBankAttribute),
+      "POST",
+      "/banks/BANK_ID/attribute",
+      "Create Bank Attribute",
+      s""" Create Bank Attribute
+         |
+         |Typical product attributes might be:
+         |
+         |ISIN (for International bonds)
+         |VKN (for German bonds)
+         |REDCODE (markit short code for credit derivative)
+         |LOAN_ID (e.g. used for Anacredit reporting)
+         |
+         |ISSUE_DATE (When the bond was issued in the market)
+         |MATURITY_DATE (End of life time of a product)
+         |TRADABLE
+         |
+         |See [FPML](http://www.fpml.org/) for more examples.
+         |
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      bankAttributeJsonV400,
+      bankAttributeResponseJsonV400,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canCreateBankAttribute))
+    )
+
+    lazy val createBankAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canCreateProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $BankAttributeJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[BankAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${BankAttributeType.DOUBLE}(12.1234), ${BankAttributeType.STRING}(TAX_NUMBER), ${BankAttributeType.INTEGER}(123) and ${BankAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            bankAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              BankAttributeType.withName(postedData.`type`)
+            }
+            (bankAttribute, callContext) <- NewStyle.function.createOrUpdateBankAttribute(
+              BankId(bankId),
+              None,
+              postedData.name,
+              bankAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createBakAttributeJson(bankAttribute), HttpCode.`201`(callContext))
           }
       }
     }

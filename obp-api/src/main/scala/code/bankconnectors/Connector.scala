@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.attributedefinition.AttributeDefinition
@@ -13,6 +14,7 @@ import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.{APIFailure, APIFailureNewStyle}
+import code.bankattribute.BankAttribute
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
@@ -1993,6 +1995,18 @@ trait Connector extends MdcLoggable {
                                       isActive: Option[Boolean],
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateBankAttribute(bankId: BankId,
+                                  productAttributeId: Option[String],
+                                  name: String,
+                                  bankAttributeType: BankAttributeType.Value,
+                                  value: String,
+                                  isActive: Option[Boolean],
+                                  callContext: Option[CallContext]
+                                 ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
 
   def getProductAttributeById(
                                productAttributeId: String,

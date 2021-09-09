@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -21,6 +22,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
+import code.bankattribute.{BankAttribute, BankAttributeX}
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
@@ -3415,6 +3417,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       name: String,
       attributType: ProductAttributeType.Value,
       value: String, isActive: Option[Boolean]) map {
+      (_, callContext)
+    }  
+  override def createOrUpdateBankAttribute(bankId: BankId,
+                                           productAttributeId: Option[String],
+                                           name: String,
+                                           bankAttributeType: BankAttributeType.Value,
+                                           value: String,
+                                           isActive: Option[Boolean],
+                                           callContext: Option[CallContext]
+                                          ): OBPReturnType[Box[BankAttribute]] =
+    BankAttributeX.bankAttributeProvider.vend.createOrUpdateBankAttribute(
+      bankId: BankId,
+      productAttributeId: Option[String],
+      name: String,
+      bankAttributeType: BankAttributeType.Value,
+      value: String, isActive: Option[Boolean]) map {
+      (_, callContext)
+    }
+
+
+  override def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
+    BankAttributeX.bankAttributeProvider.vend.getBankAttributesFromProvider(bank: BankId) map {
       (_, callContext)
     }
 
