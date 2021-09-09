@@ -1460,7 +1460,7 @@ object JSONFactory400 {
       value = productAttribute.value,
       is_active = productAttribute.isActive
     )
-  def createBakAttributeJson(bankAttribute: BankAttribute): BankAttributeResponseJsonV400 =
+  def createBankAttributeJson(bankAttribute: BankAttribute): BankAttributeResponseJsonV400 =
     BankAttributeResponseJsonV400(
       bank_id = bankAttribute.bankId.value,
       bank_attribute_id = bankAttribute.bankAttributeId,

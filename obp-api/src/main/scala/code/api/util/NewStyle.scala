@@ -1397,6 +1397,18 @@ object NewStyle {
       }
     }
     
+    def getBankAttributeById(
+      bankAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[BankAttribute] = {
+      Connector.connector.vend.getBankAttributeById(
+        bankAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
     def deleteProductAttribute(
       productAttributeId: String,
       callContext: Option[CallContext]

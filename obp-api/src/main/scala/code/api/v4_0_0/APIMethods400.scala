@@ -5793,7 +5793,61 @@ trait APIMethods400 {
               callContext: Option[CallContext]
             )
           } yield {
-            (createBakAttributeJson(bankAttribute), HttpCode.`201`(callContext))
+            (createBankAttributeJson(bankAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      updateBankAttribute,
+      implementedInApiVersion,
+      nameOf(updateBankAttribute),
+      "PUT",
+      "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
+      "Update Bank Attribute",
+      s""" Update Bank Attribute. 
+         |
+         |Update one Bak Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      bankAttributeJsonV400,
+      bankAttributeDefinitionJsonV400,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle))
+
+    lazy val updateBankAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "attributes" :: bankAttributeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateBankAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $BankAttributeJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[BankAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${BankAttributeType.DOUBLE}(12.1234), ${BankAttributeType.STRING}(TAX_NUMBER), ${BankAttributeType.INTEGER}(123) and ${BankAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              BankAttributeType.withName(postedData.`type`)
+            }
+            (_, callContext) <- NewStyle.function.getBankAttributeById(bankAttributeId, callContext)
+            (bankAttribute, callContext) <- NewStyle.function.createOrUpdateBankAttribute(
+              BankId(bankId),
+              Some(bankAttributeId),
+              postedData.name,
+              productAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createBankAttributeJson(bankAttribute), HttpCode.`200`(callContext))
           }
       }
     }

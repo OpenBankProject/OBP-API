@@ -1997,7 +1997,7 @@ trait Connector extends MdcLoggable {
                                     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def createOrUpdateBankAttribute(bankId: BankId,
-                                  productAttributeId: Option[String],
+                                  bankAttributeId: Option[String],
                                   name: String,
                                   bankAttributeType: BankAttributeType.Value,
                                   value: String,
@@ -2008,6 +2008,10 @@ trait Connector extends MdcLoggable {
   def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
+  def getBankAttributeById(bankAttributeId: String,
+                           callContext: Option[CallContext]
+                          ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def getProductAttributeById(
                                productAttributeId: String,
                                callContext: Option[CallContext]

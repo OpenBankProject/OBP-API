@@ -3420,7 +3420,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }  
   override def createOrUpdateBankAttribute(bankId: BankId,
-                                           productAttributeId: Option[String],
+                                           bankAttributeId: Option[String],
                                            name: String,
                                            bankAttributeType: BankAttributeType.Value,
                                            value: String,
@@ -3429,7 +3429,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                           ): OBPReturnType[Box[BankAttribute]] =
     BankAttributeX.bankAttributeProvider.vend.createOrUpdateBankAttribute(
       bankId: BankId,
-      productAttributeId: Option[String],
+      bankAttributeId: Option[String],
       name: String,
       bankAttributeType: BankAttributeType.Value,
       value: String, isActive: Option[Boolean]) map {
@@ -3451,6 +3451,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
 
+  override def getBankAttributeById(bankAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAttribute]] =
+    BankAttributeX.bankAttributeProvider.vend.getBankAttributeById(bankAttributeId: String) map {
+      (_, callContext)
+    }
+  
   override def getProductAttributeById(
                                         productAttributeId: String,
                                         callContext: Option[CallContext]
