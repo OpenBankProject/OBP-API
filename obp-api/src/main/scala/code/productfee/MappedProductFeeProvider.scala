@@ -105,7 +105,7 @@ class ProductFee extends ProductFeeTrait with LongKeyedMapper[ProductFee] with I
 
   object Currency extends MappedString(this, 50)
   
-  object Amount extends MappedDecimal(this, MathContext.DECIMAL64, 0)
+  object Amount extends MappedDecimal(this, MathContext.DECIMAL128, 2)
   
   object Frequency extends MappedString(this, 255)
   
