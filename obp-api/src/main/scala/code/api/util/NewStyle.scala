@@ -1409,6 +1409,18 @@ object NewStyle {
       }
     }
     
+    def deleteBankAttribute(
+      bankAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteBankAttribute(
+        bankAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    } 
+    
     def deleteProductAttribute(
       productAttributeId: String,
       callContext: Option[CallContext]
