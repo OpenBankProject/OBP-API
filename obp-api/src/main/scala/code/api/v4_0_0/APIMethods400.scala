@@ -6061,6 +6061,43 @@ trait APIMethods400 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankAttribute,
+      implementedInApiVersion,
+      nameOf(deleteBankAttribute),
+      "DELETE",
+      "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
+      "Delete Bank Attribute",
+      s""" Delete Bank Attribute
+         |
+         |Delete a Bank Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserHasMissingRoles,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle))
+
+    lazy val deleteBankAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "attributes" :: bankAttributeId ::  Nil JsonDelete _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canDeleteBankAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (bankAttribute, callContext) <- NewStyle.function.deleteBankAttribute(bankAttributeId, callContext)
+          } yield {
+            (Full(bankAttribute), HttpCode.`204`(callContext))
+          }
+      }
+    }
     
 
     staticResourceDocs += ResourceDoc(

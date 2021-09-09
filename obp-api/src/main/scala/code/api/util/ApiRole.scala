@@ -418,6 +418,9 @@ object ApiRole {
 
   case class CanDeleteProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteProductAttribute = CanDeleteProductAttribute()
+  
+  case class CanDeleteBankAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankAttribute = CanDeleteBankAttribute()
 
   case class CanCreateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateProductAttribute = CanCreateProductAttribute()

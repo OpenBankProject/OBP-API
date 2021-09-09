@@ -2055,6 +2055,10 @@ trait Connector extends MdcLoggable {
                                        ): OBPReturnType[Box[List[ProductAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
+  def deleteBankAttribute(bankAttributeId: String,
+                          callContext: Option[CallContext]
+                         ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def deleteProductAttribute(
                               productAttributeId: String,
                               callContext: Option[CallContext]

@@ -3521,6 +3521,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
 
+  override def deleteBankAttribute(bankAttributeId: String, 
+                                   callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    BankAttributeX.bankAttributeProvider.vend.deleteBankAttribute(bankAttributeId: String) map {
+      (_, callContext)
+    }
+  
   override def deleteProductAttribute(
                                        productAttributeId: String,
                                        callContext: Option[CallContext]
