@@ -70,13 +70,12 @@ class ProductTest extends V400ServerSetup {
     Then("We should get a 201")
     response400.code should equal(201)
     val product = response400.body.extract[ProductJsonV400]
-    product.code shouldBe code
+    product.product_code shouldBe code
     product.parent_product_code shouldBe json.parent_product_code
     product.bank_id shouldBe testBankId
     product.name shouldBe json.name
     product.more_info_url shouldBe json.more_info_url
     product.terms_and_conditions_url shouldBe json.terms_and_conditions_url
-    product.details shouldBe json.details
     product.description shouldBe json.description
     product
   }
@@ -110,17 +109,17 @@ class ProductTest extends V400ServerSetup {
       val grandparent: ProductJsonV400 = createProduct(code = "GRANDPARENT_CODE", json = parentPutProductJsonV400)
 
       // Create an parent
-      val product: ProductJsonV400 = createProduct(code = "PARENT_CODE", json = parentPutProductJsonV400.copy(parent_product_code = grandparent.code))
+      val product: ProductJsonV400 = createProduct(code = "PARENT_CODE", json = parentPutProductJsonV400.copy(parent_product_code = grandparent.product_code))
 
       // Get
-      val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.code ).GET <@(user1)
+      val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code ).GET <@(user1)
       val responseGet400 = makeGetRequest(requestGet400)
       Then("We should get a 200")
       responseGet400.code should equal(200)
       val product1 = responseGet400.body.extract[ProductJsonV400]
 
       // Create an child
-      val childPutProductJsonV400 = parentPutProductJsonV400.copy(parent_product_code = product.code)
+      val childPutProductJsonV400 = parentPutProductJsonV400.copy(parent_product_code = product.product_code)
       createProduct(code = "PRODUCT_CODE", json = childPutProductJsonV400)
 
       // Get
@@ -147,7 +146,7 @@ class ProductTest extends V400ServerSetup {
       Then("We should get a 200")
       responseGetAll400.code should equal(200)
       val products: ProductsJsonV400 = responseGetAll400.body.extract[ProductsJsonV400]
-      products.products.head.code should be ("PRODUCT_CODE")
+      products.products.head.product_code should be ("PRODUCT_CODE")
 
     }
   }

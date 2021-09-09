@@ -85,6 +85,7 @@ import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
+import scala.math.BigDecimal
 import scala.xml.XML
 
 trait APIMethods400 {
@@ -5663,7 +5664,215 @@ trait APIMethods400 {
       }
     }
 
-    
+    staticResourceDocs += ResourceDoc(
+      createProductFee,
+      implementedInApiVersion,
+      nameOf(createProductFee),
+      "POST",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fee",
+      "Create Product Fee",
+      s"""Create Product Fee
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productFeeJsonV400.copy(product_fee_id = None),
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductFee))
+    )
+
+    lazy val createProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fee" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 " , 400, Some(cc)) {
+              json.extract[ProductFeeJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), Some(cc))
+            (productFee, callContext) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankId),
+              ProductCode(productCode),
+              None,
+              postedData.name,
+              postedData.is_active,
+              postedData.more_info,
+              postedData.value.currency,
+              postedData.value.amount,
+              postedData.value.frequency,
+              postedData.value.`type`,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateProductFee,
+      implementedInApiVersion,
+      nameOf(updateProductFee),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Update Product Fee",
+      s""" Update Product Fee. 
+         |
+         |Update one Product Fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productFeeJsonV400.copy(product_fee_id = None),
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductFee)))
+
+    lazy val updateProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 ", 400, Some(cc)) {
+              json.extract[ProductFeeJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), Some(cc))
+            (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, callContext)
+            (productFee, callContext) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankId),
+              ProductCode(productCode),
+              Some(productFeeId),
+              postedData.name,
+              postedData.is_active,
+              postedData.more_info,
+              postedData.value.currency,
+              postedData.value.amount,
+              postedData.value.frequency,
+              postedData.value.`type`,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductFee,
+      implementedInApiVersion,
+      nameOf(getProductFee),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Get Product Fee",
+      s""" Get Product Fee
+         |
+         |Get one product fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductFee)))
+
+    lazy val getProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (productFee, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductFees,
+      implementedInApiVersion,
+      nameOf(getProductFees),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees",
+      "Get Product Fees",
+      s"""Get Product Fees
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      productFeesResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductFee)))
+
+    lazy val getProductFees : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(BankId(bankId), ProductCode(productCode), Some(cc))
+          } yield {
+            (createProductFeesJson(productFees), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    staticResourceDocs += ResourceDoc(
+      deleteProductFee,
+      implementedInApiVersion,
+      nameOf(deleteProductFee),
+      "DELETE",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Delete Product Fee",
+      s"""Delete Product Fee
+         |
+         |Delete one product fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteProductFee)))
+
+    lazy val deleteProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (productFee, callContext) <- NewStyle.function.deleteProductFee(productFeeId, Some(cc))
+          } yield {
+            (productFee, HttpCode.`204`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createOrUpdateBankAttributeDefinition,
@@ -9867,7 +10076,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       emptyObjectJson,
-      productsJsonV310,
+      productJsonV400.copy(attributes = None, fees = None),
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -9921,7 +10130,7 @@ trait APIMethods400 {
          |
          |""",
       putProductJsonV400,
-      productJsonV400,
+      productJsonV400.copy(attributes = None, fees = None),
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -9959,7 +10168,7 @@ trait APIMethods400 {
               superFamily = null,
               moreInfoUrl = product.more_info_url,
               termsAndConditionsUrl = product.terms_and_conditions_url,
-              details = product.details,
+              details = null,
               description = product.description,
               metaLicenceId = product.meta.license.id,
               metaLicenceName = product.meta.license.name
@@ -10016,8 +10225,11 @@ trait APIMethods400 {
               unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
             }
             (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
+            
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(bankId, productCode, callContext)
+            
           } yield {
-            (JSONFactory400.createProductJson(product, productAttributes), HttpCode.`200`(callContext))
+            (JSONFactory400.createProductJson(product, productAttributes, productFees), HttpCode.`200`(callContext))
           }
         }
       }

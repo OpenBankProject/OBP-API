@@ -3568,21 +3568,6 @@ object SwaggerDefinitionsJSON {
   )
   val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
 
-  val productJsonV400b = ProductJsonV400b(
-    bank_id = bankIdExample.value,
-    code = "product_code",
-    parent_product_code = "parent",
-    name = "product name",
-    category = "category",
-    family = "family",
-    super_family = "super family",
-    more_info_url = "www.example.com/prod1/more-info.html",
-    details = "Details",
-    description = "Description",
-    meta = metaJson,
-    Some(List(productAttributeResponseWithoutBankIdJsonV400))
-  )
-  
   val productCollectionItemJsonV310 = ProductCollectionItemJsonV310(member_product_code = "A")
   val productCollectionJsonV310 = ProductCollectionJsonV310(
     collection_code = "C",
@@ -4381,29 +4366,56 @@ object SwaggerDefinitionsJSON {
 
   val atmsJsonV400 = AtmsJsonV400(List(atmJsonV400))
 
+  val productFeeValueJsonV400 =  ProductFeeValueJsonV400(
+    currency = currencyExample.value,
+    amount = 10.12,
+    frequency = frequencyExample.value,
+    `type` = typeExample.value
+  )
+
+  val productFeeJsonV400 = ProductFeeJsonV400(
+    product_fee_id = Some(productFeeIdExample.value),
+    name = nameExample.value,
+    is_active = true,
+    more_info = moreInfoExample.value,
+    value = productFeeValueJsonV400 
+  )
+  
+  val productFeeResponseJsonV400 = ProductFeeResponseJsonV400(
+    bank_id = bankIdExample.value,
+    product_code = productCodeExample.value,
+    product_fee_id = productFeeIdExample.value,
+    name = nameExample.value,
+    is_active = true,
+    more_info = moreInfoExample.value,
+    value = productFeeValueJsonV400
+  )
+  
+  val productFeesResponseJsonV400 = ProductFeesResponseJsonV400(List(productFeeResponseJsonV400))
+  
+  
   val productJsonV400 = ProductJsonV400(
     bank_id = bankIdExample.value,
-    code = "product_code",
-    parent_product_code = "parent",
-    name = "product name",
+    product_code = productCodeExample.value,
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
     more_info_url = moreInfoUrlExample.value,
     terms_and_conditions_url = termsAndConditionsUrlExample.value,
-    details = "Details",
-    description = "Description",
+    description = descriptionExample.value,
     meta = metaJson,
-    Some(List(productAttributeResponseJson))
+    attributes = Some(List(productAttributeResponseJson)),
+    fees = Some(List(productFeeJsonV400))
   )
 
   val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400))
 
   val putProductJsonV400 = PutProductJsonV400(
-    parent_product_code = "parent",
-    name = "product name",
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
     more_info_url = moreInfoUrlExample.value,
     terms_and_conditions_url = termsAndConditionsUrlExample.value,
-    details = "Details",
-    description = "Description",
-    meta = metaJson
+    description = descriptionExample.value,
+    meta = metaJson,
   )
   
   

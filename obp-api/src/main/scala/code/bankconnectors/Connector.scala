@@ -27,6 +27,7 @@ import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.model.toUserExtended
+import code.productfee.ProductFeeX
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -1596,8 +1597,38 @@ trait Connector extends MdcLoggable {
                              metaLicenceId : String,
                              metaLicenceName : String
                            ): Box[Product] = Failure(setUnimplementedError)
+  
+  def createOrUpdateProductFee(
+    bankId: BankId,
+    productCode: ProductCode,
+    productFeeId: Option[String],
+    name: String,
+    isActive: Boolean,
+    moreInfo: String,
+    currency: String,
+    amount: BigDecimal,
+    frequency: String,
+    `type`: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]]= Future(Failure(setUnimplementedError))
 
+  def getProductFeesFromProvider(
+    bankId: BankId,
+    productCode: ProductCode,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ProductFeeTrait]]] = Future(Failure(setUnimplementedError))
 
+  def getProductFeeById(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]] = Future(Failure(setUnimplementedError))
+
+  def deleteProductFee(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future(Failure(setUnimplementedError))
+    
+  
   def createOrUpdateFXRate(
                             bankId: String,
                             fromCurrencyCode: String,

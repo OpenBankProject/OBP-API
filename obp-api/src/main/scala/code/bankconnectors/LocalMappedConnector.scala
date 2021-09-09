@@ -55,6 +55,7 @@ import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
+import code.productfee.ProductFeeX
 import code.products.MappedProduct
 import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
@@ -2714,6 +2715,62 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def createOrUpdateProductFee(
+    bankId: BankId,
+    productCode: ProductCode,
+    productFeeId: Option[String],
+    name: String,
+    isActive: Boolean,
+    moreInfo: String,
+    currency: String,
+    amount: BigDecimal,
+    frequency: String,
+    `type`: String, 
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]] = {
+    ProductFeeX.productFeeProvider.vend.createOrUpdateProductFee(
+      bankId: BankId,
+      productCode: ProductCode,
+      productFeeId: Option[String],
+      name: String,
+      isActive: Boolean,
+      moreInfo: String,
+      currency: String,
+      amount: BigDecimal,
+      frequency: String,
+      `type`: String
+    ) map {
+      (_, callContext)
+    }
+  }
+
+  override def getProductFeesFromProvider(
+    bankId: BankId, 
+    productCode: ProductCode,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ProductFeeTrait]]] = {
+    ProductFeeX.productFeeProvider.vend.getProductFeesFromProvider(bankId: BankId, productCode: ProductCode) map {
+      (_, callContext)
+    }
+  }
+
+  override def getProductFeeById(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]] =  {
+    ProductFeeX.productFeeProvider.vend.getProductFeeById(productFeeId) map {
+      (_, callContext)
+    }
+  }
+  
+  override def deleteProductFee(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] =  {
+    ProductFeeX.productFeeProvider.vend.deleteProductFee(productFeeId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateProduct(bankId: String,
                                      code: String,
@@ -3405,7 +3462,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                productCode: ProductCode,
                                                productAttributeId: Option[String],
                                                name: String,
-                                               attributType: ProductAttributeType.Value,
+                                               attributeType: ProductAttributeType.Value,
                                                value: String,
                                                isActive: Option[Boolean],
                                                callContext: Option[CallContext]
@@ -3415,7 +3472,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       productCode: ProductCode,
       productAttributeId: Option[String],
       name: String,
-      attributType: ProductAttributeType.Value,
+      attributeType: ProductAttributeType.Value,
       value: String, isActive: Option[Boolean]) map {
       (_, callContext)
     }  
@@ -3489,7 +3546,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                productCode: ProductCode,
                                                accountAttributeId: Option[String],
                                                name: String,
-                                               attributType: AccountAttributeType.Value,
+                                               attributeType: AccountAttributeType.Value,
                                                value: String,
                                                callContext: Option[CallContext]
                                              ): OBPReturnType[Box[AccountAttribute]] = {
@@ -3498,7 +3555,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       productCode: ProductCode,
       accountAttributeId: Option[String],
       name: String,
-      attributType: AccountAttributeType.Value,
+      attributeType: AccountAttributeType.Value,
       value: String) map {
       (_, callContext)
     }
