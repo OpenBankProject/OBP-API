@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0._
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -832,7 +832,15 @@ object SwaggerDefinitionsJSON {
   val banksJSON = BanksJSON(
     banks = List(bankJSON)
   )
-
+  val bankAttributeBankResponseJsonV400 = BankAttributeBankResponseJsonV400(
+    name = nameExample.value,
+    value = valueExample.value
+  )
+  
+  val bankAttributesResponseJson = BankAttributesResponseJson(
+    list = List(bankAttributeBankResponseJsonV400)
+  )
+  
   val bankJson400 = BankJson400(
     id = "gh.29.uk",
     short_name = "short_name ",
@@ -840,7 +848,7 @@ object SwaggerDefinitionsJSON {
     logo = "logo",
     website = "www.openbankproject.com",
     bank_routings = List(bankRoutingJsonV121),
-    None
+    attributes = Some(List(bankAttributeBankResponseJsonV400))
   )
 
   val banksJSON400 = BanksJson400(
