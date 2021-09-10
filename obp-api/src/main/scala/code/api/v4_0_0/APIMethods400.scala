@@ -6006,6 +6006,42 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAttributes,
+      implementedInApiVersion,
+      nameOf(getBankAttributes),
+      "GET",
+      "/banks/BANK_ID/attributes",
+      "Get Bank Attributes",
+      s""" Get Bank Attributes
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      transactionAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canGetBankAttribute))
+    )
+
+    lazy val getBankAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, cc.callContext)
+          } yield {
+            (JSONFactory400.createBankAttributesJson(attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
     
     staticResourceDocs += ResourceDoc(
       updateBankAttribute,
