@@ -35,8 +35,8 @@ object APIMethods_ProductsApi extends RestHelper {
        "/accounts/ACCOUNTID/product", 
        "Get Products",
        s"""${mockedDataText(true)}""", 
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Products") :: apiTagMockedData :: Nil
      )
@@ -61,8 +61,8 @@ object APIMethods_ProductsApi extends RestHelper {
        "Get Products",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Products") :: apiTagMockedData :: Nil
      )

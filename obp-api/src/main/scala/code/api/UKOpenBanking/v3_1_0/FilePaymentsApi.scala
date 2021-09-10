@@ -41,7 +41,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Create File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -183,8 +183,8 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Create File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
@@ -209,7 +209,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Create File Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -357,7 +357,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -499,8 +499,8 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )
@@ -525,7 +525,7 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -673,8 +673,8 @@ object APIMethods_FilePaymentsApi extends RestHelper {
        "Get File Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("File Payments") :: apiTagMockedData :: Nil
      )

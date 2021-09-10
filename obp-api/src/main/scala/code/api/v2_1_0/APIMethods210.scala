@@ -66,7 +66,6 @@ trait APIMethods210 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson = EmptyClassJson()
     val apiVersion = ApiVersion.v2_1_0 // was String "2_1_0"
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
@@ -136,7 +135,7 @@ trait APIMethods210 {
         |
         |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
         |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagTransactionRequest, apiTagBank, apiTagNewStyle))
@@ -695,7 +694,7 @@ trait APIMethods210 {
         |The customer can proceed with the Transaction by answering the security challenge.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestWithChargeJSONs210,
       List(
         UserNotLoggedIn,
@@ -742,7 +741,7 @@ trait APIMethods210 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagRole, apiTagNewStyle))
@@ -776,7 +775,7 @@ trait APIMethods210 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List(
         UserNotLoggedIn,
@@ -827,7 +826,7 @@ trait APIMethods210 {
       s"""Get the Consumer specified by CONSUMER_ID.
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       consumerJSON,
       List(
         UserNotLoggedIn,
@@ -866,7 +865,7 @@ trait APIMethods210 {
       s"""Get the all Consumers.
           |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       consumersJson,
       List(
         UserNotLoggedIn,
@@ -1031,7 +1030,7 @@ trait APIMethods210 {
         |* locked_status (if null ignore)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(
         UserNotLoggedIn,
@@ -1124,7 +1123,7 @@ trait APIMethods210 {
           |* License the data under this endpoint is released under
           |
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       atmJson,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM)
@@ -1169,7 +1168,7 @@ trait APIMethods210 {
           |* License the data under this endpoint is released under
           |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       branchJson,
       List(
         UserNotLoggedIn,
@@ -1220,7 +1219,7 @@ trait APIMethods210 {
           |* Terms and Conditions
           |* License the data under this endpoint is released under
           |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productJsonV210,
       List(
         UserNotLoggedIn,
@@ -1270,7 +1269,7 @@ trait APIMethods210 {
           |* Terms and Conditions
           |* License the data under this endpoint is released under
           |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productsJsonV210,
       List(
         UserNotLoggedIn,
@@ -1400,7 +1399,7 @@ trait APIMethods210 {
       """Gets all Customers that are linked to a User.
         |
         |Authentication via OAuth is required.""",
-      emptyObjectJson,
+      EmptyBody,
       customerJsonV210,
       List(
         UserNotLoggedIn,
@@ -1434,7 +1433,7 @@ trait APIMethods210 {
         |
         |
         |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       customerJSONs,
       List(
         UserNotLoggedIn,
@@ -1659,7 +1658,7 @@ trait APIMethods210 {
         |16 duration (if null ignore) non digit chars will be silently omitted
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       metricsJson,
       List(
         UserNotLoggedIn,

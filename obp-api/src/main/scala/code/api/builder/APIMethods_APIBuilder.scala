@@ -23,7 +23,7 @@ trait APIMethods_APIBuilder { self: RestHelper =>
     implicit val formats = code.api.util.CustomJsonFormats.formats
     val TemplateNotFound = "OBP-31001: Template not found. Please specify a valid value for TEMPLATE_ID."
     def endpointsOfBuilderAPI = getTemplates :: getTemplate :: createTemplate :: deleteTemplate :: Nil
-    resourceDocs += ResourceDoc(getTemplates, apiVersion, "getTemplates", "GET", "/templates", "Get Templates", "Return All Templates", emptyObjectJson, templatesJson, List(UserNotLoggedIn, UnknownError),apiTagApiBuilder :: Nil)
+    resourceDocs += ResourceDoc(getTemplates, apiVersion, "getTemplates", "GET", "/templates", "Get Templates", "Return All Templates", EmptyBody, templatesJson, List(UserNotLoggedIn, UnknownError),apiTagApiBuilder :: Nil)
     lazy val getTemplates: OBPEndpoint = {
       case ("templates" :: Nil) JsonGet req =>
         cc => {
@@ -32,7 +32,7 @@ trait APIMethods_APIBuilder { self: RestHelper =>
           }
         }
     }
-    resourceDocs += ResourceDoc(getTemplate, apiVersion, "getTemplate", "GET", "/templates/TEMPLATE_ID", "Get Template", "Return One Template By Id", emptyObjectJson, templateJson, List(UserNotLoggedIn, UnknownError),apiTagApiBuilder :: Nil)
+    resourceDocs += ResourceDoc(getTemplate, apiVersion, "getTemplate", "GET", "/templates/TEMPLATE_ID", "Get Template", "Return One Template By Id", EmptyBody, templateJson, List(UserNotLoggedIn, UnknownError),apiTagApiBuilder :: Nil)
     lazy val getTemplate: OBPEndpoint = {
       case ("templates" :: templateId :: Nil) JsonGet _ =>
         cc => {
@@ -50,7 +50,7 @@ trait APIMethods_APIBuilder { self: RestHelper =>
           }
         }
     }
-    resourceDocs += ResourceDoc(deleteTemplate, apiVersion, "deleteTemplate", "DELETE", "/templates/TEMPLATE_ID", "Delete Template", "Delete One Template", emptyObjectJson, emptyObjectJson.copy("true"), List(UserNotLoggedIn, UnknownError),apiTagApiBuilder :: Nil)
+    resourceDocs += ResourceDoc(deleteTemplate, apiVersion, "deleteTemplate", "DELETE", "/templates/TEMPLATE_ID", "Delete Template", "Delete One Template", EmptyBody, emptyObjectJson.copy("true"), List(UserNotLoggedIn, UnknownError),apiTagApiBuilder :: Nil)
     lazy val deleteTemplate: OBPEndpoint = {
       case ("templates" :: templateId :: Nil) JsonDelete _ =>
         cc => {

@@ -118,7 +118,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       adapterInfoJsonV300,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagApi, apiTagNewStyle),
@@ -145,7 +145,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       logoutLinkV400,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagUser, apiTagNewStyle))
@@ -240,7 +240,7 @@ trait APIMethods400 {
         |* Short and full name of bank
         |* Logo URL
         |* Website""",
-      emptyObjectJson,
+      EmptyBody,
       banksJSON400,
       List(UnknownError),
       apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
@@ -272,7 +272,7 @@ trait APIMethods400 {
         |* Short and full name of bank
         |* Logo URL
         |* Website""",
-      emptyObjectJson,
+      EmptyBody,
       bankJson400,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
@@ -340,7 +340,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       doubleEntryTransactionJson,
       List(
         $UserNotLoggedIn,
@@ -498,7 +498,7 @@ trait APIMethods400 {
         |Note: a settlement account is considered as a bank account.
         |So you can update it and add account attributes to it using the regular account endpoints
         |""",
-      emptyObjectJson,
+      EmptyBody,
       settlementAccountsJson,
       List(
         $UserNotLoggedIn,
@@ -1437,7 +1437,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestAttributeResponseJson,
       List(
         $UserNotLoggedIn,
@@ -1478,7 +1478,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -1639,7 +1639,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -1676,7 +1676,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       Full(true),
       List(
         $UserNotLoggedIn,
@@ -2590,7 +2590,7 @@ trait APIMethods400 {
         |* Hosted at information
         |* Energy source information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJson400,
       List(UnknownError, "no connector set"),
       apiTagApi :: apiTagNewStyle :: Nil)
@@ -2614,8 +2614,8 @@ trait APIMethods400 {
       s"""Get the Call Context of the current call.
          |
       """.stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetCallContext)))
@@ -2638,8 +2638,8 @@ trait APIMethods400 {
       s"""Verify Request and Sign Response of a current call.
          |
       """.stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagApi, apiTagNewStyle),
       Some(Nil))
@@ -2734,7 +2734,7 @@ trait APIMethods400 {
          |
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
@@ -2771,7 +2771,7 @@ trait APIMethods400 {
       s"""
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
@@ -2849,8 +2849,8 @@ trait APIMethods400 {
         |${authenticationRequiredMessage(true)}
         |
         |Authentication is required as the tag is linked with the user.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(NoViewPermission,
         ViewNotFound,
         $UserNotLoggedIn,
@@ -2890,7 +2890,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |Authentication is required as the tag is linked with the user.""",
-      emptyObjectJson,
+      EmptyBody,
       accountTagsJSON,
       List(
         $UserNotLoggedIn,
@@ -2944,7 +2944,7 @@ trait APIMethods400 {
          |
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedCoreAccountJsonV400,
       List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 ::  apiTagNewStyle :: Nil
@@ -2988,7 +2988,7 @@ trait APIMethods400 {
         |
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedAccountJSON400,
       List(
         $UserNotLoggedIn,
@@ -3160,7 +3160,7 @@ trait APIMethods400 {
       "/banks/BANK_ID/balances",
       "Get Accounts Balances",
       """Get the Balances for the Accounts of the current User at one bank.""",
-      emptyObjectJson,
+      EmptyBody,
       accountBalancesV400Json,
       List($UserNotLoggedIn, $BankNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
@@ -3187,7 +3187,7 @@ trait APIMethods400 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
       "Get Account Balances",
       """Get the Balances for one Account of the current User at one bank.""",
-      emptyObjectJson,
+      EmptyBody,
       accountBalanceV400,
       List($UserNotLoggedIn, $BankNotFound, CannotFindAccountAccess, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
@@ -3238,7 +3238,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedFirehoseAccountsJsonV400,
       List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
@@ -3353,7 +3353,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       userIdJsonV400,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagUser, apiTagNewStyle))
@@ -3383,7 +3383,7 @@ trait APIMethods400 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -3518,7 +3518,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userInvitationJsonV400,
       List(
         $UserNotLoggedIn,
@@ -3553,7 +3553,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userInvitationJsonV400,
       List(
         $UserNotLoggedIn,
@@ -3590,8 +3590,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -4232,7 +4232,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customerAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4273,7 +4273,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customerAttributeResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4315,7 +4315,7 @@ trait APIMethods400 {
          |
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       ListResult(
         "customers",
         List(customerWithAttributesJsonV310)
@@ -4478,7 +4478,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4519,7 +4519,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributeResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4576,7 +4576,7 @@ trait APIMethods400 {
         |The customer can proceed with the Transaction by answering the security challenge.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
@@ -4625,7 +4625,7 @@ trait APIMethods400 {
          |
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       basicAccountsJSON,
       List($UserNotLoggedIn, $BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
@@ -4745,8 +4745,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -5641,7 +5641,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       productAttributeResponseJsonV400,
       List(
         UserHasMissingRoles,
@@ -5782,7 +5782,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       productFeeResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5816,7 +5816,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       productFeesResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5851,7 +5851,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       BooleanBody(true),
       List(
         $UserNotLoggedIn,
@@ -6019,7 +6019,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -6054,7 +6054,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -6147,8 +6147,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserHasMissingRoles,
         BankNotFound,
@@ -6311,8 +6311,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6349,8 +6349,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6387,8 +6387,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6425,8 +6425,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6463,8 +6463,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6501,7 +6501,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       productAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -6538,7 +6538,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customerAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -6575,7 +6575,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       accountAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -6612,7 +6612,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -6650,7 +6650,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       cardAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -6687,8 +6687,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6725,7 +6725,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userCustomerLinksJson,
       List(
         $UserNotLoggedIn,
@@ -6761,7 +6761,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userCustomerLinksJson,
       List(
         $UserNotLoggedIn,
@@ -6798,8 +6798,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6836,8 +6836,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6872,8 +6872,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -7267,7 +7267,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartiesJson400,
       List(
         $UserNotLoggedIn,
@@ -7320,7 +7320,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartyWithMetadataJson400,
       List($UserNotLoggedIn, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData, apiTagNewStyle)
@@ -7355,7 +7355,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartyWithMetadataJson400,
       List(
         $UserNotLoggedIn,
@@ -7525,7 +7525,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       consentsJsonV400,
       List(
         $UserNotLoggedIn,
@@ -7561,7 +7561,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       consentInfosJsonV400,
       List(
         $UserNotLoggedIn,
@@ -10183,7 +10183,7 @@ trait APIMethods400 {
          |URL params example: /banks/some-bank-id/products?manager=John&count=8
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productJsonV400.copy(attributes = None, fees = None),
       List(
         UserNotLoggedIn,
@@ -10310,7 +10310,7 @@ trait APIMethods400 {
          |* License the data under this endpoint is released under
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productJsonV400,
       List(
         UserNotLoggedIn,

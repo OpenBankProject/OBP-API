@@ -110,7 +110,7 @@ object APIBuilderSwagger {
       $getMultipleApiUrlVal,        
       $getMultipleApiSummaryVal,       
       $getMultipleApiDescriptionVal,
-      emptyObjectJson,
+      EmptyBody,
       templatesJson,
       List(UserNotLoggedIn, UnknownError),
       apiTagApiBuilder :: Nil
@@ -175,7 +175,7 @@ object APIBuilderSwagger {
       $getSingleApiUrlVal,
       $getSingleApiSummaryVal,
       $getSingleApiDescriptionVal,
-      emptyObjectJson, 
+      EmptyBody, 
       templateJson,
       List(UserNotLoggedIn, UnknownError),
       apiTagApiBuilder :: Nil
@@ -207,7 +207,7 @@ object APIBuilderSwagger {
       $deleteSingleApiUrlVal,
       $deleteSingleApiSummaryVal,
       $deleteSingleApiDescriptionVal,
-      emptyObjectJson, 
+      EmptyBody, 
       emptyObjectJson.copy("true"),
       List(UserNotLoggedIn, UnknownError),
       apiTagApiBuilder :: Nil

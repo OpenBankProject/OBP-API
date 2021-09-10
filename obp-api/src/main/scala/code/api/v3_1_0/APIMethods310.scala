@@ -86,7 +86,7 @@ trait APIMethods310 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "Get Checkbook orders",
       s"""${mockedDataText(false)}Get all checkbook orders""",
-      emptyObjectJson,
+      EmptyBody,
       checkbookOrdersJson,
       List(
         UserNotLoggedIn,
@@ -127,7 +127,7 @@ trait APIMethods310 {
       s"""${mockedDataText(false)}Get status of Credit Card orders
         |Get all orders
         |""",
-      emptyObjectJson,
+      EmptyBody,
       creditCardOrderStatusResponseJson,
       List(
         UserNotLoggedIn,
@@ -200,7 +200,7 @@ trait APIMethods310 {
       s"""${mockedDataText(true)}
         |Get Credit Limit Order Requests 
         |""",
-      emptyObjectJson,
+      EmptyBody,
       creditLimitOrderJson,
       List(UnknownError),
       apiTagCustomer :: apiTagNewStyle :: Nil)
@@ -230,7 +230,7 @@ trait APIMethods310 {
       s"""${mockedDataText(true)}
         Get Credit Limit Order Request By Request Id
         |""",
-      emptyObjectJson,
+      EmptyBody,
       creditLimitOrderJson,
       List(UnknownError),
       apiTagCustomer :: apiTagNewStyle :: Nil)
@@ -300,7 +300,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       topApisJson,
       List(
         UserNotLoggedIn,
@@ -389,7 +389,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       topConsumersJson,
       List(
         UserNotLoggedIn,
@@ -453,7 +453,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       customerJSONs,
       List(UserNotLoggedIn, CustomerFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       List(apiTagCustomer, apiTagFirehoseData, apiTagNewStyle),
@@ -503,7 +503,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -539,7 +539,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -641,7 +641,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       callLimitJson,
       List(
         UserNotLoggedIn,
@@ -688,7 +688,7 @@ trait APIMethods310 {
         |* currency=STRING
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       checkFundsAvailableJson,
       List(
         UserNotLoggedIn,
@@ -753,7 +753,7 @@ trait APIMethods310 {
       s"""Get the Consumer specified by CONSUMER_ID.
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       consumerJSON,
       List(
         UserNotLoggedIn,
@@ -790,7 +790,7 @@ trait APIMethods310 {
       s"""Get the Consumers for logged in User.
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       consumersJson310,
       List(
         UserNotLoggedIn,
@@ -824,7 +824,7 @@ trait APIMethods310 {
       s"""Get the all Consumers.
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       consumersJson310,
       List(
         UserNotLoggedIn,
@@ -983,7 +983,7 @@ trait APIMethods310 {
          |
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       accountWebhooksJson,
       List(
         UserNotLoggedIn,
@@ -1026,7 +1026,7 @@ trait APIMethods310 {
         |* Akka configuration
         |* Elastic Search configuration
         |* Cached functions """,
-      emptyObjectJson,
+      EmptyBody,
       configurationJSON,
       List(
         UserNotLoggedIn,
@@ -1059,7 +1059,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(false)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagApi, apiTagNewStyle))
@@ -1092,7 +1092,7 @@ trait APIMethods310 {
          |
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionJsonV300,
       List(UserNotLoggedIn, BankAccountNotFound ,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       List(apiTagTransaction, apiTagNewStyle))
@@ -1149,7 +1149,7 @@ trait APIMethods310 {
         |The customer can proceed with the Transaction by answering the security challenge.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestWithChargeJSONs210,
       List(
         UserNotLoggedIn,
@@ -1275,7 +1275,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       rateLimitingInfoV310,
       List(UnknownError),
       List(apiTagApi, apiTagNewStyle))
@@ -1316,7 +1316,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       customerWithAttributesJsonV310,
       List(
         UserNotLoggedIn,
@@ -1445,7 +1445,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       userAuthContextsJson,
       List(
         UserNotLoggedIn,
@@ -1485,8 +1485,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -1523,8 +1523,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -1604,7 +1604,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       taxResidencesJsonV310,
       List(
         UserNotLoggedIn,
@@ -1642,8 +1642,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -1683,7 +1683,7 @@ trait APIMethods310 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
@@ -1832,7 +1832,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       customerAddressesJsonV310,
       List(
         UserNotLoggedIn,
@@ -1871,8 +1871,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -1915,7 +1915,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       obpApiLoopbackJson,
       List(
         UnknownError
@@ -1955,7 +1955,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       refresUserJson,
       List(
         UserHasMissingRoles,
@@ -2083,7 +2083,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       productAttributeResponseJson,
       List(
         UserHasMissingRoles,
@@ -2180,8 +2180,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserHasMissingRoles,
         BankNotFound,
@@ -2276,7 +2276,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
          |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       accountApplicationsJsonV310,
       List(
         UserNotLoggedIn,
@@ -2319,7 +2319,7 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       accountApplicationResponseJson,
       List(
         UserNotLoggedIn,
@@ -2532,7 +2532,7 @@ trait APIMethods310 {
          |* License the data under this endpoint is released under
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productJsonV310,
       List(
         UserNotLoggedIn,
@@ -2588,7 +2588,7 @@ trait APIMethods310 {
          |
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       childProductTreeJsonV310,
       List(
         UserNotLoggedIn,
@@ -2649,7 +2649,7 @@ trait APIMethods310 {
          |URL params example: /banks/some-bank-id/products?manager=John&count=8
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       productsJsonV310,
       List(
         UserNotLoggedIn,
@@ -2941,7 +2941,7 @@ trait APIMethods310 {
       s"""Returns information about the financial Product Collection specified by BANK_ID and COLLECTION_CODE:
          |
           """,
-      emptyObjectJson,
+      EmptyBody,
       productCollectionJsonTreeV310,
       List(
         UserNotLoggedIn,
@@ -2982,8 +2982,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true) }
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -3108,7 +3108,7 @@ trait APIMethods310 {
         |
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       meetingsJsonV310,
       List(
         UserNotLoggedIn,
@@ -3146,7 +3146,7 @@ trait APIMethods310 {
         |
         |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       meetingJsonV310,
       List(
         UserNotLoggedIn, 
@@ -3181,7 +3181,7 @@ trait APIMethods310 {
         | It is required by client applications to validate ID tokens, self-contained access tokens and other issued objects.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       severJWK,
       List(
         UnknownError
@@ -3218,7 +3218,7 @@ trait APIMethods310 {
         |OBP API (Core OBP API code) -> OBP REST Connector (OBP REST Connector code) -> OBP REST Adapter (Adapter developer code) -> CBS (Main Frame)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       messageDocsJson,
       List(UnknownError),
       List(apiTagDocumentation, apiTagApi, apiTagNewStyle)
@@ -3643,7 +3643,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       consentsJsonV310,
       List(
         UserNotLoggedIn,
@@ -3679,7 +3679,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       revokedConsentJsonV310,
       List(
         UserNotLoggedIn,
@@ -3834,7 +3834,7 @@ trait APIMethods310 {
         |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       viewJSONV220,
       List(
         UserNotLoggedIn,
@@ -3922,8 +3922,8 @@ trait APIMethods310 {
       "/system-views/VIEW_ID",
       "Delete System View",
       "Deletes the system view specified by VIEW_ID",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -4009,7 +4009,7 @@ trait APIMethods310 {
         | It is required by client applications to validate ID tokens, self-contained access tokens and other issued objects.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       oAuth2ServerJwksUrisJson,
       List(
         UnknownError
@@ -4046,7 +4046,7 @@ trait APIMethods310 {
       |${getObpApiRoot}/v3.1.0/management/method_routings?method_name=getBank
       |
       |""",
-      emptyObjectJson,
+      EmptyBody,
       ListResult(
         "method_routings",
         (List(MethodRoutingCommons("getBanks", "rest_vMar2019", false, Some("some_bank_.*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")), Some("method-routing-id"))))
@@ -4333,8 +4333,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -4919,7 +4919,7 @@ trait APIMethods310 {
         |
         |
         |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       physicalCardsJsonV310,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
       List(apiTagCard, apiTagNewStyle))
@@ -4955,7 +4955,7 @@ trait APIMethods310 {
          |Also shows the card attributes of the card. 
          |
        """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       physicalCardWithAttributesJsonV310,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
       List(apiTagCard, apiTagNewStyle))
@@ -4988,8 +4988,8 @@ trait APIMethods310 {
          |
           |${authenticationRequiredMessage(true)}
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -5419,7 +5419,7 @@ trait APIMethods310 {
         |
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedAccountJSON310,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       apiTagAccount ::  apiTagNewStyle :: Nil)
@@ -5660,7 +5660,7 @@ trait APIMethods310 {
       |${getObpApiRoot}/v3.1.0/management/webui_props?active=true
       |
       |""",
-      emptyObjectJson,
+      EmptyBody,
       ListResult(
         "webui_props",
         (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"))))
@@ -5801,8 +5801,8 @@ trait APIMethods310 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
@@ -5834,7 +5834,7 @@ trait APIMethods310 {
       "/banks/BANK_ID/balances",
       "Get Accounts Balances",
       """Get the Balances for the Accounts of the current User at one bank.""",
-      emptyObjectJson,
+      EmptyBody,
       accountBalancesV310Json,
       List(UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil

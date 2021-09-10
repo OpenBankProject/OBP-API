@@ -43,7 +43,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
         |
         |This call is work in progress - Experimental!
          |""",
-      emptyObjectJson,
+      EmptyBody,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
@@ -77,7 +77,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |
          |This call is work in progress - Experimental!
          |""",
-      emptyObjectJson,
+      EmptyBody,
       SwaggerDefinitionsJSON.transactionsJsonUKV200,
       List(UserNotLoggedIn,UnknownError),
       List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData, apiTagPsd2))
@@ -127,7 +127,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
         |
         |This call is work in progress - Experimental!
          |""",
-      emptyObjectJson,
+      EmptyBody,
       SwaggerDefinitionsJSON.accountsJsonUKOpenBanking_v200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
@@ -165,7 +165,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |
          |This call is work in progress - Experimental!
          |""",
-      emptyObjectJson,
+      EmptyBody,
       SwaggerDefinitionsJSON.accountBalancesUKV200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))
@@ -210,7 +210,7 @@ object APIMethods_UKOpenBanking_200 extends RestHelper{
          |
          |This call is work in progress - Experimental!
          |""",
-      emptyObjectJson,
+      EmptyBody,
       SwaggerDefinitionsJSON.accountBalancesUKV200,
       List(ErrorMessages.UserNotLoggedIn,ErrorMessages.UnknownError),
       List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData))

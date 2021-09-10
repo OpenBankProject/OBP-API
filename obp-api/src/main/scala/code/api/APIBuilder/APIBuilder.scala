@@ -136,7 +136,7 @@ object APIBuilder
       $getApiUrlFromJsonFileVal, 
       $getApiSummaryFromJsonFileVal, 
       $getApiDescriptionFromJsonFileVal, 
-      emptyObjectJson, 
+      EmptyBody, 
       templatesJson, 
       List(UserNotLoggedIn, UnknownError), 
       apiTagApiBuilder :: Nil
@@ -150,7 +150,7 @@ object APIBuilder
       $getMultipleApiUrlVal,        
       $getMultipleApiSummaryVal,       
       $getMultipleApiDescriptionVal,
-      emptyObjectJson,
+      EmptyBody,
       templatesJson,
       List(UserNotLoggedIn, UnknownError),
       apiTagApiBuilder :: Nil
@@ -164,7 +164,7 @@ object APIBuilder
       $getSingleApiUrlVal,
       $getSingleApiSummaryVal,
       $getSingleApiDescriptionVal,
-      emptyObjectJson, 
+      EmptyBody, 
       templateJson,
       List(UserNotLoggedIn, UnknownError),
       apiTagApiBuilder :: Nil
@@ -192,7 +192,7 @@ object APIBuilder
       $deleteSingleApiUrlVal,
       $deleteSingleApiSummaryVal,
       $deleteSingleApiDescriptionVal,
-      emptyObjectJson, 
+      EmptyBody, 
       emptyObjectJson.copy("true"),
       List(UserNotLoggedIn, UnknownError),
       apiTagApiBuilder :: Nil

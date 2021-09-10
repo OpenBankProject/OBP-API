@@ -146,8 +146,8 @@ object APIMethods_AccountAccessApi extends RestHelper {
        s"""${mockedDataText(false)}
           |Delete Account Access Consents
           |""".stripMargin, 
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("Account Access") :: Nil
      )
@@ -181,7 +181,7 @@ object APIMethods_AccountAccessApi extends RestHelper {
           |${mockedDataText(false)}
           |Get Account Access Consents
           |""".stripMargin, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse(s"""{
   "Data": {
     "ConsentId": "string",

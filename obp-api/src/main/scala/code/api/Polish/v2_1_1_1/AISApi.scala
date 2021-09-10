@@ -47,7 +47,7 @@ Removes consent""",
        json.parse("""{
   "consentId" : "consentId"
 }"""),
-       emptyObjectJson,
+       EmptyBody,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("AIS") :: apiTagMockedData :: Nil
      )

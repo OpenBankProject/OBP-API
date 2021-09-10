@@ -44,7 +44,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
          |
          |This endpoint is work in progress. Experimental!
          |""",
-      emptyObjectJson,
+      EmptyBody,
       CoreAccountsJsonV1(List(CoreAccountJsonV1(
         id = "3dc3d5b3-7023-4848-9853-f5400a64e80f",
         iban = "DE2310010010123456789",
@@ -102,7 +102,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
         |
         |This endpoint is work in progress. Experimental!
         |""",
-      emptyObjectJson,
+      EmptyBody,
       SwaggerDefinitionsJSON.accountBalances,
       List(UserNotLoggedIn, ViewNotFound, UserNoPermissionAccessView, UnknownError),
       List(apiTagBerlinGroup, apiTagAccount, apiTagPrivateData, apiTagPsd2))
@@ -142,7 +142,7 @@ object APIMethods_BERLIN_GROUP_1 extends RestHelper{
         |
         |This endpoint is work in progress. Experimental!
         |""",
-      emptyObjectJson,
+      EmptyBody,
       SwaggerDefinitionsJSON.transactionsJsonV1,
       List(UserNotLoggedIn,UnknownError),
       List(apiTagBerlinGroup, apiTagTransaction, apiTagPrivateData, apiTagPsd2))

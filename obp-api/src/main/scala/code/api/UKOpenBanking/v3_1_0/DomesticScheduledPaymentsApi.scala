@@ -38,7 +38,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        "Create Domestic Scheduled Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -250,7 +250,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        "Create Domestic Scheduled Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -438,7 +438,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        "Get Domestic Scheduled Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -650,7 +650,7 @@ object APIMethods_DomesticScheduledPaymentsApi extends RestHelper {
        "Get Domestic Scheduled Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },

@@ -39,7 +39,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        "Create International Scheduled Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -323,7 +323,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        "Create International Scheduled Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -583,7 +583,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        "Get International Scheduled Payment Consents",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -867,7 +867,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        "Get International Scheduled Payment Consents Funds Confirmation",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
@@ -931,7 +931,7 @@ object APIMethods_InternationalScheduledPaymentsApi extends RestHelper {
        "Get International Scheduled Payments",
        s"""${mockedDataText(true)}
 """, 
-       emptyObjectJson,
+       EmptyBody,
        json.parse("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
