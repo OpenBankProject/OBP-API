@@ -35,6 +35,7 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateBankAttribute))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteBankAttribute))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getBankAttributes))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getBankAttribute))
 
   lazy val bankId = randomBankId
 
@@ -118,6 +119,27 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
     scenario(s"We try to consume endpoint $ApiEndpoint4 without proper role - Authorized access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
       val request = (v4_0_0_Request / "banks" / bankId / "attributes").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 403")
+      And("We should get a message: " + s"$CanGetBankAttribute entitlement required")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetBankAttribute)
+    }
+  }
+  
+  feature(s"Assuring that endpoint $ApiEndpoint5 works as expected - $VersionOfApi") {
+    scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint5, VersionOfApi) {
+      When("We make the request")
+      val request = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").GET
+      val response = makeGetRequest(request)
+      Then("We should get a 401")
+      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      response.code should equal(401)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {
+      When("We make the request")
+      val request = (v4_0_0_Request / "banks" / bankId / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)
       val response = makeGetRequest(request)
       Then("We should get a 403")
       And("We should get a message: " + s"$CanGetBankAttribute entitlement required")
