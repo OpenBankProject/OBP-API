@@ -1022,7 +1022,7 @@ so the caller must specify any required filtering by catalog explicitly.
         for {
           rd <- filteredResources1
           partialFunctionName <- pfNames
-          if rd.partialFunctionName.contains(partialFunctionName)
+          if rd.partialFunctionName.equals(partialFunctionName)
         } yield {
           rd
         }
