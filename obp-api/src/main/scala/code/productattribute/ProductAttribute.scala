@@ -46,7 +46,7 @@ trait ProductAttributeProvider {
                                      productCode: ProductCode,
                                      productAttributeId: Option[String],
                                      name: String,
-                                     attributType: ProductAttributeType.Value,
+                                     attributeType: ProductAttributeType.Value,
                                      value: String, 
                                      isActive: Option[Boolean]): Future[Box[ProductAttribute]]
   def deleteProductAttribute(productAttributeId: String): Future[Box[Boolean]]
@@ -62,7 +62,7 @@ class RemotedataProductAttributeCaseClasses {
                                             productCode: ProductCode,
                                             productAttributeId: Option[String],
                                             name: String,
-                                            attributType: ProductAttributeType.Value,
+                                            attributeType: ProductAttributeType.Value,
                                             value: String, 
                                             isActive: Option[Boolean])
 

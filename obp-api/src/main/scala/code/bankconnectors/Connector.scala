@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.attributedefinition.AttributeDefinition
@@ -13,6 +14,7 @@ import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.{APIFailure, APIFailureNewStyle}
+import code.bankattribute.BankAttribute
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
@@ -25,6 +27,7 @@ import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.model.toUserExtended
+import code.productfee.ProductFeeX
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -1594,8 +1597,38 @@ trait Connector extends MdcLoggable {
                              metaLicenceId : String,
                              metaLicenceName : String
                            ): Box[Product] = Failure(setUnimplementedError)
+  
+  def createOrUpdateProductFee(
+    bankId: BankId,
+    productCode: ProductCode,
+    productFeeId: Option[String],
+    name: String,
+    isActive: Boolean,
+    moreInfo: String,
+    currency: String,
+    amount: BigDecimal,
+    frequency: String,
+    `type`: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]]= Future(Failure(setUnimplementedError))
 
+  def getProductFeesFromProvider(
+    bankId: BankId,
+    productCode: ProductCode,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ProductFeeTrait]]] = Future(Failure(setUnimplementedError))
 
+  def getProductFeeById(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]] = Future(Failure(setUnimplementedError))
+
+  def deleteProductFee(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future(Failure(setUnimplementedError))
+    
+  
   def createOrUpdateFXRate(
                             bankId: String,
                             fromCurrencyCode: String,
@@ -1994,6 +2027,22 @@ trait Connector extends MdcLoggable {
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def createOrUpdateBankAttribute(bankId: BankId,
+                                  bankAttributeId: Option[String],
+                                  name: String,
+                                  bankAttributeType: BankAttributeType.Value,
+                                  value: String,
+                                  isActive: Option[Boolean],
+                                  callContext: Option[CallContext]
+                                 ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def getBankAttributeById(bankAttributeId: String,
+                           callContext: Option[CallContext]
+                          ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def getProductAttributeById(
                                productAttributeId: String,
                                callContext: Option[CallContext]
@@ -2006,6 +2055,10 @@ trait Connector extends MdcLoggable {
                                        ): OBPReturnType[Box[List[ProductAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
+  def deleteBankAttribute(bankAttributeId: String,
+                          callContext: Option[CallContext]
+                         ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def deleteProductAttribute(
                               productAttributeId: String,
                               callContext: Option[CallContext]

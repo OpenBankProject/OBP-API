@@ -70,7 +70,7 @@ class DeleteProductCascadeTest extends V400ServerSetup {
         )
 
       val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
-        .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"), product_code = product.code,
+        .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"), product_code = product.product_code,
         account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
       createAccountViaEndpoint(testBankId, addAccountJson, user1)
 
@@ -78,7 +78,7 @@ class DeleteProductCascadeTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, ApiRole.canDeleteProductCascade.toString)
       And("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "cascading" / "banks" / testBankId /
-        "products" / product.code).DELETE <@(user1)
+        "products" / product.product_code).DELETE <@(user1)
 
       Then("We should get a 200")
       makeDeleteRequest(request400).code should equal(200)

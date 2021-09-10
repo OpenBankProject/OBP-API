@@ -7,6 +7,14 @@ import net.liftweb.common.Box
 import net.liftweb.json.JsonAST.{JNothing, JString}
 import net.liftweb.json.{Formats, JBool, JDouble, JInt, JValue}
 
+sealed trait BankAttributeType extends EnumValue
+object BankAttributeType extends OBPEnumeration[BankAttributeType]{
+  object STRING         extends Value
+  object INTEGER        extends Value
+  object DOUBLE         extends Value
+  object DATE_WITH_DAY  extends Value
+}
+
 sealed trait AccountAttributeType extends EnumValue
 object AccountAttributeType extends OBPEnumeration[AccountAttributeType]{
   object STRING         extends Value
@@ -195,6 +203,7 @@ object AttributeType extends OBPEnumeration[AttributeType]{
 
 sealed trait AttributeCategory extends EnumValue
 object AttributeCategory extends OBPEnumeration[AttributeCategory]{
+  object Bank extends Value
   object Customer extends Value
   object Product extends Value
   object Account extends Value
