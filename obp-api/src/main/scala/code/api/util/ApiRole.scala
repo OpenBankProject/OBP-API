@@ -412,6 +412,9 @@ object ApiRole {
   
   case class CanUpdateBankAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateBankAttribute = CanUpdateBankAttribute()
+  
+  case class CanGetBankAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankAttribute = CanGetBankAttribute()
 
   case class CanGetProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetProductAttribute = CanGetProductAttribute()

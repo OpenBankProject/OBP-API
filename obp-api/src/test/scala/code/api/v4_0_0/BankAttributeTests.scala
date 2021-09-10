@@ -2,7 +2,7 @@ package code.api.v4_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateBankAttribute, CanDeleteBankAttribute, CanUpdateBankAttribute}
+import code.api.util.ApiRole.{CanCreateBankAttribute, CanDeleteBankAttribute, CanGetBankAttribute, CanUpdateBankAttribute}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
@@ -34,6 +34,7 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createBankAttribute))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateBankAttribute))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteBankAttribute))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getBankAttributes))
 
   lazy val bankId = randomBankId
 
@@ -55,8 +56,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       And("We should get a message: " + s"$CanCreateBankAttribute entitlement required")
       responseGet.code should equal(403)
       responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanCreateBankAttribute)
-      }
     }
+  }
 
 
   feature(s"Assuring that endpoint $ApiEndpoint2 works as expected - $VersionOfApi") {
@@ -77,8 +78,8 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       And("We should get a message: " + s"$CanUpdateBankAttribute entitlement required")
       responseGet.code should equal(403)
       responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanUpdateBankAttribute)
-      }
     }
+  }
 
 
 
@@ -100,8 +101,30 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       And("We should get a message: " + s"$CanDeleteBankAttribute entitlement required")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanDeleteBankAttribute)
-      }
     }
+  }
+
+  
+  feature(s"Assuring that endpoint $ApiEndpoint4 works as expected - $VersionOfApi") {
+    scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint4, VersionOfApi) {
+      When("We make the request")
+      val request = (v4_0_0_Request / "banks" / bankId / "attributes").GET
+      val response = makeGetRequest(request)
+      Then("We should get a 401")
+      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      response.code should equal(401)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint4 without proper role - Authorized access", ApiEndpoint4, VersionOfApi) {
+      When("We make the request")
+      val request = (v4_0_0_Request / "banks" / bankId / "attributes").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 403")
+      And("We should get a message: " + s"$CanGetBankAttribute entitlement required")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetBankAttribute)
+    }
+  }
 
 
  }
