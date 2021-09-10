@@ -731,6 +731,7 @@ case class BankAttributeResponseJsonV400(
                                           value: String,
                                           is_active: Option[Boolean]
                                         )
+case class BankAttributesResponseJsonV400(bank_attributes: List[BankAttributeResponseJsonV400])
 case class BankAttributeBankResponseJsonV400(name: String,
                                              value: String)
 case class BankAttributesResponseJson(list: List[BankAttributeBankResponseJsonV400])
@@ -1469,7 +1470,8 @@ object JSONFactory400 {
       value = bankAttribute.value,
       is_active = bankAttribute.isActive
     )
-  
+  def createBankAttributesJson(bankAttributes: List[BankAttribute]): BankAttributesResponseJsonV400 =
+    BankAttributesResponseJsonV400(bankAttributes.map(createBankAttributeJson))
 
   def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
     ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))
