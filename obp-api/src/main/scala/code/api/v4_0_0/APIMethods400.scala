@@ -5779,24 +5779,26 @@ trait APIMethods400 {
          |
          |Get one product fee by its id.
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(false)}
          |
          |""",
       EmptyBody,
       productFeeResponseJsonV400,
       List(
-        $UserNotLoggedIn,
         $BankNotFound,
-        UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle),
-      Some(List(canGetProductFee)))
+      List(apiTagProduct, apiTagNewStyle)
+    )
 
     lazy val getProductFee : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonGet _ => {
         cc =>
           for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
             (productFee, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
           } yield {
             (createProductFeeJson(productFee), HttpCode.`200`(callContext))
@@ -5813,24 +5815,26 @@ trait APIMethods400 {
       "Get Product Fees",
       s"""Get Product Fees
          |
-         |${authenticationRequiredMessage(true)}
+         |${authenticationRequiredMessage(false)}
          |
          |""",
       EmptyBody,
       productFeesResponseJsonV400,
       List(
-        $UserNotLoggedIn,
         $BankNotFound,
-        UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle),
-      Some(List(canGetProductFee)))
+      List(apiTagProduct, apiTagNewStyle)
+    )
 
     lazy val getProductFees : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "fees" :: Nil JsonGet _ => {
         cc =>
           for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
             (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(BankId(bankId), ProductCode(productCode), Some(cc))
           } yield {
             (createProductFeesJson(productFees), HttpCode.`200`(callContext))

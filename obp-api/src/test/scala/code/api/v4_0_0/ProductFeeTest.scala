@@ -202,32 +202,17 @@ class ProductFeeTest extends V400ServerSetup {
       // then we getProductFees
       val requestGetProductFees = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees").GET 
       val responseGetProductFees = makeGetRequest(requestGetProductFees)
-      responseGetProductFees.code should equal(401)
-      responseGetProductFees.body.toString contains(UserNotLoggedIn) should be (true)
+      responseGetProductFees.code should equal(200)
       
-      {
-        val requestGetProductFees = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees").GET <@(user1)
-        val responseGetProductFees = makeGetRequest(requestGetProductFees)
-        responseGetProductFees.code should equal(403)
-        responseGetProductFees.body.toString contains(UserHasMissingRoles) should be (true)
-        responseGetProductFees.body.toString contains(canGetProductFee.toString()) should be (true)
-      }
 
       // then we getProductFee
       val productFeeId = "xxx"
       val requestGetProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees" / productFeeId).GET 
       val responseGetProductFee = makeGetRequest(requestGetProductFee)
-      responseGetProductFee.code should equal(401)
-      responseGetProductFee.body.toString contains(UserNotLoggedIn) should be (true)
+      responseGetProductFee.code should equal(404)
+      responseGetProductFee.body.toString contains(ProductFeeNotFoundById) should be (true)
       
-      {
-        val requestGetProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees" / productFeeId).GET <@(user1)
-        val responseGetProductFee = makeGetRequest(requestGetProductFee)
-        responseGetProductFee.code should equal(403)
-        responseGetProductFee.body.toString contains(UserHasMissingRoles) should be (true)
-        responseGetProductFee.body.toString contains(canGetProductFee.toString()) should be (true)
-      }
-
+    
       // then we updateProductFee
       val requestPutProductFee = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees" / productFeeId).PUT 
       val updatedName = "test Case 123"
