@@ -1,5 +1,7 @@
 package code.token
 
+import java.util.Date
+
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -9,7 +11,8 @@ object MappedOpenIDConnectTokensProvider extends OpenIDConnectTokensProvider {
                   idToken: String,
                   refreshToken: String,
                   scope: String,
-                  expiresIn: Long): Box[OpenIDConnectToken] = Box.tryo {
+                  expiresIn: Long,
+                  authUserPrimaryKey: Long): Box[OpenIDConnectToken] = Box.tryo {
     OpenIDConnectToken.create
         .TokenType(tokenType.toString())
         .AccessToken(accessToken)
@@ -17,8 +20,12 @@ object MappedOpenIDConnectTokensProvider extends OpenIDConnectTokensProvider {
         .RefreshToken(refreshToken)
         .Scope(scope)
         .ExpiresIn(expiresIn)
+        .AuthUserPrimaryKey(authUserPrimaryKey)
       .saveMe()
   }
+  def getOpenIDConnectTokenByAuthUser(authUserPrimaryKey: Long) =
+    OpenIDConnectToken.findAll(By(OpenIDConnectToken.AuthUserPrimaryKey, authUserPrimaryKey))
+      .sortBy(_.createdAt.get)(Ordering[Date].reverse).headOption
 
 }
 
@@ -31,6 +38,7 @@ class OpenIDConnectToken extends OpenIDConnectTokenTrait with LongKeyedMapper[Op
   object Scope extends MappedString(this, 250)
   object TokenType extends MappedString(this, 250)
   object ExpiresIn extends MappedLong(this)
+  object AuthUserPrimaryKey extends MappedLong(this)
 
   override def accessToken: String = AccessToken.get
   override def idToken: String = IDToken.get
@@ -38,6 +46,7 @@ class OpenIDConnectToken extends OpenIDConnectTokenTrait with LongKeyedMapper[Op
   override def scope: String = Scope.get
   override def tokenType: String = TokenType.get
   override def expiresIn: Long = ExpiresIn.get
+  override def authUserPrimaryKey: Long = AuthUserPrimaryKey.get
 
 }
 

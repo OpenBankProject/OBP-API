@@ -28,7 +28,7 @@ package code.model.dataAccess
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
-import code.api.util.APIUtil.{hasAnOAuthHeader, validatePasswordOnCreation, logger, _}
+import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper
@@ -37,6 +37,7 @@ import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
+import code.token.TokensOpenIDConnect
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -486,9 +487,22 @@ import net.liftweb.util.Helpers._
      getCurrentUser match {
        case Full(user) if user.provider.contains("google") => user.emailAddress
        case Full(user) if user.provider.contains("yahoo") => user.emailAddress
+       case Full(user) if user.provider.contains("microsoft") => user.emailAddress
        case Full(user) => user.name
        case _ => "" //TODO need more error handling for different user cases
      }
+  }
+  
+  def getIDTokenOfCurrentUser(): String = {
+    if(APIUtil.getPropsAsBoolValue("openid_connect.show_tokens", false)) {
+      AuthUser.currentUser match {
+        case Full(authUser) =>
+          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id.get).map(_.idToken).getOrElse("")
+        case _ => ""
+      }
+    } else { 
+      ""
+    }
   }
   
   /**

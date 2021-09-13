@@ -14,7 +14,10 @@ trait OpenIDConnectTokensProvider {
                   idToken: String,
                   refreshToken: String,
                   scope: String,
-                  expiresIn: Long): Box[OpenIDConnectToken]
+                  expiresIn: Long, 
+                  authUserPrimaryKey: Long): Box[OpenIDConnectToken]
+  
+  def getOpenIDConnectTokenByAuthUser(authUserPrimaryKey: Long): Box[OpenIDConnectToken]
 }
 
 trait OpenIDConnectTokenTrait {
@@ -24,4 +27,5 @@ trait OpenIDConnectTokenTrait {
   def scope: String
   def tokenType: String
   def expiresIn: Long
+  def authUserPrimaryKey: Long
 }
