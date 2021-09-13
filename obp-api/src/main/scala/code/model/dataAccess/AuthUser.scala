@@ -501,7 +501,7 @@ import net.liftweb.util.Helpers._
         case _ => ""
       }
     } else { 
-      ""
+      "This information is not allowed at this instance."
     }
   }
   
