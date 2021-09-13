@@ -138,14 +138,12 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val response400 = makePutRequest(request400, write(json))
     response400.code should equal(201)
     val product = response400.body.extract[ProductJsonV400]
-    product.code shouldBe code
+    product.product_code shouldBe code
     product.parent_product_code shouldBe json.parent_product_code
     product.bank_id shouldBe bankId
     product.name shouldBe json.name
     product.more_info_url shouldBe json.more_info_url
     product.terms_and_conditions_url shouldBe json.terms_and_conditions_url
-    product.details shouldBe json.details
-    product.description shouldBe json.description
     Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     product
   }
@@ -156,9 +154,8 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       parent_product_code = "",
       more_info_url = "www.example.com/prod1/more-info.html",
       terms_and_conditions_url = "www.example.com/prod1/terms_and_conditions_url.html",
-      details = "Details",
       description = "Description",
-      meta = SwaggerDefinitionsJSON.metaJson
+      meta = SwaggerDefinitionsJSON.metaJson,
     )
     val product: ProductJsonV400 =
       createProductViaEndpoint(
@@ -173,7 +170,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     )
     val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
     val requestCreate310 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId /
-      "products" / product.code / "attribute").POST <@(user1)
+      "products" / product.product_code / "attribute").POST <@(user1)
     val responseCreate310 = makePostRequest(requestCreate310, write(accountAttributeJson))
     Then("We should get a 201")
     responseCreate310.code should equal(201)

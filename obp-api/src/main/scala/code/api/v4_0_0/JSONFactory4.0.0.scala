@@ -54,11 +54,13 @@ import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import code.users.UserInvitation
-import com.openbankproject.commons.model.{DirectDebitTrait, _}
+import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
+import net.liftweb.mapper.By
 
 import scala.collection.immutable.List
+import scala.math.BigDecimal
 import scala.util.Try
 
 
@@ -571,15 +573,15 @@ case class MySpaces(
 
 case class ProductJsonV400(
   bank_id: String,
-  code: String,
+  product_code: String,
   parent_product_code: String,
   name: String,
   more_info_url: String,
   terms_and_conditions_url: String,
-  details: String,
   description: String,
   meta: MetaJsonV140,
-  product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]]
+  attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]],
+  fees: Option[List[ProductFeeJsonV400]]
 )
 
 case class ProductsJsonV400(products: List[ProductJsonV400])
@@ -589,9 +591,8 @@ case class PutProductJsonV400(
   name: String,
   more_info_url: String,
   terms_and_conditions_url: String,
-  details: String,
   description: String,
-  meta: MetaJsonV140
+  meta: MetaJsonV140,
 )
 case class CounterpartyJson400(
                                  name: String,
@@ -680,19 +681,6 @@ case class JsonSchemaV400(
 case class JsonValidationV400(operation_id: String, json_schema: JsonSchemaV400)
 // Validation related END
 
-
-case class ProductJsonV400b(bank_id: String,
-                           code : String,
-                           parent_product_code : String,
-                           name : String,
-                           category: String,
-                           family : String,
-                           super_family : String,
-                           more_info_url: String,
-                           details: String,
-                           description: String,
-                           meta : MetaJsonV140,
-                           product_attributes: Option[List[ProductAttributeResponseWithoutBankIdJsonV400]])
 case class ProductAttributeJsonV400(
                                      name: String,
                                      `type`: String,
@@ -735,6 +723,35 @@ case class BankAttributesResponseJsonV400(bank_attributes: List[BankAttributeRes
 case class BankAttributeBankResponseJsonV400(name: String,
                                              value: String)
 case class BankAttributesResponseJson(list: List[BankAttributeBankResponseJsonV400])
+
+case class ProductFeeValueJsonV400(
+  currency: String,
+  amount: BigDecimal,
+  frequency: String,
+  `type`: String,
+)
+
+case class ProductFeeJsonV400(
+  product_fee_id:Option[String],
+  name: String,
+  is_active: Boolean,
+  more_info: String,
+  value:ProductFeeValueJsonV400,
+)
+
+case class ProductFeeResponseJsonV400(
+  bank_id: String,
+  product_code: String,
+  product_fee_id: String,
+  name: String,
+  is_active: Boolean,
+  more_info: String,
+  value:ProductFeeValueJsonV400,
+)
+
+case class ProductFeesResponseJsonV400(
+  product_fees: List[ProductFeeResponseJsonV400]
+)
 
 case class IbanCheckerJsonV400(
                                 is_valid: Boolean,
@@ -1472,6 +1489,27 @@ object JSONFactory400 {
     )
   def createBankAttributesJson(bankAttributes: List[BankAttribute]): BankAttributesResponseJsonV400 =
     BankAttributesResponseJsonV400(bankAttributes.map(createBankAttributeJson))
+  
+    
+  def createProductFeeJson(productFee: ProductFeeTrait): ProductFeeResponseJsonV400 =
+    ProductFeeResponseJsonV400(
+      bank_id = productFee.bankId.value,
+      product_code = productFee.productCode.value,
+      product_fee_id = productFee.productFeeId,
+      name = productFee.name,
+      is_active = productFee.isActive,
+      more_info = productFee.moreInfo,
+      value = ProductFeeValueJsonV400(
+        currency = productFee.currency,
+        amount = productFee.amount,
+        frequency= productFee.frequency,
+        `type`= productFee.`type`
+      )
+    )
+
+  def createProductFeesJson(productFees: List[ProductFeeTrait]): ProductFeesResponseJsonV400 =
+    ProductFeesResponseJsonV400(productFees.map(createProductFeeJson))
+    
 
   def createApiCollectionEndpointsJsonV400(apiCollectionEndpoints: List[ApiCollectionEndpointTrait]) = {
     ApiCollectionEndpointsJson400(apiCollectionEndpoints.map(apiCollectionEndpoint => createApiCollectionEndpointJsonV400(apiCollectionEndpoint)))
@@ -1595,33 +1633,42 @@ object JSONFactory400 {
   def createProductJson(product: Product) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
-      code = product.code.value,
+      product_code = product.code.value,
       parent_product_code = product.parentProductCode.value,
       name = product.name,
       more_info_url = product.moreInfoUrl,
       terms_and_conditions_url = product.termsAndConditionsUrl,
-      details = product.details,
       description = product.description,
       meta = createMetaJson(product.meta),
+      None,
       None
     )
   }
   def createProductsJson(productsList: List[Product]) : ProductsJsonV400 = {
-    ProductsJsonV400(productsList.map(createProductJson))
-  }
+    ProductsJsonV400(productsList.map(createProductJson))}
 
-  def createProductJson(product: Product, productAttributes: List[ProductAttribute]) : ProductJsonV400 = {
+  def createProductJson(product: Product, productAttributes: List[ProductAttribute], productFees:List[ProductFeeTrait]) : ProductJsonV400 = {
     ProductJsonV400(
       bank_id = product.bankId.toString,
-      code = product.code.value,
+      product_code = product.code.value,
       parent_product_code = product.parentProductCode.value,
       name = product.name,
       more_info_url = product.moreInfoUrl,
       terms_and_conditions_url = product.termsAndConditionsUrl,
-      details = product.details,
       description = product.description,
       meta = createMetaJson(product.meta),
-      product_attributes = Some(createProductAttributesJson(productAttributes))
+      attributes = Some(createProductAttributesJson(productAttributes)),
+      fees = Some(productFees.map(productFee =>ProductFeeJsonV400(
+        product_fee_id= Some(productFee.productFeeId),
+        name = productFee.name,
+        is_active = productFee.isActive,
+        more_info = productFee.moreInfo,
+        value = ProductFeeValueJsonV400(
+        currency = productFee.currency,
+        amount = productFee.amount,
+        frequency = productFee.frequency,
+        `type` = productFee.`type`
+      ))))
     )
   }
 }

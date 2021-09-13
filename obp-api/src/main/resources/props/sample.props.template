@@ -474,6 +474,9 @@ webui_override_style_sheet =
 ## Link to agree to Terms & Conditions, shown on signup page
 webui_agree_terms_url =
 
+## The Support Email, shown in the bottom page
+#webui_support_email=contact@openbankproject.com
+
 ## Link to Privacy Policy, shown in the bottom page
 #webui_privacy_policy_url =
 

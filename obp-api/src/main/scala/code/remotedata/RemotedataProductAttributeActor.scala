@@ -30,15 +30,15 @@ class RemotedataProductAttributeActor extends Actor with ObpActorHelper with Mdc
             productCode: ProductCode,
             productAttributeId: Option[String],
             name: String,
-            attributType: ProductAttributeType.Value,
+            attributeType: ProductAttributeType.Value,
             value: String, 
             isActive: Option[Boolean]) =>
-      logger.debug(s"createOrUpdateProductAttribute(${bankId}, ${productCode}, ${productAttributeId}, ${name}, ${attributType}, ${value}, ${isActive})")
+      logger.debug(s"createOrUpdateProductAttribute(${bankId}, ${productCode}, ${productAttributeId}, ${name}, ${attributeType}, ${value}, ${isActive})")
       mapper.createOrUpdateProductAttribute(bankId,
         productCode,
         productAttributeId,
         name,
-        attributType,
+        attributeType,
         value, 
         isActive) pipeTo sender
 

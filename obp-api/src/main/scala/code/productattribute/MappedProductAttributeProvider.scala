@@ -30,7 +30,7 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
                                               productCode: ProductCode,
                                               productAttributeId: Option[String],
                                               name: String,
-                                              attributType: ProductAttributeType.Value,
+                                              attributeType: ProductAttributeType.Value,
                                               value: String,
                                               isActive: Option[Boolean]): Future[Box[ProductAttribute]] =  {
      productAttributeId match {
@@ -40,7 +40,7 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
               attribute.mBankId(bankId.value)
                 .mCode(productCode.value)
                 .mName(name)
-                .mType(attributType.toString)
+                .mType(attributeType.toString)
                 .mValue(value)
                 .IsActive(isActive.getOrElse(true))
                 .saveMe()
@@ -54,7 +54,7 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
             .mBankId(bankId.value)
             .mCode(productCode.value)
             .mName(name)
-            .mType(attributType.toString())
+            .mType(attributeType.toString())
             .mValue(value)
             .IsActive(isActive.getOrElse(true))
             .saveMe()
