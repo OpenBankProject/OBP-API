@@ -84,7 +84,6 @@ object Migration extends MdcLoggable {
       populateTheFieldIsActiveAtProductAttribute(startedBeforeSchemifier)
       alterColumnUsernameProviderFirstnameAndLastnameAtAuthUser(startedBeforeSchemifier)
       alterColumnEmailAtResourceUser(startedBeforeSchemifier)
-      alterColumnCdeAndParentProductCodeAtMappedProduct(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -281,17 +280,6 @@ object Migration extends MdcLoggable {
         val name = nameOf(alterColumnEmailAtResourceUser(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfResourceUser.alterColumnEmail(name)
-        }
-      }
-    }
-    private def alterColumnCdeAndParentProductCodeAtMappedProduct(startedBeforeSchemifier: Boolean): Boolean = {
-      if(startedBeforeSchemifier == true) {
-        logger.warn(s"Migration.database.alterColumnCdeAndParentProductCodeAtMappedProduct(true) cannot be run before Schemifier.")
-        true
-      } else {
-        val name = nameOf(alterColumnCdeAndParentProductCodeAtMappedProduct(startedBeforeSchemifier))
-        runOnce(name) {
-          MigrationOfProduct.alterColumnsCodeAndPrentProductCode(name)
         }
       }
     }

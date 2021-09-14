@@ -27,8 +27,8 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   override def getSingleton = MappedProduct
 
   object mBankId extends UUIDString(this) // combination of this
-  object mCode extends MappedString(this, 100)   // and this is unique
-  object mParentProductCode extends MappedString(this, 100)   // and this is unique
+  object mCode extends MappedString(this, 50)   // and this is unique
+  object mParentProductCode extends MappedString(this, 50)   // and this is unique
 
   object mName extends MappedString(this, 125)
 
