@@ -2216,6 +2216,55 @@ object Glossary extends MdcLoggable  {
 |
 """.stripMargin)
 
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Endpoint",
+		description =
+			s"""
+|Dynamic Endpoint, you can create dynamic endpoints by the swagger files.
+|All the endpoints defined in the swagger file, will be created in OBP sandbox.
+|There will be two different modes of these created endpoints.
+|
+|If the host of swagger is dynamic_entity, then you need link the swagger fields to the dynamic entity fields,
+|please check *Endpoint Mapping* endpoints.
+|
+|If the host of swagger is obp_mock, every dynamic endpoint will return example response of swagger.
+|If you need to link the response to external resource, please check * Method Routing* endpoints.
+|
+|
+|Dynamic Endpoint can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). 
+|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|
+|Upon successful creation of a Dynamic Endpoint, OBP automatically:
+|
+|*Creates Roles to guard the above endpoints.
+|*Granted yourself the entitlements to get the access to these endpoints.
+|
+|The following videos are available:
+|
+|	* [Introduction to Dynamic Endpoints](https://vimeo.com/426235612)
+|	* [Features of Dynamic Endpoints](https://vimeo.com/444133309)
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Endpoint Mapping",
+		description =
+			s"""
+   |This can be used to map the dynamic entity fields and dynamic endpoint fields.
+   |
+   |When you create the dynamic endpoint, and set `host` of swagger to dynamic_entity. 
+   |
+   |Then you can use these endpoints to map dynamic endpoint response to dynamic entity model.
+   |
+   |Check the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) json body, you need to first know the operation_id
+   |
+   |and you can prepare the request_mapping and response_mapping objects. 
+   |
+	 |Details better to see the video: 
+	 |
+	 |	* [Endpoint Mapping -step1-getOne:GetAll](https://vimeo.com/553369108)
+   |""".stripMargin)
+
 
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
