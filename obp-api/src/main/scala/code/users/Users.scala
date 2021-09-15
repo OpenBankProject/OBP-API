@@ -46,6 +46,7 @@ trait Users {
 
   def getUserByEmail(email: String) : Box[List[ResourceUser]]
   def getUserByEmailFuture(email: String) : Future[List[(ResourceUser, Box[List[Entitlement]])]]
+  def getUsersByEmail(email: String) : Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]]
 
   def getAllUsers() : Box[List[ResourceUser]]
 
@@ -80,6 +81,7 @@ class RemotedataUsersCaseClasses {
   case class getUserByUserNameFuture(userName : String)
   case class getUserByEmail(email : String)
   case class getUserByEmailFuture(email : String)
+  case class getUsersByEmail(email : String)
   case class getAllUsers()
   case class getAllUsersF(queryParams: List[OBPQueryParam])
   case class getUsers(queryParams: List[OBPQueryParam])

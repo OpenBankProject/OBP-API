@@ -3447,6 +3447,38 @@ trait APIMethods400 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      getUsersByEmail,
+      implementedInApiVersion,
+      nameOf(getUsersByEmail),
+      "GET",
+      "/users/email/EMAIL/terminator",
+      "Get Users by Email Address",
+      s"""Get users by email address
+         |
+         |${authenticationRequiredMessage(true)}
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJsonV400,
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+
+    lazy val getUsersByEmail: OBPEndpoint = {
+      case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            users <- Users.users.vend.getUsersByEmail(email)
+          } yield {
+            (JSONFactory400.createUsersJson(users), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       getUsers,
       implementedInApiVersion,

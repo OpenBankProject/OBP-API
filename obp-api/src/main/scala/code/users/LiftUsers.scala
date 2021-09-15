@@ -111,6 +111,20 @@ object LiftUsers extends Users with MdcLoggable{
       (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
     }
   }
+  
+  override def getUsersByEmail(email: String): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]] = Future {
+    val users = ResourceUser.findAll(By(ResourceUser.email, email))
+    for {
+      user <- users
+    } yield {
+      val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
+      val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "accept_marketing_info")
+      val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "terms_and_conditions")
+      val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "privacy_conditions")
+      val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+      (user, entitlements, Some(agreements))
+    }
+  }
 
   override def getUserByEmailFuture(email: String): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
     Future {
