@@ -95,7 +95,7 @@ class ProductFee extends ProductFeeTrait with LongKeyedMapper[ProductFee] with I
   
   object ProductFeeId extends UUIDString(this) 
 
-  object Name extends MappedString(this, 50)
+  object Name extends MappedString(this, 100)
   
   object IsActive extends MappedBoolean(this) {
     override def defaultValue = true
