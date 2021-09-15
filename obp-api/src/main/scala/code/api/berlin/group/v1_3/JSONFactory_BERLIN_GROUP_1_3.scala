@@ -51,7 +51,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
 //                                 linkedAccounts: String ="string",
 //                                 usage: String ="PRIV",
 //                                 details: String ="",
-                                 balances: CoreAccountBalancesJson,
+//                                 balances: CoreAccountBalancesJson,// We put this under the _links, not need to show it here.
                                  _links: CoreAccountLinksJsonV13,
   )
 
@@ -277,14 +277,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
-        val balance =
-          CoreAccountBalancesJson(
-            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
-            balanceType = APIUtil.stringOrNull(x.accountType),
-            lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
-            referenceDate = APIUtil.dateOrNull(x.lastUpdate),
-            lastCommittedTransaction = ""
-          )
+      
         CoreAccountJsonV13(
           resourceId = x.accountId.value,
           iban = iBan,
@@ -294,7 +287,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           bic = getBicFromBankId(x.bankId.value),
           cashAccountType = x.accountType,
           product = x.accountType,
-          balances = balance,
           _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances")) 
         )
      }
@@ -306,14 +298,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       x =>
         val (iBan: String, bBan: String) = getIbanAndBban(x)
 
-        val balance =
-          CoreAccountBalancesJson(
-            balanceAmount = AmountOfMoneyV13(x.currency,x.balance.toString()),
-            balanceType = APIUtil.stringOrNull(x.accountType),
-            lastChangeDateTime= APIUtil.dateOrNull(x.lastUpdate),
-            referenceDate = APIUtil.dateOrNull(x.lastUpdate),
-            lastCommittedTransaction = "String"
-          )
         CoreAccountJsonV13(
           resourceId = x.accountId.value,
           iban = iBan,
@@ -323,7 +307,6 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
           bic = getBicFromBankId(x.bankId.value),
           cashAccountType = x.accountType,
           product = x.accountType,
-          balances = balance,
           _links = CoreAccountLinksJsonV13(LinkHrefJson(s"/${OBP_BERLIN_GROUP_1_3.apiVersion.urlPrefix}/${OBP_BERLIN_GROUP_1_3.version}/accounts/${x.accountId.value}/balances"))
         )
     }
@@ -359,12 +342,12 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     (iBan, bBan)
   }
 
-  def createCardAccountBalanceJSON(bankAccount: BankAccount): CardAccountBalancesV13 = {
-    val accountBalancesV13 = createAccountBalanceJSON(bankAccount: BankAccount)
+  def createCardAccountBalanceJSON(bankAccount: BankAccount, accountBalances: AccountBalances): CardAccountBalancesV13 = {
+    val accountBalancesV13 = createAccountBalanceJSON(bankAccount: BankAccount, accountBalances)
     CardAccountBalancesV13(accountBalancesV13.account,accountBalancesV13.`balances`)
   }
   
-  def createAccountBalanceJSON(bankAccount: BankAccount): AccountBalancesV13 = {
+  def createAccountBalanceJSON(bankAccount: BankAccount, accountBalances: AccountBalances): AccountBalancesV13 = {
 
     val (iban: String, bban: String) = getIbanAndBban(bankAccount)
 
@@ -372,17 +355,14 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
       account = FromAccount(
         iban = iban,
       ),
-      `balances` = AccountBalance(
-        balanceAmount = AmountOfMoneyV13(
-          currency = APIUtil.stringOrNull(bankAccount.currency),
-          amount = bankAccount.balance.toString()
-        ),
-        balanceType = APIUtil.stringOrNull(bankAccount.accountType),
+      `balances` = accountBalances.balances.map(accountBalance => AccountBalance(
+        balanceAmount = AmountOfMoneyV13(accountBalance.balance.currency, accountBalance.balance.amount),
+        balanceType = accountBalance.balanceType,
         lastChangeDateTime = APIUtil.dateOrNull(bankAccount.lastUpdate),
         referenceDate = APIUtil.dateOrNull(bankAccount.lastUpdate),
         lastCommittedTransaction = "String"
-      ) :: Nil
-    ) 
+      ) 
+    ))
   }
   
   def createTransactionJSON(bankAccount: BankAccount, transaction : ModeratedTransaction, creditorAccount: CreditorAccountJson) : TransactionJsonV13 = {

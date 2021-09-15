@@ -99,6 +99,7 @@ object ErrorMessages {
   val FilterDateFormatError = s"OBP-10026: Failed to parse date string. Please use this format ${DateWithMsFormat.toPattern}!" // OBP-20026
   val FilterAnonFormatError = s"OBP-10028: anon parameter can only take two values: TRUE or FALSE!"
   val FilterDurationFormatError = s"OBP-10029: wrong value for `duration` parameter. Please send a positive integer (=>0)!"
+  val FilterIsDeletedFormatError = s"OBP-10036: is_deleted parameter can only take two values: TRUE or FALSE!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
   val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name: "
@@ -455,6 +456,11 @@ object ErrorMessages {
   val InvalidEndpointMapping = "OBP-36006: Invalid Endpoint Mapping. "
   // General Resource related messages above here
 
+  // User Invitation
+  val CannotCreateUserInvitation = "OBP-37081: Cannot create user invitation."
+  val CannotGetUserInvitation = "OBP-37882: Cannot get user invitation."
+  val CannotFindUserInvitation = "OBP-37883: Cannot find user invitation."
+
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
@@ -526,6 +532,8 @@ object ErrorMessages {
   val InternalServerError = "OBP-50015: The server encountered an unexpected condition which prevented it from fulfilling the request."
   val KafkaServerUnavailable = "OBP-50016: The kafka server is unavailable."
   val NotAllowedEndpoint = "OBP-50017: The endpoint is forbidden at this API instance."
+  val UnderConstructionError = "OBP-50018: Under Construction Error."
+  val DatabaseConnectionClosedError = "OBP-50019: Cannot connect to the OBP database."
 
 
   // Connector Data Exceptions (OBP-502XX)

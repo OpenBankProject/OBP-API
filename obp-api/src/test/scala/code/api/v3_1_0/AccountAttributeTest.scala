@@ -131,7 +131,10 @@ class AccountAttributeTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMessageText = UserHasMissingRoles + canCreateAccountAttributeAtOneBank
       And("error should be " + errorMessageText)
-      response310.body.extract[ErrorMessage].message should equal (errorMessageText)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canCreateAccountAttributeAtOneBank.toString()) should be (true)
+      
     }
     scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
@@ -163,7 +166,9 @@ class AccountAttributeTest extends V310ServerSetup {
       response310.code should equal(403)
       val errorMessageText = UserHasMissingRoles + canUpdateAccountAttribute
       And("error should be " + errorMessageText)
-      response310.body.extract[ErrorMessage].message should equal (errorMessageText)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canUpdateAccountAttribute.toString()) should be (true)
     }
   }
 

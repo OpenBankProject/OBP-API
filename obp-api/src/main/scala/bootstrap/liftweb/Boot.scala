@@ -118,6 +118,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
+import code.users.{UserAgreement, UserInvitation}
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
@@ -128,6 +129,7 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
+import javax.mail.{Authenticator, PasswordAuthentication}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -297,7 +299,7 @@ class Boot extends MdcLoggable {
       case true => // DB already exist
         // Migration Scripts are used to update the model of OBP-API DB to a latest version.
         // Please note that migration scripts are executed before Lift Mapper Schemifier
-        Migration.database.executeScripts()
+        Migration.database.executeScripts(startedBeforeSchemifier = true)
         logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
       case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
         logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
@@ -483,30 +485,31 @@ class Boot extends MdcLoggable {
 
     logger.info (s"props_identifier is : ${APIUtil.getPropsValue("props_identifier", "NONE-SET")}")
 
-
-    // Build SiteMap
-    val indexPage = APIUtil.getPropsValue("server_mode", "apis,portal") match {
-      case mode if mode == "portal" => List(Menu.i("Home") / "index")
-      case mode if mode == "apis" => List()
-      case mode if mode.contains("apis") && mode.contains("portal") => List(Menu.i("Home") / "index")
-      case _ => List(Menu.i("Home") / "index")
-    }
-    val sitemap = indexPage ::: List(
-          Menu.i("Plain") / "plain",
-          Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
-          	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
-          Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
-
-          Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
-          // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
-          Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-          Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
-          OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
-          Menu.i("INTRODUCTION") / "introduction",
-          Menu.i("add-user-auth-context-update-request") / "add-user-auth-context-update-request",
-          Menu.i("confirm-user-auth-context-update-request") / "confirm-user-auth-context-update-request"
+    val commonMap = List(Menu.i("Home") / "index") ::: List(
+      Menu.i("Plain") / "plain",
+      Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
+        submenus(Consumer.menus : _*),
+      Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
+      Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
+    
+      Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
+      Menu("User Invitation", "User Invitation") / "user-invitation",
+      // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
+      Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
+      Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
+      OAuthWorkedThanks.menu, //OAuth thanks page that will do the redirect
+      Menu.i("Introduction") / "introduction",
+      Menu.i("add-user-auth-context-update-request") / "add-user-auth-context-update-request",
+      Menu.i("confirm-user-auth-context-update-request") / "confirm-user-auth-context-update-request"
     ) ++ accountCreation ++ Admin.menus
+    
+    // Build SiteMap
+    val sitemap = APIUtil.getPropsValue("server_mode", "apis,portal") match {
+      case mode if mode == "portal" => commonMap
+      case mode if mode == "apis" => List()
+      case mode if mode.contains("apis") && mode.contains("portal") => commonMap
+      case _ => commonMap
+    }
 
     def sitemapMutators = AuthUser.sitemapMutator
 
@@ -569,6 +572,13 @@ class Boot extends MdcLoggable {
 
     implicit val formats = CustomJsonFormats.formats
     LiftRules.exceptionHandler.prepend{
+      case(_, r, e) if DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed => {
+        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
+        JsonResponse(
+          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+          500
+        )
+      }
       case(Props.RunModes.Development, r, e) => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
         JsonResponse(
@@ -615,7 +625,7 @@ class Boot extends MdcLoggable {
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
     // Please note that migration scripts are executed after Lift Mapper Schemifier
-    Migration.database.executeScripts()
+    Migration.database.executeScripts(startedBeforeSchemifier = false)
 
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
@@ -821,6 +831,8 @@ object ToSchemify {
     AccountAccess,
     ViewDefinition,
     ResourceUser,
+    UserInvitation,
+    UserAgreement,
     MappedComment,
     MappedTag,
     MappedWhereTag,

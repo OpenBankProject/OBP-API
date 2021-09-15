@@ -26,6 +26,9 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   // (same in LocalRecordConnectorTestSetup)
   // Tests should simply use the currently selected connector
   override protected def createBank(id : String) : Bank = {
+    //Note: we do not have the `UniqueIndex` for bank.id(permalink) yet, we but when we have getBankById endpoint,
+    //Better set only create one bank for one id.
+    MappedBank.findByBankId(BankId(id)).getOrElse(
         MappedBank.create
           .fullBankName(randomString(5))
           .shortBankName(randomString(5))
@@ -33,7 +36,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .national_identifier(randomString(5))
           .mBankRoutingScheme(randomString(5))
           .mBankRoutingAddress(randomString(5))
-          .saveMe
+          .saveMe)
   }
 
   override protected def createCounterparty(bankId: String, accountId: String, counterpartyObpRoutingAddress: String, isBeneficiary: Boolean, createdByUserId:String): CounterpartyTrait = {

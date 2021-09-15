@@ -320,6 +320,9 @@ object ApiRole {
   case class CanUseAccountFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUseAccountFirehoseAtAnyBank = CanUseAccountFirehoseAtAnyBank()
   
+  case class CanUseAccountFirehose(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUseAccountFirehose = CanUseAccountFirehose()
+  
   case class CanUseCustomerFirehoseAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUseCustomerFirehoseAtAnyBank = CanUseCustomerFirehoseAtAnyBank()
 
@@ -343,6 +346,9 @@ object ApiRole {
   
   case class CanLockUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canLockUser = CanLockUser()
+  
+  case class CanDeleteUser (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteUser = CanDeleteUser()
 
   case class CanReadUserLockedStatus(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadUserLockedStatus = CanReadUserLockedStatus()
@@ -456,11 +462,20 @@ object ApiRole {
   case class CanCreateDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateDynamicEntity = CanCreateDynamicEntity()
 
+  case class CanCreateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateBankLevelDynamicEntity = CanCreateBankLevelDynamicEntity()
+  
   case class CanUpdateDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateDynamicEntity = CanUpdateDynamicEntity()
+  
+  case class CanUpdateBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankLevelDynamicEntity = CanUpdateBankLevelDynamicEntity()
 
   case class CanDeleteDynamicEntity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicEntity = CanDeleteDynamicEntity()
+
+  case class CanDeleteBankLevelDynamicEntity(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankLevelDynamicEntity = CanDeleteBankLevelDynamicEntity()
 
   case class CanGetBankLevelDynamicEntities(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetBankLevelDynamicEntities = CanGetBankLevelDynamicEntities()
@@ -471,14 +486,29 @@ object ApiRole {
   case class CanGetDynamicEndpoints(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicEndpoints = CanGetDynamicEndpoints()
 
+  case class CanGetBankLevelDynamicEndpoint(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankLevelDynamicEndpoint = CanGetBankLevelDynamicEndpoint()
+  
+  case class CanGetBankLevelDynamicEndpoints(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankLevelDynamicEndpoints = CanGetBankLevelDynamicEndpoints()
+
   case class CanCreateDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateDynamicEndpoint = CanCreateDynamicEndpoint()
+
+  case class CanCreateBankLevelDynamicEndpoint(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateBankLevelDynamicEndpoint = CanCreateBankLevelDynamicEndpoint()
 
   case class CanUpdateDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateDynamicEndpoint = CanUpdateDynamicEndpoint()
 
+  case class CanUpdateBankLevelDynamicEndpoint(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankLevelDynamicEndpoint = CanUpdateBankLevelDynamicEndpoint()
+
   case class CanDeleteDynamicEndpoint(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicEndpoint = CanDeleteDynamicEndpoint()
+
+  case class CanDeleteBankLevelDynamicEndpoint(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankLevelDynamicEndpoint = CanDeleteBankLevelDynamicEndpoint()
   
   case class CanCreateResetPasswordUrl(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateResetPasswordUrl = CanCreateResetPasswordUrl()
@@ -713,6 +743,26 @@ object ApiRole {
 
   case class CanDeleteEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEndpointMapping = CanDeleteEndpointMapping()
+
+  case class CanCreateBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateBankLevelEndpointMapping = CanCreateBankLevelEndpointMapping()
+
+  case class CanUpdateBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankLevelEndpointMapping = CanUpdateBankLevelEndpointMapping()
+
+  case class CanGetBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetBankLevelEndpointMapping = CanGetBankLevelEndpointMapping()
+
+  case class CanGetAllBankLevelEndpointMappings(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetAllBankLevelEndpointMappings = CanGetAllBankLevelEndpointMappings()
+
+  case class CanDeleteBankLevelEndpointMapping(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteBankLevelEndpointMapping = CanDeleteBankLevelEndpointMapping()
+  
+  case class CanCreateUserInvitation(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateUserInvitation = CanCreateUserInvitation()  
+  case class CanGetUserInvitation(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetUserInvitation = CanGetUserInvitation()
 
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

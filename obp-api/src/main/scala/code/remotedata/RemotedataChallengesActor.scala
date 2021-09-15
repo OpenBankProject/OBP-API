@@ -31,8 +31,12 @@ class RemotedataChallengesActor extends Actor with ObpActorHelper with MdcLoggab
       logger.debug(s"validateChallenge($challengeId, $challengeAnswer, $userId)")
       sender ! (mapper.validateChallenge(challengeId, challengeAnswer, userId))  
       
+    case cc.getChallengesByTransactionRequestId(transactionRequestId: String)=>
+      logger.debug(s"getChallengesByTransactionRequestId($transactionRequestId)")
+      sender ! (mapper.getChallengesByTransactionRequestId(transactionRequestId))
+      
     case cc.getChallengesByConsentId(consentId: String)=>
-      logger.debug(s"validateChallenge($consentId)")
+      logger.debug(s"getChallengesByConsentId($consentId)")
       sender ! (mapper.getChallengesByConsentId(consentId))  
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)

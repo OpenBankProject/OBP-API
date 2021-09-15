@@ -15,7 +15,7 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DateFormat, Formats}
 import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{AccountBalance, AccountHeld, AccountId, CoreAccount, Customer, CustomerId}
+import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId}
 import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.http.S
@@ -415,6 +415,7 @@ object Helper{
         (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])||
         (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
         (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
+        (ownerType <:< typeOf[AccountBalances] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
         (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
     }
 

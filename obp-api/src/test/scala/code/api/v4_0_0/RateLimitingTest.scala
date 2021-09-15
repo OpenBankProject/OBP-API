@@ -235,18 +235,18 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         responseWithRole.code should equal(201)
 
         // Set Rate Limiting in case of a Dynamic Endpoint
-        val operationId = "OBPv4.0.0-dynamicEndpoint_GET_user_USERNAME"
-        val apiName = "dynamicEndpoint_GET_user_USERNAME"
+        val operationId = "OBPv4.0.0-dynamicEndpoint_GET_accounts_ACCOUNT_ID"
+        val apiName = "dynamicEndpoint_GET_accounts_ACCOUNT_ID"
         val apiVersion = "v4.0.0"
         val response01 = setRateLimiting(user1, callLimitJsonHour.copy(api_name = Some(apiName), api_version = Some(apiVersion)))
         Then("We should get a 200")
         response01.code should equal(200)
 
-        val requestDynamicEndpoint = baseRequest / "obp" / "v4.0.0" / "dynamic" / "user" / "NON_EXISTING_USERNAME"
+        val requestDynamicEndpoint = baseRequest / "obp" / "v4.0.0" / "dynamic" / "accounts" / "accountId"
         // 1st call dos NOT exceed rate limit
         When("We make the first call after update")
-        Then("We should get a 404")
-        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(404)
+        Then("We should get a 200")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(200)
         // 2nd call exceeds rate limit
         When("We make the second call after update")
         Then("We should get a 429")
@@ -259,12 +259,12 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
 
         // 1st call dos NOT exceed rate limit
         When("We make the first call after update")
-        Then("We should get a 404")
-        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(404)
+        Then("We should get a 200")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(200)
         // 2nd call dos NOT exceed rate limit
         When("We make the first call after update")
-        Then("We should get a 404")
-        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(404)
+        Then("We should get a 200")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(200)
     }
   }
 

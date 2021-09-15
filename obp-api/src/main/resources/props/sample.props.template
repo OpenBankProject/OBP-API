@@ -1,6 +1,9 @@
 #this is a sample props file you should edit and rename
 #see https://www.assembla.com/wiki/show/liftweb/Properties for all the naming options, or just use "default.props" in this same folder
 
+# See notes about WebUI Props below
+
+
 ### OBP-API configuration
 
 
@@ -84,7 +87,8 @@ connectorMethod.cache.ttl.seconds=40
 ## swagger file should not generated for every request, this is a time-to-live in seconds for the generated swagger of OBP api,
 ## this value also represent how many seconds before the new endpoints will be shown after upload a new DynamicEntity.
 ## So if you want the new endpoints shown timely, set this value to a small number.
-resourceDocsObp.cache.ttl.seconds=3600
+dynamicResourceDocsObp.cache.ttl.seconds=3600
+staticResourceDocsObp.cache.ttl.seconds=86400
 
 ## This can change the behavior of  `Get Resource Docs`/`Get API Glossary`. If we set it to `true`, OBP will check the authentication and CanReadResourceDoc/CanReadGlossary Role
 # the default value is false, so the `Get Resource Docs`/`Get API Glossary` is anonymous as default. 
@@ -336,6 +340,16 @@ BankMockKey=change_me
 # Add WebUiProps
 # Delete WebUiProps
 # Get WebUiProps
+
+# Please note: The non-commented-out webui_ props in this file are used to generate the default webui_ props used by the getWebUiProps endpoint which is used by API Manager -> Configurations -> WebUi Props
+# i.e. If you add a webui_ props in code but don't add it here, it will be missing from the API Manager screen where users can set it.
+
+# A note about WebUi Props precedence
+# If a database WebUI Props is found it will be used first.
+# If a database WebUI Props is not found, the version in the Props file will be used.
+# Note: Props can also be loaded from the environment.
+
+
 ####################################################################################
 
 
@@ -953,3 +967,97 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 
 # the alias prefix path for BerlinGroupV1.3 (OBP built-in is berlin-group/v1.3), the format must be xxx/yyy, eg: 0.6/v1 
 #berlin_group_v1.3_alias.path=
+
+
+# Support multiple brands on one instance. Note this needs checking on a clustered environment 
+#brands_enabled=false
+
+# Support removing the app type checkbox during consumer registration 
+#consumer_registration.display_app_type=true
+
+# if set this props, we can automatically grant the Entitlements required to use all the Dynamic Endpoint roles belonging 
+# to the bank_ids (Spaces) the User has access to via their validated email domain. Entitlements are generated /refreshed 
+# both following manual login and Direct Login token generation (POST).
+# the default value is empty
+#email_domain_to_space_mappings=
+# And here we provide an example to show how to prepare the mappings
+#email_domain_to_space_mappings=[ \
+#                         { \
+#                           "domain": "example.com", \
+#                           "bank_ids": [ \
+#                             "gh.29.uk", \
+#                             "gh.29.fr" \
+#                           ] \
+#                         }, \
+#                         { \
+#                           "domain": "example2.com", \
+#                           "bank_ids": [ \
+#                             "gh.29.uk", \
+#                             "gh.29.it" \
+#                           ] \
+#                         }\
+#                       ]\
+#
+# if set this props, we can automatically grant the Entitlements required to the User has access to via their validated email domain.
+# Entitlements are generated /refreshed both following manual login and Direct Login token generation (POST).
+# the default value is empty
+#email_domain_to_entitlement_mappings=
+# And here we provide an example to show how to prepare the mappings
+#email_domain_to_entitlement_mappings = [\
+#                                         {\
+#                                           "domain": "example.com",\
+#                                           "entitlements": [\
+#                                             {\
+#                                               "role_name": "CanReadResourceDoc",\
+#                                               "bank_id": ""\
+#                                             }\
+#                                           ]\
+#                                         }\
+#                                       ]\
+#
+
+
+# User Invitation Time To Live
+# user_invitation.ttl.seconds=86400
+
+# User (Developer) Invitation
+webui_post_user_invitation_submit_button_value=Register as a Developer
+webui_post_user_invitation_privacy_conditions_value=Privacy conditions..
+webui_post_user_invitation_terms_and_conditions_value=Terms and Conditions..
+webui_post_user_invitation_terms_and_conditions_checkbox_value=I agree to the above Developer Terms and Conditions
+
+webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\
+                                                  <html>\
+                                                  <head>\
+                                                  <style>\
+                                                  .a {\
+                                                    border: none;\
+                                                    color: white;\
+                                                    padding: 15px 32px;\
+                                                    text-align: center;\
+                                                    text-decoration: none;\
+                                                    display: inline-block;\
+                                                    font-size: 16px;\
+                                                    margin: 4px 2px;\
+                                                    cursor: pointer;\
+                                                  }\
+                                                  \
+                                                  .a1 {background-color: #4CAF50;} /* Green */\
+                                                  .a2 {background-color: #008CBA;} /* Blue */\
+                                                  </style>\
+                                                  </head>\
+                                                  <body>\
+                                                  <img src="https://static.openbankproject.com/images/OBP_full_web_25pc.png"></img>\
+                                                  <hr></hr><br></br>\
+                                                  <p>Hi ${emailRecipient},<br></br>\
+                                                  Welcome to the Open Bank Project API. Your account has been registered. Please use the below link to activate it.</p>\
+                                                  <a href="${activateYourAccount}" class="a a1">Activate your account</a>\
+                                                  <p>Our operations team has granted you the appropriate access to the OBP-API. If you have any questions, or you need any assistance, please contact our support.</p>\
+                                                  <p>Thanks,<br></br> Your OBP API team</p><br></br>\
+                                                  <hr></hr>\
+                                                  <p>\
+                                                  Please do not reply to this email. Should you wish to contact us, please raise a ticket at our support page. We maintain strict security standards and procedures to prevent unauthorised access to information about you. We will never contact you by email or otherwise and ask you to validate personal information such as your user ID, password or account numbers. This e-mail is confidential. It may also be legally privileged. If you are not the addressee you may not copy, forward, disclose or use any part of it. If you have received this message in error, please delete it and all copies from your system. Internet communications cannot be guaranteed to be timely, secure, error or virus-free. The sender does not accept liability for any errors or omissions.\
+                                                  </p>\
+                                                  </body>\
+                                                  </html>
+                                                  

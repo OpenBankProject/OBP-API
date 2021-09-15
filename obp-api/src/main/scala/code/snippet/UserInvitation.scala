@@ -1,0 +1,201 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2019, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+package code.snippet
+
+import java.time.{Duration, ZoneId, ZoneOffset, ZonedDateTime}
+
+import code.api.util.APIUtil
+import code.model.dataAccess.{AuthUser, ResourceUser}
+import code.users
+import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
+import code.util.Helper
+import code.util.Helper.MdcLoggable
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import com.openbankproject.commons.model.User
+import net.liftweb.common.Box
+import net.liftweb.http.{RequestVar, S, SHtml}
+import net.liftweb.util.CssSel
+import net.liftweb.util.Helpers._
+
+import scala.collection.immutable.List
+
+class UserInvitation extends MdcLoggable {
+
+  private object firstNameVar extends RequestVar("")
+  private object lastNameVar extends RequestVar("")
+  private object companyVar extends RequestVar("")
+  private object countryVar extends RequestVar("None")
+  private object devEmailVar extends RequestVar("")
+  private object usernameVar extends RequestVar("")
+  private object termsCheckboxVar extends RequestVar(false)
+  private object marketingInfoCheckboxVar extends RequestVar(false)
+  private object privacyCheckboxVar extends RequestVar(false)
+  
+  val ttl = APIUtil.getPropsAsLongValue("user_invitation.ttl.seconds", 86400)
+  
+  val registrationConsumerButtonValue: String = getWebUiPropsValue("webui_post_user_invitation_submit_button_value", "Register as a Developer")
+  val privacyConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_privacy_conditions_value", "Privacy conditions..")
+  val termsAndConditionsValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_value", "Terms and Conditions..")
+  val termsAndConditionsCheckboxValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_checkbox_value", "I agree to the above Developer Terms and Conditions")
+  
+  def registerForm: CssSel = {
+
+    val secretLink: Box[Long] = tryo {
+      S.param("id").getOrElse("0").toLong
+    }
+    val userInvitation: Box[users.UserInvitation] = UserInvitationProvider.userInvitationProvider.vend.getUserInvitationBySecretLink(secretLink.getOrElse(0))
+    firstNameVar.set(userInvitation.map(_.firstName).getOrElse("None"))
+    lastNameVar.set(userInvitation.map(_.lastName).getOrElse("None"))
+    val email = userInvitation.map(_.email).getOrElse("None")
+    devEmailVar.set(email)
+    companyVar.set(userInvitation.map(_.company).getOrElse("None"))
+    countryVar.set(userInvitation.map(_.country).getOrElse("None"))
+    usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
+
+    def submitButtonDefense(): Unit = {
+      val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
+      val createdAt = userInvitation.map(_.createdAt.get).getOrElse(time(239932800))
+      val timeOfCreation = ZonedDateTime.ofInstant(createdAt.toInstant(), ZoneId.systemDefault())
+      val timeDifference = Duration.between(verifyingTime, timeOfCreation)
+      logger.debug("User invitation TTL time: " + ttl)
+      logger.debug("User invitation expiration time: " + timeDifference.abs.getSeconds)
+      
+      if(secretLink.isEmpty || userInvitation.isEmpty) showErrorsForSecretLink()
+      else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
+      else if(timeDifference.abs.getSeconds > ttl) showErrorsForTtl()
+      else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
+      else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
+      else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
+      else {
+        // Resource User table
+        createResourceUser(
+          provider = "OBP-User-Invitation",
+          providerId = Some(usernameVar.is),
+          name = Some(firstNameVar.is + " " + lastNameVar.is),
+          email = Some(email),
+          userInvitationId = userInvitation.map(_.userInvitationId).toOption,
+          company = userInvitation.map(_.company).toOption
+        ).map{ u =>
+          // AuthUser table
+          createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
+          // Use Agreement table
+          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+            u.userId, privacyConditionsValue, termsAndConditionsValue, marketingInfoCheckboxVar.is)
+          // Set the status of the user invitation to "FINISHED"
+          UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
+          // Set a new password
+          val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
+          S.redirectTo(resetLink)
+        }
+        
+      }
+    }
+
+    def showError(usernameError: String) = {
+      S.error("register-consumer-errors", usernameError)
+      register &
+        "#register-consumer-errors *" #> {
+          ".error *" #>
+            List(usernameError).map({ e =>
+              ".errorContent *" #> e
+            })
+        }
+    }
+
+    def showErrorsForSecretLink() = {
+      showError(Helper.i18n("your.secret.link.is.not.valid"))
+    }
+    def showErrorsForUsername() = {
+      showError(Helper.i18n("unique.username"))
+    }
+    def showErrorsForStatus() = {
+      showError(Helper.i18n("user.invitation.is.already.finished"))
+    }
+    def showErrorsForTtl() = {
+      showError(Helper.i18n("user.invitation.is.expired"))
+    }
+    def showErrorsForTermsAndConditions() = {
+      showError(Helper.i18n("terms.and.conditions.are.not.selected"))
+    }
+    def showErrorsForPrivacyConditions() = {
+      showError(Helper.i18n("privacy.conditions.are.not.selected"))
+    }
+
+    def register = {
+      "form" #> {
+          "#country" #> SHtml.text(countryVar.is, countryVar(_)) &
+          "#firstName" #> SHtml.text(firstNameVar.is, firstNameVar(_)) &
+          "#lastName" #> SHtml.text(lastNameVar.is, lastNameVar(_)) &
+          "#companyName" #> SHtml.text(companyVar.is, companyVar(_)) &
+          "#devEmail" #> SHtml.text(devEmailVar, devEmailVar(_)) &
+          "#username" #> SHtml.text(usernameVar, usernameVar(_)) &
+          "#privacy" #> SHtml.textarea(privacyConditionsValue, privacyConditionsValue => privacyConditionsValue) &
+          "#privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_)) &
+          "#terms" #> SHtml.textarea(termsAndConditionsValue, termsAndConditionsValue => termsAndConditionsValue) &
+          "#terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_)) &
+          "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
+          "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
+      } &
+      "#register-consumer-success" #> ""
+    }
+    register
+  }
+
+  private def createAuthUser(user: User, firstName: String, lastName: String, password: String): Box[AuthUser] = tryo {
+    val newUser = AuthUser.create
+      .firstName(firstName)
+      .lastName(lastName)
+      .email(user.emailAddress)
+      .user(user.userPrimaryKey.value)
+      .username(user.idGivenByProvider)
+      .provider(user.provider)
+      .password(password)
+      .validated(true)
+    // Save the user
+    newUser.saveMe()
+  }
+
+  private def createResourceUser(provider: String, 
+                                 providerId: Option[String], 
+                                 name: Option[String], 
+                                 email: Option[String], 
+                                 userInvitationId: Option[String],
+                                 company: Option[String]
+                                ): Box[ResourceUser] = {
+    Users.users.vend.createResourceUser(
+      provider = provider,
+      providerId = providerId,
+      createdByConsentId = None,
+      name = name,
+      email = email,
+      userId = None,
+      createdByUserInvitationId = userInvitationId,
+      company = company
+    )
+  }
+  
+}

@@ -51,7 +51,9 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       val response400 = makeDeleteRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)
-      response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteAccountCascade)
+      val errorMessage = response400.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanDeleteAccountCascade.toString()) should be (true)
     }
   }
   feature(s"test $ApiEndpoint1 - Authorized access") {

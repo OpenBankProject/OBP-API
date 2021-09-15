@@ -31,7 +31,7 @@ function showIndicatorCookiePage(id)
 {
     var cookieValue = getCookieValue('we-use-cookies-indicator');
     //if the value of 'we-use-cookies-indicator' is not the same as we set before (set it '1' before). 
-    if (cookieValue!= undefined && cookieValue != '1')
+    if (cookieValue!= undefined && cookieValue != '1' && document.getElementById(id) != null)
     {
         //show the cookie page
         document.getElementById(id).style.display="block";

@@ -1,7 +1,6 @@
 package code.views
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.canUseAccountFirehose
 import code.model.dataAccess.{MappedBankAccount, ViewImpl, ViewPrivileges}
 import code.remotedata.RemotedataViews
 import code.views.MapperViews.getPrivateBankAccounts

@@ -47,8 +47,8 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
   def getConsumersFuture(): Future[List[Consumer]] =
     (actor ? cc.getConsumersFuture()).mapTo[List[Consumer]]
 
-  def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String], clientCertificate: Option[String] = None): Box[Consumer] = getValueFromFuture(
-    (actor ? cc.createConsumer(key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId, clientCertificate)).mapTo[Box[Consumer]]
+  def createConsumer(key: Option[String], secret: Option[String], isActive: Option[Boolean], name: Option[String], appType: Option[AppType], description: Option[String], developerEmail: Option[String], redirectURL: Option[String], createdByUserId: Option[String], clientCertificate: Option[String] = None, company: Option[String] = None): Box[Consumer] = getValueFromFuture(
+    (actor ? cc.createConsumer(key, secret, isActive, name, appType, description, developerEmail, redirectURL, createdByUserId, clientCertificate, company)).mapTo[Box[Consumer]]
   )
 
   def deleteConsumer(consumer: Consumer): Boolean =  getValueFromFuture(

@@ -98,7 +98,9 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateTaxResidence)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateTaxResidence)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanCreateTaxResidence.toString()) should be (true)
     }
     scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateTaxResidence.toString)
@@ -159,7 +161,9 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanGetTaxResidence)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetTaxResidence)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanGetTaxResidence.toString()) should be (true)
     }
     scenario("We will call the endpoint with the proper Role " + canGetTaxResidence, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetTaxResidence.toString)
@@ -182,7 +186,9 @@ class TaxResidenceTest extends V310ServerSetup {
       Then("We should get a 403")
       response310.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanDeleteTaxResidence)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteTaxResidence)
+      val errorMessage = response310.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (CanDeleteTaxResidence.toString()) should be (true)
     }
     scenario("We will call the endpoint with the proper Role " + canDeleteTaxResidence, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteTaxResidence.toString)
