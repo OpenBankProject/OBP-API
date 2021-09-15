@@ -1,6 +1,7 @@
 package code.productfee
 
 import code.api.util.APIUtil
+import code.api.util.ErrorMessages.{CreateProductFeeError, UpdateProductFeeError}
 import code.util.UUIDString
 import com.openbankproject.commons.model.{BankId, ProductCode, ProductFeeTrait}
 import net.liftweb.common.{Box, Empty, Full}
@@ -54,12 +55,12 @@ object MappedProductFeeProvider extends ProductFeeProvider {
                 .Frequency(frequency)
                 .Type(`type`)
                 .saveMe()
-            }
+            } ?~! s"$UpdateProductFeeError"
             case _ => Empty
           }
       }
       case None => Future {
-        Full {
+        tryo {
           ProductFee
             .create
             .ProductFeeId(APIUtil.generateUUID)
@@ -73,7 +74,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
             .Frequency(frequency)
             .Type(`type`)
             .saveMe()
-        }
+        } ?~! s"$CreateProductFeeError"
       }
     }
   }
