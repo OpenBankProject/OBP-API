@@ -344,6 +344,12 @@ object ErrorMessages {
   
   val UpdateAtmLocationCategoriesException = "OBP-30095: Could not update the Atm Location Categories."
 
+  val CreateEndpointTagError = "OBP-30096: Could not insert the Endpoint Tag."
+  val UpdateEndpointTagError = "OBP-30097: Could not update the Endpoint Tag."
+  val UnknownEndpointTagError = "OBP-30098: Unknown Endpoint Tag error. "
+  val EndpointTagNotFoundByEndpointTagId = "OBP-30099: Invalid ENDPOINT_TAG_ID. Please specify a valid value for ENDPOINT_TAG_ID."
+  val EndpointTagAlreadyExists = "OBP-30100: EndpointTag already exists."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -364,13 +370,15 @@ object ErrorMessages {
   val InvalidAccountRoutings = "OBP-30114: Invalid Account Routings."
   val AccountRoutingAlreadyExist = "OBP-30115: Account Routing already exist."
   val InvalidPaymentSystemName = "OBP-30116: Invalid payment system name. The payment system name should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 200."
+  
+  val ProductFeeNotFoundById = "OBP-30117: Product Fee not found. Please specify a valid value for PRODUCT_FEE_ID."
 
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
   val EntitlementIsSystemRole = "OBP-30206: This entitlement is a System Role. Please set bank_id to empty string."
 
 
-  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
+  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR the length should be > 16 and <= 512."
 
   val AccountIdAlreadyExists = "OBP-30208: Account_ID already exists at the Bank."
 
@@ -555,7 +563,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForCreateChallenge = "OBP-50215: Connector did not return the set of challenge we requested."
   val InvalidConnectorResponseForSaveDoubleEntryBookTransaction = "OBP-50216: The Connector did not return a valid response for saving double-entry transaction."
   val InvalidConnectorResponseForCancelPayment = "OBP-50217: Connector did not return the transaction we requested."
-
+  val InvalidConnectorResponseForGetEndpointTags = "OBP-50218: Connector did not return the set of endpoint tags we requested."
 
   // Adapter Exceptions (OBP-6XXXX)
   // Reserved for adapter (south of Kafka) messages

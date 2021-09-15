@@ -14,6 +14,7 @@ import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.{APIFailure, APIFailureNewStyle}
+import code.bankattribute.BankAttribute
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
@@ -21,10 +22,12 @@ import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
 import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
+import code.endpointTag.EndpointTagT
 import code.fx.fx.TTL
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.model.toUserExtended
+import code.productfee.ProductFeeX
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
@@ -1558,7 +1561,27 @@ trait Connector extends MdcLoggable {
   def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = Failure(setUnimplementedError)
   
   def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{Failure(setUnimplementedError)}
+  
+  def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
+  
+  def updateSystemLevelEndpointTag(endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
+  
+  def createBankLevelEndpointTag(bankId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
+  
+  def updateBankLevelEndpointTag(bankId:String, endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
+  
+  def getSystemLevelEndpointTag(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
+  
+  def getBankLevelEndpointTag(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
 
+  def getEndpointTagById(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(Failure(setUnimplementedError))
+  
+  def deleteEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future(Failure(setUnimplementedError))
+  
+  def getSystemLevelEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(Failure(setUnimplementedError))
+  
+  def getBankLevelEndpointTags(bankId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(Failure(setUnimplementedError))
+  
   def createOrUpdateProduct(
                              bankId : String,
                              code : String,
@@ -1568,13 +1591,44 @@ trait Connector extends MdcLoggable {
                              family : String,
                              superFamily : String,
                              moreInfoUrl : String,
+                             termsAndConditionsUrl : String,
                              details : String,
                              description : String,
                              metaLicenceId : String,
                              metaLicenceName : String
                            ): Box[Product] = Failure(setUnimplementedError)
+  
+  def createOrUpdateProductFee(
+    bankId: BankId,
+    productCode: ProductCode,
+    productFeeId: Option[String],
+    name: String,
+    isActive: Boolean,
+    moreInfo: String,
+    currency: String,
+    amount: BigDecimal,
+    frequency: String,
+    `type`: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]]= Future(Failure(setUnimplementedError))
 
+  def getProductFeesFromProvider(
+    bankId: BankId,
+    productCode: ProductCode,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ProductFeeTrait]]] = Future(Failure(setUnimplementedError))
 
+  def getProductFeeById(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]] = Future(Failure(setUnimplementedError))
+
+  def deleteProductFee(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future(Failure(setUnimplementedError))
+    
+  
   def createOrUpdateFXRate(
                             bankId: String,
                             fromCurrencyCode: String,
@@ -1969,9 +2023,26 @@ trait Connector extends MdcLoggable {
                                       name: String,
                                       productAttributeType: ProductAttributeType.Value,
                                       value: String,
+                                      isActive: Option[Boolean],
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[ProductAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def createOrUpdateBankAttribute(bankId: BankId,
+                                  bankAttributeId: Option[String],
+                                  name: String,
+                                  bankAttributeType: BankAttributeType.Value,
+                                  value: String,
+                                  isActive: Option[Boolean],
+                                  callContext: Option[CallContext]
+                                 ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def getBankAttributeById(bankAttributeId: String,
+                           callContext: Option[CallContext]
+                          ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def getProductAttributeById(
                                productAttributeId: String,
                                callContext: Option[CallContext]
@@ -1984,6 +2055,10 @@ trait Connector extends MdcLoggable {
                                        ): OBPReturnType[Box[List[ProductAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
+  def deleteBankAttribute(bankAttributeId: String,
+                          callContext: Option[CallContext]
+                         ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def deleteProductAttribute(
                               productAttributeId: String,
                               callContext: Option[CallContext]

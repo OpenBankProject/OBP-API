@@ -409,6 +409,8 @@ webui_sandbox_introduction=
 # NOTE: if this is *not set*, the Introduction Button on /index will link the user to /introduction
 # If this is set, the Introduction Button will link the user to the URL defined above. (but the page /introduction will still exist so you might want to populate webui_sandbox_introduction anyway.)
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
+# now, we hava a new props for the bottom ` API Documentation` menu.
+#webui_api_documentation_bottom_url =https://github.com/OpenBankProject/OBP-API/wiki
 ###################################################################################
 
 # Link for SDKs
@@ -460,6 +462,9 @@ webui_main_partners=[\
 # Prefix for all page titles (note the trailing space!)
 webui_page_title_prefix = Open Bank Project: 
 
+# set the favicon icon
+#webui_favicon_link_url =/favicon.ico
+
 # Main style sheet. Add your own if need be.
 webui_main_style_sheet = /media/css/website.css
 
@@ -468,6 +473,12 @@ webui_override_style_sheet =
 
 ## Link to agree to Terms & Conditions, shown on signup page
 webui_agree_terms_url =
+
+## The Support Email, shown in the bottom page
+#webui_support_email=contact@openbankproject.com
+
+## Link to Privacy Policy, shown in the bottom page
+#webui_privacy_policy_url =
 
 # URL to load (additional) vendor support content
 #webui_vendor_support_content_url = http://127.0.0.1:8080/plain.html
@@ -1019,11 +1030,13 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 
 # User Invitation Time To Live
 # user_invitation.ttl.seconds=86400
+# User Invitation is mandatory in case of onboarding a user
+# user_invitation.mandatory=false
 
 # User (Developer) Invitation
 webui_post_user_invitation_submit_button_value=Register as a Developer
-webui_post_user_invitation_privacy_conditions_value=Privacy conditions..
-webui_post_user_invitation_terms_and_conditions_value=Terms and Conditions..
+webui_privacy_policy=
+webui_terms_and_conditions=
 webui_post_user_invitation_terms_and_conditions_checkbox_value=I agree to the above Developer Terms and Conditions
 
 webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\

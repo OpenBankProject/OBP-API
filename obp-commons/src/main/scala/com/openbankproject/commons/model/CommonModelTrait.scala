@@ -28,13 +28,13 @@ TESOBE (http://www.tesobe.com/)
 package com.openbankproject.commons.model
 
 import java.util.Date
-
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.ReflectUtils
 
 import scala.collection.immutable.List
+import scala.math.BigDecimal
 import scala.reflect.runtime.universe
 
 /**
@@ -257,6 +257,21 @@ trait ProductAttribute {
   def attributeType: ProductAttributeType.Value
 
   def value: String
+
+  def isActive: Option[Boolean]
+}
+
+trait ProductFeeTrait {
+  def bankId: BankId
+  def productCode: ProductCode
+  def productFeeId: String
+  def name: String
+  def isActive: Boolean
+  def moreInfo: String
+  def currency: String
+  def amount: BigDecimal
+  def frequency: String
+  def `type`: String
 }
 
 
@@ -378,6 +393,7 @@ trait Product {
   def family : String
   def superFamily : String
   def moreInfoUrl: String
+  def termsAndConditionsUrl: String
   def details :String
   def description: String
   def meta : Meta
@@ -436,6 +452,15 @@ trait CustomerMessage {
   def message : String
   def fromDepartment : String
   def fromPerson : String
+}
+
+trait BankAttributeTrait {
+  def bankId: BankId
+  def bankAttributeId: String
+  def attributeType: BankAttributeType.Value
+  def name: String
+  def value: String
+  def isActive: Option[Boolean]
 }
 
 trait CustomerAttribute {

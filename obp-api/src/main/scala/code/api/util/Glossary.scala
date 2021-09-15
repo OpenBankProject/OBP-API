@@ -2,13 +2,38 @@ package code.api.util
 
 import code.api.util.APIUtil.{getOAuth2ServerUrl, getObpApiRoot, getServerUrl}
 import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
+import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer
-
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 
-object Glossary {
+object Glossary extends MdcLoggable  {
+
+	def getGlossaryItem(title: String): String = {
+
+		logger.debug(s"getGlossaryItem says Hello. title to find is: $title")
+
+		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
+			case Some(foundItem) =>
+				/**
+				 * Two important rules:
+				 * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
+				 * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
+				 */
+				s"""
+				 |<details>
+				 |  <summary style="display:list-item;cursor:s-resize;">${foundItem.title}</summary>
+				 |  
+				 |  ${foundItem.htmlDescription}
+				 |</details>
+				 |<br></br>
+				 |""".stripMargin
+				case None => ""
+		}
+		logger.debug(s"getGlossaryItem says the text to return is $something")
+		something
+	}
 
 	// reason of description is function: because we want make description is dynamic, so description can read
 	// webui_ props dynamic instead of a constant string.
@@ -96,7 +121,7 @@ object Glossary {
 		title = "Cheat Sheet",
 		description =
 			s"""
-				 |## A selection of links to get you started using the Open Bank Project API platform, applications and tools.
+				 |### A selection of links to get you started using the Open Bank Project API platform, applications and tools.
 				 				 |
 				 |[OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
 				 				 |
@@ -409,42 +434,75 @@ object Glossary {
 
 
 
+	// ***Note***! Don't use "--" (double hyphen) in the description because API Explorer scala.xml.XML.loadString cannot parse.
+
 	glossaryItems += GlossaryItem(
 		title = "Connector",
 		description =
-			s"""In OBP, we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
+			s"""In OBP, most internal functions / methods can have different implementations which follow the same interface.
 				 |
-					|Several Connectors are present in the OBP source code and all must implement the Connector interface
-|- but, except when using the Star Connector, only one of them is active at any one time.
-|
-| The active connector is defined in the OBP Props file.
-|
-| A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
-|
-| i.e. API -> Connector -> CBS
-|
-| An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
-|
-| i.e. API -> Connector -> Adapter -> CBS
-|
-| The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
-|
-| The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
-|
-| The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
-|
-|If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
-|
-|
-| There is a special Connector called the Star Connector which can use functions from all the normal connectors.
-|
-| Using the Star Connector we can dynamically reroute function calls to different Connectors per function per bank_id.
-|
-| The OBP API Manager has a GUI to manage this or you can use the OBP Method Routing APIs to set destinations for each function call.
-|
-| Note: We generate the source code for individual connectors automatically.
-|
- |"""
+				 |These functions are called connector methods and their implementations.
+				 |
+				 |The default implementation of the connector is the "mapped" connector.
+				 |
+				 |It's called "mapped" because the default datasource on OBP is a relational database, and access to that database is always done through an Object-Relational Mapper (ORM) called Mapper (from a framework we use called Liftweb).
+				 |
+				 |
+				 |<pre>
+				 |[=============]                                                                     [============]       [============]
+				 |[.............]                                                                     [            ]       [            ]
+				 |[...OBP API...] ===> OBP Endpoints call connector functions (aka methods) ===>      [  Connector ] ===>  [  Database  ]
+				 |[.............]          The default implementation is called "Mapped"              [  (Mapped)  ]       [  (Adapter) ]
+				 |[=============]              The Mapped Connector talks to a Database               [============]       [============]
+				 |
+				 |</pre>
+				 |
+				 |However, there are multiple available connector implementations - and you can also mix and create your own.|
+				 |
+				 |E.g. Kafka
+				 |
+				 |<pre>
+				 |[=============]                              [============]       [============]     [============]       [============]
+				 |[             ]                              [            ]       [            ]     [            ]       [            ]
+				 |[   OBP API   ] ===> Kafka Connector   ===>  [  Kafka     ] ===>  [  Kafka     ]     [  OBP Kafka ]  ===> [  CBS       ]
+				 |[             ]      Puts OBP Messages       [  Connector ]       [  Cluster   ]     [  Adapter   ]       [            ]
+				 |[=============]       onto a Kafka           [============]       [============]     [============]       [============]
+				 |
+				 |</pre>
+				 |
+				 |
+				 |
+				 |You can mix and match them using the Star connector and you can write your own in Scala. You can also write Adapters in any language which respond to messages sent by the connector.
+				 |
+				 |we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
+				 |
+				 |
+				 | A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
+				 |
+				 | i.e. API -> Connector -> CBS
+				 |
+				 | An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
+				 |
+				 | i.e. API -> Connector -> Adapter -> CBS
+				 |
+				 | The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
+				 |
+				 | The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
+				 |
+				 | The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
+				 |
+				 |If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
+				 |
+				 |
+				 | There is a special Connector called the Star Connector which can use functions from all the normal connectors.
+				 |
+				 | Using the Star Connector we can dynamically reroute function calls to different Connectors per function per bank_id.
+				 |
+				 | The OBP API Manager has a GUI to manage this or you can use the OBP Method Routing APIs to set destinations for each function call.
+				 |
+				 | Note: We generate the source code for individual connectors automatically.
+				 |
+				 |"""
 	)
 
 
@@ -577,8 +635,19 @@ object Glossary {
 		title = "Bank",
 		description =
 		"""
-		  |The entity that represents the financial institution or bank within a financial group.
-		  |Open Bank Project is a multi-bank API. Each bank resource contains basic identifying information such as name, logo and website.
+		  |A Bank (aka Space) represents a financial institution, brand or organisaitonal unit under which resources such as endpoints and entities exist.
+|
+|Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
+|
+|The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
+|
+|A User creating a Bank (if they have the right so to do), automatically gets the Entitlement to grant any Role for that Bank. Thus the creator of a Bank / Space becomes the "god" of that Bank / Space.
+|
+|Basic attributes for the bank resource include identifying information such as name, logo and website.
+|
+|Using the OBP endpoints for bank accounts it's possible to view accounts at one Bank or aggregate accounts from all Banks connected to the OBP instance.
+|
+|See also Props settings named "brand".
 		""")
 
 
@@ -2081,9 +2150,8 @@ object Glossary {
 
 
 	glossaryItems += GlossaryItem(
-		title = "API Collection",
-		description =
-			s"""|An API Collection is a collection of endpoints grouped together for a certain purpose.
+		title = "API Collections",
+		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
 |Having read access to a Collection does not constitute execute access on the endpoints in the Collection.
 |
@@ -2097,9 +2165,56 @@ object Glossary {
 |
 |If you share a Collection it can't be modified by anyone else, but anyone can use it as a basis for their own Favourites or another collection.
 |
-|At the time of writing (July 2021), there are 13 endpoints for controlling Collections.
+|There are over 13 endpoints for controlling Collections.
+|Some of these endpoints require Entitlements to Roles and some operate on your own personal collections such as your favourites.
 |
  """)
+
+	glossaryItems += GlossaryItem(
+		title = "Space",
+		description =
+			s"""In OBP, if you have access to a "Space", you have access to a set of Dynamic Endpoints and Dynamic Entities that belong to that Space.
+|Internally, Spaces are defined as a "Banks" thus Spaces are synonymous with OBP Banks.
+|
+|A user can have access to several spaces. The API Explorer shows these under the Spaces menu.
+|
+|In order to see the documentation for the Dynamic Endpoints and Dynamic Entities, a user may need to have access to the CanReadDynamicResourceDocsAtOneBank Role.
+|
+|You can create your own Space by creating an OBP Bank.
+|
+""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Entity",
+		description =
+			s"""If you want to create, store and custom data in OBP, you can create "Dynamic Entities".
+|You define your Dynamic Entities in JSON.
+|
+|Fields are typed, have an example value and a (markdown) description. They can also be constrained in size.
+|
+|You can also create field "references" to other fields in other Entities. These are like foreign keys to other Dynamic or Static (built in) entities.
+|In other words, if you create an Entity called X which has a field called A, you can force the values of X.A to match the values of Y.B where Y is another Dynamic Entity or Z.B where Z is a Static (OBP) Entity.
+|
+|Dynamic Entities can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|
+|Upon successful creation of a Dynamic Entity, OBP automatically:
+|
+|*Creates Create, Read, Update and Delete endpoints to operate on the Entity so you can insert, get, modify and delete records.
+|*Creates Roles to guard the above endpoints.
+|
+|Following the creation of a Dynamic Entity you will need to grant yourself or others the appropriate roles before you can insert or get records.
+|
+|Each Dynamic Entity gets a dynamicEntityId which uniquely identifies it and the userId which identifies the user who created the Entity.
+|
+|For more information see the endpoints.
+|
+|The following videos are available:
+|
+|	* [Introduction to Dynamic Entities](https://vimeo.com/426524451)
+|	* [Features of Dynamic Entities](https://vimeo.com/446465797)
+|
+""".stripMargin)
 
 
 	///////////////////////////////////////////////////////////////////

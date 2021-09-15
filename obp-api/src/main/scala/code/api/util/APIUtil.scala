@@ -33,7 +33,6 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -42,6 +41,7 @@ import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
+import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.JwsUtil.getJwsHeaderValue
@@ -643,10 +643,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /** enforce the password.
    * The rules :
-   * 1) length is >16 characters without validations
+   * 1) length is >16 characters without validations but max length <= 512
    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character.
    * */
-  def isValidStrongPassword(password: String): Boolean = {
+  def validatePasswordOnCreation(password: String): Boolean = {
     /**
      * (?=.*\d)                    //should contain at least one digit
      * (?=.*[a-z])                 //should contain at least one lower case
@@ -657,7 +657,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val regex =
       """^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~])([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]{10,16})$""".r
     password match {
-      case password if (password.length > 16) => true
+      case password if(validatePasswordOnUsage(password) ==SILENCE_IS_GOLDEN) => true
+      case password if(password.length > 16 && password.length <= 512) => true
       case regex(password) => true
       case _ => false
     }
@@ -692,9 +693,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
-  def checkMediumPassword(value:String): String ={
+  /** also support space now  */
+  def validatePasswordOnUsage(value:String): String ={
     val valueLength = value.length
-    val regex = """^([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]+)$""".r
+    val regex = """^([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~ ]+)$""".r
     value match {
       case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
@@ -1347,7 +1349,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var roles: Option[List[ApiRole]] = None,
                           isFeatured: Boolean = false,
                           specialInstructions: Option[String] = None,
-                          var specifiedUrl: Option[String] = None // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
+                          createdByBankId: Option[String] = None //we need to filter the resource Doc by BankId
                         ) {
     // this code block will be merged to constructor.
     {
@@ -2657,8 +2660,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         for {
           (user, callContext) <- OAuth2Login.getUserFuture(cc)
         } yield {
-          if (!APIUtil.isSandboxMode && user.isDefined)
-            AuthUser.updateUserAccountViewsFuture(user.openOrThrowException("Can not be empty here"), callContext)
           (user, callContext)
         }
       } // Direct Login i.e DirectLogin: token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ
@@ -2836,7 +2837,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Better also check the logic for needToRefreshUser method.
    */
   def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
-    if(!APIUtil.isSandboxMode && user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
+    if(user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
       user.map(AuthUser.updateUserAccountViewsFuture(_, callContext))
     else
       None
@@ -3050,9 +3051,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                                     otherAccountRoutingScheme: String,
                                     otherAccountRoutingAddress: String
                                   )= createOBPId(s"$thisBankId$thisAccountId$counterpartyName$otherAccountRoutingScheme$otherAccountRoutingAddress")
-
-  //TODO, now we have the star connector, it will break the isSandboxMode method logic. Need to double check how to use this method now. 
-  val isSandboxMode: Boolean = (APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString).equalsIgnoreCase("mapped")
 
   def isDataFromOBPSide (methodName: String, argNameToValue: Array[(String, AnyRef)] = Array.empty): Boolean = {
     val connectorNameInProps = APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox)
@@ -4052,4 +4050,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     APIUtil.getPropsValue("email_domain_to_entitlement_mappings").map(extractor).getOrElse(Nil)
   }
+
+  val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
+
+  val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
+  
+  val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
+
+  val productHiearchyAndCollectionNote =
+    """
+      |
+      |Product hiearchy vs Product Collections:
+      |
+      |* You can define a hierarchy of products - so that a child Product inherits attributes of its parent Product -  using the parent_product_code in Product.
+      |
+      |* You can define a collection (also known as baskets or buckets) of products using Product Collections.
+      |
+      """.stripMargin
 }

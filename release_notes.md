@@ -3,6 +3,14 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+09/09/2021    65952225      Added props: webui_support_email, default is contact@openbankproject.com
+02/09/2021    a826d908      Renamed Web UI props:  
+                            webui_post_user_invitation_privacy_conditions_value => webui_privacy_policy
+                            webui_post_user_invitation_terms_and_conditions_value => webui_terms_and_conditions
+20/08/2021    2ad1a3b0      Updated implementations of Akka, Rest and Stored Procedure connectors via the builder.  
+18/08/2021    83c3b4fa      Added props: webui_favicon_link_url, default is /favicon.ico
+18/08/2021    5924c820      Added props: webui_api_documentation_bottom_url, default is https://github.com/OpenBankProject/OBP-API/wiki
+                            Added props: webui_privacy_policy_url, default is https://openbankproject.com/privacy-policy
 30/06/2021    cf2dd987      Changed props, static will cache 24 hours, dynamic only 1 hour as default.
                             dynamicResourceDocsObp.cache.ttl.seconds=3600
                             staticResourceDocsObp.cache.ttl.seconds=86400

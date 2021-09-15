@@ -607,6 +607,7 @@ trait APIMethods220 {
                 family = product.family,
                 superFamily = product.super_family,
                 moreInfoUrl = product.more_info_url,
+                termsAndConditionsUrl = null,
                 details = product.details,
                 description = product.description,
                 metaLicenceId = product.meta.license.id,
@@ -670,6 +671,8 @@ trait APIMethods220 {
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
             _ <- NewStyle.function.hasAllEntitlements(bank.bankId.value, u.userId, createFxEntitlementsRequiredForSpecificBank, createFxEntitlementsRequiredForAnyBank, callContext)
               fx <- tryo {json.extract[FXRateJsonV220]} ?~! ErrorMessages.InvalidJsonFormat
+            _ <- booleanToBox(APIUtil.isValidCurrencyISOCode(fx.from_currency_code),InvalidISOCurrencyCode+s"Current from_currency_code is ${fx.from_currency_code}") 
+            _ <- booleanToBox(APIUtil.isValidCurrencyISOCode(fx.to_currency_code),InvalidISOCurrencyCode+s"Current to_currency_code is ${fx.to_currency_code}")
             success <- Connector.connector.vend.createOrUpdateFXRate(
               bankId = fx.bank_id,
               fromCurrencyCode = fx.from_currency_code,

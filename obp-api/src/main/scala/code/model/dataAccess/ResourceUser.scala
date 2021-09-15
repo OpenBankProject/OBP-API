@@ -59,7 +59,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
 
   object id extends MappedLongIndex(this)
   object userId_ extends MappedUUID(this)
-  object email extends MappedEmail(this, 48){
+  object email extends MappedEmail(this, 100){
     override def required_? = false
   }
   object name_ extends MappedString(this, 100){
@@ -108,7 +108,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   
   override def createdByConsentId = if(CreatedByConsentId.get == null) None else if (CreatedByConsentId.get.isEmpty) None else Some(CreatedByConsentId.get) //null --> None
   override def createdByUserInvitationId = if(CreatedByUserInvitationId.get == null) None else if (CreatedByUserInvitationId.get.isEmpty) None else Some(CreatedByUserInvitationId.get) //null --> None
-  override def isDeleted: Option[Boolean] = if(IsDeleted.get == null) None else Some(IsDeleted.get) // null --> false
+  override def isDeleted: Option[Boolean] = if(IsDeleted.jdbcFriendly(IsDeleted.calcFieldName) == null) None else Some(IsDeleted.get) // null --> None
 }
 
 object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{

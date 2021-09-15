@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0._
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -504,7 +504,8 @@ object SwaggerDefinitionsJSON {
     connector = "String",
     hosted_by = hostedBy400,
     hosted_at = hostedAt400,
-    energy_source = energySource400
+    energy_source = energySource400,
+    resource_docs_requires_role = false
   )
   val apiInfoJSON = APIInfoJSON(
     version = "String",
@@ -831,14 +832,23 @@ object SwaggerDefinitionsJSON {
   val banksJSON = BanksJSON(
     banks = List(bankJSON)
   )
-
+  val bankAttributeBankResponseJsonV400 = BankAttributeBankResponseJsonV400(
+    name = nameExample.value,
+    value = valueExample.value
+  )
+  
+  val bankAttributesResponseJson = BankAttributesResponseJson(
+    list = List(bankAttributeBankResponseJsonV400)
+  )
+  
   val bankJson400 = BankJson400(
     id = "gh.29.uk",
     short_name = "short_name ",
     full_name = "full_name",
     logo = "logo",
     website = "www.openbankproject.com",
-    bank_routings = List(bankRoutingJsonV121)
+    bank_routings = List(bankRoutingJsonV121),
+    attributes = Some(List(bankAttributeBankResponseJsonV400))
   )
 
   val banksJSON400 = BanksJson400(
@@ -2436,6 +2446,27 @@ object SwaggerDefinitionsJSON {
     host = "dynamic_entity"
   )
 
+  val endpointTagJson400 = EndpointTagJson400(
+    tag_name = tagNameExample.value
+  )
+  
+  val systemLevelEndpointTagResponseJson400 = SystemLevelEndpointTagResponseJson400(
+    endpoint_tag_id = endpointTagIdExample.value,
+    operation_id = operationIdExample.value,
+    tag_name = tagNameExample.value
+  )
+  
+  val bankLevelEndpointTagResponseJson400 = BankLevelEndpointTagResponseJson400(
+    bank_id = bankIdExample.value,
+    endpoint_tag_id = endpointTagIdExample.value,
+    operation_id = operationIdExample.value,
+    tag_name = tagNameExample.value
+  )
+  
+  val mySpaces = MySpaces(
+    bank_ids = List(bankIdExample.value),
+  )
+  
   val metricsJson = MetricsJson(
     metrics = List(metricJson)
   )
@@ -3435,6 +3466,12 @@ object SwaggerDefinitionsJSON {
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
+  )  
+  val productAttributeJsonV400 = ProductAttributeJsonV400(
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
   )
   val productAttributeResponseJson = ProductAttributeResponseWithoutBankIdJson(
     product_code = "saving1",
@@ -3443,6 +3480,39 @@ object SwaggerDefinitionsJSON {
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23"
   )
+  val productAttributeResponseJsonV400 = ProductAttributeResponseJsonV400(
+    bank_id = bankIdExample.value,
+    product_code = "saving1",
+    product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
+  )
+  val productAttributeResponseWithoutBankIdJsonV400 = ProductAttributeResponseWithoutBankIdJsonV400(
+    product_code = "saving1",
+    product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
+  )
+
+  val bankAttributeJsonV400 = BankAttributeJsonV400(
+    name = "TAX_ID",
+    `type` = "INTEGER",
+    value = "12345678",
+    is_active = Some(true)
+  )
+  val bankAttributeResponseJsonV400 = BankAttributeResponseJsonV400(
+    bank_id = bankIdExample.value,
+    bank_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
+  )
+  
 
   val accountAttributeJson = AccountAttributeJson(
     name = "OVERDRAFT_START_DATE",
@@ -3505,8 +3575,7 @@ object SwaggerDefinitionsJSON {
     Some(List(productAttributeResponseJson))
   )
   val productsJsonV310 = ProductsJsonV310(products = List(productJsonV310))
-  
-  
+
   val productCollectionItemJsonV310 = ProductCollectionItemJsonV310(member_product_code = "A")
   val productCollectionJsonV310 = ProductCollectionJsonV310(
     collection_code = "C",
@@ -4062,8 +4131,14 @@ object SwaggerDefinitionsJSON {
   val productAttributeDefinitionJsonV400 =
     templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Product.toString)
   
+  val bankAttributeDefinitionJsonV400 =
+    templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Bank.toString)
+  
   val productAttributeDefinitionResponseJsonV400 =
     templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Product.toString)
+  
+  val bankAttributeDefinitionResponseJsonV400 =
+    templateAttributeDefinitionResponseJsonV400.copy(category = AttributeCategory.Bank.toString)
   
   val transactionAttributeDefinitionJsonV400 = 
     templateAttributeDefinitionJsonV400.copy(category = AttributeCategory.Transaction.toString)
@@ -4298,6 +4373,59 @@ object SwaggerDefinitionsJSON {
   )
 
   val atmsJsonV400 = AtmsJsonV400(List(atmJsonV400))
+
+  val productFeeValueJsonV400 =  ProductFeeValueJsonV400(
+    currency = currencyExample.value,
+    amount = 10.12,
+    frequency = frequencyExample.value,
+    `type` = typeExample.value
+  )
+
+  val productFeeJsonV400 = ProductFeeJsonV400(
+    product_fee_id = Some(productFeeIdExample.value),
+    name = nameExample.value,
+    is_active = true,
+    more_info = moreInfoExample.value,
+    value = productFeeValueJsonV400 
+  )
+  
+  val productFeeResponseJsonV400 = ProductFeeResponseJsonV400(
+    bank_id = bankIdExample.value,
+    product_code = productCodeExample.value,
+    product_fee_id = productFeeIdExample.value,
+    name = nameExample.value,
+    is_active = true,
+    more_info = moreInfoExample.value,
+    value = productFeeValueJsonV400
+  )
+  
+  val productFeesResponseJsonV400 = ProductFeesResponseJsonV400(List(productFeeResponseJsonV400))
+  
+  
+  val productJsonV400 = ProductJsonV400(
+    bank_id = bankIdExample.value,
+    product_code = productCodeExample.value,
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
+    more_info_url = moreInfoUrlExample.value,
+    terms_and_conditions_url = termsAndConditionsUrlExample.value,
+    description = descriptionExample.value,
+    meta = metaJson,
+    attributes = Some(List(productAttributeResponseJson)),
+    fees = Some(List(productFeeJsonV400))
+  )
+
+  val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400))
+
+  val putProductJsonV400 = PutProductJsonV400(
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
+    more_info_url = moreInfoUrlExample.value,
+    terms_and_conditions_url = termsAndConditionsUrlExample.value,
+    description = descriptionExample.value,
+    meta = metaJson,
+  )
+  
   
   //The common error or success format.
   //Just some helper format to use in Json 

@@ -68,27 +68,39 @@ Berlin 13359, Germany
                             <label for="username">Username</label>
                             <input type="text" name="username" id="username" class="form-control" aria-describedby="consumer-registration-company-error">
                         </div>
-                        <div class="form-group" id="privacy-conditions-div" onclick="myFunction()">
-                            <label for="privacy"></label>
-                            <textarea readonly rows="4" name="privacy-conditions" id="privacy" class="form-control" aria-describedby="consumer-registration-company-error"></textarea>
-                            <input type="checkbox" class="form-check-input" id="privacy_checkbox">
+                        <hr>
+                        <div class="form-group" id="privacy-conditions-div" onclick="enableDisableUserInvitationButton()">
+                            <details open style="cursor:s-resize;">
+                                <summary style="display:list-item;"><a class="api_group_name">Privacy Policy</a></summary>
+                                <div id="privacy-policy-page" data-lift="WebUI.privacyPolicyText"></div>
+                            </details>
+                            <input id="privacy_checkbox" type="checkbox" class="form-check-input">
                             <label class="form-check-label" for="privacy_checkbox">I agree to the above privacy conditions</label>
                         </div>
+                        <hr>
+                        <div class="form-group" id="terms-and-conditions-div" onclick="enableDisableUserInvitationButton()">
+                            <details open style="cursor:s-resize;">
+                                <summary style="display:list-item;"><a class="api_group_name">Terms and Conditions</a></summary>
+                                <div id="terms-and-conditions-page" data-lift="WebUI.termsAndConditionsText"></div>
+                            </details>
+                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
+                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">I agree to the above Developer Terms and Conditions</label>
+                        </div>
+                        <hr>
                         <div class="form-group">
                             <input onclick="disableBtn()" type="checkbox" class="form-check-input" id="marketing_info_checkbox">
                             <label class="marketing-info-label" for="marketing_info_checkbox">I would like to receive developer related emails from the bank</label>
                         </div>
-                        <div class="form-group" id="terms-and-conditions-div" onclick="myFunction()">
-                            <label for="terms"></label>
-                            <textarea readonly rows="4" name="terms-and-conditions" id="terms" class="form-control" aria-describedby="consumer-registration-company-error"></textarea>
-                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
-                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">I agree to the above Developer Terms and Conditions</label>
-                        </div>
                     </div>
                 </div>
                 
+                <input onmouseover="enableDisableUserInvitationButton()" onfocus="enableDisableUserInvitationButton()" disabled="true" id="submit-button" type="submit" value="Submit" class="btn btn-danger" id="register-developer-button" aria-describedby="register-consumer-errors"/>
+                <div id = "register-consumer-errors-div" class="hide">
+                    <span data-lift="Msg?id=register-consumer-errors"/>
+                </div>
+
                 <script>
-                function myFunction() {
+                function enableDisableUserInvitationButton() {
                   var checkBox = document.getElementById("terms-and-conditions-div").querySelector("input[type=checkbox]");
                   var checkBox2 = document.getElementById("privacy-conditions-div").querySelector("input[type=checkbox]");
                   var button = document.getElementById("submit-button");
@@ -99,11 +111,6 @@ Berlin 13359, Germany
                   }
                 }
                 </script>
-                
-                <input disabled="true" id="submit-button" type="submit" value="Submit" class="btn btn-danger" id="register-developer-button" aria-describedby="register-consumer-errors"/>
-                <div id = "register-consumer-errors-div" class="hide">
-                    <span data-lift="Msg?id=register-consumer-errors"/>
-                </div>
             </form>
         </div>
     </div>

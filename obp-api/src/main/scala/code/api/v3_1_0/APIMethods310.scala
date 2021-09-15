@@ -1973,7 +1973,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", userId, canRefreshUser, callContext)
             startTime <- Future{Helpers.now}
             _ <- NewStyle.function.findByUserId(userId, callContext)
-            _ <- if (APIUtil.isSandboxMode) Future{} else AuthUser.updateUserAccountViewsFuture(u, callContext) 
+            _ <- Future{refreshUserIfRequired(Full(u), callContext)} 
             endTime <- Future{Helpers.now}
             durationTime = endTime.getTime - startTime.getTime
           } yield {
@@ -2058,6 +2058,7 @@ trait APIMethods310 {
               postedData.name,
               productAttributeType,
               postedData.value,
+              None,
               callContext: Option[CallContext]
             )
           } yield {
@@ -2154,6 +2155,7 @@ trait APIMethods310 {
               postedData.name,
               productAttributeType,
               postedData.value,
+              None,
               callContext: Option[CallContext]
             )
           } yield {
@@ -2428,22 +2430,6 @@ trait APIMethods310 {
       }
     }
 
-
-    val productHiearchyAndCollectionNote =
-      """
-        |
-        |Product hiearchy vs Product Collections:
-        |
-        |* You can define a hierarchy of products - so that a child Product inherits attributes of its parent Product -  using the parent_product_code in Product.
-        |
-        |* You can define a collection (also known as baskets or buckets) of products using Product Collections.
-        |
-      """.stripMargin
-    
-    
-    val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
-    val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
-
     resourceDocs += ResourceDoc(
       createProduct,
       implementedInApiVersion,
@@ -2509,6 +2495,7 @@ trait APIMethods310 {
               family = product.family,
               superFamily = product.super_family,
               moreInfoUrl = product.more_info_url,
+              termsAndConditionsUrl = null,
               details = product.details,
               description = product.description,
               metaLicenceId = product.meta.license.id,
@@ -2524,8 +2511,6 @@ trait APIMethods310 {
     }
 
 
-    val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
-    
     resourceDocs += ResourceDoc(
       getProduct,
       implementedInApiVersion,
@@ -3241,7 +3226,7 @@ trait APIMethods310 {
 
     lazy val getMessageDocsSwagger: OBPEndpoint = {
       case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
-          val (resourceDocTags, partialFunctions, languageParam, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+          val (resourceDocTags, partialFunctions, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam) = ResourceDocsAPIMethodsUtil.getParams()
         cc => {
           for {
             (_, callContext) <- anonymousAccess(cc)

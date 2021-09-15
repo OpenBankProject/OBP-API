@@ -28,13 +28,14 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.util.ResourceBundle
+
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import code.setup.ServerSetup
 import code.util.Helper.MdcLoggable
@@ -42,6 +43,7 @@ import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.{Box, Failure}
 import net.liftweb.http.LiftRules
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import org.scalatest._
 import org.scalatestplus.selenium._
@@ -55,6 +57,14 @@ case class OAuthResponse(
 )
 
 class OAuthTest extends ServerSetup {
+
+  override def beforeAll() = {
+    super.beforeAll()
+    AuthUser.bulkDelete_!!(By(AuthUser.username, "username with_space"))
+    ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, "username with_space"))
+    AuthUser.bulkDelete_!!(By(AuthUser.username, "username with more than 1 space"))
+    ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, "username with more than 1 space"))
+  }
 
   def oauthRequest = baseRequest / "oauth"
 

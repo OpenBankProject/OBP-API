@@ -71,7 +71,8 @@ case class ProductAttributeCommons(
                                     productAttributeId :String,
                                     name :String,
                                     attributeType : ProductAttributeType.Value,
-                                    value :String) extends ProductAttribute
+                                    value :String, 
+                                    isActive: Option[Boolean] = None) extends ProductAttribute
 object ProductAttributeCommons extends Converter[ProductAttribute, ProductAttributeCommons]
 
 
@@ -368,6 +369,7 @@ case class ProductCommons(bankId: BankId,
                        family : String,
                        superFamily : String,
                        moreInfoUrl: String,
+                       termsAndConditionsUrl: String,
                        details: String,
                        description: String,
                        meta: Meta) extends Product

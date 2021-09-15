@@ -28,7 +28,7 @@ package code.model.dataAccess
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
-import code.api.util.APIUtil.{hasAnOAuthHeader, isValidStrongPassword, logger, _}
+import code.api.util.APIUtil.{hasAnOAuthHeader, validatePasswordOnCreation, logger, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper
@@ -89,7 +89,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
 
   override lazy val firstName = new MyFirstName
   
-  protected class MyFirstName extends MappedString(this, 32) {
+  protected class MyFirstName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -114,7 +114,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
   
   override lazy val lastName = new MyLastName
 
-  protected class MyLastName extends MappedString(this, 32) {
+  protected class MyLastName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -160,7 +160,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     * The username field for the User.
     */
   lazy val username: userName = new userName()
-  class userName extends MappedString(this, 64) {
+  class userName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -268,7 +268,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
             invalidMsg = Helper.i18n("please.enter.your.password")
             S.error("authuser_password_repeat", Text(Helper.i18n("please.re-enter.your.password")))
           case false =>
-            if (isValidStrongPassword(passwordValue))
+            if (validatePasswordOnCreation(passwordValue))
               invalidPw = false
             else {
               invalidPw = true
@@ -309,7 +309,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
    * The provider field for the User.
    */
   lazy val provider: userProvider = new userProvider()
-  class userProvider extends MappedString(this, 64) {
+  class userProvider extends MappedString(this, 100) {
     override def displayName = S.?("provider")
     override val fieldId = Some(Text("txtProvider"))
   }
@@ -1372,8 +1372,11 @@ def restoreSomeSessions(): Unit = {
       val bind = "type=submit" #> signupSubmitButton(signupSubmitButtonValue, testSignup _)
       bind(signupXhtml(theUser))
     }
-
-    innerSignup
+    
+    if(APIUtil.getPropsAsBoolValue("user_invitation.mandatory", false)) 
+      S.redirectTo("/user-invitation-info") 
+    else 
+      innerSignup
   }
 
   def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {
