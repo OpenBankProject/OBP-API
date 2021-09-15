@@ -43,6 +43,12 @@ object MappedUserAgreementProvider extends UserAgreementProvider {
         .saveMe()
     )
   }
+  override def getUserAgreement(userId: String, agreementType: String): Box[UserAgreement] = {
+    UserAgreement.findAll(
+      By(UserAgreement.UserId, userId),
+      By(UserAgreement.AgreementType, agreementType)
+    ).sortBy(_.Date.get)(Ordering[Date].reverse).headOption
+  }
 }
 class UserAgreement extends UserAgreementTrait with LongKeyedMapper[UserAgreement] with IdPK with CreatedUpdated {
 
@@ -64,6 +70,7 @@ class UserAgreement extends UserAgreementTrait with LongKeyedMapper[UserAgreemen
   override def agreementType: String = AgreementType.get
   override def agreementText: String = AgreementText.get
   override def agreementHash: String = AgreementHash.get
+  override def date: Date = Date.get
 }
 
 object UserAgreement extends UserAgreement with LongKeyedMetaMapper[UserAgreement] {

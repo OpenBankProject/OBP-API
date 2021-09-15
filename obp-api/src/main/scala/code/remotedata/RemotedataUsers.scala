@@ -5,7 +5,7 @@ import code.actorsystem.ObpActorInit
 import code.api.util.OBPQueryParam
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
-import code.users.{RemotedataUsersCaseClasses, Users}
+import code.users.{RemotedataUsersCaseClasses, UserAgreement, Users}
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
 import net.liftweb.common.Box
 
@@ -69,6 +69,11 @@ object RemotedataUsers extends ObpActorInit with Users {
   def getAllUsersF(queryParams: List[OBPQueryParam]) : Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
     val res = (actor ? cc.getAllUsersF(queryParams))
     res.mapTo[List[(ResourceUser, Box[List[Entitlement]])]]
+  }
+  
+  def getUsers(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]]  = {
+    val res = (actor ? cc.getUsers(queryParams))
+    res.mapTo[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]]
   }
 
   def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], createdByUserInvitationId: Option[String], company: Option[String]) : Box[ResourceUser] = getValueFromFuture(

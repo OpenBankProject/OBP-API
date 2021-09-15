@@ -41,7 +41,7 @@ import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
-import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import code.model.dataAccess.{AuthUser, BankAccountCreation, ResourceUser}
 import code.model.{toUserExtended, _}
 import code.ratelimiting.RateLimitingDI
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
@@ -51,7 +51,7 @@ import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
-import code.users.Users
+import code.users.{UserAgreement, Users}
 import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
@@ -78,9 +78,9 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailB
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.net.URLEncoder
 import java.util.{Calendar, Date}
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -3384,7 +3384,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       EmptyBody,
-      usersJsonV200,
+      userJsonV400,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canGetAnyUser)))
@@ -3394,14 +3394,97 @@ trait APIMethods400 {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
-              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
+              x => unboxFullOrFail(x, cc.callContext, s"$UserNotFoundByUserId Current UserId($userId)")
             }
-            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            acceptMarketingInfo <- NewStyle.function.getAgreementByUserId(user.userId, "accept_marketing_info", cc.callContext)
+            termsAndConditions <- NewStyle.function.getAgreementByUserId(user.userId, "terms_and_conditions", cc.callContext)
+            privacyConditions <- NewStyle.function.getAgreementByUserId(user.userId, "privacy_conditions", cc.callContext)
           } yield {
-            (JSONFactory400.createUserInfoJSON(user, entitlements), HttpCode.`200`(callContext))
+            val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+            (JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements)), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserByUsername,
+      implementedInApiVersion,
+      nameOf(getUserByUsername),
+      "GET",
+      "/users/username/USERNAME",
+      "Get User by USERNAME",
+      s"""Get user by USERNAME
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      userJsonV400,
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+
+    lazy val getUserByUsername: OBPEndpoint = {
+      case "users" :: "username" :: username :: Nil JsonGet _ => {
+        cc =>
+          for {
+            user <- Users.users.vend.getUserByUserNameFuture(username) map {
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            acceptMarketingInfo <- NewStyle.function.getAgreementByUserId(user.userId, "accept_marketing_info", cc.callContext)
+            termsAndConditions <- NewStyle.function.getAgreementByUserId(user.userId, "terms_and_conditions", cc.callContext)
+            privacyConditions <- NewStyle.function.getAgreementByUserId(user.userId, "privacy_conditions", cc.callContext)
+          } yield {
+            val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+            (JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements)), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUsers,
+      implementedInApiVersion,
+      nameOf(getUsers),
+      "GET",
+      "/users",
+      "Get all Users",
+      s"""Get all users
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,
+         |
+         |${urlParametersDocument(false, false)}
+         |* locked_status (if null ignore)
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJsonV400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+    lazy val getUsers: OBPEndpoint = {
+      case "users" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, cc.callContext, InvalidFilterParameterFormat)
+            }
+            users <- Users.users.vend.getUsers(obpQueryParams)
+          } yield {
+            (JSONFactory400.createUsersJson(users), HttpCode.`200`(cc.callContext))
           }
       }
     }

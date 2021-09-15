@@ -16,4 +16,7 @@ object RemotedataUserAgreement extends ObpActorInit with UserAgreementProvider {
   def createUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement] =  getValueFromFuture(
     (actor ? cc.createOrUpdateUserAgreement(userId, agreementType, agreementText)).mapTo[Box[UserAgreement]]
   )
+  def getUserAgreement(userId: String, agreementType: String): Box[UserAgreement] =  getValueFromFuture(
+    (actor ? cc.getUserAgreement(userId, agreementType)).mapTo[Box[UserAgreement]]
+  )
 }

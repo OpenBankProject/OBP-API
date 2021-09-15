@@ -35,6 +35,7 @@ import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, 
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
+import code.api.v2_0_0.JSONFactory200.UserJsonV200
 import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
@@ -48,12 +49,13 @@ import code.atms.Atms.Atm
 import code.bankattribute.BankAttribute
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
+import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
-import code.users.UserInvitation
+import code.users.{UserAgreement, UserInvitation}
 import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
@@ -887,6 +889,7 @@ case class AtmJsonV400 (
 
 case class AtmsJsonV400(atms : List[AtmJsonV400])
 
+case class UserAgreementJson(`type`: String, text: String)
 case class UserJsonV400(
                          user_id: String,
                          email : String,
@@ -895,12 +898,14 @@ case class UserJsonV400(
                          username : String,
                          entitlements : EntitlementJSONs,
                          views: Option[ViewsJSON300],
+                         agreements: Option[List[UserAgreementJson]],
                          is_deleted: Boolean
                        )
+case class UsersJsonV400(users: List[UserJsonV400])
 
 object JSONFactory400 {
 
-  def createUserInfoJSON(user : User, entitlements: List[Entitlement]) : UserJsonV400 = {
+  def createUserInfoJSON(user : User, entitlements: List[Entitlement], agreements: Option[List[UserAgreement]]) : UserJsonV400 = {
     UserJsonV400(
       user_id = user.userId,
       email = user.emailAddress,
@@ -909,7 +914,22 @@ object JSONFactory400 {
       provider = stringOrNull(user.provider),
       entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
       views = None,
+      agreements = agreements.map(_.map( i => 
+        UserAgreementJson(`type` = i.agreementType, text = i.agreementText))
+      ),
       is_deleted = user.isDeleted.getOrElse(false)
+    )
+  }
+
+  def createUsersJson(users : List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]) : UsersJsonV400 = {
+    UsersJsonV400(
+      users.map(t => 
+        createUserInfoJSON(
+          t._1, 
+          t._2.getOrElse(Nil),
+          t._3
+        )
+      )
     )
   }
 
