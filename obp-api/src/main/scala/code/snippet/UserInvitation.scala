@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import java.time.{Duration, ZoneId, ZoneOffset, ZonedDateTime}
+import java.util.Date
 
 import code.api.util.{APIUtil, SecureRandomUtil}
 import code.model.dataAccess.{AuthUser, ResourceUser}
@@ -99,7 +100,8 @@ class UserInvitation extends MdcLoggable {
           name = Some(usernameVar.is),
           email = Some(email),
           userInvitationId = userInvitation.map(_.userInvitationId).toOption,
-          company = userInvitation.map(_.company).toOption
+          company = userInvitation.map(_.company).toOption,
+          lastMarketingAgreementSignedDate = if(marketingInfoCheckboxVar.is) Some(new Date()) else None
         ).map{ u =>
           // AuthUser table
           createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is) match {
@@ -211,7 +213,8 @@ class UserInvitation extends MdcLoggable {
                                  name: Option[String], 
                                  email: Option[String], 
                                  userInvitationId: Option[String],
-                                 company: Option[String]
+                                 company: Option[String],
+                                 lastMarketingAgreementSignedDate: Option[Date],
                                 ): Box[ResourceUser] = {
     Users.users.vend.createResourceUser(
       provider = provider,
@@ -221,7 +224,8 @@ class UserInvitation extends MdcLoggable {
       email = email,
       userId = None,
       createdByUserInvitationId = userInvitationId,
-      company = company
+      company = company,
+      lastMarketingAgreementSignedDate = lastMarketingAgreementSignedDate
     )
   }
   

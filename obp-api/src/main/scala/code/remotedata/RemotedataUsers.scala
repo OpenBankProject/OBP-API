@@ -1,5 +1,7 @@
 package code.remotedata
 
+import java.util.Date
+
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.api.util.OBPQueryParam
@@ -79,8 +81,8 @@ object RemotedataUsers extends ObpActorInit with Users {
     res.mapTo[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]]
   }
 
-  def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], createdByUserInvitationId: Option[String], company: Option[String]) : Box[ResourceUser] = getValueFromFuture(
-    (actor ? cc.createResourceUser(provider, providerId, createdByConsentId, name, email, userId, createdByUserInvitationId, company)).mapTo[Box[ResourceUser]]
+  def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], createdByUserInvitationId: Option[String], company: Option[String], lastMarketingAgreementSignedDate: Option[Date]) : Box[ResourceUser] = getValueFromFuture(
+    (actor ? cc.createResourceUser(provider, providerId, createdByConsentId, name, email, userId, createdByUserInvitationId, company, lastMarketingAgreementSignedDate)).mapTo[Box[ResourceUser]]
   )
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = getValueFromFuture(

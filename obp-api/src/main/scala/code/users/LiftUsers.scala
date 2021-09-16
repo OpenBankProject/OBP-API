@@ -1,5 +1,7 @@
 package code.users
 
+import java.util.Date
+
 import code.api.util._
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
@@ -60,7 +62,8 @@ object LiftUsers extends Users with MdcLoggable{
           email = email,
           userId = None,
           createdByUserInvitationId = None,
-          company = None
+          company = None,
+          lastMarketingAgreementSignedDate = None
         )
         (newUser, true)
     }
@@ -210,7 +213,8 @@ object LiftUsers extends Users with MdcLoggable{
                                   email: Option[String], 
                                   userId: Option[String], 
                                   createdByUserInvitationId: Option[String], 
-                                  company: Option[String]): Box[ResourceUser] = {
+                                  company: Option[String],
+                                  lastMarketingAgreementSignedDate: Option[Date]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)
     providerId match {
@@ -239,6 +243,10 @@ object LiftUsers extends Users with MdcLoggable{
     }
     company match {
       case Some(v) => ru.Company(v)
+      case None    =>
+    }
+    lastMarketingAgreementSignedDate match {
+      case Some(v) => ru.LastMarketingAgreementSignedDate(v)
       case None    =>
     }
     Full(ru.saveMe())

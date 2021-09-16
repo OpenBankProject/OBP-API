@@ -287,7 +287,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           email = getClaim(name = "email", idToken = idToken),
           userId = None,
           createdByUserInvitationId = None,
-          company = None
+          company = None,
+          lastMarketingAgreementSignedDate = None
         )
       }
     }
