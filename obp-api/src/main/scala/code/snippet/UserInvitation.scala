@@ -28,7 +28,7 @@ package code.snippet
 
 import java.time.{Duration, ZoneId, ZoneOffset, ZonedDateTime}
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, SecureRandomUtil}
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users
 import code.users.{UserAgreementProvider, UserInvitationProvider, Users}
@@ -38,7 +38,7 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
-import net.liftweb.util.CssSel
+import net.liftweb.util.{CssSel, Helpers}
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
@@ -102,7 +102,7 @@ class UserInvitation extends MdcLoggable {
           company = userInvitation.map(_.company).toOption
         ).map{ u =>
           // AuthUser table
-          createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "") match {
+          createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is) match {
             case Failure(msg,_,_) =>
               Users.users.vend.deleteResourceUser(u.id.get)
               showError(msg)
@@ -186,7 +186,7 @@ class UserInvitation extends MdcLoggable {
     register
   }
 
-  private def createAuthUser(user: User, firstName: String, lastName: String, password: String): Box[AuthUser] = {
+  private def createAuthUser(user: User, firstName: String, lastName: String): Box[AuthUser] = {
     val newUser = AuthUser.create
       .firstName(firstName)
       .lastName(lastName)
@@ -194,7 +194,7 @@ class UserInvitation extends MdcLoggable {
       .user(user.userPrimaryKey.value)
       .username(user.name)
       .provider(user.provider)
-      .password(password)
+      .password(SecureRandomUtil.alphanumeric(10))
       .validated(true)
     newUser.validate match {
       case Nil =>
