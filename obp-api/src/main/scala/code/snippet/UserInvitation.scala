@@ -36,7 +36,7 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.User
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
@@ -96,25 +96,30 @@ class UserInvitation extends MdcLoggable {
         createResourceUser(
           provider = "OBP-User-Invitation",
           providerId = Some(usernameVar.is),
-          name = Some(firstNameVar.is + " " + lastNameVar.is),
+          name = Some(usernameVar.is),
           email = Some(email),
           userInvitationId = userInvitation.map(_.userInvitationId).toOption,
           company = userInvitation.map(_.company).toOption
         ).map{ u =>
           // AuthUser table
-          createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "")
-          // Use Agreement table
-          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
-            u.userId, "privacy_conditions", privacyConditionsValue)
-          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
-            u.userId, "terms_and_conditions", termsAndConditionsValue)
-          UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
-            u.userId, "accept_marketing_info", marketingInfoCheckboxVar.is.toString)
-          // Set the status of the user invitation to "FINISHED"
-          UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
-          // Set a new password
-          val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
-          S.redirectTo(resetLink)
+          createAuthUser(user = u, firstName = firstNameVar.is, lastName = lastNameVar.is, password = "") match {
+            case Failure(msg,_,_) =>
+              Users.users.vend.deleteResourceUser(u.id.get)
+              showError(msg)
+            case _ =>
+              // User Agreement table
+              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+                u.userId, "privacy_conditions", privacyConditionsValue)
+              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+                u.userId, "terms_and_conditions", termsAndConditionsValue)
+              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+                u.userId, "accept_marketing_info", marketingInfoCheckboxVar.is.toString)
+              // Set the status of the user invitation to "FINISHED"
+              UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
+              // Set a new password
+              val resetLink = AuthUser.passwordResetUrl(u.idGivenByProvider, u.emailAddress, u.userId) + "?action=set"
+              S.redirectTo(resetLink)
+          }
         }
         
       }
@@ -181,18 +186,24 @@ class UserInvitation extends MdcLoggable {
     register
   }
 
-  private def createAuthUser(user: User, firstName: String, lastName: String, password: String): Box[AuthUser] = tryo {
+  private def createAuthUser(user: User, firstName: String, lastName: String, password: String): Box[AuthUser] = {
     val newUser = AuthUser.create
       .firstName(firstName)
       .lastName(lastName)
       .email(user.emailAddress)
       .user(user.userPrimaryKey.value)
-      .username(user.idGivenByProvider)
+      .username(user.name)
       .provider(user.provider)
       .password(password)
       .validated(true)
-    // Save the user
-    newUser.saveMe()
+    newUser.validate match {
+      case Nil =>
+        // Save the user
+        Full(newUser.saveMe())
+      case xs => S.error(xs)
+        Failure(xs.map(i => i.msg).mkString(";"))
+    }
+    
   }
 
   private def createResourceUser(provider: String, 
