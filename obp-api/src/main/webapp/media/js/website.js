@@ -120,9 +120,6 @@ $(document).ready(function() {
 		$("#small-screen-navbar #small-nav-log-on-button").css("width","63px");
 	}
 	
-	$(".main-support-item .support-platform-link").text("chat.openbankproject.com");
-	
-	
 	var htmlTitle = $(document).find("title").text();
 
 	if (htmlTitle.indexOf("Get API") > -1){

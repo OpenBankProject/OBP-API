@@ -372,6 +372,8 @@ object ErrorMessages {
   val InvalidPaymentSystemName = "OBP-30116: Invalid payment system name. The payment system name should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 200."
   
   val ProductFeeNotFoundById = "OBP-30117: Product Fee not found. Please specify a valid value for PRODUCT_FEE_ID."
+  val CreateProductFeeError = "OBP-30118: Could not insert the Product Fee."
+  val UpdateProductFeeError = "OBP-30119: Could not update the Product Fee."
 
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
