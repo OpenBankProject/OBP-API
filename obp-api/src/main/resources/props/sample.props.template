@@ -430,7 +430,7 @@ webui_faq_url = https://openbankproject.com/faq/
 webui_faq_email = contact@openbankproject.com
 
 # Link to support platform
-webui_support_platform_url = https://slack.openbankproject.com/
+webui_support_platform_url = https://chat.openbankproject.com
 
 # Link to Direct Login glossary on api explorer
 webui_direct_login_documentation_url =
