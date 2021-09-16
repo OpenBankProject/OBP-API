@@ -474,6 +474,9 @@ webui_override_style_sheet =
 ## Link to agree to Terms & Conditions, shown on signup page
 webui_agree_terms_url =
 
+## The Support Email, shown in the bottom page
+#webui_support_email=contact@openbankproject.com
+
 ## Link to Privacy Policy, shown in the bottom page
 #webui_privacy_policy_url =
 
@@ -616,6 +619,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## Note: The email address used for login must match one
 ## registered on OBP localy.
 # openid_connect.enabled=true
+# openid_connect.show_tokens=false
 # First identity provider
 # openid_connect_1.button_text = Google
 # openid_connect_1.client_secret=OYdWujJlU7fFOW_NXzPlDI4T

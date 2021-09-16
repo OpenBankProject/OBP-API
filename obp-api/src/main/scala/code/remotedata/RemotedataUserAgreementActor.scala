@@ -20,6 +20,10 @@ class RemotedataUserAgreementActor extends Actor with ObpActorHelper with MdcLog
       logger.debug(s"createUserAgreement($userId, $agreementType, $agreementText)")
       sender ! (mapper.createUserAgreement(userId, agreementType, agreementText))
       
+    case cc.getUserAgreement(userId: String, agreementType: String) =>
+      logger.debug(s"getUserAgreement($userId, $agreementType)")
+      sender ! (mapper.getUserAgreement(userId, agreementType))
+      
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }

@@ -111,6 +111,20 @@ object LiftUsers extends Users with MdcLoggable{
       (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
     }
   }
+  
+  override def getUsersByEmail(email: String): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]] = Future {
+    val users = ResourceUser.findAll(By(ResourceUser.email, email))
+    for {
+      user <- users
+    } yield {
+      val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
+      val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "accept_marketing_info")
+      val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "terms_and_conditions")
+      val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "privacy_conditions")
+      val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+      (user, entitlements, Some(agreements))
+    }
+  }
 
   override def getUserByEmailFuture(email: String): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
     Future {
@@ -123,11 +137,21 @@ object LiftUsers extends Users with MdcLoggable{
   }
 
   override def getAllUsersF(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
-    
+    Future {
+      for {
+        user <- getUsersCommon(queryParams)
+      } yield {
+        (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
+      }
+    }
+  }
+
+
+  private def getUsersCommon(queryParams: List[OBPQueryParam]) = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[ResourceUser](value) }.headOption
     val offset: Option[StartAt[ResourceUser]] = queryParams.collect { case OBPOffset(value) => StartAt[ResourceUser](value) }.headOption
     val locked: Option[String] = queryParams.collect { case OBPLockedStatus(value) => value }.headOption
-    val deleted = queryParams.collect { 
+    val deleted = queryParams.collect {
       case OBPIsDeleted(value) if value == true => // ?is_deleted=true
         By(ResourceUser.IsDeleted, true)
       case OBPIsDeleted(value) if value == false => // ?is_deleted=false
@@ -135,13 +159,14 @@ object LiftUsers extends Users with MdcLoggable{
     }.headOption.orElse(
       Some(By(ResourceUser.IsDeleted, false)) // There is no query parameter "is_deleted"
     )
-  
+
     val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq, deleted.toSeq).flatten
-    
+
     def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*)
+
     val showUsers: List[ResourceUser] = locked.map(_.toLowerCase()) match {
       case Some("active") =>
-        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] = 
+        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] =
           MappedBadLoginAttempt.findAll(
             By_>(MappedBadLoginAttempt.mBadAttemptsSinceLastSuccessOrReset, maxBadLoginAttempts.toInt)
           )
@@ -157,11 +182,20 @@ object LiftUsers extends Users with MdcLoggable{
       case _ =>
         getAllResourceUsers()
     }
+    showUsers
+  }
+
+  override def getUsers(queryParams: List[OBPQueryParam]): Future[List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]] = {
     Future {
       for {
-        user <- showUsers
+        user <- getUsersCommon(queryParams)
       } yield {
-        (user, Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName)))
+        val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
+        val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "accept_marketing_info")
+        val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "terms_and_conditions")
+        val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "privacy_conditions")
+        val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+        (user, entitlements, Some(agreements))
       }
     }
   }

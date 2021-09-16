@@ -215,6 +215,11 @@ class WebUI extends MdcLoggable{
     val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
     "#privacy-policy-page" #> scala.xml.Unparsed(makeHtml(webUiPropsValue))
   }
+  def supportEmail = {
+    val webUiPropsValue = getWebUiPropsValue("webui_support_email", "contact@openbankproject.com")
+    "#webui-support-email a *" #> scala.xml.Unparsed(webUiPropsValue) &
+      "#webui-support-email a [href]" #> scala.xml.Unparsed(s"mailto:$webUiPropsValue")
+  }
   
   def sandboxIntroductionLink: CssSel = {
     val webUiApiDocumentation = getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction")

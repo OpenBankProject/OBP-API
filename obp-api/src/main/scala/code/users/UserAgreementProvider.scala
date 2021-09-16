@@ -1,5 +1,7 @@
 package code.users
 
+import java.util.Date
+
 import code.api.util.APIUtil
 import code.remotedata.RemotedataUserAgreement
 import net.liftweb.common.Box
@@ -21,11 +23,13 @@ object UserAgreementProvider extends SimpleInjector {
 trait UserAgreementProvider {
   def createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement]
   def createUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement]
+  def getUserAgreement(userId: String, agreementType: String): Box[UserAgreement]
 }
 
 class RemotedataUserAgreementProviderCaseClass {
   case class createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String)
   case class createUserAgreement(userId: String, agreementType: String, agreementText: String)
+  case class getUserAgreement(userId: String, agreementType: String)
 }
 
 object RemotedataUserAgreementProviderCaseClass extends RemotedataUserAgreementProviderCaseClass
@@ -36,4 +40,5 @@ trait UserAgreementTrait {
   def agreementType: String
   def agreementText: String
   def agreementHash: String
+  def date: Date
 }
