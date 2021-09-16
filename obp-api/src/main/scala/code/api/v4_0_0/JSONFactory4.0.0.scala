@@ -899,7 +899,8 @@ case class UserJsonV400(
                          entitlements : EntitlementJSONs,
                          views: Option[ViewsJSON300],
                          agreements: Option[List[UserAgreementJson]],
-                         is_deleted: Boolean
+                         is_deleted: Boolean,
+                         last_marketing_agreement_signed_date: Option[Date]
                        )
 case class UsersJsonV400(users: List[UserJsonV400])
 
@@ -917,7 +918,8 @@ object JSONFactory400 {
       agreements = agreements.map(_.map( i => 
         UserAgreementJson(`type` = i.agreementType, text = i.agreementText))
       ),
-      is_deleted = user.isDeleted.getOrElse(false)
+      is_deleted = user.isDeleted.getOrElse(false),
+      last_marketing_agreement_signed_date = user.lastMarketingAgreementSignedDate
     )
   }
 

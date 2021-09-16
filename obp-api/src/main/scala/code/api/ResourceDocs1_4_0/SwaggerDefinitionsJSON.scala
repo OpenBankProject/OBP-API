@@ -1711,7 +1711,8 @@ object SwaggerDefinitionsJSON {
     entitlements = entitlementJSONs,
     views = None,
     agreements = None,
-    is_deleted = false
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
   )  
   val userJsonWithAgreementsV400 = UserJsonV400(
     user_id = ExampleValue.userIdExample.value,
@@ -1722,7 +1723,8 @@ object SwaggerDefinitionsJSON {
     entitlements = entitlementJSONs,
     views = None,
     agreements = Some(Nil),
-    is_deleted = false
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
   )
   val userIdJsonV400 = UserIdJsonV400(
     user_id = ExampleValue.userIdExample.value
