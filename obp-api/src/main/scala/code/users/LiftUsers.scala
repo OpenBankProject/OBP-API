@@ -118,12 +118,17 @@ object LiftUsers extends Users with MdcLoggable{
       user <- users
     } yield {
       val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
-      val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "accept_marketing_info")
-      val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "terms_and_conditions")
-      val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "privacy_conditions")
-      val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+      val agreements = getUserAgreements(user)
       (user, entitlements, Some(agreements))
     }
+  }
+
+  private def getUserAgreements(user: ResourceUser) = {
+    val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "accept_marketing_info")
+    val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "terms_and_conditions")
+    val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "privacy_conditions")
+    val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+    agreements
   }
 
   override def getUserByEmailFuture(email: String): Future[List[(ResourceUser, Box[List[Entitlement]])]] = {
@@ -191,10 +196,7 @@ object LiftUsers extends Users with MdcLoggable{
         user <- getUsersCommon(queryParams)
       } yield {
         val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
-        val acceptMarketingInfo = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "accept_marketing_info")
-        val termsAndConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "terms_and_conditions")
-        val privacyConditions = UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(user.userId, "privacy_conditions")
-        val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+        val agreements = getUserAgreements(user)
         (user, entitlements, Some(agreements))
       }
     }
