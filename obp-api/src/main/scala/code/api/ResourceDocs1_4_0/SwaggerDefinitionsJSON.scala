@@ -1710,6 +1710,17 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     entitlements = entitlementJSONs,
     views = None,
+    agreements = None,
+    is_deleted = false
+  )  
+  val userJsonWithAgreementsV400 = UserJsonV400(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    entitlements = entitlementJSONs,
+    views = None,
     agreements = Some(Nil),
     is_deleted = false
   )

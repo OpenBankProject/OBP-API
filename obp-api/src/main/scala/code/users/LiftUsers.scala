@@ -118,8 +118,8 @@ object LiftUsers extends Users with MdcLoggable{
       user <- users
     } yield {
       val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
-      val agreements = getUserAgreements(user)
-      (user, entitlements, Some(agreements))
+      // val agreements = getUserAgreements(user)
+      (user, entitlements, None)
     }
   }
 
@@ -196,8 +196,8 @@ object LiftUsers extends Users with MdcLoggable{
         user <- getUsersCommon(queryParams)
       } yield {
         val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).map(_.sortWith(_.roleName < _.roleName))
-        val agreements = getUserAgreements(user)
-        (user, entitlements, Some(agreements))
+        // val agreements = getUserAgreements(user)
+        (user, entitlements, None)
       }
     }
   }
