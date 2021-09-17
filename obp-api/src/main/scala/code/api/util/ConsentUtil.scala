@@ -198,7 +198,8 @@ object Consent {
         email = email,
         userId = None,
         createdByUserInvitationId = None,
-        company = None
+        company = None,
+        lastMarketingAgreementSignedDate = None
       )
     }
   }

@@ -3384,7 +3384,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       EmptyBody,
-      userJsonV400,
+      userJsonWithAgreementsV400,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canGetAnyUser)))
@@ -3437,12 +3437,8 @@ trait APIMethods400 {
               x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
-            acceptMarketingInfo <- NewStyle.function.getAgreementByUserId(user.userId, "accept_marketing_info", cc.callContext)
-            termsAndConditions <- NewStyle.function.getAgreementByUserId(user.userId, "terms_and_conditions", cc.callContext)
-            privacyConditions <- NewStyle.function.getAgreementByUserId(user.userId, "privacy_conditions", cc.callContext)
           } yield {
-            val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
-            (JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements)), HttpCode.`200`(cc.callContext))
+            (JSONFactory400.createUserInfoJSON(user, entitlements, None), HttpCode.`200`(cc.callContext))
           }
       }
     }

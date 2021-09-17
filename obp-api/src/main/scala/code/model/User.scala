@@ -131,7 +131,7 @@ object UserX {
   }
 
   def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], company: Option[String]) = {
-    Users.users.vend.createResourceUser(provider, providerId, createdByConsentId, name, email, userId, None, company)
+    Users.users.vend.createResourceUser(provider, providerId, createdByConsentId, name, email, userId, None, company, None)
   }
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {

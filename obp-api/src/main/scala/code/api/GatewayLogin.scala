@@ -262,7 +262,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               email = None,
               userId = None,
               createdByUserInvitationId = None,
-              company = None
+              company = None,
+              lastMarketingAgreementSignedDate = None
             )
           } match {
             case Full(u) =>
