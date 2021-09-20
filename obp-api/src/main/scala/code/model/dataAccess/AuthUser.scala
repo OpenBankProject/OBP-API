@@ -140,6 +140,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
   }
   
   /**
+   * Username is a valid email address or the regex below:
    * Regex to validate a username
    * 
    * ^(?=.{8,100}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$
@@ -171,6 +172,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
     def usernameIsValid(msg: => String)(e: String) = e match {
       case null                                             => List(FieldError(this, Text(msg)))
       case e if e.trim.isEmpty                              => List(FieldError(this, Text(msg)))
+      case e if emailRegex.findFirstMatchIn(e).isDefined    => Nil // Email is valid username
       case e if usernameRegex.findFirstMatchIn(e).isDefined => Nil
       case _                                                => List(FieldError(this, Text(msg)))
     }
