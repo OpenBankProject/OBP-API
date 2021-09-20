@@ -146,9 +146,9 @@ class WebUI extends MdcLoggable{
   
   val mainFaqHtmlContent = try{
     if (mainFaqHtmlLink.isEmpty)//If the webui_featured_sdks_external_link is not set, we will read the internal sdks.html file instead.
-      LiftRules.getResource("/mainFaq.html").map{ url =>
+      LiftRules.getResource("/main-faq.html").map{ url =>
         Source.fromURL(url, "UTF-8").mkString
-      }.openOrThrowException("Please check the content of this file: src/main/webapp/mainFaq.html")
+      }.openOrThrowException("Please check the content of this file: src/main/webapp/main-faq.html")
     else
       Source.fromURL(sdksHtmlLink, "UTF-8").mkString
   }catch {
