@@ -802,7 +802,16 @@ case class Transaction(
   val accountId = thisAccount.accountId
 }
 
-case class UserCommons(userPrimaryKey : UserPrimaryKey, userId: String,idGivenByProvider: String, provider : String, emailAddress : String, name : String, createdByConsentId: Option[String] = None, createdByUserInvitationId: Option[String] = None, isDeleted: Option[Boolean] = None) extends User
+case class UserCommons(userPrimaryKey : UserPrimaryKey, 
+                       userId: String,
+                       idGivenByProvider: String, 
+                       provider : String,
+                       emailAddress : String,
+                       name : String,
+                       createdByConsentId: Option[String] = None,
+                       createdByUserInvitationId: Option[String] = None,
+                       isDeleted: Option[Boolean] = None,
+                       lastMarketingAgreementSignedDate: Option[Date] = None) extends User
 
 case class InternalBasicUser(
   userId:String,

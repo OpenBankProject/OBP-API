@@ -36,7 +36,7 @@ import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.model.dataAccess.{AuthUser, BankAccountRouting}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
-import code.users.{UserInvitation, UserInvitationProvider, Users}
+import code.users.{UserAgreement, UserAgreementProvider, UserInvitation, UserInvitationProvider, Users}
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -823,6 +823,9 @@ object NewStyle {
       Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
         connectorEmptyResponse(_, callContext)
       }
+    }
+    def getAgreementByUserId(userId: String, agreementType: String, callContext: Option[CallContext]): Future[Box[UserAgreement]] = {
+      Future(UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, agreementType))
     }
 
     def getEntitlementsByBankId(bankId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {

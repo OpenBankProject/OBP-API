@@ -115,7 +115,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                     case Full(authUser) =>
                       getOrCreateConsumer(idToken, user.userId) match {
                         case Full(consumer) =>
-                          saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn) match {
+                          saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
                             case Full(token) => (200, "OK", Some(authUser))
                             case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "1", Some(authUser))
                           }
@@ -182,11 +182,12 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
         provider = issuer,
         providerId = subject,
         createdByConsentId = None,
-        name = getClaim(name = "given_name", idToken = idToken).orElse(subject),
+        name = subject,
         email = getClaim(name = "email", idToken = idToken),
         userId = None,
         createdByUserInvitationId = None,
-        company = None
+        company = None,
+        lastMarketingAgreementSignedDate = None
       )
     }
   }
@@ -272,14 +273,16 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                                      idToken: String,
                                      refreshToken: String,
                                      scope: String,
-                                     expiresIn: Long): Box[OpenIDConnectToken] = {
+                                     expiresIn: Long,
+                                     authUserPrimaryKey: Long): Box[OpenIDConnectToken] = {
     val token = TokensOpenIDConnect.tokens.vend.createToken(
       tokenType = tokenType,
       accessToken = accessToken,
       idToken = idToken,
       refreshToken = refreshToken,
       scope = scope,
-      expiresIn = expiresIn
+      expiresIn = expiresIn,
+      authUserPrimaryKey = authUserPrimaryKey
     )
     token match  {
       case Full(_) => // All good

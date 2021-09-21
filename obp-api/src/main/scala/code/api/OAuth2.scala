@@ -96,6 +96,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           Google.applyRulesFuture(value, cc)
         } else if (Yahoo.isIssuer(value)) {
           Yahoo.applyRulesFuture(value, cc)
+        } else if (Azure.isIssuer(value)) {
+          Azure.applyRulesFuture(value, cc)
         } else {
           Hydra.applyRulesFuture(value, cc)
         }
@@ -285,7 +287,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           email = getClaim(name = "email", idToken = idToken),
           userId = None,
           createdByUserInvitationId = None,
-          company = None
+          company = None,
+          lastMarketingAgreementSignedDate = None
         )
       }
     }

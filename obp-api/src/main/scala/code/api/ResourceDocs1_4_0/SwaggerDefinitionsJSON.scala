@@ -1701,6 +1701,31 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     entitlements = entitlementJSONs
   )
+  
+  val userJsonV400 = UserJsonV400(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    entitlements = entitlementJSONs,
+    views = None,
+    agreements = None,
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
+  )  
+  val userJsonWithAgreementsV400 = UserJsonV400(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    entitlements = entitlementJSONs,
+    views = None,
+    agreements = Some(Nil),
+    is_deleted = false,
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
+  )
   val userIdJsonV400 = UserIdJsonV400(
     user_id = ExampleValue.userIdExample.value
   )
@@ -1964,6 +1989,9 @@ object SwaggerDefinitionsJSON {
 
   val usersJsonV200 = UsersJsonV200(
     users = List(userJsonV200)
+  )
+  val usersJsonV400 = UsersJsonV400(
+    users = List(userJsonV400)
   )
 
   val counterpartiesJSON = CounterpartiesJSON(

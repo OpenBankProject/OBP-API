@@ -510,6 +510,7 @@ class Boot extends MdcLoggable {
       Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
     
       Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
+      Menu("User Information", "User Information") / "user-information",
       Menu("User Invitation", "User Invitation") / "user-invitation",
       Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
       Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
