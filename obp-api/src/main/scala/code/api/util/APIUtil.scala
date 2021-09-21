@@ -3848,6 +3848,40 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
   }
+  /**
+   * validate whether current request's query parameters
+   * @param operationId
+   * @param callContext
+   * @return Full(errorResponse) if validate fail
+   */
+  def validateQueryParams(operationId: String, callContext: CallContext): Box[JsonResponse] = {
+    val queryString: String =  if (callContext.url.contains("?")) callContext.url.split("\\?",2)(1) else "" 
+    val queryParams: Array[String] = queryString.split("&").map(_.split("=")(0))
+    val queryParamsGrouped: Map[String, Array[String]] = queryParams.groupBy(x => x)
+    queryParamsGrouped.toList.forall(_._2.size == 1) match {
+      case true => Empty
+      case false => 
+        Box.tryo(
+          createErrorJsonResponse(s"${ErrorMessages.DuplicatedQueryParameters}", 400, callContext.correlationId)
+        )
+    }
+  }
+  /**
+   * validate whether current request's header keys
+   * @param operationId
+   * @param callContext
+   * @return Full(errorResponse) if validate fail
+   */
+  def validateRequestHeadersKeys(operationId: String, callContext: CallContext): Box[JsonResponse] = {
+    val headerKeysGrouped: Map[String, List[HTTPParam]] = callContext.requestHeaders.groupBy(x => x.name)
+    headerKeysGrouped.toList.forall(_._2.size == 1) match {
+      case true => Empty
+      case false => 
+        Box.tryo(
+          createErrorJsonResponse(s"${ErrorMessages.DuplicatedHeaderKeys}", 400, callContext.correlationId)
+        )
+    }
+  }
 
   def createErrorJsonResponse(errorMsg: String, errorCode: Int, correlationId: String): JsonResponse = {
     import net.liftweb.json.JsonDSL._
@@ -3911,6 +3945,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // validate auth type
     {
       case (Some(callContext), operationId) => validateAuthType(operationId, callContext)
+    },
+    // validate query params
+    {
+      case (Some(callContext), operationId) => validateQueryParams(operationId, callContext)
+    },
+    // validate request header keys
+    {
+      case (Some(callContext), operationId) => validateRequestHeadersKeys(operationId, callContext)
     }
   )
 
