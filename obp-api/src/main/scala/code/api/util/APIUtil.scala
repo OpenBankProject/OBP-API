@@ -3862,7 +3862,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case true => Empty
       case false => 
         Box.tryo(
-          createErrorJsonResponse(s"${ErrorMessages.DuplicatedQueryParameters}", 400, callContext.correlationId)
+          createErrorJsonResponse(s"${ErrorMessages.DuplicateQueryParameters}", 400, callContext.correlationId)
         )
     }
   }
@@ -3878,7 +3878,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case true => Empty
       case false => 
         Box.tryo(
-          createErrorJsonResponse(s"${ErrorMessages.DuplicatedHeaderKeys}", 400, callContext.correlationId)
+          createErrorJsonResponse(s"${ErrorMessages.DuplicateHeaderKeys}", 400, callContext.correlationId)
         )
     }
   }
