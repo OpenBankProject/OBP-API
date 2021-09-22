@@ -340,6 +340,13 @@ $(document).ready(function() {
 	} else{
 		consumerRegistrationAppRequestUriError.parent().addClass('hide');
 	}
+	
+	var dataAreaErrors = $('#data-area-input #data-area-errors');
+	if (dataAreaErrors.length > 0 && dataAreaErrors.html().length > 0) {
+		dataAreaErrors.parent().removeClass('hide');
+	} else{
+		dataAreaErrors.parent().addClass('hide');
+	}
 
 	{
 		var consumerRegistrationJwksError = $('#register-consumer-input #consumer-registration-app-signing_jwks-error');
