@@ -274,7 +274,7 @@ trait APIMethods400 {
         |* Website""",
       EmptyBody,
       bankJson400,
-      List(UserNotLoggedIn, UnknownError, BankNotFound),
+      List(UnknownError, BankNotFound),
       apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
