@@ -58,6 +58,8 @@ object ErrorMessages {
   
   val InvalidRequestPayload = "OBP-09014: Incorrect request body Format, it should be a valid json that matches Validation rule."
   val DynamicDataNotFound = "OBP-09015: Dynamic Data not found. Please specify a valid value."
+  val DuplicatedQueryParameters = "OBP-09016: Duplicated Query Parameters are not allowed."
+  val DuplicatedHeaderKeys = "OBP-09017: Duplicated Header Keys are not allowed."
 
 
   // General messages (OBP-10XXX)
