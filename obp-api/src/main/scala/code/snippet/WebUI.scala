@@ -152,7 +152,7 @@ class WebUI extends MdcLoggable{
     else
       Source.fromURL(sdksHtmlLink, "UTF-8").mkString
   }catch {
-    case _ : Throwable => "<h1>SDK Showcases is wrong, please check the props `webui_featured_sdks_external_link` </h1>"
+    case _ : Throwable => "<h1>FAQs is wrong, please check the props `webui_main_faq_external_link` </h1>"
   }
 
   // webui_featured_sdks_external_link props, we can set the sdks here. check the `SDK Showcases` in Homepage, and you can see all the sdks.
