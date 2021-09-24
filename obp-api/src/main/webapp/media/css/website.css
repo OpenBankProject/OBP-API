@@ -8,6 +8,7 @@
 @import url(/media/css/main-start.css);
 @import url(/media/css/authorise.css);
 @import url(/media/css/register-consumer.css);
+@import url(/media/css/data-area.css);
 @import url(/media/css/signup.css);
 @import url(/media/css/recover-password.css);
 @import url(/media/css/main-showcases.css);
@@ -284,6 +285,7 @@ header #header-decoration,
 #signup,
 #recover-password,
 #register-consumer,
+#data-area ,
 #create-account,
 .navbar-default .navbar-toggle:hover,
 .navbar-default .navbar-toggle:focus,

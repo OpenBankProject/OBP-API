@@ -128,9 +128,9 @@ class UserInvitation extends MdcLoggable {
     }
 
     def showError(usernameError: String) = {
-      S.error("register-consumer-errors", usernameError)
+      S.error("data-area-errors", usernameError)
       register &
-        "#register-consumer-errors *" #> {
+        "#data-area-errors *" #> {
           ".error *" #>
             List(usernameError).map({ e =>
               ".errorContent *" #> e
@@ -170,7 +170,7 @@ class UserInvitation extends MdcLoggable {
           "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
-      "#register-consumer-success" #> ""
+      "#data-area-success" #> ""
     }
     userInvitation match {
       case Full(payload) if payload.status == "CREATED" => // All good
