@@ -2220,24 +2220,33 @@ object Glossary extends MdcLoggable  {
 		title = "Dynamic Endpoint",
 		description =
 			s"""
-|Dynamic Endpoint, you can create dynamic endpoints by the swagger files.
-|All the endpoints defined in the swagger file, will be created in OBP sandbox.
-|There will be two different modes of these created endpoints.
 |
-|If the host of swagger is dynamic_entity, then you need link the swagger fields to the dynamic entity fields,
-|please check *Endpoint Mapping* endpoints.
+|If you want to create endpoints from Swagger / Open API specification files, use Dynamic Endpoints.
 |
-|If the host of swagger is obp_mock, every dynamic endpoint will return example response of swagger.
-|If you need to link the response to external resource, please check * Method Routing* endpoints.
+|We use the term "Dynamic" because these Endpoints persist in the OBP database and are served from real time generated Scala code.
+|
+|This contrasts to the "Static" endpoints (see the Static glossary item) which are served from static Scala code.
+|
+|Dynamic endpoints can be changed in real-time and do not require an OBP instance restart.
+|
+|When you POST a swagger file, all the endpoints defined in the swagger file, will be created in this OBP instance.
+|
+|You can create a set of endpoints in three different modes:
+|
+|1) If the *host* field in the Swagger file is set to "dynamic_entity", then you should link the swagger JSON fields to Dynamic Entity fields. To do this use the *Endpoint Mapping* endpoints.
+|
+|2) If the *host* field in the Swagger file is set to "obp_mock", the Dynamic Endpoints created will return *example responses defined in the swagger file*.
+|
+|3) If you need to link the responses to external resource, use the *Method Routing* endpoints.
 |
 |
-|Dynamic Endpoint can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). 
-|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|Dynamic Endpoints can be created at the System level (bank_id is null) or Bank / Space level (bank_id is NOT null).
+|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain. See the OBP-API sample.props.template
 |
-|Upon successful creation of a Dynamic Endpoint, OBP automatically:
+|Upon the successful creation of each Dynamic Endpoint, OBP will automatically:
 |
-|*Creates Roles to guard the above endpoints.
-|*Granted yourself the entitlements to get the access to these endpoints.
+|*Create a Guard with a named Role on the Endpoint to protect it from unauthorised users.
+|*Grant you an Entitlement to the required Role so you can call the endpoint and pass its Guard.
 |
 |The following videos are available:
 |
@@ -2250,20 +2259,32 @@ object Glossary extends MdcLoggable  {
 		title = "Endpoint Mapping",
 		description =
 			s"""
-   |This can be used to map the dynamic entity fields and dynamic endpoint fields.
+   |This can be used to map Dynamic Endpoint fields to Dynamic Entity fields.
    |
-   |When you create the dynamic endpoint, and set `host` of swagger to dynamic_entity. 
+   |In your Swagger file, set `host` of the swagger file to dynamic_entity.
    |
-   |Then you can use these endpoints to map dynamic endpoint response to dynamic entity model.
+   |Then you can use the Endpoint Mapping endpoints to map dynamic endpoint fields to Dynamic Entity data.
    |
-   |Check the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) json body, you need to first know the operation_id
+   |Check the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects.
    |
-   |and you can prepare the request_mapping and response_mapping objects. 
-   |
-	 |Details better to see the video: 
+	 |For details see the following video:
 	 |
 	 |	* [Endpoint Mapping -step1-getOne:GetAll](https://vimeo.com/553369108)
    |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Static Endpoint",
+		description =
+			s"""
+|Static endpoints are served from static Scala source code which is contained in (public) Git repositories.
+|
+|Static endpoints cover all the OBP API and User management functionality as well as the Open Bank Project banking APIs and other Open Banking standards such as UK Open Banking, Berlin Group and STET etc..
+				 |In short, Static (standard) endpoints are defined in Git as Scala source code, where as Dynamic (custom) endpoints are defined in the OBP database.
+				 |
+|Modifications to Static endpoint core properties such as URLs and response bodies require source code changes and an instance restart. However, JSON Schema Validation and Dynamic Connector changes can be applied in real-time.
+""".stripMargin)
+
 
 
 	///////////////////////////////////////////////////////////////////
