@@ -2259,17 +2259,19 @@ object Glossary extends MdcLoggable  {
 		title = "Endpoint Mapping",
 		description =
 			s"""
-   |This can be used to map Dynamic Endpoint fields to Dynamic Entity fields.
+   |Endpoint Mapping can be used to map each JSON field in a Dynamic Endpoint to different Dynamic Entity fields.
    |
-   |In your Swagger file, set `host` of the swagger file to dynamic_entity.
+   |This document assumes you already have some knowledge of OBP Dynamic Endpoints and Dynamic Entities.
    |
-   |Then you can use the Endpoint Mapping endpoints to map dynamic endpoint fields to Dynamic Entity data.
+   |To enable Endpoint Mapping for your Dynamic Endpoints, either set the `host` in the swagger file to "dynamic_entity" upon creation of the Dynamic Endpoints - or update the host using the Update Dynamic Endpoint Host endpoints.
    |
-   |Check the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects.
+   |Once the `host` is thus set, you can the Endpoint Mapping endpoints to map the Dynamic Endpoint fields to Dynamic Entity data.
    |
-	 |For details see the following video:
+   |See the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects. You can get the operation ID from the API Explorer or Get Dynamic Endpoints endpoints.
+   |
+	 |For more details and a walk through, please see the following video:
 	 |
-	 |	* [Endpoint Mapping -step1-getOne:GetAll](https://vimeo.com/553369108)
+	 |	* [Endpoint Mapping](https://vimeo.com/553369108)
    |""".stripMargin)
 
 
