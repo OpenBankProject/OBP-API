@@ -10416,13 +10416,13 @@ trait APIMethods400 {
          |* Name
          |* Code
          |* Parent Product Code
-         |* Category
-         |* Family
-         |* Super Family
          |* More info URL
          |* Description
          |* Terms and Conditions
-         |* License the data under this endpoint is released under
+         |* Description
+         |* Meta
+         |* Attributes
+         |* Fees
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,

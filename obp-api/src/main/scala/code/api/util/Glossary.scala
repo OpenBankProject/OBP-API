@@ -2295,9 +2295,9 @@ object Glossary extends MdcLoggable  {
    |And they can grant/revoke the view to other users to use their view.
    |""".stripMargin)
 	
-	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
-	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
-	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
+//	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
+//	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
+//	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
 
 	glossaryItems += GlossaryItem(
 		title = "Static Endpoint",
