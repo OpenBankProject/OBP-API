@@ -2150,7 +2150,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "API Collections",
+		title = "API Collection",
 		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
 |Having read access to a Collection does not constitute execute access on the endpoints in the Collection.
@@ -2272,6 +2272,30 @@ object Glossary extends MdcLoggable  {
 	 |	* [Endpoint Mapping -step1-getOne:GetAll](https://vimeo.com/553369108)
    |""".stripMargin)
 
+	glossaryItems += GlossaryItem(
+		title = "Branch",
+		description =
+			s"""The bank branches, it contains the address, location, lobby, drive_up of the Branch.
+				 """.stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "API",
+		description =
+			s"""All OBP API relevant docs, eg: API configuration, JSON Web Key, Adapter Info, Rate Limiting 
+				 """.stripMargin)
+	
+
+	glossaryItems += GlossaryItem(
+		title = "Account Access",
+		description =
+			s"""
+   |Account Access is OBP View system. The Account owners can create the view themselves.
+   |And they can grant/revoke the view to other users to use their view.
+   |""".stripMargin)
+	
+	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
+	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
+	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
 
 	glossaryItems += GlossaryItem(
 		title = "Static Endpoint",
