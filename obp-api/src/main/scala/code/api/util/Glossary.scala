@@ -2220,24 +2220,33 @@ object Glossary extends MdcLoggable  {
 		title = "Dynamic Endpoint",
 		description =
 			s"""
-|Dynamic Endpoint, you can create dynamic endpoints by the swagger files.
-|All the endpoints defined in the swagger file, will be created in OBP sandbox.
-|There will be two different modes of these created endpoints.
 |
-|If the host of swagger is dynamic_entity, then you need link the swagger fields to the dynamic entity fields,
-|please check *Endpoint Mapping* endpoints.
+|If you want to create endpoints from Swagger / Open API specification files, use Dynamic Endpoints.
 |
-|If the host of swagger is obp_mock, every dynamic endpoint will return example response of swagger.
-|If you need to link the response to external resource, please check * Method Routing* endpoints.
+|We use the term "Dynamic" because these Endpoints persist in the OBP database and are served from real time generated Scala code.
+|
+|This contrasts to the "Static" endpoints (see the Static glossary item) which are served from static Scala code.
+|
+|Dynamic endpoints can be changed in real-time and do not require an OBP instance restart.
+|
+|When you POST a swagger file, all the endpoints defined in the swagger file, will be created in this OBP instance.
+|
+|You can create a set of endpoints in three different modes:
+|
+|1) If the *host* field in the Swagger file is set to "dynamic_entity", then you should link the swagger JSON fields to Dynamic Entity fields. To do this use the *Endpoint Mapping* endpoints.
+|
+|2) If the *host* field in the Swagger file is set to "obp_mock", the Dynamic Endpoints created will return *example responses defined in the swagger file*.
+|
+|3) If you need to link the responses to external resource, use the *Method Routing* endpoints.
 |
 |
-|Dynamic Endpoint can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). 
-|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|Dynamic Endpoints can be created at the System level (bank_id is null) or Bank / Space level (bank_id is NOT null).
+|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain. See the OBP-API sample.props.template
 |
-|Upon successful creation of a Dynamic Endpoint, OBP automatically:
+|Upon the successful creation of each Dynamic Endpoint, OBP will automatically:
 |
-|*Creates Roles to guard the above endpoints.
-|*Granted yourself the entitlements to get the access to these endpoints.
+|*Create a Guard with a named Role on the Endpoint to protect it from unauthorised users.
+|*Grant you an Entitlement to the required Role so you can call the endpoint and pass its Guard.
 |
 |The following videos are available:
 |
@@ -2250,19 +2259,19 @@ object Glossary extends MdcLoggable  {
 		title = "Endpoint Mapping",
 		description =
 			s"""
-   |This can be used to map the dynamic entity fields and dynamic endpoint fields.
+   |Endpoint Mapping can be used to map each JSON field in a Dynamic Endpoint to different Dynamic Entity fields.
    |
-   |When you create the dynamic endpoint, and set `host` of swagger to dynamic_entity. 
+   |This document assumes you already have some knowledge of OBP Dynamic Endpoints and Dynamic Entities.
    |
-   |Then you can use these endpoints to map dynamic endpoint response to dynamic entity model.
+   |To enable Endpoint Mapping for your Dynamic Endpoints, either set the `host` in the swagger file to "dynamic_entity" upon creation of the Dynamic Endpoints - or update the host using the Update Dynamic Endpoint Host endpoints.
    |
-   |Check the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) json body, you need to first know the operation_id
+   |Once the `host` is thus set, you can the Endpoint Mapping endpoints to map the Dynamic Endpoint fields to Dynamic Entity data.
    |
-   |and you can prepare the request_mapping and response_mapping objects. 
+   |See the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects. You can get the operation ID from the API Explorer or Get Dynamic Endpoints endpoints.
    |
-	 |Details better to see the video: 
+	 |For more details and a walk through, please see the following video:
 	 |
-	 |	* [Endpoint Mapping -step1-getOne:GetAll](https://vimeo.com/553369108)
+	 |	* [Endpoint Mapping](https://vimeo.com/553369108)
    |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -2289,6 +2298,97 @@ object Glossary extends MdcLoggable  {
 //	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
 //	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
 //	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
+
+	glossaryItems += GlossaryItem(
+		title = "Static Endpoint",
+		description =
+			s"""
+|Static endpoints are served from static Scala source code which is contained in (public) Git repositories.
+|
+|Static endpoints cover all the OBP API and User management functionality as well as the Open Bank Project banking APIs and other Open Banking standards such as UK Open Banking, Berlin Group and STET etc..
+				 |In short, Static (standard) endpoints are defined in Git as Scala source code, where as Dynamic (custom) endpoints are defined in the OBP database.
+				 |
+|Modifications to Static endpoint core properties such as URLs and response bodies require source code changes and an instance restart. However, JSON Schema Validation and Dynamic Connector changes can be applied in real-time.
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Message Doc",
+		description =
+			s"""
+|OBP can communicate with core banking systems (CBS) and other back end services using a "Connector -> Adapter" approach.
+|
+|The OBP Connector is a core part of the OBP-API and is written in Scala / Java and potentially other JVM languages.
+|
+|The OBP Connector implements multiple functions / methods in a style that satisfies a particular transport / protocol such as HTTP REST, Akka or Kafka.
+|
+|An OBP Adapter is a separate software component written in any programming language that responds to requests from the OBP Connector.
+|
+|Requests are sent by the Connector to the Adapter (or a message queue).
+|
+|The Adapter must satisfy the Connector method's request for data (or return an error).
+|
+|"Message Docs" are used to define and document the request / response structure.
+|
+|Message Docs are visible in the API Explorer.
+|
+|Message Docs are also available over the Message Doc endpoints.
+|
+|Each Message Doc relates to one OBP function / method.
+|
+|The Message Doc includes:
+|
+|  1) The Name of the internal OBP function / method e.g. getAccountsForUser
+|  2) The Outbound Message structure.
+|  3) The Inbound Message structure.
+|  4) The Connector name which denotes the protocol / transport used (e.g. REST, Akka, Kafka etc)
+|  5) Outbound / Inbound Topic
+|  6) A list of required Inbound fields
+|  7) A list of dependent endpoints.
+|
+|The perspective is that of the OBP-API Connector i.e. the OBP Connector sends the message Out, and it receives the answer In.
+|
+|The Outbound message contains several top level data structures:
+|
+| 1) The outboundAdapterCallContext
+|
+| This tells the Adapter about the specific REST call that triggered the request and contains the correlationId to uniquely identify the REST call, the consumerId to identify the API Consumer (App) and a generalContext which is a list of key / value pairs that give the Adapter additional custom information about the call.
+|
+| 2) outboundAdapterAuthInfo
+|
+|This tells the Adapter about the authenticated User that is making the call including: the userId, the userName, the userAuthContext (a list of key / value pairs that have been validated using SCA (see the UserAuthContext endpoints)) and other optional structures such as linked Customers and Views on Accounts to further identify the User.
+|
+|3) The body
+|
+|The body contains named fields that are specific to each Function / Message Doc.
+|
+|For instance, getTransaction might send the bankId, accountId and transactionId so the Adapter can route the request based on bankId and check User permissions on the AccountId before retrieving a Transaction.
+|
+|The Inbound message
+|
+|The Inbound message is the reply or response from the Adapter and has the following structure:
+|
+|1) The inboundAdapterCallContext
+|
+|This is generally an echo of the outboundAdapterCallContext so the Connector can double check the target destination of the response.
+|
+|2) The status
+|
+|This contains information about status of the response including any errorCode and a list of backendMessages.
+|
+|3) The data
+|
+|This contains the named fields and their values which are specific to each Function / Message Doc.
+|
+|
+|The Outbound / Inbound Topics are used for routing in multi OBP instance / Kafka installations. (so OBP nodes only listen only to the correct Topics).
+|
+|The dependent endpoints are listed to facilitate navigation in the API Explorer so integrators can test endpoints during integration.
+|
+|Message Docs can be generated automatically using OBP code tools. Thus, it's possible to create custom connectors that follow specific protocol and structural patterns e.g. for message queue X over XML format Y.
+|
+|""".stripMargin)
+
+
 
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
