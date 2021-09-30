@@ -2283,9 +2283,55 @@ object Glossary extends MdcLoggable  {
 	glossaryItems += GlossaryItem(
 		title = "API",
 		description =
-			s"""All OBP API relevant docs, eg: API configuration, JSON Web Key, Adapter Info, Rate Limiting 
+			s"""|The terms `API` (Application Programming Interface) and `Endpoint` are used somewhat interchangeably.
+|
+|However, an API normally refers to a group of Endpoints.
+|
+|End endpoint has a unique URL path and HTTP verb (GET, POST, PUT, DELETE etc).
+|
+|When we POST a Swagger file to the Create Endpoint endpoint, we are in fact creating a set of Endpoints that have a common Tag. Tags are used to group Endpoints in the API Explorer and filter the Endpoints in the Resource Doc endpoints.
+|
+|Endpoints can also be grouped together in Collections.
+|
+|See also [Endpoint](/glossary#Endpoint)
+|
 				 """.stripMargin)
-	
+
+	glossaryItems += GlossaryItem(
+		title = "Endpoint",
+		description =
+			s"""
+|The terms `Endpoint` and `API` (Application Programming Interface) are used somewhat interchangeably. However, an Endpoint is a specific URL defined by its path (eg. /obp/v4.0/root) and its http verb (e.g. GET, POST, PUT, DELETE etc).
+|Endpoints are like arrows into a system. Like any good computer function, endpoints should expect much and offer little in return. They should fail early and be clear about any reason for failure. In other words each endpoint should have a tight and limited contract with any caller - and especially the outside world!
+|
+|In OBP, all system endpoints are RESTful - and most Open Banking Standards are RESTful. However, it is possible to create non-RESTful APIs in OBP using the Create Endpoint endpoints.
+|
+|You can immediately tell if an endpoint is not RESTful by seeing a verb in the URL. For example:
+|
+|POST /customers is RESTful = GOOD
+|POST /create-customer is NOT RESTful (due to the word "create") = BAD
+|
+|RESTful APIs use resource names in URL paths. You can think of RESTful resources like database tables. You wouldn't name a database table "create-customer", so don't use that in a URL path.
+|
+|If we consider interacting with a Customers table, we read the data using GET /Customers and write to the table using POST /Customers. This model keeps the names clear and predictable.
+|Note that we are only talking about the front end interface here - anything could be happening in the backend - and that is one of the beauties of APIs. For instance GET /Customers could call 5 different databases and 3 XML services in the background. Similarly POST /Customers could insert into various different tables and backend services. The important thing is that the user of the API (The Consumer or Client in OAuth parlance) has a simple and consistent experience.
+|
+|In OBP, all Endpoints are implemented by `Partial Functions`. A Partial Function is a function which only accepts (and responds) to calls with certain parameter values. In the case of API Endpoints the inputs to the Partial Functions are the URL path and http verb. Note that it would be possible to have different Partial Functions respond even to different query parameters, but for OBP static endpoints at least, we take the approach of URL path + http Verb is handled by one Partial Function.
+|Each Partial Function is identified by an Operation ID which uniquely identifies the endpoint in the system. Having an Operation ID allows us to decorate the Endpoint with metadata (e.g. Tags) and surround the Endpoint with behaviour such as JSON Schema Validation.
+|
+|See also [API](/glossary#API)
+|
+""".stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "API Tag",
+		description =
+			s"""All OBP API relevant docs, eg: API configuration, JSON Web Key, Adapter Info, Rate Limiting
+				 """.stripMargin)
+
+
 
 	glossaryItems += GlossaryItem(
 		title = "Account Access",
