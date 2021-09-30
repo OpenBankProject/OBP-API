@@ -2454,6 +2454,36 @@ object Glossary extends MdcLoggable  {
 |
 |""".stripMargin)
 
+	glossaryItems += GlossaryItem(
+		title = "Method Routing",
+		description =
+			s"""
+   |
+   | Open Bank Project can have different connectors, to connect difference data sources. 
+   | We support several sources at the moment, eg: databases, rest services, stored procedures and kafka. 
+   | 
+   | If OBP set connector=star, then you can use this method routing to switch the sources.
+   | And we also provide the fields mapping in side the endpoints. If the fields in the source are different from connector,
+   | then you can map the fields yourself.
+   |  
+   |  The following videos are available:
+   |  
+   | *[Method Routing Endpoints](https://vimeo.com/398973130)
+   | *[Method Routing Endpoints Mapping](https://vimeo.com/404983764)
+   | 
+   |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "JSON Schema Validation",
+		description =
+			s"""
+   | We provide the schema validations over the endpoints.
+   | All the OBP endpoints request/response body fields can be validated by the schema.
+   |
+   |The following videos are available:
+   |* [JSON schema validation of request for Static and Dynamic Endpoints and Entities] (https://vimeo.com/485287014)
+   |""".stripMargin)
+
 
 
 	///////////////////////////////////////////////////////////////////
