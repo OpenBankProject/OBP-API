@@ -8446,7 +8446,7 @@
       "request_url": "/obp/v4.0.0/management/dynamic_entities/DYNAMIC_ENTITY_ID",
       "summary": "更新DynamicEntity",
       "description": "<p>更新DynamicEntity。 </p><p>身份验证是强制性的</p><p>更新一个DynamicEntity，更新完成后，将更改相应的CRUD端点。 </p><p>当前的支持文件类型如下： <br /> [字符串，数字，整数，布尔值] </p>",
-      "description_markdown": "Update a DynamicEntity.\n\n\nAuthentication is Mandatory\n\nUpdate one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.\n\nCurrent support field types as follow:\n[string, number, integer, boolean]\n\n",
+      "description_markdown": "Update a DynamicEntity.\n\n\nAuthentication is Mandatory\n\nUpdate one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.\n\nThe following field types are as supported:\n[string, number, integer, boolean]\n\n",
       "example_request_body": {
         "FooBar": {
           "required": [
@@ -11963,7 +11963,7 @@
       "request_url": "/obp/v4.0.0/management/dynamic_entities",
       "summary": "创建动态实体",
       "description": "<p>创建一个DynamicEntity。 </p><p>身份验证是强制性的</p><p>创建一个DynamicEntity，创建成功后，将自动生成相应的CRUD端点</p><p>当前的支持文件类型如下： <br /> [字符串，数字，整数，布尔值] </p>",
-      "description_markdown": "Create a DynamicEntity.\n\n\nAuthentication is Mandatory\n\nCreate one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically\n\nCurrent support field types as follow:\n[string, number, integer, boolean]\n\n",
+      "description_markdown": "Create a DynamicEntity.\n\n\nAuthentication is Mandatory\n\nCreate a DynamicEntity. If creation is successful, the corresponding POST, GET, PUT and DELETE (Create, Read, Update, Delete or CRUD for short) endpoints will be generated automatically\n\nThe following field types are as supported:\n[string, number, integer, boolean]\n\n",
       "example_request_body": {
         "FooBar": {
           "required": [

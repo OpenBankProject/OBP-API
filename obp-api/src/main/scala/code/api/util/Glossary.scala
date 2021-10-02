@@ -635,9 +635,11 @@ object Glossary extends MdcLoggable  {
 		title = "Bank",
 		description =
 		"""
-		  |A Bank (aka Space) represents a financial institution, brand or organisaitonal unit under which resources such as endpoints and entities exist.
+		  |A Bank (aka Space) represents a financial institution, brand or organizational unit under which resources such as endpoints and entities exist.
 |
 |Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
+|
+|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:8082/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
 |
 |The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
 |
@@ -2477,7 +2479,17 @@ object Glossary extends MdcLoggable  {
 		title = "JSON Schema Validation",
 		description =
 			s"""
-   | We provide the schema validations over the endpoints.
+   |JSON Schema is "a vocabulary that allows you to annotate and validate JSON documents".
+   |
+   |By applying JSON Schema Validation to your endpoints you can constrain POST and PUT request bodies. For example, you can set minimum / maximum lengths of fields and constrain values to certain lists or regular expressions.
+	 |
+	 |See [JSONSchema.org](https://json-schema.org/) for more information about the standard.
+   |
+   |Note that Dynamic Entities also use JSON Schema Validation so you don't need to additionally wrap the resulting endpoints with extra JSON Schema Validation but you could do.
+   |
+
+   |
+   |  We provide the schema validations over the endpoints.
    | All the OBP endpoints request/response body fields can be validated by the schema.
    |
    |The following videos are available:
