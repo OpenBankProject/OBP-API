@@ -1879,7 +1879,7 @@ object Glossary extends MdcLoggable  {
 |  base64UrlEncode(header) + "." +
 |  base64UrlEncode(payload),
 |
-|) secret base64 encoded
+|) secret
 |```
 |
 |Here is the above example token:
@@ -1960,12 +1960,12 @@ object Glossary extends MdcLoggable  {
 |```
 |import jwt
 |from datetime import datetime, timezone
-|from obp_python.config import obp_api_host
 |import requests
 |
 |env = 'local'
 |DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 |
+|obp_api_host = 'https://yourhost.com'
 |payload = {
 |    "login_user_name": "username",
 |    "is_first": False,
