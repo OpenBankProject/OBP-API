@@ -635,9 +635,11 @@ object Glossary extends MdcLoggable  {
 		title = "Bank",
 		description =
 		"""
-		  |A Bank (aka Space) represents a financial institution, brand or organisaitonal unit under which resources such as endpoints and entities exist.
+		  |A Bank (aka Space) represents a financial institution, brand or organizational unit under which resources such as endpoints and entities exist.
 |
 |Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
+|
+|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:8082/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
 |
 |The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
 |
@@ -2188,26 +2190,46 @@ object Glossary extends MdcLoggable  {
 	glossaryItems += GlossaryItem(
 		title = "Dynamic Entity",
 		description =
-			s"""If you want to create, store and custom data in OBP, you can create "Dynamic Entities".
+			s"""
+|
+|Dynamic Entities can be used to store and retrieve custom data objects (think your own tables and fields) in the OBP instance.
+|
+|You can define your own Dynamic Entities or use Dynamic Entities created by others.
+|
+|You would use Dynamic Entities if you want to go beyond the OBP standard data model and store custom data structures. Note, if you want to extend the core OBP banking model of Customers, Products, Accounts, Transactions and so on you can also add Custom Attributes to these standard objects.
+|
+|You would use Dynamic Endpoints if you want to go beyond the standard OBP or other open banking standard APIs.
+|
+|Dynamic Entities have their own REST APIs so you can easily Create, Read, Update and Delete records. However, you can also connect Dynamic Endpoints with your own API definitions (via Swagger) and so create custom GET endpoints connecting to any combination of Dynamic Entities.
+|
+|Dynamic Endpoints can retrieve the data of Dynamic Entities so you can effectively create bespoke endpoint / data combinations - at least for GET endpoints - using Dynamic Endpoints, Entities and Endpoint Mapping.
+|
+|In order to use Dynamic Entities you will need to have the appropriate Entitlements to Create, Read, Update or Delete records in the Dynamic Entity.
+|
 |You define your Dynamic Entities in JSON.
 |
 |Fields are typed, have an example value and a (markdown) description. They can also be constrained in size.
 |
 |You can also create field "references" to other fields in other Entities. These are like foreign keys to other Dynamic or Static (built in) entities.
 |In other words, if you create an Entity called X which has a field called A, you can force the values of X.A to match the values of Y.B where Y is another Dynamic Entity or Z.B where Z is a Static (OBP) Entity.
+|If you want to add data to an existing Entity, you can create a Dynamic Entity which has a reference field to the existing entity.
 |
 |Dynamic Entities can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
 |
-|Upon successful creation of a Dynamic Entity, OBP automatically:
+|When creating a Dynamic Entity, OBP automatically:
 |
-|*Creates Create, Read, Update and Delete endpoints to operate on the Entity so you can insert, get, modify and delete records.
-|*Creates Roles to guard the above endpoints.
+|* Creates a data structure in the OBP database in which to store the records of the new Entity.
+|* Creates a primary key for the Entity which can be used to update and delete the Entity.
+|* Creates Create, Read, Update and Delete endpoints to operate on the Entity so you can insert, get, modify and delete records. These CRUD operations are all available over the generated REST endpoints.
+|* Creates Roles to guard the above endpoints.
 |
 |Following the creation of a Dynamic Entity you will need to grant yourself or others the appropriate roles before you can insert or get records.
 |
-|Each Dynamic Entity gets a dynamicEntityId which uniquely identifies it and the userId which identifies the user who created the Entity.
+|The generated Roles required for CRUD operations on a Dynamic Entity are like any other OBP Role i.e. they can be requested, granted, revoked and auto-granted using the API Explorer / API Manager or via REST API. To see the Roles required for a Dynamic Entities endpoints, see the API Explorer for each endpoint concerned.
 |
-|For more information see the endpoints.
+|Each Dynamic Entity gets a dynamicEntityId which uniquely identifies it and also the userId which identifies the user who created the Entity. The dynamicEntityId is used to update the definition of the Entity.
+|
+|To visualise any data contained in Dynamic Entities you could use external BI tools and use the GET endpoints and authenticate using OAuth or Direct Login.
 |
 |The following videos are available:
 |
@@ -2287,7 +2309,7 @@ object Glossary extends MdcLoggable  {
 |
 |However, an API normally refers to a group of Endpoints.
 |
-|End endpoint has a unique URL path and HTTP verb (GET, POST, PUT, DELETE etc).
+|An endpoint has a unique URL path and HTTP verb (GET, POST, PUT, DELETE etc).
 |
 |When we POST a Swagger file to the Create Endpoint endpoint, we are in fact creating a set of Endpoints that have a common Tag. Tags are used to group Endpoints in the API Explorer and filter the Endpoints in the Resource Doc endpoints.
 |
@@ -2433,6 +2455,46 @@ object Glossary extends MdcLoggable  {
 |Message Docs can be generated automatically using OBP code tools. Thus, it's possible to create custom connectors that follow specific protocol and structural patterns e.g. for message queue X over XML format Y.
 |
 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Method Routing",
+		description =
+			s"""
+   |
+   | Open Bank Project can have different connectors, to connect difference data sources. 
+   | We support several sources at the moment, eg: databases, rest services, stored procedures and kafka. 
+   | 
+   | If OBP set connector=star, then you can use this method routing to switch the sources.
+   | And we also provide the fields mapping in side the endpoints. If the fields in the source are different from connector,
+   | then you can map the fields yourself.
+   |  
+   |  The following videos are available:
+   |  
+   | *[Method Routing Endpoints](https://vimeo.com/398973130)
+   | *[Method Routing Endpoints Mapping](https://vimeo.com/404983764)
+   | 
+   |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "JSON Schema Validation",
+		description =
+			s"""
+   |JSON Schema is "a vocabulary that allows you to annotate and validate JSON documents".
+   |
+   |By applying JSON Schema Validation to your endpoints you can constrain POST and PUT request bodies. For example, you can set minimum / maximum lengths of fields and constrain values to certain lists or regular expressions.
+	 |
+	 |See [JSONSchema.org](https://json-schema.org/) for more information about the standard.
+   |
+   |Note that Dynamic Entities also use JSON Schema Validation so you don't need to additionally wrap the resulting endpoints with extra JSON Schema Validation but you could do.
+   |
+
+   |
+   |  We provide the schema validations over the endpoints.
+   | All the OBP endpoints request/response body fields can be validated by the schema.
+   |
+   |The following videos are available:
+   |* [JSON schema validation of request for Static and Dynamic Endpoints and Entities] (https://vimeo.com/485287014)
+   |""".stripMargin)
 
 
 
