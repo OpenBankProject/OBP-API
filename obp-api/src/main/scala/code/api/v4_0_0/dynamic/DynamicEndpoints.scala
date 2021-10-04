@@ -1,6 +1,6 @@
 package code.api.v4_0_0.dynamic
 
-import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody}
+import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}
 import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
 import net.liftweb.common.{Box, Failure, Full}
@@ -15,7 +15,14 @@ import scala.util.control.Breaks.{break, breakable}
 
 object DynamicEndpoints {
   //TODO, better put all other dynamic endpoints into this list. eg: dynamicEntityEndpoints, dynamicSwaggerDocsEndpoints ....
-  private val endpointGroups: List[EndpointGroup] = PractiseEndpointGroup :: DynamicResourceDocsEndpointGroup :: Nil
+  val disabledEndpointOperationIds = getDisabledEndpointOperationIds
+  
+  private val endpointGroups: List[EndpointGroup] =
+    if(disabledEndpointOperationIds.contains("OBPv4.0.0-test-dynamic-resource-doc")) {
+      DynamicResourceDocsEndpointGroup :: Nil
+    }else{
+      PractiseEndpointGroup :: DynamicResourceDocsEndpointGroup :: Nil
+    }
 
   /**
    * this will find dynamic endpoint by request.
