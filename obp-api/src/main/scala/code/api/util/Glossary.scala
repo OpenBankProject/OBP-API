@@ -2497,6 +2497,20 @@ object Glossary extends MdcLoggable  {
    |""".stripMargin)
 
 
+	glossaryItems += GlossaryItem(
+		title = "Connector Method",
+		description =
+			s"""
+			| The developer can override all the existing Connector methods on their own. 
+			| This function needs to be used together with the Method Routing. 
+			| when set "connector = internal", then the developer can call their own method body at API level. 
+			|
+			|eg: Get Banks endpoint, it calls the connector "getBanks" method, then the developers can use these endpoints to modify the business logic in the getBanks method body.  
+		  |* [Introduction for Connector Method] (https://vimeo.com/507795470)
+		  |
+		  |""".stripMargin)
+
+
 
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
