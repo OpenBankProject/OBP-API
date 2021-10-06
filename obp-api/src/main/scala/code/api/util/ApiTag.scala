@@ -70,16 +70,18 @@ object ApiTag {
   val apiTagConsent = ResourceDocTag("Consent")
   val apiTagMethodRouting = ResourceDocTag("Method-Routing")
   val apiTagWebUiProps = ResourceDocTag("WebUi-Props")
-  val apiTagEndpointMapping = ResourceDocTag("Endpoint-Mapping-Manage")
-  val apiTagManageDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint-Manage")
-  val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-Manage")
-  val apiTagDynamicResourceDoc = ResourceDocTag("Dynamic-Resource-Doc-Manage")
-  val apiTagDynamicMessageDoc = ResourceDocTag("Dynamic-Message-Doc-Manage")
+  val apiTagEndpointMapping = ResourceDocTag("Endpoint-Mapping")
+
   val apiTagApiCollection = ResourceDocTag("Api-Collection")
+  
+  val apiTagDynamicResourceDoc = ResourceDocTag("Dynamic-Resource-Doc")
+  val apiTagDynamicMessageDoc = ResourceDocTag("Dynamic-Message-Doc")
 
   val apiTagDynamic = ResourceDocTag("Dynamic")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
+  val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-Manage")
   val apiTagDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint")
+  val apiTagManageDynamicEndpoint = ResourceDocTag("Dynamic-Endpoint-Manage")
 
   val apiTagJsonSchemaValidation = ResourceDocTag("JSON-Schema-Validation")
   val apiTagAuthenticationTypeValidation = ResourceDocTag("Authentication-Type-Validation")

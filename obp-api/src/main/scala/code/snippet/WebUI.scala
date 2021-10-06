@@ -150,7 +150,7 @@ class WebUI extends MdcLoggable{
         Source.fromURL(url, "UTF-8").mkString
       }.openOrThrowException("Please check the content of this file: src/main/webapp/main-faq.html")
     else
-      Source.fromURL(sdksHtmlLink, "UTF-8").mkString
+      Source.fromURL(mainFaqHtmlLink, "UTF-8").mkString
   }catch {
     case _ : Throwable => "<h1>FAQs is wrong, please check the props `webui_main_faq_external_link` </h1>"
   }

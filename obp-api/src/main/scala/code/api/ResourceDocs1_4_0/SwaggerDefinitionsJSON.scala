@@ -50,8 +50,8 @@ object SwaggerDefinitionsJSON {
 
 
   val license =  License(
-    id = "id",
-    name ="String"
+    id = licenseIdExample.value,
+    name = licenseNameExample.value
   )
 
   val routing = Routing(
@@ -1206,8 +1206,8 @@ object SwaggerDefinitionsJSON {
     hours = "5"
   )
   val licenseJson = LicenseJsonV140(
-    id = "5",
-    name = "TESOBE"
+    id = licenseIdExample.value,
+    name = licenseNameExample.value
   )
   val metaJson = MetaJsonV140(
     license = licenseJson
@@ -1320,7 +1320,7 @@ object SwaggerDefinitionsJSON {
   // Internal data examples (none JSON format).
   // Use transform... to convert these to our various json formats for different API versions
 
-  val meta: Meta =  Meta(license = License (id = "PDDL", name = "Open Data Commons Public Domain Dedication and License "))  // Note the meta  is V140
+  val meta: Meta =  Meta(license = License (id = licenseIdExample.value, name = licenseNameExample.value))  // Note the meta  is V140
   val openingTimesV300 =OpeningTimesV300(
     opening_time = "10:00",
     closing_time = "18:00")
@@ -3183,7 +3183,7 @@ object SwaggerDefinitionsJSON {
     label= "String",
     number= "String",
     owners =  List(userJSONV121),
-    product_code = "String",
+    product_code = productCodeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
     account_rules = List(accountRuleJsonV300)
@@ -3502,7 +3502,7 @@ object SwaggerDefinitionsJSON {
     is_active = Some(true)
   )
   val productAttributeResponseJson = ProductAttributeResponseWithoutBankIdJson(
-    product_code = "saving1",
+    product_code = productCodeExample.value,
     product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
@@ -3510,7 +3510,7 @@ object SwaggerDefinitionsJSON {
   )
   val productAttributeResponseJsonV400 = ProductAttributeResponseJsonV400(
     bank_id = bankIdExample.value,
-    product_code = "saving1",
+    product_code = productCodeExample.value,
     product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
@@ -3518,7 +3518,7 @@ object SwaggerDefinitionsJSON {
     is_active = Some(true)
   )
   val productAttributeResponseWithoutBankIdJsonV400 = ProductAttributeResponseWithoutBankIdJsonV400(
-    product_code = "saving1",
+    product_code = productCodeExample.value,
     product_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
@@ -3548,7 +3548,7 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23"
   )  
   val accountAttributeResponseJson = AccountAttributeResponseJson(
-    product_code = "saving1",
+    product_code = productCodeExample.value,
     account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
@@ -3569,14 +3569,14 @@ object SwaggerDefinitionsJSON {
   )
 
   val accountApplicationJson = AccountApplicationJson(
-    product_code = "saveing1",
+    product_code = productCodeExample.value,
     user_id = Some(ExampleValue.userIdExample.value),
     customer_id = Some(customerIdExample.value)
   )
 
   val accountApplicationResponseJson = AccountApplicationResponseJson (
     account_application_id = "gc23a7e2-7dd2-4bdf-a0b4-ae31232a4763",
-    product_code = "saveing1",
+    product_code = productCodeExample.value,
     user = resourceUserJSON,
     customer = customerJsonV310,
     date_of_application = DateWithDayExampleObject,
@@ -3590,7 +3590,7 @@ object SwaggerDefinitionsJSON {
 
   val productJsonV310 = ProductJsonV310(
     bank_id = bankIdExample.value,
-    code = "product_code",
+    code = productCodeExample.value,
     parent_product_code = "parent",
     name = "product name",
     category = "category",
@@ -3607,7 +3607,7 @@ object SwaggerDefinitionsJSON {
   val productCollectionItemJsonV310 = ProductCollectionItemJsonV310(member_product_code = "A")
   val productCollectionJsonV310 = ProductCollectionJsonV310(
     collection_code = "C",
-    product_code = "D", items = List(productCollectionItemJsonV310, productCollectionItemJsonV310.copy(member_product_code = "B"))
+    product_code = productCodeExample.value, items = List(productCollectionItemJsonV310, productCollectionItemJsonV310.copy(member_product_code = "B"))
   )
   val productCollectionsJsonV310 = ProductCollectionsJsonV310(product_collection = List(productCollectionJsonV310))
   
@@ -3793,7 +3793,7 @@ object SwaggerDefinitionsJSON {
     account_id = accountIdExample.value,
     user_id = userIdExample.value,
     label   = labelExample.value,
-    product_code = accountTypeExample.value,
+    product_code = productCodeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
     account_routings = List(accountRoutingJsonV121),
@@ -3829,7 +3829,7 @@ object SwaggerDefinitionsJSON {
     label = "NoneLabel",
     number = "123",
     owners = List(userJSONV121),
-    product_code = "OBP",
+    product_code = productCodeExample.value,
     balance = amountOfMoneyJsonV121,
     views_available = List(viewJSONV121),
     bank_id = bankIdExample.value,
@@ -4000,7 +4000,7 @@ object SwaggerDefinitionsJSON {
   val createAccountRequestJsonV310 = CreateAccountRequestJsonV310(
     user_id = userIdExample.value,
     label   = labelExample.value,
-    product_code = accountTypeExample.value,
+    product_code = productCodeExample.value,
     balance =  amountOfMoneyJsonV121,
     branch_id  = branchIdExample.value,
     account_routings = List(accountRoutingJsonV121)

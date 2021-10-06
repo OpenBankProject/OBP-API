@@ -100,7 +100,13 @@ object ExampleValue {
   
   lazy val customerNumberExample = ConnectorField("5987953", s"The human friendly customer identifier that MUST uniquely identify the Customer at the Bank ID. Customer Number is NOT used in URLs.")
   glossaryItems += makeGlossaryItem("Customer.customerNumber", customerNumberExample)
-
+  
+  lazy val licenseIdExample = ConnectorField("ODbL-1.0", s"")
+  glossaryItems += makeGlossaryItem("License.id", licenseIdExample)
+  
+  lazy val licenseNameExample = ConnectorField("Open Database License", s"")
+  glossaryItems += makeGlossaryItem("License.name", licenseNameExample)
+  
   lazy val customerAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"Customer attribute id")
   glossaryItems += makeGlossaryItem("Customer.attributeId", customerAttributeIdExample)
   
@@ -819,7 +825,7 @@ object ExampleValue {
   lazy val relatesToKycCheckIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("relates_to_kyc_check_id", relatesToKycCheckIdExample)
 
-  lazy val productCodeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val productCodeExample = ConnectorField("1234", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("product_code", productCodeExample)
 
   lazy val imageUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1602,7 +1608,7 @@ object ExampleValue {
   lazy val superFamilyExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("super_family", superFamilyExample)
 
-  lazy val nameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val nameExample = ConnectorField("ACCOUNT_MANAGEMENT_FEE",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("name", nameExample)
 
   lazy val productFeeIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)

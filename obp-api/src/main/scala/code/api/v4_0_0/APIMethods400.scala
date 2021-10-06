@@ -1803,15 +1803,15 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
+         |Create a DynamicEntity. If creation is successful, the corresponding POST, GET, PUT and DELETE (Create, Read, Update, Delete or CRUD for short) endpoints will be generated automatically
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
-         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |See the following list of currently available reference types and examples of how to construct key values correctly. Note: As more Dynamic Entities are created on this instance, this list will grow:
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1849,15 +1849,15 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
+         |Create a DynamicEntity. If creation is successful, the corresponding POST, GET, PUT and DELETE (Create, Read, Update, Delete or CRUD for short) endpoints will be generated automatically
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
-         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1919,13 +1919,13 @@ trait APIMethods400 {
          |
          |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1961,13 +1961,13 @@ trait APIMethods400 {
          |
          |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -2110,8 +2110,8 @@ trait APIMethods400 {
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -10416,13 +10416,13 @@ trait APIMethods400 {
          |* Name
          |* Code
          |* Parent Product Code
-         |* Category
-         |* Family
-         |* Super Family
          |* More info URL
          |* Description
          |* Terms and Conditions
-         |* License the data under this endpoint is released under
+         |* Description
+         |* Meta
+         |* Attributes
+         |* Fees
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,

@@ -635,9 +635,11 @@ object Glossary extends MdcLoggable  {
 		title = "Bank",
 		description =
 		"""
-		  |A Bank (aka Space) represents a financial institution, brand or organisaitonal unit under which resources such as endpoints and entities exist.
+		  |A Bank (aka Space) represents a financial institution, brand or organizational unit under which resources such as endpoints and entities exist.
 |
 |Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
+|
+|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:8082/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
 |
 |The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
 |
@@ -2150,7 +2152,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "API Collections",
+		title = "API Collection",
 		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
 |Having read access to a Collection does not constitute execute access on the endpoints in the Collection.
@@ -2188,26 +2190,46 @@ object Glossary extends MdcLoggable  {
 	glossaryItems += GlossaryItem(
 		title = "Dynamic Entity",
 		description =
-			s"""If you want to create, store and custom data in OBP, you can create "Dynamic Entities".
+			s"""
+|
+|Dynamic Entities can be used to store and retrieve custom data objects (think your own tables and fields) in the OBP instance.
+|
+|You can define your own Dynamic Entities or use Dynamic Entities created by others.
+|
+|You would use Dynamic Entities if you want to go beyond the OBP standard data model and store custom data structures. Note, if you want to extend the core OBP banking model of Customers, Products, Accounts, Transactions and so on you can also add Custom Attributes to these standard objects.
+|
+|You would use Dynamic Endpoints if you want to go beyond the standard OBP or other open banking standard APIs.
+|
+|Dynamic Entities have their own REST APIs so you can easily Create, Read, Update and Delete records. However, you can also connect Dynamic Endpoints with your own API definitions (via Swagger) and so create custom GET endpoints connecting to any combination of Dynamic Entities.
+|
+|Dynamic Endpoints can retrieve the data of Dynamic Entities so you can effectively create bespoke endpoint / data combinations - at least for GET endpoints - using Dynamic Endpoints, Entities and Endpoint Mapping.
+|
+|In order to use Dynamic Entities you will need to have the appropriate Entitlements to Create, Read, Update or Delete records in the Dynamic Entity.
+|
 |You define your Dynamic Entities in JSON.
 |
 |Fields are typed, have an example value and a (markdown) description. They can also be constrained in size.
 |
 |You can also create field "references" to other fields in other Entities. These are like foreign keys to other Dynamic or Static (built in) entities.
 |In other words, if you create an Entity called X which has a field called A, you can force the values of X.A to match the values of Y.B where Y is another Dynamic Entity or Z.B where Z is a Static (OBP) Entity.
+|If you want to add data to an existing Entity, you can create a Dynamic Entity which has a reference field to the existing entity.
 |
 |Dynamic Entities can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
 |
-|Upon successful creation of a Dynamic Entity, OBP automatically:
+|When creating a Dynamic Entity, OBP automatically:
 |
-|*Creates Create, Read, Update and Delete endpoints to operate on the Entity so you can insert, get, modify and delete records.
-|*Creates Roles to guard the above endpoints.
+|* Creates a data structure in the OBP database in which to store the records of the new Entity.
+|* Creates a primary key for the Entity which can be used to update and delete the Entity.
+|* Creates Create, Read, Update and Delete endpoints to operate on the Entity so you can insert, get, modify and delete records. These CRUD operations are all available over the generated REST endpoints.
+|* Creates Roles to guard the above endpoints.
 |
 |Following the creation of a Dynamic Entity you will need to grant yourself or others the appropriate roles before you can insert or get records.
 |
-|Each Dynamic Entity gets a dynamicEntityId which uniquely identifies it and the userId which identifies the user who created the Entity.
+|The generated Roles required for CRUD operations on a Dynamic Entity are like any other OBP Role i.e. they can be requested, granted, revoked and auto-granted using the API Explorer / API Manager or via REST API. To see the Roles required for a Dynamic Entities endpoints, see the API Explorer for each endpoint concerned.
 |
-|For more information see the endpoints.
+|Each Dynamic Entity gets a dynamicEntityId which uniquely identifies it and also the userId which identifies the user who created the Entity. The dynamicEntityId is used to update the definition of the Entity.
+|
+|To visualise any data contained in Dynamic Entities you could use external BI tools and use the GET endpoints and authenticate using OAuth or Direct Login.
 |
 |The following videos are available:
 |
@@ -2220,24 +2242,33 @@ object Glossary extends MdcLoggable  {
 		title = "Dynamic Endpoint",
 		description =
 			s"""
-|Dynamic Endpoint, you can create dynamic endpoints by the swagger files.
-|All the endpoints defined in the swagger file, will be created in OBP sandbox.
-|There will be two different modes of these created endpoints.
 |
-|If the host of swagger is dynamic_entity, then you need link the swagger fields to the dynamic entity fields,
-|please check *Endpoint Mapping* endpoints.
+|If you want to create endpoints from Swagger / Open API specification files, use Dynamic Endpoints.
 |
-|If the host of swagger is obp_mock, every dynamic endpoint will return example response of swagger.
-|If you need to link the response to external resource, please check * Method Routing* endpoints.
+|We use the term "Dynamic" because these Endpoints persist in the OBP database and are served from real time generated Scala code.
+|
+|This contrasts to the "Static" endpoints (see the Static glossary item) which are served from static Scala code.
+|
+|Dynamic endpoints can be changed in real-time and do not require an OBP instance restart.
+|
+|When you POST a swagger file, all the endpoints defined in the swagger file, will be created in this OBP instance.
+|
+|You can create a set of endpoints in three different modes:
+|
+|1) If the *host* field in the Swagger file is set to "dynamic_entity", then you should link the swagger JSON fields to Dynamic Entity fields. To do this use the *Endpoint Mapping* endpoints.
+|
+|2) If the *host* field in the Swagger file is set to "obp_mock", the Dynamic Endpoints created will return *example responses defined in the swagger file*.
+|
+|3) If you need to link the responses to external resource, use the *Method Routing* endpoints.
 |
 |
-|Dynamic Endpoint can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). 
-|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|Dynamic Endpoints can be created at the System level (bank_id is null) or Bank / Space level (bank_id is NOT null).
+|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain. See the OBP-API sample.props.template
 |
-|Upon successful creation of a Dynamic Endpoint, OBP automatically:
+|Upon the successful creation of each Dynamic Endpoint, OBP will automatically:
 |
-|*Creates Roles to guard the above endpoints.
-|*Granted yourself the entitlements to get the access to these endpoints.
+|*Create a Guard with a named Role on the Endpoint to protect it from unauthorised users.
+|*Grant you an Entitlement to the required Role so you can call the endpoint and pass its Guard.
 |
 |The following videos are available:
 |
@@ -2250,20 +2281,235 @@ object Glossary extends MdcLoggable  {
 		title = "Endpoint Mapping",
 		description =
 			s"""
-   |This can be used to map the dynamic entity fields and dynamic endpoint fields.
+   |Endpoint Mapping can be used to map each JSON field in a Dynamic Endpoint to different Dynamic Entity fields.
    |
-   |When you create the dynamic endpoint, and set `host` of swagger to dynamic_entity. 
+   |This document assumes you already have some knowledge of OBP Dynamic Endpoints and Dynamic Entities.
    |
-   |Then you can use these endpoints to map dynamic endpoint response to dynamic entity model.
+   |To enable Endpoint Mapping for your Dynamic Endpoints, either set the `host` in the swagger file to "dynamic_entity" upon creation of the Dynamic Endpoints - or update the host using the Update Dynamic Endpoint Host endpoints.
    |
-   |Check the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) json body, you need to first know the operation_id
+   |Once the `host` is thus set, you can the Endpoint Mapping endpoints to map the Dynamic Endpoint fields to Dynamic Entity data.
    |
-   |and you can prepare the request_mapping and response_mapping objects. 
+   |See the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects. You can get the operation ID from the API Explorer or Get Dynamic Endpoints endpoints.
    |
-	 |Details better to see the video: 
+	 |For more details and a walk through, please see the following video:
 	 |
-	 |	* [Endpoint Mapping -step1-getOne:GetAll](https://vimeo.com/553369108)
+	 |	* [Endpoint Mapping](https://vimeo.com/553369108)
    |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Branch",
+		description =
+			s"""The bank branches, it contains the address, location, lobby, drive_up of the Branch.
+				 """.stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "API",
+		description =
+			s"""|The terms `API` (Application Programming Interface) and `Endpoint` are used somewhat interchangeably.
+|
+|However, an API normally refers to a group of Endpoints.
+|
+|An endpoint has a unique URL path and HTTP verb (GET, POST, PUT, DELETE etc).
+|
+|When we POST a Swagger file to the Create Endpoint endpoint, we are in fact creating a set of Endpoints that have a common Tag. Tags are used to group Endpoints in the API Explorer and filter the Endpoints in the Resource Doc endpoints.
+|
+|Endpoints can also be grouped together in Collections.
+|
+|See also [Endpoint](/glossary#Endpoint)
+|
+				 """.stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Endpoint",
+		description =
+			s"""
+|The terms `Endpoint` and `API` (Application Programming Interface) are used somewhat interchangeably. However, an Endpoint is a specific URL defined by its path (eg. /obp/v4.0/root) and its http verb (e.g. GET, POST, PUT, DELETE etc).
+|Endpoints are like arrows into a system. Like any good computer function, endpoints should expect much and offer little in return. They should fail early and be clear about any reason for failure. In other words each endpoint should have a tight and limited contract with any caller - and especially the outside world!
+|
+|In OBP, all system endpoints are RESTful - and most Open Banking Standards are RESTful. However, it is possible to create non-RESTful APIs in OBP using the Create Endpoint endpoints.
+|
+|You can immediately tell if an endpoint is not RESTful by seeing a verb in the URL. For example:
+|
+|POST /customers is RESTful = GOOD
+|POST /create-customer is NOT RESTful (due to the word "create") = BAD
+|
+|RESTful APIs use resource names in URL paths. You can think of RESTful resources like database tables. You wouldn't name a database table "create-customer", so don't use that in a URL path.
+|
+|If we consider interacting with a Customers table, we read the data using GET /Customers and write to the table using POST /Customers. This model keeps the names clear and predictable.
+|Note that we are only talking about the front end interface here - anything could be happening in the backend - and that is one of the beauties of APIs. For instance GET /Customers could call 5 different databases and 3 XML services in the background. Similarly POST /Customers could insert into various different tables and backend services. The important thing is that the user of the API (The Consumer or Client in OAuth parlance) has a simple and consistent experience.
+|
+|In OBP, all Endpoints are implemented by `Partial Functions`. A Partial Function is a function which only accepts (and responds) to calls with certain parameter values. In the case of API Endpoints the inputs to the Partial Functions are the URL path and http verb. Note that it would be possible to have different Partial Functions respond even to different query parameters, but for OBP static endpoints at least, we take the approach of URL path + http Verb is handled by one Partial Function.
+|Each Partial Function is identified by an Operation ID which uniquely identifies the endpoint in the system. Having an Operation ID allows us to decorate the Endpoint with metadata (e.g. Tags) and surround the Endpoint with behaviour such as JSON Schema Validation.
+|
+|See also [API](/glossary#API)
+|
+""".stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "API Tag",
+		description =
+			s"""All OBP API relevant docs, eg: API configuration, JSON Web Key, Adapter Info, Rate Limiting
+				 """.stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Account Access",
+		description =
+			s"""
+   |Account Access is OBP View system. The Account owners can create the view themselves.
+   |And they can grant/revoke the view to other users to use their view.
+   |""".stripMargin)
+	
+//	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
+//	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
+//	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
+
+	glossaryItems += GlossaryItem(
+		title = "Static Endpoint",
+		description =
+			s"""
+|Static endpoints are served from static Scala source code which is contained in (public) Git repositories.
+|
+|Static endpoints cover all the OBP API and User management functionality as well as the Open Bank Project banking APIs and other Open Banking standards such as UK Open Banking, Berlin Group and STET etc..
+				 |In short, Static (standard) endpoints are defined in Git as Scala source code, where as Dynamic (custom) endpoints are defined in the OBP database.
+				 |
+|Modifications to Static endpoint core properties such as URLs and response bodies require source code changes and an instance restart. However, JSON Schema Validation and Dynamic Connector changes can be applied in real-time.
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Message Doc",
+		description =
+			s"""
+|OBP can communicate with core banking systems (CBS) and other back end services using a "Connector -> Adapter" approach.
+|
+|The OBP Connector is a core part of the OBP-API and is written in Scala / Java and potentially other JVM languages.
+|
+|The OBP Connector implements multiple functions / methods in a style that satisfies a particular transport / protocol such as HTTP REST, Akka or Kafka.
+|
+|An OBP Adapter is a separate software component written in any programming language that responds to requests from the OBP Connector.
+|
+|Requests are sent by the Connector to the Adapter (or a message queue).
+|
+|The Adapter must satisfy the Connector method's request for data (or return an error).
+|
+|"Message Docs" are used to define and document the request / response structure.
+|
+|Message Docs are visible in the API Explorer.
+|
+|Message Docs are also available over the Message Doc endpoints.
+|
+|Each Message Doc relates to one OBP function / method.
+|
+|The Message Doc includes:
+|
+|  1) The Name of the internal OBP function / method e.g. getAccountsForUser
+|  2) The Outbound Message structure.
+|  3) The Inbound Message structure.
+|  4) The Connector name which denotes the protocol / transport used (e.g. REST, Akka, Kafka etc)
+|  5) Outbound / Inbound Topic
+|  6) A list of required Inbound fields
+|  7) A list of dependent endpoints.
+|
+|The perspective is that of the OBP-API Connector i.e. the OBP Connector sends the message Out, and it receives the answer In.
+|
+|The Outbound message contains several top level data structures:
+|
+| 1) The outboundAdapterCallContext
+|
+| This tells the Adapter about the specific REST call that triggered the request and contains the correlationId to uniquely identify the REST call, the consumerId to identify the API Consumer (App) and a generalContext which is a list of key / value pairs that give the Adapter additional custom information about the call.
+|
+| 2) outboundAdapterAuthInfo
+|
+|This tells the Adapter about the authenticated User that is making the call including: the userId, the userName, the userAuthContext (a list of key / value pairs that have been validated using SCA (see the UserAuthContext endpoints)) and other optional structures such as linked Customers and Views on Accounts to further identify the User.
+|
+|3) The body
+|
+|The body contains named fields that are specific to each Function / Message Doc.
+|
+|For instance, getTransaction might send the bankId, accountId and transactionId so the Adapter can route the request based on bankId and check User permissions on the AccountId before retrieving a Transaction.
+|
+|The Inbound message
+|
+|The Inbound message is the reply or response from the Adapter and has the following structure:
+|
+|1) The inboundAdapterCallContext
+|
+|This is generally an echo of the outboundAdapterCallContext so the Connector can double check the target destination of the response.
+|
+|2) The status
+|
+|This contains information about status of the response including any errorCode and a list of backendMessages.
+|
+|3) The data
+|
+|This contains the named fields and their values which are specific to each Function / Message Doc.
+|
+|
+|The Outbound / Inbound Topics are used for routing in multi OBP instance / Kafka installations. (so OBP nodes only listen only to the correct Topics).
+|
+|The dependent endpoints are listed to facilitate navigation in the API Explorer so integrators can test endpoints during integration.
+|
+|Message Docs can be generated automatically using OBP code tools. Thus, it's possible to create custom connectors that follow specific protocol and structural patterns e.g. for message queue X over XML format Y.
+|
+|""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Method Routing",
+		description =
+			s"""
+   |
+   | Open Bank Project can have different connectors, to connect difference data sources. 
+   | We support several sources at the moment, eg: databases, rest services, stored procedures and kafka. 
+   | 
+   | If OBP set connector=star, then you can use this method routing to switch the sources.
+   | And we also provide the fields mapping in side the endpoints. If the fields in the source are different from connector,
+   | then you can map the fields yourself.
+   |  
+   |  The following videos are available:
+   |  
+   | *[Method Routing Endpoints](https://vimeo.com/398973130)
+   | *[Method Routing Endpoints Mapping](https://vimeo.com/404983764)
+   | 
+   |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "JSON Schema Validation",
+		description =
+			s"""
+   |JSON Schema is "a vocabulary that allows you to annotate and validate JSON documents".
+   |
+   |By applying JSON Schema Validation to your endpoints you can constrain POST and PUT request bodies. For example, you can set minimum / maximum lengths of fields and constrain values to certain lists or regular expressions.
+	 |
+	 |See [JSONSchema.org](https://json-schema.org/) for more information about the standard.
+   |
+   |Note that Dynamic Entities also use JSON Schema Validation so you don't need to additionally wrap the resulting endpoints with extra JSON Schema Validation but you could do.
+   |
+
+   |
+   |  We provide the schema validations over the endpoints.
+   | All the OBP endpoints request/response body fields can be validated by the schema.
+   |
+   |The following videos are available:
+   |* [JSON schema validation of request for Static and Dynamic Endpoints and Entities] (https://vimeo.com/485287014)
+   |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Connector Method",
+		description =
+			s"""
+			| The developer can override all the existing Connector methods on their own. 
+			| This function needs to be used together with the Method Routing. 
+			| when set "connector = internal", then the developer can call their own method body at API level. 
+			|
+			|eg: Get Banks endpoint, it calls the connector "getBanks" method, then the developers can use these endpoints to modify the business logic in the getBanks method body.  
+		  |* [Introduction for Connector Method] (https://vimeo.com/507795470)
+		  |
+		  |""".stripMargin)
+
 
 
 	///////////////////////////////////////////////////////////////////
