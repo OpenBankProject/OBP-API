@@ -403,13 +403,14 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.b1)
 
-    
-    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
+    def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
-      if(APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
+      if (APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
         LiftRules.dispatch.append(OpenIdConnect)
       }
-      
+    }
+    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
+
       //OAuth API call
       LiftRules.statelessDispatch.append(OAuthHandshake)
 
@@ -424,10 +425,15 @@ class Boot extends MdcLoggable {
     }
 
     APIUtil.getPropsValue("server_mode", "apis,portal") match {
-      case mode if mode == "portal" => 
+      case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
+        enableOpenIdConnectApis
       case mode if mode == "apis" => enableAPIs
-      case mode if mode.contains("apis") && mode.contains("portal") => enableAPIs
-      case _ => enableAPIs
+      case mode if mode.contains("apis") && mode.contains("portal") => 
+        enableAPIs
+        enableOpenIdConnectApis
+      case _ => 
+        enableAPIs
+        enableOpenIdConnectApis
     }
     
 
