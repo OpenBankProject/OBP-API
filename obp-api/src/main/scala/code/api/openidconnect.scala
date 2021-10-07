@@ -101,7 +101,10 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
   private def callbackUrlCommonCode(identityProvider: Int): JsonResponse = {
     val (code, state, sessionState) = extractParams(S)
-
+    logger.debug("(code, state, sessionState) = " + (code, state, sessionState))
+    logger.debug("S.receivedCookies = " + S.receivedCookies)
+    logger.debug("S.responseCookies = " + S.responseCookies)
+    logger.debug("server_mode = " + APIUtil.getPropsValue("server_mode"))
     val (httpCode, message, authorizationUser) = if (state == sessionState) {
       exchangeAuthorizationCodeForTokens(code, identityProvider) match {
         case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
