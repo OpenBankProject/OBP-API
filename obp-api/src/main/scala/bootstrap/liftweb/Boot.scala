@@ -425,15 +425,20 @@ class Boot extends MdcLoggable {
     }
 
     APIUtil.getPropsValue("server_mode", "apis,portal") match {
+      // Instance runs as the portal only
       case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
         enableOpenIdConnectApis
-      case mode if mode == "apis" => enableAPIs
+      // Instance runs as the APIs only
+      case mode if mode == "apis" => 
+        enableAPIs
+      // Instance runs as the portal and APIs as well
+      // This is default mode
       case mode if mode.contains("apis") && mode.contains("portal") => 
         enableAPIs
         enableOpenIdConnectApis
-      case _ => 
-        enableAPIs
-        enableOpenIdConnectApis
+      // Failure
+      case _ =>
+        throw new RuntimeException("The props server_mode`is not properly set. Allowed cases: { server_mode=portal, server_mode=apis, server_mode=apis,portal }")
     }
     
 
