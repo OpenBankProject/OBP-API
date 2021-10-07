@@ -2505,8 +2505,43 @@ object Glossary extends MdcLoggable  {
 			| This function needs to be used together with the Method Routing. 
 			| when set "connector = internal", then the developer can call their own method body at API level. 
 			|
-			|eg: Get Banks endpoint, it calls the connector "getBanks" method, then the developers can use these endpoints to modify the business logic in the getBanks method body.  
+			|eg: Get Banks endpoint, it calls the connector "getBanks" method, then the developers can use these endpoints to modify the business logic in the getBanks method body.
+			|  
+			|  The following videos are available:
 		  |* [Introduction for Connector Method] (https://vimeo.com/507795470)
+		  |
+		  |""".stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Resource Doc",
+		description =
+			s"""
+		  | The developers can create their own endpoints by this endpoint.
+			| Need to prepare the obp resource doc format json. 
+			| And all the business logic code can be written in the *method_body* field, it is the encoded scala code.
+			|  
+			| It is still working in the processing ..
+			|The following videos are available:
+			|* [Introduction for dConnector Method] (https://vimeo.com/623381607)
+		  |
+		  |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Message Doc",
+		description =
+			s"""
+			| The developers can create their own scala methods in OBP code.
+			| These endpoints are designed for extending the current connector methods. 
+			| when you call the dynamic resource doc endpoints, sometimes you need to call internal scala methods, 
+			| which are not existing in OBP code, then you can use these endpoints to prepare them on your own.
+      | 
+      | And you can use these endpoints to design your own helper methods in OBP code.
+			|  
+			| It is still working in the processing ..
+		  |The following videos are available:
+			|* [Introduction for Connector Method] (https://vimeo.com/623317747)
 		  |
 		  |""".stripMargin)
 
