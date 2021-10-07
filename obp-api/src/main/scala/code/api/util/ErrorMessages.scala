@@ -180,6 +180,8 @@ object ErrorMessages {
   val FrequencyPerDayError = "OBP-20062: Frequency per day must be greater than 0."
   val FrequencyPerDayMustBeOneError = "OBP-20063: Frequency per day must be equal to 1 in case of one-off access."
 
+  val UserIsDeleted = "OBP-20064: The user is deleted!"
+
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
