@@ -105,6 +105,12 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     logger.debug("S.receivedCookies = " + S.receivedCookies)
     logger.debug("S.responseCookies = " + S.responseCookies)
     logger.debug("server_mode = " + APIUtil.getPropsValue("server_mode"))
+
+    def chainErrorMessage(badObj: Failure, errorMessage: String) = {
+      val chainedFailure: Failure = badObj ?~! errorMessage
+      (401, filterMessage(chainedFailure), None)
+    }
+
     val (httpCode, message, authorizationUser) = if (state == sessionState) {
       exchangeAuthorizationCodeForTokens(code, identityProvider) match {
         case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
@@ -120,19 +126,22 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                         case Full(consumer) =>
                           saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
                             case Full(token) => (200, "OK", Some(authUser))
-                            case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "1", Some(authUser))
+                            case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                            case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "saveAuthorizationToken", Some(authUser))
                           }
-                        case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "2", Some(authUser))
+                        case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                        case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer", Some(authUser))
                       }
-                    case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "3", None)
+                    case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                    case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser", None)
                   }
+                case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotSaveOpenIDConnectUser)
                 case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
               }
+            case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotValidateIDToken)
             case _ => (401, ErrorMessages.CouldNotValidateIDToken, None)
           }
-        case badObj@Failure(_, _, _) =>
-          val chainedFailure: Failure = badObj ?~! ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens
-          (401, chainedFailure.messageChain, None)
+        case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens)
         case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
       }
     } else {
