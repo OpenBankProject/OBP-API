@@ -130,6 +130,9 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
               }
             case _ => (401, ErrorMessages.CouldNotValidateIDToken, None)
           }
+        case badObj@Failure(_, _, _) =>
+          val chainedFailure: Failure = badObj ?~! ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens
+          (401, chainedFailure.messageChain, None)
         case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
       }
     } else {
