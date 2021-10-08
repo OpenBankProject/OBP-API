@@ -225,6 +225,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   "grant_type=authorization_code"
     val response = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
     val tokenResponse = json.parse(response)
+    logger.debug("Token response: " + tokenResponse)
     for {
       idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
       accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
