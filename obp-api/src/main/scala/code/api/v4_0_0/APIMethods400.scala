@@ -3302,6 +3302,49 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getFastFirehoseAccountsAtOneBank,
+      implementedInApiVersion,
+      nameOf(getFastFirehoseAccountsAtOneBank),
+      "GET",
+      "/management/banks/BANK_ID/fast-firehose/accounts",
+      "Get Fast Firehose Accounts at Bank",
+      s"""
+         |
+         |This endpoint allows bulk access to accounts.
+         |
+         |optional pagination parameters for filter with accounts
+         |${urlParametersDocument(true, false).replace("default value: 50","default value: 1000")}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      moderatedFirehoseAccountsJsonV400,
+      List($BankNotFound),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
+      Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
+    )
+
+    lazy val getFastFirehoseAccountsAtOneBank : OBPEndpoint = {
+      //get private accounts for all banks
+      case "management":: "banks" :: BankId(bankId):: "fast-firehose" :: "accounts"  :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), bank, callContext) <- SS.userBank
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
+              allowAccountFirehose
+            }
+            allowedParams = List("limit", "offset")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (firehoseAccounts, callContext) <- NewStyle.function.getBankAccountsWithAttributes(bankId, obpQueryParams, cc.callContext)
+          } yield {
+            (JSONFactory400.createFirehoseBankAccountJSON(firehoseAccounts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getCustomersByCustomerPhoneNumber,

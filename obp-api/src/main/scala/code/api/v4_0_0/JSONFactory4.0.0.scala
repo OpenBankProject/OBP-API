@@ -202,6 +202,23 @@ case class ModeratedFirehoseAccountsJsonV400(
                                               accounts: List[ModeratedFirehoseAccountJsonV400]
                                             )
 
+case class FastFirehoseAccountJsonV400(
+  id: String,
+  bank_id: String,
+  label: String,
+  number: String,
+  owners: String,
+  product_code: String,
+  balance: AmountOfMoneyJsonV121,
+  account_routings: String ,
+  account_rules: List[AccountRuleJsonV300],
+  account_attributes: String
+)
+
+case class FastFirehoseAccountsJsonV400(
+  accounts: List[FastFirehoseAccountJsonV400]
+)
+
 case class ModeratedAccountJSON400(
                                     id : String,
                                     label : String,
@@ -1145,6 +1162,25 @@ object JSONFactory400 {
             createAccountRoutingsJSON(account.accountRoutings),
             createAccountRulesJSON(account.accountRules),
             account_attributes = getAttributes(account.bankId, account.accountId)
+          )
+      )
+    )
+  }
+  def createFirehoseBankAccountJSON(firehoseAccounts : List[FastFirehoseAccount]) : FastFirehoseAccountsJsonV400 =  {
+    FastFirehoseAccountsJsonV400(
+      firehoseAccounts.map(
+        account =>
+          FastFirehoseAccountJsonV400(
+            account.id,
+            account.bankId,
+            account.label,
+            account.number,
+            account.owners,
+            account.productCode,
+            AmountOfMoneyJsonV121(account.balance.currency, account.balance.amount),
+            account.accountRoutings,
+            account.accountRules.map(rule => AccountRuleJsonV300(rule.scheme, rule.value)),
+            account.accountAttributes,
           )
       )
     )

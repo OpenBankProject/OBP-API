@@ -2,7 +2,6 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -48,6 +47,7 @@ import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
+import code.metrics.MappedMetric
 import code.model._
 import code.model.dataAccess.AuthUser.findUserByUsernameLocally
 import code.model.dataAccess._
@@ -95,6 +95,9 @@ import org.iban4j.{CountryCode, IbanFormat}
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
+import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext}
+import scalikejdbc.DB.CPContext
+import scalikejdbc.{DB => scalikeDB, _}
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent._
@@ -798,6 +801,80 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])
     }
   }
+
+  private lazy val getDbConnectionParameters: (String, String, String) = {
+    val dbUrl = APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1"
+    val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
+    val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
+    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
+    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
+    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
+  }
+  
+  /**
+   * this connection pool context corresponding db.url in default.props
+   */
+  implicit lazy val context: CPContext = {
+    val settings = ConnectionPoolSettings(
+      initialSize = 5,
+      maxSize = 20,
+      connectionTimeoutMillis = 3000L,
+      validationQuery = "select 1",
+      connectionPoolFactoryName = "commons-dbcp2"
+    )
+    val (dbUrl, user, password) = getDbConnectionParameters
+    val dbName = "DB_NAME" // corresponding props db.url DB
+    ConnectionPool.add(dbName, dbUrl, user, password, settings)
+    val connectionPool = ConnectionPool.get(dbName)
+    MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
+  }
+  
+  
+  override def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[FastFirehoseAccount]]] =
+    Future{
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(1000)
+      val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
+      
+      val firehoseAccounts = {
+        scalikeDB readOnly { implicit session =>
+        val sqlResult =sql"""
+            select * from mv_fast_firehose_accounts
+               WHERE mv_fast_firehose_accounts.bank_id = ${bankId.value}
+               LIMIT $limit
+               OFFSET $offset
+               """.stripMargin
+            .map(
+              rs => // Map result to case class
+                FastFirehoseAccount(
+                  id = rs.stringOpt(1).map(_.toString).getOrElse(null),
+                  bankId= rs.stringOpt(2).map(_.toString).getOrElse(null),
+                  label= rs.stringOpt(3).map(_.toString).getOrElse(null),
+                  number = rs.stringOpt(4).map(_.toString).getOrElse(null),
+                  owners = rs.stringOpt(5).map(_.toString).getOrElse(null),
+                  productCode =  rs.stringOpt(6).map(_.toString).getOrElse(null),
+                  balance = AmountOfMoney(
+                    currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
+                    amount = rs.stringOpt(8).map(_.toString).getOrElse(null)
+                  ),
+                  accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
+                  accountRules = List(
+                    AccountRule(
+                      rs.stringOpt(10).map(_.toString).getOrElse(null),
+                      rs.stringOpt(11).map(_.toString).getOrElse(null)
+                    ),
+                    AccountRule(
+                      rs.stringOpt(12).map(_.toString).getOrElse(null),
+                      rs.stringOpt(13).map(_.toString).getOrElse(null)
+                    )
+                  ),
+                  accountAttributes = rs.stringOpt(14).map(_.toString).getOrElse(null)
+                )
+            ).list().apply()
+        sqlResult
+        }
+      }
+      (Full(firehoseAccounts), callContext)
+    }
 
   override def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
     Future {
