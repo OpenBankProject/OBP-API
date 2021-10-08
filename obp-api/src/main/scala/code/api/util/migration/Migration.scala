@@ -85,6 +85,7 @@ object Migration extends MdcLoggable {
       alterColumnUsernameProviderFirstnameAndLastnameAtAuthUser(startedBeforeSchemifier)
       alterColumnEmailAtResourceUser(startedBeforeSchemifier)
       alterColumnNameAtProductFee(startedBeforeSchemifier)
+      addFastFirehoseAccountsView(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -292,6 +293,17 @@ object Migration extends MdcLoggable {
         val name = nameOf(alterColumnNameAtProductFee(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfProductFee.alterColumnProductFeeName(name)
+        }
+      }
+    }
+    private def addFastFirehoseAccountsView(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.addfastFirehoseAccountsView(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(addFastFirehoseAccountsView(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfFastFireHoseView.addFastFireHoseView(name)
         }
       }
     }
