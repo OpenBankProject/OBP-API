@@ -223,18 +223,24 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   "redirect_uri=" + config.callback_url + "&" +
                   "code=" + authorizationCode + "&" +
                   "grant_type=authorization_code"
-    val response = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
-    val tokenResponse = json.parse(response)
-    logger.debug("Token response: " + tokenResponse)
-    for {
-      idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
-      accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
-      tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
-      expiresIn <- tryo{(tokenResponse \ "expires_in").extractOrElse[String]("")}
-      refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
-      scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
-    } yield {
-      (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
+    val response: Box[String] = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
+    logger.debug("Response: " + response)
+    response match {
+      case Full(value) =>
+        val tokenResponse = json.parse(value)
+        logger.debug("Token response: " + tokenResponse)
+        for {
+          idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
+          accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
+          tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
+          expiresIn <- tryo{(tokenResponse \ "expires_in").extractOrElse[String]("")}
+          refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
+          scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
+        } yield {
+          (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
+        }
+      case badObject@Failure(_, _, _) => badObject
+      case _ => Failure(ErrorMessages.InternalServerError + " - exchangeAuthorizationCodeForTokens")
     }
   }
 
@@ -245,7 +251,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
         String.format("%s", config.userinfo_endpoint), 
         "?access_token="+accessToken, 
         "GET"
-      )
+      ).openOrThrowException(ErrorMessages.InternalServerError + " - getUserInfo")
     )
     userResponse match {
       case response: JValue => Full(response)
@@ -300,7 +306,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                method: String,
                connectTimeout: Int = 2000,
                readTimeout: Int = 10000
-             ): String = {
+             ): Box[String] = {
     var content:String = ""
     import java.net.URL
     try {
@@ -335,10 +341,12 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       val inputStream = connection.getInputStream
       content = scala.io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
+      Full(content)
     } catch {
-      case e:Throwable => logger.error(e)
+      case e:Throwable => 
+        logger.error(e)
+        Failure(e.getMessage)
     }
-    content
   }
 
 
