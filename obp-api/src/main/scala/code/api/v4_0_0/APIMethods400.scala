@@ -3314,7 +3314,15 @@ trait APIMethods400 {
          |This endpoint allows bulk access to accounts.
          |
          |optional pagination parameters for filter with accounts
-         |${urlParametersDocument(true, false).replace("default value: 50","default value: 1000")}
+         |${urlParametersDocument(true, false)
+        .replace("default value: 50","default value: 1000")
+        .replace(s"""
+                  |
+                  |* sort_direction=ASC/DESC ==> default value: DESC.
+                  |
+                  |eg2:?limit=100&offset=0&sort_direction=ASC
+                  |
+                  |""". stripMargin,"")}
          |
          |${authenticationRequiredMessage(true)}
          |
