@@ -30,6 +30,7 @@ import java.security.cert.X509Certificate
 
 import bootstrap.liftweb.Boot
 import code.api.RequestHeader
+import code.api.util.APIUtil
 import net.liftweb.http.LiftRules
 import net.liftweb.http.provider.HTTPContext
 import org.apache.commons.codec.binary.Base64
@@ -110,7 +111,8 @@ object RunMTLSWebApp extends App {
   context.setWar(s"${basePath}src/main/webapp")
 
   // rename JSESSIONID, avoid conflict with other project when start two project at local
-  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP_API")
+  val propsApiInstanceId = APIUtil.getPropsValue("api_instance_id").openOrThrowException("connector props filed `api_instance_id` not set")
+  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP_API_" + propsApiInstanceId)
 
   server.setHandler(context)
 

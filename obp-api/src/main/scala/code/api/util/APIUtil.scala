@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
+
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -55,6 +56,7 @@ import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
 import code.entitlement.Entitlement
+import code.loginattempts.LoginAttempt
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
@@ -2713,6 +2715,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Future { (Empty, Some(cc)) }
       }
 
+    // Check is it a user deleted or locked
+    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = for {
+      (user: Box[User], cc) <- res
+    } yield {
+      user match {
+        case Full(u) => // There is a user. Check it.
+          if(u.isDeleted.getOrElse(false)) {
+            (Failure(UserIsDeleted) , cc) // The user is DELETED.
+          } else {
+            LoginAttempt.userIsLocked(u.name) match {
+              case true => (Failure(UsernameHasBeenLocked),cc) // The user is LOCKED.
+              case false => (user, cc) // All good
+            }
+          }
+        case _ => // There is no user. Just forward the result.
+          (user, cc)
+      }
+    }
 
 
     /******************************************************************************************************************
@@ -2726,7 +2746,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
-      (user, cc) <- res
+      (user, cc) <- userIsLockedOrDeleted
       consumer = cc.flatMap(_.consumer)
       version = cc.map(_.implementedInVersion).getOrElse("None") // Calculate apiVersion  in case of Rate Limiting
       operationId = cc.flatMap(_.operationId) // Unique Identifier of Dynamic Endpoints

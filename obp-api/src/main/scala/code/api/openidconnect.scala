@@ -101,6 +101,15 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
   private def callbackUrlCommonCode(identityProvider: Int): JsonResponse = {
     val (code, state, sessionState) = extractParams(S)
+    logger.debug("(code, state, sessionState) = " + (code, state, sessionState))
+    logger.debug("S.receivedCookies = " + S.receivedCookies)
+    logger.debug("S.responseCookies = " + S.responseCookies)
+    logger.debug("server_mode = " + APIUtil.getPropsValue("server_mode"))
+
+    def chainErrorMessage(badObj: Failure, errorMessage: String) = {
+      val chainedFailure: Failure = badObj ?~! errorMessage
+      (401, filterMessage(chainedFailure), None)
+    }
 
     val (httpCode, message, authorizationUser) = if (state == sessionState) {
       exchangeAuthorizationCodeForTokens(code, identityProvider) match {
@@ -117,16 +126,22 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                         case Full(consumer) =>
                           saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
                             case Full(token) => (200, "OK", Some(authUser))
-                            case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "1", Some(authUser))
+                            case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                            case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "saveAuthorizationToken", Some(authUser))
                           }
-                        case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "2", Some(authUser))
+                        case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                        case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer", Some(authUser))
                       }
-                    case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "3", None)
+                    case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                    case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser", None)
                   }
+                case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotSaveOpenIDConnectUser)
                 case _ => (401, ErrorMessages.CouldNotSaveOpenIDConnectUser, None)
               }
+            case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotValidateIDToken)
             case _ => (401, ErrorMessages.CouldNotValidateIDToken, None)
           }
+        case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens)
         case _ => (401, ErrorMessages.CouldNotExchangeAuthorizationCodeForTokens, None)
       }
     } else {
@@ -220,17 +235,24 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   "redirect_uri=" + config.callback_url + "&" +
                   "code=" + authorizationCode + "&" +
                   "grant_type=authorization_code"
-    val response = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
-    val tokenResponse = json.parse(response)
-    for {
-      idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
-      accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
-      tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
-      expiresIn <- tryo{(tokenResponse \ "expires_in").extractOrElse[String]("")}
-      refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
-      scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
-    } yield {
-      (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
+    val response: Box[String] = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
+    logger.debug("Response: " + response)
+    response match {
+      case Full(value) =>
+        val tokenResponse = json.parse(value)
+        logger.debug("Token response: " + tokenResponse)
+        for {
+          idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
+          accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
+          tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
+          expiresIn <- tryo{(tokenResponse \ "expires_in").extractOrElse[String]("")}
+          refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
+          scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
+        } yield {
+          (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
+        }
+      case badObject@Failure(_, _, _) => badObject
+      case _ => Failure(ErrorMessages.InternalServerError + " - exchangeAuthorizationCodeForTokens")
     }
   }
 
@@ -241,7 +263,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
         String.format("%s", config.userinfo_endpoint), 
         "?access_token="+accessToken, 
         "GET"
-      )
+      ).openOrThrowException(ErrorMessages.InternalServerError + " - getUserInfo")
     )
     userResponse match {
       case response: JValue => Full(response)
@@ -296,7 +318,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                method: String,
                connectTimeout: Int = 2000,
                readTimeout: Int = 10000
-             ): String = {
+             ): Box[String] = {
     var content:String = ""
     import java.net.URL
     try {
@@ -331,10 +353,12 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       val inputStream = connection.getInputStream
       content = scala.io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
+      Full(content)
     } catch {
-      case e:Throwable => logger.error(e)
+      case e:Throwable => 
+        logger.error(e)
+        Failure(e.getMessage)
     }
-    content
   }
 
 
