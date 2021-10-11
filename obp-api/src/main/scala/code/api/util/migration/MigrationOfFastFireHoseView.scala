@@ -28,7 +28,7 @@ object MigrationOfFastFireHoseView {
               case Full(value) if value.contains("org.postgresql.Driver") =>
                 () =>
                   """
-                    |CREATE VIEW mv_fast_firehose_accounts AS select
+                    |CREATE VIEW v_fast_firehose_accounts AS select
                     |    mappedbankaccount.theaccountid,
                     |    mappedbankaccount.bank as bank_id,
                     |    mappedbankaccount.accountlabel,
