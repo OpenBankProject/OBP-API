@@ -29,10 +29,10 @@ object MigrationOfFastFireHoseView {
                 () =>
                   """
                     |CREATE VIEW v_fast_firehose_accounts AS select
-                    |    mappedbankaccount.theaccountid,
+                    |    mappedbankaccount.theaccountid as account_id,
                     |    mappedbankaccount.bank as bank_id,
-                    |    mappedbankaccount.accountlabel,
-                    |    mappedbankaccount.accountnumber,
+                    |    mappedbankaccount.accountlabel as account_label,
+                    |    mappedbankaccount.accountnumber as account_number,
                     |    (select
                     |        string_agg(
                     |            'user_id:'
@@ -46,9 +46,9 @@ object MigrationOfFastFireHoseView {
                     |     where
                     |        resourceuser.id = mapperaccountholders.user_c
                     |    ),
-                    |    mappedbankaccount.kind,
-                    |    mappedbankaccount.accountcurrency,
-                    |    mappedbankaccount.accountbalance,
+                    |    mappedbankaccount.kind as kind,
+                    |    mappedbankaccount.accountcurrency as account_currency ,
+                    |    mappedbankaccount.accountbalance as account_balance,
                     |    (select 
                     |        string_agg(
                     |            'bank_id:'
@@ -61,10 +61,10 @@ object MigrationOfFastFireHoseView {
                     |        where 
                     |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
                     |     ),                                                          
-                    |    mappedbankaccount.accountrulescheme1,
-                    |    mappedbankaccount.accountrulevalue1,
-                    |    mappedbankaccount.accountrulescheme2,
-                    |    mappedbankaccount.accountrulevalue2,
+                    |    mappedbankaccount.accountrulescheme1 account_rule_scheme_1,
+                    |    mappedbankaccount.accountrulevalue1 account_rule_value_1,
+                    |    mappedbankaccount.accountrulescheme2 account_rule_scheme_2,
+                    |    mappedbankaccount.accountrulevalue2 account_rule_value_2,
                     |    (select 
                     |        string_agg(
                     |                'type:'
