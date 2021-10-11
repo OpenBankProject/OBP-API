@@ -211,7 +211,6 @@ case class FastFirehoseAccountJsonV400(
   product_code: String,
   balance: AmountOfMoneyJsonV121,
   account_routings: String ,
-  account_rules: List[AccountRuleJsonV300],
   account_attributes: String
 )
 
@@ -1181,8 +1180,7 @@ object JSONFactory400 {
             account.productCode,
             AmountOfMoneyJsonV121(account.balance.currency, account.balance.amount),
             account.accountRoutings,
-            account.accountRules.map(rule => AccountRuleJsonV300(rule.scheme, rule.value)),
-            account.accountAttributes,
+            account.accountAttributes
           )
       )
     )

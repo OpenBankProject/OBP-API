@@ -61,10 +61,6 @@ object MigrationOfFastFireHoseView {
                     |        where 
                     |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
                     |     ),                                                          
-                    |    mappedbankaccount.accountrulescheme1 account_rule_scheme_1,
-                    |    mappedbankaccount.accountrulevalue1 account_rule_value_1,
-                    |    mappedbankaccount.accountrulescheme2 account_rule_scheme_2,
-                    |    mappedbankaccount.accountrulevalue2 account_rule_value_2,
                     |    (select 
                     |        string_agg(
                     |                'type:'

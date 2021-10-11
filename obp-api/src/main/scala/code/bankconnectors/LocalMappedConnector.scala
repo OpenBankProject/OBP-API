@@ -857,17 +857,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                     amount = rs.stringOpt(8).map(_.toString).getOrElse(null)
                   ),
                   accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
-                  accountRules = List(
-                    AccountRule(
-                      rs.stringOpt(10).map(_.toString).getOrElse(null),
-                      rs.stringOpt(11).map(_.toString).getOrElse(null)
-                    ),
-                    AccountRule(
-                      rs.stringOpt(12).map(_.toString).getOrElse(null),
-                      rs.stringOpt(13).map(_.toString).getOrElse(null)
-                    )
-                  ),
-                  accountAttributes = rs.stringOpt(14).map(_.toString).getOrElse(null)
+                  accountAttributes = rs.stringOpt(10).map(_.toString).getOrElse(null)
                 )
             ).list().apply()
         sqlResult

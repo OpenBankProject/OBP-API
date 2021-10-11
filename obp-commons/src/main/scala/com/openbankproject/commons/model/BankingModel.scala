@@ -387,7 +387,6 @@ case class FastFirehoseAccount(
   productCode: String,
   balance: AmountOfMoney,
   accountRoutings: String,
-  accountRules: List[AccountRule],
   accountAttributes: String
 )
 
