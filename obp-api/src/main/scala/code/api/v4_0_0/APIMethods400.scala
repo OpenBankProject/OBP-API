@@ -7818,6 +7818,7 @@ trait APIMethods400 {
               cc.userId,
               postJson.api_collection_name,
               postJson.is_sharable,
+              postJson.description,
               Some(cc)
             )
           } yield {

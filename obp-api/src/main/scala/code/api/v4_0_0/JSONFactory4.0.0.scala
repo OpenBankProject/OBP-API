@@ -656,7 +656,8 @@ case class ApiCollectionJson400 (
   api_collection_id: String,
   user_id: String,
   api_collection_name: String,
-  is_sharable: Boolean
+  is_sharable: Boolean,
+  description: String
 )
 case class ApiCollectionsJson400 (
   api_collections: List[ApiCollectionJson400] 
@@ -664,7 +665,8 @@ case class ApiCollectionsJson400 (
 
 case class PostApiCollectionJson400(
   api_collection_name: String,
-  is_sharable: Boolean
+  is_sharable: Boolean,
+  description: String
 )
 
 case class ApiCollectionEndpointJson400 (
@@ -1460,6 +1462,7 @@ object JSONFactory400 {
         apiCollection.userId,
         apiCollection.apiCollectionName,
         apiCollection.isSharable,
+        apiCollection.description
       )
   }
   def createIbanCheckerJson(iban: IbanChecker): IbanCheckerJsonV400 = {

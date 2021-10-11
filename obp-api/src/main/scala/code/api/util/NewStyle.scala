@@ -3073,12 +3073,14 @@ object NewStyle {
       userId: String,
       apiCollectionName: String,
       isSharable: Boolean,
+      description: String,
       callContext: Option[CallContext]
     ) : OBPReturnType[ApiCollectionTrait] = {
       Future(MappedApiCollectionsProvider.createApiCollection(
         userId: String,
         apiCollectionName: String,
-        isSharable: Boolean)
+        isSharable: Boolean,
+        description: String)
       ) map {
         i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
       }
