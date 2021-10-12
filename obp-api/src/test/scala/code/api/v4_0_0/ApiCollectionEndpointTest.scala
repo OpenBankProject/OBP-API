@@ -48,6 +48,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpoint))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteMyApiCollectionEndpoint))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getApiCollectionEndpoints))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.createMyApiCollectionEndpointById))
 
   feature("Test the apiCollection endpoints") {
     scenario("We create the apiCollection Endpoint", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
@@ -133,6 +134,22 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
       apiCollectionEndpointsJsonGetAfterDelete.api_collection_endpoints.length should be (0)
 
+      {
+        Then(s"we test the $ApiEndpoint6")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+  
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="OBPv4.0.0-getBanks")
+  
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+  
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+  
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
     }
   }
 
