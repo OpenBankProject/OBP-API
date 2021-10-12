@@ -570,6 +570,7 @@ object ErrorMessages {
   val InvalidConnectorResponseForSaveDoubleEntryBookTransaction = "OBP-50216: The Connector did not return a valid response for saving double-entry transaction."
   val InvalidConnectorResponseForCancelPayment = "OBP-50217: Connector did not return the transaction we requested."
   val InvalidConnectorResponseForGetEndpointTags = "OBP-50218: Connector did not return the set of endpoint tags we requested."
+  val InvalidConnectorResponseForGetBankAccountsWithAttributes = "OBP-50219: Connector did not return the bank accounts we requested."
 
   // Adapter Exceptions (OBP-6XXXX)
   // Reserved for adapter (south of Kafka) messages

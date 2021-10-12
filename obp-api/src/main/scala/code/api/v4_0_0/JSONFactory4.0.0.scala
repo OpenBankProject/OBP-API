@@ -202,6 +202,22 @@ case class ModeratedFirehoseAccountsJsonV400(
                                               accounts: List[ModeratedFirehoseAccountJsonV400]
                                             )
 
+case class FastFirehoseAccountJsonV400(
+  id: String,
+  bank_id: String,
+  label: String,
+  number: String,
+  owners: String,
+  product_code: String,
+  balance: AmountOfMoneyJsonV121,
+  account_routings: String ,
+  account_attributes: String
+)
+
+case class FastFirehoseAccountsJsonV400(
+  accounts: List[FastFirehoseAccountJsonV400]
+)
+
 case class ModeratedAccountJSON400(
                                     id : String,
                                     label : String,
@@ -639,7 +655,8 @@ case class ApiCollectionJson400 (
   api_collection_id: String,
   user_id: String,
   api_collection_name: String,
-  is_sharable: Boolean
+  is_sharable: Boolean,
+  description: String
 )
 case class ApiCollectionsJson400 (
   api_collections: List[ApiCollectionJson400] 
@@ -647,7 +664,8 @@ case class ApiCollectionsJson400 (
 
 case class PostApiCollectionJson400(
   api_collection_name: String,
-  is_sharable: Boolean
+  is_sharable: Boolean,
+  description: String
 )
 
 case class ApiCollectionEndpointJson400 (
@@ -1149,6 +1167,24 @@ object JSONFactory400 {
       )
     )
   }
+  def createFirehoseBankAccountJSON(firehoseAccounts : List[FastFirehoseAccount]) : FastFirehoseAccountsJsonV400 =  {
+    FastFirehoseAccountsJsonV400(
+      firehoseAccounts.map(
+        account =>
+          FastFirehoseAccountJsonV400(
+            account.id,
+            account.bankId,
+            account.label,
+            account.number,
+            account.owners,
+            account.productCode,
+            AmountOfMoneyJsonV121(account.balance.currency, account.balance.amount),
+            account.accountRoutings,
+            account.accountAttributes
+          )
+      )
+    )
+  }
 
 
   def createEntitlementJSONs(entitlements: List[Entitlement]): EntitlementsJsonV400 = {
@@ -1424,6 +1460,7 @@ object JSONFactory400 {
         apiCollection.userId,
         apiCollection.apiCollectionName,
         apiCollection.isSharable,
+        apiCollection.description
       )
   }
   def createIbanCheckerJson(iban: IbanChecker): IbanCheckerJsonV400 = {
