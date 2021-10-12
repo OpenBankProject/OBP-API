@@ -49,6 +49,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.deleteMyApiCollectionEndpoint))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getApiCollectionEndpoints))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.createMyApiCollectionEndpointById))
+  object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpointsById))
 
   feature("Test the apiCollection endpoints") {
     scenario("We create the apiCollection Endpoint", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
@@ -149,6 +150,19 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
         apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
   
         val  operationId= apiCollectionEndpoint.operation_id
+      }
+      
+      {
+        Then(s"we test the $ApiEndpoint7")
+        val requestGet = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").GET <@ (user1)
+
+        val responseGet = makeGetRequest(requestGet)
+        Then("We should get a 200")
+        responseGet.code should equal(200)
+
+        val apiCollectionsJsonGet400 = responseGet.body.extract[ApiCollectionEndpointsJson400]
+
+        apiCollectionsJsonGet400.api_collection_endpoints.length should be (1)
       }
     }
   }
