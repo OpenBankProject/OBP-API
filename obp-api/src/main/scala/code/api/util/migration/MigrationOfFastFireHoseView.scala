@@ -24,64 +24,58 @@ object MigrationOfFastFireHoseView {
 
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
-            APIUtil.getPropsValue("db.driver") match    {
-              case Full(value) if value.contains("org.postgresql.Driver") =>
-                () =>
-                  """
-                    |CREATE VIEW v_fast_firehose_accounts AS select
-                    |    mappedbankaccount.theaccountid as account_id,
-                    |    mappedbankaccount.bank as bank_id,
-                    |    mappedbankaccount.accountlabel as account_label,
-                    |    mappedbankaccount.accountnumber as account_number,
-                    |    (select
-                    |        string_agg(
-                    |            'user_id:'
-                    |            || resourceuser.userid_
-                    |            ||',provider:'
-                    |            ||resourceuser.provider_
-                    |            ||',user_name:'
-                    |            ||resourceuser.name_,
-                    |         ',') as owners
-                    |     from resourceuser
-                    |     where
-                    |        resourceuser.id = mapperaccountholders.user_c
-                    |    ),
-                    |    mappedbankaccount.kind as kind,
-                    |    mappedbankaccount.accountcurrency as account_currency ,
-                    |    mappedbankaccount.accountbalance as account_balance,
-                    |    (select 
-                    |        string_agg(
-                    |            'bank_id:'
-                    |            ||bankaccountrouting.bankid 
-                    |            ||',account_id:' 
-                    |            ||bankaccountrouting.accountid,
-                    |            ','
-                    |            ) as account_routings
-                    |        from bankaccountrouting
-                    |        where 
-                    |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
-                    |     ),                                                          
-                    |    (select 
-                    |        string_agg(
-                    |                'type:'
-                    |                || mappedaccountattribute.mtype
-                    |                ||',code:'
-                    |                ||mappedaccountattribute.mcode
-                    |                ||',value:'
-                    |                ||mappedaccountattribute.mvalue,
-                    |            ',') as account_attributes
-                    |    from mappedaccountattribute
-                    |    where
-                    |         mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
-                    |     )
-                    |from mappedbankaccount
-                    |         LEFT JOIN mapperaccountholders
-                    |                   ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink);
-                    |""".stripMargin
-              case Full(value) =>
-                () =>
-                  throw new RuntimeException(s"Only Postgresql migration script here. Please add the script for $value");
-            }
+            () =>
+              """
+                |CREATE VIEW v_fast_firehose_accounts AS select
+                |    mappedbankaccount.theaccountid as account_id,
+                |    mappedbankaccount.bank as bank_id,
+                |    mappedbankaccount.accountlabel as account_label,
+                |    mappedbankaccount.accountnumber as account_number,
+                |    (select
+                |        string_agg(
+                |            'user_id:'
+                |            || resourceuser.userid_
+                |            ||',provider:'
+                |            ||resourceuser.provider_
+                |            ||',user_name:'
+                |            ||resourceuser.name_,
+                |         ',') as owners
+                |     from resourceuser
+                |     where
+                |        resourceuser.id = mapperaccountholders.user_c
+                |    ),
+                |    mappedbankaccount.kind as kind,
+                |    mappedbankaccount.accountcurrency as account_currency ,
+                |    mappedbankaccount.accountbalance as account_balance,
+                |    (select 
+                |        string_agg(
+                |            'bank_id:'
+                |            ||bankaccountrouting.bankid 
+                |            ||',account_id:' 
+                |            ||bankaccountrouting.accountid,
+                |            ','
+                |            ) as account_routings
+                |        from bankaccountrouting
+                |        where 
+                |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
+                |     ),                                                          
+                |    (select 
+                |        string_agg(
+                |                'type:'
+                |                || mappedaccountattribute.mtype
+                |                ||',code:'
+                |                ||mappedaccountattribute.mcode
+                |                ||',value:'
+                |                ||mappedaccountattribute.mvalue,
+                |            ',') as account_attributes
+                |    from mappedaccountattribute
+                |    where
+                |         mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
+                |     )
+                |from mappedbankaccount
+                |         LEFT JOIN mapperaccountholders
+                |                   ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink);
+                |""".stripMargin
           }
 
         val endDate = System.currentTimeMillis()

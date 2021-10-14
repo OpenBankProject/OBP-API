@@ -3315,7 +3315,6 @@ trait APIMethods400 {
          |
          |optional pagination parameters for filter with accounts
          |${urlParametersDocument(true, false)
-        .replace("default value: 50","default value: 1000")
         .replace(s"""
                   |
                   |* sort_direction=ASC/DESC ==> default value: DESC.
@@ -3328,7 +3327,7 @@ trait APIMethods400 {
          |
          |""".stripMargin,
       EmptyBody,
-      moderatedFirehoseAccountsJsonV400,
+      fastFirehoseAccountsJsonV400,
       List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
@@ -8107,7 +8106,7 @@ trait APIMethods400 {
     staticResourceDocs += ResourceDoc(
       createMyApiCollectionEndpointById,
       implementedInApiVersion,
-      nameOf(createMyApiCollectionEndpoint),
+      nameOf(createMyApiCollectionEndpointById),
       "POST",
       "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
       "Create My Api Collection Endpoint By Id",
@@ -8315,6 +8314,43 @@ trait APIMethods400 {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteMyApiCollectionEndpointById,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollectionEndpointById),
+      "DELETE",
+      "/my/api-collections-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
+      "Delete My Api Collection Endpoint By Id",
+      s"""${Glossary.getGlossaryItem("API Collections")}
+         |
+         |Delete Api Collection Endpoint By Id
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollectionEndpointById : OBPEndpoint = {
+      case "my" :: "api-collections-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
             (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
             (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
           } yield {

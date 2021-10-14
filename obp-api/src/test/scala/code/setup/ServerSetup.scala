@@ -41,7 +41,10 @@ import org.scalatest._
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
-  with Matchers with MdcLoggable with CustomJsonFormats{
+  with Matchers with MdcLoggable with CustomJsonFormats with PropsReset{
+
+  setPropsValues("migration_scripts.execute_all" -> "true")
+  setPropsValues("migration_scripts.execute" -> "true")
 
   val server = TestServer
   def baseRequest = host(server.host, server.port)
