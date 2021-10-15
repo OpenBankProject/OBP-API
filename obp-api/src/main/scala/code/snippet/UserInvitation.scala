@@ -55,6 +55,7 @@ class UserInvitation extends MdcLoggable {
   private object termsCheckboxVar extends RequestVar(false)
   private object marketingInfoCheckboxVar extends RequestVar(false)
   private object consentForCollectingCheckboxVar extends RequestVar(false)
+  private object consentForCollectingMandatoryCheckboxVar extends RequestVar(true)
   private object privacyCheckboxVar extends RequestVar(false)
   
   val ttl = APIUtil.getPropsAsLongValue("user_invitation.ttl.seconds", 86400)
@@ -79,7 +80,12 @@ class UserInvitation extends MdcLoggable {
     countryVar.set(userInvitation.map(_.country).getOrElse("None"))
     // Propose the username only for the first time. In case an end user manually change it we must not override it.
     if(usernameVar.isEmpty) usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
-
+    if(consentExclusionList.exists(_.toLowerCase == countryVar.is.toLowerCase) == true) {
+      consentForCollectingMandatoryCheckboxVar.set(false)
+    } else {
+      consentForCollectingMandatoryCheckboxVar.set(true)
+    }
+    
     def submitButtonDefense(): Unit = {
       val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
       val createdAt = userInvitation.map(_.createdAt.get).getOrElse(time(239932800))
@@ -176,7 +182,8 @@ class UserInvitation extends MdcLoggable {
           "#privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_)) &
           "#terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_)) &
           "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
-          "#consent_for_collecting_checkbox" #> SHtml.checkbox(consentForCollectingCheckboxVar, consentForCollectingCheckboxVar(_)) &
+          "#consent_for_collecting_checkbox" #> SHtml.checkbox(consentForCollectingCheckboxVar, consentForCollectingCheckboxVar(_), "id" -> "consent_for_collecting_checkbox") &
+          "#consent_for_collecting_mandatory" #> SHtml.checkbox(consentForCollectingMandatoryCheckboxVar, consentForCollectingMandatoryCheckboxVar(_), "id" -> "consent_for_collecting_mandatory", "hidden" -> "true") &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#data-area-success" #> ""
