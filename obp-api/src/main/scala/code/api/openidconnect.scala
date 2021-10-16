@@ -235,6 +235,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                   "redirect_uri=" + config.callback_url + "&" +
                   "code=" + authorizationCode + "&" +
                   "grant_type=authorization_code"
+    logger.debug("Request parameters: " + data)
+    logger.debug("Token endpoint: " + config.token_endpoint)
     val response: Box[String] = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
     logger.debug("Response: " + response)
     response match {
@@ -356,6 +358,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       Full(content)
     } catch {
       case e:Throwable => 
+        e.printStackTrace()
         logger.error(e)
         Failure(e.getMessage)
     }

@@ -1179,19 +1179,32 @@ trait APIMethods400 {
         |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
         |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
         |    Possible values are dummy,email and sms
-        |    In kafka mode, the answer can be got by phone message or other security ways.
+        |    In kafka mode, the answer can be got by phone message or other SCA methods.
         |
-        |In case 1 person needs to answer security challenge we have next flow of state of an `transaction request`:
+        |Note that each Transaction Request Type can have its own OTP_INSTRUCTION_TRANSPORT method.
+        |OTP_INSTRUCTION_TRANSPORT methods are set in Props. See sample.props.template for instructions.
+        |
+        |Single or Multiple authorisations
+        |
+        |OBP allows single or multi party authorisations.
+        |
+        |Single party authorisation:
+        |
+        |In the case that only one person needs to authorise i.e. answer a security challenge we have the following change of state of a `transaction request`:
         |  INITIATED => COMPLETED
-        |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
+        |
+        |
+        |Multiparty authorisation:
+        |
+        |In the case that multiple parties (n persons) need to authorise a transaction request i.e. answer security challenges, we have the followings state flow for a `transaction request`:
         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
         |
-        |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
+        |The security challenge is bound to a user i.e. in the case of a correct answer but the user is different than expected the challenge will fail.
         |
         |Rule for calculating number of security challenges:
-        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+        |If Product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
-        |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
+        |In the case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute, the default number of security challenges created is one.
         |
       """.stripMargin,
       challengeAnswerJson400,
