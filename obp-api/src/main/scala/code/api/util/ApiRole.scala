@@ -749,6 +749,9 @@ object ApiRole {
 
   case class CanCreateDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateDynamicMessageDoc = CanCreateDynamicMessageDoc()
+  
+  case class CanCreateBankLevelDynamicMessageDoc(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateBankLevelDynamicMessageDoc = CanCreateBankLevelDynamicMessageDoc()
 
   case class CanUpdateDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateDynamicMessageDoc = CanUpdateDynamicMessageDoc()
@@ -756,11 +759,17 @@ object ApiRole {
   case class CanGetDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDynamicMessageDoc = CanGetDynamicMessageDoc()
 
+  case class CanGetBankLevelDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetBankLevelDynamicMessageDoc = CanGetBankLevelDynamicMessageDoc()
+
   case class CanGetAllDynamicMessageDocs(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAllDynamicMessageDocs = CanGetAllDynamicMessageDocs()
 
   case class CanDeleteDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteDynamicMessageDoc = CanDeleteDynamicMessageDoc()
+
+  case class CanDeleteBankLevelDynamicMessageDoc(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteBankLevelDynamicMessageDoc = CanDeleteBankLevelDynamicMessageDoc()
 
   case class CanCreateEndpointMapping(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateEndpointMapping = CanCreateEndpointMapping()

@@ -9258,7 +9258,7 @@ trait APIMethods400 {
             dynamicMessageDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
             }
-            (dynamicMessageDocExisted, callContext) <- NewStyle.function.isJsonDynamicMessageDocExists(dynamicMessageDoc.process, cc.callContext)
+            (dynamicMessageDocExisted, callContext) <- NewStyle.function.isJsonDynamicMessageDocExists(None, dynamicMessageDoc.process, cc.callContext)
             _ <- Helper.booleanToFuture(failMsg = s"$DynamicMessageDocAlreadyExists The json body process(${dynamicMessageDoc.process}) already exists", cc=callContext) {
               (!dynamicMessageDocExisted)
             }
@@ -9267,7 +9267,50 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
-            (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(dynamicMessageDoc, callContext)
+            (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(None, dynamicMessageDoc, callContext)
+          } yield {
+            (dynamicMessageDoc, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createBankLevelDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(createBankLevelDynamicMessageDoc),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-message-docs",
+      "Create Bank Level Dynamic Message Doc",
+      s"""Create a Bank Level Dynamic Message Doc.
+         |""",
+      jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
+      jsonDynamicMessageDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canCreateBankLevelDynamicMessageDoc)))
+
+    lazy val createBankLevelDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId ::"dynamic-message-docs" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            dynamicMessageDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicMessageDoc]
+            }
+            (dynamicMessageDocExisted, callContext) <- NewStyle.function.isJsonDynamicMessageDocExists(Some(bankId), dynamicMessageDoc.process, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$DynamicMessageDocAlreadyExists The json body process(${dynamicMessageDoc.process}) already exists", cc=callContext) {
+              (!dynamicMessageDocExisted)
+            }
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDoc.process, dynamicMessageDoc.decodedMethodBody)
+            errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
+            _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
+              connectorMethod.isDefined
+            }
+            (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(Some(bankId), dynamicMessageDoc, callContext)
           } yield {
             (dynamicMessageDoc, HttpCode.`201`(callContext))
           }
@@ -9306,8 +9349,8 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=cc.callContext) {
               connectorMethod.isDefined
             }
-            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)
-            (dynamicMessageDoc, callContext) <- NewStyle.function.updateJsonDynamicMessageDoc(dynamicMessageDocBody.copy(dynamicMessageDocId=Some(dynamicMessageDocId)), callContext)
+            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
+            (dynamicMessageDoc, callContext) <- NewStyle.function.updateJsonDynamicMessageDoc(None, dynamicMessageDocBody.copy(dynamicMessageDocId=Some(dynamicMessageDocId)), callContext)
           } yield {
             (dynamicMessageDoc, HttpCode.`200`(callContext))
           }
@@ -9338,7 +9381,7 @@ trait APIMethods400 {
       case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonGet _ => {
         cc =>
           for {
-            (dynamicMessageDoc, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)
+            (dynamicMessageDoc, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
           } yield {
             (dynamicMessageDoc, HttpCode.`200`(callContext))
           }
@@ -9369,7 +9412,7 @@ trait APIMethods400 {
       case "management" :: "dynamic-message-docs" :: Nil JsonGet _ => {
         cc =>
           for {
-            (dynamicMessageDocs, callContext) <- NewStyle.function.getJsonDynamicMessageDocs(cc.callContext)
+            (dynamicMessageDocs, callContext) <- NewStyle.function.getJsonDynamicMessageDocs(None, cc.callContext)
           } yield {
             (ListResult("dynamic-message-docs", dynamicMessageDocs), HttpCode.`200`(callContext))
           }
@@ -9400,8 +9443,142 @@ trait APIMethods400 {
       case "management" :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(dynamicMessageDocId, cc.callContext)
-            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(dynamicMessageDocId, callContext)
+            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(None, dynamicMessageDocId, callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(updateBankLevelDynamicMessageDoc),
+      "PUT",
+      "/management/banks/BANK_ID/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
+      "Update Bank Level Dynamic Message Doc",
+      s"""Update a Bank Level Dynamic Message Doc.
+         |""",
+      jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
+      jsonDynamicMessageDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canUpdateDynamicMessageDoc)))
+
+    lazy val updateBankLevelDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId::"dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            dynamicMessageDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicMessageDoc]
+            }
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDocBody.process, dynamicMessageDocBody.decodedMethodBody)
+            errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
+            _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=cc.callContext) {
+              connectorMethod.isDefined
+            }
+            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(Some(bankId), dynamicMessageDocId, cc.callContext)
+            (dynamicMessageDoc, callContext) <- NewStyle.function.updateJsonDynamicMessageDoc(Some(bankId), dynamicMessageDocBody.copy(dynamicMessageDocId=Some(dynamicMessageDocId)), callContext)
+          } yield {
+            (dynamicMessageDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicMessageDoc),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
+      "Get Bank Level Dynamic Message Doc",
+      s"""Get a Bank Level Dynamic Message Doc by DYNAMIC_MESSAGE_DOC_ID.
+         |
+         |""",
+      EmptyBody,
+      jsonDynamicMessageDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canGetBankLevelDynamicMessageDoc)))
+
+    lazy val getBankLevelDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicMessageDoc, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
+          } yield {
+            (dynamicMessageDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllBankLevelDynamicMessageDocs,
+      implementedInApiVersion,
+      nameOf(getAllBankLevelDynamicMessageDocs),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-message-docs",
+      "Get all Bank Level Dynamic Message Docs",
+      s"""Get all Bank Level Dynamic Message Docs.
+         |
+         |""",
+      EmptyBody,
+      ListResult("dynamic-message-docs", jsonDynamicMessageDoc::Nil),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canGetAllDynamicMessageDocs)))
+
+    lazy val getAllBankLevelDynamicMessageDocs: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-message-docs" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicMessageDocs, callContext) <- NewStyle.function.getJsonDynamicMessageDocs(Some(bankId), cc.callContext)
+          } yield {
+            (ListResult("dynamic-message-docs", dynamicMessageDocs), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankLevelDynamicMessageDoc,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelDynamicMessageDoc),
+      "DELETE",
+      "/management/banks/BANK_ID/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
+      "Delete Bank Level Dynamic Message Doc",
+      s"""Delete a Bank Level Dynamic Message Doc.
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicMessageDoc, apiTagNewStyle),
+      Some(List(canDeleteBankLevelDynamicMessageDoc)))
+
+    lazy val deleteBankLevelDynamicMessageDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-message-docs" :: dynamicMessageDocId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(Some(bankId), dynamicMessageDocId, cc.callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicMessageDocById(Some(bankId), dynamicMessageDocId, callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`204`(callContext))
           }

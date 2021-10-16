@@ -4272,6 +4272,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val jsonDynamicMessageDoc = JsonDynamicMessageDoc(
+    bankId = Some(bankIdExample.value),
     dynamicMessageDocId = Some(dynamicMessageDocIdExample.value),
     process = processExample.value,
     messageFormat = messageFormatExample.value,
