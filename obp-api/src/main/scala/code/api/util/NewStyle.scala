@@ -3363,41 +3363,41 @@ object NewStyle {
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocDeleteError Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
       }
 
-    def createJsonDynamicMessageDoc(dynamicMessageDoc: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+    def createJsonDynamicMessageDoc(bankId: Option[String], dynamicMessageDoc: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(dynamicMessageDoc)
+        val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(bankId, dynamicMessageDoc)
         val errorMsg = s"$UnknownError Can not create Dynamic Message Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
-    def updateJsonDynamicMessageDoc(entity: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+    def updateJsonDynamicMessageDoc(bankId: Option[String], entity: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(entity: JsonDynamicMessageDoc)
+        val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(bankId: Option[String], entity: JsonDynamicMessageDoc)
         val errorMsg = s"$UnknownError Can not update Dynamic Message Doc  in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
-    def isJsonDynamicMessageDocExists(process: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonDynamicMessageDocExists(bankId: Option[String], process: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result =  DynamicMessageDocProvider.provider.vend.getByProcess(process)
+        val result =  DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process)
         (result.isDefined, callContext)
       }
 
-    def getJsonDynamicMessageDocs(callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicMessageDoc]] =
+    def getJsonDynamicMessageDocs(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicMessageDoc]] =
       Future {
-        val dynamicMessageDocs: List[JsonDynamicMessageDoc] = DynamicMessageDocProvider.provider.vend.getAll()
+        val dynamicMessageDocs: List[JsonDynamicMessageDoc] = DynamicMessageDocProvider.provider.vend.getAll(bankId)
         dynamicMessageDocs -> callContext
       }
 
-    def getJsonDynamicMessageDocById(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+    def getJsonDynamicMessageDocById(bankId: Option[String], dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.getById(dynamicMessageDocId)
+        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.getById(bankId, dynamicMessageDocId)
         (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocNotFound Current DYNAMIC_RESOURCE_DOC_ID(${dynamicMessageDocId})", 400), callContext)
       }
 
-    def deleteJsonDynamicMessageDocById(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def deleteJsonDynamicMessageDocById(bankId: Option[String], dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.deleteById(dynamicMessageDocId)
+        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.deleteById(bankId, dynamicMessageDocId)
         (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocDeleteError", 400), callContext)
       }
 

@@ -23,14 +23,14 @@ object DynamicConnector {
   def updateSingletonObject(key:String, value: Any) = singletonObjectMap.update(key, value)
   def removeSingletonObject(key:String) = singletonObjectMap.remove(key)
 
-  def invoke(process: String, args: Array[AnyRef], callContext: Option[CallContext]) = {
+  def invoke(bankId: Option[String], process: String, args: Array[AnyRef], callContext: Option[CallContext]) = {
     val function: Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(AnyRef, Option[CallContext])]]] = 
-      getFunction(process).asInstanceOf[Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(AnyRef, Option[CallContext])]]]]
+      getFunction(bankId, process).asInstanceOf[Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(AnyRef, Option[CallContext])]]]]
      function.map(f =>f(args: Array[AnyRef], callContext: Option[CallContext])).openOrThrowException(s"There is no process $process, it should not be called here")
-  } 
+  }
   
-  private def getFunction(process: String) = {
-    DynamicMessageDocProvider.provider.vend.getByProcess(process) map {
+  private def getFunction(bankId: Option[String], process: String) = {
+    DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process) map {
       case v :JsonDynamicMessageDoc =>
         createFunction(process, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail")
     }
