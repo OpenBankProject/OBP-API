@@ -635,9 +635,11 @@ object Glossary extends MdcLoggable  {
 		title = "Bank",
 		description =
 		"""
-		  |A Bank (aka Space) represents a financial institution, brand or organisaitonal unit under which resources such as endpoints and entities exist.
+		  |A Bank (aka Space) represents a financial institution, brand or organizational unit under which resources such as endpoints and entities exist.
 |
 |Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
+|
+|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:8082/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
 |
 |The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
 |
@@ -1879,7 +1881,7 @@ object Glossary extends MdcLoggable  {
 |  base64UrlEncode(header) + "." +
 |  base64UrlEncode(payload),
 |
-|) secret base64 encoded
+|) secret
 |```
 |
 |Here is the above example token:
@@ -1960,12 +1962,12 @@ object Glossary extends MdcLoggable  {
 |```
 |import jwt
 |from datetime import datetime, timezone
-|from obp_python.config import obp_api_host
 |import requests
 |
 |env = 'local'
 |DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 |
+|obp_api_host = 'https://yourhost.com'
 |payload = {
 |    "login_user_name": "username",
 |    "is_first": False,
@@ -2477,12 +2479,71 @@ object Glossary extends MdcLoggable  {
 		title = "JSON Schema Validation",
 		description =
 			s"""
-   | We provide the schema validations over the endpoints.
+   |JSON Schema is "a vocabulary that allows you to annotate and validate JSON documents".
+   |
+   |By applying JSON Schema Validation to your endpoints you can constrain POST and PUT request bodies. For example, you can set minimum / maximum lengths of fields and constrain values to certain lists or regular expressions.
+	 |
+	 |See [JSONSchema.org](https://json-schema.org/) for more information about the standard.
+   |
+   |Note that Dynamic Entities also use JSON Schema Validation so you don't need to additionally wrap the resulting endpoints with extra JSON Schema Validation but you could do.
+   |
+
+   |
+   |  We provide the schema validations over the endpoints.
    | All the OBP endpoints request/response body fields can be validated by the schema.
    |
    |The following videos are available:
    |* [JSON schema validation of request for Static and Dynamic Endpoints and Entities] (https://vimeo.com/485287014)
    |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Connector Method",
+		description =
+			s"""
+			| The developer can override all the existing Connector methods on their own. 
+			| This function needs to be used together with the Method Routing. 
+			| when set "connector = internal", then the developer can call their own method body at API level. 
+			|
+			|eg: Get Banks endpoint, it calls the connector "getBanks" method, then the developers can use these endpoints to modify the business logic in the getBanks method body.
+			|  
+			|  The following videos are available:
+		  |* [Introduction for Connector Method] (https://vimeo.com/507795470)
+		  |
+		  |""".stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Resource Doc",
+		description =
+			s"""
+		  | The developers can create their own endpoints by this endpoint.
+			| Need to prepare the obp resource doc format json. 
+			| And all the business logic code can be written in the *method_body* field, it is the encoded scala code.
+			|  
+			| It is still working in the processing ..
+			|The following videos are available:
+			|* [Introduction for dConnector Method] (https://vimeo.com/623381607)
+		  |
+		  |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Message Doc",
+		description =
+			s"""
+			| The developers can create their own scala methods in OBP code.
+			| These endpoints are designed for extending the current connector methods. 
+			| when you call the dynamic resource doc endpoints, sometimes you need to call internal scala methods, 
+			| which are not existing in OBP code, then you can use these endpoints to prepare them on your own.
+      | 
+      | And you can use these endpoints to design your own helper methods in OBP code.
+			|  
+			| It is still working in the processing ..
+		  |The following videos are available:
+			|* [Introduction for Connector Method] (https://vimeo.com/623317747)
+		  |
+		  |""".stripMargin)
 
 
 

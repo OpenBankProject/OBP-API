@@ -1179,19 +1179,32 @@ trait APIMethods400 {
         |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
         |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
         |    Possible values are dummy,email and sms
-        |    In kafka mode, the answer can be got by phone message or other security ways.
+        |    In kafka mode, the answer can be got by phone message or other SCA methods.
         |
-        |In case 1 person needs to answer security challenge we have next flow of state of an `transaction request`:
+        |Note that each Transaction Request Type can have its own OTP_INSTRUCTION_TRANSPORT method.
+        |OTP_INSTRUCTION_TRANSPORT methods are set in Props. See sample.props.template for instructions.
+        |
+        |Single or Multiple authorisations
+        |
+        |OBP allows single or multi party authorisations.
+        |
+        |Single party authorisation:
+        |
+        |In the case that only one person needs to authorise i.e. answer a security challenge we have the following change of state of a `transaction request`:
         |  INITIATED => COMPLETED
-        |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
+        |
+        |
+        |Multiparty authorisation:
+        |
+        |In the case that multiple parties (n persons) need to authorise a transaction request i.e. answer security challenges, we have the followings state flow for a `transaction request`:
         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
         |
-        |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
+        |The security challenge is bound to a user i.e. in the case of a correct answer but the user is different than expected the challenge will fail.
         |
         |Rule for calculating number of security challenges:
-        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+        |If Product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
-        |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
+        |In the case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute, the default number of security challenges created is one.
         |
       """.stripMargin,
       challengeAnswerJson400,
@@ -1803,15 +1816,15 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
+         |Create a DynamicEntity. If creation is successful, the corresponding POST, GET, PUT and DELETE (Create, Read, Update, Delete or CRUD for short) endpoints will be generated automatically
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
-         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |See the following list of currently available reference types and examples of how to construct key values correctly. Note: As more Dynamic Entities are created on this instance, this list will grow:
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1849,15 +1862,15 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
+         |Create a DynamicEntity. If creation is successful, the corresponding POST, GET, PUT and DELETE (Create, Read, Update, Delete or CRUD for short) endpoints will be generated automatically
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
-         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1919,13 +1932,13 @@ trait APIMethods400 {
          |
          |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1961,13 +1974,13 @@ trait APIMethods400 {
          |
          |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -2110,8 +2123,8 @@ trait APIMethods400 {
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -3298,6 +3311,57 @@ trait APIMethods400 {
             }
           } yield {
             (JSONFactory400.createFirehoseCoreBankAccountJSON(moderatedAccounts, accountAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getFastFirehoseAccountsAtOneBank,
+      implementedInApiVersion,
+      nameOf(getFastFirehoseAccountsAtOneBank),
+      "GET",
+      "/management/banks/BANK_ID/fast-firehose/accounts",
+      "Get Fast Firehose Accounts at Bank",
+      s"""
+         |
+         |This endpoint allows bulk access to accounts.
+         |
+         |optional pagination parameters for filter with accounts
+         |${urlParametersDocument(true, false)
+        .replace("default value: 50","default value: 1000")
+        .replace(s"""
+                  |
+                  |* sort_direction=ASC/DESC ==> default value: DESC.
+                  |
+                  |eg2:?limit=100&offset=0&sort_direction=ASC
+                  |
+                  |""". stripMargin,"")}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      moderatedFirehoseAccountsJsonV400,
+      List($BankNotFound),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
+      Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
+    )
+
+    lazy val getFastFirehoseAccountsAtOneBank : OBPEndpoint = {
+      //get private accounts for all banks
+      case "management":: "banks" :: BankId(bankId):: "fast-firehose" :: "accounts"  :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), bank, callContext) <- SS.userBank
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
+              allowAccountFirehose
+            }
+            allowedParams = List("limit", "offset")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (firehoseAccounts, callContext) <- NewStyle.function.getBankAccountsWithAttributes(bankId, obpQueryParams, cc.callContext)
+          } yield {
+            (JSONFactory400.createFirehoseBankAccountJSON(firehoseAccounts), HttpCode.`200`(callContext))
           }
       }
     }
@@ -7767,6 +7831,7 @@ trait APIMethods400 {
               cc.userId,
               postJson.api_collection_name,
               postJson.is_sharable,
+              postJson.description,
               Some(cc)
             )
           } yield {

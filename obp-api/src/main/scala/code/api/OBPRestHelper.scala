@@ -28,15 +28,17 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.URLDecoder
+
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
+import code.api.util.ErrorMessages.{UserIsDeleted, UsernameHasBeenLocked, attemptedToOpenAnEmptyBox}
 import code.api.util._
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
+import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import com.alibaba.ttl.TransmittableThreadLocal
@@ -263,7 +265,24 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     }
   }
 
-  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
+  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(function: CallContext => Box[JsonResponse]) : JsonResponse = {
+    // Check is it a user deleted or locked
+    def fn(callContext: CallContext): Box[JsonResponse] = {
+      callContext.user match {
+        case Full(u) => // There is a user. Check it.
+          if(u.isDeleted.getOrElse(false)) {
+            Failure(UserIsDeleted) // The user is DELETED.
+          } else {
+            LoginAttempt.userIsLocked(u.name) match {
+              case true => Failure(UsernameHasBeenLocked) // The user is LOCKED.
+              case false => function(callContext) // All good
+            }
+          }
+        case _ => // There is no user. Just forward the result.
+          function(callContext)
+      }
+    }
+    
     val authorization = S.request.map(_.header("Authorization")).flatten
     val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     val body: Box[String] = getRequestBody(S.request)

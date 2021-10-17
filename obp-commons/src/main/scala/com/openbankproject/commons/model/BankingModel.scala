@@ -385,6 +385,28 @@ case class BankAccountBalance(
   balanceType: String,
 )
 
+case class FirehoseAccountUser(
+  id : String,
+  provider : String,
+  displayName : String
+)
+
+case class FastFirehoseAccount(
+  id: String,
+  bankId: String,
+  label: String,
+  number: String,
+  owners: String,
+  productCode: String,
+  balance: AmountOfMoney,
+  accountRoutings: String,
+  accountAttributes: String
+)
+
+case class FastFirehoseAccounts(
+  accounts: List[FastFirehoseAccount]
+)
+
 case class AccountsBalances(
   accounts: List[AccountBalance],
   overallBalance: AmountOfMoney,

@@ -10,11 +10,13 @@ class ApiCollection extends ApiCollectionTrait with LongKeyedMapper[ApiCollectio
   object UserId extends MappedString(this, 100)
   object ApiCollectionName extends MappedString(this, 100)
   object IsSharable extends MappedBoolean(this)
+  object Description extends MappedString(this, 2000)
 
   override def apiCollectionId: String = ApiCollectionId.get    
   override def userId: String = UserId.get              
   override def apiCollectionName: String = ApiCollectionName.get
   override def isSharable: Boolean = IsSharable.get    
+  override def description: String = Description.get    
 }
 
 object ApiCollection extends ApiCollection with LongKeyedMetaMapper[ApiCollection] {
@@ -26,4 +28,5 @@ trait ApiCollectionTrait {
   def userId: String
   def apiCollectionName: String
   def isSharable: Boolean
+  def description: String
 }

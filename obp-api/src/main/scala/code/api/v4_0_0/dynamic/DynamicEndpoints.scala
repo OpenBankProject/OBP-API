@@ -1,17 +1,20 @@
 package code.api.v4_0_0.dynamic
 
-
 import code.api.JsonResponseException
-import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, createErrorJsonResponse}
 import code.api.util.DynamicUtil.Sandbox
-import code.api.util.{APIUtil, CallContext, DynamicUtil, ErrorMessages, NewStyle}
+import code.api.util.{APIUtil, ErrorMessages, NewStyle}
 import code.api.util.NewStyle.HttpCode
 import code.api.v4_0_0.JSONFactory400
-import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint, PractiseEndpointGroup}
+import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
 import com.openbankproject.commons.ExecutionContext
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.ReflectUtils
+
+import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
+import code.api.util.{CallContext, DynamicUtil}
+import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
+
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.{JNothing, JValue}
@@ -28,7 +31,14 @@ import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
 
 object DynamicEndpoints {
   //TODO, better put all other dynamic endpoints into this list. eg: dynamicEntityEndpoints, dynamicSwaggerDocsEndpoints ....
-  private val endpointGroups: List[EndpointGroup] = PractiseEndpointGroup :: DynamicResourceDocsEndpointGroup :: Nil
+  val disabledEndpointOperationIds = getDisabledEndpointOperationIds
+  
+  private val endpointGroups: List[EndpointGroup] =
+    if(disabledEndpointOperationIds.contains("OBPv4.0.0-test-dynamic-resource-doc")) {
+      DynamicResourceDocsEndpointGroup :: Nil
+    }else{
+      PractiseEndpointGroup :: DynamicResourceDocsEndpointGroup :: Nil
+    }
 
   /**
    * this will find dynamic endpoint by request.

@@ -427,6 +427,12 @@ object NewStyle {
       }
     }
 
+    def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[FastFirehoseAccount]] = {
+      Connector.connector.vend.getBankAccountsWithAttributes(bankId, queryParams, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccountsWithAttributes", 400 ), i._2)
+      }
+    }
+
     def getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): OBPReturnType[AccountBalances] = {
       Connector.connector.vend.getBankAccountBalances(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
@@ -3136,12 +3142,14 @@ object NewStyle {
       userId: String,
       apiCollectionName: String,
       isSharable: Boolean,
+      description: String,
       callContext: Option[CallContext]
     ) : OBPReturnType[ApiCollectionTrait] = {
       Future(MappedApiCollectionsProvider.createApiCollection(
         userId: String,
         apiCollectionName: String,
-        isSharable: Boolean)
+        isSharable: Boolean,
+        description: String)
       ) map {
         i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
       }

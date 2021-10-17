@@ -1,6 +1,5 @@
 package code.api
 
-import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -10,8 +9,10 @@ import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.setup.{APIResponse, ServerSetup}
+import code.userlocks.UserLocksProvider
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
@@ -19,7 +20,7 @@ import org.scalatest.{BeforeAndAfter, Tag}
 
 
 
-class directloginTest extends ServerSetup with BeforeAndAfter {
+class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
   /**
     * Test tags
@@ -336,6 +337,58 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       currentUserOldStyle.username shouldBe USERNAME
 
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
+    }
+
+    scenario("Login with correct everything but the user is locked", ApiEndpoint1, ApiEndpoint2) {
+      lazy val username = "firstname.lastname"
+      lazy val header = ("DirectLogin", "username=%s, password=%s, consumer_key=%s".
+        format(username, PASSWORD, KEY))
+      
+      // Delete the user
+      AuthUser.findUserByUsernameLocally(username).map(_.delete_!())
+      // Create the user
+      AuthUser.create.
+        email(EMAIL).
+        username(username).
+        password(PASSWORD).
+        validated(true).
+        firstName(randomString(10)).
+        lastName(randomString(10)).
+        saveMe
+
+      When("the header and credentials are good")
+      lazy val response = makePostRequestAdditionalHeader(directLoginRequest, "", List(accessControlOriginHeader, header))
+      var token = ""
+      Then("We should get a 201 - OK and a token")
+      response.code should equal(201)
+      response.body match {
+        case JObject(List(JField(name, JString(value)))) =>
+          name should equal("token")
+          value.length should be > 0
+          token = value
+        case _ => fail("Expected a token")
+      }
+      
+      When("when we use the token it should work")
+      lazy val headerWithToken = ("DirectLogin", "token=%s".format(token))
+      lazy val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
+
+      // Lock the user in order to test functionality
+      UserLocksProvider.lockUser(username)
+
+      When("when we use the token to get current user and it should NOT work due to locked user - New Style")
+      lazy val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
+      lazy val responseCurrentUserNewStyle = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 401")
+      responseCurrentUserNewStyle.code should equal(401)
+      responseCurrentUserNewStyle.body.extract[ErrorMessage].message should include(ErrorMessages.UsernameHasBeenLocked)
+
+      When("when we use the token to get current user and it should NOT work due to locked user - Old Style")
+      lazy val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      lazy val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      And("We should get a 400")
+      responseCurrentUserOldStyle.code should equal(400)
+      responseCurrentUserOldStyle.body.extract[ErrorMessage].message should include(ErrorMessages.UsernameHasBeenLocked)
     }
 
   }
