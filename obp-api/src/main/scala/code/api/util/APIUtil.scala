@@ -44,7 +44,6 @@ import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.JwsUtil.getJwsHeaderValue
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
@@ -3737,27 +3736,35 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
+   * according class name, method name and method's signature to get all dependent methods
+   */
+  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
+    val methods = ListBuffer[(String, String, String)]()
+    val method = cp.get(className).getMethod(methodName, signature)
+    method.instrument(new ExprEditor() {
+      @throws[CannotCompileException]
+      override def edit(m: MethodCall): Unit = {
+        val tuple = (m.getClassName, m.getMethodName, m.getSignature)
+        methods += tuple
+      }
+    })
+    methods.toList
+  }
+
+  /**
    * get all dependent connector method names for an object
    * @param endpoint can be OBPEndpoint or other PartialFunction
    * @return a list of connector method name
    */
   def getDependentConnectorMethods(endpoint: PartialFunction[_, _]) = {
     val connectorTypeName = classOf[Connector].getName
+
     def getObpTrace(className: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
       memo.memoize((className, methodName, signature)) {
-        val methods = ListBuffer[(String, String, String)]()
-        val method = cp.get(className).getMethod(methodName, signature)
-        method.instrument(new ExprEditor() {
-          @throws[CannotCompileException]
-          override def edit(m: MethodCall): Unit = {
-            val tuple = (m.getClassName, m.getMethodName, m.getSignature)
-            if (ReflectUtils.isObpClass(m.getClassName)) {
-              methods += tuple
-            }
-          }
-        })
+        // List:: className->methodName->signature
+        val methods = getDependentMethods(className, methodName, signature)
 
-        val list = methods.distinct.toList.filterNot(exclude.contains)
+        val list = methods.distinct.filter(it => ReflectUtils.isObpClass(it._1)).filterNot(exclude.contains)
         list.collect {
           case x@(clazzName, _, _) if clazzName == connectorTypeName => x :: Nil
           case (clazzName, mName, mSignature) =>
@@ -3768,7 +3775,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val endpointClassName = endpoint.getClass.getName
     // list of connector method name
     val connectorMethods: Array[String] = for {
-      method <- cp.get(endpoint.getClass.getName).getDeclaredMethods
+      method <- cp.get(endpointClassName).getDeclaredMethods
       (clazzName, methodName, _) <- getObpTrace(endpointClassName, method.getName, method.getSignature)
       if clazzName == connectorTypeName && !methodName.contains("$default$")
     } yield methodName

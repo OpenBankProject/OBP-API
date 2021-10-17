@@ -37,7 +37,7 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup {
   private val toResourceDoc: JsonDynamicResourceDoc => ResourceDoc = { dynamicDoc =>
     val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody)
     ResourceDoc(
-      partialFunction = compiledObjects.partialFunction, //connectorMethodBody
+      partialFunction = compiledObjects.sandboxEndpoint(None), //connectorMethodBody, TODO add bankId
       implementedInApiVersion = apiVersion,
       partialFunctionName = dynamicDoc.partialFunctionName + "_" + (dynamicDoc.requestVerb + dynamicDoc.requestUrl).hashCode,
       requestVerb = dynamicDoc.requestVerb,

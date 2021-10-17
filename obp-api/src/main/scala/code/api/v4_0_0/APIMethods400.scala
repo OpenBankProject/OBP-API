@@ -8826,6 +8826,7 @@ trait APIMethods400 {
             }
             _ = try {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+                .validateDependency()
             } catch {
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
@@ -8890,6 +8891,7 @@ trait APIMethods400 {
 
             _ = try {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+                .validateDependency()
             } catch {
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)

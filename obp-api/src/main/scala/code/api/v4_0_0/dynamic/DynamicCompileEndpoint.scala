@@ -1,7 +1,7 @@
 package code.api.v4_0_0.dynamic
 
 import code.api.util.APIUtil.{OBPEndpoint, OBPReturnType, futureToBoxedResponse, scalaFutureToLaFuture}
-import code.api.util.{CallContext, CustomJsonFormats}
+import code.api.util.{CallContext, CustomJsonFormats, DynamicUtil}
 import net.liftweb.common.Box
 import net.liftweb.http.{JsonResponse, Req}
 
@@ -12,19 +12,34 @@ import net.liftweb.http.{JsonResponse, Req}
 trait DynamicCompileEndpoint {
   implicit val formats = CustomJsonFormats.formats
 
-  protected def process(callContext: CallContext, request: Req): Box[JsonResponse]
+  // * is any bankId
+  val boundBankId: String
+
+  protected def process(callContext: CallContext, request: Req, pathParams: Map[String, String]): Box[JsonResponse]
 
   val endpoint: OBPEndpoint = new OBPEndpoint {
     override def isDefinedAt(x: Req): Boolean = true
 
-    override def apply(request: Req): CallContext => Box[JsonResponse] = process(_, request)
+    override def apply(request: Req): CallContext => Box[JsonResponse] = { cc =>
+      val Some(pathParams) = cc.resourceDocument.map(_.getPathParams(request.path.partPath))
+
+      validateDependencies()
+
+      CompiledObjects.sandbox(boundBankId).runInSandbox {
+        process(cc, request, pathParams)
+      }
+
+    }
   }
 
-  protected implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
-    futureToBoxedResponse(scalaFutureToLaFuture(scf))
+  private def validateDependencies() = {
+    val dependencies = DynamicUtil.getDynamicCodeDependentMethods(this.getClass, "process" == )
+    CompiledObjects.validateDependency(dependencies)
   }
-  protected def getPathParams(callContext: CallContext, request: Req): Map[String, String] = {
-    val Some(resourceDoc) = callContext.resourceDocument
-    resourceDoc.getPathParams(request.path.partPath)
+}
+
+object DynamicCompileEndpoint {
+   implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
+    futureToBoxedResponse(scalaFutureToLaFuture(scf))
   }
 }

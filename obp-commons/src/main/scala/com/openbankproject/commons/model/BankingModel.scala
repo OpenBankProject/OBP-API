@@ -27,9 +27,8 @@ TESOBE (http://www.tesobe.com/)
 package com.openbankproject.commons.model
 
 import java.util.Date
-
 import com.openbankproject.commons.util.{OBPRequired, optional}
-
+import javax.security.auth.AuthPermission
 import scala.collection.immutable.List
 import scala.math.BigDecimal
 
@@ -138,11 +137,25 @@ object AccountId {
 }
 
 case class BankId(value : String) {
+  BankId.checkPermission(value)
+
   override def toString = value
 }
 
 object BankId {
   def unapply(id : String) = Some(BankId(id))
+
+  def checkPermission(bankId: String): Unit = {
+    val sm = System.getSecurityManager
+    // use FilePermission to control bankId value, it is a hack way.
+    if (sm != null) {
+      val securityContext = sm.getSecurityContext
+      sm.checkPermission(permission(bankId), securityContext)
+    }
+  }
+  def checkPermission(bankId: Option[String]): Unit = bankId.foreach(checkPermission)
+
+  def permission(bankId: String) = new AuthPermission(s"operateBank.$bankId")
 }
 
 case class AccountRoutingAddress(val value: String) {

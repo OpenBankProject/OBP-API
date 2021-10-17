@@ -1,16 +1,30 @@
 package code.api.util
+import code.api.JsonResponseException
+import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.JsonUtils
+import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.json.{JObject, JValue, prettyRender}
+import net.liftweb.http.JsonResponse
+import net.liftweb.json.{JValue, prettyRender}
 
+import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, PrivilegedActionException, PrivilegedExceptionAction, ProtectionDomain}
 import java.util.concurrent.ConcurrentHashMap
+import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
+import scala.runtime.NonLocalReturnControl
 import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 object DynamicUtil {
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
+  private val memoClassPool = new Memo[ClassLoader, ClassPool]
+
+  private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
+    val cp = ClassPool.getDefault
+    cp.appendClassPath(new LoaderClassPath(classLoader))
+    cp
+  }
 
   // code -> dynamic method function
   // the same code should always be compiled once, so here cache them
@@ -112,6 +126,81 @@ object DynamicUtil {
       case Failure(msg: String, exception: Box[Throwable], _) =>
         throw exception.getOrElse(new RuntimeException(msg))
       case _ => throw new RuntimeException(s"Json extract to case object fail, json: \n ${prettyRender(jValue)}")
+    }
+  }
+
+  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = {
+    val className = clazz.getTypeName
+    val listBuffer = new ListBuffer[(String, String, String)]()
+    for {
+      method <- getClassPool(clazz.getClassLoader).get(className).getDeclaredMethods.toList
+      if predicate(method.getName)
+      ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature)
+    } yield {
+      // if method is also dynamic compile code, extract it's dependent method
+      if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackageName + "$")) {
+        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature))
+      } else {
+        listBuffer.append(ternary)
+      }
+    }
+
+    listBuffer.distinct.toList
+  }
+
+  trait Sandbox {
+    @throws[Exception]
+    def runInSandbox[R](action: => R): R
+  }
+
+  object Sandbox {
+    // initialize SecurityManager if not initialized
+    if (System.getSecurityManager == null) {
+      Policy.setPolicy(new Policy() {
+        override def getPermissions(codeSource: CodeSource): PermissionCollection = {
+          for (element <- Thread.currentThread.getStackTrace) {
+            if ("sun.rmi.server.LoaderHandler" == element.getClassName && "loadClass" == element.getMethodName)
+              return new Permissions
+          }
+          super.getPermissions(codeSource)
+        }
+
+        override def implies(domain: ProtectionDomain, permission: Permission) = true
+      })
+      System.setSecurityManager(new SecurityManager)
+    }
+
+    def createSandbox(permissionList: List[Permission]): Sandbox = {
+      val accessControlContext: AccessControlContext = {
+        val permissions = new Permissions()
+        permissionList.foreach(permissions.add)
+        val protectionDomain = new ProtectionDomain(null, permissions)
+        new AccessControlContext(Array(protectionDomain))
+      }
+
+      new Sandbox {
+        @throws[Exception]
+        def runInSandbox[R](action: => R): R = try {
+          val privilegedActionException:  PrivilegedExceptionAction[R] = () => action
+
+          AccessController.doPrivileged(privilegedActionException, accessControlContext)
+        } catch {
+          case pae: PrivilegedActionException =>
+            throw pae.getException
+
+          case  e: NonLocalReturnControl[Full[JsonResponse]] if e.value.isInstanceOf[Full[JsonResponse]] =>
+            throw JsonResponseException(e.value.orNull)
+
+          case e: NonLocalReturnControl[JsonResponse] if e.value.isInstanceOf[JsonResponse] =>
+            throw JsonResponseException(e.value)
+
+          case e if e.getClass.getName == "net.liftweb.http.rest.ContinuationException"  =>
+            throw e
+
+          case e: Throwable =>
+            throw JsonResponseException(e.getMessage, 400, "")
+        }
+      }
     }
   }
 
