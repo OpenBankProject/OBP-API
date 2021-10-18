@@ -387,6 +387,9 @@ webui_obp_cli_url = https://github.com/OpenBankProject/OBP-CLI
 # API Tester URL, change to your instance
 webui_api_tester_url = https://apitester.openbankproject.com
 
+# API Hola app URL, change to your instance
+webui_api_hola_url = #
+
 
 
 
