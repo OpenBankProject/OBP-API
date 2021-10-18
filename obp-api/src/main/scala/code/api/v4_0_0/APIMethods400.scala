@@ -3327,14 +3327,7 @@ trait APIMethods400 {
          |This endpoint allows bulk access to accounts.
          |
          |optional pagination parameters for filter with accounts
-         |${urlParametersDocument(true, false)
-        .replace(s"""
-                  |
-                  |* sort_direction=ASC/DESC ==> default value: DESC.
-                  |
-                  |eg2:?limit=100&offset=0&sort_direction=ASC
-                  |
-                  |""". stripMargin,"")}
+         |${urlParametersDocument(true, false)}
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -3355,7 +3348,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
               allowAccountFirehose
             }
-            allowedParams = List("limit", "offset")
+            allowedParams = List("limit", "offset", "sort_direction")
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             (firehoseAccounts, callContext) <- NewStyle.function.getBankAccountsWithAttributes(bankId, obpQueryParams, cc.callContext)
