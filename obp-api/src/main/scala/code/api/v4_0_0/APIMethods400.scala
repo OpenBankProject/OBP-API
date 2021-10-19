@@ -3327,21 +3327,13 @@ trait APIMethods400 {
          |This endpoint allows bulk access to accounts.
          |
          |optional pagination parameters for filter with accounts
-         |${urlParametersDocument(true, false)
-        .replace("default value: 50","default value: 1000")
-        .replace(s"""
-                  |
-                  |* sort_direction=ASC/DESC ==> default value: DESC.
-                  |
-                  |eg2:?limit=100&offset=0&sort_direction=ASC
-                  |
-                  |""". stripMargin,"")}
+         |${urlParametersDocument(true, false)}
          |
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
       EmptyBody,
-      moderatedFirehoseAccountsJsonV400,
+      fastFirehoseAccountsJsonV400,
       List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
       Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
@@ -3356,7 +3348,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
               allowAccountFirehose
             }
-            allowedParams = List("limit", "offset")
+            allowedParams = List("limit", "offset", "sort_direction")
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             (firehoseAccounts, callContext) <- NewStyle.function.getBankAccountsWithAttributes(bankId, obpQueryParams, cc.callContext)
@@ -8117,6 +8109,52 @@ trait APIMethods400 {
           }
       }
     }
+    staticResourceDocs += ResourceDoc(
+      createMyApiCollectionEndpointById,
+      implementedInApiVersion,
+      nameOf(createMyApiCollectionEndpointById),
+      "POST",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
+      "Create My Api Collection Endpoint By Id",
+      s"""Create Api Collection Endpoint By Id.
+         |
+         |${Glossary.getGlossaryItem("API Collections")}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      postApiCollectionEndpointJson400,
+      apiCollectionEndpointJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val createMyApiCollectionEndpointById: OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectioId :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
+              json.extract[PostApiCollectionEndpointJson400]
+            }
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectioId, Some(cc))
+            apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectioId) ", cc=callContext) {
+              apiCollectionEndpoint.isEmpty
+            }
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
+              apiCollection.apiCollectionId,
+              postJson.operation_id,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint), HttpCode.`201`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       getMyApiCollectionEndpoint,
@@ -8217,6 +8255,39 @@ trait APIMethods400 {
             (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
           }
       }
+    } 
+    
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollectionEndpointsById,
+      implementedInApiVersion,
+      nameOf(getMyApiCollectionEndpointsById),
+      "GET",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
+      "Get My Api Collection Endpoints By Id",
+      s"""Get Api Collection Endpoints By API_COLLECTION_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionEndpointsJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getMyApiCollectionEndpointsById: OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints":: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollection.apiCollectionId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
+          }
+      }
     }
     
     staticResourceDocs += ResourceDoc(
@@ -8249,6 +8320,43 @@ trait APIMethods400 {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteMyApiCollectionEndpointById,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollectionEndpointById),
+      "DELETE",
+      "/my/api-collections-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
+      "Delete My Api Collection Endpoint By Id",
+      s"""${Glossary.getGlossaryItem("API Collections")}
+         |
+         |Delete Api Collection Endpoint By Id
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollectionEndpointById : OBPEndpoint = {
+      case "my" :: "api-collections-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
             (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
             (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
           } yield {

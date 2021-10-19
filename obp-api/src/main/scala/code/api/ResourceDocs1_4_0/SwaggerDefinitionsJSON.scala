@@ -15,7 +15,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, _}
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, FastFirehoseAccountsJsonV400, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -3164,12 +3164,12 @@ object SwaggerDefinitionsJSON {
   )
   
   val moderatedCoreAccountJsonV300 = ModeratedCoreAccountJsonV300(
-    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
-    bank_id= "String",
-    label= "String",
-    number= "String",
+    id = accountIdExample.value,
+    bank_id = bankIdExample.value,
+    label= labelExample.value,
+    number= numberExample.value,
     owners =  List(userJSONV121),
-    `type`= "String",
+    `type`= typeExample.value,
     balance = amountOfMoneyJsonV121,
     account_routings = List(accountRoutingJsonV121),
     account_rules = List(accountRuleJsonV300)
@@ -3178,10 +3178,10 @@ object SwaggerDefinitionsJSON {
   val moderatedCoreAccountsJsonV300 = ModeratedCoreAccountsJsonV300(List(moderatedCoreAccountJsonV300))
 
   val moderatedFirehoseAccountJsonV400 = ModeratedFirehoseAccountJsonV400(
-    id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
-    bank_id= "String",
-    label= "String",
-    number= "String",
+    id = accountIdExample.value,
+    bank_id = bankIdExample.value,
+    label= labelExample.value,
+    number= numberExample.value,
     owners =  List(userJSONV121),
     product_code = productCodeExample.value,
     balance = amountOfMoneyJsonV121,
@@ -3191,6 +3191,23 @@ object SwaggerDefinitionsJSON {
 
   val moderatedFirehoseAccountsJsonV400 = ModeratedFirehoseAccountsJsonV400(List(moderatedFirehoseAccountJsonV400))
 
+  val fastFirehoseAccountJsonV400 = FastFirehoseAccountJsonV400(
+    id = accountIdExample.value,
+    bank_id = bankIdExample.value,
+    label = labelExample.value,
+    number = numberExample.value,
+    owners = "user_id:b27327a2-a822-41e5-a909-0150da688939,provider:https://finx22openplatform.fintech-galaxy.com,user_name:synth_user_1_54891",
+    product_code = productCodeExample.value,
+    balance = amountOfMoneyJsonV121,
+    account_routings = "bank_id:bisb.com,account_id:c590e38e-847c-466f-9a62-f2ad67daf106",
+    account_attributes= "type:INTEGER,code:Loan1,value:0," +
+      "type:STRING,code:Loan1,value:4421.783" 
+      
+  )
+
+  val fastFirehoseAccountsJsonV400  = FastFirehoseAccountsJsonV400(
+    List(fastFirehoseAccountJsonV400)
+  )
   val aggregateMetricsJSONV300 = AggregateMetricJSON(
     count = 7076,
     average_response_time = 65.21,
