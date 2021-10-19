@@ -843,9 +843,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       val firehoseAccounts = {
         scalikeDB readOnly { implicit session =>
         val sqlResult = sql"""
-            select * from v_fast_firehose_accounts
-               WHERE v_fast_firehose_accounts.bank_id = ${bankId.value}
-               ORDER BY v_fast_firehose_accounts.account_id $ordering
+            select * from mv_fast_firehose_accounts
+               WHERE mv_fast_firehose_accounts.bank_id = ${bankId.value}
+               ORDER BY mv_fast_firehose_accounts.account_id $ordering
                LIMIT $limit
                OFFSET $offset
                """.stripMargin
