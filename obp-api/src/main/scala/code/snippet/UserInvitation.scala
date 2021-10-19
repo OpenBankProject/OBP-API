@@ -64,7 +64,7 @@ class UserInvitation extends MdcLoggable {
   val privacyConditionsValue: String = getWebUiPropsValue("webui_privacy_policy", "")
   val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
   val termsAndConditionsCheckboxValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_checkbox_value", "I agree to the above Developer Terms and Conditions")
-  val consentExclusionList = getWebUiPropsValue("consent_to_collecting_personal_data_list", "").split(",").toList.map(_.trim)
+  val personalDataCollectionConsentCountryWaiverList = getWebUiPropsValue("personal_data_collection_consent_country_waiver_list", "").split(",").toList.map(_.trim)
   
   def registerForm: CssSel = {
 
@@ -80,7 +80,7 @@ class UserInvitation extends MdcLoggable {
     countryVar.set(userInvitation.map(_.country).getOrElse("None"))
     // Propose the username only for the first time. In case an end user manually change it we must not override it.
     if(usernameVar.isEmpty) usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
-    if(consentExclusionList.exists(_.toLowerCase == countryVar.is.toLowerCase) == true) {
+    if(personalDataCollectionConsentCountryWaiverList.exists(_.toLowerCase == countryVar.is.toLowerCase) == true) {
       consentForCollectingMandatoryCheckboxVar.set(false)
     } else {
       consentForCollectingMandatoryCheckboxVar.set(true)
@@ -100,7 +100,7 @@ class UserInvitation extends MdcLoggable {
       else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
-      else if(consentExclusionList.exists(_.toLowerCase == countryVar.is.toLowerCase) == false && consentForCollectingCheckboxVar.is == false) showErrorsForConsentForCollectingPersonalData()
+      else if(personalDataCollectionConsentCountryWaiverList.exists(_.toLowerCase == countryVar.is.toLowerCase) == false && consentForCollectingCheckboxVar.is == false) showErrorsForConsentForCollectingPersonalData()
       else {
         // Resource User table
         createResourceUser(
