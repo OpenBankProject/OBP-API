@@ -91,6 +91,11 @@ Berlin 13359, Germany
                             <input onclick="disableBtn()" type="checkbox" class="form-check-input" id="marketing_info_checkbox">
                             <label class="marketing-info-label" for="marketing_info_checkbox">I would like to receive developer related emails from the bank</label>
                         </div>
+                        <div class="form-group" id="consent-for-collecting-personal-data-div" onclick="enableDisableUserInvitationButton()">
+                            <input hidden type="checkbox" class="form-check-input" id="consent_for_collecting_mandatory">
+                            <input type="checkbox" class="form-check-input" id="consent_for_collecting_checkbox">
+                            <label class="consent-for-collecting-personal-data" for="consent_for_collecting_checkbox">I consent to the collecting personal data</label>
+                        </div>
                     </div>
                 </div>
                 
@@ -103,11 +108,16 @@ Berlin 13359, Germany
                 function enableDisableUserInvitationButton() {
                   var checkBox = document.getElementById("terms-and-conditions-div").querySelector("input[type=checkbox]");
                   var checkBox2 = document.getElementById("privacy-conditions-div").querySelector("input[type=checkbox]");
+                  var consentForCollectingCheckbox = document.getElementById("consent-for-collecting-personal-data-div").querySelector("input[id=consent_for_collecting_checkbox]");
+                  var consentForCollectingMandatory = document.getElementById("consent-for-collecting-personal-data-div").querySelector("input[id=consent_for_collecting_mandatory]");
                   var button = document.getElementById("submit-button");
                   if (checkBox.checked == true && checkBox2.checked == true){
                     button.disabled = false;
                   } else {
                      button.disabled = true;
+                  }
+                  if (consentForCollectingCheckbox.checked == false && consentForCollectingMandatory.checked == true){
+                    button.disabled = true;
                   }
                 }
                 </script>

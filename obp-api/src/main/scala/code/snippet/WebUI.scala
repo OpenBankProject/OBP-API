@@ -193,6 +193,10 @@ class WebUI extends MdcLoggable{
   def apiTesterLink: CssSel = {
     ".api-tester-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_tester_url", ""))
   }
+  // Link to Hola app
+  def apiHolaLink: CssSel = {
+    ".api-hola-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_hola_url", "#"))
+  }
 
   // Link to API
   def apiLink: CssSel = {

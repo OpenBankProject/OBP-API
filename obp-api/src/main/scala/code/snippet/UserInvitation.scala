@@ -54,6 +54,8 @@ class UserInvitation extends MdcLoggable {
   private object usernameVar extends RequestVar("")
   private object termsCheckboxVar extends RequestVar(false)
   private object marketingInfoCheckboxVar extends RequestVar(false)
+  private object consentForCollectingCheckboxVar extends RequestVar(false)
+  private object consentForCollectingMandatoryCheckboxVar extends RequestVar(true)
   private object privacyCheckboxVar extends RequestVar(false)
   
   val ttl = APIUtil.getPropsAsLongValue("user_invitation.ttl.seconds", 86400)
@@ -62,6 +64,7 @@ class UserInvitation extends MdcLoggable {
   val privacyConditionsValue: String = getWebUiPropsValue("webui_privacy_policy", "")
   val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
   val termsAndConditionsCheckboxValue: String = getWebUiPropsValue("webui_post_user_invitation_terms_and_conditions_checkbox_value", "I agree to the above Developer Terms and Conditions")
+  val personalDataCollectionConsentCountryWaiverList = getWebUiPropsValue("personal_data_collection_consent_country_waiver_list", "").split(",").toList.map(_.trim)
   
   def registerForm: CssSel = {
 
@@ -77,7 +80,12 @@ class UserInvitation extends MdcLoggable {
     countryVar.set(userInvitation.map(_.country).getOrElse("None"))
     // Propose the username only for the first time. In case an end user manually change it we must not override it.
     if(usernameVar.isEmpty) usernameVar.set(firstNameVar.is.toLowerCase + "." + lastNameVar.is.toLowerCase())
-
+    if(personalDataCollectionConsentCountryWaiverList.exists(_.toLowerCase == countryVar.is.toLowerCase) == true) {
+      consentForCollectingMandatoryCheckboxVar.set(false)
+    } else {
+      consentForCollectingMandatoryCheckboxVar.set(true)
+    }
+    
     def submitButtonDefense(): Unit = {
       val verifyingTime = ZonedDateTime.now(ZoneOffset.UTC)
       val createdAt = userInvitation.map(_.createdAt.get).getOrElse(time(239932800))
@@ -92,6 +100,7 @@ class UserInvitation extends MdcLoggable {
       else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
+      else if(personalDataCollectionConsentCountryWaiverList.exists(_.toLowerCase == countryVar.is.toLowerCase) == false && consentForCollectingCheckboxVar.is == false) showErrorsForConsentForCollectingPersonalData()
       else {
         // Resource User table
         createResourceUser(
@@ -116,6 +125,8 @@ class UserInvitation extends MdcLoggable {
                 u.userId, "terms_and_conditions", termsAndConditionsValue)
               UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
                 u.userId, "accept_marketing_info", marketingInfoCheckboxVar.is.toString)
+              UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+                u.userId, "consent_for_collecting_personal_data", consentForCollectingCheckboxVar.is.toString)
               // Set the status of the user invitation to "FINISHED"
               UserInvitationProvider.userInvitationProvider.vend.updateStatusOfUserInvitation(userInvitation.map(_.userInvitationId).getOrElse(""), "FINISHED")
               // Set a new password
@@ -156,6 +167,9 @@ class UserInvitation extends MdcLoggable {
     def showErrorsForPrivacyConditions() = {
       showError(Helper.i18n("privacy.conditions.are.not.selected"))
     }
+    def showErrorsForConsentForCollectingPersonalData() = {
+      showError(Helper.i18n("consent.to.collect.personal.data.is.not.selected"))
+    }
 
     def register = {
       "form" #> {
@@ -168,6 +182,8 @@ class UserInvitation extends MdcLoggable {
           "#privacy_checkbox" #> SHtml.checkbox(privacyCheckboxVar, privacyCheckboxVar(_)) &
           "#terms_checkbox" #> SHtml.checkbox(termsCheckboxVar, termsCheckboxVar(_)) &
           "#marketing_info_checkbox" #> SHtml.checkbox(marketingInfoCheckboxVar, marketingInfoCheckboxVar(_)) &
+          "#consent_for_collecting_checkbox" #> SHtml.checkbox(consentForCollectingCheckboxVar, consentForCollectingCheckboxVar(_), "id" -> "consent_for_collecting_checkbox") &
+          "#consent_for_collecting_mandatory" #> SHtml.checkbox(consentForCollectingMandatoryCheckboxVar, consentForCollectingMandatoryCheckboxVar(_), "id" -> "consent_for_collecting_mandatory", "hidden" -> "true") &
           "type=submit" #> SHtml.submit(s"$registrationConsumerButtonValue", () => submitButtonDefense)
       } &
       "#data-area-success" #> ""

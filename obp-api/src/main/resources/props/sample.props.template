@@ -387,6 +387,9 @@ webui_obp_cli_url = https://github.com/OpenBankProject/OBP-CLI
 # API Tester URL, change to your instance
 webui_api_tester_url = https://apitester.openbankproject.com
 
+# API Hola app URL, change to your instance
+webui_api_hola_url = #
+
 
 
 
@@ -1080,3 +1083,5 @@ webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\
                                                   </body>\
                                                   </html>
                                                   
+# List of countries where consent is not required for the collection of personal data
+personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgaria, Croatia, Republic of Cyprus, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania, Luxembourg, Malta, Netherlands, Poland, Portugal, Romania, Slovakia, Slovenia, Spain, Sweden, England, Scotland, Wales, Northern Ireland
