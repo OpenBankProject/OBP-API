@@ -628,6 +628,15 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## registered on OBP localy.
 # openid_connect.enabled=true
 # openid_connect.show_tokens=false
+# Response mode
+# possible values: query, fragment, form_post, query.jwt, fragment.jwt, form_post.jwt, jwt
+# openid_connect.response_mode=form_post
+# Response type
+# possible values: "code", "id_token", "code id_token"
+# openid_connect.response_type=code
+# Scope
+# possible values: "openid email profile", "openid email", "openid"
+# openid_connect.scope=openid email profile
 # First identity provider
 # openid_connect_1.button_text = Google
 # openid_connect_1.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
@@ -642,7 +651,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # openid_connect_2.button_text = name of 2nd provider
 # openid_connect_2.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
 # openid_connect_2.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect_2.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
+# openid_connect_2.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback-2
 # openid_connect_2.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
 # openid_connect_2.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
 # openid_connect_2.endpoint.token=https://oauth2.googleapis.com/token
