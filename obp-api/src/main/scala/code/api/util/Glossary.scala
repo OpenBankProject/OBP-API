@@ -2188,7 +2188,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Dynamic Entity",
+		title = "Dynamic Entity Manage",
 		description =
 			s"""
 |
@@ -2239,7 +2239,7 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
-		title = "Dynamic Endpoint",
+		title = "Dynamic Endpoint Manage",
 		description =
 			s"""
 |
