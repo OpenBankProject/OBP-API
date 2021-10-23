@@ -1079,4 +1079,6 @@ webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\
                                                   </p>\
                                                   </body>\
                                                   </html>
-                                                  
+
+# enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
+dynamic_code_sandbox_enable=false

@@ -1,5 +1,6 @@
 package code.api.util
 import code.api.JsonResponseException
+import code.api.util.ErrorMessages.DynamicResourceDocMethodPermission
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.JsonUtils
 import javassist.{ClassPool, LoaderClassPath}
@@ -7,7 +8,7 @@ import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.JsonResponse
 import net.liftweb.json.{JValue, prettyRender}
 
-import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, PrivilegedActionException, PrivilegedExceptionAction, ProtectionDomain}
+import java.security.{AccessControlContext, AccessControlException, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe
@@ -181,24 +182,19 @@ object DynamicUtil {
       new Sandbox {
         @throws[Exception]
         def runInSandbox[R](action: => R): R = try {
-          val privilegedActionException:  PrivilegedExceptionAction[R] = () => action
+          val privilegedAction:  PrivilegedAction[R] = () => action
 
-          AccessController.doPrivileged(privilegedActionException, accessControlContext)
+          AccessController.doPrivileged(privilegedAction, accessControlContext)
         } catch {
-          case pae: PrivilegedActionException =>
-            throw pae.getException
-
           case  e: NonLocalReturnControl[Full[JsonResponse]] if e.value.isInstanceOf[Full[JsonResponse]] =>
             throw JsonResponseException(e.value.orNull)
 
           case e: NonLocalReturnControl[JsonResponse] if e.value.isInstanceOf[JsonResponse] =>
             throw JsonResponseException(e.value)
 
-          case e if e.getClass.getName == "net.liftweb.http.rest.ContinuationException"  =>
-            throw e
-
           case e: Throwable =>
-            throw JsonResponseException(e.getMessage, 400, "")
+            e.printStackTrace()
+            throw e
         }
       }
     }

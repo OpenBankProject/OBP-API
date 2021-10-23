@@ -1,7 +1,5 @@
 package code.api.v4_0_0.dynamic.practise
 
-
-
 // any import statement here need be moved into the process method body
 
 /**

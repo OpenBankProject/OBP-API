@@ -278,6 +278,13 @@ object CompiledObjects {
 
   ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
 
+  val restrictedTypes = Set(
+    "scala.reflect.runtime.",
+    "java.lang.reflect.",
+    "scala.concurrent.ExecutionContext"
+  )
+
+  def isRestrictedType(typeName: String) = ReflectUtils.isObpClass(typeName) || restrictedTypes.exists(typeName.startsWith)
 
   def sandbox(bankId: String): Sandbox = memoSandbox.memoize(bankId){
     Sandbox.createSandbox(BankId.permission(bankId) :: permissions)
@@ -289,7 +296,7 @@ object CompiledObjects {
   def validateDependency(dependentMethods: List[(String, String, String)]) = {
     val notAllowedDependentMethods = dependentMethods collect {
       case (typeName, method, _)
-        if (ReflectUtils.isObpClass(typeName) || typeName.startsWith("scala.reflect.runtime.") || typeName.startsWith("java.lang.reflect.")) &&
+        if isRestrictedType(typeName) &&
            !allowedMethods.get(typeName).exists(set => set.contains(method) || set.contains("*")) &&
            !allowedMethods.exists { it =>
              val (tpName, allowedMethods) = it

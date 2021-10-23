@@ -195,7 +195,7 @@ object NewStyle {
     private def validateBankId(bankId: String, callContext: Option[CallContext]): Unit = try {
       BankId.checkPermission(bankId)
     } catch {
-      case e: AccessControlException =>
+      case _: AccessControlException =>
         val correlationId = callContext.map(_.correlationId).getOrElse("none")
         throw JsonResponseException(s"$DynamicResourceDocMethodPermission No permission of operate bank $bankId", 400, correlationId)
     }
@@ -381,9 +381,8 @@ object NewStyle {
                            bankRoutingScheme: String,
                            bankRoutingAddress: String,
                            callContext: Option[CallContext]): OBPReturnType[Bank] = {
+      validateBankId(bankId, callContext)
       Future {
-        validateBankId(bankId, callContext)
-
         Connector.connector.vend.createOrUpdateBank(
           bankId,
           fullBankName,
@@ -2612,20 +2611,22 @@ object NewStyle {
       }
     }
 
-    def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
+    def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = {
       validateBankId(bankId, callContext)
-
-      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+      Future {
+        (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
-    def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = Future {
+    def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = {
       validateBankId(bankId, callContext)
-
-      (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+      Future {
+        (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
     def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
@@ -2713,22 +2714,23 @@ object NewStyle {
      * @param dynamicEntityId
      * @return
      */
-    def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = Future {
+    def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = {
       validateBankId(bankId, None)
-
-      for {
-        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
-        deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
-        deleteEntitleMentResult <- if(deleteEntityResult) {
-          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
-        } else {
-          Box !! false
+      Future {
+        for {
+          entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
+          deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
+          deleteEntitleMentResult <- if (deleteEntityResult) {
+            Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
+          } else {
+            Box !! false
+          }
+        } yield {
+          if (deleteEntitleMentResult) {
+            DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
+          }
+          deleteEntitleMentResult
         }
-      } yield {
-        if(deleteEntitleMentResult) {
-          DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
-        }
-        deleteEntitleMentResult
       }
     }
 
@@ -2742,11 +2744,12 @@ object NewStyle {
       }
     }
 
-    def getDynamicEntityByEntityName(bankId: Option[String], entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
+    def getDynamicEntityByEntityName(bankId: Option[String], entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = {
       validateBankId(bankId, callContext)
-
-      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
-      (boxedDynamicEntity, callContext)
+      Future {
+        val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+        (boxedDynamicEntity, callContext)
+      }
     }
 
     private[this] val dynamicEntityTTL = {
@@ -2973,20 +2976,22 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.callableMethods.get(methodName))
     }
 
-    def createDynamicEndpoint(bankId:Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+    def createDynamicEndpoint(bankId:Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       validateBankId(bankId, callContext)
-
-      (DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId:Option[String], userId, swaggerString), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+      Future {
+        (DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId: Option[String], userId, swaggerString), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
-    def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
+    def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       validateBankId(bankId, callContext)
-
-      (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+      Future {
+        (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
     def getDynamicEndpoint(bankId: Option[String], dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
@@ -3004,10 +3009,11 @@ object NewStyle {
       }
     }
 
-    def getDynamicEndpoints(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
+    def getDynamicEndpoints(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = {
       validateBankId(bankId, callContext)
-
-      (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(bankId), callContext)
+      Future {
+        (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(bankId), callContext)
+      }
     }
 
     def getDynamicEndpointsByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {

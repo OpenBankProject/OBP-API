@@ -33,7 +33,6 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -98,6 +97,7 @@ import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 
+import java.security.AccessControlException
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
@@ -2467,7 +2467,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => laf.abort
     }
     scf.onFailure {
-      case e: Throwable => laf.fail(Failure(e.getMessage(), Full(e), Empty))
+      case e: AccessControlException =>
+        laf.fail(Failure(s"$DynamicResourceDocMethodPermission No permission of: ${e.getPermission.getName}", Full(e), Empty))
+
+      case e: Throwable =>
+        laf.fail(Failure(e.getMessage(), Full(e), Empty))
     }
     laf
   }

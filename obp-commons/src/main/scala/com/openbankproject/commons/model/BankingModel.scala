@@ -28,6 +28,8 @@ package com.openbankproject.commons.model
 
 import java.util.Date
 import com.openbankproject.commons.util.{OBPRequired, optional}
+
+import java.security.AccessControlContext
 import javax.security.auth.AuthPermission
 import scala.collection.immutable.List
 import scala.math.BigDecimal
@@ -149,7 +151,7 @@ object BankId {
     val sm = System.getSecurityManager
     // use FilePermission to control bankId value, it is a hack way.
     if (sm != null) {
-      val securityContext = sm.getSecurityContext
+      val securityContext = sm.getSecurityContext.asInstanceOf[AccessControlContext]
       sm.checkPermission(permission(bankId), securityContext)
     }
   }
