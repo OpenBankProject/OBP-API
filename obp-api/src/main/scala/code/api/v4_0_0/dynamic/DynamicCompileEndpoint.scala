@@ -1,6 +1,7 @@
 package code.api.v4_0_0.dynamic
 
 import code.api.util.APIUtil.{OBPEndpoint, OBPReturnType, futureToBoxedResponse, scalaFutureToLaFuture}
+import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.{CallContext, CustomJsonFormats, DynamicUtil}
 import net.liftweb.common.Box
 import net.liftweb.http.{JsonResponse, Req}
@@ -25,7 +26,7 @@ trait DynamicCompileEndpoint {
 
       validateDependencies()
 
-      CompiledObjects.sandbox(boundBankId).runInSandbox {
+      Sandbox.sandbox(boundBankId).runInSandbox {
         process(cc, request, pathParams)
       }
 
@@ -34,7 +35,7 @@ trait DynamicCompileEndpoint {
 
   private def validateDependencies() = {
     val dependencies = DynamicUtil.getDynamicCodeDependentMethods(this.getClass, "process" == )
-    CompiledObjects.validateDependency(dependencies)
+    Validation.validateDependency(dependencies)
   }
 }
 

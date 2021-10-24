@@ -3758,6 +3758,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     pool.appendClassPath(new LoaderClassPath(Thread.currentThread.getContextClassLoader))
     pool
   }
+  private val memoClassPool = new Memo[ClassLoader, ClassPool]
+
+  private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
+    val cp = ClassPool.getDefault
+    cp.appendClassPath(new LoaderClassPath(classLoader))
+    cp
+  }
 
   /**
    * according class name, method name and method's signature to get all dependent methods
@@ -3780,8 +3787,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @param endpoint can be OBPEndpoint or other PartialFunction
    * @return a list of connector method name
    */
-  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]) = {
+  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = {
     val connectorTypeName = classOf[Connector].getName
+    val endpointClassName = endpoint.getClass.getName
+    // not analyze dynamic code
+//    if(endpointClassName.startsWith("__wrapper$")) {
+//      return Nil
+//    }
+    val classPool = this.getClassPool(endpoint.getClass.getClassLoader)
 
     def getObpTrace(className: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
       memo.memoize((className, methodName, signature)) {
@@ -3791,15 +3804,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val list = methods.distinct.filter(it => ReflectUtils.isObpClass(it._1)).filterNot(exclude.contains)
         list.collect {
           case x@(clazzName, _, _) if clazzName == connectorTypeName => x :: Nil
-          case (clazzName, mName, mSignature) =>
+          case (clazzName, mName, mSignature) if !clazzName.startsWith("__wrapper$") =>
             getObpTrace(clazzName, mName, mSignature, list ::: exclude)
         }.flatten.distinct
       }
 
-    val endpointClassName = endpoint.getClass.getName
+
     // list of connector method name
     val connectorMethods: Array[String] = for {
-      method <- cp.get(endpointClassName).getDeclaredMethods
+      method <- classPool.get(endpointClassName).getDeclaredMethods
       (clazzName, methodName, _) <- getObpTrace(endpointClassName, method.getName, method.getSignature)
       if clazzName == connectorTypeName && !methodName.contains("$default$")
     } yield methodName

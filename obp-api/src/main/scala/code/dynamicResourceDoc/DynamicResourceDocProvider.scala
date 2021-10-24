@@ -20,6 +20,7 @@ object DynamicResourceDocProvider extends SimpleInjector {
 }
 
 case class JsonDynamicResourceDoc(
+   bankId: Option[String],
    dynamicResourceDocId: Option[String],
    methodBody: String,
    partialFunctionName: String,

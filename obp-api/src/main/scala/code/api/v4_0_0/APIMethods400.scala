@@ -7,6 +7,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
+import code.api.util.DynamicUtil.Validation
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.NewStyle.HttpCode
@@ -78,9 +79,9 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailB
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
+
 import java.net.URLEncoder
 import java.util.{Calendar, Date}
-
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -9269,6 +9270,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
+            _ =  Validation.validateDependency(connectorMethod.orNull)
             (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(None, dynamicMessageDoc, callContext)
           } yield {
             (dynamicMessageDoc, HttpCode.`201`(callContext))
@@ -9312,6 +9314,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
+            _ =  Validation.validateDependency(connectorMethod.orNull)
             (dynamicMessageDoc, callContext) <- NewStyle.function.createJsonDynamicMessageDoc(Some(bankId), dynamicMessageDoc, callContext)
           } yield {
             (dynamicMessageDoc, HttpCode.`201`(callContext))
@@ -9351,6 +9354,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=cc.callContext) {
               connectorMethod.isDefined
             }
+            _ =  Validation.validateDependency(connectorMethod.orNull)
             (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(None, dynamicMessageDocId, cc.callContext)
             (dynamicMessageDoc, callContext) <- NewStyle.function.updateJsonDynamicMessageDoc(None, dynamicMessageDocBody.copy(dynamicMessageDocId=Some(dynamicMessageDocId)), callContext)
           } yield {
@@ -9485,6 +9489,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=cc.callContext) {
               connectorMethod.isDefined
             }
+            _ =  Validation.validateDependency(connectorMethod.orNull)
             (_, callContext) <- NewStyle.function.getJsonDynamicMessageDocById(Some(bankId), dynamicMessageDocId, cc.callContext)
             (dynamicMessageDoc, callContext) <- NewStyle.function.updateJsonDynamicMessageDoc(Some(bankId), dynamicMessageDocBody.copy(dynamicMessageDocId=Some(dynamicMessageDocId)), callContext)
           } yield {

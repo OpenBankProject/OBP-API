@@ -4257,6 +4257,7 @@ object SwaggerDefinitionsJSON {
   val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyExample.value)
   
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
+    bankId = Some(bankIdExample.value),
     dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
     methodBody = dynamicResourceDocMethodBodyExample.value,
     partialFunctionName = dynamicResourceDocPartialFunctionNameExample.value,

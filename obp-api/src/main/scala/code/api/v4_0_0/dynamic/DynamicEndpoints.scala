@@ -1,33 +1,17 @@
 package code.api.v4_0_0.dynamic
-
-import code.api.JsonResponseException
-import code.api.util.DynamicUtil.Sandbox
-import code.api.util.{APIUtil, ErrorMessages, NewStyle}
-import code.api.util.NewStyle.HttpCode
-import code.api.v4_0_0.JSONFactory400
-import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
-import com.openbankproject.commons.ExecutionContext
-import com.openbankproject.commons.model.BankId
-import com.openbankproject.commons.util.Functions.Memo
-import com.openbankproject.commons.util.ReflectUtils
-
+import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}
 import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
-
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.{JNothing, JValue}
 import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
 import org.apache.commons.lang3.StringUtils
 
-import java.lang.reflect.ReflectPermission
-import java.net.{NetPermission, URLDecoder}
-import java.security.Permission
-import java.util.PropertyPermission
+import java.net.URLDecoder
 import scala.collection.immutable.List
 import scala.util.control.Breaks.{break, breakable}
-import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
 
 object DynamicEndpoints {
   //TODO, better put all other dynamic endpoints into this list. eg: dynamicEntityEndpoints, dynamicSwaggerDocsEndpoints ....
@@ -206,15 +190,16 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
     }
   }
 
-  def validateDependency(): Unit = {
-    val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(partialFunction.getClass)
-    CompiledObjects.validateDependency(dependentMethods);
-  }
+  def validateDependency() = Validation.validateDependency(this.partialFunction)
 
   def sandboxEndpoint(bankId: Option[String]) : OBPEndpoint = {
-    val sandbox = CompiledObjects.sandbox(bankId.getOrElse("*"))
+    val sandbox = bankId match {
+      case Some(v) if StringUtils.isNotBlank(v) =>
+         Sandbox.sandbox(v)
+      case _ => Sandbox.sandbox("*")
+    }
 
-    new OBPEndpoint{
+    new OBPEndpoint {
       override def isDefinedAt(req: Req): Boolean = partialFunction.isDefinedAt(req)
 
       // run dynamic code in sandbox
@@ -240,80 +225,4 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
      }
   }
 }
-
-object CompiledObjects {
-  private val memoSandbox = new Memo[String, Sandbox]
-  // all Permissions put at here
-  private val permissions = List[Permission](
-    new NetPermission("specifyStreamHandler"),
-    new ReflectPermission("suppressAccessChecks"),
-    new RuntimePermission("getenv.*"),
-    new PropertyPermission("cglib.useCache", "read"),
-    new PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
-    new PropertyPermission("cglib.debugLocation", "read"),
-    new RuntimePermission("accessDeclaredMembers"),
-    new RuntimePermission("getClassLoader"),
-  )
-
-  // all allowed methods put at here, typeName -> methods
-  val allowedMethods: Map[String, Set[String]] = Map(
-    // companion objects methods
-    NewStyle.function.getClass.getTypeName -> "*",
-    CompiledObjects.getClass.getTypeName -> "sandbox",
-    HttpCode.getClass.getTypeName -> "200",
-    DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",
-    APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",
-    ErrorMessages.getClass.getTypeName -> "*",
-    ExecutionContext.Implicits.getClass.getTypeName -> "global",
-    JSONFactory400.getClass.getTypeName -> "createBanksJson",
-
-    // class methods
-    classOf[Sandbox].getTypeName -> "runInSandbox",
-    classOf[CallContext].getTypeName -> "*",
-    classOf[ResourceDoc].getTypeName -> "getPathParams",
-    "scala.reflect.runtime.package$" -> "universe",
-
-    // allow any method of PractiseEndpoint for test
-    PractiseEndpoint.getClass.getTypeName + "*" -> "*",
-
-  ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
-
-  val restrictedTypes = Set(
-    "scala.reflect.runtime.",
-    "java.lang.reflect.",
-    "scala.concurrent.ExecutionContext"
-  )
-
-  def isRestrictedType(typeName: String) = ReflectUtils.isObpClass(typeName) || restrictedTypes.exists(typeName.startsWith)
-
-  def sandbox(bankId: String): Sandbox = memoSandbox.memoize(bankId){
-    Sandbox.createSandbox(BankId.permission(bankId) :: permissions)
-  }
-
-  /**
-  * validate dependencies, (className, methodName, signature)
-   */
-  def validateDependency(dependentMethods: List[(String, String, String)]) = {
-    val notAllowedDependentMethods = dependentMethods collect {
-      case (typeName, method, _)
-        if isRestrictedType(typeName) &&
-           !allowedMethods.get(typeName).exists(set => set.contains(method) || set.contains("*")) &&
-           !allowedMethods.exists { it =>
-             val (tpName, allowedMethods) = it
-             tpName.endsWith("*") &&
-               typeName.startsWith(StringUtils.substringBeforeLast(tpName, "*")) &&
-               (allowedMethods.contains(method) || allowedMethods.contains("*"))
-           }
-        =>
-        s"$typeName.$method"
-    }
-    // change to JsonResponseException
-    if(notAllowedDependentMethods.nonEmpty) {
-      val illegalDependency = notAllowedDependentMethods.mkString("[", ", ", "]")
-      throw JsonResponseException(s"$DynamicResourceDocMethodDependency $illegalDependency", 400, "none")
-    }
-  }
-
-}
-
 

@@ -1,15 +1,27 @@
 package code.api.util
 import code.api.JsonResponseException
-import code.api.util.ErrorMessages.DynamicResourceDocMethodPermission
+import code.api.util.APIUtil.ResourceDoc
+import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
+import code.api.util.NewStyle.HttpCode
+import code.api.v4_0_0.JSONFactory400
+import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicCompileEndpoint}
+import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
+import com.openbankproject.commons.ExecutionContext
+import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
-import com.openbankproject.commons.util.JsonUtils
+import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.JsonResponse
 import net.liftweb.json.{JValue, prettyRender}
+import org.apache.commons.lang3.StringUtils
 
-import java.security.{AccessControlContext, AccessControlException, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
+import java.lang.reflect.ReflectPermission
+import java.net.NetPermission
+import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
+import java.util.PropertyPermission
 import java.util.concurrent.ConcurrentHashMap
+import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
@@ -191,12 +203,13 @@ object DynamicUtil {
 
           case e: NonLocalReturnControl[JsonResponse] if e.value.isInstanceOf[JsonResponse] =>
             throw JsonResponseException(e.value)
-
-          case e: Throwable =>
-            e.printStackTrace()
-            throw e
         }
       }
+    }
+
+    private val memoSandbox = new Memo[String, Sandbox]
+    def sandbox(bankId: String): Sandbox = memoSandbox.memoize(bankId) {
+      Sandbox.createSandbox(BankId.permission(bankId) :: Validation.permissions)
     }
   }
 
@@ -249,4 +262,79 @@ object DynamicUtil {
       |import scala.concurrent.{Await, Future}
       |import com.openbankproject.commons.dto._
       |""".stripMargin
+
+
+  object Validation {
+    // all Permissions put at here
+    val permissions = List[Permission](
+      new NetPermission("specifyStreamHandler"),
+      new ReflectPermission("suppressAccessChecks"),
+      new RuntimePermission("getenv.*"),
+      new PropertyPermission("cglib.useCache", "read"),
+      new PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
+      new PropertyPermission("cglib.debugLocation", "read"),
+      new RuntimePermission("accessDeclaredMembers"),
+      new RuntimePermission("getClassLoader"),
+    )
+
+    // all allowed methods put at here, typeName -> methods
+    val allowedMethods: Map[String, Set[String]] = Map(
+      // companion objects methods
+      NewStyle.function.getClass.getTypeName -> "*",
+      CompiledObjects.getClass.getTypeName -> "sandbox",
+      HttpCode.getClass.getTypeName -> "200",
+      DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",
+      APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",
+      ErrorMessages.getClass.getTypeName -> "*",
+      ExecutionContext.Implicits.getClass.getTypeName -> "global",
+      JSONFactory400.getClass.getTypeName -> "createBanksJson",
+
+      // class methods
+      classOf[Sandbox].getTypeName -> "runInSandbox",
+      classOf[CallContext].getTypeName -> "*",
+      classOf[ResourceDoc].getTypeName -> "getPathParams",
+      "scala.reflect.runtime.package$" -> "universe",
+
+      // allow any method of PractiseEndpoint for test
+      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
+
+    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
+
+    val restrictedTypes = Set(
+      "scala.reflect.runtime.",
+      "java.lang.reflect.",
+      "scala.concurrent.ExecutionContext"
+    )
+
+    private def isRestrictedType(typeName: String) = ReflectUtils.isObpClass(typeName) || restrictedTypes.exists(typeName.startsWith)
+
+    /**
+     * validate dependencies, (className, methodName, signature)
+     */
+    private def validateDependency(dependentMethods: List[(String, String, String)]) = {
+      val notAllowedDependentMethods = dependentMethods collect {
+        case (typeName, method, _)
+          if isRestrictedType(typeName) &&
+            !allowedMethods.get(typeName).exists(set => set.contains(method) || set.contains("*")) &&
+            !allowedMethods.exists { it =>
+              val (tpName, allowedMethods) = it
+              tpName.endsWith("*") &&
+                typeName.startsWith(StringUtils.substringBeforeLast(tpName, "*")) &&
+                (allowedMethods.contains(method) || allowedMethods.contains("*"))
+            }
+        =>
+          s"$typeName.$method"
+      }
+      // change to JsonResponseException
+      if(notAllowedDependentMethods.nonEmpty) {
+        val illegalDependency = notAllowedDependentMethods.mkString("[", ", ", "]")
+        throw JsonResponseException(s"$DynamicResourceDocMethodDependency $illegalDependency", 400, "none")
+      }
+    }
+
+    def validateDependency(obj: AnyRef): Unit = {
+      val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass)
+      validateDependency(dependentMethods)
+    }
+  }
 }
