@@ -151,7 +151,7 @@ object DynamicUtil {
       ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature)
     } yield {
       // if method is also dynamic compile code, extract it's dependent method
-      if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackageName + "$")) {
+      if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
         listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature))
       } else {
         listBuffer.append(ternary)
