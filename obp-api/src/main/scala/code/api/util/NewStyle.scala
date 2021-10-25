@@ -3325,47 +3325,47 @@ object NewStyle {
         (unboxFullOrFail(connectorMethod, callContext, s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID(${connectorMethodId})", 400), callContext)
       }
 
-    def isJsonDynamicResourceDocExists(requestVerb : String, requestUrl : String,  callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonDynamicResourceDocExists(bankId: Option[String], requestVerb : String, requestUrl : String,  callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result = DynamicResourceDocProvider.provider.vend.getByVerbAndUrl(requestVerb, requestUrl)
+        val result = DynamicResourceDocProvider.provider.vend.getByVerbAndUrl(bankId, requestVerb, requestUrl)
         (result.isDefined, callContext)
       }
 
-    def createJsonDynamicResourceDoc(dynamicResourceDoc: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+    def createJsonDynamicResourceDoc(bankId: Option[String], dynamicResourceDoc: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(dynamicResourceDoc)
+        val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(bankId, dynamicResourceDoc)
         val errorMsg = s"$UnknownError Can not create Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
-    def updateJsonDynamicResourceDoc(entity: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+    def updateJsonDynamicResourceDoc(bankId: Option[String], entity: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(entity: JsonDynamicResourceDoc)
+        val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(bankId, entity: JsonDynamicResourceDoc)
         val errorMsg = s"$UnknownError Can not update Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
-    def isJsonDynamicResourceDocExists(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonDynamicResourceDocExists(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result =  DynamicResourceDocProvider.provider.vend.getById(dynamicResourceDocId)
+        val result =  DynamicResourceDocProvider.provider.vend.getById(bankId, dynamicResourceDocId)
         (result.isDefined, callContext)
       }
 
-    def getJsonDynamicResourceDocs(callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicResourceDoc]] =
+    def getJsonDynamicResourceDocs(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicResourceDoc]] =
       Future {
-        val dynamicResourceDocs: List[JsonDynamicResourceDoc] = DynamicResourceDocProvider.provider.vend.getAll()
+        val dynamicResourceDocs: List[JsonDynamicResourceDoc] = DynamicResourceDocProvider.provider.vend.getAll(bankId)
         dynamicResourceDocs -> callContext
       }
 
-    def getJsonDynamicResourceDocById(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+    def getJsonDynamicResourceDocById(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.getById(dynamicResourceDocId)
+        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.getById(bankId, dynamicResourceDocId)
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocNotFound Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
       }
 
-    def deleteJsonDynamicResourceDocById(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def deleteJsonDynamicResourceDocById(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(dynamicResourceDocId)
+        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(bankId, dynamicResourceDocId)
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocDeleteError Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
       }
 

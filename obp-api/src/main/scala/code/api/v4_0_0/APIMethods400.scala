@@ -9014,12 +9014,12 @@ trait APIMethods400 {
                 throw JsonResponseException(jsonResponse)
             }
 
-            (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.requestUrl, Some(cc))
+            (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(None, jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.requestUrl, Some(cc))
             _ <- Helper.booleanToFuture(failMsg = s"$DynamicResourceDocAlreadyExists The combination of request_url(${jsonDynamicResourceDoc.requestUrl}) and request_verb(${jsonDynamicResourceDoc.requestVerb}) must be unique", cc=callContext) {
               (!isExists)
             }
 
-            (dynamicResourceDoc, callContext) <- NewStyle.function.createJsonDynamicResourceDoc(jsonDynamicResourceDoc, callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.createJsonDynamicResourceDoc(None, jsonDynamicResourceDoc, callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`201`(callContext))
           }
@@ -9079,9 +9079,9 @@ trait APIMethods400 {
                 throw JsonResponseException(jsonResponse)
             }
 
-            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
+            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(None, dynamicResourceDocId, cc.callContext)
 
-            (dynamicResourceDoc, callContext) <- NewStyle.function.updateJsonDynamicResourceDoc(dynamicResourceDocBody.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.updateJsonDynamicResourceDoc(None, dynamicResourceDocBody.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`200`(callContext))
           }
@@ -9112,8 +9112,8 @@ trait APIMethods400 {
       case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
-            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicResourceDocById(dynamicResourceDocId, callContext)
+            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(None, dynamicResourceDocId, cc.callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicResourceDocById(None, dynamicResourceDocId, callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`204`(callContext))
           }
@@ -9144,7 +9144,7 @@ trait APIMethods400 {
       case "management" :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonGet _ => {
         cc =>
           for {
-            (dynamicResourceDoc, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(dynamicResourceDocId, cc.callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(None, dynamicResourceDocId, cc.callContext)
           } yield {
             (dynamicResourceDoc, HttpCode.`200`(callContext))
           }
@@ -9175,13 +9175,228 @@ trait APIMethods400 {
       case "management" :: "dynamic-resource-docs" :: Nil JsonGet _ => {
         cc =>
           for {
-            (dynamicResourceDocs, callContext) <- NewStyle.function.getJsonDynamicResourceDocs(cc.callContext)
+            (dynamicResourceDocs, callContext) <- NewStyle.function.getJsonDynamicResourceDocs(None, cc.callContext)
           } yield {
             (ListResult("dynamic-resource-docs", dynamicResourceDocs), HttpCode.`200`(callContext))
           }
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      createBankLevelDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(createBankLevelDynamicResourceDoc),
+      "POST",
+      "/management/banks/BANK_ID/dynamic-resource-docs",
+      "Create Bank Level Dynamic Resource Doc",
+      s"""Create a Bank Level Dynamic Resource Doc.
+         |
+         |The connector_method_body is URL-encoded format String
+         |""",
+      jsonDynamicResourceDoc.copy(dynamicResourceDocId=None),
+      jsonDynamicResourceDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canCreateBankLevelDynamicResourceDoc))) 
+
+    lazy val createBankLevelDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            jsonDynamicResourceDoc <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc=cc.callContext) {
+              Set("POST", "PUT", "GET", "DELETE").contains(jsonDynamicResourceDoc.requestVerb)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""", cc=cc.callContext) {
+              (jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(JString(s))) => //we support the empty string "" here
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) => //we add the guard, we forbid any json objects in GET/DELETE request body.
+                  requestBody == JNothing
+                case _ => true
+              }
+            }
+            _ = try {
+              CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+            } catch {
+              case e: Exception =>
+                val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
+                throw JsonResponseException(jsonResponse)
+            }
+
+            (isExists, callContext) <- NewStyle.function.isJsonDynamicResourceDocExists(Some(bankId), jsonDynamicResourceDoc.requestVerb, jsonDynamicResourceDoc.requestUrl, Some(cc))
+            _ <- Helper.booleanToFuture(failMsg = s"$DynamicResourceDocAlreadyExists The combination of request_url(${jsonDynamicResourceDoc.requestUrl}) and request_verb(${jsonDynamicResourceDoc.requestVerb}) must be unique", cc=callContext) {
+              (!isExists)
+            }
+
+            (dynamicResourceDoc, callContext) <- NewStyle.function.createJsonDynamicResourceDoc(Some(bankId), jsonDynamicResourceDoc, callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(updateBankLevelDynamicResourceDoc),
+      "PUT",
+      "/management/banks/BANK_ID/dynamic-resource-docs/DYNAMIC-RESOURCE-DOC-ID",
+      "Update Bank Level Dynamic Resource Doc",
+      s"""Update a Bank Level Dynamic Resource Doc.
+         |
+         |The connector_method_body is URL-encoded format String
+         |""",
+      jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+      jsonDynamicResourceDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canUpdateBankLevelDynamicResourceDoc)))
+
+    lazy val updateBankLevelDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            dynamicResourceDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc", 400, cc.callContext) {
+              json.extract[JsonDynamicResourceDoc]
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""", cc=cc.callContext) {
+              Set("POST", "PUT", "GET", "DELETE").contains(dynamicResourceDocBody.requestVerb)
+            }
+
+            _ <- Helper.booleanToFuture(failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String""", cc=cc.callContext) {
+              (dynamicResourceDocBody.requestVerb, dynamicResourceDocBody.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(JString(s))) =>
+                  StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(requestBody)) =>
+                  requestBody == JNothing
+                case _ => true
+              }
+            }
+
+            _ = try {
+              CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+            } catch {
+              case e: Exception =>
+                val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
+                throw JsonResponseException(jsonResponse)
+            }
+
+            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(Some(bankId), dynamicResourceDocId, cc.callContext)
+
+            (dynamicResourceDoc, callContext) <- NewStyle.function.updateJsonDynamicResourceDoc(Some(bankId), dynamicResourceDocBody.copy(dynamicResourceDocId = Some(dynamicResourceDocId)), callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankLevelDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelDynamicResourceDoc),
+      "DELETE",
+      "/management/banks/BANK_ID/dynamic-resource-docs/DYNAMIC-RESOURCE-DOC-ID",
+      "Delete Bank Level Dynamic Resource Doc",
+      s"""Delete a Bank Level Dynamic Resource Doc.
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canDeleteBankLevelDynamicResourceDoc)))
+
+    lazy val deleteBankLevelDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(Some(bankId), dynamicResourceDocId, cc.callContext)
+            (dynamicResourceDoc, callContext) <- NewStyle.function.deleteJsonDynamicResourceDocById(Some(bankId), dynamicResourceDocId, callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicResourceDoc),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-resource-docs/DYNAMIC-RESOURCE-DOC-ID",
+      "Get Bank Level Dynamic Resource Doc by Id",
+      s"""Get a Bank Level Dynamic Resource Doc by DYNAMIC-RESOURCE-DOC-ID.
+         |
+         |""",
+      EmptyBody,
+      jsonDynamicResourceDoc,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canGetBankLevelDynamicResourceDoc)))
+
+    lazy val getBankLevelDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: dynamicResourceDocId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicResourceDoc, callContext) <- NewStyle.function.getJsonDynamicResourceDocById(Some(bankId), dynamicResourceDocId, cc.callContext)
+          } yield {
+            (dynamicResourceDoc, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllBankLevelDynamicResourceDocs,
+      implementedInApiVersion,
+      nameOf(getAllBankLevelDynamicResourceDocs),
+      "GET",
+      "/management/banks/BANK_ID/dynamic-resource-docs",
+      "Get all Bank Level Dynamic Resource Docs",
+      s"""Get all Bank Level Dynamic Resource Docs.
+         |
+         |""",
+      EmptyBody,
+      ListResult("dynamic-resource-docs", jsonDynamicResourceDoc::Nil),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc, apiTagNewStyle),
+      Some(List(canGetAllBankLevelDynamicResourceDocs)))
+
+    lazy val getAllBankLevelDynamicResourceDocs: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "dynamic-resource-docs" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (dynamicResourceDocs, callContext) <- NewStyle.function.getJsonDynamicResourceDocs(Some(bankId), cc.callContext)
+          } yield {
+            (ListResult("dynamic-resource-docs", dynamicResourceDocs), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       buildDynamicEndpointTemplate,

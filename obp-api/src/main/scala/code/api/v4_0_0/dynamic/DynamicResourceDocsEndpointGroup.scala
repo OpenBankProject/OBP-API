@@ -13,7 +13,7 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup {
 
 
   override protected def resourceDocs: List[APIUtil.ResourceDoc] =
-    DynamicResourceDocProvider.provider.vend.getAllAndConvert(toResourceDoc)
+    DynamicResourceDocProvider.provider.vend.getAllAndConvert(None, toResourceDoc) //TODO need to check if this can be `NONE`
 
   private val apiVersion : ScannedApiVersion = ApiVersion.v4_0_0
 

@@ -39,15 +39,15 @@ case class JsonDynamicResourceDoc(
 
 trait DynamicResourceDocProvider {
 
-  def getById(dynamicResourceDocId: String): Box[JsonDynamicResourceDoc]
-  def getByVerbAndUrl(requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc]
+  def getById(bankId: Option[String], dynamicResourceDocId: String): Box[JsonDynamicResourceDoc]
+  def getByVerbAndUrl(bankId: Option[String], requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc]
   
-  def getAll(): List[JsonDynamicResourceDoc] = getAllAndConvert(identity)
+  def getAll(bankId: Option[String]): List[JsonDynamicResourceDoc] = getAllAndConvert(bankId, identity)
 
-  def getAllAndConvert[T: Manifest](transform: JsonDynamicResourceDoc => T): List[T]
+  def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T]
 
-  def create(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
-  def update(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
-  def deleteById(dynamicResourceDocId: String): Box[Boolean]
+  def create(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
+  def update(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]
+  def deleteById(bankId: Option[String], dynamicResourceDocId: String): Box[Boolean]
 
 }
