@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -9226,6 +9226,14 @@ trait APIMethods400 {
             }
             _ = try {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+                .validateDependency()
+            } catch {
+              case e: Exception =>
+                val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
+                throw JsonResponseException(jsonResponse)
+            }
+            _ = try {
+              CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
             } catch {
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
@@ -9288,9 +9296,17 @@ trait APIMethods400 {
                 case _ => true
               }
             }
+            _ = try {
+              CompiledObjects(dynamicResourceDocBody.exampleRequestBody, dynamicResourceDocBody.successResponseBody, dynamicResourceDocBody.methodBody)
+                .validateDependency()
+            } catch {
+              case e: Exception =>
+                val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
+                throw JsonResponseException(jsonResponse)
+            }
 
             _ = try {
-              CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+              CompiledObjects(dynamicResourceDocBody.exampleRequestBody, dynamicResourceDocBody.successResponseBody, jsonDynamicResourceDoc.methodBody)
             } catch {
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
