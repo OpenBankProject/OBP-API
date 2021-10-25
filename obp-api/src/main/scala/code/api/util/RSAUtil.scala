@@ -1,7 +1,11 @@
 package code.api.util
 
+import java.nio.file.{Files, Paths}
+
 import code.api.util.CertificateUtil.{privateKey, publicKey}
 import code.util.Helper.MdcLoggable
+import com.nimbusds.jose.crypto.RSASSASigner
+import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import javax.crypto.Cipher
 import net.liftweb.util.SecurityHelpers
@@ -31,14 +35,16 @@ object RSAUtil  extends MdcLoggable {
     SecurityHelpers.hexDigest256(input.getBytes("UTF-8"))
   }
   
-  def signWithRsa256(payload: String): String = {
-    // Prepare JWS object with simple string as payload
+  def signWithRsa256(payload: String, jwk: JWK): String = {
+    // Prepare JWS object with simple string as a payload
     val jwsObject = new JWSObject(
       new JWSHeader.Builder(JWSAlgorithm.RS256).build, 
       new Payload(payload)
     )
+    
+    val rsaSigner = new RSASSASigner(jwk.toRSAKey)
     // Compute the RSA signature
-    jwsObject.sign(CertificateUtil.rsaSigner)
+    jwsObject.sign(rsaSigner)
 
     // To serialize to compact form, produces something like
     // eyJhbGciOiJSUzI1NiJ9.SW4gUlNBIHdlIHRydXN0IQ.IRMQENi4nJyp4er2L
@@ -49,17 +55,27 @@ object RSAUtil  extends MdcLoggable {
     s
   }
   
-  def computeXSign(input: String) = {
+  def computeXSign(input: String, jwk: JWK) = {
     logger.debug("Input: " + input)
     logger.debug("Hash: " + computeHash(input))
     logger.debug("HEX hash: " + computeHexHash(input))
     // Compute JWS token
-    val jws = signWithRsa256(computeHexHash(input))
+    val jws = signWithRsa256(computeHexHash(input), jwk)
     logger.debug("RSA 256 signature: " + jws)
     // Get the last i.e. 3rd part of JWS token
     val xSign = jws.split('.').toList.last
     logger.debug("x-sign: " + xSign)
     xSign
+  }
+  
+  def getPrivateKeyFromFile(path: String): JWK = {
+    val pathOfFile = Paths.get(path)
+    val pemEncodedRSAPrivateKey = Files.readAllLines(pathOfFile).toArray.toList.mkString("\n")
+    logger.debug(pemEncodedRSAPrivateKey)
+    // Parse PEM-encoded key to RSA public / private JWK
+    val jwk: JWK  = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey);
+    logger.debug("Key is private: " + jwk.isPrivate)
+    jwk
   }
 
   def main(args: Array[String]): Unit = {
@@ -69,8 +85,12 @@ object RSAUtil  extends MdcLoggable {
     println("encrypt: " + res)
     println("decrypt: " + decrypt(res))
     
-    val inputMessage = """hello world\n"""
-    computeXSign(inputMessage)
+    val timestamp = "1634805183"
+    val uri = "https://api.qredo.network/api/v1/p/company"
+    val body = """{"name":"Tesobe GmbH","city":"Berlin","country":"DE","domain":"tesobe.com","ref":"9827feec-4eae-4e80-bda3-daa7c3b97ad1"}"""
+    val inputMessage = s"""${timestamp}${uri}${body}"""
+    val privateKey = getPrivateKeyFromFile("obp-api/src/test/resources/cert/private.pem")
+    computeXSign(inputMessage, privateKey)
   }
 
 }
