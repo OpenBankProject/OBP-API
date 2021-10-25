@@ -9196,6 +9196,7 @@ trait APIMethods400 {
       jsonDynamicResourceDoc.copy(dynamicResourceDocId=None),
       jsonDynamicResourceDoc,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -9257,6 +9258,7 @@ trait APIMethods400 {
       jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
       jsonDynamicResourceDoc,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -9316,6 +9318,7 @@ trait APIMethods400 {
       EmptyBody,
       BooleanBody(true),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -9349,6 +9352,7 @@ trait APIMethods400 {
       EmptyBody,
       jsonDynamicResourceDoc,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -9380,6 +9384,7 @@ trait APIMethods400 {
       EmptyBody,
       ListResult("dynamic-resource-docs", jsonDynamicResourceDoc::Nil),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -9505,6 +9510,7 @@ trait APIMethods400 {
       jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
       jsonDynamicMessageDoc,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -9684,6 +9690,7 @@ trait APIMethods400 {
       jsonDynamicMessageDoc.copy(dynamicMessageDocId=None),
       jsonDynamicMessageDoc,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
@@ -9726,6 +9733,7 @@ trait APIMethods400 {
       EmptyBody,
       jsonDynamicMessageDoc,
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -9757,6 +9765,7 @@ trait APIMethods400 {
       EmptyBody,
       ListResult("dynamic-message-docs", jsonDynamicMessageDoc::Nil),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         UnknownError
@@ -9787,6 +9796,7 @@ trait APIMethods400 {
       EmptyBody,
       BooleanBody(true),
       List(
+        $BankNotFound,
         $UserNotLoggedIn,
         UserHasMissingRoles,
         InvalidJsonFormat,
