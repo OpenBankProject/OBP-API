@@ -37,6 +37,7 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
+import code.api.util.RSAUtil.{computeXSign, getPrivateKeyFromString}
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.v4_0_0.dynamic.MockResponseHolder
 import code.bankconnectors._
@@ -63,6 +64,7 @@ import net.liftweb.json.{JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
+import java.time.Instant
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -6522,7 +6524,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       }
 
     val jsonToSend = if(jValue == JNothing) "" else compactRender(jValue)
-    val request = prepareHttpRequest(paramUrl, method, HttpProtocol("HTTP/1.1"), jsonToSend).withHeaders(callContext)
+    val request = prepareHttpRequest(paramUrl, method, HttpProtocol("HTTP/1.1"), jsonToSend).withHeaders(buildHeaders(paramUrl,jsonToSend,callContext))
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
 
@@ -6572,15 +6574,31 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
 
   //In RestConnector, we use the headers to propagate the parameters to Adapter. The parameters come from the CallContext.outboundAdapterAuthInfo.userAuthContext
   //We can set them from UserOauthContext or the http request headers.
-  private[this] implicit def buildHeaders(callContext: Option[CallContext]): List[HttpHeader] = {
+  private[this] def buildHeaders( 
+    uri: String,
+    entityJsonString: String,
+    callContext: Option[CallContext]
+  ): List[HttpHeader] = {
     
-    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
-    val headersFromGeneralContext = generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
+//    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
+//    val headersFromGeneralContext = generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
     
     val basicUserAuthContexts: List[BasicUserAuthContext] = callContext.flatMap(_.toOutboundAdapterCallContext.outboundAdapterAuthInfo.flatMap(_.userAuthContext)).getOrElse(List.empty[BasicUserAuthContext])
-    val headersFromUserAuthContext = basicUserAuthContexts.map(userAuthContext => RawHeader(userAuthContext.key,userAuthContext.value))
+    val headersFromUserAuthContext = basicUserAuthContexts.filterNot(_.key == "private-key").map(userAuthContext =>RawHeader(userAuthContext.key,userAuthContext.value))
+    
+    val timeStamp = Instant.now.getEpochSecond.toString
+    val inputMessage = s"""${timeStamp}${uri}${entityJsonString}"""
+    val privateKeyValue = basicUserAuthContexts.find(_.key =="private-key").map(_.value).getOrElse("")
+    val privateKey = getPrivateKeyFromString(privateKeyValue)
+    
+    val xSign = computeXSign(inputMessage, privateKey)
+    val extraHeaders = List(RawHeader("x-timestamp",timeStamp),RawHeader("x-sign",xSign))
+    val headers = headersFromUserAuthContext++extraHeaders
+    logger.debug(s"x-timestamp: $timeStamp")
+    logger.debug(s"x-sign: $xSign")
+    logger.debug(s"obp headers: ${headers}")
 
-    headersFromGeneralContext++headersFromUserAuthContext
+    headers
     
   }
 
@@ -6686,7 +6704,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
         compactRender(builtJson)
       case _ => net.liftweb.json.Serialization.write(outBound)
     }
-    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(callContext)
+    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(buildHeaders(url, outBoundJson, callContext))
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
     responseFuture.map {
