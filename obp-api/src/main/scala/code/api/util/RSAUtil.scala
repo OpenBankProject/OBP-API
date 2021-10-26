@@ -82,6 +82,15 @@ object RSAUtil  extends MdcLoggable {
     jwk
   }
 
+  def getPrivateKeyFromString(privateKeyValue: String): JWK = {
+    val pemEncodedRSAPrivateKey = privateKeyValue
+    logger.debug(privateKeyValue)
+    // Parse PEM-encoded key to RSA public / private JWK
+    val jwk: JWK  = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey);
+    logger.debug("Key is private: " + jwk.isPrivate)
+    jwk
+  }
+  
   def main(args: Array[String]): Unit = {
     val db = "jdbc:postgresql://localhost:5432/obp_mapped?user=obp&password=f"
     val res = encrypt(db)
