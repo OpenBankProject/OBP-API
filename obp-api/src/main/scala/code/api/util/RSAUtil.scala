@@ -1,12 +1,13 @@
 package code.api.util
 
 import java.nio.file.{Files, Paths}
+import java.security.Signature
 
 import code.api.util.CertificateUtil.{privateKey, publicKey}
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.JWK
-import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
+import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import javax.crypto.Cipher
 import net.liftweb.util.SecurityHelpers
 
@@ -59,11 +60,14 @@ object RSAUtil  extends MdcLoggable {
     logger.debug("Input: " + input)
     logger.debug("Hash: " + computeHash(input))
     logger.debug("HEX hash: " + computeHexHash(input))
-    // Compute JWS token
-    val jws = signWithRsa256(computeHexHash(input), jwk)
-    logger.debug("RSA 256 signature: " + jws)
-    // Get the last i.e. 3rd part of JWS token
-    val xSign = jws.split('.').toList.last
+    // Compute the signature
+    import sun.misc.BASE64Encoder
+    val data = input.getBytes("UTF8")
+    val sig = Signature.getInstance("SHA256WithRSA")
+    sig.initSign(jwk.toRSAKey.toPrivateKey)
+    sig.update(data)
+    val signatureBytes = sig.sign
+    val xSign = new BASE64Encoder().encode(signatureBytes)
     logger.debug("x-sign: " + xSign)
     xSign
   }
@@ -91,6 +95,8 @@ object RSAUtil  extends MdcLoggable {
     val inputMessage = s"""${timestamp}${uri}${body}"""
     val privateKey = getPrivateKeyFromFile("obp-api/src/test/resources/cert/private.pem")
     computeXSign(inputMessage, privateKey)
+
+    
   }
 
 }
