@@ -832,14 +832,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[FastFirehoseAccount]]] =
     Future{
-      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(1000)
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
       val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
+      val orderBy = queryParams.collect { 
+        case OBPOrdering(_, OBPDescending) => "DESC"
+      }.headOption.getOrElse("ASC")
+
+      val ordering = if (orderBy =="DESC" ) sqls"DESC" else sqls"ASC"
       
       val firehoseAccounts = {
         scalikeDB readOnly { implicit session =>
-        val sqlResult =sql"""
-            select * from v_fast_firehose_accounts
-               WHERE v_fast_firehose_accounts.bank_id = ${bankId.value}
+        val sqlResult = sql"""
+            select * from mv_fast_firehose_accounts
+               WHERE mv_fast_firehose_accounts.bank_id = ${bankId.value}
+               ORDER BY mv_fast_firehose_accounts.account_id $ordering
                LIMIT $limit
                OFFSET $offset
                """.stripMargin

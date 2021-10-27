@@ -2188,7 +2188,7 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "Dynamic Entity",
+		title = "Dynamic Entity Manage",
 		description =
 			s"""
 |
@@ -2239,7 +2239,7 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
-		title = "Dynamic Endpoint",
+		title = "Dynamic Endpoint Manage",
 		description =
 			s"""
 |
@@ -2287,7 +2287,7 @@ object Glossary extends MdcLoggable  {
    |
    |To enable Endpoint Mapping for your Dynamic Endpoints, either set the `host` in the swagger file to "dynamic_entity" upon creation of the Dynamic Endpoints - or update the host using the Update Dynamic Endpoint Host endpoints.
    |
-   |Once the `host` is thus set, you can the Endpoint Mapping endpoints to map the Dynamic Endpoint fields to Dynamic Entity data.
+   |Once the `host` is thus set, you can use the Endpoint Mapping endpoints to map the Dynamic Endpoint fields to Dynamic Entity data.
    |
    |See the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects. You can get the operation ID from the API Explorer or Get Dynamic Endpoints endpoints.
    |
