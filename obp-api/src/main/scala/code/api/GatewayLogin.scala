@@ -482,7 +482,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         val payload = GatewayLogin.parseJwt(parameters)
         payload match {
           case Full(payload) =>
-            val username = getFieldFromPayloadJson(payload, "username")
+            val username = getFieldFromPayloadJson(payload, "login_user_name")
             logger.debug("username: " + username)
             Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username)
           case _ =>
