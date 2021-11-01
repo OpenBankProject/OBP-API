@@ -6580,22 +6580,28 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     callContext: Option[CallContext]
   ): List[HttpHeader] = {
     
-//    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
-//    val headersFromGeneralContext = generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
+    val needSignatureHead =  APIUtil.getPropsAsBoolValue("rest_connector_http_header_signature", false) 
+    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
+    val headersFromGeneralContext = generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
     
     val basicUserAuthContexts: List[BasicUserAuthContext] = callContext.flatMap(_.toOutboundAdapterCallContext.outboundAdapterAuthInfo.flatMap(_.userAuthContext)).getOrElse(List.empty[BasicUserAuthContext])
     val headersFromUserAuthContext = basicUserAuthContexts.filterNot(_.key == "private-key").map(userAuthContext =>RawHeader(userAuthContext.key,userAuthContext.value))
-    
+
     val timeStamp = Instant.now.getEpochSecond.toString
-    val inputMessage = s"""${timeStamp}${uri}${entityJsonString}"""
-    val privateKeyValue = basicUserAuthContexts.find(_.key =="private-key").map(_.value).getOrElse("")
-    val privateKey = getPrivateKeyFromString(privateKeyValue)
-    
-    val xSign = computeXSign(inputMessage, privateKey)
-    val extraHeaders = List(RawHeader("x-timestamp",timeStamp),RawHeader("x-sign",xSign))
-    val headers = headersFromUserAuthContext++extraHeaders
     logger.debug(s"x-timestamp: $timeStamp")
-    logger.debug(s"x-sign: $xSign")
+    
+    val extraHeaders = if(needSignatureHead){
+      val inputMessage = s"""${timeStamp}${uri}${entityJsonString}"""
+      val privateKeyValue = basicUserAuthContexts.find(_.key =="private-key").map(_.value).getOrElse("")
+      val privateKey = getPrivateKeyFromString(privateKeyValue)
+      val xSign = computeXSign(inputMessage, privateKey)
+      logger.debug(s"x-sign: $xSign")
+      List(RawHeader("x-timestamp",timeStamp),RawHeader("x-sign",xSign))
+    } else {
+      List(RawHeader("x-timestamp",timeStamp))
+    }
+    val headers = headersFromUserAuthContext++extraHeaders++headersFromGeneralContext
+    
     logger.debug(s"obp headers: ${headers}")
 
     headers
