@@ -685,7 +685,7 @@ autocomplete_at_login_form_enabled=false
 # Define comma separated list of allowed IP addresses
 # gateway.host=127.0.0.1
 # Define secret used to validate JWT token
-# gateway.token_secret=secret
+# jwt.token_secret=secret
 # -------------------------------------- Gateway login --
 
 

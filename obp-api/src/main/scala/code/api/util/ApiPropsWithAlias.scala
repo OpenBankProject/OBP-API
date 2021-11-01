@@ -29,6 +29,10 @@ object ApiPropsWithAlias {
     name="allow_customer_firehose",
     alias="allow_firehose_views",
     defaultValue="false")
+  def jwtTokenSecret = getValueByNameOrAliasAsBoolean(
+    name="jwt.token_secret",
+    alias="gateway.token_secret",
+    defaultValue="Cannot get your at least 256 bit secret")
 }
 
 object HelperFunctions extends MdcLoggable {
