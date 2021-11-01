@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+01/11/2021    03305d2b      Added props: rest_connector_http_header_signature, default is false
 17/09/2021    e65cd51d      Added props: webui_main_faq_external_link, default is obp static file: /main-faq.html
 09/09/2021    65952225      Added props: webui_support_email, default is contact@openbankproject.com
 02/09/2021    a826d908      Renamed Web UI props:  
