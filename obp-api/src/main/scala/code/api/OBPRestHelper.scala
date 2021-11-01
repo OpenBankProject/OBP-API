@@ -401,7 +401,48 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case _ =>
           Failure(ErrorMessages.GatewayLoginUnknownError)
       }
-    } else {
+    } 
+    else if (APIUtil.getPropsAsBoolValue("allow_dauth_login", false) && hasDAuthHeader(authorization)) {
+      logger.info("allow_dauth_login-getRemoteIpAddress: " + remoteIpAddress )
+      APIUtil.getPropsValue("dauth.host") match {
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
+          val s = S
+          val (httpCode, message, parameters) = DAuthLogin.validator(s.request)
+          httpCode match {
+            case 200 =>
+              val payload = DAuthLogin.parseJwt(parameters)
+              payload match {
+                case Full(payload) =>
+                  val s = S
+                  DAuthLogin.getOrCreateResourceUser(payload: String, Some(cc)) match {
+                    case Full((u, callContext)) => // Authentication is successful
+                      val consumer = DAuthLogin.getOrCreateConsumer(payload, u)
+                      setGatewayResponseHeader(s) {DAuthLogin.createJwt(payload)}
+                      val jwt = DAuthLogin.createJwt(payload)
+                      val callContextUpdated = ApiSession.updateCallContext(DAuthLoginResponseHeader(Some(jwt)), callContext)
+                      fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
+                    case Failure(msg, t, c) => Failure(msg, t, c)
+                    case _ => Full(errorJsonResponse(payload, httpCode))
+                  }
+                case Failure(msg, t, c) =>
+                  Failure(msg, t, c)
+                case _ =>
+                  Failure(ErrorMessages.DAuthLoginUnknownError)
+              }
+            case _ =>
+              Failure(message)
+          }
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
+          Failure(ErrorMessages.DAuthLoginWhiteListAddresses)
+        case Empty =>
+          Failure(ErrorMessages.DAuthLoginHostPropertyMissing) // There is no dauth.host in props file
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
+        case _ =>
+          Failure(ErrorMessages.DAuthLoginUnknownError)
+      }
+    } 
+    else {
       fn(cc)
     }
   }

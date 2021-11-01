@@ -182,6 +182,17 @@ object ErrorMessages {
 
   val UserIsDeleted = "OBP-20064: The user is deleted!"
 
+  val DAuthLoginCannotGetOrCreateUser = "OBP-20065: Cannot get or create user during DAuthLogin process."
+  val DAuthLoginMissingParameters = "OBP-20066: These DAuthLogin parameters are missing: "
+  val DAuthLoginUnknownError = "OBP-20067: Unknown Gateway login error."
+  val DAuthLoginHostPropertyMissing = "OBP-20068: Property gateway.host is not defined."
+  val DAuthLoginWhiteListAddresses = "OBP-20069: Gateway login can be done only from allowed addresses."
+  val DAuthLoginJwtTokenIsNotValid = "OBP-20070: The JWT is corrupted/changed during a transport."
+  val DAuthLoginCannotExtractJwtToken = "OBP-20071: Header, Payload and Signature cannot be extracted from the JWT."
+  val DAuthLoginNoNeedToCallCbs = "OBP-20072: There is no need to call CBS"
+  val DAuthLoginCannotFindUser = "OBP-20073: User cannot be found. Please initiate CBS communication in order to create it."
+  val DAuthLoginCannotGetCbsToken = "OBP-20074: Cannot get the CBSToken response from South side"
+  val DAuthLoginNoJwtForResponse = "OBP-20075: There is no useful value for JWT."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 

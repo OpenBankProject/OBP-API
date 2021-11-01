@@ -180,6 +180,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasAnOAuth2Header(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
 
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
+  
+  def hasDAuthHeader(authorization: Box[String]) = hasHeader("DAuthLogin", authorization)
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -2244,6 +2246,31 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         None
     }
   }
+  /**
+   * Defines DAuth Custom Response Header.
+   */
+  val DAuthResponseHeaderName = "DAuthLogin"
+  /**
+   * Set value of DAuth Custom Response Header.
+   */
+  def setDAuthResponseHeader(s: S)(value: String) = s.setSessionAttribute(DAuthResponseHeaderName, value)
+  /**
+   * @return - DAuth Custom Response Header.
+   */
+  def getDAuthResponseHeader() = {
+    S.getSessionAttribute(DAuthResponseHeaderName) match {
+      case Full(h) => List((DAuthResponseHeaderName, h))
+      case _ => Nil
+    }
+  }
+  def getDAuthLoginJwt(): Option[String] = {
+    getDAuthResponseHeader() match {
+      case x :: Nil =>
+        Some(x._2)
+      case _ =>
+        None
+    }
+  }
 
   /**
    * Turn a string of format "FooBar" into snake case "foo_bar"
@@ -2708,7 +2735,47 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case _ =>
             Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
         }
-      } else if(Option(cc).flatMap(_.user).isDefined) {
+      }  // DAuthLogin Login
+      else if (getPropsAsBoolValue("allow_dauth_login", false) && hasDAuthHeader(cc.authReqHeaderField)) {
+        logger.info("allow_dauth_login-getRemoteIpAddress: " + remoteIpAddress )
+        APIUtil.getPropsValue("dauth.host") match {
+          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
+            val (httpCode, message, parameters) = DAuthLogin.validator(s.request)
+            httpCode match {
+              case 200 =>
+                val payload = DAuthLogin.parseJwt(parameters)
+                payload match {
+                  case Full(payload) =>
+                    DAuthLogin.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
+                      case Full((u,callContext)) => // Authentication is successful
+                        val consumer = DAuthLogin.getOrCreateConsumer(payload, u)
+                        val jwt = DAuthLogin.createJwt(payload)
+                        val callContextUpdated = ApiSession.updateCallContext(DAuthLoginResponseHeader(Some(jwt)), callContext)
+                        (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
+                      case Failure(msg, t, c) =>
+                        (Failure(msg, t, c), None)
+                      case _ =>
+                        (Failure(payload), None)
+                    }
+                  case Failure(msg, t, c) =>
+                    Future { (Failure(msg, t, c), None) }
+                  case _ =>
+                    Future { (Failure(ErrorMessages.DAuthLoginUnknownError), None) }
+                }
+              case _ =>
+                Future { (Failure(message), None) }
+            }
+          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
+            Future { (Failure(ErrorMessages.DAuthLoginWhiteListAddresses), None) }
+          case Empty =>
+            Future { (Failure(ErrorMessages.DAuthLoginHostPropertyMissing), None) } // There is no dauth.host in props file
+          case Failure(msg, t, c) =>
+            Future { (Failure(msg, t, c), None) }
+          case _ =>
+            Future { (Failure(ErrorMessages.DAuthLoginUnknownError), None) }
+        }
+      } 
+      else if(Option(cc).flatMap(_.user).isDefined) {
         Future{(cc.user, Some(cc))}
       }
       else {
