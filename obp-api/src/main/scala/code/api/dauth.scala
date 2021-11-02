@@ -64,7 +64,6 @@ object JSONFactoryDAuth {
 
 object DAuth extends RestHelper with MdcLoggable {
 
-  val DAuthValue = "DAuth" // This value is used for ResourceUser.provider and Consumer.description
 
   def createJwt(payloadAsJsonString: String) : String = {
     val smartContractAddress = getFieldFromPayloadJson(payloadAsJsonString, "smart_contract_address")
@@ -103,7 +102,7 @@ object DAuth extends RestHelper with MdcLoggable {
         Full(compactRender(Extraction.decompose(jwtPayload)))
       case _  =>
         logger.debug("parseJwt says: Not Full(jwtPayload)")
-        Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
+        Failure(ErrorMessages.DAuthJwtTokenIsNotValid)
     }
   }
 
@@ -124,7 +123,7 @@ object DAuth extends RestHelper with MdcLoggable {
             Box(parse(claim.toString).extractOpt[PayloadOfJwtJSON])
           case _ =>
             logger.debug("validateJwtToken says: could not verify jwt")
-            Failure(ErrorMessages.GatewayLoginJwtTokenIsNotValid)
+            Failure(ErrorMessages.DAuthJwtTokenIsNotValid)
         }
     }
   }
@@ -160,12 +159,13 @@ object DAuth extends RestHelper with MdcLoggable {
 
   def getOrCreateResourceUser(jwtPayload: String, callContext: Option[CallContext]) : Box[(User, Option[CallContext])] = {
     val username = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
+    val provider = getFieldFromPayloadJson(jwtPayload, "network_name")
     logger.debug("login_user_name: " + username)
     for {
       tuple <- 
-          Users.users.vend.getUserByProviderId(provider = DAuthValue, idGivenByProvider = username).or { // Find a user
+          Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = username).or { // Find a user
             Users.users.vend.createResourceUser( // Otherwise create a new one
-              provider = DAuthValue,
+              provider = provider,
               providerId = Some(username),
               None,
               name = Some(username),
@@ -191,10 +191,11 @@ object DAuth extends RestHelper with MdcLoggable {
   }
   def getOrCreateResourceUserFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(User, Option[CallContext])]] = {
     val username = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
+    val provider = getFieldFromPayloadJson(jwtPayload, "network_name")
     logger.debug("login_user_name: " + username)
     for {
       tuple <- 
-        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = DAuthValue, idGivenByProvider = username, consentId = None, name = Some(username), email = None) map {
+        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = provider, idGivenByProvider = username, consentId = None, name = Some(username), email = None) map {
           case (Full(u), _) =>
             Full(u, callContext) // Return user
           case (Empty, _) =>
@@ -212,6 +213,7 @@ object DAuth extends RestHelper with MdcLoggable {
   def getOrCreateConsumer(jwtPayload: String, u: User) : Box[Consumer] = {
     val consumerId = getFieldFromPayloadJson(jwtPayload, "consumer_id")
     val consumerName = getFieldFromPayloadJson(jwtPayload, "msg_sender")
+    val DAuthValue = "DAuth" // This value is used for Consumer.description
     logger.debug("app_id: " + consumerId)
     logger.debug("app_name: " + consumerName)
     Consumers.consumers.vend.getOrCreateConsumer(
@@ -321,8 +323,9 @@ object DAuth extends RestHelper with MdcLoggable {
         payload match {
           case Full(payload) =>
             val username = getFieldFromPayloadJson(payload, "smart_contract_address")
+            val provider = getFieldFromPayloadJson(payload, "network_name")
             logger.debug("username: " + username)
-            Users.users.vend.getUserByProviderId(provider = DAuthValue, idGivenByProvider = username)
+            Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = username)
           case _ =>
             None
         }
