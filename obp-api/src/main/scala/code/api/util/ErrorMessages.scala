@@ -188,6 +188,7 @@ object ErrorMessages {
   val DAuthHostPropertyMissing = "OBP-20068: Property dauth.host is not defined."
   val DAuthWhiteListAddresses = "OBP-20069: DAuth login can be done only from allowed addresses."
   val DAuthNoJwtForResponse = "OBP-20070: There is no useful value for JWT."
+  val DAuthJwtTokenIsNotValid = "OBP-20071: The JWT is corrupted/changed during a transport."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 
