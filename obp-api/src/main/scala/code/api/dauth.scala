@@ -194,7 +194,7 @@ object DAuth extends RestHelper with MdcLoggable {
     logger.debug("login_user_name: " + username)
     for {
       tuple <- 
-        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = DAuthValue, idGivenByProvider = username, consentId = None, name = None, email = None) map {
+        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = DAuthValue, idGivenByProvider = username, consentId = None, name = Some(username), email = None) map {
           case (Full(u), _) =>
             Full(u, callContext) // Return user
           case (Empty, _) =>
