@@ -25,7 +25,7 @@ object CryptoSystem extends Enumeration {
 object CertificateUtil extends MdcLoggable {
 
   // your-at-least-256-bit-secret
-  val sharedSecret = ApiPropsWithAlias.jwtTokenSecret
+  val sharedSecret: String = ApiPropsWithAlias.jwtTokenSecret
 
   lazy val (publicKey: RSAPublicKey, privateKey: RSAPrivateKey) = APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match  {
     case true =>
