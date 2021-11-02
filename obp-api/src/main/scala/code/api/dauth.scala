@@ -62,9 +62,9 @@ object JSONFactoryDAuth {
 
 }
 
-object DAuthLogin extends RestHelper with MdcLoggable {
+object DAuth extends RestHelper with MdcLoggable {
 
-  val DAuth = "DAuth" // This value is used for ResourceUser.provider and Consumer.description
+  val DAuthValue = "DAuth" // This value is used for ResourceUser.provider and Consumer.description
 
   def createJwt(payloadAsJsonString: String) : String = {
     val smartContractAddress = getFieldFromPayloadJson(payloadAsJsonString, "smart_contract_address")
@@ -137,20 +137,20 @@ object DAuthLogin extends RestHelper with MdcLoggable {
 
     parameters.get("error") match {
       case Some(m) => {
-        logger.error("DAuthLogin error message : " + m)
+        logger.error("DAuth error message : " + m)
         (400, m, emptyMap)
       }
       case _ => {
-        // Are all the necessary DAuthLogin parameters present?
-        val missingParams: Set[String] = missingDAuthLoginParameters(parameters)
+        // Are all the necessary DAuth parameters present?
+        val missingParams: Set[String] = missingDAuthParameters(parameters)
         missingParams.nonEmpty match {
           case true => {
-            val message = ErrorMessages.DAuthLoginMissingParameters + missingParams.mkString(", ")
-            logger.error("DAuthLogin error message : " + message)
+            val message = ErrorMessages.DAuthMissingParameters + missingParams.mkString(", ")
+            logger.error("DAuth error message : " + message)
             (400, message, emptyMap)
           }
           case false => {
-            logger.debug("DAuthLogin parameters : " + parameters)
+            logger.debug("DAuth parameters : " + parameters)
             (200, "", parameters)
           }
         }
@@ -163,9 +163,9 @@ object DAuthLogin extends RestHelper with MdcLoggable {
     logger.debug("login_user_name: " + username)
     for {
       tuple <- 
-          Users.users.vend.getUserByProviderId(provider = DAuth, idGivenByProvider = username).or { // Find a user
+          Users.users.vend.getUserByProviderId(provider = DAuthValue, idGivenByProvider = username).or { // Find a user
             Users.users.vend.createResourceUser( // Otherwise create a new one
-              provider = DAuth,
+              provider = DAuthValue,
               providerId = Some(username),
               None,
               name = Some(username),
@@ -179,11 +179,11 @@ object DAuthLogin extends RestHelper with MdcLoggable {
             case Full(u) =>
               Full((u,callContext)) // Return user
             case Empty =>
-              Failure(ErrorMessages.DAuthLoginCannotGetOrCreateUser)
+              Failure(ErrorMessages.DAuthCannotGetOrCreateUser)
             case Failure(msg, t, c) =>
               Failure(msg, t, c)
             case _ =>
-              Failure(ErrorMessages.DAuthLoginUnknownError)
+              Failure(ErrorMessages.DAuthUnknownError)
           }
     } yield {
       tuple
@@ -194,15 +194,15 @@ object DAuthLogin extends RestHelper with MdcLoggable {
     logger.debug("login_user_name: " + username)
     for {
       tuple <- 
-        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = DAuth, idGivenByProvider = username, consentId = None, name = None, email = None) map {
+        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = DAuthValue, idGivenByProvider = username, consentId = None, name = None, email = None) map {
           case (Full(u), _) =>
             Full(u, callContext) // Return user
           case (Empty, _) =>
-            Failure(ErrorMessages.DAuthLoginCannotGetOrCreateUser)
+            Failure(ErrorMessages.DAuthCannotGetOrCreateUser)
           case (Failure(msg, t, c), _) =>
             Failure(msg, t, c)
           case _ =>
-            Failure(ErrorMessages.DAuthLoginUnknownError)
+            Failure(ErrorMessages.DAuthUnknownError)
         }
     } yield {
       tuple
@@ -225,20 +225,20 @@ object DAuthLogin extends RestHelper with MdcLoggable {
       Some(true),
       name = Some(consumerName),
       appType = None,
-      description = Some(DAuth),
+      description = Some(DAuthValue),
       developerEmail = None,
       redirectURL = None,
       createdByUserId = Some(u.userId)
     )
   }
 
-  // Return a Map containing the DAuthLogin parameter : token -> value
+  // Return a Map containing the DAuth parameter : token -> value
   def getAllParameters(request: Box[Req]): Map[String, String] = {
     def toMap(parametersList: String) = {
-      //transform the string "DAuthLogin token="value""
-      //to a tuple (DAuthLogin_parameter,Decoded(value))
+      //transform the string "DAuth token="value""
+      //to a tuple (DAuth_parameter,Decoded(value))
       def dynamicListExtract(input: String) = {
-        val DAuthLoginPossibleParameters =
+        val DAuthPossibleParameters =
           List(
             "token"
           )
@@ -246,7 +246,7 @@ object DAuthLogin extends RestHelper with MdcLoggable {
           val split = input.split("=", 2)
           val parameterValue = split(1).replace("\"", "")
           //add only OAuth parameters and not empty
-          if (DAuthLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
+          if (DAuthPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
             Some(split(0), parameterValue) // return key , value
           else
             None
@@ -254,8 +254,8 @@ object DAuthLogin extends RestHelper with MdcLoggable {
         else
           None
       }
-      // We delete the "DAuthLogin" prefix and all the white spaces that may exist in the string
-      val cleanedParameterList = parametersList.stripPrefix("DAuthLogin").replaceAll("\\s", "")
+      // We delete the "DAuth" prefix and all the white spaces that may exist in the string
+      val cleanedParameterList = parametersList.stripPrefix("DAuth").replaceAll("\\s", "")
       val params = Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
       params
     }
@@ -263,10 +263,10 @@ object DAuthLogin extends RestHelper with MdcLoggable {
     request match {
       case Full(a) => a.header("Authorization") match {
         case Full(header) => {
-          if (header.contains("DAuthLogin"))
+          if (header.contains("DAuth"))
             toMap(header)
           else
-            Map("error" -> "Missing DAuthLogin in header!")
+            Map("error" -> "Missing DAuth in header!")
         }
         case _ => Map("error" -> "Missing Authorization header!")
       }
@@ -275,7 +275,7 @@ object DAuthLogin extends RestHelper with MdcLoggable {
   }
 
   // Returns the missing parameters
-  def missingDAuthLoginParameters(parameters: Map[String, String]): Set[String] = {
+  def missingDAuthParameters(parameters: Map[String, String]): Set[String] = {
     ("token" :: List()).toSet diff parameters.keySet
   }
 
@@ -314,15 +314,15 @@ object DAuthLogin extends RestHelper with MdcLoggable {
 
 
   def getUser : Box[User] = {
-    val (httpCode, message, parameters) = DAuthLogin.validator(S.request)
+    val (httpCode, message, parameters) = DAuth.validator(S.request)
     httpCode match {
       case 200 =>
-        val payload = DAuthLogin.parseJwt(parameters)
+        val payload = DAuth.parseJwt(parameters)
         payload match {
           case Full(payload) =>
             val username = getFieldFromPayloadJson(payload, "smart_contract_address")
             logger.debug("username: " + username)
-            Users.users.vend.getUserByProviderId(provider = DAuth, idGivenByProvider = username)
+            Users.users.vend.getUserByProviderId(provider = DAuthValue, idGivenByProvider = username)
           case _ =>
             None
         }

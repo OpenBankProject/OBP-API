@@ -407,19 +407,19 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       APIUtil.getPropsValue("dauth.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
           val s = S
-          val (httpCode, message, parameters) = DAuthLogin.validator(s.request)
+          val (httpCode, message, parameters) = DAuth.validator(s.request)
           httpCode match {
             case 200 =>
-              val payload = DAuthLogin.parseJwt(parameters)
+              val payload = DAuth.parseJwt(parameters)
               payload match {
                 case Full(payload) =>
                   val s = S
-                  DAuthLogin.getOrCreateResourceUser(payload: String, Some(cc)) match {
+                  DAuth.getOrCreateResourceUser(payload: String, Some(cc)) match {
                     case Full((u, callContext)) => // Authentication is successful
-                      val consumer = DAuthLogin.getOrCreateConsumer(payload, u)
-                      setGatewayResponseHeader(s) {DAuthLogin.createJwt(payload)}
-                      val jwt = DAuthLogin.createJwt(payload)
-                      val callContextUpdated = ApiSession.updateCallContext(DAuthLoginResponseHeader(Some(jwt)), callContext)
+                      val consumer = DAuth.getOrCreateConsumer(payload, u)
+                      setGatewayResponseHeader(s) {DAuth.createJwt(payload)}
+                      val jwt = DAuth.createJwt(payload)
+                      val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
                       fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload, httpCode))
@@ -427,19 +427,19 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                 case Failure(msg, t, c) =>
                   Failure(msg, t, c)
                 case _ =>
-                  Failure(ErrorMessages.DAuthLoginUnknownError)
+                  Failure(ErrorMessages.DAuthUnknownError)
               }
             case _ =>
               Failure(message)
           }
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
-          Failure(ErrorMessages.DAuthLoginWhiteListAddresses)
+          Failure(ErrorMessages.DAuthWhiteListAddresses)
         case Empty =>
-          Failure(ErrorMessages.DAuthLoginHostPropertyMissing) // There is no dauth.host in props file
+          Failure(ErrorMessages.DAuthHostPropertyMissing) // There is no dauth.host in props file
         case Failure(msg, t, c) =>
           Failure(msg, t, c)
         case _ =>
-          Failure(ErrorMessages.DAuthLoginUnknownError)
+          Failure(ErrorMessages.DAuthUnknownError)
       }
     } 
     else {

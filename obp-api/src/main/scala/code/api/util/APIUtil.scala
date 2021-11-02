@@ -181,7 +181,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
   
-  def hasDAuthHeader(authorization: Box[String]) = hasHeader("DAuthLogin", authorization)
+  def hasDAuthHeader(authorization: Box[String]) = hasHeader("DAuth", authorization)
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -2249,7 +2249,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /**
    * Defines DAuth Custom Response Header.
    */
-  val DAuthResponseHeaderName = "DAuthLogin"
+  val DAuthResponseHeaderName = "DAuth"
   /**
    * Set value of DAuth Custom Response Header.
    */
@@ -2263,7 +2263,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => Nil
     }
   }
-  def getDAuthLoginJwt(): Option[String] = {
+  def getDAuthJwt(): Option[String] = {
     getDAuthResponseHeader() match {
       case x :: Nil =>
         Some(x._2)
@@ -2735,22 +2735,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case _ =>
             Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
         }
-      }  // DAuthLogin Login
+      }  // DAuth Login
       else if (getPropsAsBoolValue("allow_dauth_login", false) && hasDAuthHeader(cc.authReqHeaderField)) {
         logger.info("allow_dauth_login-getRemoteIpAddress: " + remoteIpAddress )
         APIUtil.getPropsValue("dauth.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
-            val (httpCode, message, parameters) = DAuthLogin.validator(s.request)
+            val (httpCode, message, parameters) = DAuth.validator(s.request)
             httpCode match {
               case 200 =>
-                val payload = DAuthLogin.parseJwt(parameters)
+                val payload = DAuth.parseJwt(parameters)
                 payload match {
                   case Full(payload) =>
-                    DAuthLogin.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
+                    DAuth.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
                       case Full((u,callContext)) => // Authentication is successful
-                        val consumer = DAuthLogin.getOrCreateConsumer(payload, u)
-                        val jwt = DAuthLogin.createJwt(payload)
-                        val callContextUpdated = ApiSession.updateCallContext(DAuthLoginResponseHeader(Some(jwt)), callContext)
+                        val consumer = DAuth.getOrCreateConsumer(payload, u)
+                        val jwt = DAuth.createJwt(payload)
+                        val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
                         (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
                       case Failure(msg, t, c) =>
                         (Failure(msg, t, c), None)
@@ -2760,19 +2760,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                   case Failure(msg, t, c) =>
                     Future { (Failure(msg, t, c), None) }
                   case _ =>
-                    Future { (Failure(ErrorMessages.DAuthLoginUnknownError), None) }
+                    Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
                 }
               case _ =>
                 Future { (Failure(message), None) }
             }
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
-            Future { (Failure(ErrorMessages.DAuthLoginWhiteListAddresses), None) }
+            Future { (Failure(ErrorMessages.DAuthWhiteListAddresses), None) }
           case Empty =>
-            Future { (Failure(ErrorMessages.DAuthLoginHostPropertyMissing), None) } // There is no dauth.host in props file
+            Future { (Failure(ErrorMessages.DAuthHostPropertyMissing), None) } // There is no dauth.host in props file
           case Failure(msg, t, c) =>
             Future { (Failure(msg, t, c), None) }
           case _ =>
-            Future { (Failure(ErrorMessages.DAuthLoginUnknownError), None) }
+            Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
         }
       } 
       else if(Option(cc).flatMap(_.user).isDefined) {

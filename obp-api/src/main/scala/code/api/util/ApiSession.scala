@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil._
-import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, DAuthLogin, OAuth2_OIDC, OAuth2_OIDC_FAPI}
+import code.api.util.AuthenticationType.{Anonymous, DirectLogin, GatewayLogin, DAuth, OAuth2_OIDC, OAuth2_OIDC_FAPI}
 import code.api.util.ErrorMessages.{BankAccountNotFound, UserNotLoggedIn}
 import code.api.util.RateLimitingJson.CallLimit
 import code.context.UserAuthContextProvider
@@ -26,8 +26,8 @@ import scala.collection.immutable.List
 case class CallContext(
                        gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
                        gatewayLoginResponseHeader: Option[String] = None,
-                       dauthLoginRequestPayload: Option[JSONFactoryDAuth.PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
-                       dauthLoginResponseHeader: Option[String] = None,
+                       dauthRequestPayload: Option[JSONFactoryDAuth.PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
+                       dauthResponseHeader: Option[String] = None,
                        spelling: Option[String] = None,
                        user: Box[User] = Empty,
                        consumer: Box[Consumer] = Empty,
@@ -141,7 +141,7 @@ case class CallContext(
     if(hasGatewayHeader(authReqHeaderField)) {
       GatewayLogin
     } else if(hasDAuthHeader(authReqHeaderField)) { // DAuth Login
-      DAuthLogin
+      DAuth
     } else if(has2021DirectLoginHeader(requestHeaders)) { // Direct Login
       DirectLogin
     }  else if(hasDirectLoginHeader(authReqHeaderField)) { // Direct Login Deprecated
@@ -166,7 +166,7 @@ object AuthenticationType extends OBPEnumeration[AuthenticationType]{
     override def toString: String = "OAuth1.0a"
   }
   object GatewayLogin extends AuthenticationType
-  object DAuthLogin extends AuthenticationType
+  object DAuth extends AuthenticationType
   object OAuth2_OIDC extends AuthenticationType
   object OAuth2_OIDC_FAPI extends AuthenticationType
   object Anonymous extends AuthenticationType
@@ -202,8 +202,8 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
 trait LoginParam
 case class GatewayLoginRequestPayload(jwtPayload: Option[PayloadOfJwtJSON]) extends LoginParam
 case class GatewayLoginResponseHeader(jwt: Option[String]) extends LoginParam
-case class DAuthLoginRequestPayload(jwtPayload: Option[JSONFactoryDAuth.PayloadOfJwtJSON]) extends LoginParam
-case class DAuthLoginResponseHeader(jwt: Option[String]) extends LoginParam
+case class DAuthRequestPayload(jwtPayload: Option[JSONFactoryDAuth.PayloadOfJwtJSON]) extends LoginParam
+case class DAuthResponseHeader(jwt: Option[String]) extends LoginParam
 
 case class Spelling(spelling: Box[String])
 
@@ -246,9 +246,9 @@ object ApiSession {
 
   def updateCallContext(jwt: LoginParam, cnt: Option[CallContext]): Option[CallContext] = {
     jwt match {
-      case GatewayLoginRequestPayload(None) | DAuthLoginRequestPayload(None) =>
+      case GatewayLoginRequestPayload(None) | DAuthRequestPayload(None) =>
         cnt
-      case GatewayLoginResponseHeader(None) | DAuthLoginResponseHeader(None) =>
+      case GatewayLoginResponseHeader(None) | DAuthResponseHeader(None) =>
         cnt
       case GatewayLoginRequestPayload(Some(jwtPayload)) =>
         cnt match {
@@ -264,19 +264,19 @@ object ApiSession {
           case None =>
             Some(CallContext(gatewayLoginRequestPayload = None, gatewayLoginResponseHeader = Some(j), spelling = None))
         }
-      case DAuthLoginRequestPayload(Some(jwtPayload)) =>
+      case DAuthRequestPayload(Some(jwtPayload)) =>
         cnt match {
           case Some(v) =>
-            Some(v.copy(dauthLoginRequestPayload = Some(jwtPayload)))
+            Some(v.copy(dauthRequestPayload = Some(jwtPayload)))
           case None =>
-            Some(CallContext(dauthLoginRequestPayload = Some(jwtPayload), dauthLoginResponseHeader = None, spelling = None))
+            Some(CallContext(dauthRequestPayload = Some(jwtPayload), dauthResponseHeader = None, spelling = None))
         }
-      case DAuthLoginResponseHeader(Some(j)) =>
+      case DAuthResponseHeader(Some(j)) =>
         cnt match {
           case Some(v) =>
-            Some(v.copy(dauthLoginResponseHeader = Some(j)))
+            Some(v.copy(dauthResponseHeader = Some(j)))
           case None =>
-            Some(CallContext(dauthLoginRequestPayload = None, dauthLoginResponseHeader = Some(j), spelling = None))
+            Some(CallContext(dauthRequestPayload = None, dauthResponseHeader = Some(j), spelling = None))
         }
     }
   }
