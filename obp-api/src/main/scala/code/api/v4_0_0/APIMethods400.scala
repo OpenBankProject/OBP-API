@@ -79,6 +79,7 @@ import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
 import scala.collection.immutable.{List, Nil}
@@ -4710,6 +4711,160 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory400.createTransactionAttributeJson(accountAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createHistoricalTransactionAtBank,
+      implementedInApiVersion,
+      nameOf(createHistoricalTransactionAtBank),
+      "POST",
+      "/banks/BANK_ID/management/historical/transactions",
+      "Create Historical Transactions ",
+      s"""
+         |Import the historical transactions.
+         |
+         |The fields bank_id, account_id, counterparty_id in the json body are all optional ones.
+         |It support transfer money from account to account, account to counterparty and counterparty to counterparty
+         |Both bank_id + account_id and counterparty_id can identify the account, so OBP only need one of them to make the payment.
+         |So: 
+         |When you need the account to account, just omit counterparty_id field.eg:
+         |{
+         |  "from": {
+         |    "bank_id": "gh.29.uk",
+         |    "account_id": "1ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  },
+         |  "to": {
+         |    "bank_id": "gh.29.uk",
+         |    "account_id": "2ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  },
+         |  "value": {
+         |    "currency": "GBP",
+         |    "amount": "10"
+         |  },
+         |  "description": "this is for work",
+         |  "posted": "2017-09-19T02:31:05Z",
+         |  "completed": "2017-09-19T02:31:05Z",
+         |  "type": "SANDBOX_TAN",
+         |  "charge_policy": "SHARED"
+         |}
+         |
+         |When you need the counterparty to counterparty, need to omit bank_id and account_id field.eg:
+         |{
+         |  "from": {
+         |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
+         |  },
+         |  "to": {
+         |    "counterparty_id": "26392b7d-4218-45ea-b9a7-eaa71c0202f9"
+         |  },
+         |  "value": {
+         |    "currency": "GBP",
+         |    "amount": "10"
+         |  },
+         |  "description": "this is for work",
+         |  "posted": "2017-09-19T02:31:05Z",
+         |  "completed": "2017-09-19T02:31:05Z",
+         |  "type": "SANDBOX_TAN",
+         |  "charge_policy": "SHARED"
+         |}
+         |
+         |or, you can counterparty to account
+         |{
+         |  "from": {
+         |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
+         |  },
+         |  "to": {
+         |    "bank_id": "gh.29.uk",
+         |    "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  },
+         |  "value": {
+         |    "currency": "GBP",
+         |    "amount": "10"
+         |  },
+         |  "description": "this is for work",
+         |  "posted": "2017-09-19T02:31:05Z",
+         |  "completed": "2017-09-19T02:31:05Z",
+         |  "type": "SANDBOX_TAN",
+         |  "charge_policy": "SHARED"
+         |}
+         |
+         |This call is experimental.
+       """.stripMargin,
+      postHistoricalTransactionAtBankJson,
+      postHistoricalTransactionResponseJson,
+      List(
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        CounterpartyNotFoundByCounterpartyId,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canCreateHistoricalTransactionAtBank))
+    )
+
+
+    lazy val createHistoricalTransactionAtBank : OBPEndpoint =  {
+      case "banks" :: BankId(bankId) :: "management"  :: "historical" :: "transactions" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateHistoricalTransactionAtBank, callContext)
+
+            // Check the input JSON format, here is just check the common parts of all four types
+            transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostHistoricalTransactionJson ", 400, callContext) {
+              json.extract[PostHistoricalTransactionAtBankJson]
+            }
+            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(transDetailsJson.from_account_id), callContext)
+            (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(transDetailsJson.to_account_id), callContext)
+            amountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is ${transDetailsJson.value.amount} ", 400, callContext) {
+              BigDecimal(transDetailsJson.value.amount)
+            }
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${amountNumber}'", cc=callContext) {
+              amountNumber > BigDecimal("0")
+            }
+            posted <- NewStyle.function.tryons(s"$InvalidDateFormat Current `posted` field is ${transDetailsJson.posted}. Please use this format ${DateWithSecondsFormat.toPattern}! ", 400, callContext) {
+              new SimpleDateFormat(DateWithSeconds).parse(transDetailsJson.posted)
+            }
+            completed <- NewStyle.function.tryons(s"$InvalidDateFormat Current `completed` field  is ${transDetailsJson.completed}. Please use this format ${DateWithSecondsFormat.toPattern}! ", 400, callContext) {
+              new SimpleDateFormat(DateWithSeconds).parse(transDetailsJson.completed)
+            }
+            // Prevent default value for transaction request type (at least).
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
+              isValidCurrencyISOCode(transDetailsJson.value.currency)
+            }
+            amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
+            chargePolicy = transDetailsJson.charge_policy
+            //There is no constraint for the type at the moment  
+            transactionType = transDetailsJson.`type`
+            (transactionId, callContext) <- NewStyle.function.makeHistoricalPayment(
+              fromAccount,
+              toAccount,
+              posted,
+              completed,
+              amountNumber,
+              transDetailsJson.value.currency,
+              transDetailsJson.description,
+              transactionType,
+              chargePolicy,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createPostHistoricalTransactionResponseJson(
+              bankId,
+              transactionId,
+              fromAccount.accountId,
+              toAccount.accountId,
+              value= amountOfMoneyJson,
+              description = transDetailsJson.description,
+              posted,
+              completed,
+              transactionRequestType = transactionType,
+              chargePolicy =transDetailsJson.charge_policy), HttpCode.`201`(callContext))
           }
       }
     }
