@@ -6,11 +6,6 @@ import code.setup.{DefaultUsers, PropsReset, ServerSetup}
 import org.scalatest._
 
 class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with PropsReset{
-
-
-  setPropsValues("allow_dauth" -> "true")
-  setPropsValues("dauth.host" -> "127.0.0.1")
-  setPropsValues("jwt.token_secret"->"secretsecretsecretstsecretssssss")
   
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
   /* Payload data. verified by wrong secret "123" -- show : DAuthJwtTokenIsNotValid
@@ -48,7 +43,7 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
   def dauthRequest = baseRequest / "obp" / "v2.0.0" / "users" /"current" <@ (user1)
   def dauthNonBlockingRequest = baseRequest / "obp" / "v3.0.0" / "users" / "current" <@ (user1)
 
-  feature("DAuth in a BLOCKING way") {
+  feature("DAuth Testing") {
 
     scenario("Missing parameter token in a blocking way") {
       When("We try to login without parameter token in a Header")
