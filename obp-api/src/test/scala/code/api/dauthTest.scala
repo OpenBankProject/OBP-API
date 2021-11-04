@@ -8,7 +8,7 @@ import org.scalatest._
 class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with PropsReset{
 
 
-  setPropsValues("allow_dauth_login" -> "true")
+  setPropsValues("allow_dauth" -> "true")
   setPropsValues("dauth.host" -> "127.0.0.1")
   setPropsValues("jwt.token_secret"->"secretsecretsecretstsecretssssss")
   
