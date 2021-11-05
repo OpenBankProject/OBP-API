@@ -140,7 +140,7 @@ case class CallContext(
   def authType: AuthenticationType = {
     if(hasGatewayHeader(authReqHeaderField)) {
       GatewayLogin
-    } else if(hasDAuthHeader(authReqHeaderField)) { // DAuth Login
+    } else if(requestHeaders.exists(_.name=="DAuth")) { // DAuth Login
       DAuth
     } else if(has2021DirectLoginHeader(requestHeaders)) { // Direct Login
       DirectLogin

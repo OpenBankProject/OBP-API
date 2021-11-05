@@ -39,6 +39,9 @@ import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.http.provider.HTTPParam
+
+import scala.collection.immutable.List
 import scala.concurrent.Future
 
 /**
@@ -90,9 +93,8 @@ object DAuth extends RestHelper with MdcLoggable {
     }
   }
 
-  def parseJwt(parameters: Map[String, String]): Box[String] = {
-    val jwt = getToken(parameters)
-    logger.debug("parseJwt says jwt.toString is: " + jwt.toString)
+  def parseJwt(jwt:String): Box[String] = {
+    logger.debug("parseJwt says jwt.toString is: " + jwt)
     logger.debug("parseJwt says: validateJwtToken(jwt) is:" +  validateJwtToken(jwt))
     validateJwtToken(jwt) match {
       case Full(jwtPayload) =>
@@ -127,32 +129,8 @@ object DAuth extends RestHelper with MdcLoggable {
   }
 
   // Check if the request (access token or request token) is valid and return a tuple
-  def validator(request: Box[Req]) : (Int, String, Map[String,String]) = {
-    // First we try to extract all parameters from a Request
-    val parameters: Map[String, String] = getAllParameters(request)
-    val emptyMap = Map[String, String]()
-
-    parameters.get("error") match {
-      case Some(m) => {
-        logger.error("DAuth error message : " + m)
-        (400, m, emptyMap)
-      }
-      case _ => {
-        // Are all the necessary DAuth parameters present?
-        val missingParams: Set[String] = missingDAuthParameters(parameters)
-        missingParams.nonEmpty match {
-          case true => {
-            val message = ErrorMessages.DAuthMissingParameters + missingParams.mkString(", ")
-            logger.error("DAuth error message : " + message)
-            (400, message, emptyMap)
-          }
-          case false => {
-            logger.debug("DAuth parameters : " + parameters)
-            (200, "", parameters)
-          }
-        }
-      }
-    }
+  def getDAuthToken(requestHeaders: List[HTTPParam]) : Option[List[String]]  = {
+    requestHeaders.find(_.name=="DAuth").map(_.values)
   }
 
   def getOrCreateResourceUser(jwtPayload: String, callContext: Option[CallContext]) : Box[(User, Option[CallContext])] = {
@@ -213,60 +191,6 @@ object DAuth extends RestHelper with MdcLoggable {
     Consumers.consumers.vend.getConsumerByConsumerKey(consumeyKey)
   }
 
-  // Return a Map containing the DAuth parameter : token -> value
-  def getAllParameters(request: Box[Req]): Map[String, String] = {
-    def toMap(parametersList: String) = {
-      //transform the string "DAuth token="value""
-      //to a tuple (DAuth_parameter,Decoded(value))
-      def dynamicListExtract(input: String) = {
-        val DAuthPossibleParameters =
-          List(
-            "token"
-          )
-        if (input contains "=") {
-          val split = input.split("=", 2)
-          val parameterValue = split(1).replace("\"", "")
-          //add only OAuth parameters and not empty
-          if (DAuthPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
-            Some(split(0), parameterValue) // return key , value
-          else
-            None
-        }
-        else
-          None
-      }
-      // We delete the "DAuth" prefix and all the white spaces that may exist in the string
-      val cleanedParameterList = parametersList.stripPrefix("DAuth").replaceAll("\\s", "")
-      val params = Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
-      params
-    }
-
-    request match {
-      case Full(a) => a.header("Authorization") match {
-        case Full(header) => {
-          if (header.contains("DAuth"))
-            toMap(header)
-          else
-            Map("error" -> "Missing DAuth in header!")
-        }
-        case _ => Map("error" -> "Missing Authorization header!")
-      }
-      case _ => Map("error" -> "Request is incorrect!")
-    }
-  }
-
-  // Returns the missing parameters
-  def missingDAuthParameters(parameters: Map[String, String]): Set[String] = {
-    ("token" :: List()).toSet diff parameters.keySet
-  }
-
-  private def getToken(params: Map[String, String]): String = {
-    logger.debug("getToken params are: " + params.toString())
-    val token = params.getOrElse("token", "")
-    logger.debug("getToken wants to return token: " + token)
-    token
-  }
-
   private def getFieldFromPayloadJson(payloadAsJsonString: String, fieldName: String) = {
     val jwtJson = parse(payloadAsJsonString) // Transform Json string to JsonAST
     val v = jwtJson.\(fieldName)
@@ -277,7 +201,6 @@ object DAuth extends RestHelper with MdcLoggable {
         compactRender(v).replace("\"", "")
     }
   }
-
   // Try to find errorCode in Json string received from South side and extract to list
   // Return list of error codes values
   def getErrors(message: String) : List[String] = {
@@ -293,22 +216,16 @@ object DAuth extends RestHelper with MdcLoggable {
     listOfValues
   }
 
-
   def getUser : Box[User] = {
-    val (httpCode, message, parameters) = DAuth.validator(S.request)
-    httpCode match {
-      case 200 =>
-        val payload = DAuth.parseJwt(parameters)
-        payload match {
-          case Full(payload) =>
-            val username = getFieldFromPayloadJson(payload, "smart_contract_address")
-            val provider = getFieldFromPayloadJson(payload, "network_name")
-            logger.debug("username: " + username)
-            Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = username)
-          case _ =>
-            None
-        }
-      case _  =>
+    val token = S.getRequestHeader("DAuth")
+    val payload = token.map(DAuth.parseJwt).flatten
+    payload match {
+      case Full(payload) =>
+        val username = getFieldFromPayloadJson(payload, "smart_contract_address")
+        val provider = getFieldFromPayloadJson(payload, "network_name")
+        logger.debug("username: " + username)
+        Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = username)
+      case _ =>
         None
     }
   }

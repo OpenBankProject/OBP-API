@@ -181,7 +181,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
   
-  def hasDAuthHeader(authorization: Box[String]) = hasHeader("DAuth", authorization)
+  /**
+   * The value `DAuth` is in the KEY
+   * DAuth:xxxxx
+   * 
+   * Other types: the `GatewayLogin` is in the VALUE 
+   * Authorization:GatewayLogin token=xxxx
+   */
+  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.map(_.name).exists(_ =="DAuth")
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -2736,14 +2743,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
         }
       }  // DAuth Login
-      else if (getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.authReqHeaderField)) {
+      else if (getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
         logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
         APIUtil.getPropsValue("dauth.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
-            val (httpCode, message, parameters) = DAuth.validator(s.request)
-            httpCode match {
-              case 200 =>
-                val payload = DAuth.parseJwt(parameters)
+            val dauthToken = DAuth.getDAuthToken(cc.requestHeaders)
+            dauthToken match {
+              case Some(token :: _) =>
+                val payload = DAuth.parseJwt(token)
                 payload match {
                   case Full(payload) =>
                     DAuth.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
@@ -2763,7 +2770,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                     Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
                 }
               case _ =>
-                Future { (Failure(message), None) }
+                Future { (Failure(InvalidDAuthHeaderToken), None) }
             }
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
             Future { (Failure(ErrorMessages.DAuthWhiteListAddresses), None) }
