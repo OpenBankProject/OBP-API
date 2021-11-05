@@ -416,7 +416,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                   val s = S
                   DAuth.getOrCreateResourceUser(payload: String, Some(cc)) match {
                     case Full((u, callContext)) => // Authentication is successful
-                      val consumer = DAuth.getOrCreateConsumer(payload, u)
+                      val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.
                       val jwt = DAuth.createJwt(payload)
                       val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
                       fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))

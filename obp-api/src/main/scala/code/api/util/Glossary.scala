@@ -2075,8 +2075,8 @@ object Glossary extends MdcLoggable  {
 |  "network_name": "ETHEREUM",
 |  "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
 |  "consumer_id": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
-|  "time_stamp": "2021-11-04T14:13:40Z",
-|  "caller_request_id": "0Xe876987694328763492876348928736497869273649"
+|  "timestamp": "2021-11-04T14:13:40Z",
+|  "request_id": "0Xe876987694328763492876348928736497869273649"
 |}
 |```
 |VERIFY SIGNATURE
@@ -2159,8 +2159,8 @@ object Glossary extends MdcLoggable  {
 |    "network_name": "ETHEREUM",
 |    "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
 |    "consumer_id": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
-|    "time_stamp": datetime.now(timezone.utc).strftime(DATE_FORMAT),
-|    "caller_request_id": "0Xe876987694328763492876348928736497869273649"
+|    "timestamp": datetime.now(timezone.utc).strftime(DATE_FORMAT),
+|    "request_id": "0Xe876987694328763492876348928736497869273649"
 |}
 |
 |token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256').decode("utf-8")

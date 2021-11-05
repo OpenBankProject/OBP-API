@@ -154,7 +154,7 @@ object ErrorMessages {
   val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
   val GatewayLoginHostPropertyMissing = "OBP-20030: Property gateway.host is not defined."
   val GatewayLoginWhiteListAddresses = "OBP-20031: Gateway login can be done only from allowed addresses."
-  val GatewayLoginJwtTokenIsNotValid = "OBP-20040: The JWT is corrupted/changed during a transport."
+  val GatewayLoginJwtTokenIsNotValid = "OBP-20040: The Gateway login JWT is corrupted/changed during a transport."
   val GatewayLoginCannotExtractJwtToken = "OBP-20041: Header, Payload and Signature cannot be extracted from the JWT."
   val GatewayLoginNoNeedToCallCbs = "OBP-20042: There is no need to call CBS"
   val GatewayLoginCannotFindUser = "OBP-20043: User cannot be found. Please initiate CBS communication in order to create it."
@@ -188,7 +188,7 @@ object ErrorMessages {
   val DAuthHostPropertyMissing = "OBP-20068: Property dauth.host is not defined."
   val DAuthWhiteListAddresses = "OBP-20069: DAuth login can be done only from allowed addresses."
   val DAuthNoJwtForResponse = "OBP-20070: There is no useful value for JWT."
-  val DAuthJwtTokenIsNotValid = "OBP-20071: The JWT is corrupted/changed during a transport."
+  val DAuthJwtTokenIsNotValid = "OBP-20071: The DAuth JWT is corrupted/changed during a transport."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
 

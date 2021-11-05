@@ -47,7 +47,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   setPropsValues("migration_scripts.execute" -> "true")
   setPropsValues("allow_dauth" -> "true")
   setPropsValues("dauth.host" -> "127.0.0.1")
-  setPropsValues("jwt.token_secret"->"secretsecretsecretstsecretssssss")
+  setPropsValues("jwt.token_secret"->"your-at-least-256-bit-secret-token")
 
   val server = TestServer
   def baseRequest = host(server.host, server.port)

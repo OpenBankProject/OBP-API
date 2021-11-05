@@ -33,13 +33,11 @@ import code.model.{Consumer, UserX}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
-import com.openbankproject.commons.model.{User}
+import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
-import net.liftweb.util.Helpers
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -54,10 +52,10 @@ object JSONFactoryDAuth {
   case class PayloadOfJwtJSON(
     smart_contract_address: String,
     network_name: String,
-    msg_sender: String,
-    consumer_id: String,
-    time_stamp: String,
-    caller_request_id: String
+    consumer_key: String,  
+    timestamp: Option[String],
+    msg_sender: Option[String],
+    request_id: Option[String]
   )
 
 }
@@ -69,17 +67,17 @@ object DAuth extends RestHelper with MdcLoggable {
     val smartContractAddress = getFieldFromPayloadJson(payloadAsJsonString, "smart_contract_address")
     val networkName = getFieldFromPayloadJson(payloadAsJsonString, "network_name")
     val msgSender = getFieldFromPayloadJson(payloadAsJsonString, "msg_sender")
-    val consumerId = getFieldFromPayloadJson(payloadAsJsonString, "consumer_id")
-    val timeStamp = getFieldFromPayloadJson(payloadAsJsonString, "time_stamp")
-    val callerRequestId = getFieldFromPayloadJson(payloadAsJsonString, "caller_request_id")
+    val consumerKey = getFieldFromPayloadJson(payloadAsJsonString, "consumer_key")
+    val timeStamp = getFieldFromPayloadJson(payloadAsJsonString, "timestamp")
+    val requestId = getFieldFromPayloadJson(payloadAsJsonString, "request_id")
 
     val json = JSONFactoryDAuth.PayloadOfJwtJSON(
       smart_contract_address = smartContractAddress,
       network_name = networkName,
-      msg_sender = msgSender,
-      consumer_id = consumerId,
-      time_stamp = timeStamp,
-      caller_request_id = callerRequestId
+      consumer_key = consumerKey,
+      msg_sender = Some(msgSender),
+      timestamp = Some(timeStamp),
+      request_id = Some(requestId)
     )
     val jwtPayloadAsJson = compactRender(Extraction.decompose(json))
     val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
@@ -210,28 +208,9 @@ object DAuth extends RestHelper with MdcLoggable {
     }
   }
 
-  def getOrCreateConsumer(jwtPayload: String, u: User) : Box[Consumer] = {
-    val consumerId = getFieldFromPayloadJson(jwtPayload, "consumer_id")
-    val consumerName = getFieldFromPayloadJson(jwtPayload, "msg_sender")
-    val DAuthValue = "DAuth" // This value is used for Consumer.description
-    logger.debug("app_id: " + consumerId)
-    logger.debug("app_name: " + consumerName)
-    Consumers.consumers.vend.getOrCreateConsumer(
-      consumerId=Some(consumerId),
-      Some(Helpers.randomString(40).toLowerCase),
-      Some(Helpers.randomString(40).toLowerCase),
-      None,
-      None,
-      None,
-      None,
-      Some(true),
-      name = Some(consumerName),
-      appType = None,
-      description = Some(DAuthValue),
-      developerEmail = None,
-      redirectURL = None,
-      createdByUserId = Some(u.userId)
-    )
+  def getConsumerByConsumerKey(jwtPayload: String) : Box[Consumer] = {
+    val consumeyKey = getFieldFromPayloadJson(jwtPayload, "consumer_key")
+    Consumers.consumers.vend.getConsumerByConsumerKey(consumeyKey)
   }
 
   // Return a Map containing the DAuth parameter : token -> value
