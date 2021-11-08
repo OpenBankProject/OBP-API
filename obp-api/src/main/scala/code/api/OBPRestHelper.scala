@@ -401,18 +401,16 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           Failure(ErrorMessages.GatewayLoginUnknownError)
       }
     } 
-    else if (APIUtil.getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
-      logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
+    else if (APIUtil.getPropsAsBoolValue("allow_dauth_login", false) && hasDAuthHeader(cc.requestHeaders)) {
+      logger.info("allow_dauth_login-getRemoteIpAddress: " + remoteIpAddress )
       APIUtil.getPropsValue("dauth.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
-          val s = S
           val dauthToken = DAuth.getDAuthToken(cc.requestHeaders)
           dauthToken match {
             case Some(token :: _) =>
               val payload = DAuth.parseJwt(token)
               payload match {
                 case Full(payload) =>
-                  val s = S
                   DAuth.getOrCreateResourceUser(payload: String, Some(cc)) match {
                     case Full((u, callContext)) => // Authentication is successful
                       val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.

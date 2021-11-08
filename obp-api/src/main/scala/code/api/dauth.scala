@@ -130,7 +130,7 @@ object DAuth extends RestHelper with MdcLoggable {
 
   // Check if the request (access token or request token) is valid and return a tuple
   def getDAuthToken(requestHeaders: List[HTTPParam]) : Option[List[String]]  = {
-    requestHeaders.find(_.name=="DAuth").map(_.values)
+    requestHeaders.find(_.name==APIUtil.DAuthHeaderKey).map(_.values)
   }
 
   def getOrCreateResourceUser(jwtPayload: String, callContext: Option[CallContext]) : Box[(User, Option[CallContext])] = {
@@ -217,7 +217,7 @@ object DAuth extends RestHelper with MdcLoggable {
   }
 
   def getUser : Box[User] = {
-    val token = S.getRequestHeader("DAuth")
+    val token = S.getRequestHeader(APIUtil.DAuthHeaderKey)
     val payload = token.map(DAuth.parseJwt).flatten
     payload match {
       case Full(payload) =>

@@ -188,7 +188,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Other types: the `GatewayLogin` is in the VALUE 
    * Authorization:GatewayLogin token=xxxx
    */
-  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.map(_.name).exists(_ =="DAuth")
+  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.map(_.name).exists(_ ==DAuthHeaderKey)
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -2256,29 +2256,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /**
    * Defines DAuth Custom Response Header.
    */
-  val DAuthResponseHeaderName = "DAuth"
-  /**
-   * Set value of DAuth Custom Response Header.
-   */
-  def setDAuthResponseHeader(s: S)(value: String) = s.setSessionAttribute(DAuthResponseHeaderName, value)
-  /**
-   * @return - DAuth Custom Response Header.
-   */
-  def getDAuthResponseHeader() = {
-    S.getSessionAttribute(DAuthResponseHeaderName) match {
-      case Full(h) => List((DAuthResponseHeaderName, h))
-      case _ => Nil
-    }
-  }
-  def getDAuthJwt(): Option[String] = {
-    getDAuthResponseHeader() match {
-      case x :: Nil =>
-        Some(x._2)
-      case _ =>
-        None
-    }
-  }
-
+  val DAuthHeaderKey = "DAuth"
   /**
    * Turn a string of format "FooBar" into snake case "foo_bar"
    *
@@ -2743,8 +2721,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
         }
       }  // DAuth Login
-      else if (getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
-        logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
+      else if (getPropsAsBoolValue("allow_dauth_login", false) && hasDAuthHeader(cc.requestHeaders)) {
+        logger.info("allow_dauth_login-getRemoteIpAddress: " + remoteIpAddress )
         APIUtil.getPropsValue("dauth.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
             val dauthToken = DAuth.getDAuthToken(cc.requestHeaders)
@@ -2755,7 +2733,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                   case Full(payload) =>
                     DAuth.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
                       case Full((u,callContext)) => // Authentication is successful
-                        val consumer = DAuth.getConsumerByConsumerKey(payload)
+                        val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.
                         val jwt = DAuth.createJwt(payload)
                         val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
                         (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))

@@ -2016,12 +2016,12 @@ object Glossary extends MdcLoggable  {
 					""")
 
 
-	val dauthEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false))
+	val dauthEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_dauth_login", false))
 	{"Note: DAuth is enabled."} else {"Note: *DAuth is NOT enabled on this instance!*"}
 
 
 	glossaryItems += GlossaryItem(
-		title = "DAuth",
+		title = APIUtil.DAuthHeaderKey,
 		description =
 			s"""
 						 |### Introduction
@@ -2032,7 +2032,7 @@ object Glossary extends MdcLoggable  {
 |
 |Note: DAuth does *not* require an explicit POST like Direct Login to create the token.
 |
-|The **Gateway is responsible** for creating a token which is trusted by OBP **absolutely**!
+|The **DAuth is responsible** for creating a token which is trusted by OBP **absolutely**!
 |
 |When OBP receives a token via DAuth, OBP creates or gets a user based on the username (smart_contract_address) supplied.
 |
@@ -2048,7 +2048,7 @@ object Glossary extends MdcLoggable  {
 |# jwt.token_secret=your-at-least-256-bit-secret-token
 |# Enable/Disable DAuth communication at all
 |# In case isn't defined default value is false
-|# allow_dauth=false
+|# allow_dauth_login=false
 |# Define comma separated list of allowed IP addresses
 |# dauth.host=127.0.0.1
 |# -------------------------------------- DAuth--
@@ -2074,7 +2074,7 @@ object Glossary extends MdcLoggable  {
 |  "smart_contract_address": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
 |  "network_name": "ETHEREUM",
 |  "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
-|  "consumer_id": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
+|  "consumer_key": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
 |  "timestamp": "2021-11-04T14:13:40Z",
 |  "request_id": "0Xe876987694328763492876348928736497869273649"
 |}
@@ -2091,9 +2091,7 @@ object Glossary extends MdcLoggable  {
 |Here is the above example token:
 |
 |```
-|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9pZCI6IjB4MTIzNGE0ZWMzMWU4OWNlYTU0ZDFmMTI1ZGI3NTM2ZTg3NGFiNGE5NmI0ZDRmNjQzODY2OGI2YmIxMGE2YWRiIiwidGltZV9zdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwiY2FsbGVyX3JlcXVlc3RfaWQiOiIwWGU4NzY5ODc2OTQzMjg3NjM0OTI4NzYzNDg5Mjg3MzY0OTc4NjkyNzM2NDkifQ.
-|SbgXzyRNd6uLBYql_fwXi3KAWS8SaKYMHmnVFgbGRiY
+|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k
 |```
 |
 |
@@ -2120,12 +2118,12 @@ object Glossary extends MdcLoggable  {
 |        Host: localhost:8080
 |        User-Agent: curl/7.47.0
 |        Accept: */*
-|        Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9pZCI6IjB4MTIzNGE0ZWMzMWU4OWNlYTU0ZDFmMTI1ZGI3NTM2ZTg3NGFiNGE5NmI0ZDRmNjQzODY2OGI2YmIxMGE2YWRiIiwidGltZV9zdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwiY2FsbGVyX3JlcXVlc3RfaWQiOiIwWGU4NzY5ODc2OTQzMjg3NjM0OTI4NzYzNDg5Mjg3MzY0OTc4NjkyNzM2NDkifQ.SbgXzyRNd6uLBYql_fwXi3KAWS8SaKYMHmnVFgbGRiY"
+|        DAuth: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k
 |
 |CURL example
 |
 |```
-|curl -v -H 'Authorization: DAuth token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9pZCI6IjB4MTIzNGE0ZWMzMWU4OWNlYTU0ZDFmMTI1ZGI3NTM2ZTg3NGFiNGE5NmI0ZDRmNjQzODY2OGI2YmIxMGE2YWRiIiwidGltZV9zdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwiY2FsbGVyX3JlcXVlc3RfaWQiOiIwWGU4NzY5ODc2OTQzMjg3NjM0OTI4NzYzNDg5Mjg3MzY0OTc4NjkyNzM2NDkifQ.SbgXzyRNd6uLBYql_fwXi3KAWS8SaKYMHmnVFgbGRiY"' $getServerUrl/obp/v3.0.0/users/current
+|curl -v -H 'DAuth: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k' $getServerUrl/obp/v3.0.0/users/current
 |```
 |
 |
@@ -2157,15 +2155,14 @@ object Glossary extends MdcLoggable  {
 |payload = {
 |    "smart_contract_address": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
 |    "network_name": "ETHEREUM",
-|    "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
-|    "consumer_id": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
+|    "consumer_key": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
 |    "timestamp": datetime.now(timezone.utc).strftime(DATE_FORMAT),
+|    "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
 |    "request_id": "0Xe876987694328763492876348928736497869273649"
 |}
 |
 |token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256').decode("utf-8")
-|authorization = 'DAuth token="{}"'.format(token)
-|headers = {'Authorization': authorization}
+|headers = {'DAuth': token}
 |url = obp_api_host + '/obp/v4.0.0/users/current'
 |req = requests.get(url, headers=headers)
 |print(req.text)
@@ -2178,7 +2175,7 @@ object Glossary extends MdcLoggable  {
 |We:
 |
 |```
-|-> Check if Props allow_dauth is true
+|-> Check if Props allow_dauth_login is true
 |  -> Check if DAuth header exists
 |    -> Check if getRemoteIpAddress is OK
 |      -> Look for "token"

@@ -45,7 +45,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
 
   setPropsValues("migration_scripts.execute_all" -> "true")
   setPropsValues("migration_scripts.execute" -> "true")
-  setPropsValues("allow_dauth" -> "true")
+  setPropsValues("allow_dauth_login" -> "true")
   setPropsValues("dauth.host" -> "127.0.0.1")
   setPropsValues("jwt.token_secret"->"your-at-least-256-bit-secret-token")
 
