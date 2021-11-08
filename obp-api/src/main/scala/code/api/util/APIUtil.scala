@@ -2721,8 +2721,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
             Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
         }
       }  // DAuth Login
-      else if (getPropsAsBoolValue("allow_dauth_login", false) && hasDAuthHeader(cc.requestHeaders)) {
-        logger.info("allow_dauth_login-getRemoteIpAddress: " + remoteIpAddress )
+      else if (getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
+        logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
         APIUtil.getPropsValue("dauth.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
             val dauthToken = DAuth.getDAuthToken(cc.requestHeaders)

@@ -2016,7 +2016,7 @@ object Glossary extends MdcLoggable  {
 					""")
 
 
-	val dauthEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_dauth_login", false))
+	val dauthEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_dauth", false))
 	{"Note: DAuth is enabled."} else {"Note: *DAuth is NOT enabled on this instance!*"}
 
 
@@ -2048,7 +2048,7 @@ object Glossary extends MdcLoggable  {
 |# jwt.token_secret=your-at-least-256-bit-secret-token
 |# Enable/Disable DAuth communication at all
 |# In case isn't defined default value is false
-|# allow_dauth_login=false
+|# allow_dauth=false
 |# Define comma separated list of allowed IP addresses
 |# dauth.host=127.0.0.1
 |# -------------------------------------- DAuth--
@@ -2175,7 +2175,7 @@ object Glossary extends MdcLoggable  {
 |We:
 |
 |```
-|-> Check if Props allow_dauth_login is true
+|-> Check if Props allow_dauth is true
 |  -> Check if DAuth header exists
 |    -> Check if getRemoteIpAddress is OK
 |      -> Look for "token"
