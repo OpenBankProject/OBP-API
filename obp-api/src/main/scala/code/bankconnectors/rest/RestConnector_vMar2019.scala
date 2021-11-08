@@ -6580,7 +6580,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
     callContext: Option[CallContext]
   ): List[HttpHeader] = {
     
-    val needSignatureHead =  APIUtil.getPropsAsBoolValue("rest_connector_http_header_signature", false) 
+    val needSignatureHead =  APIUtil.getPropsAsBoolValue("rest_connector_sends_x-sign_header", false) 
     val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
     val headersFromGeneralContext = generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
     

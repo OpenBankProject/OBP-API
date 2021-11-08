@@ -816,9 +816,9 @@ featured_apis=elasticSearchWarehouseV300
 # If Rest Connector do not get the response in the following seconds, it will throw the error message back.
 # This props can be omitted, the default value is 59. It should be less than Nginx timeout.
 # rest2019_connector_timeout = 59 
-# If set it to `true`, it will add the signature (SHA256WithRSA) into each the rest connector http calls, and you need to upload the RSA 
-# private key into the UserAuthContext. 
-#rest_connector_http_header_signature=false
+# If set it to `true`, it will add the x-sign (SHA256WithRSA) into each the rest connector http calls, 
+# and you need to upload the RSA private key into the UserAuthContext. 
+#rest_connector_sends_x-sign_header=false
 
  
 # -- Scopes -----------------------------------------------------
