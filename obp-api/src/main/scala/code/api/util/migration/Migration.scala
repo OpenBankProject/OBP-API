@@ -87,6 +87,7 @@ object Migration extends MdcLoggable {
       alterColumnNameAtProductFee(startedBeforeSchemifier)
       addFastFirehoseAccountsView(startedBeforeSchemifier)
       addFastFirehoseAccountsMaterializedView(startedBeforeSchemifier)
+      alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -317,6 +318,18 @@ object Migration extends MdcLoggable {
         val name = nameOf(addFastFirehoseAccountsMaterializedView(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfFastFireHoseMaterializedView.addFastFireHoseMaterializedView(name)
+        }
+      }
+    }
+    
+    private def alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.alterUserAuthContextColumnKeyAndValueLength(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfUserAuthContextFieldLength.alterColumnKeyAndValueLength(name)
         }
       }
     }

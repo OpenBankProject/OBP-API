@@ -180,6 +180,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasAnOAuth2Header(authorization: Box[String]): Boolean = hasHeader("Bearer", authorization)
 
   def hasGatewayHeader(authorization: Box[String]) = hasHeader("GatewayLogin", authorization)
+  
+  /**
+   * The value `DAuth` is in the KEY
+   * DAuth:xxxxx
+   * 
+   * Other types: the `GatewayLogin` is in the VALUE 
+   * Authorization:GatewayLogin token=xxxx
+   */
+  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.map(_.name).exists(_ ==DAuthHeaderKey)
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -2244,7 +2253,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         None
     }
   }
-
+  /**
+   * Defines DAuth Custom Response Header.
+   */
+  val DAuthHeaderKey = "DAuth"
   /**
    * Turn a string of format "FooBar" into snake case "foo_bar"
    *
@@ -2708,7 +2720,47 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case _ =>
             Future { (Failure(ErrorMessages.GatewayLoginUnknownError), None) }
         }
-      } else if(Option(cc).flatMap(_.user).isDefined) {
+      }  // DAuth Login
+      else if (getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
+        logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
+        APIUtil.getPropsValue("dauth.host") match {
+          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
+            val dauthToken = DAuth.getDAuthToken(cc.requestHeaders)
+            dauthToken match {
+              case Some(token :: _) =>
+                val payload = DAuth.parseJwt(token)
+                payload match {
+                  case Full(payload) =>
+                    DAuth.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
+                      case Full((u,callContext)) => // Authentication is successful
+                        val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.
+                        val jwt = DAuth.createJwt(payload)
+                        val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
+                        (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
+                      case Failure(msg, t, c) =>
+                        (Failure(msg, t, c), None)
+                      case _ =>
+                        (Failure(payload), None)
+                    }
+                  case Failure(msg, t, c) =>
+                    Future { (Failure(msg, t, c), None) }
+                  case _ =>
+                    Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
+                }
+              case _ =>
+                Future { (Failure(InvalidDAuthHeaderToken), None) }
+            }
+          case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
+            Future { (Failure(ErrorMessages.DAuthWhiteListAddresses), None) }
+          case Empty =>
+            Future { (Failure(ErrorMessages.DAuthHostPropertyMissing), None) } // There is no dauth.host in props file
+          case Failure(msg, t, c) =>
+            Future { (Failure(msg, t, c), None) }
+          case _ =>
+            Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
+        }
+      } 
+      else if(Option(cc).flatMap(_.user).isDefined) {
         Future{(cc.user, Some(cc))}
       }
       else {

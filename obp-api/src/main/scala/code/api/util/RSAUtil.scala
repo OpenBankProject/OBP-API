@@ -2,7 +2,6 @@ package code.api.util
 
 import java.nio.file.{Files, Paths}
 import java.security.Signature
-
 import code.api.util.CertificateUtil.{privateKey, publicKey}
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSASigner
@@ -11,6 +10,7 @@ import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import javax.crypto.Cipher
 import net.liftweb.util.SecurityHelpers
 import net.liftweb.util.SecurityHelpers.base64EncodeURLSafe
+import java.time.Instant
 
 object RSAUtil  extends MdcLoggable {
 
@@ -82,6 +82,15 @@ object RSAUtil  extends MdcLoggable {
     jwk
   }
 
+  def getPrivateKeyFromString(privateKeyValue: String): JWK = {
+    val pemEncodedRSAPrivateKey = privateKeyValue
+    logger.debug(privateKeyValue)
+    // Parse PEM-encoded key to RSA public / private JWK
+    val jwk: JWK  = JWK.parseFromPEMEncodedObjects(pemEncodedRSAPrivateKey);
+    logger.debug("Key is private: " + jwk.isPrivate)
+    jwk
+  }
+  
   def main(args: Array[String]): Unit = {
     val db = "jdbc:postgresql://localhost:5432/obp_mapped?user=obp&password=f"
     val res = encrypt(db)
@@ -89,12 +98,13 @@ object RSAUtil  extends MdcLoggable {
     println("encrypt: " + res)
     println("decrypt: " + decrypt(res))
     
-    val timestamp = "1634805183"
+    val timestamp = Instant.now.getEpochSecond
     val uri = "https://api.qredo.network/api/v1/p/company"
     val body = """{"name":"Tesobe GmbH","city":"Berlin","country":"DE","domain":"tesobe.com","ref":"9827feec-4eae-4e80-bda3-daa7c3b97ad1"}"""
     val inputMessage = s"""${timestamp}${uri}${body}"""
     val privateKey = getPrivateKeyFromFile("obp-api/src/test/resources/cert/private.pem")
     computeXSign(inputMessage, privateKey)
+    logger.debug("timestamp: " +  timestamp)
 
     
   }
