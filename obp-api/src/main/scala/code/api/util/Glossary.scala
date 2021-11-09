@@ -1844,10 +1844,10 @@ object Glossary extends MdcLoggable  {
 |# Define comma separated list of allowed IP addresses
 |# gateway.host=127.0.0.1
 |# Define secret used to validate JWT token
-|# gateway.token_secret=secret
+|# jwt.token_secret=your-at-least-256-bit-secret-token
 |# -------------------------------------- Gateway login --
 |```
-|Please keep in mind that property gateway.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
+|Please keep in mind that property jwt.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
 |
 |### 2) Create / have access to a JWT
 |
@@ -1881,15 +1881,15 @@ object Glossary extends MdcLoggable  {
 |  base64UrlEncode(header) + "." +
 |  base64UrlEncode(payload),
 |
-|) secret
+|) your-at-least-256-bit-secret-token
 |```
 |
 |Here is the above example token:
 |
 |```
 |eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
-|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU
+|eyJsb2dpbl91c2VyX25hbWUiOiJ1c2VybmFtZSIsImlzX2ZpcnN0IjpmYWxzZSwiYXBwX2lkIjoiODVhOTY1ZjAtMGQ1NS00ZTBhLThiMWMtNjQ5YzRiMDFjNGZiIiwiYXBwX25hbWUiOiJHV0wiLCJ0aW1lX3N0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJjYnNfdG9rZW4iOiJ5b3VyX3Rva2VuIiwiY2JzX2lkIjoieW91cl9jYnNfaWQiLCJzZXNzaW9uX2lkIjoiMTIzNDU2Nzg5In0.
+|bfWGWttEEcftiqrb71mE6Xy1tT_I-gmDPgjzvn6kC_k
 |```
 |
 |
@@ -1924,8 +1924,8 @@ object Glossary extends MdcLoggable  {
 |
 |```
 |curl -v -H 'Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
-|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU" $getServerUrl/obp/v3.0.0/users/current
+|eyJsb2dpbl91c2VyX25hbWUiOiJ1c2VybmFtZSIsImlzX2ZpcnN0IjpmYWxzZSwiYXBwX2lkIjoiODVhOTY1ZjAtMGQ1NS00ZTBhLThiMWMtNjQ5YzRiMDFjNGZiIiwiYXBwX25hbWUiOiJHV0wiLCJ0aW1lX3N0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJjYnNfdG9rZW4iOiJ5b3VyX3Rva2VuIiwiY2JzX2lkIjoieW91cl9jYnNfaWQiLCJzZXNzaW9uX2lkIjoiMTIzNDU2Nzg5In0.
+|bfWGWttEEcftiqrb71mE6Xy1tT_I-gmDPgjzvn6kC_k"' $getServerUrl/obp/v3.0.0/users/current
 |```
 |
 |
@@ -1980,7 +1980,7 @@ object Glossary extends MdcLoggable  {
 |}
 |
 |
-|token = jwt.encode(payload, 'secretsecretsecretstsecretssssss', algorithm='HS256')
+|token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256').decode("utf-8")
 |authorization = 'GatewayLogin token="{}"'.format(token)
 |headers = {'Authorization': authorization}
 |url = obp_api_host + '/obp/v4.0.0/users/current'
@@ -2011,6 +2011,181 @@ object Glossary extends MdcLoggable  {
 |   Parameter names and values are case sensitive.
 |
 |
+|  Each parameter MUST NOT appear more than once per request.
+|
+					""")
+
+
+	val dauthEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_dauth", false))
+	{"Note: DAuth is enabled."} else {"Note: *DAuth is NOT enabled on this instance!*"}
+
+
+	glossaryItems += GlossaryItem(
+		title = APIUtil.DAuthHeaderKey,
+		description =
+			s"""
+						 |### Introduction
+|
+|$dauthEnabledMessage
+|
+|DAuth Authorisation is made by including a specific header (see step 3 below) in any OBP REST call.
+|
+|Note: DAuth does *not* require an explicit POST like Direct Login to create the token.
+|
+|The **DAuth is responsible** for creating a token which is trusted by OBP **absolutely**!
+|
+|When OBP receives a token via DAuth, OBP creates or gets a user based on the username (smart_contract_address) supplied.
+|
+|To use DAuth:
+|
+|### 1) Configure OBP API to accept DAuth.
+|
+|Set up properties in a props file
+|
+|```
+|# -- DAuth --------------------------------------
+|# Define secret used to validate JWT token
+|# jwt.token_secret=your-at-least-256-bit-secret-token
+|# Enable/Disable DAuth communication at all
+|# In case isn't defined default value is false
+|# allow_dauth=false
+|# Define comma separated list of allowed IP addresses
+|# dauth.host=127.0.0.1
+|# -------------------------------------- DAuth--
+|```
+|Please keep in mind that property jwt.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
+|
+|### 2) Create / have access to a JWT
+|
+|
+|
+|HEADER:ALGORITHM & TOKEN TYPE
+|
+|```
+|{
+|  "alg": "HS256",
+|  "typ": "JWT"
+|}
+|```
+|PAYLOAD:DATA
+|
+|```
+|{
+|  "smart_contract_address": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
+|  "network_name": "ETHEREUM",
+|  "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
+|  "consumer_key": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
+|  "timestamp": "2021-11-04T14:13:40Z",
+|  "request_id": "0Xe876987694328763492876348928736497869273649"
+|}
+|```
+|VERIFY SIGNATURE
+|```
+|HMACSHA256(
+|  base64UrlEncode(header) + "." +
+|  base64UrlEncode(payload),
+|
+|) your-at-least-256-bit-secret-token
+|```
+|
+|Here is the above example token:
+|
+|```
+|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k
+|```
+|
+|
+|
+|### 3) Try a REST call using the header
+|
+|
+|Using your favorite http client:
+|
+|  GET $getServerUrl/obp/v3.0.0/users/current
+|
+|Body
+|
+|  Leave Empty!
+|
+|
+|Headers:
+|
+|       Authorization: DAuth token="your-jwt-from-step-above"
+|
+|Here is it all together:
+|
+|  GET $getServerUrl/obp/v3.0.0/users/current HTTP/1.1
+|        Host: localhost:8080
+|        User-Agent: curl/7.47.0
+|        Accept: */*
+|        DAuth: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k
+|
+|CURL example
+|
+|```
+|curl -v -H 'DAuth: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k' $getServerUrl/obp/v3.0.0/users/current
+|```
+|
+|
+|You should receive a response like:
+|
+|```
+|{
+|    "user_id": "4c4d3175-1e5c-4cfd-9b08-dcdc209d8221",
+|    "email": "",
+|    "provider_id": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
+|    "provider": "ETHEREUM",
+|    "username": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
+|    "entitlements": {
+|        "list": []
+|    }
+|}
+|```
+|
+|### Example python script
+|```
+|import jwt
+|from datetime import datetime, timezone
+|import requests
+|
+|env = 'local'
+|DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+|
+|obp_api_host = '$getServerUrl'
+|payload = {
+|    "smart_contract_address": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
+|    "network_name": "ETHEREUM",
+|    "consumer_key": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
+|    "timestamp": datetime.now(timezone.utc).strftime(DATE_FORMAT),
+|    "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
+|    "request_id": "0Xe876987694328763492876348928736497869273649"
+|}
+|
+|token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256').decode("utf-8")
+|headers = {'DAuth': token}
+|url = obp_api_host + '/obp/v4.0.0/users/current'
+|req = requests.get(url, headers=headers)
+|print(req.text)
+|```
+|
+|### Under the hood
+|
+|The file, dauth.scala handles the DAuth, 
+|
+|We:
+|
+|```
+|-> Check if Props allow_dauth is true
+|  -> Check if DAuth header exists
+|    -> Check if getRemoteIpAddress is OK
+|      -> Look for "token"
+|        -> parse the JWT token and getOrCreate the user
+|          -> get the data of the user
+|```
+|
+|### More information
+|
+|  Parameter names and values are case sensitive.
 |  Each parameter MUST NOT appear more than once per request.
 |
 					""")
