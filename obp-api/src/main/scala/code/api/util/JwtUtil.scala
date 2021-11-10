@@ -241,7 +241,7 @@ object JwtUtil extends MdcLoggable {
   def validateJwtWithRsaKey(jwtString: String): Boolean = {
     val relativePath = APIUtil.getPropsValue("jwt.public_key_rsa", "")
     val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
-    val filePath = new URI(s"${basePath}/$relativePath").getPath
+    val filePath = new URI(s"${basePath}$relativePath").getPath
     val publicKey = getPublicRsaKeyFromFile(filePath)
     val signedJWT = SignedJWT.parse(jwtString)
     val verifier = new RSASSAVerifier(publicKey)
