@@ -2110,7 +2110,7 @@ object Glossary extends MdcLoggable  {
 |
 |Headers:
 |
-|       Authorization: DAuth token="your-jwt-from-step-above"
+|       DAuth:your-jwt-from-step-above
 |
 |Here is it all together:
 |
