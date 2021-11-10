@@ -42,6 +42,7 @@ import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.api.v4_0_0.dynamic.MockResponseHolder
 import code.bankconnectors._
 import code.bankconnectors.vJune2017.AuthInfo
+import code.context.UserAuthContextProvider
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.kafka.KafkaHelper
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
@@ -6581,10 +6582,10 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
   ): List[HttpHeader] = {
     
     val needSignatureHead =  APIUtil.getPropsAsBoolValue("rest_connector_sends_x-sign_header", false) 
-    val generalContext = callContext.flatMap(_.toOutboundAdapterCallContext.generalContext).getOrElse(List.empty[BasicGeneralContext])
+    val generalContext = callContext.map(createBasicUserAuthContextJsonFromCallContext(_)).getOrElse(List.empty[BasicGeneralContext])
     val headersFromGeneralContext = generalContext.map(generalContext => RawHeader(generalContext.key,generalContext.value))
     
-    val basicUserAuthContexts: List[BasicUserAuthContext] = callContext.flatMap(_.toOutboundAdapterCallContext.outboundAdapterAuthInfo.flatMap(_.userAuthContext)).getOrElse(List.empty[BasicUserAuthContext])
+    val basicUserAuthContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(callContext.map(_.userId).getOrElse("")).getOrElse(List.empty[UserAuthContext])
     val headersFromUserAuthContext = basicUserAuthContexts.filterNot(_.key == "private-key").map(userAuthContext =>RawHeader(userAuthContext.key,userAuthContext.value))
 
     val timeStamp = Instant.now.getEpochSecond.toString
