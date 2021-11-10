@@ -50,9 +50,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   setPropsValues("allow_dauth" -> "true")
   setPropsValues("dauth.host" -> "127.0.0.1")
   setPropsValues("jwt.token_secret"->"your-at-least-256-bit-secret-token")
-  val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
-  val filePath = new URI(s"${basePath}/src/test/resources/cert/public_dauth.pem").getPath
-  setPropsValues("jwt.public_key_rsa" -> filePath)
+  setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
 
   val server = TestServer
   def baseRequest = host(server.host, server.port)
