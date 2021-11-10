@@ -2030,10 +2030,6 @@ object Glossary extends MdcLoggable  {
 |
 |DAuth Authorisation is made by including a specific header (see step 3 below) in any OBP REST call.
 |
-|Note: DAuth does *not* require an explicit POST like Direct Login to create the token.
-|
-|The **DAuth is responsible** for creating a token which is trusted by OBP **absolutely**!
-|
 |When OBP receives a token via DAuth, OBP creates or gets a user based on the username (smart_contract_address) supplied.
 |
 |To use DAuth:
@@ -2055,7 +2051,15 @@ object Glossary extends MdcLoggable  {
 |```
 |Please keep in mind that property jwt.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
 |
-|### 2) Create / have access to a JWT
+|### 2): Login and Register a Consumer
+|
+|[Sign up]($getServerUrl/user_mgt/sign_up) or [login]($getServerUrl/user_mgt/login) as a developer
+|
+|Register your App key [HERE]($getServerUrl/consumer-registration)
+|
+|Copy and paste the CONSUMER_KEY, CONSUMER_SECRET and REDIRECT_URL for the subsequent steps below.
+|
+|### 3) Create / have access to a JWT
 |
 |
 |
@@ -2096,7 +2100,7 @@ object Glossary extends MdcLoggable  {
 |
 |
 |
-|### 3) Try a REST call using the header
+|### 4) Try a REST call using the header
 |
 |
 |Using your favorite http client:

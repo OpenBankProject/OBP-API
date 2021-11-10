@@ -46,9 +46,25 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
   "request_id": "0Xe876987694328763492876348928736497869273649"
 }
   */
-  val jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyIiwibmV0d29ya19uYW1lIjoiRVRIRVJFVU0iLCJtc2dfc2VuZGVyIjoiMHhlOTA5ODA5MjdmMTcyNUU3NzM0Q0UyODhGODM2N2UxQmIxNDNFOTBmaGt1NzY3IiwiY29uc3VtZXJfa2V5IjoiMHgxOTI1NWE0ZWMzMWU4OWNlYTU0ZDFmMTI1ZGI3NTM2ZTg3NGFiNGE5NmI0ZDRmNjQzODY2OGI2YmIxMGE2YWRiIiwidGltZXN0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJyZXF1ZXN0X2lkIjoiMFhlODc2OTg3Njk0MzI4NzYzNDkyODc2MzQ4OTI4NzM2NDk3ODY5MjczNjQ5In0.dkAy32AjskvOaQ-gzXEiwU7RslJIawrOPsFsrqAlGHeKr6NyLJPJLYQ6e8_ABK2N-Pw43PiIzefV5QdiGxtWXCuVMRldrdNVC2VdBLVicDVWOmHCLyQ-mFbUvBR3wx8ZsU9nauEchVBsI9UY-_YYYI4yF9DsUazdMoesIjDl-zr68Dzm_ljnxv1wL4fbFpT7wq7MRFQBSy5UTN9o0JxGN_sm9dYeGf-kINQP8-zmJKQM0CRlMegdcBJdonSjlJDib_cKdbyeiSYwWTnqu9pAsOKarY7sX7uIa4A2hVkGY9hkSaGoeQcTxUHFTrJFdEeDm2num2MNLjFul3roAEG0Uw" 
+  val jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyIiwibmV0d29ya19uYW1lIjoiRVRIRVJFVU0iLCJtc2dfc2VuZGVyIjoiMHhlOTA5ODA5MjdmMTcyNUU3NzM0Q0UyODhGODM2N2UxQmIxNDNFOTBmaGt1NzY3IiwiY29uc3VtZXJfa2V5IjoiMHgxOTI1NWE0ZWMzMWU4OWNlYTU0ZDFmMTI1ZGI3NTM2ZTg3NGFiNGE5NmI0ZDRmNjQzODY2OGI2YmIxMGE2YWRiIiwidGltZXN0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJyZXF1ZXN0X2lkIjoiMFhlODc2OTg3Njk0MzI4NzYzNDkyODc2MzQ4OTI4NzM2NDk3ODY5MjczNjQ5In0.dkAy32AjskvOaQ-gzXEiwU7RslJIawrOPsFsrqAlGHeKr6NyLJPJLYQ6e8_ABK2N-Pw43PiIzefV5QdiGxtWXCuVMRldrdNVC2VdBLVicDVWOmHCLyQ-mFbUvBR3wx8ZsU9nauEchVBsI9UY-_YYYI4yF9DsUazdMoesIjDl-zr68Dzm_ljnxv1wL4fbFpT7wq7MRFQBSy5UTN9o0JxGN_sm9dYeGf-kINQP8-zmJKQM0CRlMegdcBJdonSjlJDib_cKdbyeiSYwWTnqu9pAsOKarY7sX7uIa4A2hVkGY9hkSaGoeQcTxUHFTrJFdEeDm2num2MNLjFul3roAEG0Uw"
+
+
+  /* Payload data. verified by correct secret "your-at-least-256-bit-secret-token"
+ {
+ "smart_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F05124",
+ "network_name": "ETHEREUM",
+ "msg_sender": "0xe90980927f1725E7734CE288F8367e1Bb143E90fhku767",
+ "consumer_key": "no-existing-key",
+ "timestamp": "2018-08-20T14:13:40Z",
+ "request_id": "0Xe876987694328763492876348928736497869273649"
+}
+ */
+  val wrongConsumerKeyJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiJuby1leGlzdGluZy1rZXkiLCJ0aW1lX3N0YW1wIjoiMjAyMS0xMS0wNFQxNDoxMzo0MFoiLCJyZXF1ZXN0X2lkIjoiMFhlODc2OTg3Njk0MzI4NzYzNDkyODc2MzQ4OTI4NzM2NDk3ODY5MjczNjQ5In0.XEqiaoGCSFA4ZLQyY3oaClzqxZhfzCQOP_MTP6tc65U"
+
+
 
   val invalidJwt = ("DAuth", ("%s").format(wrongPublicKeyJwt))
+  val invalidConsumerKeyJwt = ("DAuth", ("%s").format(wrongConsumerKeyJwt))
   val validJwt = ("DAuth", ("%s").format(jwt))
 
   def dauthRequest = baseRequest / "obp" / "v2.0.0" / "users" /"current" 
@@ -90,6 +106,15 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
         logger.debug("responseNonBlockingValidJwt responseNonBlocking: " + responseNonBlockingValidJwt)
         logger.debug("-----------------------------------------")
         responseValidJwt.code should equal(200)
+
+
+        When("We try to login with an valid JWT- wrong consumer_key")
+        val responseInvalidConsumerKeyJwt = makeGetRequest(dauthNonBlockingRequest, List(invalidConsumerKeyJwt))
+        logger.debug("-----------------------------------------")
+        logger.debug("responseNonBlockingValidJwt responseNonBlocking: " + responseInvalidConsumerKeyJwt)
+        logger.debug("-----------------------------------------")
+        responseInvalidConsumerKeyJwt.code should equal(400)
+        responseInvalidConsumerKeyJwt.toString contains(ErrorMessages.DAuthTokenHaveNoConsumer) should be (true)
       }
       
   }
