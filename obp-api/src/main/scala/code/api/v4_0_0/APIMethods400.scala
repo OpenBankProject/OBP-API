@@ -4731,53 +4731,8 @@ trait APIMethods400 {
          |So: 
          |When you need the account to account, just omit counterparty_id field.eg:
          |{
-         |  "from": {
-         |    "bank_id": "gh.29.uk",
-         |    "account_id": "1ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-         |  },
-         |  "to": {
-         |    "bank_id": "gh.29.uk",
-         |    "account_id": "2ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-         |  },
-         |  "value": {
-         |    "currency": "GBP",
-         |    "amount": "10"
-         |  },
-         |  "description": "this is for work",
-         |  "posted": "2017-09-19T02:31:05Z",
-         |  "completed": "2017-09-19T02:31:05Z",
-         |  "type": "SANDBOX_TAN",
-         |  "charge_policy": "SHARED"
-         |}
-         |
-         |When you need the counterparty to counterparty, need to omit bank_id and account_id field.eg:
-         |{
-         |  "from": {
-         |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
-         |  },
-         |  "to": {
-         |    "counterparty_id": "26392b7d-4218-45ea-b9a7-eaa71c0202f9"
-         |  },
-         |  "value": {
-         |    "currency": "GBP",
-         |    "amount": "10"
-         |  },
-         |  "description": "this is for work",
-         |  "posted": "2017-09-19T02:31:05Z",
-         |  "completed": "2017-09-19T02:31:05Z",
-         |  "type": "SANDBOX_TAN",
-         |  "charge_policy": "SHARED"
-         |}
-         |
-         |or, you can counterparty to account
-         |{
-         |  "from": {
-         |    "counterparty_id": "f6392b7d-4218-45ea-b9a7-eaa71c0202f9"
-         |  },
-         |  "to": {
-         |    "bank_id": "gh.29.uk",
-         |    "account_id": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-         |  },
+         |  "from_account_id": "1ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  "to_account_id": "2ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "value": {
          |    "currency": "GBP",
          |    "amount": "10"
