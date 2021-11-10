@@ -4727,8 +4727,7 @@ trait APIMethods400 {
          |
          |Use this endpoint to create transactions between any two accounts at the same bank. 
          |From account and to account must be at the same bank.
-         |So: 
-         |When you need the account to account, just omit counterparty_id field.eg:
+         |Example:
          |{
          |  "from_account_id": "1ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
          |  "to_account_id": "2ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
