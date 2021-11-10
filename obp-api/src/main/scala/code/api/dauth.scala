@@ -114,8 +114,8 @@ object DAuth extends RestHelper with MdcLoggable {
         Box(parse(claim.toString).extractOpt[PayloadOfJwtJSON])
       case false =>
         logger.debug("validateJwtToken says: verifying jwt token with HmacProtection: " + token)
-        logger.debug(CertificateUtil.verifywtWithHmacProtection(token).toString)
-        CertificateUtil.verifywtWithHmacProtection(token) match {
+        logger.debug(JwtUtil.validateJwtWithRsaKey(token).toString)
+        JwtUtil.validateJwtWithRsaKey(token) match {
           case true =>
             logger.debug("validateJwtToken says: jwt is verified: " + token)
             val claim = CertificateUtil.parseJwtWithHmacProtection(token)

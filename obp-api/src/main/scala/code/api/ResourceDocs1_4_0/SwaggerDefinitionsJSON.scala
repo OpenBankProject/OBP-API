@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
+
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
@@ -15,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, FastFirehoseAccountsJsonV400, _}
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -33,6 +34,7 @@ import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 import net.liftweb.json
 import java.net.URLEncoder
+
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -3868,6 +3870,16 @@ object SwaggerDefinitionsJSON {
   val postHistoricalTransactionJson = PostHistoricalTransactionJson(
     from = historicalTransactionAccountJsonV310,
     to = historicalTransactionAccountJsonV310,
+    value = amountOfMoneyJsonV121,
+    description = "this is for work",
+    posted = DateWithSecondsExampleString,
+    completed= DateWithSecondsExampleString,
+    `type`= SANDBOX_TAN.toString,
+    charge_policy= "SHARED"
+  )  
+  val postHistoricalTransactionAtBankJson = PostHistoricalTransactionAtBankJson(
+    from_account_id = "",
+    to_account_id = "",
     value = amountOfMoneyJsonV121,
     description = "this is for work",
     posted = DateWithSecondsExampleString,

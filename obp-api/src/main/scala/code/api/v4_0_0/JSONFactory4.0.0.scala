@@ -42,7 +42,7 @@ import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300._
 import code.api.v3_0_0._
 import code.api.v3_1_0.JSONFactory310.{createAccountAttributeJson, createProductAttributesJson}
-import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
+import code.api.v3_1_0.{AccountAttributeResponseJson, PostHistoricalTransactionResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
 import code.apicollection.ApiCollectionTrait
 import code.apicollectionendpoint.ApiCollectionEndpointTrait
 import code.atms.Atms.Atm
@@ -128,6 +128,31 @@ case class TransactionRequestWithChargeJSON400(
                                                 challenges: List[ChallengeJsonV400],
                                                 charge : TransactionRequestChargeJsonV200
                                               )
+case class PostHistoricalTransactionAtBankJson(
+                                                from_account_id: String,
+                                                to_account_id: String,
+                                                value: AmountOfMoneyJsonV121,
+                                                description: String,
+                                                posted: String,
+                                                completed: String,
+                                                `type`: String,
+                                                charge_policy: String
+                                              )
+case class HistoricalTransactionAccountJsonV400(
+                                                 bank_id: String,
+                                                 account_id : String
+                                               )
+case class PostHistoricalTransactionResponseJsonV400(
+                                                  transaction_id: String,
+                                                  from: HistoricalTransactionAccountJsonV400,
+                                                  to: HistoricalTransactionAccountJsonV400,
+                                                  value: AmountOfMoneyJsonV121,
+                                                  description: String,
+                                                  posted: Date,
+                                                  completed: Date,
+                                                  transaction_request_type: String,
+                                                  charge_policy: String
+                                                )
 case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
 case class ResetPasswordUrlJsonV400(reset_password_url: String)
 
@@ -1730,5 +1755,37 @@ object JSONFactory400 {
       ))))
     )
   }
+
+
+
+  def createPostHistoricalTransactionResponseJson(
+                                                   bankId: BankId,
+                                                   transactionId: TransactionId,
+                                                   fromAccountId: AccountId,
+                                                   toAccountId: AccountId,
+                                                   value: AmountOfMoneyJsonV121,
+                                                   description: String,
+                                                   posted: Date,
+                                                   completed: Date,
+                                                   transactionRequestType: String,
+                                                   chargePolicy: String
+                                                 ) : PostHistoricalTransactionResponseJsonV400 = {
+    PostHistoricalTransactionResponseJsonV400(
+      transaction_id = transactionId.value,
+      from = HistoricalTransactionAccountJsonV400(bankId.value, fromAccountId.value),
+      to = HistoricalTransactionAccountJsonV400(bankId.value, toAccountId.value),
+      value: AmountOfMoneyJsonV121,
+      description: String,
+      posted: Date,
+      completed: Date,
+      transaction_request_type = transactionRequestType,
+      chargePolicy: String
+    )
+  }
+  
+  
+  
+  
+  
 }
 
