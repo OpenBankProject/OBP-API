@@ -32,7 +32,7 @@ import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.{InvalidDAuthHeaderToken, UserIsDeleted, UsernameHasBeenLocked, attemptedToOpenAnEmptyBox}
+import code.api.util.ErrorMessages.{DAuthTokenHaveNoConsumer, InvalidDAuthHeaderToken, UserIsDeleted, UsernameHasBeenLocked, attemptedToOpenAnEmptyBox}
 import code.api.util._
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.APIMethods310
@@ -413,10 +413,18 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                 case Full(payload) =>
                   DAuth.getOrCreateResourceUser(payload: String, Some(cc)) match {
                     case Full((u, callContext)) => // Authentication is successful
-                      val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.
-                      val jwt = DAuth.createJwt(payload)
-                      val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
-                      fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
+                      val consumer = DAuth.getConsumerByConsumerKey(payload)
+                      consumer match {
+                        case Full(value) => {
+                          val jwt = DAuth.createJwt(payload)
+                          val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
+                          fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
+                        }
+                        case Failure(msg, t, c) =>
+                          Failure(msg, t, c)
+                        case _ =>
+                          Failure(DAuthTokenHaveNoConsumer)
+                      }
                     case Failure(msg, t, c) => Failure(msg, t, c)
                     case _ => Full(errorJsonResponse(payload))
                   }

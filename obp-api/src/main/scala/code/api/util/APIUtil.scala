@@ -2733,10 +2733,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                   case Full(payload) =>
                     DAuth.getOrCreateResourceUserFuture(payload: String, Some(cc)) map {
                       case Full((u,callContext)) => // Authentication is successful
-                        val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.
-                        val jwt = DAuth.createJwt(payload)
-                        val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
-                        (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
+                        val consumer = DAuth.getConsumerByConsumerKey(payload)
+                        consumer match {
+                          case Full(value) => {
+                            val jwt = DAuth.createJwt(payload)
+                            val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
+                            (Full(u), callContextUpdated.map(_.copy(consumer=consumer, user = Full(u))))
+                          }
+                          case Failure(msg, t, c) =>
+                            (Failure(msg, t, c), None)
+                          case _ =>
+                            (Failure(DAuthTokenHaveNoConsumer), None)
+                        }
                       case Failure(msg, t, c) =>
                         (Failure(msg, t, c), None)
                       case _ =>
