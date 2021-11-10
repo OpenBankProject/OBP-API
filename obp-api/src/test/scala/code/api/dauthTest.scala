@@ -1,12 +1,29 @@
 package code.api
 
 import code.api.util.ErrorMessages
+import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
+import code.consumer.Consumers
 import code.setup.{DefaultUsers, PropsReset, ServerSetup}
+import net.liftweb.util.Helpers.randomString
 import org.scalatest._
 
 class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with PropsReset{
-  
+
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
+  //Now, we need to map the consumer.key to the Dauth.token
+  val consumerKey = "0x19255a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb"
+  val testDauthConsumer = Consumers.consumers.vend.createConsumer(
+    key = Some(consumerKey),
+    secret = Some(randomString(40).toLowerCase),
+    isActive = Some(true),
+    name = Some("test application"),
+    appType = None,
+    description = Some("description"),
+    developerEmail = Some("eveline@example.com"),
+    redirectURL = None,
+    createdByUserId = userId
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
+
   /* Payload data. verified by wrong secret "123" -- show : DAuthJwtTokenIsNotValid
     {
   "smart_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
