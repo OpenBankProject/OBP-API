@@ -4723,11 +4723,10 @@ trait APIMethods400 {
       "/banks/BANK_ID/management/historical/transactions",
       "Create Historical Transactions ",
       s"""
-         |Import the historical transactions.
+         |Create historical transactions at one Bank
          |
-         |The fields bank_id, account_id, counterparty_id in the json body are all optional ones.
-         |It support transfer money from account to account, account to counterparty and counterparty to counterparty
-         |Both bank_id + account_id and counterparty_id can identify the account, so OBP only need one of them to make the payment.
+         |Use this endpoint to create transactions between any two accounts at the same bank. 
+         |From account and to account must be at the same bank.
          |So: 
          |When you need the account to account, just omit counterparty_id field.eg:
          |{
