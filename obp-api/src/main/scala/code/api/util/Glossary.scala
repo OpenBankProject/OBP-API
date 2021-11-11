@@ -2045,7 +2045,7 @@ object Glossary extends MdcLoggable  {
 |```
 |# -- DAuth --------------------------------------
 |# Define secret used to validate JWT token
-|# jwt.token_secret=your-at-least-256-bit-secret-token
+|# jwt.public_key_rsa=path-to-the-pem-file
 |# Enable/Disable DAuth communication at all
 |# In case isn't defined default value is false
 |# allow_dauth=false
@@ -2053,11 +2053,12 @@ object Glossary extends MdcLoggable  {
 |# dauth.host=127.0.0.1
 |# -------------------------------------- DAuth--
 |```
-|Please keep in mind that property jwt.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
+|Please keep in mind that property jwt.public_key_rsa is used to validate JWT token to check it is not changed or corrupted during transport.
 |
 |### 2) Create / have access to a JWT
 |
-|
+|The following videos are available:
+|	* [DAuth in local environment](https://vimeo.com/644315074)
 |
 |HEADER:ALGORITHM & TOKEN TYPE
 |
@@ -2110,7 +2111,7 @@ object Glossary extends MdcLoggable  {
 |
 |Headers:
 |
-|       Authorization: DAuth token="your-jwt-from-step-above"
+|       DAuth: your-jwt-from-step-above
 |
 |Here is it all together:
 |
@@ -2140,32 +2141,6 @@ object Glossary extends MdcLoggable  {
 |        "list": []
 |    }
 |}
-|```
-|
-|### Example python script
-|```
-|import jwt
-|from datetime import datetime, timezone
-|import requests
-|
-|env = 'local'
-|DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
-|
-|obp_api_host = '$getServerUrl'
-|payload = {
-|    "smart_contract_address": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
-|    "network_name": "ETHEREUM",
-|    "consumer_key": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
-|    "timestamp": datetime.now(timezone.utc).strftime(DATE_FORMAT),
-|    "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
-|    "request_id": "0Xe876987694328763492876348928736497869273649"
-|}
-|
-|token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256').decode("utf-8")
-|headers = {'DAuth': token}
-|url = obp_api_host + '/obp/v4.0.0/users/current'
-|req = requests.get(url, headers=headers)
-|print(req.text)
 |```
 |
 |### Under the hood
