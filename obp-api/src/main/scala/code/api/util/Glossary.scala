@@ -2101,7 +2101,7 @@ object Glossary extends MdcLoggable  {
 |  base64UrlEncode(header) + "." +
 |  base64UrlEncode(payload),
 |
-|) your-at-least-256-bit-secret-token
+|) your-RSA-key-pair
 |```
 |
 |Here is an example token:
