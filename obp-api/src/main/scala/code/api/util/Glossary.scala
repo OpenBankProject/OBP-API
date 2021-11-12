@@ -2024,23 +2024,38 @@ object Glossary extends MdcLoggable  {
 		title = APIUtil.DAuthHeaderKey,
 		description =
 			s"""
-						 |### Introduction
+						 |### DAuth Introduction, Setup and Usage
+|
+|
+|DAuth is an experimental authentication mechanism that aims to pin an ethereum or other blockchain Smart Contract to an OBP "User".
+|
+|In the future, it might be possible to be more specific and pin specific actors (wallets) that are acting within the smart contract, but so far, one smart contract acts on behalf of one User.
+|
+|Thus, if a smart contract "X" calls the OBP API using the DAuth header, OBP will get or create a user called X and the call will proceed in the context of that User "X".
+|
+|
+|DAuth is invoked by the REST client (caller) including a specific header (see step 3 below) in any OBP REST call.
+|
+|When OBP receives the DAuth token, it creates or gets a User with a username based on the smart_contract_address and the provider based on the network_name. The combination of username and provider is unique in OBP.
+|
+|If you are calling OBP-API via an API3 Airnode, the Airnode will take care of constructing the required header.
+|
+|When OBP detects an DAuth header / token it first checks if the Consumer is allowed to make such a call. OBP will validate the Consumer ip address and signature etc.
+|
+|Note: The DAuth flow does *not* require an explicit POST like Direct Login to create the token.
+|
+|Permissions may be assigned to an OBP User at any time, via the UserAuthContext, Views, Entitlements to Roles or Consents.
 |
 |$dauthEnabledMessage
 |
-|DAuth Authorisation is made by including a specific header (see step 3 below) in any OBP REST call.
+|Note: *The DAuth client is responsible for creating a token which will be trusted by OBP absolutely*!
 |
-|Note: DAuth does *not* require an explicit POST like Direct Login to create the token.
-|
-|The **DAuth is responsible** for creating a token which is trusted by OBP **absolutely**!
-|
-|When OBP receives a token via DAuth, OBP creates or gets a user based on the username (smart_contract_address) supplied.
 |
 |To use DAuth:
 |
 |### 1) Configure OBP API to accept DAuth.
 |
-|Set up properties in a props file
+|Set up properties in your props file
 |
 |```
 |# -- DAuth --------------------------------------
@@ -2073,7 +2088,7 @@ object Glossary extends MdcLoggable  {
 |```
 |{
 |  "smart_contract_address": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
-|  "network_name": "ETHEREUM",
+|  "network_name": "AIRNODE.TESTNET.ETHEREUM",
 |  "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
 |  "consumer_key": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
 |  "timestamp": "2021-11-04T14:13:40Z",
@@ -2089,7 +2104,7 @@ object Glossary extends MdcLoggable  {
 |) your-at-least-256-bit-secret-token
 |```
 |
-|Here is the above example token:
+|Here is an example token:
 |
 |```
 |eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k
