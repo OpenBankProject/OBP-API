@@ -2097,7 +2097,7 @@ object Glossary extends MdcLoggable  {
 |```
 |VERIFY SIGNATURE
 |```
-|HMACSHA256(
+|RSASHA256(
 |  base64UrlEncode(header) + "." +
 |  base64UrlEncode(payload),
 |
