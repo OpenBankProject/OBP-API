@@ -4088,6 +4088,11 @@ object SwaggerDefinitionsJSON {
   )
 
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+  val postCreateUserAccountAccessJsonV400 = PostCreateUserAccountAccessJsonV400(
+    userIdExample.value,
+    providerExample.value,
+    List(PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+  )
   val revokedJsonV400 = RevokedJsonV400(true)
 
   val postRevokeGrantAccountAccessJsonV400 = PostRevokeGrantAccountAccessJsonV400(List("ReadAccountsBasic"))

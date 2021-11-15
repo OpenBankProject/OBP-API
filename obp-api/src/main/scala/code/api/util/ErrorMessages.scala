@@ -192,6 +192,7 @@ object ErrorMessages {
   val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
+  val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
