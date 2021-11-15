@@ -19,7 +19,7 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
@@ -73,7 +73,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, prettyRender, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.now
+import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
@@ -2735,7 +2735,72 @@ trait APIMethods400 {
           }
       }
     }
-    
+    staticResourceDocs += ResourceDoc(
+      createUserWithRoles,
+      implementedInApiVersion,
+      nameOf(createUserWithRoles),
+      "POST",
+      "/user-entitlements",
+      "Create User with Roles",
+      """This will create the User with user_id and provider if it does not exist
+        |
+        |Create Entitlement. Grant Role to User.
+        |
+        |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+      postCreateUserWithRolesJsonV400,
+      List(entitlementJSON),
+      List(
+        UserNotLoggedIn,
+        UserNotFoundById,
+        UserNotSuperAdmin,
+        InvalidJsonFormat,
+        IncorrectRoleName,
+        EntitlementIsBankRole,
+        EntitlementIsSystemRole,
+        EntitlementAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
+
+    lazy val createUserWithRoles: OBPEndpoint = {
+      case "user-entitlements" :: Nil JsonPost json -> _ =>  {
+        cc =>
+          for {
+            (Full(loggedInUser), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserWithRolesJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCreateUserWithRolesJsonV400]
+            }
+            _ <- checkRolesBankId(callContext, postedData)
+            _ <- checkRolesBankIdExsiting(callContext, postedData)
+            roles <- checkRolesName(callContext, postedData)
+            (postBodyUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
+            
+            allowedEntitlements = canCreateEntitlementAtAnyBank :: Nil
+            allowedEntitlementsTxt = UserNotSuperAdmin +" or" +  UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            _ <- 
+              if(isSuperAdmin(loggedInUser.userId)) 
+                Future.successful(Full(Unit))
+              else 
+                NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)("", loggedInUser.userId, allowedEntitlements, callContext)
+
+            _ <- checkIfUserHasEntitlements(postedData, callContext)
+            
+            addedEntitlements <- addEntitlementsToUser(postedData, callContext)
+            
+          } yield {
+            (addedEntitlements.map(JSONFactory200.createEntitlementJSON(_)), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getEntitlements,
@@ -4175,7 +4240,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)} and the loggedin user needs to be account holder.
          |
          |""",
-      postCreateUserAccountAccessJsonV400,
+      postCreateUserWithRolesJsonV400,
       List(viewJsonV300),
       List(
         $UserNotLoggedIn,
@@ -4192,7 +4257,7 @@ trait APIMethods400 {
       //add access for specific user to a specific system view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "user-account-access" :: Nil JsonPost json -> _ => {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV400 "
           for {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostCreateUserAccountAccessJsonV400]
@@ -10779,6 +10844,59 @@ trait APIMethods400 {
 
   }
 
+  private def checkRoleBankIdExsiting(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Helper.booleanToFuture(failMsg = s"$BankNotFound Current BANK_ID (${entitlement.bank_id})", cc=callContext) {
+      entitlement.bank_id.nonEmpty == false || BankX(BankId(entitlement.bank_id), callContext).map(_._1).isEmpty == false
+    }
+  }
+  
+  private def checkRolesBankIdExsiting(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postedData.roles.map(checkRoleBankIdExsiting(callContext,_)))
+  }
+  
+  private def addEntitlementToUser(userId:String, entitlement: CreateEntitlementJSON, callContext: Option[CallContext]) = {
+    Future(Entitlement.entitlement.vend.addEntitlement(entitlement.bank_id, userId, entitlement.role_name)) map { unboxFull(_) }
+  }
+  
+  private def addEntitlementsToUser(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postedData.roles.map(addEntitlementToUser(postedData.user_id, _, callContext)))
+  }
+  
+  private def checkIfUserHasEntitlement(userId:String, entitlement: CreateEntitlementJSON, callContext: Option[CallContext]) = {
+    Helper.booleanToFuture(failMsg = s"$EntitlementAlreadyExists Current Entitlement (${entitlement.role_name})", cc=callContext) {
+      hasEntitlement(entitlement.bank_id, userId, valueOf(entitlement.role_name)) == false
+    }
+  }
+  
+  private def checkIfUserHasEntitlements(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postedData.roles.map(checkIfUserHasEntitlement(postedData.user_id, _, callContext)))
+  }
+  
+  private def checkRoleBankIdRequirement(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(entitlement.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc = callContext) {
+        ApiRole.valueOf(entitlement.role_name).requiresBankId == entitlement.bank_id.nonEmpty
+    } 
+  }
+
+  private def checkRolesBankId(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postedData.roles.map(checkRoleBankIdRequirement(callContext,_)))
+  }
+  
+  private def checkRoleName(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Future{
+      tryo {
+        valueOf(entitlement.role_name)
+      }
+    } map {
+      val msg = IncorrectRoleName + entitlement.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+      x => unboxFullOrFail(x, callContext, msg)
+    }
+  }
+
+  private def checkRolesName(callContext: Option[CallContext], postJsonBody: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postJsonBody.roles.map(checkRoleName(callContext,_)))
+  }
+  
   private def createAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view: View, callContext: Option[CallContext]) = {
     view.isSystem match {
       case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
