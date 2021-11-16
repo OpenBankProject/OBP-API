@@ -2754,7 +2754,7 @@ trait APIMethods400 {
         |
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
       postCreateUserWithRolesJsonV400,
-      List(entitlementJSON),
+      entitlementsJsonV400,
       List(
         UserNotLoggedIn,
         UserNotFoundById,
@@ -2778,10 +2778,12 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCreateUserWithRolesJsonV400]
             }
-            _ <- checkRolesBankId(callContext, postedData)
+            //check the system role bankId is Empty, but bank level role need bankId 
+            _ <- checkRoleBankIdMappings(callContext, postedData)
+            
             _ <- checkRolesBankIdExsiting(callContext, postedData)
-            roles <- checkRolesName(callContext, postedData)
-            (postBodyUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
+            
+            _ <- checkRolesName(callContext, postedData)
             
             allowedEntitlements = canCreateEntitlementAtAnyBank :: Nil
             allowedEntitlementsTxt = UserNotSuperAdmin +" or" +  UserHasMissingRoles + canCreateEntitlementAtAnyBank
@@ -2790,8 +2792,10 @@ trait APIMethods400 {
                 Future.successful(Full(Unit))
               else 
                 NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)("", loggedInUser.userId, allowedEntitlements, callContext)
-
-            _ <- checkIfUserHasEntitlements(postedData, callContext)
+            
+            (postBodyUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
+            
+            _ <- checkIfUserAlreadyHasEntitlements(postedData, callContext)
             
             addedEntitlements <- addEntitlementsToUser(postedData, callContext)
             
@@ -10861,24 +10865,24 @@ trait APIMethods400 {
     Future.sequence(postedData.roles.map(addEntitlementToUser(postedData.user_id, _, callContext)))
   }
   
-  private def checkIfUserHasEntitlement(userId:String, entitlement: CreateEntitlementJSON, callContext: Option[CallContext]) = {
+  private def checkIfUserAlreadyHasEntitlement(userId:String, entitlement: CreateEntitlementJSON, callContext: Option[CallContext]) = {
     Helper.booleanToFuture(failMsg = s"$EntitlementAlreadyExists Current Entitlement (${entitlement.role_name})", cc=callContext) {
       hasEntitlement(entitlement.bank_id, userId, valueOf(entitlement.role_name)) == false
     }
   }
   
-  private def checkIfUserHasEntitlements(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
-    Future.sequence(postedData.roles.map(checkIfUserHasEntitlement(postedData.user_id, _, callContext)))
+  private def checkIfUserAlreadyHasEntitlements(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postedData.roles.map(checkIfUserAlreadyHasEntitlement(postedData.user_id, _, callContext)))
   }
   
-  private def checkRoleBankIdRequirement(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+  private def checkRoleBankIdMapping(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
     Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(entitlement.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc = callContext) {
         ApiRole.valueOf(entitlement.role_name).requiresBankId == entitlement.bank_id.nonEmpty
     } 
   }
 
-  private def checkRolesBankId(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
-    Future.sequence(postedData.roles.map(checkRoleBankIdRequirement(callContext,_)))
+  private def checkRoleBankIdMappings(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postedData.roles.map(checkRoleBankIdMapping(callContext,_)))
   }
   
   private def checkRoleName(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
