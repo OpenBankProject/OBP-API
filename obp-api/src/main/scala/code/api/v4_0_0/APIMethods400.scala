@@ -2757,8 +2757,6 @@ trait APIMethods400 {
       entitlementsJsonV400,
       List(
         UserNotLoggedIn,
-        UserNotFoundById,
-        UserNotSuperAdmin,
         InvalidJsonFormat,
         IncorrectRoleName,
         EntitlementIsBankRole,
@@ -2785,13 +2783,7 @@ trait APIMethods400 {
             
             _ <- checkRolesName(callContext, postedData)
             
-            allowedEntitlements = canCreateEntitlementAtAnyBank :: Nil
-            allowedEntitlementsTxt = UserNotSuperAdmin +" or" +  UserHasMissingRoles + canCreateEntitlementAtAnyBank
-            _ <- 
-              if(isSuperAdmin(loggedInUser.userId)) 
-                Future.successful(Full(Unit))
-              else 
-                NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)("", loggedInUser.userId, allowedEntitlements, callContext)
+            _ <- NewStyle.function.hasEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank, cc.callContext)
             
             (postBodyUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
             
@@ -4223,7 +4215,7 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
-            view <- getViews(bankId, accountId, postJson.view, callContext)
+            view <- getView(bankId, accountId, postJson.view, callContext)
             addedView <- createAccountAccessToUser(bankId, accountId, user, view, callContext)
           } yield {
             val viewJson = JSONFactory300.createViewJSON(addedView)
