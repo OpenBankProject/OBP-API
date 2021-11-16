@@ -122,6 +122,9 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                 case Full(user) => // All good
                   getOrCreateAuthUser(user) match {
                     case Full(authUser) =>
+                      // Grant roles according to the props email_domain_to_space_mappings
+                      AuthUser.grantEmailDomainEntitlementsToUser(authUser)
+                      // Consumer
                       getOrCreateConsumer(idToken, user.userId) match {
                         case Full(consumer) =>
                           saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
