@@ -4219,7 +4219,7 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
-            view <- checkView(bankId, accountId, postJson.view, callContext)
+            view <- getViews(bankId, accountId, postJson.view, callContext)
             addedView <- createAccountAccessToUser(bankId, accountId, user, view, callContext)
           } yield {
             val viewJson = JSONFactory300.createViewJSON(addedView)
@@ -4254,7 +4254,6 @@ trait APIMethods400 {
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
 
     lazy val createUserWithAccountAccess : OBPEndpoint = {
-      //add access for specific user to a specific system view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "user-account-access" :: Nil JsonPost json -> _ => {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV400 "
@@ -4264,7 +4263,7 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.getOrCreateUser(postJson.user_id, postJson.provider, cc.callContext)
-            views <- checkViews(bankId, accountId, postJson, callContext)
+            views <- getViews(bankId, accountId, postJson, callContext)
             addedView <- createAccountAccessesToUser(bankId, accountId, user, views, callContext)
           } yield {
             val viewsJson = addedView.map(JSONFactory300.createViewJSON(_))
@@ -10909,15 +10908,15 @@ trait APIMethods400 {
     ))
   }
   
-  private def checkView(bankId: BankId, accountId: AccountId, postView: PostViewJsonV400, callContext: Option[CallContext]) = {
+  private def getView(bankId: BankId, accountId: AccountId, postView: PostViewJsonV400, callContext: Option[CallContext]) = {
     postView.is_system match {
       case true => NewStyle.function.systemView(ViewId(postView.view_id), callContext)
       case false => NewStyle.function.customView(ViewId(postView.view_id), BankIdAccountId(bankId, accountId), callContext)
     }
   }
 
-  private def checkViews(bankId: BankId, accountId: AccountId, postJson: PostCreateUserAccountAccessJsonV400, callContext: Option[CallContext]) = {
-    Future.sequence(postJson.views.map(view => checkView(bankId: BankId, accountId: AccountId, view: PostViewJsonV400, callContext: Option[CallContext])))
+  private def getViews(bankId: BankId, accountId: AccountId, postJson: PostCreateUserAccountAccessJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postJson.views.map(view => getView(bankId: BankId, accountId: AccountId, view: PostViewJsonV400, callContext: Option[CallContext])))
   }
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {
