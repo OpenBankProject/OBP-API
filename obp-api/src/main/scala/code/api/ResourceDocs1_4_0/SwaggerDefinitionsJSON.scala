@@ -4493,6 +4493,17 @@ object SwaggerDefinitionsJSON {
     meta = metaJson,
   )
   
+  val entitlementJsonV400 = EntitlementJsonV400(
+    entitlement_id = entitlementIdExample.value,
+    role_name = roleNameExample.value,
+    bank_id = bankIdExample.value,
+    user_id = userIdExample.value,
+  )
+
+  val entitlementsJsonV400 =  EntitlementsJsonV400(
+    list = List(entitlementJsonV400)
+  )
+  
   
   //The common error or success format.
   //Just some helper format to use in Json 

@@ -2796,7 +2796,7 @@ trait APIMethods400 {
             addedEntitlements <- addEntitlementsToUser(postedData, callContext)
             
           } yield {
-            (addedEntitlements.map(JSONFactory200.createEntitlementJSON(_)), HttpCode.`201`(callContext))
+            (JSONFactory400.createEntitlementJSONs(addedEntitlements), HttpCode.`201`(callContext))
           }
       }
     }
@@ -2814,7 +2814,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       EmptyBody,
-      entitlementJSONs,
+      entitlementsJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
@@ -2851,7 +2851,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       EmptyBody,
-      entitlementJSONs,
+      entitlementsJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForOneBank,canGetEntitlementsForAnyBank)))
