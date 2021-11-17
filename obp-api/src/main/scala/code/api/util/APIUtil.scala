@@ -635,7 +635,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
-    val currencyIsoCodeArray = (CurrencyIsoCodeFromXmlFile \"CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+")
+    // Note: We add BTC bitcoin as XBT (the ISO compliant varient)
+    val currencyIsoCodeArray = (CurrencyIsoCodeFromXmlFile \"CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+") :+ "XBT"
     currencyIsoCodeArray.contains(currencyCode)
   }
 

@@ -36,6 +36,7 @@ object fx extends MdcLoggable {
   // check the map is complete for all combinations - (We could use getOrElse (1.0) (double) as defaults in calling function but then we risk having missing values below)
   // and make sure to sure explicit doubles e.g. 1.0 rather than 1 !!
 
+  // Note: If you add a non ISO standard currency below, you will also need to add it also to isValidCurrencyISOCode otherwise FX endpoints etc will fail.
 
   val fallbackExchangeRates: Map[String, Map[String, Double]] = {
     Map(
