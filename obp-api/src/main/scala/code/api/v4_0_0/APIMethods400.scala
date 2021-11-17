@@ -2752,7 +2752,7 @@ trait APIMethods400 {
         |
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
         |
-        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
+        |""",
       postCreateUserWithRolesJsonV400,
       entitlementsJsonV400,
       List(
@@ -8543,15 +8543,52 @@ trait APIMethods400 {
     }
     
     staticResourceDocs += ResourceDoc(
+      deleteMyApiCollectionEndpointByOperationId,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollectionEndpointByOperationId),
+      "DELETE",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
+      "Delete My Api Collection Endpoint By Id",
+      s"""${Glossary.getGlossaryItem("API Collections")}
+         |
+         |Delete Api Collection Endpoint By OPERATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollectionEndpointByOperationId : OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       deleteMyApiCollectionEndpointById,
       implementedInApiVersion,
       nameOf(deleteMyApiCollectionEndpointById),
       "DELETE",
-      "/my/api-collections-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoint-ids/API_COLLECTION_ENDPOINT_ID",
       "Delete My Api Collection Endpoint By Id",
       s"""${Glossary.getGlossaryItem("API Collections")}
-         |
-         |Delete Api Collection Endpoint By Id
+         |Delete Api Collection Endpoint
+         |Delete Api Collection Endpoint By IdDelete Api Collection Endpoint
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -8567,18 +8604,18 @@ trait APIMethods400 {
     )
 
     lazy val deleteMyApiCollectionEndpointById : OBPEndpoint = {
-      case "my" :: "api-collections-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoint-ids" :: apiCollectionEndpointId :: Nil JsonDelete _ => {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
-            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, callContext)
             (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }
       }
     }
-    
+
     staticResourceDocs += ResourceDoc(
       createJsonSchemaValidation,
       implementedInApiVersion,
