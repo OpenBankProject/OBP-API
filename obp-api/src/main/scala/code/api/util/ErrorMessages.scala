@@ -193,7 +193,7 @@ object ErrorMessages {
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
-  val InvalidUserProvider = "OBP-20103: Invalid User Provider."
+  val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
@@ -412,6 +412,7 @@ object ErrorMessages {
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
   val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
+  val EntitlementCannotBeGranted = "OBP-30220: Entitlement cannot be granted."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
