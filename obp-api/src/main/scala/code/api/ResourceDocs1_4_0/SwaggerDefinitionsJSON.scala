@@ -4095,7 +4095,7 @@ object SwaggerDefinitionsJSON {
   )
   val postCreateUserWithRolesJsonV400 = PostCreateUserWithRolesJsonV400(
     userIdExample.value,
-    providerExample.value,
+    s"dauth.${providerExample.value}",
     List(createEntitlementJSON)
   )
   val revokedJsonV400 = RevokedJsonV400(true)

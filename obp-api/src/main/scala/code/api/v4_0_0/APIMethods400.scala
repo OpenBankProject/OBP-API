@@ -2778,11 +2778,11 @@ trait APIMethods400 {
             }
             //check the system role bankId is Empty, but bank level role need bankId 
             _ <- checkRoleBankIdMappings(callContext, postedData)
-            
+
             _ <- checkRolesBankIdExsiting(callContext, postedData)
-            
+
             _ <- checkRolesName(callContext, postedData)
-            
+
             _ <- NewStyle.function.hasEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank, cc.callContext)
             
             (postBodyUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
@@ -2790,7 +2790,7 @@ trait APIMethods400 {
             _ <- checkIfUserAlreadyHasEntitlements(postedData, callContext)
             
             addedEntitlements <- addEntitlementsToUser(postedData, callContext)
-            
+
           } yield {
             (JSONFactory400.createEntitlementJSONs(addedEntitlements), HttpCode.`201`(callContext))
           }
@@ -4257,6 +4257,16 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostCreateUserAccountAccessJsonV400]
             }
+            //provider must start with dauth., can not create other provider users.
+            _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc=Some(cc)) {
+              postJson.provider.startsWith("dauth.")
+            }
+
+            //user_id set the length for the min length of the userId. eg: 36
+            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
+              postJson.user_id.length>=36
+            }
+
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.getOrCreateUser(postJson.user_id, postJson.provider, cc.callContext)
             views <- getViews(bankId, accountId, postJson, callContext)

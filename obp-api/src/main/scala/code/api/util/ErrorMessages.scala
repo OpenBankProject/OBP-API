@@ -193,6 +193,7 @@ object ErrorMessages {
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
+  val InvalidUserProvider = "OBP-20103: Invalid User Provider."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
