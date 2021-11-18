@@ -5,7 +5,7 @@ import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
-import code.api.util.ApiRole._
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
@@ -2762,10 +2762,10 @@ trait APIMethods400 {
         EntitlementIsBankRole,
         EntitlementIsSystemRole,
         EntitlementAlreadyExists,
+        InvalidUserProvider,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
-      Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle))
 
     lazy val createUserWithRoles: OBPEndpoint = {
       case "user-entitlements" :: Nil JsonPost json -> _ =>  {
@@ -2776,6 +2776,17 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCreateUserWithRolesJsonV400]
             }
+
+            //provider must start with dauth., can not create other provider users.
+            _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc=Some(cc)) {
+              postedData.provider.startsWith("dauth.")
+            }
+
+            //user_id set the length for the min length of the userId. eg: 36
+            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
+              postedData.user_id.length>=36
+            }
+            
             //check the system role bankId is Empty, but bank level role need bankId 
             _ <- checkRoleBankIdMappings(callContext, postedData)
 
@@ -2783,14 +2794,17 @@ trait APIMethods400 {
 
             _ <- checkRolesName(callContext, postedData)
 
-            _ <- NewStyle.function.hasEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank, cc.callContext)
+            canCreateEntitlementAtAnyBankRole = Entitlement.entitlement.vend.getEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank.toString())
             
-            (postBodyUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
-            
-            _ <- checkIfUserAlreadyHasEntitlements(postedData, callContext)
+            (requestUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
+
+            _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) 
+              checkRequestRolesForTheUser(requestUser.userId, postedData.roles, true, callContext)
+            else
+              checkRequestRolesForTheUser(loggedInUser.userId, postedData.roles, false, callContext)
             
             addedEntitlements <- addEntitlementsToUser(postedData, callContext)
-
+            
           } yield {
             (JSONFactory400.createEntitlementJSONs(addedEntitlements), HttpCode.`201`(callContext))
           }
@@ -8524,7 +8538,7 @@ trait APIMethods400 {
       s"""${Glossary.getGlossaryItem("API Collections")}
          |
          |
-         |Delete Api Collection Endpoint By Id
+         |Delete Api Collection Endpoint By OPERATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -8598,7 +8612,7 @@ trait APIMethods400 {
       "Delete My Api Collection Endpoint By Id",
       s"""${Glossary.getGlossaryItem("API Collections")}
          |Delete Api Collection Endpoint
-         |Delete Api Collection Endpoint By IdDelete Api Collection Endpoint
+         |Delete Api Collection Endpoint By Id
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -10909,17 +10923,39 @@ trait APIMethods400 {
   }
   
   private def addEntitlementsToUser(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
-    Future.sequence(postedData.roles.map(addEntitlementToUser(postedData.user_id, _, callContext)))
+    Future.sequence(postedData.roles.distinct.map(addEntitlementToUser(postedData.user_id, _, callContext)))
   }
-  
-  private def checkIfUserAlreadyHasEntitlement(userId:String, entitlement: CreateEntitlementJSON, callContext: Option[CallContext]) = {
-    Helper.booleanToFuture(failMsg = s"$EntitlementAlreadyExists Current Entitlement (${entitlement.role_name})", cc=callContext) {
-      hasEntitlement(entitlement.bank_id, userId, valueOf(entitlement.role_name)) == false
-    }
-  }
-  
-  private def checkIfUserAlreadyHasEntitlements(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
-    Future.sequence(postedData.roles.map(checkIfUserAlreadyHasEntitlement(postedData.user_id, _, callContext)))
+
+  /**
+   * this method checks the roles for the userId,
+   * If isDuplicate = true, (mean the login user has canCreateEntitlementAtAnyBankRole), the userId = requestUserId,
+   *    Here we will grant all the roles to the requestUserId, so first we need to check if the requestUserId already has the roles or not, so
+   *    It will find the duplication ones between requestEntitlements and the userId's already has entitlements.--> throw the duplication error 
+   * If isDuplicate false, (mean the login user does not has canCreateEntitlementAtAnyBankRole), the userId = login user,
+   *    Here we only can grant the roles which the login user has, we need to find the roles which the login user does not have. 
+   *    It will find the not existing ones from the userId's already has entitlements by requestEntitlements.--> throw the no existing error 
+   */
+  private def checkRequestRolesForTheUser(userId:String, requestEntitlements: List[CreateEntitlementJSON], isDuplicate:Boolean, callContext: Option[CallContext]) = {
+    //1st:  get all the entitlements for the user:
+    val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    val rolesAlreadyHas = entitlements.map(_.map(entitlement => (entitlement.roleName, entitlement.bankId))).getOrElse(List.empty[(String,String)]).toSet
+    
+    val rolesFromRequest = requestEntitlements.map(entitlement => (entitlement.role_name, entitlement.bank_id)).toSet
+    
+    //2rd: find the duplicated ones:
+    val duplicatedEntitlements = if(isDuplicate) 
+      rolesAlreadyHas.filter(rolesFromRequest) 
+    else
+      rolesFromRequest.filterNot(rolesAlreadyHas)
+    
+    if(duplicatedEntitlements.size >0){
+      val errorMessages = if(isDuplicate) 
+        s"$EntitlementAlreadyExists user_id($userId) ${duplicatedEntitlements.mkString(",")}"
+      else
+        s"$EntitlementCannotBeGranted user_id($userId). The login user do not have the following roles yet: ${duplicatedEntitlements.mkString(",")}"
+      Helper.booleanToFuture(errorMessages, cc=callContext) {false}
+    }else 
+      Future.successful(Full())
   }
   
   private def checkRoleBankIdMapping(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {

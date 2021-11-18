@@ -98,7 +98,7 @@ class AccountAccessTest extends V400ServerSetup {
       responseRevoke.body.extract[RevokedJsonV400]
       
       {
-        val postCreateUserJson = PostCreateUserAccountAccessJsonV400(resourceUser2.userId, resourceUser2.provider, List(PostViewJsonV400(view.id, view.is_system)))
+        val postCreateUserJson = PostCreateUserAccountAccessJsonV400(resourceUser2.userId, "dauth."+resourceUser2.provider, List(PostViewJsonV400(view.id, view.is_system)))
         When("We send the request")
         val request = (v4_0_0_Request / "banks" / bankId / "accounts" / account.account_id / "user-account-access").POST <@ (user1)
         val response = makePostRequest(request, write(postCreateUserJson))

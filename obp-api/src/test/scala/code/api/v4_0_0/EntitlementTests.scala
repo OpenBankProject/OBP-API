@@ -115,6 +115,62 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       }
     }
 
+    scenario("We try to - createUserWithRoles - not roles, only grant the roles the login user has ", ApiEndpoint3, VersionOfApi) {
+      And("We make the request")
+      val createEntitlements = List(CreateEntitlementJSON(
+        bank_id = testBankId1.value,
+        role_name = CanCreateBranch.toString()
+      ), CreateEntitlementJSON(
+        bank_id = testBankId1.value,
+        role_name = CanUpdateBranch.toString()
+      ))
+      val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(roles= createEntitlements)
+      val requestGet = (v4_0_0_Request / "user-entitlements").GET <@ (user1)
+      val responseGet = makePostRequestAsync(requestGet, write(postJson))
+      Then("We should get a 200")
+      responseGet map { r =>
+        r.code should equal(400)
+        r.body.toString contains (EntitlementCannotBeGranted) shouldBe(true)
+      }
+    }
+
+    scenario("We try to - createUserWithRoles - short user_id ", ApiEndpoint3, VersionOfApi) {
+      And("We make the request")
+      val createEntitlements = List(CreateEntitlementJSON(
+        bank_id = testBankId1.value,
+        role_name = CanCreateBranch.toString()
+      ), CreateEntitlementJSON(
+        bank_id = testBankId1.value,
+        role_name = CanUpdateBranch.toString()
+      ))
+      val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(user_id ="xx", roles= createEntitlements)
+      val requestGet = (v4_0_0_Request / "user-entitlements").GET <@ (user1)
+      val responseGet = makePostRequestAsync(requestGet, write(postJson))
+      Then("We should get a 200")
+      responseGet map { r =>
+        r.code should equal(400)
+        r.body.toString contains (InvalidUserId) shouldBe(true)
+      }
+    }
+    scenario("We try to - createUserWithRoles - wrong user provider ", ApiEndpoint3, VersionOfApi) {
+      And("We make the request")
+      val createEntitlements = List(CreateEntitlementJSON(
+        bank_id = testBankId1.value,
+        role_name = CanCreateBranch.toString()
+      ), CreateEntitlementJSON(
+        bank_id = testBankId1.value,
+        role_name = CanUpdateBranch.toString()
+      ))
+      val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(provider ="xx", roles= createEntitlements)
+      val requestGet = (v4_0_0_Request / "user-entitlements").GET <@ (user1)
+      val responseGet = makePostRequestAsync(requestGet, write(postJson))
+      Then("We should get a 200")
+      responseGet map { r =>
+        r.code should equal(400)
+        r.body.toString contains (InvalidUserProvider) shouldBe(true)
+      }
+    }
+    
     scenario("We try to - createUserWithRoles", ApiEndpoint3, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateEntitlementAtAnyBank.toString)
