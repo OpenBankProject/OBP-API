@@ -82,6 +82,8 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
+import code.api.util.Glossary.getGlossaryItem
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -2741,16 +2743,33 @@ trait APIMethods400 {
       nameOf(createUserWithRoles),
       "POST",
       "/user-entitlements",
-      "Create User with Roles",
-      """This will create the User with user_id and provider if it does not exist
+      "Create (DAuth) User with Roles",
+      s"""
+        |This endpoint is used as part of the DAuth solution to grant Entitlements for Roles to a smart contract on the blockchain.
         |
-        |Create Entitlement. Grant Role to User.
+        |Put the smart contract address in user_id
+        |
+        |For provider use "dauth"
+        |
+        |This endpoint will create the User with user_id and provider if the User does not already exist.
+        |
+        |Then it will create Entitlements i.e. grant Roles to the User.
         |
         |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |i.e. Entitlements are used to create / consume system or bank level resources where as views / account access are used to consume / create customer level resources.
         |
         |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
         |
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Note: The Roles actually granted will depend on the Roles that the calling user has.
+        |
+        |If you try to grant Entitlements to a user that already exist (duplicate entitilements) you will get an error.
+        |
+        |For information about DAuth see below:
+        |
+        |${getGlossaryItem("DAuth")}
         |
         |""",
       postCreateUserWithRolesJsonV400,
@@ -2765,7 +2784,7 @@ trait APIMethods400 {
         InvalidUserProvider,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle))
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle, apiTagDAuth))
 
     lazy val createUserWithRoles: OBPEndpoint = {
       case "user-entitlements" :: Nil JsonPost json -> _ =>  {
@@ -4249,10 +4268,20 @@ trait APIMethods400 {
       nameOf(createUserWithAccountAccess),
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/user-account-access",
-      "Create User with Account Access",
-      s"""This will create the User with user_id and provider if it does not exist .
+      "Create (DAuth) User with Account Access",
+      s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
          |
-         |${authenticationRequiredMessage(true)} and the loggedin user needs to be account holder.
+         |Put the smart contract address in user_id
+         |
+         |For provider use "dauth"
+         |
+         |This endpoint will create the (DAuth) User with user_id and provider if the User does not already exist.
+         |
+         |${authenticationRequiredMessage(true)} and the logged in user needs to be account holder.
+         |
+         |For information about DAuth see below:
+         |
+         |${getGlossaryItem("DAuth")}
          |
          |""",
       postCreateUserWithRolesJsonV400,
@@ -4266,7 +4295,7 @@ trait APIMethods400 {
         CannotGrantAccountAccess,
         UnknownError
       ),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth, apiTagNewStyle))
 
     lazy val createUserWithAccountAccess : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "user-account-access" :: Nil JsonPost json -> _ => {

@@ -2040,7 +2040,7 @@ object Glossary extends MdcLoggable  {
 |
 |If you are calling OBP-API via an API3 Airnode, the Airnode will take care of constructing the required header.
 |
-|When OBP detects an DAuth header / token it first checks if the Consumer is allowed to make such a call. OBP will validate the Consumer ip address and signature etc.
+|When OBP detects a DAuth header / token it first checks if the Consumer is allowed to make such a call. OBP will validate the Consumer ip address and signature etc.
 |
 |Note: The DAuth flow does *not* require an explicit POST like Direct Login to create the token.
 |
