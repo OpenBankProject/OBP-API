@@ -2798,11 +2798,16 @@ trait APIMethods400 {
             
             (requestUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
 
-            _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) 
-              checkRequestRolesForTheUser(requestUser.userId, postedData.roles, true, callContext)
-            else
-              checkRequestRolesForTheUser(loggedInUser.userId, postedData.roles, false, callContext)
-            
+            _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) { 
+              //If the loggedIn User has `CanCreateEntitlementAtAnyBankRole` role, then we can grant all the requestRoles to the requestUser.
+              //But we must check if the requestUser already has the requestRoles or not.
+              checkIfUserAlreadyHasTheRequestRoles(requestUser.userId, postedData.roles,callContext)
+            } else {
+              //If the loggedIn user does not have the `CanCreateEntitlementAtAnyBankRole` role, we can only grant the roles which the loggedIn user have.
+              //So we need to check if the rqeuestRoles are beyond the current loggedIn user has.
+              checkIfUserCanGrantTheRequestRoles(loggedInUser.userId, postedData.roles, callContext)
+            }
+
             addedEntitlements <- addEntitlementsToUser(postedData, callContext)
             
           } yield {
@@ -10927,32 +10932,45 @@ trait APIMethods400 {
   }
 
   /**
-   * this method checks the roles for the userId,
-   * If isDuplicate = true, (mean the login user has canCreateEntitlementAtAnyBankRole), the userId = requestUserId,
-   *    Here we will grant all the roles to the requestUserId, so first we need to check if the requestUserId already has the roles or not, so
-   *    It will find the duplication ones between requestEntitlements and the userId's already has entitlements.--> throw the duplication error 
-   * If isDuplicate false, (mean the login user does not has canCreateEntitlementAtAnyBankRole), the userId = login user,
-   *    Here we only can grant the roles which the login user has, we need to find the roles which the login user does not have. 
-   *    It will find the not existing ones from the userId's already has entitlements by requestEntitlements.--> throw the no existing error 
+   * This method will check all the roles the request user already has and the request roles:
+   * It will find the roles the requestUser already have, then show the error to the developer.
+   * (We can not grant the same roles to the request user twice)
    */
-  private def checkRequestRolesForTheUser(userId:String, requestEntitlements: List[CreateEntitlementJSON], isDuplicate:Boolean, callContext: Option[CallContext]) = {
+  private def checkIfUserAlreadyHasTheRequestRoles(requestUserId:String, requestEntitlements: List[CreateEntitlementJSON], callContext: Option[CallContext]) = {
     //1st:  get all the entitlements for the user:
-    val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(requestUserId)
     val rolesAlreadyHas = entitlements.map(_.map(entitlement => (entitlement.roleName, entitlement.bankId))).getOrElse(List.empty[(String,String)]).toSet
     
     val rolesFromRequest = requestEntitlements.map(entitlement => (entitlement.role_name, entitlement.bank_id)).toSet
     
     //2rd: find the duplicated ones:
-    val duplicatedEntitlements = if(isDuplicate) 
-      rolesAlreadyHas.filter(rolesFromRequest) 
-    else
-      rolesFromRequest.filterNot(rolesAlreadyHas)
+    val duplicatedEntitlements = rolesAlreadyHas.filter(rolesFromRequest)
+    
+    //3rd: We can not grant the roles again, so we show the error to the developer.
+    if(duplicatedEntitlements.size >0){
+      val errorMessages = s"$EntitlementAlreadyExists user_id($requestUserId) ${duplicatedEntitlements.mkString(",")}"
+        Helper.booleanToFuture(errorMessages, cc=callContext) {false}
+    }else 
+      Future.successful(Full())
+  }
+
+  /**
+   * This method will check all the roles the loggedIn user already has and the request roles:
+   * It will find the not existing roles from the loggedIn user  --> we will show the error to the developer
+   *  (We can only grant the roles which the loggedIn User has to the requestUser)
+   */
+  private def checkIfUserCanGrantTheRequestRoles(loggedInUserId:String, requestEntitlements: List[CreateEntitlementJSON], callContext: Option[CallContext]) = {
+    //1st:  get all the entitlements for the user:
+    val entitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(loggedInUserId)
+    val rolesAlreadyHas = entitlements.map(_.map(entitlement => (entitlement.roleName, entitlement.bankId))).getOrElse(List.empty[(String,String)]).toSet
+    
+    val rolesFromRequest = requestEntitlements.map(entitlement => (entitlement.role_name, entitlement.bank_id)).toSet
+    
+    //2rd: find the roles which the loggedIn user does not have,
+    val duplicatedEntitlements = rolesFromRequest.filterNot(rolesAlreadyHas)
     
     if(duplicatedEntitlements.size >0){
-      val errorMessages = if(isDuplicate) 
-        s"$EntitlementAlreadyExists user_id($userId) ${duplicatedEntitlements.mkString(",")}"
-      else
-        s"$EntitlementCannotBeGranted user_id($userId). The login user do not have the following roles yet: ${duplicatedEntitlements.mkString(",")}"
+      val errorMessages = s"$EntitlementCannotBeGranted user_id($loggedInUserId). The login user do not have the following roles yet: ${duplicatedEntitlements.mkString(",")}"
       Helper.booleanToFuture(errorMessages, cc=callContext) {false}
     }else 
       Future.successful(Full())
