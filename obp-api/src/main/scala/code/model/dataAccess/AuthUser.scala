@@ -1154,43 +1154,45 @@ def restoreSomeSessions(): Unit = {
   }
 
   def grantEntitlementsToUseDynamicEndpointsInSpaces(user: AuthUser) = {
-    val createdByProcess = "grantEntitlementsToUseDynamicEndpointsInSpaces"
-    val userId = user.user.obj.map(_.userId).getOrElse("")
+    if(emailDomainToSpaceMappings.nonEmpty) {
+      val createdByProcess = "grantEntitlementsToUseDynamicEndpointsInSpaces"
+      val userId = user.user.obj.map(_.userId).getOrElse("")
 
-    // user's already auto granted entitlements.
-    val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
-      .map(_.filter(role => role.createdByProcess == createdByProcess))
-      .getOrElse(Nil)
+      // user's already auto granted entitlements.
+      val entitlementsGrantedByThisProcess = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+        .map(_.filter(role => role.createdByProcess == createdByProcess))
+        .getOrElse(Nil)
 
-    def alreadyHasEntitlement(role:ApiRole, bankId: String): Boolean =
-      entitlementsGrantedByThisProcess.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
+      def alreadyHasEntitlement(role:ApiRole, bankId: String): Boolean =
+        entitlementsGrantedByThisProcess.exists(entitlement => entitlement.roleName == role.toString() && entitlement.bankId == bankId)
 
-    //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
-    val allCurrentDynamicRoleToBankIdPairs: List[(ApiRole, String)] = for {
-      BankId(bankId) <- mySpaces(user: AuthUser)
-      role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId))
-    } yield {
-      if (!alreadyHasEntitlement(role, bankId)) {
-        Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString, createdByProcess)
+      //call mySpaces --> get BankIds --> listOfRolesToUseAllDynamicEndpointsAOneBank (at each bank)--> Grant roles (for each role)
+      val allCurrentDynamicRoleToBankIdPairs: List[(ApiRole, String)] = for {
+        BankId(bankId) <- mySpaces(user: AuthUser)
+        role <- DynamicEndpointHelper.listOfRolesToUseAllDynamicEndpointsAOneBank(Some(bankId))
+      } yield {
+        if (!alreadyHasEntitlement(role, bankId)) {
+          Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString, createdByProcess)
+        }
+
+        role -> bankId
       }
 
-      role -> bankId
-    }
+      // if user's auto granted entitlement invalid, delete it.
+      // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
+      for {
+        grantedEntitlement <- entitlementsGrantedByThisProcess
+        grantedEntitlementRoleName = grantedEntitlement.roleName
+        grantedEntitlementBankId = grantedEntitlement.bankId
+      } {
+        val isInValidEntitlement = !allCurrentDynamicRoleToBankIdPairs.exists { roleToBankIdPair =>
+          val(role, roleBankId) = roleToBankIdPair
+          role.toString() == grantedEntitlementRoleName && roleBankId == grantedEntitlementBankId
+        }
 
-    // if user's auto granted entitlement invalid, delete it.
-    // invalid happens when some dynamic endpoints are removed, so the entitlements linked to the deleted dynamic endpoints are invalid. 
-    for {
-      grantedEntitlement <- entitlementsGrantedByThisProcess
-      grantedEntitlementRoleName = grantedEntitlement.roleName
-      grantedEntitlementBankId = grantedEntitlement.bankId
-    } {
-      val isInValidEntitlement = !allCurrentDynamicRoleToBankIdPairs.exists { roleToBankIdPair =>
-        val(role, roleBankId) = roleToBankIdPair
-        role.toString() == grantedEntitlementRoleName && roleBankId == grantedEntitlementBankId
-      }
-
-      if(isInValidEntitlement) {
-        Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
+        if(isInValidEntitlement) {
+          Entitlement.entitlement.vend.deleteEntitlement(Full(grantedEntitlement))
+        }
       }
     }
   }
