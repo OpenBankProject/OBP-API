@@ -251,6 +251,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
 
     S.request match {
+      // Recommended header style i.e. DirectLogin: username=s, password=s, consumer_key=s
+      case Full(a) if a.header("DirectLogin").isDefined == true =>
+        toMap(a.header("DirectLogin").openOrThrowException("ddddd"))
+      // Deprecated header style i.e. Authorization: DirectLogin username=s, password=s, consumer_key=s
       case Full(a) => a.header("Authorization") match {
         case Full(header) => {
           if (header.contains("DirectLogin"))
@@ -258,11 +262,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
           else
             Map("error" -> "header incorrect")
         }
-        case _ => 
-          a.header("DirectLogin") match {
-            case Full(header) => toMap(header)
-            case _ => Map("error" -> "missing header")
-          }
+        case _ => Map("error" -> "missing header")
       }
       case _ => Map("error" -> "request incorrect")
     }

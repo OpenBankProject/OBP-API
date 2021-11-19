@@ -106,7 +106,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
   val invalidConsumerKeyHeaders = List(accessControlOriginHeader, invalidConsumerKeyHeader)
 
-  val validHeaders = List(accessControlOriginHeader, validHeader)
+  val validHeaders = List(accessControlOriginHeader, validHeader, ("Authorization", "Basic 123456"))
   val validDeprecatedHeaders = List(accessControlOriginHeader, validDeprecatedHeader)
 
   val disabledConsumerKeyHeaders = List(accessControlOriginHeader, disabledConsumerValidHeader)
