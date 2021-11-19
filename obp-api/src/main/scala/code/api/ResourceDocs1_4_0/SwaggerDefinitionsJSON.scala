@@ -4088,6 +4088,16 @@ object SwaggerDefinitionsJSON {
   )
 
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+  val postCreateUserAccountAccessJsonV400 = PostCreateUserAccountAccessJsonV400(
+    userIdExample.value,
+    providerExample.value,
+    List(PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+  )
+  val postCreateUserWithRolesJsonV400 = PostCreateUserWithRolesJsonV400(
+    userIdExample.value,
+    s"dauth.${providerExample.value}",
+    List(createEntitlementJSON)
+  )
   val revokedJsonV400 = RevokedJsonV400(true)
 
   val postRevokeGrantAccountAccessJsonV400 = PostRevokeGrantAccountAccessJsonV400(List("ReadAccountsBasic"))
@@ -4481,6 +4491,17 @@ object SwaggerDefinitionsJSON {
     terms_and_conditions_url = termsAndConditionsUrlExample.value,
     description = descriptionExample.value,
     meta = metaJson,
+  )
+  
+  val entitlementJsonV400 = EntitlementJsonV400(
+    entitlement_id = entitlementIdExample.value,
+    role_name = roleNameExample.value,
+    bank_id = bankIdExample.value,
+    user_id = userIdExample.value,
+  )
+
+  val entitlementsJsonV400 =  EntitlementsJsonV400(
+    list = List(entitlementJsonV400)
   )
   
   

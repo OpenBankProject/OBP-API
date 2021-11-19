@@ -192,6 +192,8 @@ object ErrorMessages {
   val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
+  val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
+  val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
@@ -410,6 +412,7 @@ object ErrorMessages {
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
   val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
+  val EntitlementCannotBeGranted = "OBP-30220: Entitlement cannot be granted."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
@@ -537,6 +540,7 @@ object ErrorMessages {
   val DynamicMessageDocNotFound = "OBP-40043: DynamicMessageDoc not found, please specify valid DYNAMIC_MESSAGE_DOC_ID. "
   val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc can not be deleted. "
   val DynamicCodeCompileFail = "OBP-40045: The code to do compile is illegal scala code, compilation failed. "
+  val InvalidOperationId = "OBP-40046: Invalid operation_id, please specify valid operation_id."
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
