@@ -136,12 +136,13 @@ object DAuth extends RestHelper with MdcLoggable {
   def getOrCreateResourceUser(jwtPayload: String, callContext: Option[CallContext]) : Box[(User, Option[CallContext])] = {
     val username = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
     val provider = getFieldFromPayloadJson(jwtPayload, "network_name")
+    val providerHardCodePrefixDauth = "dauth."+provider
     logger.debug("login_user_name: " + username)
     for {
       tuple <- 
-          Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = username).or { // Find a user
+          Users.users.vend.getUserByProviderId(provider = providerHardCodePrefixDauth, idGivenByProvider = username).or { // Find a user
             Users.users.vend.createResourceUser( // Otherwise create a new one
-              provider = provider,
+              provider = providerHardCodePrefixDauth,
               providerId = Some(username),
               None,
               name = Some(username),
@@ -168,10 +169,11 @@ object DAuth extends RestHelper with MdcLoggable {
   def getOrCreateResourceUserFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(User, Option[CallContext])]] = {
     val username = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
     val provider = getFieldFromPayloadJson(jwtPayload, "network_name")
+    val providerHardCodePrefixDauth = "dauth."+provider
     logger.debug("login_user_name: " + username)
     for {
       tuple <- 
-        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = provider, idGivenByProvider = username, consentId = None, name = Some(username), email = None) map {
+        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = providerHardCodePrefixDauth, idGivenByProvider = username, consentId = None, name = Some(username), email = None) map {
           case (Full(u), _) =>
             Full(u, callContext) // Return user
           case (Empty, _) =>
@@ -223,8 +225,9 @@ object DAuth extends RestHelper with MdcLoggable {
       case Full(payload) =>
         val username = getFieldFromPayloadJson(payload, "smart_contract_address")
         val provider = getFieldFromPayloadJson(payload, "network_name")
+        val providerHardCodePrefixDauth = "dauth."+provider
         logger.debug("username: " + username)
-        Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = username)
+        Users.users.vend.getUserByProviderId(provider = providerHardCodePrefixDauth, idGivenByProvider = username)
       case _ =>
         None
     }
