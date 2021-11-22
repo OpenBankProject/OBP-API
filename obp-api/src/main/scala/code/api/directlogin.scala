@@ -29,7 +29,7 @@ package code.api
 import java.util.Date
 
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.InvalidDirectLoginParameters
+import code.api.util.ErrorMessages.{InvalidDirectLoginParameters, attemptedToOpenAnEmptyBox}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.consumer.Consumers._
@@ -253,7 +253,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
     S.request match {
       // Recommended header style i.e. DirectLogin: username=s, password=s, consumer_key=s
       case Full(a) if a.header("DirectLogin").isDefined == true =>
-        toMap(a.header("DirectLogin").openOrThrowException("ddddd"))
+        toMap(a.header("DirectLogin").openOrThrowException(attemptedToOpenAnEmptyBox + " => getAllParameters"))
       // Deprecated header style i.e. Authorization: DirectLogin username=s, password=s, consumer_key=s
       case Full(a) => a.header("Authorization") match {
         case Full(header) => {
