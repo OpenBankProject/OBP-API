@@ -691,7 +691,7 @@ case class ApiCollectionsJson400 (
 case class PostApiCollectionJson400(
   api_collection_name: String,
   is_sharable: Boolean,
-  description: String
+  description: Option[String]
 )
 
 case class ApiCollectionEndpointJson400 (
