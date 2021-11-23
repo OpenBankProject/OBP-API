@@ -4265,7 +4265,7 @@ object SwaggerDefinitionsJSON {
     charge = transactionRequestChargeJsonV200
   )
   
-  val postApiCollectionJson400 = PostApiCollectionJson400(apiCollectionNameExample.value, true, descriptionExample.value)
+  val postApiCollectionJson400 = PostApiCollectionJson400(apiCollectionNameExample.value, true, Some(descriptionExample.value))
   
   val apiCollectionJson400 = ApiCollectionJson400(apiCollectionIdExample.value, userIdExample.value, apiCollectionNameExample.value, true, descriptionExample.value)
   val apiCollectionsJson400 = ApiCollectionsJson400(List(apiCollectionJson400))

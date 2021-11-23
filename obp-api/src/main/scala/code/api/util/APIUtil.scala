@@ -45,35 +45,37 @@ import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
-import code.api.util.JwsUtil.getJwsHeaderValue
-import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
-import code.api.{DirectLogin, _}
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
+import code.api.{DirectLogin, _}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
 import code.entitlement.Entitlement
-import code.loginattempts.LoginAttempt
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
-import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
-import code.util.{Helper, JsonSchemaUtil}
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
+import code.util.{Helper, JsonSchemaUtil}
 import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{Customer, _}
+import com.openbankproject.commons.util.Functions.Implicits._
+import com.openbankproject.commons.util.Functions.Memo
+import com.openbankproject.commons.util._
 import dispatch.url
+import javassist.expr.{ExprEditor, MethodCall}
+import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http._
@@ -85,21 +87,14 @@ import net.liftweb.json.JsonAST.{JField, JNothing, JObject, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Helpers, LiftFlowOfControlException, Props, StringHelpers, ThreadGlobal}
-
-import scala.collection.JavaConverters._
-import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
-import com.openbankproject.commons.util.Functions.Implicits._
-import com.openbankproject.commons.util.Functions.Memo
-import javassist.{ClassPool, LoaderClassPath}
-import javassist.expr.{ExprEditor, MethodCall}
+import net.liftweb.util._
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 
+import scala.collection.JavaConverters._
+import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
 import scala.io.BufferedSource
 import scala.util.Either
@@ -2768,80 +2763,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Future { (Empty, Some(cc)) }
       }
 
+    // COMMON POST AUTHENTICATION CODE GOES BELOW
+
     // Check is it a user deleted or locked
-    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = for {
-      (user: Box[User], cc) <- res
-    } yield {
-      user match {
-        case Full(u) => // There is a user. Check it.
-          if(u.isDeleted.getOrElse(false)) {
-            (Failure(UserIsDeleted) , cc) // The user is DELETED.
-          } else {
-            LoginAttempt.userIsLocked(u.name) match {
-              case true => (Failure(UsernameHasBeenLocked),cc) // The user is LOCKED.
-              case false => (user, cc) // All good
-            }
-          }
-        case _ => // There is no user. Just forward the result.
-          (user, cc)
-      }
-    }
+    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(res)
+    // Check Rate Limiting
+    val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
 
-
-    /******************************************************************************************************************
-     * This block of code needs to update Call Context with Rate Limiting
-     * Please note that first source is the table RateLimiting and second is the table Consumer
-     */
-    def getRateLimiting(consumerId: String, version: String, name: String): Future[Box[RateLimiting]] = {
-      RateLimitingUtil.useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getByConsumerId(consumerId, version, name, Some(new Date()))
-        case false => Future(Empty)
-      }
-    }
-    val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = for {
-      (user, cc) <- userIsLockedOrDeleted
-      consumer = cc.flatMap(_.consumer)
-      version = cc.map(_.implementedInVersion).getOrElse("None") // Calculate apiVersion  in case of Rate Limiting
-      operationId = cc.flatMap(_.operationId) // Unique Identifier of Dynamic Endpoints
-      // Calculate apiName in case of Rate Limiting
-      name = cc.flatMap(_.resourceDocument.map(_.partialFunctionName)) // 1st try: function name at resource doc
-        .orElse(operationId) // 2nd try: In case of Dynamic Endpoint we can only use operationId
-        .getOrElse("None") // Not found any unique identifier
-      rateLimiting <- getRateLimiting(consumer.map(_.consumerId.get).getOrElse(""), version, name)
-    } yield {
-      val limit: Option[CallLimit] = rateLimiting match {
-        case Full(rl) => Some(CallLimit(
-          rl.consumerId,
-          rl.apiName,
-          rl.apiVersion,
-          rl.bankId,
-          rl.perSecondCallLimit,
-          rl.perMinuteCallLimit,
-          rl.perHourCallLimit,
-          rl.perDayCallLimit,
-          rl.perWeekCallLimit,
-          rl.perMonthCallLimit))
-        case Empty =>
-          Some(CallLimit(
-            consumer.map(_.consumerId.get).getOrElse(""),
-            None,
-            None,
-            None,
-            consumer.map(_.perSecondCallLimit.get).getOrElse(-1),
-            consumer.map(_.perMinuteCallLimit.get).getOrElse(-1),
-            consumer.map(_.perHourCallLimit.get).getOrElse(-1),
-            consumer.map(_.perDayCallLimit.get).getOrElse(-1),
-            consumer.map(_.perWeekCallLimit.get).getOrElse(-1),
-            consumer.map(_.perMonthCallLimit.get).getOrElse(-1)
-          ))
-        case _ => None
-      }
-      (user, cc.map(_.copy(rateLimiting = limit)))
-    }
-    /*************************************************************************************************************** */
-
-    
-    resultWithRateLimiting map { // Update Call Context
+    // Update Call Context
+    resultWithRateLimiting map {
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))
@@ -2862,7 +2792,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
   }
-  
+
+
+
 
   /**
    * This Function is used to terminate a Future used in for-comprehension with specific message and code in case that value of Box is not Full.
