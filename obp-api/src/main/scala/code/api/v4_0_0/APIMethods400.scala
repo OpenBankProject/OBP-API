@@ -5,7 +5,7 @@ import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
-import code.api.util.ApiRole._
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
@@ -19,7 +19,7 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
@@ -73,7 +73,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, prettyRender, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.now
+import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
@@ -81,6 +81,8 @@ import org.apache.commons.lang3.StringUtils
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
+
+import code.api.util.Glossary.getGlossaryItem
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -2735,7 +2737,104 @@ trait APIMethods400 {
           }
       }
     }
-    
+    staticResourceDocs += ResourceDoc(
+      createUserWithRoles,
+      implementedInApiVersion,
+      nameOf(createUserWithRoles),
+      "POST",
+      "/user-entitlements",
+      "Create (DAuth) User with Roles",
+      s"""
+        |This endpoint is used as part of the DAuth solution to grant Entitlements for Roles to a smart contract on the blockchain.
+        |
+        |Put the smart contract address in user_id
+        |
+        |For provider use "dauth"
+        |
+        |This endpoint will create the User with user_id and provider if the User does not already exist.
+        |
+        |Then it will create Entitlements i.e. grant Roles to the User.
+        |
+        |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |i.e. Entitlements are used to create / consume system or bank level resources where as views / account access are used to consume / create customer level resources.
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Note: The Roles actually granted will depend on the Roles that the calling user has.
+        |
+        |If you try to grant Entitlements to a user that already exist (duplicate entitilements) you will get an error.
+        |
+        |For information about DAuth see below:
+        |
+        |${getGlossaryItem("DAuth")}
+        |
+        |""",
+      postCreateUserWithRolesJsonV400,
+      entitlementsJsonV400,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        IncorrectRoleName,
+        EntitlementIsBankRole,
+        EntitlementIsSystemRole,
+        EntitlementAlreadyExists,
+        InvalidUserProvider,
+        UnknownError
+      ),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle, apiTagDAuth))
+
+    lazy val createUserWithRoles: OBPEndpoint = {
+      case "user-entitlements" :: Nil JsonPost json -> _ =>  {
+        cc =>
+          for {
+            (Full(loggedInUser), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserWithRolesJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCreateUserWithRolesJsonV400]
+            }
+
+            //provider must start with dauth., can not create other provider users.
+            _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc=Some(cc)) {
+              postedData.provider.startsWith("dauth.")
+            }
+
+            //user_id set the length for the min length of the userId. eg: 36
+            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
+              postedData.user_id.length>=36
+            }
+            
+            //check the system role bankId is Empty, but bank level role need bankId 
+            _ <- checkRoleBankIdMappings(callContext, postedData)
+
+            _ <- checkRolesBankIdExsiting(callContext, postedData)
+
+            _ <- checkRolesName(callContext, postedData)
+
+            canCreateEntitlementAtAnyBankRole = Entitlement.entitlement.vend.getEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank.toString())
+            
+            (targetUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
+
+            _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) { 
+              //If the loggedIn User has `CanCreateEntitlementAtAnyBankRole` role, then we can grant all the requestRoles to the requestUser.
+              //But we must check if the requestUser already has the requestRoles or not.
+              assertTargetUserLacksRoles(targetUser.userId, postedData.roles,callContext)
+            } else {
+              //If the loggedIn user does not have the `CanCreateEntitlementAtAnyBankRole` role, we can only grant the roles which the loggedIn user have.
+              //So we need to check if the requestRoles are beyond the current loggedIn user has.
+              assertUserCanGrantRoles(loggedInUser.userId, postedData.roles, callContext)
+            }
+
+            addedEntitlements <- addEntitlementsToUser(postedData, callContext)
+            
+          } yield {
+            (JSONFactory400.createEntitlementJSONs(addedEntitlements), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getEntitlements,
@@ -2749,7 +2848,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       EmptyBody,
-      entitlementJSONs,
+      entitlementsJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
@@ -2786,7 +2885,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       EmptyBody,
-      entitlementJSONs,
+      entitlementsJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForOneBank,canGetEntitlementsForAnyBank)))
@@ -4154,14 +4253,8 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
-            view <- postJson.view.is_system match {
-              case true => NewStyle.function.systemView(ViewId(postJson.view.view_id), callContext)
-              case false => NewStyle.function.customView(ViewId(postJson.view.view_id), BankIdAccountId(bankId, accountId), callContext)
-            }
-            addedView <- postJson.view.is_system match {
-              case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
-              case false => NewStyle.function.grantAccessToCustomView(view, user, callContext)
-            }
+            view <- getView(bankId, accountId, postJson.view, callContext)
+            addedView <- createAccountAccessToUser(bankId, accountId, user, view, callContext)
           } yield {
             val viewJson = JSONFactory300.createViewJSON(addedView)
             (viewJson, HttpCode.`201`(callContext))
@@ -4169,6 +4262,69 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      createUserWithAccountAccess,
+      implementedInApiVersion,
+      nameOf(createUserWithAccountAccess),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/user-account-access",
+      "Create (DAuth) User with Account Access",
+      s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
+         |
+         |Put the smart contract address in user_id
+         |
+         |For provider use "dauth"
+         |
+         |This endpoint will create the (DAuth) User with user_id and provider if the User does not already exist.
+         |
+         |${authenticationRequiredMessage(true)} and the logged in user needs to be account holder.
+         |
+         |For information about DAuth see below:
+         |
+         |${getGlossaryItem("DAuth")}
+         |
+         |""",
+      postCreateUserWithRolesJsonV400,
+      List(viewJsonV300),
+      List(
+        $UserNotLoggedIn,
+        UserMissOwnerViewOrNotAccountHolder,
+        InvalidJsonFormat,
+        SystemViewNotFound,
+        ViewNotFound,
+        CannotGrantAccountAccess,
+        UnknownError
+      ),
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth, apiTagNewStyle))
+
+    lazy val createUserWithAccountAccess : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "user-account-access" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV400 "
+          for {
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostCreateUserAccountAccessJsonV400]
+            }
+            //provider must start with dauth., can not create other provider users.
+            _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc=Some(cc)) {
+              postJson.provider.startsWith("dauth.")
+            }
+
+            //user_id set the length for the min length of the userId. eg: 36
+            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
+              postJson.user_id.length>=36
+            }
+
+            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
+            (user, callContext) <- NewStyle.function.getOrCreateUser(postJson.user_id, postJson.provider, cc.callContext)
+            views <- getViews(bankId, accountId, postJson, callContext)
+            addedView <- createAccountAccessesToUser(bankId, accountId, user, views, callContext)
+          } yield {
+            val viewsJson = addedView.map(JSONFactory300.createViewJSON(_))
+            (viewsJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       revokeUserAccessToView,
@@ -8202,6 +8358,10 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionEndpointJson400]
             }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
+              (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs ++ OBPAPI4_0_0.allResourceDocs).toList
+                .find(_.operationId==postJson.operation_id).isDefined
+            }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
             _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ", cc=callContext) {
@@ -8247,6 +8407,10 @@ trait APIMethods400 {
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionEndpointJson400]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
+              (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs ++ OBPAPI4_0_0.allResourceDocs).toList
+                .find(_.operationId==postJson.operation_id).isDefined
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectioId, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
@@ -8408,7 +8572,7 @@ trait APIMethods400 {
       s"""${Glossary.getGlossaryItem("API Collections")}
          |
          |
-         |Delete Api Collection Endpoint By Id
+         |Delete Api Collection Endpoint By OPERATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -8437,14 +8601,51 @@ trait APIMethods400 {
     }
     
     staticResourceDocs += ResourceDoc(
+      deleteMyApiCollectionEndpointByOperationId,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollectionEndpointByOperationId),
+      "DELETE",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
+      "Delete My Api Collection Endpoint By Id",
+      s"""${Glossary.getGlossaryItem("API Collections")}
+         |
+         |Delete Api Collection Endpoint By OPERATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollectionEndpointByOperationId : OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       deleteMyApiCollectionEndpointById,
       implementedInApiVersion,
       nameOf(deleteMyApiCollectionEndpointById),
       "DELETE",
-      "/my/api-collections-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoint-ids/API_COLLECTION_ENDPOINT_ID",
       "Delete My Api Collection Endpoint By Id",
       s"""${Glossary.getGlossaryItem("API Collections")}
-         |
+         |Delete Api Collection Endpoint
          |Delete Api Collection Endpoint By Id
          |
          |${authenticationRequiredMessage(true)}
@@ -8461,18 +8662,18 @@ trait APIMethods400 {
     )
 
     lazy val deleteMyApiCollectionEndpointById : OBPEndpoint = {
-      case "my" :: "api-collections-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoint-ids" :: apiCollectionEndpointId :: Nil JsonDelete _ => {
         cc =>
           for {
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
-            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, callContext)
             (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }
       }
     }
-    
+
     staticResourceDocs += ResourceDoc(
       createJsonSchemaValidation,
       implementedInApiVersion,
@@ -10739,6 +10940,117 @@ trait APIMethods400 {
       }
     }
 
+  }
+
+  private def checkRoleBankIdExsiting(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Helper.booleanToFuture(failMsg = s"$BankNotFound Current BANK_ID (${entitlement.bank_id})", cc=callContext) {
+      entitlement.bank_id.nonEmpty == false || BankX(BankId(entitlement.bank_id), callContext).map(_._1).isEmpty == false
+    }
+  }
+  
+  private def checkRolesBankIdExsiting(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postedData.roles.map(checkRoleBankIdExsiting(callContext,_)))
+  }
+  
+  private def addEntitlementToUser(userId:String, entitlement: CreateEntitlementJSON, callContext: Option[CallContext]) = {
+    Future(Entitlement.entitlement.vend.addEntitlement(entitlement.bank_id, userId, entitlement.role_name)) map { unboxFull(_) }
+  }
+  
+  private def addEntitlementsToUser(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postedData.roles.distinct.map(addEntitlementToUser(postedData.user_id, _, callContext)))
+  }
+
+  /**
+   * This method will check all the roles the request user already has and the request roles:
+   * It will find the roles the requestUser already have, then show the error to the developer.
+   * (We can not grant the same roles to the request user twice)
+   */
+  private def assertTargetUserLacksRoles(userId:String, requestedEntitlements: List[CreateEntitlementJSON], callContext: Option[CallContext]) = {
+    //1st:  get all the entitlements for the user:
+    val userEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    val userRoles = userEntitlements.map(_.map(entitlement => (entitlement.roleName, entitlement.bankId))).getOrElse(List.empty[(String,String)]).toSet
+    
+    val targetRoles = requestedEntitlements.map(entitlement => (entitlement.role_name, entitlement.bank_id)).toSet
+    
+    //2rd: find the duplicated ones:
+    val duplicatedRoles = userRoles.filter(targetRoles)
+    
+    //3rd: We can not grant the roles again, so we show the error to the developer.
+    if(duplicatedRoles.size >0){
+      val errorMessages = s"$EntitlementAlreadyExists user_id($userId) ${duplicatedRoles.mkString(",")}"
+        Helper.booleanToFuture(errorMessages, cc=callContext) {false}
+    }else 
+      Future.successful(Full())
+  }
+
+  /**
+   * This method will check all the roles the loggedIn user already has and the request roles:
+   * It will find the not existing roles from the loggedIn user  --> we will show the error to the developer
+   *  (We can only grant the roles which the loggedIn User has to the requestUser)
+   */
+  private def assertUserCanGrantRoles(userId:String, requestedEntitlements: List[CreateEntitlementJSON], callContext: Option[CallContext]) = {
+    //1st:  get all the entitlements for the user:
+    val userEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    val userRoles = userEntitlements.map(_.map(entitlement => (entitlement.roleName, entitlement.bankId))).getOrElse(List.empty[(String,String)]).toSet
+    
+    val targetRoles = requestedEntitlements.map(entitlement => (entitlement.role_name, entitlement.bank_id)).toSet
+    
+    //2rd: find the roles which the loggedIn user does not have,
+    val roleLacking = targetRoles.filterNot(userRoles)
+    
+    if(roleLacking.size >0){
+      val errorMessages = s"$EntitlementCannotBeGranted user_id($userId). The login user does not have the following roles: ${roleLacking.mkString(",")}"
+      Helper.booleanToFuture(errorMessages, cc=callContext) {false}
+    }else 
+      Future.successful(Full())
+  }
+  
+  private def checkRoleBankIdMapping(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(entitlement.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc = callContext) {
+        ApiRole.valueOf(entitlement.role_name).requiresBankId == entitlement.bank_id.nonEmpty
+    } 
+  }
+
+  private def checkRoleBankIdMappings(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postedData.roles.map(checkRoleBankIdMapping(callContext,_)))
+  }
+  
+  private def checkRoleName(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Future{
+      tryo {
+        valueOf(entitlement.role_name)
+      }
+    } map {
+      val msg = IncorrectRoleName + entitlement.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+      x => unboxFullOrFail(x, callContext, msg)
+    }
+  }
+
+  private def checkRolesName(callContext: Option[CallContext], postJsonBody: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postJsonBody.roles.map(checkRoleName(callContext,_)))
+  }
+  
+  private def createAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view: View, callContext: Option[CallContext]) = {
+    view.isSystem match {
+      case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
+      case false => NewStyle.function.grantAccessToCustomView(view, user, callContext)
+    }
+  }
+  private def createAccountAccessesToUser(bankId: BankId, accountId: AccountId, user: User, views: List[View], callContext: Option[CallContext]) = {
+    Future.sequence(views.map(view =>
+      createAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view, callContext: Option[CallContext])
+    ))
+  }
+  
+  private def getView(bankId: BankId, accountId: AccountId, postView: PostViewJsonV400, callContext: Option[CallContext]) = {
+    postView.is_system match {
+      case true => NewStyle.function.systemView(ViewId(postView.view_id), callContext)
+      case false => NewStyle.function.customView(ViewId(postView.view_id), BankIdAccountId(bankId, accountId), callContext)
+    }
+  }
+
+  private def getViews(bankId: BankId, accountId: AccountId, postJson: PostCreateUserAccountAccessJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postJson.views.map(view => getView(bankId: BankId, accountId: AccountId, view: PostViewJsonV400, callContext: Option[CallContext])))
   }
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {

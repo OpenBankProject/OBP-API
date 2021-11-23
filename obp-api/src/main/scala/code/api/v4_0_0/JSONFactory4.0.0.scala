@@ -28,7 +28,6 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
@@ -36,7 +35,7 @@ import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v2_0_0.JSONFactory200.UserJsonV200
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
+import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300._
@@ -355,6 +354,8 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  active: Boolean)
 case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
+case class PostCreateUserAccountAccessJsonV400(user_id: String, provider:String, views: List[PostViewJsonV400])
+case class PostCreateUserWithRolesJsonV400(user_id: String, provider:String, roles: List[CreateEntitlementJSON])
 case class PostRevokeGrantAccountAccessJsonV400(views: List[String])
 case class RevokedJsonV400(revoked: Boolean)
 

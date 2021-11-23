@@ -77,6 +77,8 @@ object ApiTag {
   val apiTagDynamicResourceDoc = ResourceDocTag("Dynamic-Resource-Doc")
   val apiTagDynamicMessageDoc = ResourceDocTag("Dynamic-Message-Doc")
 
+  val apiTagDAuth = ResourceDocTag("DAuth")
+
   val apiTagDynamic = ResourceDocTag("Dynamic")
   val apiTagDynamicEntity = ResourceDocTag("Dynamic-Entity")
   val apiTagManageDynamicEntity = ResourceDocTag("Dynamic-Entity-Manage")

@@ -2061,7 +2061,7 @@ object ExampleValue {
   lazy val indexExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("index", indexExample)
 
-  lazy val descriptionExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val descriptionExample = ConnectorField("This is used for customer x!","The human readable description here.")
   glossaryItems += makeGlossaryItem("description", descriptionExample)
 
   lazy val dynamicResourceDocdescriptionExample = ConnectorField("Create one User", "the description for this endpoint")
