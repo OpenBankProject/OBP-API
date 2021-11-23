@@ -13,7 +13,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-object ApiAuth {
+object AfterApiAuth {
   def checkUserIsDeletedOrLocked(res: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
     for {
       (user: Box[User], cc) <- res
