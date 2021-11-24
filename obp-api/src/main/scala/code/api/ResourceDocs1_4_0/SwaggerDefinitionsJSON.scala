@@ -4285,7 +4285,7 @@ object SwaggerDefinitionsJSON {
     requestVerb = requestVerbExample.value, 
     requestUrl = requestUrlExample.value, 
     summary = dynamicResourceDocSummaryExample.value, 
-    description = dynamicResourceDocdescriptionExample.value, 
+    description = dynamicResourceDocDescriptionExample.value, 
     exampleRequestBody = Option(json.parse(exampleRequestBodyExample.value)),
     successResponseBody = Option(json.parse(successResponseBodyExample.value)),
     errorResponseBodies = errorResponseBodiesExample.value, 
