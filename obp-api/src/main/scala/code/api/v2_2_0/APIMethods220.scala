@@ -465,6 +465,13 @@ trait APIMethods220 {
               case false =>
                 Full(Entitlement.entitlement.vend.addEntitlement(bank.id, u.userId, CanCreateEntitlementAtOneBank.toString()))
             }
+            _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Full()
+              case false =>
+                Full(Entitlement.entitlement.vend.addEntitlement(bank.id, u.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+            }
           } yield {
             val json = JSONFactory220.createBankJSON(success)
             createdJsonResponse(Extraction.decompose(json))

@@ -3947,6 +3947,13 @@ trait APIMethods400 {
               case false =>
                 Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
             }
+            _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Future()
+              case false =>
+                Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+            }
           } yield {
             (JSONFactory400.createBankJSON400(success), HttpCode.`201`(callContext))
           }
