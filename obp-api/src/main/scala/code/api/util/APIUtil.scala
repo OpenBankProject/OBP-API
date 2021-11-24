@@ -1666,7 +1666,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def buildOperationId(apiVersion: ScannedApiVersion, partialFunctionName: String) =
-    s"${apiVersion.fullyQualifiedVersion}-$partialFunctionName"
+    s"${apiVersion.fullyQualifiedVersion}-$partialFunctionName".trim
 
   //This is correct: OBPv3.0.0-getCoreAccountById
   //This is OBPv4_0_0-dynamicEntity_deleteFooBar33
