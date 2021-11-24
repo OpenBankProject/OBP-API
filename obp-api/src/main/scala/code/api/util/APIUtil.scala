@@ -2769,9 +2769,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(res)
     // Check Rate Limiting
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
+    // User init actions
+    val resultWithUserInitActions: Future[(Box[User], Option[CallContext])] = AfterApiAuth.userApiLogonInitAction(resultWithRateLimiting)
 
     // Update Call Context
-    resultWithRateLimiting map {
+    resultWithUserInitActions map {
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))

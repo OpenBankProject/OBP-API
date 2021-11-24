@@ -29,7 +29,7 @@ package code.api
 import java.net.HttpURLConnection
 
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
+import code.api.util.{APIUtil, AfterApiAuth, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.{AppType, Consumer}
@@ -126,6 +126,8 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                       AuthUser.grantEmailDomainEntitlementsToUser(authUser)
                       // Grant roles according to the props email_domain_to_space_mappings
                       AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
+                      // User init actions
+                      AfterApiAuth.userGuiLogonInitAction(Full(authUser))
                       // Consumer
                       getOrCreateConsumer(idToken, user.userId) match {
                         case Full(consumer) =>

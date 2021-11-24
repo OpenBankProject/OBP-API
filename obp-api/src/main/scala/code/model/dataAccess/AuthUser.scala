@@ -996,6 +996,8 @@ def restoreSomeSessions(): Unit = {
                   // Reset any bad attempt
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   val preLoginState = capturePreLoginState()
+                  // User init actions
+                  AfterApiAuth.userGuiLogonInitAction(Full(user))
                   logger.info("login redirect: " + loginRedirect.get)
                   val redirect = redirectUri()
                   checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
@@ -1021,6 +1023,8 @@ def restoreSomeSessions(): Unit = {
                   //This method is used for connector = kafka* || obpjvm*
                   //It will update the views and createAccountHolder ....
                   registeredUserHelper(user.username.get)
+                  // User init actions
+                  AfterApiAuth.userGuiLogonInitAction(Full(user))
                   checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
     
               // If user cannot be found locally, try to authenticate user via connector
@@ -1034,6 +1038,8 @@ def restoreSomeSessions(): Unit = {
                 externalUserHelper(usernameFromGui, passwordFromGui) match {
                     case Full(user: AuthUser) =>
                       LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                      // User init actions
+                      AfterApiAuth.userGuiLogonInitAction(Full(user))
                       checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
                     case _ =>
                       LoginAttempt.incrementBadLoginAttempts(username.get)
