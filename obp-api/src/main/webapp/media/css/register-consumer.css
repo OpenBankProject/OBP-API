@@ -17,7 +17,7 @@
     color: black;
 }
 #register-consumer h1 {
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 28px;
     color: #333333;
     letter-spacing: 0;
@@ -28,7 +28,7 @@
 }
 
 #register-consumer #register-consumer-explanation p:nth-child(2) {
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 22px;
     color: #333333;
     letter-spacing: 0;
@@ -88,7 +88,7 @@
 }
 
 #register-consumer #register-consumer-success #register-consumer-success-message{
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 22px;
     color: #333333;
     letter-spacing: 0;
@@ -98,7 +98,7 @@
 
 
 #register-consumer #register-consumer-success p {
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 22px;
     color: #333333;
     letter-spacing: 0;
@@ -123,7 +123,7 @@
     margin-bottom: 20px;
 }
 #register-consumer #register-consumer-success .row div:nth-child(1) {
-    font-family: Roboto-Medium;
+    font-family: Roboto-Medium,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -157,7 +157,7 @@
 }
 
 #dummy-user-tokens .col-xs-12:last-child{
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 20px;
     color: #333333;
     line-height: 24px;

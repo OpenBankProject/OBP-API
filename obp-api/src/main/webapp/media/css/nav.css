@@ -25,7 +25,7 @@ nav .navbar-collapse.collapse {
 }
 .navbar-default .navbar-nav > li > a {
     background-color: white;
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 18px;
     color: #333333;
     line-height: 31px;

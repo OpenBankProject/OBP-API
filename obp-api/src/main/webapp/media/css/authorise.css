@@ -5,7 +5,7 @@
 }
 
 #authorise h1 {
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 28px;
     color: #333333;
     line-height: 36px;
@@ -102,7 +102,7 @@
     color: red;
 }
 #authorise #thanks-h1 {
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 28px;
     color: #333333;
     letter-spacing: 0;
