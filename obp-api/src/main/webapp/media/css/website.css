@@ -19,7 +19,7 @@
 @import url(/media/css/fonts.css);
 
 html {
-	font-family: "Roboto-Regular";
+	font-family: Roboto-Regular,sans-serif;
 	height: 100%
 }
 
