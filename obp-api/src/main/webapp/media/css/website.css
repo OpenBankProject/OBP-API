@@ -165,7 +165,6 @@ header #lift__noticesContainer__ {
 	padding-left: 20px;
 	padding-right: 20px;
 	font-family: Roboto-Regular,sans-serif;
-	font-size: 16px;
 	color: #333333;
 	text-align: center;
 	line-height: 24px;
@@ -275,7 +274,7 @@ input[type="text"]{
 }
 
 body {
-	font-family: "Roboto-Light";
+	font-family: Roboto-Light,sans-serif;
 }
 
 header #header-decoration,
@@ -300,7 +299,6 @@ header #header-decoration,
 	min-width: 43%;
 	padding: 6%;
 	padding-top: 6%;
-	padding-right: 6%;
 	padding-bottom: 6%;
 	padding-left: 6%;
 	padding-right: 10%;
@@ -426,7 +424,6 @@ input{
 
 #add-user-auth-context-update-request-div #identifier-error .error,
 #confirm-user-auth-context-update-request-div #otp-value-error .error{
-	color: black;
 	background-color: white;
 	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
