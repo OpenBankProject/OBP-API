@@ -2,13 +2,16 @@ package code.api.util
 
 import java.util.Date
 
+import code.api.util.APIUtil.getPropsAsBoolValue
 import code.api.util.ErrorMessages.{UserIsDeleted, UsernameHasBeenLocked}
 import code.api.util.RateLimitingJson.CallLimit
+import code.bankconnectors.Connector
 import code.loginattempts.LoginAttempt
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.ratelimiting.{RateLimiting, RateLimitingDI}
+import code.users.Users
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.User
+import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, User}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.mapper.By
@@ -20,12 +23,12 @@ object AfterApiAuth extends MdcLoggable{
   /**
    * This function is used to execute actions after an user is authenticated via GUI
    * Types of authentication: GUI logon(OpenID Connect and OAuth1.0a)
-   * @param user the authenticated user
+   * @param authUser the authenticated user
    */
-  def userGuiLogonInitAction(user: Box[AuthUser]) = {
-    user.map { u => // Init actions
+  def userGuiLogonInitAction(authUser: Box[AuthUser]) = {
+    authUser.map { u => // Init actions
       logger.info("AfterApiAuth.userGuiLogonInitAction started successfully")
-      
+      sofitInitAction(u)
     } match {
         case Full(_) => logger.warn("AfterApiAuth.userGuiLogonInitAction completed successfully")
         case userInitActionFailure => logger.warn("AfterApiAuth.userGuiLogonInitAction: " + userInitActionFailure)
@@ -122,6 +125,54 @@ object AfterApiAuth extends MdcLoggable{
       }
       (user, cc.map(_.copy(rateLimiting = limit)))
     }
+  }
+  
+  private def sofitInitAction(user: AuthUser) = applyAction("sofit.logon_init_action.enabled") {
+    def getOrCreateBankAccount(bank: Bank, name: String): Box[BankAccount] = {
+      MappedBankAccount.find(By(MappedBankAccount.bank, bank.bankId.value), By(MappedBankAccount.theAccountId, name)) match {
+        case Full(bankAccount) => Full(bankAccount)
+        case _ => 
+          val account = Connector.connector.vend.createSandboxBankAccount(
+            bankId = bank.bankId, accountId = AccountId(name), accountNumber = "",
+            accountType = "", accountLabel =  s"$name account",
+            currency = "EUR", initialBalance = 0, accountHolderName = user.firstName + " " + user.lastName,
+            "",
+            List.empty
+          )
+          if(account.isEmpty)  logger.warn(s"AfterApiAuth.sofitInitAction. Cannot create the $name: account for user." + user.firstName + " " + user.lastName)
+          account
+      }
+    }
+    Users.users.vend.getUserByResourceUserId(user.id.get) match {
+      case Full(resourceUser) =>
+        // Create a bank according to the rule: bankid = user.user_id
+        Connector.connector.vend.createOrUpdateBank(
+          bankId = "user." + resourceUser.userId,
+          fullBankName = "user." + resourceUser.userId,
+          shortBankName = "user." + resourceUser.userId,
+          logoURL = "",
+          websiteURL = "",
+          swiftBIC = "",
+          national_identifier = "",
+          bankRoutingScheme = "USER_ID",
+          bankRoutingAddress = resourceUser.userId
+        ) match {
+          case Full(bank) =>
+            // Create Cache account
+            getOrCreateBankAccount(bank, "Cache").isDefined
+          case _ =>
+            logger.warn("AfterApiAuth.sofitInitAction. Cannot create the bank: user." + resourceUser.userId)
+            false
+        }
+      case _ =>
+        logger.warn("AfterApiAuth.sofitInitAction. Cannot find resource user ba primary key: " + user.id.get)
+        false
+    }
+  }
+
+  private def applyAction(propsName: String)(blockOfCode: => Boolean): Boolean = {
+    val enabled = getPropsAsBoolValue(propsName, false)
+    if(enabled) blockOfCode else false
   }
   
 }
