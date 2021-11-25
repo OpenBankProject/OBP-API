@@ -31,7 +31,7 @@ body {
 }
 
 a {
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	color: #333333;
 	text-decoration: none;
 }
@@ -133,7 +133,7 @@ header #lift__noticesContainer__ {
 }
 
 .btn-danger {
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #FFFFFF;
 	text-align: center;
@@ -164,7 +164,7 @@ header #lift__noticesContainer__ {
 	padding-bottom: 11px;
 	padding-left: 20px;
 	padding-right: 20px;
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #333333;
 	text-align: center;
@@ -213,7 +213,7 @@ input[type="text"]{
 }
 .select2-results__option {
 	padding: 6px;
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #333333;
 	line-height: 24px;
@@ -224,7 +224,7 @@ input[type="text"]{
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #333333;
 	line-height: 24px;
@@ -428,7 +428,7 @@ input{
 #confirm-user-auth-context-update-request-div #otp-value-error .error{
 	color: black;
 	background-color: white;
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #333333;
 	line-height: 24px;

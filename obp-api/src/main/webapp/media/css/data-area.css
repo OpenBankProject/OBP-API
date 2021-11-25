@@ -40,7 +40,7 @@
 
 #data-area #data-area-explanation p:last-child{
     margin-top: 8px;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 14px;
     color: #333333;
     letter-spacing: 0;
@@ -51,7 +51,7 @@
 #data-area-input form label{
     margin-bottom: 8px;
     margin-top: 17px;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -114,7 +114,7 @@
 
 #data-area-success span,
 #data-area-success a{
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -138,7 +138,7 @@
 }
 
 #data-area-input #data-area-errors{
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 14px;
     color: #333333;
     line-height: 20px;
