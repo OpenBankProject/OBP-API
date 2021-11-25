@@ -51,7 +51,7 @@ object RunWebApp extends App {
           servletContextPath
         } else {
           throw new IllegalAccessException(s"Should not call this object method except 'path' method, current call method name is: ${method.getName}")
-          ??? // should not call other method.
+//          ??? // should not call other method.
         }
       }).asInstanceOf[HTTPContext]
     LiftRules.setContext(tempHTTPContext)
