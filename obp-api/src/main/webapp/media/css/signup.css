@@ -10,7 +10,7 @@
 }
 
 #signup form h1 {
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 28px;
     color: #333333;
     letter-spacing: 0;
@@ -19,7 +19,7 @@
 }
 
 #signup form span{
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -32,7 +32,7 @@
 
 #signup form #repeat-password{
     margin-top: 32px;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -43,7 +43,7 @@
 }
 
 #signup form label{
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -138,7 +138,7 @@
     font-size: 16px;
 }
 #signup-agree-terms #signup-agree-terms-content {
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     letter-spacing: 0;
@@ -149,9 +149,8 @@
 }
 
 #signup #signup-submit input {
-    color: #FFF;
     background-color: #53C4EF;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #FFFFFF;
     text-align: center;
@@ -223,7 +222,7 @@
     margin-bottom: 0px;
 }
 #signup-legal-notice{
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 14px;
     color: #333333;
     letter-spacing: 0;

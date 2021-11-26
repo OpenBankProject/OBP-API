@@ -92,7 +92,7 @@ trait AtmsProvider {
     getAtmsFromProvider(bankId,queryParams) match {
       case Some(atms) => {
         val atmsWithLicense = for {
-         branch <- atms if branch.meta.license.name.size > 3 && branch.meta.license.name.size > 3
+         branch <- atms if branch.meta.license.name.size > 3
         } yield branch
         Option(atmsWithLicense)
       }

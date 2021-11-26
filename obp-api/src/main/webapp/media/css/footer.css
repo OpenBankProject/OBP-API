@@ -9,7 +9,7 @@ footer a,span,
 footer a:hover,
 footer a:focus,
 span:hover  {
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 14px;
     color: #FFFFFF;
     letter-spacing: 0;

@@ -17,7 +17,7 @@
 }
 
 #main-faq h3 {
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -35,7 +35,7 @@
 }
 #main-faq p, #main-faq ol{
     margin-top: 18px;
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -44,7 +44,7 @@
 
 #main-faq div a{
     margin-top: 10px;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -57,7 +57,7 @@
     padding: 0;
     border: 1px solid transparent;
     background-color: #FFFFFF;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
