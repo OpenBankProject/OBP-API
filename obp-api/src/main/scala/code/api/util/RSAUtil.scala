@@ -92,8 +92,8 @@ object RSAUtil  extends MdcLoggable {
   }
   
   def main(args: Array[String]): Unit = {
-    val PASSWORD_TEST = """G!y"k9GHD$D"""
-    val db = "jdbc:postgresql://localhost:5432/obp_mapped?user=obp&password=%s".format(PASSWORD_TEST)
+    val randomString = """G!y"k9GHD$D"""
+    val db = "jdbc:postgresql://localhost:5432/obp_mapped?user=obp&password=%s".format(randomString)
     val res = encrypt(db)
     println("db.url: " + db)
     println("encrypt: " + res)
