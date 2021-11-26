@@ -2,16 +2,20 @@ package code.api.util
 
 import java.util.Date
 
+import code.api.Constant
 import code.api.util.APIUtil.getPropsAsBoolValue
+import code.api.util.ApiRole.{CanCreateAccount, CanCreateHistoricalTransactionAtBank}
 import code.api.util.ErrorMessages.{UserIsDeleted, UsernameHasBeenLocked}
 import code.api.util.RateLimitingJson.CallLimit
 import code.bankconnectors.Connector
+import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.users.Users
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, User}
+import code.views.Views
+import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, User, ViewId}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.mapper.By
@@ -127,7 +131,7 @@ object AfterApiAuth extends MdcLoggable{
     }
   }
   
-  private def sofitInitAction(user: AuthUser) = applyAction("sofit.logon_init_action.enabled") {
+  private def sofitInitAction(user: AuthUser): Boolean = applyAction("sofit.logon_init_action.enabled") {
     def getOrCreateBankAccount(bank: Bank, name: String): Box[BankAccount] = {
       MappedBankAccount.find(By(MappedBankAccount.bank, bank.bankId.value), By(MappedBankAccount.theAccountId, name)) match {
         case Full(bankAccount) => Full(bankAccount)
@@ -143,7 +147,8 @@ object AfterApiAuth extends MdcLoggable{
           account
       }
     }
-    Users.users.vend.getUserByResourceUserId(user.id.get) match {
+    
+    Users.users.vend.getUserByResourceUserId(user.user.get) match {
       case Full(resourceUser) =>
         // Create a bank according to the rule: bankid = user.user_id
         Connector.connector.vend.createOrUpdateBank(
@@ -158,20 +163,28 @@ object AfterApiAuth extends MdcLoggable{
           bankRoutingAddress = resourceUser.userId
         ) match {
           case Full(bank) =>
+            // Add roles
+            Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateAccount.toString()).isDefined &&
+            Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString()).isDefined &&
             // Create Cache account
-            getOrCreateBankAccount(bank, "Cache").isDefined
+            getOrCreateBankAccount(bank, "Cache").flatMap( account =>
+              Views.views.vend.systemView(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).flatMap( view =>
+                // Grant account access
+                Views.views.vend.grantAccessToSystemView(bank.bankId, account.accountId, view, resourceUser)
+              )
+            ).isDefined
           case _ =>
             logger.warn("AfterApiAuth.sofitInitAction. Cannot create the bank: user." + resourceUser.userId)
             false
         }
       case _ =>
-        logger.warn("AfterApiAuth.sofitInitAction. Cannot find resource user ba primary key: " + user.id.get)
+        logger.warn("AfterApiAuth.sofitInitAction. Cannot find resource user by primary key: " + user.id.get)
         false
     }
   }
 
   private def applyAction(propsName: String)(blockOfCode: => Boolean): Boolean = {
-    val enabled = getPropsAsBoolValue(propsName, false)
+    val enabled = getPropsAsBoolValue(propsName, true)
     if(enabled) blockOfCode else false
   }
   
