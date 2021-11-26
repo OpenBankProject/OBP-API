@@ -43,7 +43,7 @@ trait ProductsProvider {
       case Some(products) => {
         val productsWithLicense = for {
           // Only return products that have a license set unless its for an admin view
-          product <- products if (adminView || (product.meta.license.name.size > 3 && product.meta.license.name.size > 3))
+          product <- products if (adminView || (product.meta.license.name.size > 3))
         } yield product
         Option(productsWithLicense)
       }

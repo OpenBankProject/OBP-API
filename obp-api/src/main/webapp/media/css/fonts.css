@@ -1,17 +1,17 @@
 /*https://fonts.google.com/specimen/Roboto?selection.family=Roboto&sidebar.open=true*/
 /*We use the Roboto font as the OBP default font*/
 @font-face {
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     src: url(../font/Roboto-Light.ttf);
 }
 
 @font-face {
-    font-family: Roboto-Medium;
+    font-family: Roboto-Medium,sans-serif;
     src: url(../font/Roboto-Medium.ttf);
 }
 
 @font-face {
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     src: url(../font/Roboto-Regular.ttf);
 }
 

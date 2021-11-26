@@ -14,7 +14,7 @@
     margin-bottom: 9px ;
 }
 .main-support-item a {
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
