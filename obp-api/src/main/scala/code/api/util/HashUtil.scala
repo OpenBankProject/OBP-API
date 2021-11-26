@@ -14,9 +14,10 @@ object HashUtil {
   def main(args: Array[String]): Unit = {
     // You can verify hash with command line tool in linux, unix:
     // $ echo -n "123" | openssl dgst -sha256
-    val password = "123"
-    val hashedPassword = Sha256Hash(password)
-    println("Password: " + password)
+    
+    val passwordTest = "123"
+    val hashedPassword = Sha256Hash(passwordTest)
+    println("Password: " + passwordTest)
     println("Hashed password: " + hashedPassword)
   }
 }
