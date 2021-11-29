@@ -132,18 +132,21 @@ object AfterApiAuth extends MdcLoggable{
   }
   
   private def sofitInitAction(user: AuthUser): Boolean = applyAction("sofit.logon_init_action.enabled") {
-    def getOrCreateBankAccount(bank: Bank, name: String): Box[BankAccount] = {
-      MappedBankAccount.find(By(MappedBankAccount.bank, bank.bankId.value), By(MappedBankAccount.theAccountId, name)) match {
+    def getOrCreateBankAccount(bank: Bank, accountId: String, label: String, accountType: String = ""): Box[BankAccount] = {
+      MappedBankAccount.find(
+        By(MappedBankAccount.bank, bank.bankId.value), 
+        By(MappedBankAccount.theAccountId, accountId)
+      ) match {
         case Full(bankAccount) => Full(bankAccount)
         case _ => 
           val account = Connector.connector.vend.createSandboxBankAccount(
-            bankId = bank.bankId, accountId = AccountId(name), accountNumber = "",
-            accountType = "", accountLabel =  s"$name account",
-            currency = "EUR", initialBalance = 0, accountHolderName = user.firstName + " " + user.lastName,
+            bankId = bank.bankId, accountId = AccountId(accountId), accountNumber = label + "-1",
+            accountType = accountType, accountLabel =  s"$label",
+            currency = "EUR", initialBalance = 0, accountHolderName = user.username.get,
             "",
             List.empty
           )
-          if(account.isEmpty)  logger.warn(s"AfterApiAuth.sofitInitAction. Cannot create the $name: account for user." + user.firstName + " " + user.lastName)
+          if(account.isEmpty)  logger.warn(s"AfterApiAuth.sofitInitAction. Cannot create the $label: account for user." + user.firstName + " " + user.lastName)
           account
       }
     }
@@ -167,7 +170,7 @@ object AfterApiAuth extends MdcLoggable{
             Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateAccount.toString()).isDefined &&
             Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString()).isDefined &&
             // Create Cache account
-            getOrCreateBankAccount(bank, "Cache").flatMap( account =>
+            getOrCreateBankAccount(bank, "cache", "cache-flow").flatMap( account =>
               Views.views.vend.systemView(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).flatMap( view =>
                 // Grant account access
                 Views.views.vend.grantAccessToSystemView(bank.bankId, account.accountId, view, resourceUser)
@@ -184,7 +187,7 @@ object AfterApiAuth extends MdcLoggable{
   }
 
   private def applyAction(propsName: String)(blockOfCode: => Boolean): Boolean = {
-    val enabled = getPropsAsBoolValue(propsName, true)
+    val enabled = getPropsAsBoolValue(propsName, false)
     if(enabled) blockOfCode else false
   }
   
