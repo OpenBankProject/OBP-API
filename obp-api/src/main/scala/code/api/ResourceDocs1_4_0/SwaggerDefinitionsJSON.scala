@@ -4090,8 +4090,8 @@ object SwaggerDefinitionsJSON {
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
   val postCreateUserAccountAccessJsonV400 = PostCreateUserAccountAccessJsonV400(
     userIdExample.value,
-    providerExample.value,
-    List(PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+    s"dauth.${providerExample.value}",
+    List(PostViewJsonV400(viewIdExample.value, isSystemExample.value.toBoolean))
   )
   val postCreateUserWithRolesJsonV400 = PostCreateUserWithRolesJsonV400(
     userIdExample.value,

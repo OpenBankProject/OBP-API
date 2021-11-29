@@ -4291,7 +4291,7 @@ trait APIMethods400 {
          |${getGlossaryItem("DAuth")}
          |
          |""",
-      postCreateUserWithRolesJsonV400,
+      postCreateUserAccountAccessJsonV400,
       List(viewJsonV300),
       List(
         $UserNotLoggedIn,
