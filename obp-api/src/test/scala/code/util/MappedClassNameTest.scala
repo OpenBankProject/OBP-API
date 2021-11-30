@@ -29,7 +29,7 @@ class MappedClassNameTest extends FeatureSpec {
     "code.model.Token",
     "code.transaction.MappedTransaction",
     "code.metadata.comments.MappedComment",
-    "code.userlocks.code.users.UserLocks",
+    "code.userlocks.UserLocks",
     "code.kycchecks.MappedKycCheck",
     "code.metadata.counterparties.MappedCounterpartyWhereTag",
     "code.metadata.counterparties.MappedCounterpartyBespoke",
