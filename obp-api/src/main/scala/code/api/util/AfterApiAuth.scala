@@ -173,8 +173,8 @@ object AfterApiAuth extends MdcLoggable{
             UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-entitlement", CanCreateAccount.toString(), addCanCreateAccount)
             val addCanCreateHistoricalTransactionAtBank = Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString()).isDefined
             UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-entitlement", CanCreateHistoricalTransactionAtBank.toString(), addCanCreateHistoricalTransactionAtBank)
-            // Create Cache account
-            val bankAccount = getOrCreateBankAccount(bank, "cache", "cache-flow").flatMap( account =>
+            // Create Cach account
+            val bankAccount = getOrCreateBankAccount(bank, "cash", "cash-flow").flatMap( account =>
               Views.views.vend.systemView(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).flatMap( view =>
                 // Grant account access
                 Views.views.vend.grantAccessToSystemView(bank.bankId, account.accountId, view, resourceUser)

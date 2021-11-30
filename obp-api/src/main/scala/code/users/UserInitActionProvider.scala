@@ -1,8 +1,10 @@
 package code.users
 
+import cats.Now
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers
 
 object UserInitActionProvider extends MdcLoggable {
   def createOrUpdateInitAction(userId: String, actionName: String, actionValue: String, success: Boolean): Box[UserInitAction] = {
@@ -11,7 +13,7 @@ object UserInitActionProvider extends MdcLoggable {
       By(UserInitAction.ActionName, actionName),
       By(UserInitAction.ActionValue, actionValue)
     ) match {
-      case Full(action) => Some(action.Success(success).saveMe())
+      case Full(action) => Some(action.Success(success).updatedAt(Helpers.now).saveMe())
       case _ =>
         Some(
           UserInitAction.create
