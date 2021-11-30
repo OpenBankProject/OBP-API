@@ -9009,6 +9009,8 @@ trait APIMethods400 {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
                 .validateDependency()
             } catch {
+              case e: JsonResponseException =>
+                throw e
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
                 throw JsonResponseException(jsonResponse)
@@ -9074,6 +9076,8 @@ trait APIMethods400 {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
                 .validateDependency()
             } catch {
+              case e: JsonResponseException =>
+                throw e
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
                 throw JsonResponseException(jsonResponse)
@@ -9228,6 +9232,8 @@ trait APIMethods400 {
               CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
                 .validateDependency()
             } catch {
+              case e: JsonResponseException =>
+                throw e
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
                 throw JsonResponseException(jsonResponse)
@@ -9300,6 +9306,8 @@ trait APIMethods400 {
               CompiledObjects(dynamicResourceDocBody.exampleRequestBody, dynamicResourceDocBody.successResponseBody, dynamicResourceDocBody.methodBody)
                 .validateDependency()
             } catch {
+              case e: JsonResponseException =>
+                throw e
               case e: Exception =>
                 val jsonResponse = createErrorJsonResponse(s"$DynamicCodeCompileFail ${e.getMessage}", 400, cc.correlationId)
                 throw JsonResponseException(jsonResponse)
