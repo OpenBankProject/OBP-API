@@ -12,7 +12,7 @@ import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.ratelimiting.{RateLimiting, RateLimitingDI}
-import code.users.Users
+import code.users.{UserInitActionProvider, Users}
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, User, ViewId}
@@ -154,8 +154,9 @@ object AfterApiAuth extends MdcLoggable{
     Users.users.vend.getUserByResourceUserId(user.user.get) match {
       case Full(resourceUser) =>
         // Create a bank according to the rule: bankid = user.user_id
+        val bankId = "user." + resourceUser.userId
         Connector.connector.vend.createOrUpdateBank(
-          bankId = "user." + resourceUser.userId,
+          bankId = bankId,
           fullBankName = "user." + resourceUser.userId,
           shortBankName = "user." + resourceUser.userId,
           logoURL = "",
@@ -166,18 +167,24 @@ object AfterApiAuth extends MdcLoggable{
           bankRoutingAddress = resourceUser.userId
         ) match {
           case Full(bank) =>
+            UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "create-or-update-bank", bankId, true)
             // Add roles
-            Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateAccount.toString()).isDefined &&
-            Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString()).isDefined &&
+            val addCanCreateAccount = Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateAccount.toString()).isDefined
+            UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-entitlement", CanCreateAccount.toString(), addCanCreateAccount)
+            val addCanCreateHistoricalTransactionAtBank = Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString()).isDefined
+            UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-entitlement", CanCreateHistoricalTransactionAtBank.toString(), addCanCreateHistoricalTransactionAtBank)
             // Create Cache account
-            getOrCreateBankAccount(bank, "cache", "cache-flow").flatMap( account =>
+            val bankAccount = getOrCreateBankAccount(bank, "cache", "cache-flow").flatMap( account =>
               Views.views.vend.systemView(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).flatMap( view =>
                 // Grant account access
                 Views.views.vend.grantAccessToSystemView(bank.bankId, account.accountId, view, resourceUser)
               )
             ).isDefined
+            UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-bank-account", "cache", bankAccount)
+            addCanCreateAccount && addCanCreateHistoricalTransactionAtBank && bankAccount
           case _ =>
             logger.warn("AfterApiAuth.sofitInitAction. Cannot create the bank: user." + resourceUser.userId)
+            UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "createOrUpdateBank", bankId, false)
             false
         }
       case _ =>
