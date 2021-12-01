@@ -209,7 +209,7 @@ object DynamicUtil {
 
     private val memoSandbox = new Memo[String, Sandbox]
     def sandbox(bankId: String): Sandbox = memoSandbox.memoize(bankId) {
-      Sandbox.createSandbox(BankId.permission(bankId) :: Validation.permissions)
+      Sandbox.createSandbox(BankId.permission(bankId) :: Validation.allowedRuntimePermissions)
     }
   }
 
@@ -266,7 +266,14 @@ object DynamicUtil {
 
   object Validation {
     // all Permissions put at here
-    val permissions = List[Permission](
+    // Here is the Java Permission document, please extend these permissions carefully. 
+    // https://docs.oracle.com/javase/8/docs/technotes/guides/security/spec/security-spec.doc3.html#17001
+    // If you are not familiar with the permissions, we provide the clear error messages for the missing permissions in the log.
+    // eg:  "OBP-40047: DynamicResourceDoc method have no enough permissions.  No permission of: (\"java.io.FilePermission\" \"stop-words-en.txt\" \"write\")"
+    //       --> you can extends following permission: new java.net.SocketPermission("ir.dcs.gla.ac.uk:80", "connect,resolve"), 
+    //
+    // NOTE: These permissions are only checked during runtime, not the compilation period.
+    val allowedRuntimePermissions = List[Permission](
       new NetPermission("specifyStreamHandler"),
       new ReflectPermission("suppressAccessChecks"),
       new RuntimePermission("getenv.*"),
@@ -277,8 +284,15 @@ object DynamicUtil {
       new RuntimePermission("getClassLoader"),
     )
 
+    /**
+     * Compilation OBP Dependencies Guard, only checked the OBP methods, not scala/Java libraies(are checked during the runtime.).
+     * 
+     * allowedCompilationMethods --> 
+     * The following methods will be checked when you call the `Create Dynamic ResourceDoc/MessageDoc` endpoints.
+     *  You can control all the OBP methods here.
+     */
     // all allowed methods put at here, typeName -> methods
-    val allowedMethods: Map[String, Set[String]] = Map(
+    val allowedCompilationMethods: Map[String, Set[String]] = Map(
       // companion objects methods
       NewStyle.function.getClass.getTypeName -> "*",
       CompiledObjects.getClass.getTypeName -> "sandbox",
@@ -300,6 +314,7 @@ object DynamicUtil {
 
     ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
 
+    //Do not touch this Set, try to use the `allowedPermissions` and `allowedMethods` to control the sandbox 
     val restrictedTypes = Set(
       "scala.reflect.runtime.",
       "java.lang.reflect.",
@@ -315,8 +330,8 @@ object DynamicUtil {
       val notAllowedDependentMethods = dependentMethods collect {
         case (typeName, method, _)
           if isRestrictedType(typeName) &&
-            !allowedMethods.get(typeName).exists(set => set.contains(method) || set.contains("*")) &&
-            !allowedMethods.exists { it =>
+            !allowedCompilationMethods.get(typeName).exists(set => set.contains(method) || set.contains("*")) &&
+            !allowedCompilationMethods.exists { it =>
               val (tpName, allowedMethods) = it
               tpName.endsWith("*") &&
                 typeName.startsWith(StringUtils.substringBeforeLast(tpName, "*")) &&
