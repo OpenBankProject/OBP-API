@@ -4472,6 +4472,8 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value,
     meta = metaJson,
   )
+
+  val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   
   //The common error or success format.

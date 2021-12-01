@@ -616,6 +616,13 @@ object Glossary extends MdcLoggable  {
 			|"""
 	  )
 
+	glossaryItems += GlossaryItem(
+		title =
+			"Age",
+		description =
+			"""The user Age"""
+	)
+	
 	  glossaryItems += GlossaryItem(
 		title = "Account.account_id",
 		description =
