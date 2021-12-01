@@ -2468,7 +2468,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
     scf.onFailure {
       case e: AccessControlException =>
-        laf.fail(Failure(s"$DynamicResourceDocMethodPermission No permission of: ${e.getPermission.getName}", Full(e), Empty))
+        laf.fail(Failure(s"$DynamicResourceDocMethodPermission No permission of: ${e.getPermission.toString}", Full(e), Empty))
 
       case e: Throwable =>
         laf.fail(Failure(e.getMessage(), Full(e), Empty))
