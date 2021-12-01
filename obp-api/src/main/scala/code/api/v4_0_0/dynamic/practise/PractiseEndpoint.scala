@@ -4,6 +4,14 @@ package code.api.v4_0_0.dynamic.practise
 
 /**
  * practise new endpoint at this object, don't commit you practise code to git
+ * 
+ * This endpoint is only for testing new dynamic resource/messages method body.
+ * eg: when you try the create dynamic resource doc endpoint, you need to prepare the method body properly.
+ *   you can prepare the obp scala code just under the method:
+ *    `process(callContext: CallContext, request: Req, pathParams: Map[String, String])`,
+ *    
+ *    
+ * 
  */
 object PractiseEndpoint extends code.api.v4_0_0.dynamic.DynamicCompileEndpoint {
   // don't modify these import statement
