@@ -141,6 +141,22 @@ object UserX {
   def saveResourceUser(ru: ResourceUser) = {
     Users.users.vend.saveResourceUser(ru)
   }
+  
+  def getOrCreateDauthResourceUser(userId: String, provider: String) = {
+    findByUserId(userId).or( //first try to find the user by userId
+      Users.users.vend.createResourceUser( // Otherwise create a new user
+        provider = provider,
+        providerId = Some(userId),
+        None,
+        name = Some(userId),
+        email = None,
+        userId = Some(userId),
+        createdByUserInvitationId = None,
+        company = None,
+        lastMarketingAgreementSignedDate = None
+      )
+    )
+  }
 
   //def bulkDeleteAllResourceUsers(): Box[Boolean] = {
   //  Users.users.vend.bulkDeleteAllResourceUsers()
