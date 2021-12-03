@@ -190,8 +190,18 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
     }
   }
 
+  /**
+   * this will check all the dynamic scala code dependencies at compile time.
+   * 
+   *Search for the usage, you can see how to use it in OBP code.
+   */
   def validateDependency() = Validation.validateDependency(this.partialFunction)
 
+  /**
+   * This is used to check the security permission at the run time. 
+   * all the obp partialFunctions will be wrapped into the sandbox which under the permission control.
+   * 
+   */
   def sandboxEndpoint(bankId: Option[String]) : OBPEndpoint = {
     val sandbox = bankId match {
       case Some(v) if StringUtils.isNotBlank(v) =>
