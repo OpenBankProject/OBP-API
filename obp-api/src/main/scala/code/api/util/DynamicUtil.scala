@@ -325,6 +325,8 @@ object DynamicUtil {
 
     /**
      * validate dependencies, (className, methodName, signature)
+     * 
+     * Here only validate the restricted types(isObpClass + val restrictedTypes), not all scala/java types.
      */
     private def validateDependency(dependentMethods: List[(String, String, String)]) = {
       val notAllowedDependentMethods = dependentMethods collect {
