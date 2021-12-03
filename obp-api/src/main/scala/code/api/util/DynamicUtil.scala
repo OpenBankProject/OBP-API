@@ -350,8 +350,12 @@ object DynamicUtil {
     }
 
     def validateDependency(obj: AnyRef): Unit = {
-      val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass)
-      validateDependency(dependentMethods)
+      if(APIUtil.getPropsAsBoolValue("dynamic_code_compile_validate_enable",false)){
+        val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass)
+        validateDependency(dependentMethods)
+      } else{ // If false, nothing to do here.
+        ;
+      }
     }
   }
 }

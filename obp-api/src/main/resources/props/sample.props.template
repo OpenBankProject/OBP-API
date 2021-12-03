@@ -1082,3 +1082,6 @@ webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\
 
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
 dynamic_code_sandbox_enable=false
+# enable dynamic code compile validation, default is false, if set it to true, it will validate all the dynamic method body when you create/update any
+# dynamic scala method. Note, it only check all the obp code dependents for all the method in scala code.
+dynamic_code_compile_validate_enable=false
