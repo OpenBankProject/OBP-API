@@ -1034,9 +1034,9 @@ object NewStyle {
       }
     }
   
-    def getOrCreateUser(userId: String, provider: String,  callContext: Option[CallContext]): OBPReturnType[User] = {
-      Future { UserX.getOrCreateDauthResourceUser(userId, provider).map(user =>(user, callContext))} map {
-        unboxFullOrFail(_, callContext, s"$CannotGetOrCreateUser Current USER_ID($userId) PROVIDER ($provider)", 404)
+    def getOrCreateResourceUser(username: String, provider: String, callContext: Option[CallContext]): OBPReturnType[User] = {
+      Future { UserX.getOrCreateDauthResourceUser(username, provider).map(user =>(user, callContext))} map {
+        unboxFullOrFail(_, callContext, s"$CannotGetOrCreateUser Current USERName($username) PROVIDER ($provider)", 404)
       }
     }
   
