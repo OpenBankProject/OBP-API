@@ -28,7 +28,7 @@
     padding: 64px 0;
 }
 #main-start #main-start_building .btn-default a{
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     text-align: center;

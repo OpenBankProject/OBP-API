@@ -354,8 +354,8 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  active: Boolean)
 case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
-case class PostCreateUserAccountAccessJsonV400(user_id: String, provider:String, views: List[PostViewJsonV400])
-case class PostCreateUserWithRolesJsonV400(user_id: String, provider:String, roles: List[CreateEntitlementJSON])
+case class PostCreateUserAccountAccessJsonV400(username: String, provider:String, views: List[PostViewJsonV400])
+case class PostCreateUserWithRolesJsonV400(username: String, provider:String, roles: List[CreateEntitlementJSON])
 case class PostRevokeGrantAccountAccessJsonV400(views: List[String])
 case class RevokedJsonV400(revoked: Boolean)
 
@@ -691,7 +691,7 @@ case class ApiCollectionsJson400 (
 case class PostApiCollectionJson400(
   api_collection_name: String,
   is_sharable: Boolean,
-  description: String
+  description: Option[String]
 )
 
 case class ApiCollectionEndpointJson400 (

@@ -31,6 +31,7 @@ import java.security.cert.X509Certificate
 import bootstrap.liftweb.Boot
 import code.api.RequestHeader
 import code.api.util.APIUtil
+import code.setup.PropsProgrammatically
 import net.liftweb.http.LiftRules
 import net.liftweb.http.provider.HTTPContext
 import org.apache.commons.codec.binary.Base64
@@ -39,10 +40,16 @@ import org.eclipse.jetty.util.ssl.SslContextFactory
 import org.eclipse.jetty.webapp.WebAppContext
 import sun.security.provider.X509Factory
 
-object RunMTLSWebApp extends App {
+object RunMTLSWebApp extends App with PropsProgrammatically {
   val servletContextPath = "/"
   //set run mode value to "development", So the value is true of Props.devMode
   System.setProperty("run.mode", "development")
+  // Props hostname MUST be set to https protocol. 
+  // Otherwise OAuth1.0a computed signature at OBP-API side cannot match API-Explorer generates
+  // This automatic adjustment should enable out-of-box feature
+  APIUtil.getPropsValue("hostname").map{ x =>
+    setPropsValues("hostname"-> x.replaceFirst("http", "https"))
+  }
 
   {
     val tempHTTPContext = JProxy.newProxyInstance(this.getClass.getClassLoader, Array(classOf[HTTPContext]),
@@ -51,7 +58,7 @@ object RunMTLSWebApp extends App {
           servletContextPath
         } else {
           throw new IllegalAccessException(s"Should not call this object method except 'path' method, current call method name is: ${method.getName}")
-          ??? // should not call other method.
+//          ??? // should not call other method.
         }
       }).asInstanceOf[HTTPContext]
     LiftRules.setContext(tempHTTPContext)

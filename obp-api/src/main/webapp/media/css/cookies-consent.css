@@ -1,6 +1,6 @@
 #cookies-consent {
     background: #252525;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     display:none;
     text-align: center;
@@ -17,7 +17,7 @@
     position: absolute;
     left: 100px;
     top: 32px;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #FFFFFF;
     line-height: 24px;
@@ -30,7 +30,7 @@
     position: absolute;
     left: 100px;
     top: 80px;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #FFFFFF;
     text-align: center;
