@@ -143,7 +143,7 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
         bank_id = testBankId1.value,
         role_name = CanUpdateBranch.toString()
       ))
-      val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(user_id ="xx", roles= createEntitlements)
+      val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(username ="xx", roles= createEntitlements)
       val requestGet = (v4_0_0_Request / "user-entitlements").GET <@ (user1)
       val responseGet = makePostRequestAsync(requestGet, write(postJson))
       Then("We should get a 200")

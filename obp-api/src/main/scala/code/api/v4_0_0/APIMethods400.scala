@@ -2747,11 +2747,11 @@ trait APIMethods400 {
       s"""
         |This endpoint is used as part of the DAuth solution to grant Entitlements for Roles to a smart contract on the blockchain.
         |
-        |Put the smart contract address in user_id
+        |Put the smart contract address in username
         |
         |For provider use "dauth"
         |
-        |This endpoint will create the User with user_id and provider if the User does not already exist.
+        |This endpoint will create the User with username and provider if the User does not already exist.
         |
         |Then it will create Entitlements i.e. grant Roles to the User.
         |
@@ -2801,11 +2801,6 @@ trait APIMethods400 {
               postedData.provider.startsWith("dauth.")
             }
 
-            //user_id set the length for the min length of the userId. eg: 36
-            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
-              postedData.user_id.length>=36
-            }
-            
             //check the system role bankId is Empty, but bank level role need bankId 
             _ <- checkRoleBankIdMappings(callContext, postedData)
 
@@ -2815,7 +2810,7 @@ trait APIMethods400 {
 
             canCreateEntitlementAtAnyBankRole = Entitlement.entitlement.vend.getEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank.toString())
             
-            (targetUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postedData.username, postedData.provider, callContext)
 
             _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) { 
               //If the loggedIn User has `CanCreateEntitlementAtAnyBankRole` role, then we can grant all the requestRoles to the requestUser.
@@ -2827,7 +2822,7 @@ trait APIMethods400 {
               assertUserCanGrantRoles(loggedInUser.userId, postedData.roles, callContext)
             }
 
-            addedEntitlements <- addEntitlementsToUser(postedData, callContext)
+            addedEntitlements <- addEntitlementsToUser(targetUser.userId, postedData, callContext)
             
           } yield {
             (JSONFactory400.createEntitlementJSONs(addedEntitlements), HttpCode.`201`(callContext))
@@ -4284,11 +4279,11 @@ trait APIMethods400 {
       "Create (DAuth) User with Account Access",
       s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
          |
-         |Put the smart contract address in user_id
+         |Put the smart contract address in username
          |
          |For provider use "dauth"
          |
-         |This endpoint will create the (DAuth) User with user_id and provider if the User does not already exist.
+         |This endpoint will create the (DAuth) User with username and provider if the User does not already exist.
          |
          |${authenticationRequiredMessage(true)} and the logged in user needs to be account holder.
          |
@@ -4297,7 +4292,7 @@ trait APIMethods400 {
          |${getGlossaryItem("DAuth")}
          |
          |""",
-      postCreateUserWithRolesJsonV400,
+      postCreateUserAccountAccessJsonV400,
       List(viewJsonV300),
       List(
         $UserNotLoggedIn,
@@ -4323,15 +4318,10 @@ trait APIMethods400 {
               postJson.provider.startsWith("dauth.")
             }
 
-            //user_id set the length for the min length of the userId. eg: 36
-            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
-              postJson.user_id.length>=36
-            }
-
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
-            (user, callContext) <- NewStyle.function.getOrCreateUser(postJson.user_id, postJson.provider, cc.callContext)
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.username, postJson.provider, cc.callContext)
             views <- getViews(bankId, accountId, postJson, callContext)
-            addedView <- createAccountAccessesToUser(bankId, accountId, user, views, callContext)
+            addedView <- createAccountAccessesToUser(bankId, accountId, targetUser, views, callContext)
           } yield {
             val viewsJson = addedView.map(JSONFactory300.createViewJSON(_))
             (viewsJson, HttpCode.`201`(callContext))
@@ -10969,8 +10959,8 @@ trait APIMethods400 {
     Future(Entitlement.entitlement.vend.addEntitlement(entitlement.bank_id, userId, entitlement.role_name)) map { unboxFull(_) }
   }
   
-  private def addEntitlementsToUser(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
-    Future.sequence(postedData.roles.distinct.map(addEntitlementToUser(postedData.user_id, _, callContext)))
+  private def addEntitlementsToUser(userId:String, postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postedData.roles.distinct.map(addEntitlementToUser(userId, _, callContext)))
   }
 
   /**

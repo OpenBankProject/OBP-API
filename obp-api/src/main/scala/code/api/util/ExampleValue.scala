@@ -1201,8 +1201,8 @@ object ExampleValue {
   lazy val productAttributeIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("product_attribute_id", productAttributeIdExample)
 
-  lazy val isSystemExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("is_system", isSystemExample)
+  lazy val isSystemExample = ConnectorField("true", "If the view is the system level, then it is true")
+  glossaryItems += makeGlossaryItem("view.is_system", isSystemExample)
 
   lazy val detailsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("details", detailsExample)
@@ -1309,7 +1309,7 @@ object ExampleValue {
   lazy val webUiPropsIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("web_ui_props_id", webUiPropsIdExample)
 
-  lazy val providerExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val providerExample = ConnectorField("ETHEREUM","the provider name ")
   glossaryItems += makeGlossaryItem("provider", providerExample)
 
   lazy val canSeePhysicalLocationExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
