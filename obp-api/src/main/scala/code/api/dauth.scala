@@ -134,25 +134,12 @@ object DAuth extends RestHelper with MdcLoggable {
   }
 
   def getOrCreateResourceUser(jwtPayload: String, callContext: Option[CallContext]) : Box[(User, Option[CallContext])] = {
-    val username = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
-    val provider = getFieldFromPayloadJson(jwtPayload, "network_name")
-    val providerHardCodePrefixDauth = "dauth."+provider
-    logger.debug("login_user_name: " + username)
+    val userName = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
+    val provider = "dauth."+getFieldFromPayloadJson(jwtPayload, "network_name")
+    logger.debug("login_user_name: " + userName)
     for {
-      tuple <- 
-          Users.users.vend.getUserByProviderId(provider = providerHardCodePrefixDauth, idGivenByProvider = username).or { // Find a user
-            Users.users.vend.createResourceUser( // Otherwise create a new one
-              provider = providerHardCodePrefixDauth,
-              providerId = Some(username),
-              None,
-              name = Some(username),
-              email = None,
-              userId = None,
-              createdByUserInvitationId = None,
-              company = None,
-              lastMarketingAgreementSignedDate = None
-            )
-          } match {
+      tuple <-
+        UserX.getOrCreateDauthResourceUser(userName, provider) match {
             case Full(u) =>
               Full((u,callContext)) // Return user
             case Empty =>
@@ -168,17 +155,16 @@ object DAuth extends RestHelper with MdcLoggable {
   }
   def getOrCreateResourceUserFuture(jwtPayload: String, callContext: Option[CallContext]) : Future[Box[(User, Option[CallContext])]] = {
     val username = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
-    val provider = getFieldFromPayloadJson(jwtPayload, "network_name")
-    val providerHardCodePrefixDauth = "dauth."+provider
+    val provider = "dauth."+ getFieldFromPayloadJson(jwtPayload, "network_name")
     logger.debug("login_user_name: " + username)
+    
     for {
-      tuple <- 
-        Users.users.vend.getOrCreateUserByProviderIdFuture(provider = providerHardCodePrefixDauth, idGivenByProvider = username, consentId = None, name = Some(username), email = None) map {
-          case (Full(u), _) =>
+      tuple <- Future { UserX.getOrCreateDauthResourceUser(username, provider)} map {
+          case (Full(u)) =>
             Full(u, callContext) // Return user
-          case (Empty, _) =>
+          case (Empty) =>
             Failure(ErrorMessages.DAuthCannotGetOrCreateUser)
-          case (Failure(msg, t, c), _) =>
+          case (Failure(msg, t, c)) =>
             Failure(msg, t, c)
           case _ =>
             Failure(ErrorMessages.DAuthUnknownError)
