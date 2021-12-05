@@ -2751,7 +2751,7 @@ trait APIMethods400 {
         |
         |For provider use "dauth"
         |
-        |This endpoint will create the User with user_id and provider if the User does not already exist.
+        |This endpoint will create the User with username and provider if the User does not already exist.
         |
         |Then it will create Entitlements i.e. grant Roles to the User.
         |
@@ -4277,7 +4277,7 @@ trait APIMethods400 {
          |
          |For provider use "dauth"
          |
-         |This endpoint will create the (DAuth) User with user_id and provider if the User does not already exist.
+         |This endpoint will create the (DAuth) User with username and provider if the User does not already exist.
          |
          |${authenticationRequiredMessage(true)} and the logged in user needs to be account holder.
          |
