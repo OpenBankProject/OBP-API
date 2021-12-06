@@ -29,31 +29,31 @@ object AfterApiAuth extends MdcLoggable{
    * Types of authentication: GUI logon(OpenID Connect and OAuth1.0a)
    * @param authUser the authenticated user
    */
-  def userGuiLogonInitAction(authUser: Box[AuthUser]) = {
+  def innerLoginUserInitAction(authUser: Box[AuthUser]) = {
     authUser.map { u => // Init actions
-      logger.info("AfterApiAuth.userGuiLogonInitAction started successfully")
+      logger.info("AfterApiAuth.innerLoginUserInitAction started successfully")
       sofitInitAction(u)
     } match {
-        case Full(_) => logger.warn("AfterApiAuth.userGuiLogonInitAction completed successfully")
-        case userInitActionFailure => logger.warn("AfterApiAuth.userGuiLogonInitAction: " + userInitActionFailure)
+        case Full(_) => logger.warn("AfterApiAuth.innerLoginUserInitAction completed successfully")
+        case userInitActionFailure => logger.warn("AfterApiAuth.innerLoginUserInitAction: " + userInitActionFailure)
     }
   }
   /**
    * This function is used to execute actions after an user is authenticated via API
    * Types of authentication: Direct Login, OpenID Connect, OAuth1.0a, Direct Login, DAuth and Gateway Login
    */
-  def userApiLogonInitAction(result: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
-    logger.info("AfterApiAuth.userApiLogonInitAction started successfully")
+  def outerLoginUserInitAction(result: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
+    logger.info("AfterApiAuth.outerLoginUserInitAction started successfully")
     for {
       (user: Box[User], cc) <- result
     } yield {
       user match {
         case Full(u) => // There is a user. Apply init actions
           val authUser: Box[AuthUser] = AuthUser.find(By(AuthUser.user, u.userPrimaryKey.value))
-          userGuiLogonInitAction(authUser)
+          innerLoginUserInitAction(authUser)
           (user, cc)
         case userInitActionFailure => // There is no user. Just forward the result.
-          logger.warn("AfterApiAuth.userApiLogonInitAction: " + userInitActionFailure)
+          logger.warn("AfterApiAuth.outerLoginUserInitAction: " + userInitActionFailure)
           (user, cc)
       }
     }

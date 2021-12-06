@@ -116,7 +116,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
       AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
       AuthUser.grantEmailDomainEntitlementsToUser(authUser)
       // User init actions
-      AfterApiAuth.userGuiLogonInitAction(Full(authUser))
+      AfterApiAuth.innerLoginUserInitAction(Full(authUser))
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
         this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin throw exception, details: $e" );

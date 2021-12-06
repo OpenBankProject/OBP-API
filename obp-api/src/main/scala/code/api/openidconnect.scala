@@ -127,7 +127,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                       // Grant roles according to the props email_domain_to_space_mappings
                       AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
                       // User init actions
-                      AfterApiAuth.userGuiLogonInitAction(Full(authUser))
+                      AfterApiAuth.innerLoginUserInitAction(Full(authUser))
                       // Consumer
                       getOrCreateConsumer(idToken, user.userId) match {
                         case Full(consumer) =>

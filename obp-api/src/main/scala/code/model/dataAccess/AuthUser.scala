@@ -935,7 +935,7 @@ def restoreSomeSessions(): Unit = {
     // variable redirect is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
     // val currentUrl = S.uriAndQueryString.getOrElse("/")
     // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-    def checkInternalRedirectAndLogUseIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
+    def checkInternalRedirectAndLogUserIn(preLoginState: () => Unit, redirect: String, user: AuthUser) = {
       if (Helper.isValidInternalRedirectUrl(redirect)) {
         logUserIn(user, () => {
           S.notice(S.?("logged.in"))
@@ -943,12 +943,12 @@ def restoreSomeSessions(): Unit = {
           if(emailDomainToSpaceMappings.nonEmpty){
             Future{
               tryo{AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(user)}
-                .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
+                .openOr(logger.error(s"${user} checkInternalRedirectAndLogUserIn.grantEntitlementsToUseDynamicEndpointsInSpaces throw exception! "))
             }}
           if(emailDomainToEntitlementMappings.nonEmpty){
             Future{
                 tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
-                  .openOr(logger.error(s"${user} checkInternalRedirectAndLogUseIn.grantEmailDomainEntitlementsToUser throw exception! "))
+                  .openOr(logger.error(s"${user} checkInternalRedirectAndLogUserIn.grantEmailDomainEntitlementsToUser throw exception! "))
             }}
           S.redirectTo(redirect)
         })
@@ -997,10 +997,10 @@ def restoreSomeSessions(): Unit = {
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   val preLoginState = capturePreLoginState()
                   // User init actions
-                  AfterApiAuth.userGuiLogonInitAction(Full(user))
+                  AfterApiAuth.innerLoginUserInitAction(Full(user))
                   logger.info("login redirect: " + loginRedirect.get)
                   val redirect = redirectUri()
-                  checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
+                  checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                 } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
                   LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
                   S.error(Helper.i18n("invalid.login.credentials"))
@@ -1024,8 +1024,8 @@ def restoreSomeSessions(): Unit = {
                   //It will update the views and createAccountHolder ....
                   registeredUserHelper(user.username.get)
                   // User init actions
-                  AfterApiAuth.userGuiLogonInitAction(Full(user))
-                  checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
+                  AfterApiAuth.innerLoginUserInitAction(Full(user))
+                  checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
     
               // If user cannot be found locally, try to authenticate user via connector
               case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) || 
@@ -1039,8 +1039,8 @@ def restoreSomeSessions(): Unit = {
                     case Full(user: AuthUser) =>
                       LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                       // User init actions
-                      AfterApiAuth.userGuiLogonInitAction(Full(user))
-                      checkInternalRedirectAndLogUseIn(preLoginState, redirect, user)
+                      AfterApiAuth.innerLoginUserInitAction(Full(user))
+                      checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                     case _ =>
                       LoginAttempt.incrementBadLoginAttempts(username.get)
                       Empty
