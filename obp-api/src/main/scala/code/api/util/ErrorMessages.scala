@@ -89,8 +89,8 @@ object ErrorMessages {
   val InvalidInBoundMapping = "OBP-10032: Incorrect inBoundMapping Format, it should be a json structure."
   val invalidIban = "OBP-10033: Invalid IBAN."
   val InvalidUrlParameters = "OBP-10034: Invalid URL parameters."
-  val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
-    "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
+  val InvalidUri = "OBP-10404: 404 Not Found. The server could not find the requested URI. Please double check your URL, headers and body. " +
+    "Note: When you are making a POST or PUT request, the Content-Type header MUST be `application/json`. Note: OBP only supports JSON formatted bodies."
   val ResourceDoesNotExist = "OBP-10405: Resource does not exist."
   val InvalidJsonValue = "OBP-10035: Incorrect json value."
   
