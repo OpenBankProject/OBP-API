@@ -169,11 +169,15 @@ object AfterApiAuth extends MdcLoggable{
           case Full(bank) =>
             UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "create-or-update-bank", bankId, true)
             // Add roles
-            val addCanCreateAccount = Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateAccount.toString()).isDefined
+            val addCanCreateAccount = Entitlement.entitlement.vend.getEntitlement(bank.bankId.value, resourceUser.userId, CanCreateAccount.toString()).or {
+              Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateAccount.toString())
+            }.isDefined
             UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-entitlement", CanCreateAccount.toString(), addCanCreateAccount)
-            val addCanCreateHistoricalTransactionAtBank = Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString()).isDefined
+            val addCanCreateHistoricalTransactionAtBank = Entitlement.entitlement.vend.getEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString()).or {
+              Entitlement.entitlement.vend.addEntitlement(bank.bankId.value, resourceUser.userId, CanCreateHistoricalTransactionAtBank.toString())
+            }.isDefined
             UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-entitlement", CanCreateHistoricalTransactionAtBank.toString(), addCanCreateHistoricalTransactionAtBank)
-            // Create Cach account
+            // Create Cash account
             val bankAccount = getOrCreateBankAccount(bank, "cash", "cash-flow").flatMap( account =>
               Views.views.vend.systemView(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).flatMap( view =>
                 // Grant account access
