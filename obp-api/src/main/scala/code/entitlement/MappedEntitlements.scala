@@ -1,12 +1,15 @@
 package code.entitlement
 
+import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanCreateEntitlementAtOneBank}
+import code.api.util.ErrorMessages
 import code.api.v4_0_0.dynamic.DynamicEntityInfo
 import code.util.{MappedUUID, UUIDString}
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.common
 
 object MappedEntitlementsProvider extends EntitlementProvider {
   override def getEntitlement(bankId: String, userId: String, roleName: String): Box[MappedEntitlement] = {
@@ -102,15 +105,26 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     }
   }
 
-  override def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String ="manual"): Box[Entitlement] = {
+  override def addEntitlement(bankId: String, userId: String, roleName: String, createdByProcess: String ="manual", grantorUserId: Option[String]=None): Box[Entitlement] = {
+    def addEntitlementToUser(): Full[MappedEntitlement] = {
+      val addEntitlement: MappedEntitlement = 
+        MappedEntitlement.create.mBankId(bankId).mUserId(userId).mRoleName(roleName).mCreatedByProcess(createdByProcess)
+        .saveMe()
+      Full(addEntitlement)
+    }
     // Return a Box so we can handle errors later.
-    val addEntitlement = MappedEntitlement.create
-      .mBankId(bankId)
-      .mUserId(userId)
-      .mRoleName(roleName)
-      .mCreatedByProcess(createdByProcess)
-      .saveMe()
-    Some(addEntitlement)
+    grantorUserId match {
+      case Some(userId) =>
+        val canCreateEntitlementAtAnyBank = MappedEntitlement.findAll(By(MappedEntitlement.mUserId, userId)).exists(e => e.roleName == CanCreateEntitlementAtAnyBank)
+        val canCreateEntitlementAtOneBank = MappedEntitlement.findAll(By(MappedEntitlement.mUserId, userId)).exists(e => e.roleName == CanCreateEntitlementAtOneBank && e.bankId == bankId)
+        if(canCreateEntitlementAtAnyBank || canCreateEntitlementAtOneBank) {
+          addEntitlementToUser()
+        } else {
+          Failure(ErrorMessages.EntitlementCannotBeGrantedGrantorIssue)
+        }
+      case None =>
+        addEntitlementToUser()
+    }
   }
 }
 
