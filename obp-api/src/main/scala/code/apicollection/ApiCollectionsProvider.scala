@@ -9,7 +9,8 @@ trait ApiCollectionsProvider {
   def createApiCollection(
     userId: String,
     apiCollectionName: String,
-    isSharable: Boolean
+    isSharable: Boolean,
+    description: String
   ): Box[ApiCollectionTrait]
 
   def getApiCollectionById(
@@ -36,7 +37,8 @@ object MappedApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
   override def createApiCollection(
     userId: String,
     apiCollectionName: String,
-    isSharable: Boolean
+    isSharable: Boolean,
+    description: String
   ): Box[ApiCollectionTrait] =
     tryo (
       ApiCollection
@@ -44,6 +46,7 @@ object MappedApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
         .UserId(userId)
         .ApiCollectionName(apiCollectionName)
         .IsSharable(isSharable) 
+        .Description(description) 
         .saveMe()
     )
 

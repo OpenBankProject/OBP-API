@@ -1037,8 +1037,6 @@ trait KafkaMappedConnector_vJune2017 extends Connector with KafkaHelper with Mdc
             } yield {
               (transaction,callContext)
             }
-          case Full((data,status,callContext)) if (status.errorCode!="") =>
-            Failure("INTERNAL-"+ status.errorCode+". + CoreBank-Status:"+ status.backendMessages)
           case Empty =>
             Failure(ErrorMessages.InvalidConnectorResponse, Empty, Empty)
           case Failure(msg, e, c) =>

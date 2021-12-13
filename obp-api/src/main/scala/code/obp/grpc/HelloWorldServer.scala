@@ -76,7 +76,7 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
           val (bankList, _) = it
           val json40: BanksJson400 = JSONFactory400.createBanksJson(bankList)
           val grpcBanks: List[BankJson400Grpc] = json40.banks.map(bank => {
-            val BankJson400(id, short_name, full_name, logo, website, bank_routings) = bank
+            val BankJson400(id, short_name, full_name, logo, website, bank_routings, None) = bank
             val bankRoutingGrpcs = bank_routings.map(routings => BankRoutingJsonV121Grpc(routings.scheme, routings.address))
             BankJson400Grpc(id, short_name, full_name, logo, website, bankRoutingGrpcs)
           })

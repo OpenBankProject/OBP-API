@@ -2,13 +2,38 @@ package code.api.util
 
 import code.api.util.APIUtil.{getOAuth2ServerUrl, getObpApiRoot, getServerUrl}
 import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
+import code.util.Helper.MdcLoggable
 
 import scala.collection.mutable.ArrayBuffer
-
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 
-object Glossary {
+object Glossary extends MdcLoggable  {
+
+	def getGlossaryItem(title: String): String = {
+
+		logger.debug(s"getGlossaryItem says Hello. title to find is: $title")
+
+		val something = glossaryItems.find(_.title.toLowerCase == title.toLowerCase) match {
+			case Some(foundItem) =>
+				/**
+				 * Two important rules:
+				 * 1. Make sure you have an **empty line** after the closing `</summary>` tag, otherwise the markdown/code blocks won't show correctly.
+				 * 2. Make sure you have an **empty line** after the closing `</details>` tag if you have multiple collapsible sections.
+				 */
+				s"""
+				 |<details>
+				 |  <summary style="display:list-item;cursor:s-resize;">${foundItem.title}</summary>
+				 |  
+				 |  ${foundItem.htmlDescription}
+				 |</details>
+				 |<br></br>
+				 |""".stripMargin
+				case None => ""
+		}
+		logger.debug(s"getGlossaryItem says the text to return is $something")
+		something
+	}
 
 	// reason of description is function: because we want make description is dynamic, so description can read
 	// webui_ props dynamic instead of a constant string.
@@ -96,7 +121,7 @@ object Glossary {
 		title = "Cheat Sheet",
 		description =
 			s"""
-				 |## A selection of links to get you started using the Open Bank Project API platform, applications and tools.
+				 |### A selection of links to get you started using the Open Bank Project API platform, applications and tools.
 				 				 |
 				 |[OBP API Installation](https://github.com/OpenBankProject/OBP-API/blob/develop/README.md)
 				 				 |
@@ -409,42 +434,75 @@ object Glossary {
 
 
 
+	// ***Note***! Don't use "--" (double hyphen) in the description because API Explorer scala.xml.XML.loadString cannot parse.
+
 	glossaryItems += GlossaryItem(
 		title = "Connector",
 		description =
-			s"""In OBP, we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
+			s"""In OBP, most internal functions / methods can have different implementations which follow the same interface.
 				 |
-					|Several Connectors are present in the OBP source code and all must implement the Connector interface
-|- but, except when using the Star Connector, only one of them is active at any one time.
-|
-| The active connector is defined in the OBP Props file.
-|
-| A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
-|
-| i.e. API -> Connector -> CBS
-|
-| An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
-|
-| i.e. API -> Connector -> Adapter -> CBS
-|
-| The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
-|
-| The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
-|
-| The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
-|
-|If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
-|
-|
-| There is a special Connector called the Star Connector which can use functions from all the normal connectors.
-|
-| Using the Star Connector we can dynamically reroute function calls to different Connectors per function per bank_id.
-|
-| The OBP API Manager has a GUI to manage this or you can use the OBP Method Routing APIs to set destinations for each function call.
-|
-| Note: We generate the source code for individual connectors automatically.
-|
- |"""
+				 |These functions are called connector methods and their implementations.
+				 |
+				 |The default implementation of the connector is the "mapped" connector.
+				 |
+				 |It's called "mapped" because the default datasource on OBP is a relational database, and access to that database is always done through an Object-Relational Mapper (ORM) called Mapper (from a framework we use called Liftweb).
+				 |
+				 |
+				 |<pre>
+				 |[=============]                                                                     [============]       [============]
+				 |[.............]                                                                     [            ]       [            ]
+				 |[...OBP API...] ===> OBP Endpoints call connector functions (aka methods) ===>      [  Connector ] ===>  [  Database  ]
+				 |[.............]          The default implementation is called "Mapped"              [  (Mapped)  ]       [  (Adapter) ]
+				 |[=============]              The Mapped Connector talks to a Database               [============]       [============]
+				 |
+				 |</pre>
+				 |
+				 |However, there are multiple available connector implementations - and you can also mix and create your own.|
+				 |
+				 |E.g. Kafka
+				 |
+				 |<pre>
+				 |[=============]                              [============]       [============]     [============]       [============]
+				 |[             ]                              [            ]       [            ]     [            ]       [            ]
+				 |[   OBP API   ] ===> Kafka Connector   ===>  [  Kafka     ] ===>  [  Kafka     ]     [  OBP Kafka ]  ===> [  CBS       ]
+				 |[             ]      Puts OBP Messages       [  Connector ]       [  Cluster   ]     [  Adapter   ]       [            ]
+				 |[=============]       onto a Kafka           [============]       [============]     [============]       [============]
+				 |
+				 |</pre>
+				 |
+				 |
+				 |
+				 |You can mix and match them using the Star connector and you can write your own in Scala. You can also write Adapters in any language which respond to messages sent by the connector.
+				 |
+				 |we use the term "Connector" to mean the Scala/Java/Other JVM code in OBP that connects directly or indirectly to the systems of record i.e. the Core Banking Systems, Payment Systems and Databases.
+				 |
+				 |
+				 | A "Direct Connector" is considered to be one that talks directly to the system of record or existing service layer.
+				 |
+				 | i.e. API -> Connector -> CBS
+				 |
+				 | An "Indirect Connector" is considered one which pairs with an Adapter which in turn talks to the system of record or service layer.
+				 |
+				 | i.e. API -> Connector -> Adapter -> CBS
+				 |
+				 | The advantage of a Direct connector is that its perhaps simpler. The disadvantage is that you have to code in a JVM language, understand a bit about OBP internals and a bit of Scala.
+				 |
+				 | The advantage of the Indirect Connector is that you can write the Adapter in any language and the Connector and Adapter are decoupled (you just have to respect the Outbound / Inbound message format).
+				 |
+				 | The default Connector in OBP is a Direct Connector called "mapped". It is called the "mapped" connector because it talks directly to the OBP database (Postgres, MySQL, Oracle, MSSQL etc.) via the Liftweb ORM which is called Mapper.
+				 |
+				 |If you want to create your own (Direct) Connector you can fork any of the connectors within OBP.
+				 |
+				 |
+				 | There is a special Connector called the Star Connector which can use functions from all the normal connectors.
+				 |
+				 | Using the Star Connector we can dynamically reroute function calls to different Connectors per function per bank_id.
+				 |
+				 | The OBP API Manager has a GUI to manage this or you can use the OBP Method Routing APIs to set destinations for each function call.
+				 |
+				 | Note: We generate the source code for individual connectors automatically.
+				 |
+				 |"""
 	)
 
 
@@ -577,8 +635,21 @@ object Glossary {
 		title = "Bank",
 		description =
 		"""
-		  |The entity that represents the financial institution or bank within a financial group.
-		  |Open Bank Project is a multi-bank API. Each bank resource contains basic identifying information such as name, logo and website.
+		  |A Bank (aka Space) represents a financial institution, brand or organizational unit under which resources such as endpoints and entities exist.
+|
+|Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
+|
+|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:8082/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
+|
+|The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
+|
+|A User creating a Bank (if they have the right so to do), automatically gets the Entitlement to grant any Role for that Bank. Thus the creator of a Bank / Space becomes the "god" of that Bank / Space.
+|
+|Basic attributes for the bank resource include identifying information such as name, logo and website.
+|
+|Using the OBP endpoints for bank accounts it's possible to view accounts at one Bank or aggregate accounts from all Banks connected to the OBP instance.
+|
+|See also Props settings named "brand".
 		""")
 
 
@@ -1773,10 +1844,10 @@ object Glossary {
 |# Define comma separated list of allowed IP addresses
 |# gateway.host=127.0.0.1
 |# Define secret used to validate JWT token
-|# gateway.token_secret=secret
+|# jwt.token_secret=your-at-least-256-bit-secret-token
 |# -------------------------------------- Gateway login --
 |```
-|Please keep in mind that property gateway.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
+|Please keep in mind that property jwt.token_secret is used to validate JWT token to check it is not changed or corrupted during transport.
 |
 |### 2) Create / have access to a JWT
 |
@@ -1810,15 +1881,15 @@ object Glossary {
 |  base64UrlEncode(header) + "." +
 |  base64UrlEncode(payload),
 |
-|) secret base64 encoded
+|) your-at-least-256-bit-secret-token
 |```
 |
 |Here is the above example token:
 |
 |```
 |eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
-|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU
+|eyJsb2dpbl91c2VyX25hbWUiOiJ1c2VybmFtZSIsImlzX2ZpcnN0IjpmYWxzZSwiYXBwX2lkIjoiODVhOTY1ZjAtMGQ1NS00ZTBhLThiMWMtNjQ5YzRiMDFjNGZiIiwiYXBwX25hbWUiOiJHV0wiLCJ0aW1lX3N0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJjYnNfdG9rZW4iOiJ5b3VyX3Rva2VuIiwiY2JzX2lkIjoieW91cl9jYnNfaWQiLCJzZXNzaW9uX2lkIjoiMTIzNDU2Nzg5In0.
+|bfWGWttEEcftiqrb71mE6Xy1tT_I-gmDPgjzvn6kC_k
 |```
 |
 |
@@ -1853,8 +1924,8 @@ object Glossary {
 |
 |```
 |curl -v -H 'Authorization: GatewayLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-|AS8D76F7A89S87D6F7A9SD876FA789SD78F6A7S9D78F6AS79DF87A6S7D9F7A6S7D9F78A6SD798F78679D786S789D78F6A7S9D78F6AS79DF876A7S89DF786AS9D87F69AS7D6FN1bWVyIn0.
-|KEuvjv3dmwkOhQ3JJ6dIShK8CG_fd2REApOGn1TRmgU" $getServerUrl/obp/v3.0.0/users/current
+|eyJsb2dpbl91c2VyX25hbWUiOiJ1c2VybmFtZSIsImlzX2ZpcnN0IjpmYWxzZSwiYXBwX2lkIjoiODVhOTY1ZjAtMGQ1NS00ZTBhLThiMWMtNjQ5YzRiMDFjNGZiIiwiYXBwX25hbWUiOiJHV0wiLCJ0aW1lX3N0YW1wIjoiMjAxOC0wOC0yMFQxNDoxMzo0MFoiLCJjYnNfdG9rZW4iOiJ5b3VyX3Rva2VuIiwiY2JzX2lkIjoieW91cl9jYnNfaWQiLCJzZXNzaW9uX2lkIjoiMTIzNDU2Nzg5In0.
+|bfWGWttEEcftiqrb71mE6Xy1tT_I-gmDPgjzvn6kC_k"' $getServerUrl/obp/v3.0.0/users/current
 |```
 |
 |
@@ -1891,12 +1962,12 @@ object Glossary {
 |```
 |import jwt
 |from datetime import datetime, timezone
-|from obp_python.config import obp_api_host
 |import requests
 |
 |env = 'local'
 |DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 |
+|obp_api_host = 'https://yourhost.com'
 |payload = {
 |    "login_user_name": "username",
 |    "is_first": False,
@@ -1909,7 +1980,7 @@ object Glossary {
 |}
 |
 |
-|token = jwt.encode(payload, 'secretsecretsecretstsecretssssss', algorithm='HS256')
+|token = jwt.encode(payload, 'your-at-least-256-bit-secret-token', algorithm='HS256').decode("utf-8")
 |authorization = 'GatewayLogin token="{}"'.format(token)
 |headers = {'Authorization': authorization}
 |url = obp_api_host + '/obp/v4.0.0/users/current'
@@ -1940,6 +2011,171 @@ object Glossary {
 |   Parameter names and values are case sensitive.
 |
 |
+|  Each parameter MUST NOT appear more than once per request.
+|
+					""")
+
+
+	val dauthEnabledMessage : String = if (APIUtil.getPropsAsBoolValue("allow_dauth", false))
+	{"Note: DAuth is enabled."} else {"Note: *DAuth is NOT enabled on this instance!*"}
+
+
+	glossaryItems += GlossaryItem(
+		title = APIUtil.DAuthHeaderKey,
+		description =
+			s"""
+						 |### DAuth Introduction, Setup and Usage
+|
+|
+|DAuth is an experimental authentication mechanism that aims to pin an ethereum or other blockchain Smart Contract to an OBP "User".
+|
+|In the future, it might be possible to be more specific and pin specific actors (wallets) that are acting within the smart contract, but so far, one smart contract acts on behalf of one User.
+|
+|Thus, if a smart contract "X" calls the OBP API using the DAuth header, OBP will get or create a user called X and the call will proceed in the context of that User "X".
+|
+|
+|DAuth is invoked by the REST client (caller) including a specific header (see step 3 below) in any OBP REST call.
+|
+|When OBP receives the DAuth token, it creates or gets a User with a username based on the smart_contract_address and the provider based on the network_name. The combination of username and provider is unique in OBP.
+|
+|If you are calling OBP-API via an API3 Airnode, the Airnode will take care of constructing the required header.
+|
+|When OBP detects a DAuth header / token it first checks if the Consumer is allowed to make such a call. OBP will validate the Consumer ip address and signature etc.
+|
+|Note: The DAuth flow does *not* require an explicit POST like Direct Login to create the token.
+|
+|Permissions may be assigned to an OBP User at any time, via the UserAuthContext, Views, Entitlements to Roles or Consents.
+|
+|$dauthEnabledMessage
+|
+|Note: *The DAuth client is responsible for creating a token which will be trusted by OBP absolutely*!
+|
+|
+|To use DAuth:
+|
+|### 1) Configure OBP API to accept DAuth.
+|
+|Set up properties in your props file
+|
+|```
+|# -- DAuth --------------------------------------
+|# Define secret used to validate JWT token
+|# jwt.public_key_rsa=path-to-the-pem-file
+|# Enable/Disable DAuth communication at all
+|# In case isn't defined default value is false
+|# allow_dauth=false
+|# Define comma separated list of allowed IP addresses
+|# dauth.host=127.0.0.1
+|# -------------------------------------- DAuth--
+|```
+|Please keep in mind that property jwt.public_key_rsa is used to validate JWT token to check it is not changed or corrupted during transport.
+|
+|### 2) Create / have access to a JWT
+|
+|The following videos are available:
+|	* [DAuth in local environment](https://vimeo.com/644315074)
+|
+|HEADER:ALGORITHM & TOKEN TYPE
+|
+|```
+|{
+|  "alg": "RS256",
+|  "typ": "JWT"
+|}
+|```
+|PAYLOAD:DATA
+|
+|```
+|{
+|  "smart_contract_address": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
+|  "network_name": "AIRNODE.TESTNET.ETHEREUM",
+|  "msg_sender": "0xe12340927f1725E7734CE288F8367e1Bb143E90fhku767",
+|  "consumer_key": "0x1234a4ec31e89cea54d1f125db7536e874ab4a96b4d4f6438668b6bb10a6adb",
+|  "timestamp": "2021-11-04T14:13:40Z",
+|  "request_id": "0Xe876987694328763492876348928736497869273649"
+|}
+|```
+|VERIFY SIGNATURE
+|```
+|RSASHA256(
+|  base64UrlEncode(header) + "." +
+|  base64UrlEncode(payload),
+|
+|) your-RSA-key-pair
+|```
+|
+|Here is an example token:
+|
+|```
+|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k
+|```
+|
+|
+|
+|### 3) Try a REST call using the header
+|
+|
+|Using your favorite http client:
+|
+|  GET $getServerUrl/obp/v3.0.0/users/current
+|
+|Body
+|
+|  Leave Empty!
+|
+|
+|Headers:
+|
+|       DAuth: your-jwt-from-step-above
+|
+|Here is it all together:
+|
+|  GET $getServerUrl/obp/v3.0.0/users/current HTTP/1.1
+|        Host: localhost:8080
+|        User-Agent: curl/7.47.0
+|        Accept: */*
+|        DAuth: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k
+|
+|CURL example
+|
+|```
+|curl -v -H 'DAuth: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzbWFydF9jb250cmFjdF9hZGRyZXNzIjoiMHhlMTIzNDI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGJiM0YwNTEyMjQiLCJuZXR3b3JrX25hbWUiOiJFVEhFUkVVTSIsIm1zZ19zZW5kZXIiOiIweGUxMjM0MDkyN2YxNzI1RTc3MzRDRTI4OEY4MzY3ZTFCYjE0M0U5MGZoa3U3NjciLCJjb25zdW1lcl9rZXkiOiIweDEyMzRhNGVjMzFlODljZWE1NGQxZjEyNWRiNzUzNmU4NzRhYjRhOTZiNGQ0ZjY0Mzg2NjhiNmJiMTBhNmFkYiIsInRpbWVzdGFtcCI6IjIwMjEtMTEtMDRUMTQ6MTM6NDBaIiwicmVxdWVzdF9pZCI6IjBYZTg3Njk4NzY5NDMyODc2MzQ5Mjg3NjM0ODkyODczNjQ5Nzg2OTI3MzY0OSJ9.XSiQxjEVyCouf7zT8MubEKsbOBZuReGVhnt9uck6z6k' $getServerUrl/obp/v3.0.0/users/current
+|```
+|
+|
+|You should receive a response like:
+|
+|```
+|{
+|    "user_id": "4c4d3175-1e5c-4cfd-9b08-dcdc209d8221",
+|    "email": "",
+|    "provider_id": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
+|    "provider": "ETHEREUM",
+|    "username": "0xe123425E7734CE288F8367e1Bb143E90bb3F051224",
+|    "entitlements": {
+|        "list": []
+|    }
+|}
+|```
+|
+|### Under the hood
+|
+|The file, dauth.scala handles the DAuth, 
+|
+|We:
+|
+|```
+|-> Check if Props allow_dauth is true
+|  -> Check if DAuth header exists
+|    -> Check if getRemoteIpAddress is OK
+|      -> Look for "token"
+|        -> parse the JWT token and getOrCreate the user
+|          -> get the data of the user
+|```
+|
+|### More information
+|
+|  Parameter names and values are case sensitive.
 |  Each parameter MUST NOT appear more than once per request.
 |
 					""")
@@ -2082,8 +2318,7 @@ object Glossary {
 
 	glossaryItems += GlossaryItem(
 		title = "API Collection",
-		description =
-			s"""|An API Collection is a collection of endpoints grouped together for a certain purpose.
+		description = s"""An API Collection is a collection of endpoints grouped together for a certain purpose.
 |
 |Having read access to a Collection does not constitute execute access on the endpoints in the Collection.
 |
@@ -2097,9 +2332,384 @@ object Glossary {
 |
 |If you share a Collection it can't be modified by anyone else, but anyone can use it as a basis for their own Favourites or another collection.
 |
-|At the time of writing (July 2021), there are 13 endpoints for controlling Collections.
+|There are over 13 endpoints for controlling Collections.
+|Some of these endpoints require Entitlements to Roles and some operate on your own personal collections such as your favourites.
 |
  """)
+
+	glossaryItems += GlossaryItem(
+		title = "Space",
+		description =
+			s"""In OBP, if you have access to a "Space", you have access to a set of Dynamic Endpoints and Dynamic Entities that belong to that Space.
+|Internally, Spaces are defined as a "Banks" thus Spaces are synonymous with OBP Banks.
+|
+|A user can have access to several spaces. The API Explorer shows these under the Spaces menu.
+|
+|In order to see the documentation for the Dynamic Endpoints and Dynamic Entities, a user may need to have access to the CanReadDynamicResourceDocsAtOneBank Role.
+|
+|You can create your own Space by creating an OBP Bank.
+|
+""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Entity Manage",
+		description =
+			s"""
+|
+|Dynamic Entities can be used to store and retrieve custom data objects (think your own tables and fields) in the OBP instance.
+|
+|You can define your own Dynamic Entities or use Dynamic Entities created by others.
+|
+|You would use Dynamic Entities if you want to go beyond the OBP standard data model and store custom data structures. Note, if you want to extend the core OBP banking model of Customers, Products, Accounts, Transactions and so on you can also add Custom Attributes to these standard objects.
+|
+|You would use Dynamic Endpoints if you want to go beyond the standard OBP or other open banking standard APIs.
+|
+|Dynamic Entities have their own REST APIs so you can easily Create, Read, Update and Delete records. However, you can also connect Dynamic Endpoints with your own API definitions (via Swagger) and so create custom GET endpoints connecting to any combination of Dynamic Entities.
+|
+|Dynamic Endpoints can retrieve the data of Dynamic Entities so you can effectively create bespoke endpoint / data combinations - at least for GET endpoints - using Dynamic Endpoints, Entities and Endpoint Mapping.
+|
+|In order to use Dynamic Entities you will need to have the appropriate Entitlements to Create, Read, Update or Delete records in the Dynamic Entity.
+|
+|You define your Dynamic Entities in JSON.
+|
+|Fields are typed, have an example value and a (markdown) description. They can also be constrained in size.
+|
+|You can also create field "references" to other fields in other Entities. These are like foreign keys to other Dynamic or Static (built in) entities.
+|In other words, if you create an Entity called X which has a field called A, you can force the values of X.A to match the values of Y.B where Y is another Dynamic Entity or Z.B where Z is a Static (OBP) Entity.
+|If you want to add data to an existing Entity, you can create a Dynamic Entity which has a reference field to the existing entity.
+|
+|Dynamic Entities can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|
+|When creating a Dynamic Entity, OBP automatically:
+|
+|* Creates a data structure in the OBP database in which to store the records of the new Entity.
+|* Creates a primary key for the Entity which can be used to update and delete the Entity.
+|* Creates Create, Read, Update and Delete endpoints to operate on the Entity so you can insert, get, modify and delete records. These CRUD operations are all available over the generated REST endpoints.
+|* Creates Roles to guard the above endpoints.
+|
+|Following the creation of a Dynamic Entity you will need to grant yourself or others the appropriate roles before you can insert or get records.
+|
+|The generated Roles required for CRUD operations on a Dynamic Entity are like any other OBP Role i.e. they can be requested, granted, revoked and auto-granted using the API Explorer / API Manager or via REST API. To see the Roles required for a Dynamic Entities endpoints, see the API Explorer for each endpoint concerned.
+|
+|Each Dynamic Entity gets a dynamicEntityId which uniquely identifies it and also the userId which identifies the user who created the Entity. The dynamicEntityId is used to update the definition of the Entity.
+|
+|To visualise any data contained in Dynamic Entities you could use external BI tools and use the GET endpoints and authenticate using OAuth or Direct Login.
+|
+|The following videos are available:
+|
+|	* [Introduction to Dynamic Entities](https://vimeo.com/426524451)
+|	* [Features of Dynamic Entities](https://vimeo.com/446465797)
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Endpoint Manage",
+		description =
+			s"""
+|
+|If you want to create endpoints from Swagger / Open API specification files, use Dynamic Endpoints.
+|
+|We use the term "Dynamic" because these Endpoints persist in the OBP database and are served from real time generated Scala code.
+|
+|This contrasts to the "Static" endpoints (see the Static glossary item) which are served from static Scala code.
+|
+|Dynamic endpoints can be changed in real-time and do not require an OBP instance restart.
+|
+|When you POST a swagger file, all the endpoints defined in the swagger file, will be created in this OBP instance.
+|
+|You can create a set of endpoints in three different modes:
+|
+|1) If the *host* field in the Swagger file is set to "dynamic_entity", then you should link the swagger JSON fields to Dynamic Entity fields. To do this use the *Endpoint Mapping* endpoints.
+|
+|2) If the *host* field in the Swagger file is set to "obp_mock", the Dynamic Endpoints created will return *example responses defined in the swagger file*.
+|
+|3) If you need to link the responses to external resource, use the *Method Routing* endpoints.
+|
+|
+|Dynamic Endpoints can be created at the System level (bank_id is null) or Bank / Space level (bank_id is NOT null).
+|You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain. See the OBP-API sample.props.template
+|
+|Upon the successful creation of each Dynamic Endpoint, OBP will automatically:
+|
+|*Create a Guard with a named Role on the Endpoint to protect it from unauthorised users.
+|*Grant you an Entitlement to the required Role so you can call the endpoint and pass its Guard.
+|
+|The following videos are available:
+|
+|	* [Introduction to Dynamic Endpoints](https://vimeo.com/426235612)
+|	* [Features of Dynamic Endpoints](https://vimeo.com/444133309)
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Endpoint Mapping",
+		description =
+			s"""
+   |Endpoint Mapping can be used to map each JSON field in a Dynamic Endpoint to different Dynamic Entity fields.
+   |
+   |This document assumes you already have some knowledge of OBP Dynamic Endpoints and Dynamic Entities.
+   |
+   |To enable Endpoint Mapping for your Dynamic Endpoints, either set the `host` in the swagger file to "dynamic_entity" upon creation of the Dynamic Endpoints - or update the host using the Update Dynamic Endpoint Host endpoints.
+   |
+   |Once the `host` is thus set, you can use the Endpoint Mapping endpoints to map the Dynamic Endpoint fields to Dynamic Entity data.
+   |
+   |See the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects. You can get the operation ID from the API Explorer or Get Dynamic Endpoints endpoints.
+   |
+	 |For more details and a walk through, please see the following video:
+	 |
+	 |	* [Endpoint Mapping](https://vimeo.com/553369108)
+   |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Branch",
+		description =
+			s"""The bank branches, it contains the address, location, lobby, drive_up of the Branch.
+				 """.stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "API",
+		description =
+			s"""|The terms `API` (Application Programming Interface) and `Endpoint` are used somewhat interchangeably.
+|
+|However, an API normally refers to a group of Endpoints.
+|
+|An endpoint has a unique URL path and HTTP verb (GET, POST, PUT, DELETE etc).
+|
+|When we POST a Swagger file to the Create Endpoint endpoint, we are in fact creating a set of Endpoints that have a common Tag. Tags are used to group Endpoints in the API Explorer and filter the Endpoints in the Resource Doc endpoints.
+|
+|Endpoints can also be grouped together in Collections.
+|
+|See also [Endpoint](/glossary#Endpoint)
+|
+				 """.stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Endpoint",
+		description =
+			s"""
+|The terms `Endpoint` and `API` (Application Programming Interface) are used somewhat interchangeably. However, an Endpoint is a specific URL defined by its path (eg. /obp/v4.0/root) and its http verb (e.g. GET, POST, PUT, DELETE etc).
+|Endpoints are like arrows into a system. Like any good computer function, endpoints should expect much and offer little in return. They should fail early and be clear about any reason for failure. In other words each endpoint should have a tight and limited contract with any caller - and especially the outside world!
+|
+|In OBP, all system endpoints are RESTful - and most Open Banking Standards are RESTful. However, it is possible to create non-RESTful APIs in OBP using the Create Endpoint endpoints.
+|
+|You can immediately tell if an endpoint is not RESTful by seeing a verb in the URL. For example:
+|
+|POST /customers is RESTful = GOOD
+|POST /create-customer is NOT RESTful (due to the word "create") = BAD
+|
+|RESTful APIs use resource names in URL paths. You can think of RESTful resources like database tables. You wouldn't name a database table "create-customer", so don't use that in a URL path.
+|
+|If we consider interacting with a Customers table, we read the data using GET /Customers and write to the table using POST /Customers. This model keeps the names clear and predictable.
+|Note that we are only talking about the front end interface here - anything could be happening in the backend - and that is one of the beauties of APIs. For instance GET /Customers could call 5 different databases and 3 XML services in the background. Similarly POST /Customers could insert into various different tables and backend services. The important thing is that the user of the API (The Consumer or Client in OAuth parlance) has a simple and consistent experience.
+|
+|In OBP, all Endpoints are implemented by `Partial Functions`. A Partial Function is a function which only accepts (and responds) to calls with certain parameter values. In the case of API Endpoints the inputs to the Partial Functions are the URL path and http verb. Note that it would be possible to have different Partial Functions respond even to different query parameters, but for OBP static endpoints at least, we take the approach of URL path + http Verb is handled by one Partial Function.
+|Each Partial Function is identified by an Operation ID which uniquely identifies the endpoint in the system. Having an Operation ID allows us to decorate the Endpoint with metadata (e.g. Tags) and surround the Endpoint with behaviour such as JSON Schema Validation.
+|
+|See also [API](/glossary#API)
+|
+""".stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "API Tag",
+		description =
+			s"""All OBP API relevant docs, eg: API configuration, JSON Web Key, Adapter Info, Rate Limiting
+				 """.stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Account Access",
+		description =
+			s"""
+   |Account Access is OBP View system. The Account owners can create the view themselves.
+   |And they can grant/revoke the view to other users to use their view.
+   |""".stripMargin)
+	
+//	val allTagNames: Set[String] = ApiTag.allDisplayTagNames
+//	val existingItems: Set[String] = glossaryItems.map(_.title).toSet
+//	allTagNames.diff(existingItems).map(title => glossaryItems += GlossaryItem(title, title))
+
+	glossaryItems += GlossaryItem(
+		title = "Static Endpoint",
+		description =
+			s"""
+|Static endpoints are served from static Scala source code which is contained in (public) Git repositories.
+|
+|Static endpoints cover all the OBP API and User management functionality as well as the Open Bank Project banking APIs and other Open Banking standards such as UK Open Banking, Berlin Group and STET etc..
+				 |In short, Static (standard) endpoints are defined in Git as Scala source code, where as Dynamic (custom) endpoints are defined in the OBP database.
+				 |
+|Modifications to Static endpoint core properties such as URLs and response bodies require source code changes and an instance restart. However, JSON Schema Validation and Dynamic Connector changes can be applied in real-time.
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Message Doc",
+		description =
+			s"""
+|OBP can communicate with core banking systems (CBS) and other back end services using a "Connector -> Adapter" approach.
+|
+|The OBP Connector is a core part of the OBP-API and is written in Scala / Java and potentially other JVM languages.
+|
+|The OBP Connector implements multiple functions / methods in a style that satisfies a particular transport / protocol such as HTTP REST, Akka or Kafka.
+|
+|An OBP Adapter is a separate software component written in any programming language that responds to requests from the OBP Connector.
+|
+|Requests are sent by the Connector to the Adapter (or a message queue).
+|
+|The Adapter must satisfy the Connector method's request for data (or return an error).
+|
+|"Message Docs" are used to define and document the request / response structure.
+|
+|Message Docs are visible in the API Explorer.
+|
+|Message Docs are also available over the Message Doc endpoints.
+|
+|Each Message Doc relates to one OBP function / method.
+|
+|The Message Doc includes:
+|
+|  1) The Name of the internal OBP function / method e.g. getAccountsForUser
+|  2) The Outbound Message structure.
+|  3) The Inbound Message structure.
+|  4) The Connector name which denotes the protocol / transport used (e.g. REST, Akka, Kafka etc)
+|  5) Outbound / Inbound Topic
+|  6) A list of required Inbound fields
+|  7) A list of dependent endpoints.
+|
+|The perspective is that of the OBP-API Connector i.e. the OBP Connector sends the message Out, and it receives the answer In.
+|
+|The Outbound message contains several top level data structures:
+|
+| 1) The outboundAdapterCallContext
+|
+| This tells the Adapter about the specific REST call that triggered the request and contains the correlationId to uniquely identify the REST call, the consumerId to identify the API Consumer (App) and a generalContext which is a list of key / value pairs that give the Adapter additional custom information about the call.
+|
+| 2) outboundAdapterAuthInfo
+|
+|This tells the Adapter about the authenticated User that is making the call including: the userId, the userName, the userAuthContext (a list of key / value pairs that have been validated using SCA (see the UserAuthContext endpoints)) and other optional structures such as linked Customers and Views on Accounts to further identify the User.
+|
+|3) The body
+|
+|The body contains named fields that are specific to each Function / Message Doc.
+|
+|For instance, getTransaction might send the bankId, accountId and transactionId so the Adapter can route the request based on bankId and check User permissions on the AccountId before retrieving a Transaction.
+|
+|The Inbound message
+|
+|The Inbound message is the reply or response from the Adapter and has the following structure:
+|
+|1) The inboundAdapterCallContext
+|
+|This is generally an echo of the outboundAdapterCallContext so the Connector can double check the target destination of the response.
+|
+|2) The status
+|
+|This contains information about status of the response including any errorCode and a list of backendMessages.
+|
+|3) The data
+|
+|This contains the named fields and their values which are specific to each Function / Message Doc.
+|
+|
+|The Outbound / Inbound Topics are used for routing in multi OBP instance / Kafka installations. (so OBP nodes only listen only to the correct Topics).
+|
+|The dependent endpoints are listed to facilitate navigation in the API Explorer so integrators can test endpoints during integration.
+|
+|Message Docs can be generated automatically using OBP code tools. Thus, it's possible to create custom connectors that follow specific protocol and structural patterns e.g. for message queue X over XML format Y.
+|
+|""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Method Routing",
+		description =
+			s"""
+   |
+   | Open Bank Project can have different connectors, to connect difference data sources. 
+   | We support several sources at the moment, eg: databases, rest services, stored procedures and kafka. 
+   | 
+   | If OBP set connector=star, then you can use this method routing to switch the sources.
+   | And we also provide the fields mapping in side the endpoints. If the fields in the source are different from connector,
+   | then you can map the fields yourself.
+   |  
+   |  The following videos are available:
+   |  
+   | *[Method Routing Endpoints](https://vimeo.com/398973130)
+   | *[Method Routing Endpoints Mapping](https://vimeo.com/404983764)
+   | 
+   |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "JSON Schema Validation",
+		description =
+			s"""
+   |JSON Schema is "a vocabulary that allows you to annotate and validate JSON documents".
+   |
+   |By applying JSON Schema Validation to your endpoints you can constrain POST and PUT request bodies. For example, you can set minimum / maximum lengths of fields and constrain values to certain lists or regular expressions.
+	 |
+	 |See [JSONSchema.org](https://json-schema.org/) for more information about the standard.
+   |
+   |Note that Dynamic Entities also use JSON Schema Validation so you don't need to additionally wrap the resulting endpoints with extra JSON Schema Validation but you could do.
+   |
+
+   |
+   |  We provide the schema validations over the endpoints.
+   | All the OBP endpoints request/response body fields can be validated by the schema.
+   |
+   |The following videos are available:
+   |* [JSON schema validation of request for Static and Dynamic Endpoints and Entities] (https://vimeo.com/485287014)
+   |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Connector Method",
+		description =
+			s"""
+			| The developer can override all the existing Connector methods on their own. 
+			| This function needs to be used together with the Method Routing. 
+			| when set "connector = internal", then the developer can call their own method body at API level. 
+			|
+			|eg: Get Banks endpoint, it calls the connector "getBanks" method, then the developers can use these endpoints to modify the business logic in the getBanks method body.
+			|  
+			|  The following videos are available:
+		  |* [Introduction for Connector Method] (https://vimeo.com/507795470)
+		  |
+		  |""".stripMargin)
+
+
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Resource Doc",
+		description =
+			s"""
+		  | The developers can create their own endpoints by this endpoint.
+			| Need to prepare the obp resource doc format json. 
+			| And all the business logic code can be written in the *method_body* field, it is the encoded scala code.
+			|  
+			| It is still working in the processing ..
+			|The following videos are available:
+			|* [Introduction for dConnector Method] (https://vimeo.com/623381607)
+		  |
+		  |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Dynamic Message Doc",
+		description =
+			s"""
+			| The developers can create their own scala methods in OBP code.
+			| These endpoints are designed for extending the current connector methods. 
+			| when you call the dynamic resource doc endpoints, sometimes you need to call internal scala methods, 
+			| which are not existing in OBP code, then you can use these endpoints to prepare them on your own.
+      | 
+      | And you can use these endpoints to design your own helper methods in OBP code.
+			|  
+			| It is still working in the processing ..
+		  |The following videos are available:
+			|* [Introduction for Connector Method] (https://vimeo.com/623317747)
+		  |
+		  |""".stripMargin)
+
 
 
 	///////////////////////////////////////////////////////////////////

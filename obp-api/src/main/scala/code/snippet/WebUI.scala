@@ -63,6 +63,8 @@ class WebUI extends MdcLoggable{
     }
   }
 
+
+
   // Cookie Consent button.
   // Note we don't currently (7th Jan 2017) need to display the cookie consent message due to our limited use of cookies
   // If a deployment does make more use of cookies we would need to add a No button and we might want to make use of the
@@ -140,7 +142,23 @@ class WebUI extends MdcLoggable{
     "#main-showcases *" #> scala.xml.Unparsed(sdksHtmlContent)
   }
 
+  val mainFaqHtmlLink = getWebUiPropsValue("webui_main_faq_external_link","")
+  
+  val mainFaqHtmlContent = try{
+    if (mainFaqHtmlLink.isEmpty)//If the webui_featured_sdks_external_link is not set, we will read the internal sdks.html file instead.
+      LiftRules.getResource("/main-faq.html").map{ url =>
+        Source.fromURL(url, "UTF-8").mkString
+      }.openOrThrowException("Please check the content of this file: src/main/webapp/main-faq.html")
+    else
+      Source.fromURL(mainFaqHtmlLink, "UTF-8").mkString
+  }catch {
+    case _ : Throwable => "<h1>FAQs is wrong, please check the props `webui_main_faq_external_link` </h1>"
+  }
 
+  // webui_featured_sdks_external_link props, we can set the sdks here. check the `SDK Showcases` in Homepage, and you can see all the sdks.
+  def mainFaqHtml: CssSel = {
+    "#main-faq *" #> scala.xml.Unparsed(mainFaqHtmlContent)
+  }
 
   val brandString = activeBrand match {
     case Some(v) => s"&brand=$v"
@@ -175,6 +193,10 @@ class WebUI extends MdcLoggable{
   def apiTesterLink: CssSel = {
     ".api-tester-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_tester_url", ""))
   }
+  // Link to Hola app
+  def apiHolaLink: CssSel = {
+    ".api-hola-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_hola_url", "#"))
+  }
 
   // Link to API
   def apiLink: CssSel = {
@@ -198,9 +220,27 @@ class WebUI extends MdcLoggable{
   
   // Terms&Conditions
   def termsAndConditions: CssSel = {
-    ".termsAndConditions-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_agree_terms_url", ""))
+    ".termsAndConditions-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_agree_terms_url", "/terms-and-conditions"))
+  }
+  def termsAndConditionsText = {
+    val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
+    "#terms-and-conditions-page" #> scala.xml.Unparsed(makeHtml(webUiPropsValue))
   }
 
+  // Points to the documentation. Probably a sandbox specific link is good.
+  def privacyPolicyLink: CssSel = {
+    ".privacy-policy-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_privacy_policy_url", "/privacy-policy"))
+  }
+  def privacyPolicyText = {
+    val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
+    "#privacy-policy-page" #> scala.xml.Unparsed(makeHtml(webUiPropsValue))
+  }
+  def supportEmail = {
+    val webUiPropsValue = getWebUiPropsValue("webui_support_email", "contact@openbankproject.com")
+    "#webui-support-email a *" #> scala.xml.Unparsed(webUiPropsValue) &
+      "#webui-support-email a [href]" #> scala.xml.Unparsed(s"mailto:$webUiPropsValue")
+  }
+  
   def sandboxIntroductionLink: CssSel = {
     val webUiApiDocumentation = getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction")
     val apiDocumentation = 
@@ -236,7 +276,10 @@ class WebUI extends MdcLoggable{
 
     "#api_documentation_content *" #> scala.xml.Unparsed(htmlDescription)
   }
-
+  // Points to the documentation. Probably a sandbox specific link is good.
+  def apiDocumentationLink: CssSel = {
+    ".api-documentation-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_documentation_bottom_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
+  }
   // For example customers and credentials
   // This relies on the page for sandbox documentation having an anchor called example-customer-logins
   def exampleSandboxCredentialsLink: CssSel = {
@@ -302,7 +345,7 @@ class WebUI extends MdcLoggable{
 
   // Support platform link
   def supportPlatformLink: CssSel = {
-    val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))
+    val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_support_platform_url", "https://chat.openbankproject.com"))
         ".support-platform-link a [href]" #> supportplatformlink &
           ".support-platform-link a *" #> supportplatformlink.toString().replace("https://","").replace("http://", "")
   }
@@ -318,6 +361,9 @@ class WebUI extends MdcLoggable{
     "#main_style_sheet [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_main_style_sheet", "/media/css/website.css"))
   }
 
+ def faviconLink: CssSel = {
+    "#favicon_link [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_favicon_link_url", "/favicon.ico"))
+  }
 
 
   def getStartedText: CssSel = {

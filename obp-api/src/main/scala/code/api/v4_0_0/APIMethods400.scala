@@ -3,10 +3,9 @@ package code.api.v4_0_0
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
-import code.api.{ChargePolicy, JsonResponseException}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{fullBoxOrException, _}
-import code.api.util.ApiRole._
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
@@ -20,75 +19,76 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200}
+import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_0_0.JSONFactory300.transformToAtmFromV300
 import code.api.v3_1_0._
+import code.api.v4_0_0.JSONFactory400._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createBankAccountJSON, createCallsLimitJson, createNewCoreBankAccountJson}
-import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
-import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
+import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
+import code.api.v4_0_0.dynamic._
+import code.api.{ChargePolicy, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentStatus, Consents, MappedConsent}
+import code.consent.{ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
+import code.dynamicMessageDoc.JsonDynamicMessageDoc
+import code.dynamicResourceDoc.JsonDynamicResourceDoc
+import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
-import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import code.model.dataAccess.{AuthUser, BankAccountCreation, ResourceUser}
 import code.model.{toUserExtended, _}
 import code.ratelimiting.RateLimitingDI
+import code.snippet.{WebUIPlaceholder, WebUITemplate}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
-import code.users.Users
+import code.users.{UserAgreement, Users}
 import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{ListResult, _}
+import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
+import com.openbankproject.commons.model.{ListResult, _}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
 import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
-import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
+import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
-import net.liftweb.json.JsonAST.{JField, JValue}
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.write
 import net.liftweb.json.{compactRender, prettyRender, _}
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers.now
+import net.liftweb.util.Helpers.{now, tryo}
+import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
+import java.net.URLEncoder
+import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
-import code.dynamicMessageDoc.JsonDynamicMessageDoc
-import code.dynamicResourceDoc.JsonDynamicResourceDoc
-import java.net.URLEncoder
-
-import code.api.v4_0_0.dynamic.practise.DynamicEndpointCodeGenerator
-import code.endpointMapping.EndpointMappingCommons
-import code.snippet.{WebUIPlaceholder, WebUITemplate}
-import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
-import net.liftweb.json
-import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
+import code.api.util.Glossary.getGlossaryItem
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
+import scala.math.BigDecimal
 import scala.xml.XML
 
 trait APIMethods400 {
@@ -121,7 +121,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       adapterInfoJsonV300,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagApi, apiTagNewStyle),
@@ -148,7 +148,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       logoutLinkV400,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagUser, apiTagNewStyle))
@@ -243,7 +243,7 @@ trait APIMethods400 {
         |* Short and full name of bank
         |* Logo URL
         |* Website""",
-      emptyObjectJson,
+      EmptyBody,
       banksJSON400,
       List(UnknownError),
       apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
@@ -260,6 +260,38 @@ trait APIMethods400 {
 
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      getBank,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
+      EmptyBody,
+      bankJson400,
+      List(UnknownError, BankNotFound),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBank : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (bank, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, callContext)
+          } yield
+            (JSONFactory400.createBankJSON400(bank, attributes), HttpCode.`200`(callContext))
+      }
+    }
+    
     
     staticResourceDocs += ResourceDoc(
       ibanChecker,
@@ -311,7 +343,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       doubleEntryTransactionJson,
       List(
         $UserNotLoggedIn,
@@ -469,7 +501,7 @@ trait APIMethods400 {
         |Note: a settlement account is considered as a bank account.
         |So you can update it and add account attributes to it using the regular account endpoints
         |""",
-      emptyObjectJson,
+      EmptyBody,
       settlementAccountsJson,
       List(
         $UserNotLoggedIn,
@@ -1110,8 +1142,10 @@ trait APIMethods400 {
               }
             }
           } yield {
-            //TODO, remove this `isSandboxMode` logic, the challenges should come from other places.
-            val challenges : List[ChallengeJson] = if(APIUtil.isSandboxMode){
+            //TODO, remove this `connector` guard logic, the challenges should come from other places.
+            // The OBP mapped V400 payment.challenges are not done yet, the we should use `createChallengesC2` instead of `createChallenges` in createTransactionRequestv400 method,
+            // and get the challenges from connector level, not prepare them here.
+            val challenges : List[ChallengeJson] = if(APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString.equalsIgnoreCase("mapped")){
                MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
                 .map(mappedExpectedChallengeAnswer => 
@@ -1148,19 +1182,32 @@ trait APIMethods400 {
         |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
         |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
         |    Possible values are dummy,email and sms
-        |    In kafka mode, the answer can be got by phone message or other security ways.
+        |    In kafka mode, the answer can be got by phone message or other SCA methods.
         |
-        |In case 1 person needs to answer security challenge we have next flow of state of an `transaction request`:
+        |Note that each Transaction Request Type can have its own OTP_INSTRUCTION_TRANSPORT method.
+        |OTP_INSTRUCTION_TRANSPORT methods are set in Props. See sample.props.template for instructions.
+        |
+        |Single or Multiple authorisations
+        |
+        |OBP allows single or multi party authorisations.
+        |
+        |Single party authorisation:
+        |
+        |In the case that only one person needs to authorise i.e. answer a security challenge we have the following change of state of a `transaction request`:
         |  INITIATED => COMPLETED
-        |In case n persons needs to answer security challenge we have next flow of state of an `transaction request`:
+        |
+        |
+        |Multiparty authorisation:
+        |
+        |In the case that multiple parties (n persons) need to authorise a transaction request i.e. answer security challenges, we have the followings state flow for a `transaction request`:
         |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
         |
-        |The security challenge is bound to a user i.e. in case of right answer and the user is different than expected one the challenge will fail.
+        |The security challenge is bound to a user i.e. in the case of a correct answer but the user is different than expected the challenge will fail.
         |
         |Rule for calculating number of security challenges:
-        |If product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+        |If Product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
         |(one for every user that has a View where permission "can_add_transaction_request_to_any_account"=true)
-        |In case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute default value is 1.
+        |In the case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute, the default number of security challenges created is one.
         |
       """.stripMargin,
       challengeAnswerJson400,
@@ -1406,7 +1453,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestAttributeResponseJson,
       List(
         $UserNotLoggedIn,
@@ -1447,7 +1494,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -1608,7 +1655,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -1645,7 +1692,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       Full(true),
       List(
         $UserNotLoggedIn,
@@ -1772,15 +1819,15 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
+         |Create a DynamicEntity. If creation is successful, the corresponding POST, GET, PUT and DELETE (Create, Read, Update, Delete or CRUD for short) endpoints will be generated automatically
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
-         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |See the following list of currently available reference types and examples of how to construct key values correctly. Note: As more Dynamic Entities are created on this instance, this list will grow:
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1818,15 +1865,15 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |
-         |Create one DynamicEntity, after created success, the corresponding CRUD endpoints will be generated automatically
+         |Create a DynamicEntity. If creation is successful, the corresponding POST, GET, PUT and DELETE (Create, Read, Update, Delete or CRUD for short) endpoints will be generated automatically
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
-         |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
+         |The ${DynamicEntityFieldType.DATE_WITH_DAY} format is: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1888,13 +1935,13 @@ trait APIMethods400 {
          |
          |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -1930,13 +1977,13 @@ trait APIMethods400 {
          |
          |Update one DynamicEntity, after update finished, the corresponding CRUD endpoints will be changed.
          |
-         |Current support field types as follow:
+         |The following field types are as supported:
          |${DynamicEntityFieldType.values.map(_.toString).mkString("[", ", ", ", reference]")}
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -2079,8 +2126,8 @@ trait APIMethods400 {
          |
          |${DynamicEntityFieldType.DATE_WITH_DAY} format: ${DynamicEntityFieldType.DATE_WITH_DAY.dateFormat}
          |
-         |Value of reference type is corresponding ids, please look at the following examples.
-         |Current supporting reference types and corresponding examples as follow:
+         |Reference types are like foreign keys and composite foreign keys are supported. The value you need to supply as the (composite) foreign key is a UUID (or several UUIDs in the case of a composite key) that match value in another Entity..
+         |The following list shows all the possible reference types in the system with corresponding examples values so you can see how to construct each reference type value.
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
@@ -2539,8 +2586,9 @@ trait APIMethods400 {
       val energySource = new EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
 
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+      val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
 
-      APIInfoJson400(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource)
+      APIInfoJson400(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource, resourceDocsRequiresRole)
     }
 
 
@@ -2558,7 +2606,7 @@ trait APIMethods400 {
         |* Hosted at information
         |* Energy source information
         |* Git Commit""",
-      emptyObjectJson,
+      EmptyBody,
       apiInfoJson400,
       List(UnknownError, "no connector set"),
       apiTagApi :: apiTagNewStyle :: Nil)
@@ -2582,8 +2630,8 @@ trait APIMethods400 {
       s"""Get the Call Context of the current call.
          |
       """.stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetCallContext)))
@@ -2606,8 +2654,8 @@ trait APIMethods400 {
       s"""Verify Request and Sign Response of a current call.
          |
       """.stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List($UserNotLoggedIn, UnknownError),
       List(apiTagApi, apiTagNewStyle),
       Some(Nil))
@@ -2689,7 +2737,99 @@ trait APIMethods400 {
           }
       }
     }
-    
+    staticResourceDocs += ResourceDoc(
+      createUserWithRoles,
+      implementedInApiVersion,
+      nameOf(createUserWithRoles),
+      "POST",
+      "/user-entitlements",
+      "Create (DAuth) User with Roles",
+      s"""
+        |This endpoint is used as part of the DAuth solution to grant Entitlements for Roles to a smart contract on the blockchain.
+        |
+        |Put the smart contract address in username
+        |
+        |For provider use "dauth"
+        |
+        |This endpoint will create the User with username and provider if the User does not already exist.
+        |
+        |Then it will create Entitlements i.e. grant Roles to the User.
+        |
+        |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |i.e. Entitlements are used to create / consume system or bank level resources where as views / account access are used to consume / create customer level resources.
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Note: The Roles actually granted will depend on the Roles that the calling user has.
+        |
+        |If you try to grant Entitlements to a user that already exist (duplicate entitilements) you will get an error.
+        |
+        |For information about DAuth see below:
+        |
+        |${getGlossaryItem("DAuth")}
+        |
+        |""",
+      postCreateUserWithRolesJsonV400,
+      entitlementsJsonV400,
+      List(
+        UserNotLoggedIn,
+        InvalidJsonFormat,
+        IncorrectRoleName,
+        EntitlementIsBankRole,
+        EntitlementIsSystemRole,
+        EntitlementAlreadyExists,
+        InvalidUserProvider,
+        UnknownError
+      ),
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle, apiTagDAuth))
+
+    lazy val createUserWithRoles: OBPEndpoint = {
+      case "user-entitlements" :: Nil JsonPost json -> _ =>  {
+        cc =>
+          for {
+            (Full(loggedInUser), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserWithRolesJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCreateUserWithRolesJsonV400]
+            }
+
+            //provider must start with dauth., can not create other provider users.
+            _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc=Some(cc)) {
+              postedData.provider.startsWith("dauth.")
+            }
+
+            //check the system role bankId is Empty, but bank level role need bankId 
+            _ <- checkRoleBankIdMappings(callContext, postedData)
+
+            _ <- checkRolesBankIdExsiting(callContext, postedData)
+
+            _ <- checkRolesName(callContext, postedData)
+
+            canCreateEntitlementAtAnyBankRole = Entitlement.entitlement.vend.getEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank.toString())
+            
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postedData.username, postedData.provider, callContext)
+
+            _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) { 
+              //If the loggedIn User has `CanCreateEntitlementAtAnyBankRole` role, then we can grant all the requestRoles to the requestUser.
+              //But we must check if the requestUser already has the requestRoles or not.
+              assertTargetUserLacksRoles(targetUser.userId, postedData.roles,callContext)
+            } else {
+              //If the loggedIn user does not have the `CanCreateEntitlementAtAnyBankRole` role, we can only grant the roles which the loggedIn user have.
+              //So we need to check if the requestRoles are beyond the current loggedIn user has.
+              assertUserCanGrantRoles(loggedInUser.userId, postedData.roles, callContext)
+            }
+
+            addedEntitlements <- addEntitlementsToUser(targetUser.userId, postedData, callContext)
+            
+          } yield {
+            (JSONFactory400.createEntitlementJSONs(addedEntitlements), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getEntitlements,
@@ -2702,8 +2842,8 @@ trait APIMethods400 {
          |
          |
       """.stripMargin,
-      emptyObjectJson,
-      entitlementJSONs,
+      EmptyBody,
+      entitlementsJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)))
@@ -2739,8 +2879,8 @@ trait APIMethods400 {
       s"""
          |
       """.stripMargin,
-      emptyObjectJson,
-      entitlementJSONs,
+      EmptyBody,
+      entitlementsJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
       Some(List(canGetEntitlementsForOneBank,canGetEntitlementsForAnyBank)))
@@ -2817,8 +2957,8 @@ trait APIMethods400 {
         |${authenticationRequiredMessage(true)}
         |
         |Authentication is required as the tag is linked with the user.""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(NoViewPermission,
         ViewNotFound,
         $UserNotLoggedIn,
@@ -2858,7 +2998,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |Authentication is required as the tag is linked with the user.""",
-      emptyObjectJson,
+      EmptyBody,
       accountTagsJSON,
       List(
         $UserNotLoggedIn,
@@ -2912,7 +3052,7 @@ trait APIMethods400 {
          |
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedCoreAccountJsonV400,
       List($UserNotLoggedIn, $BankAccountNotFound,UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 ::  apiTagNewStyle :: Nil
@@ -2956,7 +3096,7 @@ trait APIMethods400 {
         |
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedAccountJSON400,
       List(
         $UserNotLoggedIn,
@@ -3128,7 +3268,7 @@ trait APIMethods400 {
       "/banks/BANK_ID/balances",
       "Get Accounts Balances",
       """Get the Balances for the Accounts of the current User at one bank.""",
-      emptyObjectJson,
+      EmptyBody,
       accountBalancesV400Json,
       List($UserNotLoggedIn, $BankNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
@@ -3155,7 +3295,7 @@ trait APIMethods400 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
       "Get Account Balances",
       """Get the Balances for one Account of the current User at one bank.""",
-      emptyObjectJson,
+      EmptyBody,
       accountBalanceV400,
       List($UserNotLoggedIn, $BankNotFound, CannotFindAccountAccess, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
@@ -3206,7 +3346,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedFirehoseAccountsJsonV400,
       List($BankNotFound),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
@@ -3270,6 +3410,49 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getFastFirehoseAccountsAtOneBank,
+      implementedInApiVersion,
+      nameOf(getFastFirehoseAccountsAtOneBank),
+      "GET",
+      "/management/banks/BANK_ID/fast-firehose/accounts",
+      "Get Fast Firehose Accounts at Bank",
+      s"""
+         |
+         |This endpoint allows bulk access to accounts.
+         |
+         |optional pagination parameters for filter with accounts
+         |${urlParametersDocument(true, false)}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      fastFirehoseAccountsJsonV400,
+      List($BankNotFound),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
+      Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
+    )
+
+    lazy val getFastFirehoseAccountsAtOneBank : OBPEndpoint = {
+      //get private accounts for all banks
+      case "management":: "banks" :: BankId(bankId):: "fast-firehose" :: "accounts"  :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), bank, callContext) <- SS.userBank
+            _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance, cc=cc.callContext) {
+              allowAccountFirehose
+            }
+            allowedParams = List("limit", "offset", "sort_direction")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (firehoseAccounts, callContext) <- NewStyle.function.getBankAccountsWithAttributes(bankId, obpQueryParams, cc.callContext)
+          } yield {
+            (JSONFactory400.createFirehoseBankAccountJSON(firehoseAccounts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getCustomersByCustomerPhoneNumber,
@@ -3321,7 +3504,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       userIdJsonV400,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagUser, apiTagNewStyle))
@@ -3351,8 +3534,8 @@ trait APIMethods400 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      emptyObjectJson,
-      usersJsonV200,
+      EmptyBody,
+      userJsonWithAgreementsV400,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canGetAnyUser)))
@@ -3362,14 +3545,125 @@ trait APIMethods400 {
       case "users" :: "user_id" :: userId :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
             user <- Users.users.vend.getUserByUserIdFuture(userId) map {
-              x => unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current UserId($userId)")
+              x => unboxFullOrFail(x, cc.callContext, s"$UserNotFoundByUserId Current UserId($userId)")
             }
-            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            acceptMarketingInfo <- NewStyle.function.getAgreementByUserId(user.userId, "accept_marketing_info", cc.callContext)
+            termsAndConditions <- NewStyle.function.getAgreementByUserId(user.userId, "terms_and_conditions", cc.callContext)
+            privacyConditions <- NewStyle.function.getAgreementByUserId(user.userId, "privacy_conditions", cc.callContext)
           } yield {
-            (JSONFactory400.createUserInfoJSON(user, entitlements), HttpCode.`200`(callContext))
+            val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+            (JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements)), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUserByUsername,
+      implementedInApiVersion,
+      nameOf(getUserByUsername),
+      "GET",
+      "/users/username/USERNAME",
+      "Get User by USERNAME",
+      s"""Get user by USERNAME
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      userJsonV400,
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+
+    lazy val getUserByUsername: OBPEndpoint = {
+      case "users" :: "username" :: username :: Nil JsonGet _ => {
+        cc =>
+          for {
+            user <- Users.users.vend.getUserByUserNameFuture(username) map {
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+          } yield {
+            (JSONFactory400.createUserInfoJSON(user, entitlements, None), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getUsersByEmail,
+      implementedInApiVersion,
+      nameOf(getUsersByEmail),
+      "GET",
+      "/users/email/EMAIL/terminator",
+      "Get Users by Email Address",
+      s"""Get users by email address
+         |
+         |${authenticationRequiredMessage(true)}
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJsonV400,
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+
+    lazy val getUsersByEmail: OBPEndpoint = {
+      case "users" :: "email" :: email :: "terminator" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            users <- Users.users.vend.getUsersByEmail(email)
+          } yield {
+            (JSONFactory400.createUsersJson(users), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getUsers,
+      implementedInApiVersion,
+      nameOf(getUsers),
+      "GET",
+      "/users",
+      "Get all Users",
+      s"""Get all users
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,
+         |
+         |${urlParametersDocument(false, false)}
+         |* locked_status (if null ignore)
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      usersJsonV400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser)))
+
+    lazy val getUsers: OBPEndpoint = {
+      case "users" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
+              x => unboxFullOrFail(x, cc.callContext, InvalidFilterParameterFormat)
+            }
+            users <- Users.users.vend.getUsers(obpQueryParams)
+          } yield {
+            (JSONFactory400.createUsersJson(users), HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -3486,7 +3780,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userInvitationJsonV400,
       List(
         $UserNotLoggedIn,
@@ -3521,7 +3815,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userInvitationJsonV400,
       List(
         $UserNotLoggedIn,
@@ -3558,8 +3852,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -3647,6 +3941,13 @@ trait APIMethods400 {
                 Future()
               case false =>
                 Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
+            }
+            _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Future()
+              case false =>
+                Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
             }
           } yield {
             (JSONFactory400.createBankJSON400(success), HttpCode.`201`(callContext))
@@ -3954,14 +4255,8 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
-            view <- postJson.view.is_system match {
-              case true => NewStyle.function.systemView(ViewId(postJson.view.view_id), callContext)
-              case false => NewStyle.function.customView(ViewId(postJson.view.view_id), BankIdAccountId(bankId, accountId), callContext)
-            }
-            addedView <- postJson.view.is_system match {
-              case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
-              case false => NewStyle.function.grantAccessToCustomView(view, user, callContext)
-            }
+            view <- getView(bankId, accountId, postJson.view, callContext)
+            addedView <- createAccountAccessToUser(bankId, accountId, user, view, callContext)
           } yield {
             val viewJson = JSONFactory300.createViewJSON(addedView)
             (viewJson, HttpCode.`201`(callContext))
@@ -3969,6 +4264,64 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      createUserWithAccountAccess,
+      implementedInApiVersion,
+      nameOf(createUserWithAccountAccess),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/user-account-access",
+      "Create (DAuth) User with Account Access",
+      s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
+         |
+         |Put the smart contract address in username
+         |
+         |For provider use "dauth"
+         |
+         |This endpoint will create the (DAuth) User with username and provider if the User does not already exist.
+         |
+         |${authenticationRequiredMessage(true)} and the logged in user needs to be account holder.
+         |
+         |For information about DAuth see below:
+         |
+         |${getGlossaryItem("DAuth")}
+         |
+         |""",
+      postCreateUserAccountAccessJsonV400,
+      List(viewJsonV300),
+      List(
+        $UserNotLoggedIn,
+        UserMissOwnerViewOrNotAccountHolder,
+        InvalidJsonFormat,
+        SystemViewNotFound,
+        ViewNotFound,
+        CannotGrantAccountAccess,
+        UnknownError
+      ),
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth, apiTagNewStyle))
+
+    lazy val createUserWithAccountAccess : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "user-account-access" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV400 "
+          for {
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostCreateUserAccountAccessJsonV400]
+            }
+            //provider must start with dauth., can not create other provider users.
+            _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc=Some(cc)) {
+              postJson.provider.startsWith("dauth.")
+            }
+
+            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.username, postJson.provider, cc.callContext)
+            views <- getViews(bankId, accountId, postJson, callContext)
+            addedView <- createAccountAccessesToUser(bankId, accountId, targetUser, views, callContext)
+          } yield {
+            val viewsJson = addedView.map(JSONFactory300.createViewJSON(_))
+            (viewsJson, HttpCode.`201`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       revokeUserAccessToView,
@@ -4200,7 +4553,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customerAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4241,7 +4594,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customerAttributeResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4283,7 +4636,7 @@ trait APIMethods400 {
          |
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       ListResult(
         "customers",
         List(customerWithAttributesJsonV310)
@@ -4446,7 +4799,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributesResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4487,7 +4840,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributeResponseJson,
       List(
         $UserNotLoggedIn,
@@ -4511,6 +4864,113 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory400.createTransactionAttributeJson(accountAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createHistoricalTransactionAtBank,
+      implementedInApiVersion,
+      nameOf(createHistoricalTransactionAtBank),
+      "POST",
+      "/banks/BANK_ID/management/historical/transactions",
+      "Create Historical Transactions ",
+      s"""
+         |Create historical transactions at one Bank
+         |
+         |Use this endpoint to create transactions between any two accounts at the same bank. 
+         |From account and to account must be at the same bank.
+         |Example:
+         |{
+         |  "from_account_id": "1ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  "to_account_id": "2ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+         |  "value": {
+         |    "currency": "GBP",
+         |    "amount": "10"
+         |  },
+         |  "description": "this is for work",
+         |  "posted": "2017-09-19T02:31:05Z",
+         |  "completed": "2017-09-19T02:31:05Z",
+         |  "type": "SANDBOX_TAN",
+         |  "charge_policy": "SHARED"
+         |}
+         |
+         |This call is experimental.
+       """.stripMargin,
+      postHistoricalTransactionAtBankJson,
+      postHistoricalTransactionResponseJson,
+      List(
+        InvalidJsonFormat,
+        BankNotFound,
+        AccountNotFound,
+        CounterpartyNotFoundByCounterpartyId,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagNewStyle),
+      Some(List(canCreateHistoricalTransactionAtBank))
+    )
+
+
+    lazy val createHistoricalTransactionAtBank : OBPEndpoint =  {
+      case "banks" :: BankId(bankId) :: "management"  :: "historical" :: "transactions" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateHistoricalTransactionAtBank, callContext)
+
+            // Check the input JSON format, here is just check the common parts of all four types
+            transDetailsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostHistoricalTransactionJson ", 400, callContext) {
+              json.extract[PostHistoricalTransactionAtBankJson]
+            }
+            (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(transDetailsJson.from_account_id), callContext)
+            (toAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, AccountId(transDetailsJson.to_account_id), callContext)
+            amountNumber <- NewStyle.function.tryons(s"$InvalidNumber Current input is ${transDetailsJson.value.amount} ", 400, callContext) {
+              BigDecimal(transDetailsJson.value.amount)
+            }
+            _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${amountNumber}'", cc=callContext) {
+              amountNumber > BigDecimal("0")
+            }
+            posted <- NewStyle.function.tryons(s"$InvalidDateFormat Current `posted` field is ${transDetailsJson.posted}. Please use this format ${DateWithSecondsFormat.toPattern}! ", 400, callContext) {
+              new SimpleDateFormat(DateWithSeconds).parse(transDetailsJson.posted)
+            }
+            completed <- NewStyle.function.tryons(s"$InvalidDateFormat Current `completed` field  is ${transDetailsJson.completed}. Please use this format ${DateWithSecondsFormat.toPattern}! ", 400, callContext) {
+              new SimpleDateFormat(DateWithSeconds).parse(transDetailsJson.completed)
+            }
+            // Prevent default value for transaction request type (at least).
+            _ <- Helper.booleanToFuture(s"${InvalidISOCurrencyCode} Current input is: '${transDetailsJson.value.currency}'", cc=callContext) {
+              isValidCurrencyISOCode(transDetailsJson.value.currency)
+            }
+            amountOfMoneyJson = AmountOfMoneyJsonV121(transDetailsJson.value.currency, transDetailsJson.value.amount)
+            chargePolicy = transDetailsJson.charge_policy
+            //There is no constraint for the type at the moment  
+            transactionType = transDetailsJson.`type`
+            (transactionId, callContext) <- NewStyle.function.makeHistoricalPayment(
+              fromAccount,
+              toAccount,
+              posted,
+              completed,
+              amountNumber,
+              transDetailsJson.value.currency,
+              transDetailsJson.description,
+              transactionType,
+              chargePolicy,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createPostHistoricalTransactionResponseJson(
+              bankId,
+              transactionId,
+              fromAccount.accountId,
+              toAccount.accountId,
+              value= amountOfMoneyJson,
+              description = transDetailsJson.description,
+              posted,
+              completed,
+              transactionRequestType = transactionType,
+              chargePolicy =transDetailsJson.charge_policy), HttpCode.`201`(callContext))
           }
       }
     }
@@ -4544,7 +5004,7 @@ trait APIMethods400 {
         |The customer can proceed with the Transaction by answering the security challenge.
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionRequestWithChargeJSON210,
       List(
         $UserNotLoggedIn,
@@ -4593,7 +5053,7 @@ trait APIMethods400 {
          |
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       basicAccountsJSON,
       List($UserNotLoggedIn, $BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
@@ -4713,8 +5173,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -4888,7 +5348,7 @@ trait APIMethods400 {
       nameOf(getDynamicEndpoint),
       "GET",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
-      " Get Dynamic Endpoint",
+      "Get Dynamic Endpoint",
       s"""Get a Dynamic Endpoint.
          |
          |
@@ -5448,6 +5908,701 @@ trait APIMethods400 {
       }
     }
 
+
+    val productAttributeGeneralInfo =
+      s"""
+         |Product Attributes are used to describe a financial Product with a list of typed key value pairs.
+         |
+         |Each Product Attribute is linked to its Product by PRODUCT_CODE
+         |
+         |
+       """.stripMargin
+
+    staticResourceDocs += ResourceDoc(
+      createProductAttribute,
+      implementedInApiVersion,
+      nameOf(createProductAttribute),
+      "POST",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
+      "Create Product Attribute",
+      s""" Create Product Attribute
+         |
+         |$productAttributeGeneralInfo
+         |
+         |Typical product attributes might be:
+         |
+         |ISIN (for International bonds)
+         |VKN (for German bonds)
+         |REDCODE (markit short code for credit derivative)
+         |LOAN_ID (e.g. used for Anacredit reporting)
+         |
+         |ISSUE_DATE (When the bond was issued in the market)
+         |MATURITY_DATE (End of life time of a product)
+         |TRADABLE
+         |
+         |See [FPML](http://www.fpml.org/) for more examples.
+         |
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeJsonV400,
+      productAttributeResponseJsonV400,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductAttribute))
+    )
+
+    lazy val createProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canCreateProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+            _  <- Future(Connector.connector.vend.getProduct(BankId(bankId), ProductCode(productCode))) map {
+              getFullBoxOrFail(_, callContext, ProductNotFoundByProductCode + " {" + productCode + "}", 400)
+            }
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(bankId),
+              ProductCode(productCode),
+              None,
+              postedData.name,
+              productAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateProductAttribute,
+      implementedInApiVersion,
+      nameOf(updateProductAttribute),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Update Product Attribute",
+      s""" Update Product Attribute. 
+         |
+
+         |$productAttributeGeneralInfo
+         |
+         |Update one Product Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productAttributeJsonV400,
+      productAttributeResponseJsonV400,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val updateProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $ProductAttributeJson "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[ProductAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              ProductAttributeType.withName(postedData.`type`)
+            }
+            (_, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
+            (productAttribute, callContext) <- NewStyle.function.createOrUpdateProductAttribute(
+              BankId(bankId),
+              ProductCode(productCode),
+              Some(productAttributeId),
+              postedData.name,
+              productAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductAttribute,
+      implementedInApiVersion,
+      nameOf(getProductAttribute),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Get Product Attribute",
+      s""" Get Product Attribute
+         |
+         |$productAttributeGeneralInfo
+         |
+         |Get one product attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      productAttributeResponseJsonV400,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle))
+
+    lazy val getProductAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canGetProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (productAttribute, callContext) <- NewStyle.function.getProductAttributeById(productAttributeId, callContext)
+
+          } yield {
+            (createProductAttributeJson(productAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createProductFee,
+      implementedInApiVersion,
+      nameOf(createProductFee),
+      "POST",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fee",
+      "Create Product Fee",
+      s"""Create Product Fee
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productFeeJsonV400.copy(product_fee_id = None),
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProductFee))
+    )
+
+    lazy val createProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fee" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 " , 400, Some(cc)) {
+              json.extract[ProductFeeJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), Some(cc))
+            (productFee, callContext) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankId),
+              ProductCode(productCode),
+              None,
+              postedData.name,
+              postedData.is_active,
+              postedData.more_info,
+              postedData.value.currency,
+              postedData.value.amount,
+              postedData.value.frequency,
+              postedData.value.`type`,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateProductFee,
+      implementedInApiVersion,
+      nameOf(updateProductFee),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Update Product Fee",
+      s""" Update Product Fee. 
+         |
+         |Update one Product Fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      productFeeJsonV400.copy(product_fee_id = None),
+      productFeeResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductFee)))
+
+    lazy val updateProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductFeeJsonV400 ", 400, Some(cc)) {
+              json.extract[ProductFeeJsonV400]
+            }
+            (_, callContext) <- NewStyle.function.getProduct(BankId(bankId), ProductCode(productCode), Some(cc))
+            (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, callContext)
+            (productFee, callContext) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankId),
+              ProductCode(productCode),
+              Some(productFeeId),
+              postedData.name,
+              postedData.is_active,
+              postedData.more_info,
+              postedData.value.currency,
+              postedData.value.amount,
+              postedData.value.frequency,
+              postedData.value.`type`,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductFee,
+      implementedInApiVersion,
+      nameOf(getProductFee),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Get Product Fee",
+      s""" Get Product Fee
+         |
+         |Get one product fee by its id.
+         |
+         |${authenticationRequiredMessage(false)}
+         |
+         |""",
+      EmptyBody,
+      productFeeResponseJsonV400,
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle)
+    )
+
+    lazy val getProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (productFee, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+          } yield {
+            (createProductFeeJson(productFee), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductFees,
+      implementedInApiVersion,
+      nameOf(getProductFees),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees",
+      "Get Product Fees",
+      s"""Get Product Fees
+         |
+         |${authenticationRequiredMessage(false)}
+         |
+         |""",
+      EmptyBody,
+      productFeesResponseJsonV400,
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle)
+    )
+
+    lazy val getProductFees : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(BankId(bankId), ProductCode(productCode), Some(cc))
+          } yield {
+            (createProductFeesJson(productFees), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    staticResourceDocs += ResourceDoc(
+      deleteProductFee,
+      implementedInApiVersion,
+      nameOf(deleteProductFee),
+      "DELETE",
+      "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+      "Delete Product Fee",
+      s"""Delete Product Fee
+         |
+         |Delete one product fee by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      BooleanBody(true),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canDeleteProductFee)))
+
+    lazy val deleteProductFee : OBPEndpoint = {
+      case "banks" :: bankId :: "products" :: productCode:: "fees" :: productFeeId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (productFee, callContext) <- NewStyle.function.deleteProductFee(productFeeId, Some(cc))
+          } yield {
+            (productFee, HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createOrUpdateBankAttributeDefinition,
+      implementedInApiVersion,
+      nameOf(createOrUpdateBankAttributeDefinition),
+      "PUT",
+      "/banks/BANK_ID/attribute-definitions/bank",
+      "Create or Update Bank Attribute Definition",
+      s""" Create or Update Bank Attribute Definition
+         |
+         |The category field must be ${AttributeCategory.Bank}
+         |
+         |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      bankAttributeDefinitionJsonV400,
+      bankAttributeDefinitionResponseJsonV400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canCreateBankAttributeDefinitionAtOneBank)))
+
+    lazy val createOrUpdateBankAttributeDefinition : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attribute-definitions" :: "bank" :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $AttributeDefinitionJsonV400 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[AttributeDefinitionJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${AttributeType.DOUBLE}(12.1234), ${AttributeType.STRING}(TAX_NUMBER), ${AttributeType.INTEGER} (123)and ${AttributeType.DATE_WITH_DAY}(2012-04-23)"
+            attributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeType.withName(postedData.`type`)
+            }
+            failMsg = s"$InvalidJsonFormat The `Category` field can only accept the following field: " +
+              s"${AttributeCategory.Bank}"
+            category <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              AttributeCategory.withName(postedData.category)
+            }
+            (attributeDefinition, callContext) <- createOrUpdateAttributeDefinition(
+              bankId,
+              postedData.name,
+              category,
+              attributeType,
+              postedData.description,
+              postedData.alias,
+              postedData.can_be_seen_on_views,
+              postedData.is_active,
+              cc.callContext
+            )
+          } yield {
+            (JSONFactory400.createAttributeDefinitionJson(attributeDefinition), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createBankAttribute,
+      implementedInApiVersion,
+      nameOf(createBankAttribute),
+      "POST",
+      "/banks/BANK_ID/attribute",
+      "Create Bank Attribute",
+      s""" Create Bank Attribute
+         |
+         |Typical product attributes might be:
+         |
+         |ISIN (for International bonds)
+         |VKN (for German bonds)
+         |REDCODE (markit short code for credit derivative)
+         |LOAN_ID (e.g. used for Anacredit reporting)
+         |
+         |ISSUE_DATE (When the bond was issued in the market)
+         |MATURITY_DATE (End of life time of a product)
+         |TRADABLE
+         |
+         |See [FPML](http://www.fpml.org/) for more examples.
+         |
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      bankAttributeJsonV400,
+      bankAttributeResponseJsonV400,
+      List(
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canCreateBankAttribute))
+    )
+
+    lazy val createBankAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canCreateProductAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $BankAttributeJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[BankAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${BankAttributeType.DOUBLE}(12.1234), ${BankAttributeType.STRING}(TAX_NUMBER), ${BankAttributeType.INTEGER}(123) and ${BankAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            bankAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              BankAttributeType.withName(postedData.`type`)
+            }
+            (bankAttribute, callContext) <- NewStyle.function.createOrUpdateBankAttribute(
+              BankId(bankId),
+              None,
+              postedData.name,
+              bankAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createBankAttributeJson(bankAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankAttributes,
+      implementedInApiVersion,
+      nameOf(getBankAttributes),
+      "GET",
+      "/banks/BANK_ID/attributes",
+      "Get Bank Attributes",
+      s""" Get Bank Attributes
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      transactionAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canGetBankAttribute))
+    )
+
+    lazy val getBankAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, cc.callContext)
+          } yield {
+            (createBankAttributesJson(attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getBankAttribute,
+      implementedInApiVersion,
+      nameOf(getBankAttribute),
+      "GET",
+      "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
+      "Get Bank Attribute By BANK_ATTRIBUTE_ID",
+      s""" Get Bank Attribute By BANK_ATTRIBUTE_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      transactionAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canGetBankAttribute))
+    )
+
+    lazy val getBankAttribute : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "attributes" :: bankAttributeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attribute, callContext) <- NewStyle.function.getBankAttributeById(bankAttributeId, cc.callContext)
+          } yield {
+            (createBankAttributeJson(attribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    staticResourceDocs += ResourceDoc(
+      updateBankAttribute,
+      implementedInApiVersion,
+      nameOf(updateBankAttribute),
+      "PUT",
+      "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
+      "Update Bank Attribute",
+      s""" Update Bank Attribute. 
+         |
+         |Update one Bak Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      bankAttributeJsonV400,
+      bankAttributeDefinitionJsonV400,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle))
+
+    lazy val updateBankAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "attributes" :: bankAttributeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canUpdateBankAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $BankAttributeJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[BankAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${BankAttributeType.DOUBLE}(12.1234), ${BankAttributeType.STRING}(TAX_NUMBER), ${BankAttributeType.INTEGER}(123) and ${BankAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            productAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              BankAttributeType.withName(postedData.`type`)
+            }
+            (_, callContext) <- NewStyle.function.getBankAttributeById(bankAttributeId, callContext)
+            (bankAttribute, callContext) <- NewStyle.function.createOrUpdateBankAttribute(
+              BankId(bankId),
+              Some(bankAttributeId),
+              postedData.name,
+              productAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (createBankAttributeJson(bankAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankAttribute,
+      implementedInApiVersion,
+      nameOf(deleteBankAttribute),
+      "DELETE",
+      "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
+      "Delete Bank Attribute",
+      s""" Delete Bank Attribute
+         |
+         |Delete a Bank Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        UserHasMissingRoles,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle))
+
+    lazy val deleteBankAttribute : OBPEndpoint = {
+      case "banks" :: bankId :: "attributes" :: bankAttributeId ::  Nil JsonDelete _=> {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canDeleteBankAttribute, callContext)
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            (bankAttribute, callContext) <- NewStyle.function.deleteBankAttribute(bankAttributeId, callContext)
+          } yield {
+            (Full(bankAttribute), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+
     staticResourceDocs += ResourceDoc(
       createOrUpdateTransactionAttributeDefinition,
       implementedInApiVersion,
@@ -5588,8 +6743,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -5626,8 +6781,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -5664,8 +6819,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -5702,8 +6857,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -5740,8 +6895,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -5778,7 +6933,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       productAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5815,7 +6970,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customerAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5852,7 +7007,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       accountAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5889,7 +7044,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5927,7 +7082,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       cardAttributeDefinitionsResponseJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5964,8 +7119,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6002,7 +7157,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userCustomerLinksJson,
       List(
         $UserNotLoggedIn,
@@ -6038,7 +7193,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userCustomerLinksJson,
       List(
         $UserNotLoggedIn,
@@ -6075,8 +7230,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6113,8 +7268,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6149,8 +7304,8 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6544,7 +7699,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartiesJson400,
       List(
         $UserNotLoggedIn,
@@ -6597,7 +7752,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartyWithMetadataJson400,
       List($UserNotLoggedIn, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData, apiTagNewStyle)
@@ -6632,7 +7787,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       counterpartyWithMetadataJson400,
       List(
         $UserNotLoggedIn,
@@ -6802,7 +7957,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       consentsJsonV400,
       List(
         $UserNotLoggedIn,
@@ -6838,7 +7993,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       consentInfosJsonV400,
       List(
         $UserNotLoggedIn,
@@ -6929,6 +8084,7 @@ trait APIMethods400 {
               cc.userId,
               postJson.api_collection_name,
               postJson.is_sharable,
+              postJson.description.getOrElse(""),
               Some(cc)
             )
           } yield {
@@ -7138,7 +8294,11 @@ trait APIMethods400 {
       "Delete My Api Collection",
       s"""Delete Api Collection By API_COLLECTION_ID
          |
+         |${Glossary.getGlossaryItem("API Collections")}
+         |
          |${authenticationRequiredMessage(true)}
+         |
+         |
          |
          |""",
       EmptyBody,
@@ -7172,6 +8332,9 @@ trait APIMethods400 {
       "Create My Api Collection Endpoint",
       s"""Create Api Collection Endpoint.
          |
+         |${Glossary.getGlossaryItem("API Collections")}
+         |
+         |
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
@@ -7192,9 +8355,63 @@ trait APIMethods400 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
               json.extract[PostApiCollectionEndpointJson400]
             }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
+              (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs ++ OBPAPI4_0_0.allResourceDocs).toList
+                .find(_.operationId==postJson.operation_id).isDefined
+            }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
             _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ", cc=callContext) {
+              apiCollectionEndpoint.isEmpty
+            }
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
+              apiCollection.apiCollectionId,
+              postJson.operation_id,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    staticResourceDocs += ResourceDoc(
+      createMyApiCollectionEndpointById,
+      implementedInApiVersion,
+      nameOf(createMyApiCollectionEndpointById),
+      "POST",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
+      "Create My Api Collection Endpoint By Id",
+      s"""Create Api Collection Endpoint By Id.
+         |
+         |${Glossary.getGlossaryItem("API Collections")}
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      postApiCollectionEndpointJson400,
+      apiCollectionEndpointJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val createMyApiCollectionEndpointById: OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectioId :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
+              json.extract[PostApiCollectionEndpointJson400]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
+              (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs ++ OBPAPI4_0_0.allResourceDocs).toList
+                .find(_.operationId==postJson.operation_id).isDefined
+            }
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectioId, Some(cc))
+            apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectioId) ", cc=callContext) {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
@@ -7307,6 +8524,39 @@ trait APIMethods400 {
             (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
           }
       }
+    } 
+    
+    staticResourceDocs += ResourceDoc(
+      getMyApiCollectionEndpointsById,
+      implementedInApiVersion,
+      nameOf(getMyApiCollectionEndpointsById),
+      "GET",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
+      "Get My Api Collection Endpoints By Id",
+      s"""Get Api Collection Endpoints By API_COLLECTION_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionEndpointsJson400,
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val getMyApiCollectionEndpointsById: OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints":: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (apiCollectionEndpoints, callContext) <- NewStyle.function.getApiCollectionEndpoints(apiCollection.apiCollectionId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionEndpointsJsonV400(apiCollectionEndpoints), HttpCode.`200`(callContext))
+          }
+      }
     }
     
     staticResourceDocs += ResourceDoc(
@@ -7316,7 +8566,10 @@ trait APIMethods400 {
       "DELETE",
       "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
       "Delete My Api Collection Endpoint",
-      s"""Delete Api Collection Endpoint By Id
+      s"""${Glossary.getGlossaryItem("API Collections")}
+         |
+         |
+         |Delete Api Collection Endpoint By OPERATION_ID
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -7344,6 +8597,80 @@ trait APIMethods400 {
       }
     }
     
+    staticResourceDocs += ResourceDoc(
+      deleteMyApiCollectionEndpointByOperationId,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollectionEndpointByOperationId),
+      "DELETE",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
+      "Delete My Api Collection Endpoint By Id",
+      s"""${Glossary.getGlossaryItem("API Collections")}
+         |
+         |Delete Api Collection Endpoint By OPERATION_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollectionEndpointByOperationId : OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints" :: operationId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, operationId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteMyApiCollectionEndpointById,
+      implementedInApiVersion,
+      nameOf(deleteMyApiCollectionEndpointById),
+      "DELETE",
+      "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoint-ids/API_COLLECTION_ENDPOINT_ID",
+      "Delete My Api Collection Endpoint By Id",
+      s"""${Glossary.getGlossaryItem("API Collections")}
+         |Delete Api Collection Endpoint
+         |Delete Api Collection Endpoint By Id
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val deleteMyApiCollectionEndpointById : OBPEndpoint = {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoint-ids" :: apiCollectionEndpointId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc) )
+            (apiCollectionEndpoint, callContext) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, callContext)
+            (deleted, callContext) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpoint.apiCollectionEndpointId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       createJsonSchemaValidation,
       implementedInApiVersion,
@@ -9099,6 +10426,628 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      createSystemLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(createSystemLevelEndpointTag),
+      "POST",
+      "/management/endpoints/OPERATION_ID/tags",
+      "Create System Level Endpoint Tag",
+      s"""Create System Level Endpoint Tag""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateSystemLevelEndpointTag)))
+    lazy val createSystemLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (endpointTagExisted, callContext) <- NewStyle.function.checkSystemLevelEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name})", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTag, callContext) <- NewStyle.function.createSystemLevelEndpointTag(operationId,endpointTag.tag_name, cc.callContext)
+          } yield {
+            (SystemLevelEndpointTagResponseJson400(
+              endpointTag.endpointTagId.getOrElse(""),
+              endpointTag.operationId,
+              endpointTag.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateSystemLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(updateSystemLevelEndpointTag),
+      "PUT",
+      "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Update System Level Endpoint Tag",
+      s"""Update System Level Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        EndpointTagNotFoundByEndpointTagId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateSystemLevelEndpointTag)))
+    lazy val updateSystemLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            (endpointTagExisted, callContext) <- NewStyle.function.checkSystemLevelEndpointTagExists(operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name}), please choose another tag_name", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.updateSystemLevelEndpointTag(endpointTagId, operationId,endpointTag.tag_name, cc.callContext)
+          } yield {
+            (SystemLevelEndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSystemLevelEndpointTags,
+      implementedInApiVersion,
+      nameOf(getSystemLevelEndpointTags),
+      "GET",
+      "/management/endpoints/OPERATION_ID/tags",
+      "Get System Level Endpoint Tags",
+      s"""Get System Level Endpoint Tags.""",
+      EmptyBody,
+      bankLevelEndpointTagResponseJson400 :: Nil,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canGetSystemLevelEndpointTag)))
+    lazy val getSystemLevelEndpointTags: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointTags, callContext) <- NewStyle.function.getSystemLevelEndpointTags(operationId, cc.callContext)
+          } yield {
+            (endpointTags.map(endpointTagT => SystemLevelEndpointTagResponseJson400(
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            )), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteSystemLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(deleteSystemLevelEndpointTag),
+      "DELETE",
+      "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Delete System Level Endpoint Tag",
+      s"""Delete System Level Endpoint Tag.""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteSystemLevelEndpointTag)))
+    lazy val deleteSystemLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            
+            (deleted, callContext) <- NewStyle.function.deleteEndpointTag(endpointTagId, cc.callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      createBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(createBankLevelEndpointTag),
+      "POST",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
+      "Create Bank Level Endpoint Tag",
+      s"""Create Bank Level Endpoint Tag""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canCreateBankLevelEndpointTag)))
+    lazy val createBankLevelEndpointTag: OBPEndpoint = {
+      case "management" :: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (endpointTagExisted, callContext) <- NewStyle.function.checkBankLevelEndpointTagExists(bankId, operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name})", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.createBankLevelEndpointTag(bankId, operationId, endpointTag.tag_name, cc.callContext)
+          } yield {
+            (BankLevelEndpointTagResponseJson400(
+              endpointTagT.bankId.getOrElse(""),
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(updateBankLevelEndpointTag),
+      "PUT",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Update Bank Level Endpoint Tag",
+      s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
+      endpointTagJson400,
+      bankLevelEndpointTagResponseJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        EndpointTagNotFoundByEndpointTagId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canUpdateBankLevelEndpointTag)))
+    lazy val updateBankLevelEndpointTag: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            endpointTag <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $EndpointTagJson400", 400, cc.callContext) {
+              json.extract[EndpointTagJson400]
+            }
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+            (endpointTagExisted, callContext) <- NewStyle.function.checkBankLevelEndpointTagExists(bankId, operationId, endpointTag.tag_name, cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"$EndpointTagAlreadyExists BANK_ID($bankId), OPERATION_ID ($operationId) and tag_name(${endpointTag.tag_name}), please choose another tag_name", cc=callContext) {
+              (!endpointTagExisted)
+            }
+            (endpointTagT, callContext) <- NewStyle.function.updateBankLevelEndpointTag(bankId, endpointTagId, operationId, endpointTag.tag_name, cc.callContext)
+          } yield {
+            (BankLevelEndpointTagResponseJson400(
+              endpointTagT.bankId.getOrElse(""),
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            ), HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getBankLevelEndpointTags,
+      implementedInApiVersion,
+      nameOf(getBankLevelEndpointTags),
+      "GET",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
+      "Get Bank Level Endpoint Tags",
+      s"""Get Bank Level Endpoint Tags.""",
+      EmptyBody,
+      bankLevelEndpointTagResponseJson400 :: Nil,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canGetBankLevelEndpointTag)))
+    lazy val getBankLevelEndpointTags: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (endpointTags, callContext) <- NewStyle.function.getBankLevelEndpointTags(bankId, operationId, cc.callContext)
+          } yield {
+            (endpointTags.map(endpointTagT => BankLevelEndpointTagResponseJson400(
+              endpointTagT.bankId.getOrElse(""),
+              endpointTagT.endpointTagId.getOrElse(""),
+              endpointTagT.operationId,
+              endpointTagT.tagName
+            )), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteBankLevelEndpointTag,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelEndpointTag),
+      "DELETE",
+      "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
+      "Delete Bank Level Endpoint Tag",
+      s"""Delete Bank Level Endpoint Tag.""",
+      EmptyBody,
+      Full(true),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      Some(List(canDeleteBankLevelEndpointTag)))
+    lazy val deleteBankLevelEndpointTag: OBPEndpoint = {
+      case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getEndpointTag(endpointTagId, cc.callContext)
+
+            (deleted, callContext) <- NewStyle.function.deleteEndpointTag(endpointTagId, cc.callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMySpaces,
+      implementedInApiVersion,
+      nameOf(getMySpaces),
+      "GET",
+      "/my/spaces",
+      "Get My Spaces",
+      s"""Get My Spaces.""",
+      EmptyBody,
+      mySpaces,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle)
+    )
+    lazy val getMySpaces: OBPEndpoint = {
+      case "my" :: "spaces" ::  Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            entitlements <- NewStyle.function.getEntitlementsByUserId(u.userId, callContext)
+          } yield {
+            (
+              MySpaces(entitlements
+                .filter(_.roleName == canReadDynamicResourceDocsAtOneBank.toString())
+                .map(entitlement => entitlement.bankId)), 
+              HttpCode.`200`(callContext)
+            )
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProducts,
+      implementedInApiVersion,
+      "getProducts",
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Products",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+         |
+         |* Name
+         |* Code
+         |* Parent Product Code
+         |* More info URL
+         |* Terms And Conditions URL
+         |* Description
+         |* Terms and Conditions
+         |* License the data under this endpoint is released under
+         |
+         |Can filter with attributes name and values.
+         |URL params example: /banks/some-bank-id/products?manager=John&count=8
+         |
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productJsonV400.copy(attributes = None, fees = None),
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle)
+    )
+    lazy val getProducts : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet req => {
+        cc => {
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            products <- Future(Connector.connector.vend.getProducts(bankId, params)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
+            }
+          } yield {
+            (JSONFactory400.createProductsJson(products), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createProduct,
+      implementedInApiVersion,
+      nameOf(createProduct),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Create Product",
+      s"""Create or Update Product for the Bank.
+         |
+         |
+         |Typical Super Family values / Asset classes are:
+         |
+         |Debt
+         |Equity
+         |FX
+         |Commodity
+         |Derivative
+         |
+         |$productHiearchyAndCollectionNote
+         |
+         |
+         |${authenticationRequiredMessage(true) }
+         |
+         |
+         |""",
+      putProductJsonV400,
+      productJsonV400.copy(attributes = None, fees = None),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProduct, canCreateProductAtAnyBank))
+    )
+    lazy val createProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductJsonV400 "
+            product <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutProductJsonV400]
+            }
+            parentProductCode <- product.parent_product_code.trim.nonEmpty match {
+              case false =>
+                Future(Empty)
+              case true =>
+                Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
+                  getFullBoxOrFail(_, callContext, ParentProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                }
+            }
+            success <- Future(Connector.connector.vend.createOrUpdateProduct(
+              bankId = bankId.value,
+              code = productCode.value,
+              parentProductCode = parentProductCode.map(_.code.value).toOption,
+              name = product.name,
+              category = null,
+              family = null,
+              superFamily = null,
+              moreInfoUrl = product.more_info_url,
+              termsAndConditionsUrl = product.terms_and_conditions_url,
+              details = null,
+              description = product.description,
+              metaLicenceId = product.meta.license.id,
+              metaLicenceName = product.meta.license.name
+            )) map {
+              connectorEmptyResponse(_, callContext)
+            }
+          } yield {
+            (JSONFactory400.createProductJson(success), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProduct,
+      implementedInApiVersion,
+      nameOf(getProduct),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
+         |
+         |* Name
+         |* Code
+         |* Parent Product Code
+         |* More info URL
+         |* Description
+         |* Terms and Conditions
+         |* Description
+         |* Meta
+         |* Attributes
+         |* Fees
+         |
+         |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productJsonV400,
+      List(
+        UserNotLoggedIn,
+        $BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle)
+    )
+
+    lazy val getProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            product <- Future(Connector.connector.vend.getProduct(bankId, productCode)) map {
+              unboxFullOrFail(_, callContext, ProductNotFoundByProductCode)
+            }
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, productCode, callContext)
+            
+            (productFees, callContext) <- NewStyle.function.getProductFeesFromProvider(bankId, productCode, callContext)
+            
+          } yield {
+            (JSONFactory400.createProductJson(product, productAttributes, productFees), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+  }
+
+  private def checkRoleBankIdExsiting(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Helper.booleanToFuture(failMsg = s"$BankNotFound Current BANK_ID (${entitlement.bank_id})", cc=callContext) {
+      entitlement.bank_id.nonEmpty == false || BankX(BankId(entitlement.bank_id), callContext).map(_._1).isEmpty == false
+    }
+  }
+  
+  private def checkRolesBankIdExsiting(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postedData.roles.map(checkRoleBankIdExsiting(callContext,_)))
+  }
+  
+  private def addEntitlementToUser(userId:String, entitlement: CreateEntitlementJSON, callContext: Option[CallContext]) = {
+    Future(Entitlement.entitlement.vend.addEntitlement(entitlement.bank_id, userId, entitlement.role_name)) map { unboxFull(_) }
+  }
+  
+  private def addEntitlementsToUser(userId:String, postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postedData.roles.distinct.map(addEntitlementToUser(userId, _, callContext)))
+  }
+
+  /**
+   * This method will check all the roles the request user already has and the request roles:
+   * It will find the roles the requestUser already have, then show the error to the developer.
+   * (We can not grant the same roles to the request user twice)
+   */
+  private def assertTargetUserLacksRoles(userId:String, requestedEntitlements: List[CreateEntitlementJSON], callContext: Option[CallContext]) = {
+    //1st:  get all the entitlements for the user:
+    val userEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    val userRoles = userEntitlements.map(_.map(entitlement => (entitlement.roleName, entitlement.bankId))).getOrElse(List.empty[(String,String)]).toSet
+    
+    val targetRoles = requestedEntitlements.map(entitlement => (entitlement.role_name, entitlement.bank_id)).toSet
+    
+    //2rd: find the duplicated ones:
+    val duplicatedRoles = userRoles.filter(targetRoles)
+    
+    //3rd: We can not grant the roles again, so we show the error to the developer.
+    if(duplicatedRoles.size >0){
+      val errorMessages = s"$EntitlementAlreadyExists user_id($userId) ${duplicatedRoles.mkString(",")}"
+        Helper.booleanToFuture(errorMessages, cc=callContext) {false}
+    }else 
+      Future.successful(Full())
+  }
+
+  /**
+   * This method will check all the roles the loggedIn user already has and the request roles:
+   * It will find the not existing roles from the loggedIn user  --> we will show the error to the developer
+   *  (We can only grant the roles which the loggedIn User has to the requestUser)
+   */
+  private def assertUserCanGrantRoles(userId:String, requestedEntitlements: List[CreateEntitlementJSON], callContext: Option[CallContext]) = {
+    //1st:  get all the entitlements for the user:
+    val userEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
+    val userRoles = userEntitlements.map(_.map(entitlement => (entitlement.roleName, entitlement.bankId))).getOrElse(List.empty[(String,String)]).toSet
+    
+    val targetRoles = requestedEntitlements.map(entitlement => (entitlement.role_name, entitlement.bank_id)).toSet
+    
+    //2rd: find the roles which the loggedIn user does not have,
+    val roleLacking = targetRoles.filterNot(userRoles)
+    
+    if(roleLacking.size >0){
+      val errorMessages = s"$EntitlementCannotBeGranted user_id($userId). The login user does not have the following roles: ${roleLacking.mkString(",")}"
+      Helper.booleanToFuture(errorMessages, cc=callContext) {false}
+    }else 
+      Future.successful(Full())
+  }
+  
+  private def checkRoleBankIdMapping(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(entitlement.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc = callContext) {
+        ApiRole.valueOf(entitlement.role_name).requiresBankId == entitlement.bank_id.nonEmpty
+    } 
+  }
+
+  private def checkRoleBankIdMappings(callContext: Option[CallContext], postedData: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postedData.roles.map(checkRoleBankIdMapping(callContext,_)))
+  }
+  
+  private def checkRoleName(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
+    Future{
+      tryo {
+        valueOf(entitlement.role_name)
+      }
+    } map {
+      val msg = IncorrectRoleName + entitlement.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+      x => unboxFullOrFail(x, callContext, msg)
+    }
+  }
+
+  private def checkRolesName(callContext: Option[CallContext], postJsonBody: PostCreateUserWithRolesJsonV400) = {
+    Future.sequence(postJsonBody.roles.map(checkRoleName(callContext,_)))
+  }
+  
+  private def createAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view: View, callContext: Option[CallContext]) = {
+    view.isSystem match {
+      case true => NewStyle.function.grantAccessToSystemView(bankId, accountId, view, user, callContext)
+      case false => NewStyle.function.grantAccessToCustomView(view, user, callContext)
+    }
+  }
+  private def createAccountAccessesToUser(bankId: BankId, accountId: AccountId, user: User, views: List[View], callContext: Option[CallContext]) = {
+    Future.sequence(views.map(view =>
+      createAccountAccessToUser(bankId: BankId, accountId: AccountId, user: User, view, callContext: Option[CallContext])
+    ))
+  }
+  
+  private def getView(bankId: BankId, accountId: AccountId, postView: PostViewJsonV400, callContext: Option[CallContext]) = {
+    postView.is_system match {
+      case true => NewStyle.function.systemView(ViewId(postView.view_id), callContext)
+      case false => NewStyle.function.customView(ViewId(postView.view_id), BankIdAccountId(bankId, accountId), callContext)
+    }
+  }
+
+  private def getViews(bankId: BankId, accountId: AccountId, postJson: PostCreateUserAccountAccessJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postJson.views.map(view => getView(bankId: BankId, accountId: AccountId, view: PostViewJsonV400, callContext: Option[CallContext])))
   }
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {
@@ -9122,7 +11071,7 @@ trait APIMethods400 {
         DynamicEndpointHelper.getRoles(dynamicEndpointInfo)
       }
       _ <- NewStyle.function.tryons(InvalidJsonFormat+"Can not generate OBP external Resource Docs", 400, cc.callContext) {
-        JSONFactory1_4_0.createResourceDocsJson(dynamicEndpointInfo.resourceDocs.toList)
+        JSONFactory1_4_0.createResourceDocsJson(dynamicEndpointInfo.resourceDocs.toList, false)
       }
       (dynamicEndpoint, callContext) <- NewStyle.function.createDynamicEndpoint(bankId, cc.userId, postedJson.swaggerString, cc.callContext)
       _ <- NewStyle.function.tryons(InvalidJsonFormat+s"Can not grant these roles ${roles.toString} ", 400, cc.callContext) {

@@ -300,7 +300,7 @@ object RequiredFieldValidation {
   def getAnnotations(tp: Type): Iterable[RequiredArgs] = {
 
     def isField(symbol: TermSymbol): Boolean =
-    symbol.isVal || symbol.isVal || symbol.isLazy || (symbol.isMethod && symbol.asMethod.paramLists.isEmpty)
+      symbol.isVal || symbol.isLazy || (symbol.isMethod && symbol.asMethod.paramLists.isEmpty)
 
     // constructor's parameters and fields
     val members: Iterable[Symbol] =

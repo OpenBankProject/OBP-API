@@ -2,7 +2,6 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -22,6 +21,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
+import code.bankattribute.{BankAttribute, BankAttributeX}
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
@@ -32,6 +32,7 @@ import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
 import code.database.authorisation.Authorisations
 import code.directdebit.DirectDebits
+import code.endpointTag.{EndpointTag, EndpointTagT}
 import code.fx.fx.TTL
 import code.fx.{MappedFXRate, fx}
 import code.kycchecks.KycChecks
@@ -46,6 +47,7 @@ import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
+import code.metrics.MappedMetric
 import code.model._
 import code.model.dataAccess.AuthUser.findUserByUsernameLocally
 import code.model.dataAccess._
@@ -53,6 +55,7 @@ import code.productAttributeattribute.MappedProductAttribute
 import code.productattribute.ProductAttributeX
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
+import code.productfee.ProductFeeX
 import code.products.MappedProduct
 import code.standingorders.{StandingOrderTrait, StandingOrders}
 import code.taxresidence.TaxResidenceX
@@ -92,6 +95,9 @@ import org.iban4j.{CountryCode, IbanFormat}
 import org.mindrot.jbcrypt.BCrypt
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
+import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext}
+import scalikejdbc.DB.CPContext
+import scalikejdbc.{DB => scalikeDB, _}
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent._
@@ -795,6 +801,76 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])
     }
   }
+
+  private lazy val getDbConnectionParameters: (String, String, String) = {
+    val dbUrl = APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1"
+    val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
+    val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
+    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
+    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
+    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
+  }
+  
+  /**
+   * this connection pool context corresponding db.url in default.props
+   */
+  implicit lazy val context: CPContext = {
+    val settings = ConnectionPoolSettings(
+      initialSize = 5,
+      maxSize = 20,
+      connectionTimeoutMillis = 3000L,
+      validationQuery = "select 1",
+      connectionPoolFactoryName = "commons-dbcp2"
+    )
+    val (dbUrl, user, password) = getDbConnectionParameters
+    val dbName = "DB_NAME" // corresponding props db.url DB
+    ConnectionPool.add(dbName, dbUrl, user, password, settings)
+    val connectionPool = ConnectionPool.get(dbName)
+    MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
+  }
+  
+  
+  override def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[FastFirehoseAccount]]] =
+    Future{
+      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+      val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
+      val orderBy = queryParams.collect { 
+        case OBPOrdering(_, OBPDescending) => "DESC"
+      }.headOption.getOrElse("ASC")
+
+      val ordering = if (orderBy =="DESC" ) sqls"DESC" else sqls"ASC"
+      
+      val firehoseAccounts = {
+        scalikeDB readOnly { implicit session =>
+        val sqlResult = sql"""
+            select * from mv_fast_firehose_accounts
+               WHERE mv_fast_firehose_accounts.bank_id = ${bankId.value}
+               ORDER BY mv_fast_firehose_accounts.account_id $ordering
+               LIMIT $limit
+               OFFSET $offset
+               """.stripMargin
+            .map(
+              rs => // Map result to case class
+                FastFirehoseAccount(
+                  id = rs.stringOpt(1).map(_.toString).getOrElse(null),
+                  bankId= rs.stringOpt(2).map(_.toString).getOrElse(null),
+                  label= rs.stringOpt(3).map(_.toString).getOrElse(null),
+                  number = rs.stringOpt(4).map(_.toString).getOrElse(null),
+                  owners = rs.stringOpt(5).map(_.toString).getOrElse(null),
+                  productCode =  rs.stringOpt(6).map(_.toString).getOrElse(null),
+                  balance = AmountOfMoney(
+                    currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
+                    amount = rs.stringOpt(8).map(_.toString).getOrElse(null)
+                  ),
+                  accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
+                  accountAttributes = rs.stringOpt(10).map(_.toString).getOrElse(null)
+                )
+            ).list().apply()
+        sqlResult
+        }
+      }
+      (Full(firehoseAccounts), callContext)
+    }
 
   override def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
     Future {
@@ -2479,7 +2555,112 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{
     (createOrUpdateAtmLegacy(atm), callContext)
   }
+
+  override def getEndpointTagById(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(
+    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)), callContext)
+  )
+
+  override def deleteEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future(
+    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)).map(_.delete_!), callContext)
+  )
+
+  override def getSystemLevelEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(
+    (tryo{getSystemLevelEndpointTagsBox(operationId : String)}, callContext)
+  )
+
+  override def getBankLevelEndpointTags(bankId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(
+    (tryo{getBankLevelEndpointTagsBox(bankId:String, operationId : String)}, callContext)
+  )
+
+   def getAllEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
+     By(EndpointTag.OperationId, operationId),
+     OrderBy(EndpointTag.TagName, Ascending)
+   )
   
+   def getSystemLevelEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
+     By(EndpointTag.OperationId, operationId),
+     OrderBy(EndpointTag.TagName, Ascending)
+   ).filter(_.bankId == None)
+
+   def getBankLevelEndpointTagsBox(bankId:String, operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
+     By(EndpointTag.BankId, bankId),
+     By(EndpointTag.OperationId, operationId),
+     OrderBy(EndpointTag.TagName, Ascending)
+   )
+  
+   override def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       tryo {
+         EndpointTag.create
+           .BankId(null)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       } ?~! CreateEndpointTagError, 
+       callContext
+     )
+  }
+  
+   override def updateSystemLevelEndpointTag(endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       EndpointTag.find(
+         By(EndpointTag.EndpointTagId, endpointTagId)
+       ).map(endpointTag =>
+         endpointTag
+           .BankId(null)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       )
+       , callContext
+     )
+  }
+   
+   override def createBankLevelEndpointTag(bankId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       tryo {
+         EndpointTag.create
+           .BankId(bankId)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       } ?~! CreateEndpointTagError, 
+       callContext
+     )
+  }
+  
+   override def updateBankLevelEndpointTag(bankId:String, endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (
+       EndpointTag.find(
+         By(EndpointTag.EndpointTagId, endpointTagId)
+       ).map(endpointTag =>
+         endpointTag
+           .BankId(bankId)
+           .OperationId(operationId)
+           .TagName(tagName)
+           .saveMe()
+       )
+       , callContext
+     )
+  }
+   
+  override def getSystemLevelEndpointTag(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+     (EndpointTag.find(
+       By(EndpointTag.OperationId, operationId),
+       By(EndpointTag.TagName, tagName),
+     ).filter(_.bankId == None), callContext)
+  }
+
+  override def getBankLevelEndpointTag(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
+    (EndpointTag.find(
+      By(EndpointTag.OperationId, operationId),
+      By(EndpointTag.TagName, tagName),
+      By(EndpointTag.TagName, tagName),
+    ), callContext)
+  }
+
+  
+
   override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
 
     val isAccessibleString = optionBooleanToString(atm.isAccessible)
@@ -2607,6 +2788,62 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def createOrUpdateProductFee(
+    bankId: BankId,
+    productCode: ProductCode,
+    productFeeId: Option[String],
+    name: String,
+    isActive: Boolean,
+    moreInfo: String,
+    currency: String,
+    amount: BigDecimal,
+    frequency: String,
+    `type`: String, 
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]] = {
+    ProductFeeX.productFeeProvider.vend.createOrUpdateProductFee(
+      bankId: BankId,
+      productCode: ProductCode,
+      productFeeId: Option[String],
+      name: String,
+      isActive: Boolean,
+      moreInfo: String,
+      currency: String,
+      amount: BigDecimal,
+      frequency: String,
+      `type`: String
+    ) map {
+      (_, callContext)
+    }
+  }
+
+  override def getProductFeesFromProvider(
+    bankId: BankId, 
+    productCode: ProductCode,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[ProductFeeTrait]]] = {
+    ProductFeeX.productFeeProvider.vend.getProductFeesFromProvider(bankId: BankId, productCode: ProductCode) map {
+      (_, callContext)
+    }
+  }
+
+  override def getProductFeeById(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[ProductFeeTrait]] =  {
+    ProductFeeX.productFeeProvider.vend.getProductFeeById(productFeeId) map {
+      (_, callContext)
+    }
+  }
+  
+  override def deleteProductFee(
+    productFeeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] =  {
+    ProductFeeX.productFeeProvider.vend.deleteProductFee(productFeeId) map {
+      (_, callContext)
+    }
+  }
 
   override def createOrUpdateProduct(bankId: String,
                                      code: String,
@@ -2616,6 +2853,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      family: String,
                                      superFamily: String,
                                      moreInfoUrl: String,
+                                     termsAndConditionsUrl: String,
                                      details: String,
                                      description: String,
                                      metaLicenceId: String,
@@ -2637,6 +2875,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mFamily(family)
             .mSuperFamily(superFamily)
             .mMoreInfoUrl(moreInfoUrl)
+            .mTermsAndConditionsUrl(termsAndConditionsUrl)
             .mDetails(details)
             .mDescription(description)
             .mLicenseId(metaLicenceId)
@@ -2654,6 +2893,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .mFamily(family)
             .mSuperFamily(superFamily)
             .mMoreInfoUrl(moreInfoUrl)
+            .mTermsAndConditionsUrl(termsAndConditionsUrl)
             .mDetails(details)
             .mDescription(description)
             .mLicenseId(metaLicenceId)
@@ -3295,8 +3535,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                productCode: ProductCode,
                                                productAttributeId: Option[String],
                                                name: String,
-                                               attributType: ProductAttributeType.Value,
+                                               attributeType: ProductAttributeType.Value,
                                                value: String,
+                                               isActive: Option[Boolean],
                                                callContext: Option[CallContext]
                                              ): OBPReturnType[Box[ProductAttribute]] =
     ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
@@ -3304,8 +3545,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       productCode: ProductCode,
       productAttributeId: Option[String],
       name: String,
-      attributType: ProductAttributeType.Value,
-      value: String) map {
+      attributeType: ProductAttributeType.Value,
+      value: String, isActive: Option[Boolean]) map {
+      (_, callContext)
+    }  
+  override def createOrUpdateBankAttribute(bankId: BankId,
+                                           bankAttributeId: Option[String],
+                                           name: String,
+                                           bankAttributeType: BankAttributeType.Value,
+                                           value: String,
+                                           isActive: Option[Boolean],
+                                           callContext: Option[CallContext]
+                                          ): OBPReturnType[Box[BankAttribute]] =
+    BankAttributeX.bankAttributeProvider.vend.createOrUpdateBankAttribute(
+      bankId: BankId,
+      bankAttributeId: Option[String],
+      name: String,
+      bankAttributeType: BankAttributeType.Value,
+      value: String, isActive: Option[Boolean]) map {
+      (_, callContext)
+    }
+
+
+  override def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
+    BankAttributeX.bankAttributeProvider.vend.getBankAttributesFromProvider(bank: BankId) map {
       (_, callContext)
     }
 
@@ -3318,6 +3581,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
 
+  override def getBankAttributeById(bankAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAttribute]] =
+    BankAttributeX.bankAttributeProvider.vend.getBankAttributeById(bankAttributeId: String) map {
+      (_, callContext)
+    }
+  
   override def getProductAttributeById(
                                         productAttributeId: String,
                                         callContext: Option[CallContext]
@@ -3326,6 +3594,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
 
+  override def deleteBankAttribute(bankAttributeId: String, 
+                                   callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    BankAttributeX.bankAttributeProvider.vend.deleteBankAttribute(bankAttributeId: String) map {
+      (_, callContext)
+    }
+  
   override def deleteProductAttribute(
                                        productAttributeId: String,
                                        callContext: Option[CallContext]
@@ -3351,7 +3625,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                productCode: ProductCode,
                                                accountAttributeId: Option[String],
                                                name: String,
-                                               attributType: AccountAttributeType.Value,
+                                               attributeType: AccountAttributeType.Value,
                                                value: String,
                                                callContext: Option[CallContext]
                                              ): OBPReturnType[Box[AccountAttribute]] = {
@@ -3360,7 +3634,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       productCode: ProductCode,
       accountAttributeId: Option[String],
       name: String,
-      attributType: AccountAttributeType.Value,
+      attributeType: AccountAttributeType.Value,
       value: String) map {
       (_, callContext)
     }

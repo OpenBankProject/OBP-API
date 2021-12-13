@@ -1,5 +1,6 @@
 package code.api.util
 
+import java.math.BigInteger
 import java.security.SecureRandom
 
 /**
@@ -15,4 +16,8 @@ object SecureRandomUtil {
   // Obtains random numbers from the underlying native OS. 
   // No assertions are made as to the blocking nature of generating these numbers.
   val csprng = SecureRandom.getInstance("NativePRNG")
+  
+  def alphanumeric(nrChars: Int = 24): String = {
+    new BigInteger(nrChars * 5, csprng).toString(32)
+  }
 }

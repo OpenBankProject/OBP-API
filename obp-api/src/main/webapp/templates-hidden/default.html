@@ -37,6 +37,7 @@ Berlin 13359, Germany
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
 	<title data-lift="WebUI.pageTitle">Open Bank Project: </title>
 	<link href="/media/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+	<link id="favicon_link" rel="favicon icon" data-lift="WebUI.faviconLink" href="/favicon.ico" type="image/x-icon">
 	<link rel="stylesheet" href="/media/css/select2.min.css">
 	<link href="/media/css/toastr.min.css" rel="stylesheet" type="text/css" />
 	<link href="/media/css/cookies-consent.css" rel="stylesheet">
@@ -46,7 +47,7 @@ Berlin 13359, Germany
 
 	<script src="/media/js/jquery.min.js" type="text/javascript"></script>
 	<script src="/media/js/bootstrap.min.js" type="text/javascript"></script>
-	<script src="/media/js/select2.js"></script>
+	<script src="/media/js/select2.min.js"></script>
 	<script src="/media/js/toastr.min.js" type="text/javascript"></script>
 	<script src="/media/js/website.js" type="text/javascript"></script>
 	<script src="/media/js/cookies-consent.js"></script>
@@ -69,9 +70,11 @@ Berlin 13359, Germany
 			<div id="cookie-ipaddress-concurrent-logins" data-lift="WebUI.concurrentLoginsCookiesCheck"></div>
 
 			<div id="top-text" data-lift="WebUI.topText"></div>
-			<table id="table-header">
+			<table id="table-header" aria-describedby="Home Page Logo">
 				<tr class="row">
-					<td></td>
+					<td>
+						<th scope="col"></th>
+					</td>
 					<td id="td-logo-left-xs">
 						<div data-lift="WebUI.headerLogoLeft">
 							<a href="/" aria-label="Home Page"><img src="" id="logo-left-xs" align="left" alt="left logo image"></a>
@@ -132,7 +135,7 @@ Berlin 13359, Germany
 						</li>
 						<li class="navitem" data-lift="Login.loggedIn" >
 							<!-- LOGGED IN -->
-							<p class="navbar-btn"><span id="loggedIn-username">username</span><a href="#" class="btn btn-default logout">Log off</a></p>
+							<p class="navbar-btn"><a href="/user-information"><span id="loggedIn-username">username</span></a><a href="#" class="btn btn-default logout">Log off</a></p>
 						</li>
 					</ul>
 				</div><!--/.nav-collapse -->
@@ -196,7 +199,7 @@ Berlin 13359, Germany
 							Conditions</a>
 					</li>
 					<li>
-						<a href="https://openbankproject.com/privacy-policy">Privacy Policy</a>
+						<a class="privacy-policy-link" data-lift="WebUI.privacyPolicyLink" href="https://openbankproject.com/privacy-policy">Privacy Policy</a>
 					</li>
 					<li>
 						<a href="http://twitter.com/#!/OpenBankProject">Twitter</a>
@@ -205,7 +208,7 @@ Berlin 13359, Germany
 						<a href="https://github.com/OpenBankProject/OBP-API/">Github</a>
 					</li>
 					<li>
-						<a class="api-documentation-link" data-lift="WebUI.sandboxIntroductionLink" href="">API
+						<a class="api-documentation-link" data-lift="WebUI.apiDocumentationLink" href="">API
 							Documentation</a>
 					</li>
 					<li>

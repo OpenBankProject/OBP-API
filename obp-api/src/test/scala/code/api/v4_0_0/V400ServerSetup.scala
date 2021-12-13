@@ -132,43 +132,36 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     reply.body.extract[ViewJsonV300]
   }
 
-  def createProductViaEndpoint(bankId: String, code: String, json: PostPutProductJsonV310): ProductJsonV310 = {
+  def createProductViaEndpoint(bankId: String, code: String, json: PutProductJsonV400): ProductJsonV400 = {
     val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateProduct.toString)
-    val request310 = (v4_0_0_Request / "banks" / bankId / "products" / code).PUT <@ (user1)
-    val response310 = makePutRequest(request310, write(json))
-    response310.code should equal(201)
-    val product = response310.body.extract[ProductJsonV310]
-    product.code shouldBe code
+    val request400 = (v4_0_0_Request / "banks" / bankId / "products" / code).PUT <@ (user1)
+    val response400 = makePutRequest(request400, write(json))
+    response400.code should equal(201)
+    val product = response400.body.extract[ProductJsonV400]
+    product.product_code shouldBe code
     product.parent_product_code shouldBe json.parent_product_code
     product.bank_id shouldBe bankId
     product.name shouldBe json.name
-    product.category shouldBe json.category
-    product.super_family shouldBe json.super_family
-    product.family shouldBe json.family
     product.more_info_url shouldBe json.more_info_url
-    product.details shouldBe json.details
-    product.description shouldBe json.description
+    product.terms_and_conditions_url shouldBe json.terms_and_conditions_url
     Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     product
   }
 
   def createAccountAttributeViaEndpoint(bankId: String, accountId: String, name: String, value: String, `type`: String): AccountAttributeResponseJson = {
-    val postPutProductJsonV310 = PostPutProductJsonV310(
+    val putProductJsonV400 = PutProductJsonV400(
       name = "product name",
       parent_product_code = "",
-      category = "category",
-      family = "family",
-      super_family = "super family",
       more_info_url = "www.example.com/prod1/more-info.html",
-      details = "Details",
+      terms_and_conditions_url = "www.example.com/prod1/terms_and_conditions_url.html",
       description = "Description",
-      meta = SwaggerDefinitionsJSON.metaJson
+      meta = SwaggerDefinitionsJSON.metaJson,
     )
-    val product: ProductJsonV310 =
+    val product: ProductJsonV400 =
       createProductViaEndpoint(
         bankId=bankId,
         code=APIUtil.generateUUID(),
-        json=postPutProductJsonV310
+        json=putProductJsonV400
       )
     val accountAttributeJson = AccountAttributeJson(
       name = name,
@@ -177,7 +170,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     )
     val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
     val requestCreate310 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId /
-      "products" / product.code / "attribute").POST <@(user1)
+      "products" / product.product_code / "attribute").POST <@(user1)
     val responseCreate310 = makePostRequest(requestCreate310, write(accountAttributeJson))
     Then("We should get a 201")
     responseCreate310.code should equal(201)

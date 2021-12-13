@@ -32,11 +32,12 @@ import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
+import code.api.util.ErrorMessages.{InvalidDAuthHeaderToken, UserIsDeleted, UsernameHasBeenLocked, attemptedToOpenAnEmptyBox}
 import code.api.util._
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
+import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import com.alibaba.ttl.TransmittableThreadLocal
@@ -260,7 +261,24 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
     }
   }
 
-  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(fn: CallContext => Box[JsonResponse]) : JsonResponse = {
+  def failIfBadAuthorizationHeader(rd: Option[ResourceDoc])(function: CallContext => Box[JsonResponse]) : JsonResponse = {
+    // Check is it a user deleted or locked
+    def fn(callContext: CallContext): Box[JsonResponse] = {
+      callContext.user match {
+        case Full(u) => // There is a user. Check it.
+          if(u.isDeleted.getOrElse(false)) {
+            Failure(UserIsDeleted) // The user is DELETED.
+          } else {
+            LoginAttempt.userIsLocked(u.name) match {
+              case true => Failure(UsernameHasBeenLocked) // The user is LOCKED.
+              case false => function(callContext) // All good
+            }
+          }
+        case _ => // There is no user. Just forward the result.
+          function(callContext)
+      }
+    }
+    
     val authorization = S.request.map(_.header("Authorization")).flatten
     val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     val body: Box[String] = getRequestBody(S.request)
@@ -382,7 +400,45 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case _ =>
           Failure(ErrorMessages.GatewayLoginUnknownError)
       }
-    } else {
+    } 
+    else if (APIUtil.getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
+      logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
+      APIUtil.getPropsValue("dauth.host") match {
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
+          val dauthToken = DAuth.getDAuthToken(cc.requestHeaders)
+          dauthToken match {
+            case Some(token :: _) =>
+              val payload = DAuth.parseJwt(token)
+              payload match {
+                case Full(payload) =>
+                  DAuth.getOrCreateResourceUser(payload: String, Some(cc)) match {
+                    case Full((u, callContext)) => // Authentication is successful
+                      val consumer = DAuth.getConsumerByConsumerKey(payload)//TODO, need to verify the key later.
+                      val jwt = DAuth.createJwt(payload)
+                      val callContextUpdated = ApiSession.updateCallContext(DAuthResponseHeader(Some(jwt)), callContext)
+                      fn(callContextUpdated.map( callContext =>callContext.copy(user = Full(u), consumer = consumer)).getOrElse(callContext.getOrElse(cc).copy(user = Full(u), consumer = consumer)))
+                    case Failure(msg, t, c) => Failure(msg, t, c)
+                    case _ => Full(errorJsonResponse(payload))
+                  }
+                case Failure(msg, t, c) =>
+                  Failure(msg, t, c)
+                case _ =>
+                  Failure(ErrorMessages.DAuthUnknownError)
+              }
+            case _ =>
+              Failure(InvalidDAuthHeaderToken)
+          }
+        case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == false) => // All other addresses will be rejected
+          Failure(ErrorMessages.DAuthWhiteListAddresses)
+        case Empty =>
+          Failure(ErrorMessages.DAuthHostPropertyMissing) // There is no dauth.host in props file
+        case Failure(msg, t, c) =>
+          Failure(msg, t, c)
+        case _ =>
+          Failure(ErrorMessages.DAuthUnknownError)
+      }
+    } 
+    else {
       fn(cc)
     }
   }

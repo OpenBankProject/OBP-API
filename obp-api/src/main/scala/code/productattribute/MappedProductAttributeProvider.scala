@@ -2,12 +2,12 @@ package code.productAttributeattribute
 
 import code.productattribute.ProductAttributeProvider
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.ProductAttributeType
 import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.{BaseMappedField, _}
+import net.liftweb.mapper.{BaseMappedField, MappedBoolean, _}
 import net.liftweb.util.Helpers.tryo
-import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
@@ -30,8 +30,9 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
                                               productCode: ProductCode,
                                               productAttributeId: Option[String],
                                               name: String,
-                                              attributType: ProductAttributeType.Value,
-                                              value: String): Future[Box[ProductAttribute]] =  {
+                                              attributeType: ProductAttributeType.Value,
+                                              value: String,
+                                              isActive: Option[Boolean]): Future[Box[ProductAttribute]] =  {
      productAttributeId match {
       case Some(id) => Future {
          MappedProductAttribute.find(By(MappedProductAttribute.mProductAttributeId, id)) match {
@@ -39,8 +40,9 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
               attribute.mBankId(bankId.value)
                 .mCode(productCode.value)
                 .mName(name)
-                .mType(attributType.toString)
+                .mType(attributeType.toString)
                 .mValue(value)
+                .IsActive(isActive.getOrElse(true))
                 .saveMe()
             }
             case _ => Empty
@@ -52,8 +54,9 @@ object MappedProductAttributeProvider extends ProductAttributeProvider {
             .mBankId(bankId.value)
             .mCode(productCode.value)
             .mName(name)
-            .mType(attributType.toString())
+            .mType(attributeType.toString())
             .mValue(value)
+            .IsActive(isActive.getOrElse(true))
             .saveMe()
         }
       }
@@ -82,6 +85,10 @@ class MappedProductAttribute extends ProductAttribute with LongKeyedMapper[Mappe
 
   object mValue extends MappedString(this, 255)
 
+  object IsActive extends MappedBoolean(this) {
+    override def defaultValue = true
+  }
+
 
   override def bankId: BankId = BankId(mBankId.get)
 
@@ -94,8 +101,9 @@ class MappedProductAttribute extends ProductAttribute with LongKeyedMapper[Mappe
   override def attributeType: ProductAttributeType.Value = ProductAttributeType.withName(mType.get)
 
   override def value: String = mValue.get
-
-
+  
+  override def isActive: Option[Boolean] = if (IsActive.jdbcFriendly(IsActive.calcFieldName) == null) { None } else Some(IsActive.get)
+  
 }
 
 //

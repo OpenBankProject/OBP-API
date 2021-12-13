@@ -34,15 +34,23 @@ import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.entitlement.Entitlement
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
+import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class PasswordRecoverTest extends V400ServerSetupAsync {
+
+  override def beforeEach() = {
+    wipeTestData()
+    super.beforeEach()
+    AuthUser.bulkDelete_!!(By(AuthUser.username, postJson.username))
+    ResourceUser.bulkDelete_!!(By(ResourceUser.providerId, postJson.username))
+  } 
 
   /**
     * Test tags

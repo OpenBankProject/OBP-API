@@ -29,7 +29,6 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
-
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -100,10 +99,13 @@ import code.scheduler.DatabaseDriverScheduler
 import code.scope.{MappedScope, MappedUserScope}
 import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apicollection.ApiCollection
+import code.bankattribute.BankAttribute
 import code.connectormethod.ConnectorMethod
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
+import code.endpointTag.EndpointTag
+import code.productfee.ProductFee
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -129,6 +131,7 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
+
 import javax.mail.{Authenticator, PasswordAuthentication}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
@@ -267,6 +270,20 @@ class Boot extends MdcLoggable {
        }
      }
     }
+    implicit val formats = CustomJsonFormats.formats 
+    LiftRules.statelessDispatch.prepend {
+      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
+        Props.mode match {
+          case Props.RunModes.Development =>
+            () =>
+              Full(
+                JsonResponse(
+                  Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
+                  500
+                )
+              )
+        }
+    }
     
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo())
 
@@ -386,13 +403,14 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.b1)
 
-    
-    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
+    def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
-      if(APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
+      if (APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
         LiftRules.dispatch.append(OpenIdConnect)
       }
-      
+    }
+    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
+
       //OAuth API call
       LiftRules.statelessDispatch.append(OAuthHandshake)
 
@@ -407,10 +425,20 @@ class Boot extends MdcLoggable {
     }
 
     APIUtil.getPropsValue("server_mode", "apis,portal") match {
-      case mode if mode == "portal" => 
-      case mode if mode == "apis" => enableAPIs
-      case mode if mode.contains("apis") && mode.contains("portal") => enableAPIs
-      case _ => enableAPIs
+      // Instance runs as the portal only
+      case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
+        enableOpenIdConnectApis
+      // Instance runs as the APIs only
+      case mode if mode == "apis" => 
+        enableAPIs
+      // Instance runs as the portal and APIs as well
+      // This is default mode
+      case mode if mode.contains("apis") && mode.contains("portal") => 
+        enableAPIs
+        enableOpenIdConnectApis
+      // Failure
+      case _ =>
+        throw new RuntimeException("The props server_mode`is not properly set. Allowed cases: { server_mode=portal, server_mode=apis, server_mode=apis,portal }")
     }
     
 
@@ -493,7 +521,12 @@ class Boot extends MdcLoggable {
       Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
     
       Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
+      Menu("User Information", "User Information") / "user-information",
       Menu("User Invitation", "User Invitation") / "user-invitation",
+      Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
+      Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
+      Menu("Terms and Conditions", "Terms and Conditions") / "terms-and-conditions",
+      Menu("Privacy Policy", "Privacy Policy") / "privacy-policy",
       // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
       Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
       Menu.i("Consent") / "consent" >> AuthUser.loginFirst,//OAuth consent page
@@ -569,8 +602,7 @@ class Boot extends MdcLoggable {
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
-
-    implicit val formats = CustomJsonFormats.formats
+    
     LiftRules.exceptionHandler.prepend{
       case(_, r, e) if DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed => {
         logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
@@ -870,6 +902,7 @@ object ToSchemify {
     MappedCustomerAttribute,
     MappedTransactionAttribute,
     MappedCardAttribute,
+    BankAttribute,
     RateLimiting,
     MappedCustomerDependant,
     AttributeDefinition
@@ -928,7 +961,9 @@ object ToSchemify {
     AuthenticationTypeValidation,
     ConnectorMethod,
     DynamicResourceDoc,
-    DynamicMessageDoc
+    DynamicMessageDoc,
+    EndpointTag,
+    ProductFee
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

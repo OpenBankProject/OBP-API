@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.tesobe</groupId>
   <artifactId>obp-parent</artifactId>
-  <version>1.9.0</version>
+  <version>1.10.0</version>
   <packaging>pom</packaging>
   <name>Open Bank Project API Parent</name>
   <inceptionYear>2011</inceptionYear>
@@ -18,7 +18,7 @@
     <avro.version>1.8.2</avro.version>
     <lift.version>3.4.1</lift.version>
     <jetty.version>9.4.12.v20180830</jetty.version>
-    <log4j.version>2.6.2</log4j.version>
+    <log4j.version>2.15.0</log4j.version>
     <obp-ri.version>2016.11-RC6-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -181,6 +181,17 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
+          <configuration>
+            <compilerPlugins>
+              <!--scala 2.12.x need the paradise plugin to support macros annotation, 2.13.x value not need this plugin,
+              just add -Ymacro-annotations flag -->
+              <compilerPlugin>
+                <groupId>org.scalamacros</groupId>
+                <artifactId>paradise_${scala.compiler}</artifactId>
+                <version>2.1.1</version>
+              </compilerPlugin>
+            </compilerPlugins>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

@@ -2401,7 +2401,7 @@ trait APIMethods121 {
       "getTransactionNarrative",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Get narrative",
+      "Get a Transaction Narrative",
       """Returns the account owner description of the transaction [moderated](#1_2_1-getViewsForBankAccount) by the view.
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2437,7 +2437,7 @@ trait APIMethods121 {
       "addTransactionNarrative",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Add narrative",
+      "Add a Transaction Narrative",
       s"""Creates a description of the transaction TRANSACTION_ID.
          |
          |Note: Unlike other items of metadata, there is only one "narrative" per transaction accross all views.
@@ -2481,7 +2481,7 @@ trait APIMethods121 {
       "updateTransactionNarrative",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Update narrative",
+      "Update a Transaction Narrative",
       """Updates the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2519,7 +2519,7 @@ trait APIMethods121 {
       "deleteTransactionNarrative",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Delete narrative",
+      "Delete a Transaction Narrative",
       """Deletes the description of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2556,7 +2556,7 @@ trait APIMethods121 {
       "getCommentsForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
-      "Get comments",
+      "Get Transaction Comments",
       """Returns the transaction TRANSACTION_ID comments made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          |
          |Authentication via OAuth is required if the view is not public.""",
@@ -2593,7 +2593,7 @@ trait APIMethods121 {
       "addCommentForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
-      "Add comment",
+      "Add a Transaction Comment",
       """Posts a comment about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(false)}
@@ -2639,7 +2639,7 @@ trait APIMethods121 {
       "deleteCommentForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
-      "Delete comment",
+      "Delete a Transaction Comment",
       """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
@@ -2677,7 +2677,7 @@ trait APIMethods121 {
       "getTagsForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
-      "Get tags",
+      "Get Transaction Tags",
       """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -2713,7 +2713,7 @@ trait APIMethods121 {
       "addTagForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
-      "Add a tag",
+      "Add a Transaction Tag",
       s"""Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true)}
@@ -2759,7 +2759,7 @@ trait APIMethods121 {
       "deleteTagForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
-      "Delete a tag",
+      "Delete a Transaction Tag",
       """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
         |Authentication via OAuth is required. The user must either have owner privileges for this account, 
         |or must be the user that posted the tag.
@@ -2796,7 +2796,7 @@ trait APIMethods121 {
       "getImagesForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
-      "Get images",
+      "Get Transaction Images",
       """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
          Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -2832,7 +2832,7 @@ trait APIMethods121 {
       "addImageForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
-      "Add an image",
+      "Add a Transaction Image",
       s"""Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
          |${authenticationRequiredMessage(true) }
@@ -2878,7 +2878,7 @@ trait APIMethods121 {
       "deleteImageForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
-      "Delete an image",
+      "Delete a Transaction Image",
       """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
@@ -2919,7 +2919,7 @@ trait APIMethods121 {
       "getWhereTagForViewOnTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Get where tag",
+      "Get a Transaction where Tag",
       """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
         |It represents the location where the transaction has been initiated.
         |
@@ -2956,7 +2956,7 @@ trait APIMethods121 {
       "addWhereTagForViewOnTransaction",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Add where tag",
+      "Add a Transaction where Tag",
       s"""Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
          |
          |${authenticationRequiredMessage(true)}
@@ -3002,7 +3002,7 @@ trait APIMethods121 {
       "updateWhereTagForViewOnTransaction",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Update where tag",
+      "Update a Transaction where Tag",
       s"""Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
          |
          |${authenticationRequiredMessage(true)}
@@ -3048,7 +3048,7 @@ trait APIMethods121 {
       "deleteWhereTagForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Delete where tag",
+      "Delete a Transaction Tag",
       s"""Deletes the where tag of the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
         |${authenticationRequiredMessage(true)}

@@ -294,7 +294,8 @@ object DynamicEndpointHelper extends RestHelper {
         successResponseBody,
         errorResponseBodies,
         tags,
-        roles
+        roles,
+        createdByBankId= bankId
       )
       DynamicEndpointItem(path, successCode, doc)
     }

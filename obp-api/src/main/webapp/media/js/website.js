@@ -120,9 +120,6 @@ $(document).ready(function() {
 		$("#small-screen-navbar #small-nav-log-on-button").css("width","63px");
 	}
 	
-	$(".main-support-item .support-platform-link").text("chat.openbankproject.com");
-	
-	
 	var htmlTitle = $(document).find("title").text();
 
 	if (htmlTitle.indexOf("Get API") > -1){
@@ -342,6 +339,13 @@ $(document).ready(function() {
 		$('#register-consumer-input #app-request_uri').addClass("error-border")
 	} else{
 		consumerRegistrationAppRequestUriError.parent().addClass('hide');
+	}
+	
+	var dataAreaErrors = $('#data-area-input #data-area-errors');
+	if (dataAreaErrors.length > 0 && dataAreaErrors.html().length > 0) {
+		dataAreaErrors.parent().removeClass('hide');
+	} else{
+		dataAreaErrors.parent().addClass('hide');
 	}
 
 	{

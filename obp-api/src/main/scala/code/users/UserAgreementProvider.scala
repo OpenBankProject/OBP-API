@@ -1,8 +1,9 @@
 package code.users
 
+import java.util.Date
+
 import code.api.util.APIUtil
-import code.remotedata.{RemotedataUserAgreement, RemotedataUserInvitation}
-import com.openbankproject.commons.model.BankId
+import code.remotedata.RemotedataUserAgreement
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -20,11 +21,15 @@ object UserAgreementProvider extends SimpleInjector {
 }
 
 trait UserAgreementProvider {
-  def createOrUpdateUserAgreement(userId: String, summary: String, agreementText: String, acceptMarketingInfo: Boolean): Box[UserAgreement]
+  def createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement]
+  def createUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement]
+  def getUserAgreement(userId: String, agreementType: String): Box[UserAgreement]
 }
 
 class RemotedataUserAgreementProviderCaseClass {
-  case class createOrUpdateUserAgreement(userId: String, summary: String, agreementText: String, acceptMarketingInfo: Boolean)
+  case class createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String)
+  case class createUserAgreement(userId: String, agreementType: String, agreementText: String)
+  case class getUserAgreement(userId: String, agreementType: String)
 }
 
 object RemotedataUserAgreementProviderCaseClass extends RemotedataUserAgreementProviderCaseClass
@@ -32,8 +37,8 @@ object RemotedataUserAgreementProviderCaseClass extends RemotedataUserAgreementP
 trait UserAgreementTrait {
   def userInvitationId: String
   def userId: String
-  def summary: String
+  def agreementType: String
   def agreementText: String
   def agreementHash: String
-  def acceptMarketingInfo: Boolean
+  def date: Date
 }

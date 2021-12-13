@@ -9,28 +9,45 @@ import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 
 object MappedUserAgreementProvider extends UserAgreementProvider {
-  override def createOrUpdateUserAgreement(userId: String, summary: String, agreementText: String, acceptMarketingInfo: Boolean): Box[UserAgreement] = {
-    UserAgreement.find(By(UserAgreement.UserId, userId)) match {
+  override def createOrUpdateUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement] = {
+    UserAgreement.find(
+      By(UserAgreement.UserId, userId),
+      By(UserAgreement.AgreementType, agreementType)
+    ) match {
       case Full(existingUser) =>
         Full(
           existingUser
-            .Summary(summary)
+            .AgreementType(agreementType)
             .AgreementText(agreementText)
-            .AcceptMarketingInfo(acceptMarketingInfo)
             .saveMe()
         )
       case Empty =>
         Full(
           UserAgreement.create
             .UserId(userId)
-            .Summary(summary)
+            .AgreementType(agreementType)
             .AgreementText(agreementText)
-            .AcceptMarketingInfo(acceptMarketingInfo)
             .Date(new Date)
             .saveMe()
         )
       case everythingElse => everythingElse
     }
+  }
+  override def createUserAgreement(userId: String, agreementType: String, agreementText: String): Box[UserAgreement] = {
+    Full(
+      UserAgreement.create
+        .UserId(userId)
+        .AgreementType(agreementType)
+        .AgreementText(agreementText)
+        .Date(new Date)
+        .saveMe()
+    )
+  }
+  override def getUserAgreement(userId: String, agreementType: String): Box[UserAgreement] = {
+    UserAgreement.findAll(
+      By(UserAgreement.UserId, userId),
+      By(UserAgreement.AgreementType, agreementType)
+    ).sortBy(_.Date.get)(Ordering[Date].reverse).headOption
   }
 }
 class UserAgreement extends UserAgreementTrait with LongKeyedMapper[UserAgreement] with IdPK with CreatedUpdated {
@@ -42,19 +59,18 @@ class UserAgreement extends UserAgreementTrait with LongKeyedMapper[UserAgreemen
   }
   object UserId extends MappedString(this, 255)
   object Date extends MappedDate(this)
-  object Summary extends MappedText(this)
+  object AgreementType extends MappedString(this, 64)
   object AgreementText extends MappedText(this)
   object AgreementHash extends MappedString(this, 64) {
     override def defaultValue: String = HashUtil.Sha256Hash(AgreementText.get)
   }
-  object AcceptMarketingInfo extends MappedBoolean(this)
 
   override def userInvitationId: String = UserAgreementId.get
   override def userId: String = UserId.get
-  override def summary: String = Summary.get
+  override def agreementType: String = AgreementType.get
   override def agreementText: String = AgreementText.get
   override def agreementHash: String = AgreementHash.get
-  override def acceptMarketingInfo: Boolean = AcceptMarketingInfo.get
+  override def date: Date = Date.get
 }
 
 object UserAgreement extends UserAgreement with LongKeyedMetaMapper[UserAgreement] {

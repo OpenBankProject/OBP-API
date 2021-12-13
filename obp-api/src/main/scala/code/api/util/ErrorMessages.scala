@@ -58,6 +58,8 @@ object ErrorMessages {
   
   val InvalidRequestPayload = "OBP-09014: Incorrect request body Format, it should be a valid json that matches Validation rule."
   val DynamicDataNotFound = "OBP-09015: Dynamic Data not found. Please specify a valid value."
+  val DuplicateQueryParameters = "OBP-09016: Duplicate Query Parameters are not allowed."
+  val DuplicateHeaderKeys = "OBP-09017: Duplicate Header Keys are not allowed."
 
 
   // General messages (OBP-10XXX)
@@ -87,8 +89,8 @@ object ErrorMessages {
   val InvalidInBoundMapping = "OBP-10032: Incorrect inBoundMapping Format, it should be a json structure."
   val invalidIban = "OBP-10033: Invalid IBAN."
   val InvalidUrlParameters = "OBP-10034: Invalid URL parameters."
-  val InvalidUri = "OBP-10404: Request Not Found. The server has not found anything matching the Request-URI.Check your URL and the headers. " +
-    "NOTE: when it is POST or PUT api, the Content-Type must be `application/json`. OBP only support the json format body."
+  val InvalidUri = "OBP-10404: 404 Not Found. The server could not find the requested URI. Please double check your URL, headers and body. " +
+    "Note: When you are making a POST or PUT request, the Content-Type header MUST be `application/json`. Note: OBP only supports JSON formatted bodies."
   val ResourceDoesNotExist = "OBP-10405: Resource does not exist."
   val InvalidJsonValue = "OBP-10035: Incorrect json value."
   
@@ -152,7 +154,7 @@ object ErrorMessages {
   val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
   val GatewayLoginHostPropertyMissing = "OBP-20030: Property gateway.host is not defined."
   val GatewayLoginWhiteListAddresses = "OBP-20031: Gateway login can be done only from allowed addresses."
-  val GatewayLoginJwtTokenIsNotValid = "OBP-20040: The JWT is corrupted/changed during a transport."
+  val GatewayLoginJwtTokenIsNotValid = "OBP-20040: The Gateway login JWT is corrupted/changed during a transport."
   val GatewayLoginCannotExtractJwtToken = "OBP-20041: Header, Payload and Signature cannot be extracted from the JWT."
   val GatewayLoginNoNeedToCallCbs = "OBP-20042: There is no need to call CBS"
   val GatewayLoginCannotFindUser = "OBP-20043: User cannot be found. Please initiate CBS communication in order to create it."
@@ -178,8 +180,20 @@ object ErrorMessages {
   val FrequencyPerDayError = "OBP-20062: Frequency per day must be greater than 0."
   val FrequencyPerDayMustBeOneError = "OBP-20063: Frequency per day must be equal to 1 in case of one-off access."
 
+  val UserIsDeleted = "OBP-20064: The user is deleted!"
+
+  val DAuthCannotGetOrCreateUser = "OBP-20065: Cannot get or create user during DAuth process."
+  val DAuthMissingParameters = "OBP-20066: These DAuth parameters are missing: "
+  val DAuthUnknownError = "OBP-20067: Unknown DAuth login error."
+  val DAuthHostPropertyMissing = "OBP-20068: Property dauth.host is not defined."
+  val DAuthWhiteListAddresses = "OBP-20069: DAuth login can be done only from allowed addresses."
+  val DAuthNoJwtForResponse = "OBP-20070: There is no useful value for JWT."
+  val DAuthJwtTokenIsNotValid = "OBP-20071: The DAuth JWT is corrupted/changed during a transport."
+  val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
+  val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
+  val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
@@ -344,6 +358,12 @@ object ErrorMessages {
   
   val UpdateAtmLocationCategoriesException = "OBP-30095: Could not update the Atm Location Categories."
 
+  val CreateEndpointTagError = "OBP-30096: Could not insert the Endpoint Tag."
+  val UpdateEndpointTagError = "OBP-30097: Could not update the Endpoint Tag."
+  val UnknownEndpointTagError = "OBP-30098: Unknown Endpoint Tag error. "
+  val EndpointTagNotFoundByEndpointTagId = "OBP-30099: Invalid ENDPOINT_TAG_ID. Please specify a valid value for ENDPOINT_TAG_ID."
+  val EndpointTagAlreadyExists = "OBP-30100: EndpointTag already exists."
+
   // Meetings
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -364,13 +384,17 @@ object ErrorMessages {
   val InvalidAccountRoutings = "OBP-30114: Invalid Account Routings."
   val AccountRoutingAlreadyExist = "OBP-30115: Account Routing already exist."
   val InvalidPaymentSystemName = "OBP-30116: Invalid payment system name. The payment system name should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 200."
+  
+  val ProductFeeNotFoundById = "OBP-30117: Product Fee not found. Please specify a valid value for PRODUCT_FEE_ID."
+  val CreateProductFeeError = "OBP-30118: Could not insert the Product Fee."
+  val UpdateProductFeeError = "OBP-30119: Could not update the Product Fee."
 
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
   val EntitlementIsSystemRole = "OBP-30206: This entitlement is a System Role. Please set bank_id to empty string."
 
 
-  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR be longer than 16 characters."
+  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password Format. Your password should EITHER be at least 10 characters long and contain mixed numbers and both upper and lower case letters and at least one special character, OR the length should be > 16 and <= 512."
 
   val AccountIdAlreadyExists = "OBP-30208: Account_ID already exists at the Bank."
 
@@ -388,6 +412,7 @@ object ErrorMessages {
   val EntitlementRequestNotFound = "OBP-30215: EntitlementRequestId not found"
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
   val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
+  val EntitlementCannotBeGranted = "OBP-30220: Entitlement cannot be granted."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
@@ -478,7 +503,9 @@ object ErrorMessages {
   val InvalidChargePolicy = "OBP-40013: Invalid Charge Policy. Please specify a valid value for Charge_Policy: SHARED, SENDER or RECEIVER. "
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
-  val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. If it is sandbox mode, the answer must be `123`. If it kafka mode, the answer can be got by phone message or other security ways."
+  val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. " +
+    "If connector = mapped and transactionRequestType_OTP_INSTRUCTION_TRANSPORT = DUMMY and suggested_default_sca_method=DUMMY, the answer must be `123`. " +
+    "If connector = others, the challenge answer can be got by phone message or other security ways."
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
   val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."
@@ -513,6 +540,7 @@ object ErrorMessages {
   val DynamicMessageDocNotFound = "OBP-40043: DynamicMessageDoc not found, please specify valid DYNAMIC_MESSAGE_DOC_ID. "
   val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc can not be deleted. "
   val DynamicCodeCompileFail = "OBP-40045: The code to do compile is illegal scala code, compilation failed. "
+  val InvalidOperationId = "OBP-40046: Invalid operation_id, please specify valid operation_id."
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."
@@ -555,7 +583,8 @@ object ErrorMessages {
   val InvalidConnectorResponseForCreateChallenge = "OBP-50215: Connector did not return the set of challenge we requested."
   val InvalidConnectorResponseForSaveDoubleEntryBookTransaction = "OBP-50216: The Connector did not return a valid response for saving double-entry transaction."
   val InvalidConnectorResponseForCancelPayment = "OBP-50217: Connector did not return the transaction we requested."
-
+  val InvalidConnectorResponseForGetEndpointTags = "OBP-50218: Connector did not return the set of endpoint tags we requested."
+  val InvalidConnectorResponseForGetBankAccountsWithAttributes = "OBP-50219: Connector did not return the bank accounts we requested."
 
   // Adapter Exceptions (OBP-6XXXX)
   // Reserved for adapter (south of Kafka) messages

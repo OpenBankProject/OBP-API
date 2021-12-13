@@ -131,7 +131,7 @@ object UserX {
   }
 
   def createResourceUser(provider: String, providerId: Option[String], createdByConsentId: Option[String], name: Option[String], email: Option[String], userId: Option[String], company: Option[String]) = {
-    Users.users.vend.createResourceUser(provider, providerId, createdByConsentId, name, email, userId, None, company)
+    Users.users.vend.createResourceUser(provider, providerId, createdByConsentId, name, email, userId, None, company, None)
   }
 
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
@@ -140,6 +140,22 @@ object UserX {
 
   def saveResourceUser(ru: ResourceUser) = {
     Users.users.vend.saveResourceUser(ru)
+  }
+  
+  def getOrCreateDauthResourceUser(username: String, provider: String) = {
+    findByUserName(username).or( //first try to find the user by userId
+      Users.users.vend.createResourceUser( // Otherwise create a new user
+        provider = provider,
+        providerId = Some(username),
+        None,
+        name = Some(username),
+        email = None,
+        userId = None,
+        createdByUserInvitationId = None,
+        company = None,
+        lastMarketingAgreementSignedDate = None
+      )
+    )
   }
 
   //def bulkDeleteAllResourceUsers(): Box[Boolean] = {
