@@ -36,7 +36,7 @@ import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.model.dataAccess.{AuthUser, BankAccountRouting}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
-import code.users.{UserInvitation, UserInvitationProvider, Users}
+import code.users.{UserAgreement, UserAgreementProvider, UserInvitation, UserInvitationProvider, Users}
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -405,6 +405,12 @@ object NewStyle {
     def getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[AccountsBalances] = {
       Connector.connector.vend.getBankAccountsBalances(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccounts", 400 ), i._2)
+      }
+    }
+
+    def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[FastFirehoseAccount]] = {
+      Connector.connector.vend.getBankAccountsWithAttributes(bankId, queryParams, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$InvalidConnectorResponseForGetBankAccountsWithAttributes", 400 ), i._2)
       }
     }
 
@@ -824,6 +830,9 @@ object NewStyle {
         connectorEmptyResponse(_, callContext)
       }
     }
+    def getAgreementByUserId(userId: String, agreementType: String, callContext: Option[CallContext]): Future[Box[UserAgreement]] = {
+      Future(UserAgreementProvider.userAgreementProvider.vend.getUserAgreement(userId, agreementType))
+    }
 
     def getEntitlementsByBankId(bankId: String, callContext: Option[CallContext]): Future[List[Entitlement]] = {
       Entitlement.entitlement.vend.getEntitlementsByBankId(bankId) map {
@@ -1022,6 +1031,12 @@ object NewStyle {
     def findByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[User] = {
       Future { UserX.findByUserId(userId).map(user =>(user, callContext))} map {
         unboxFullOrFail(_, callContext, s"$UserNotFoundById Current USER_ID($userId)", 404)
+      }
+    }
+  
+    def getOrCreateResourceUser(username: String, provider: String, callContext: Option[CallContext]): OBPReturnType[User] = {
+      Future { UserX.getOrCreateDauthResourceUser(username, provider).map(user =>(user, callContext))} map {
+        unboxFullOrFail(_, callContext, s"$CannotGetOrCreateUser Current USERName($username) PROVIDER ($provider)", 404)
       }
     }
   
@@ -3064,12 +3079,14 @@ object NewStyle {
       userId: String,
       apiCollectionName: String,
       isSharable: Boolean,
+      description: String,
       callContext: Option[CallContext]
     ) : OBPReturnType[ApiCollectionTrait] = {
       Future(MappedApiCollectionsProvider.createApiCollection(
         userId: String,
         apiCollectionName: String,
-        isSharable: Boolean)
+        isSharable: Boolean,
+        description: String)
       ) map {
         i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
       }

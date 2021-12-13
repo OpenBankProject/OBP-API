@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
+import java.net.URI
+
 import _root_.net.liftweb.json.JsonAST.JObject
 import code.TestServer
 import code.api.util.APIUtil._
@@ -41,7 +43,14 @@ import org.scalatest._
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
-  with Matchers with MdcLoggable with CustomJsonFormats{
+  with Matchers with MdcLoggable with CustomJsonFormats with PropsReset{
+
+  setPropsValues("migration_scripts.execute_all" -> "true")
+  setPropsValues("migration_scripts.execute" -> "true")
+  setPropsValues("allow_dauth" -> "true")
+  setPropsValues("dauth.host" -> "127.0.0.1")
+  setPropsValues("jwt.token_secret"->"your-at-least-256-bit-secret-token")
+  setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
 
   val server = TestServer
   def baseRequest = host(server.host, server.port)

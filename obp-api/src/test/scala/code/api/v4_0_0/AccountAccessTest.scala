@@ -28,6 +28,7 @@ class AccountAccessTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.grantUserAccessToView))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.revokeUserAccessToView))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createUserWithAccountAccess))
 
   
   lazy val bankId = randomBankId
@@ -70,7 +71,7 @@ class AccountAccessTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 and $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+  feature(s"test $ApiEndpoint1 and $ApiEndpoint2 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
 
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
@@ -95,6 +96,17 @@ class AccountAccessTest extends V400ServerSetup {
       Then("We should get a 201 and check the response body")
       responseRevoke.code should equal(201)
       responseRevoke.body.extract[RevokedJsonV400]
+      
+      {
+        val postCreateUserJson = PostCreateUserAccountAccessJsonV400(resourceUser2.userId, "dauth."+resourceUser2.provider, List(PostViewJsonV400(view.id, view.is_system)))
+        When("We send the request")
+        val request = (v4_0_0_Request / "banks" / bankId / "accounts" / account.account_id / "user-account-access").POST <@ (user1)
+        val response = makePostRequest(request, write(postCreateUserJson))
+        Then("We should get a 201 and check the response body")
+        response.code should equal(201)
+        val views = response.body.extract[List[ViewJsonV300]]
+        views.length 
+      }
     }
   }
 

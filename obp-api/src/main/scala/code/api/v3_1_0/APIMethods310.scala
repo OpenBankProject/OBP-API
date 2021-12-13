@@ -1450,7 +1450,6 @@ trait APIMethods310 {
       List(
         UserNotLoggedIn,
         UserHasMissingRoles,
-        CreateUserAuthContextError,
         UnknownError
       ),
       List(apiTagUser, apiTagNewStyle),

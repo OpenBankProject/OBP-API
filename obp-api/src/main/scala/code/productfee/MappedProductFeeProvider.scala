@@ -1,6 +1,7 @@
 package code.productfee
 
 import code.api.util.APIUtil
+import code.api.util.ErrorMessages.{CreateProductFeeError, UpdateProductFeeError}
 import code.util.UUIDString
 import com.openbankproject.commons.model.{BankId, ProductCode, ProductFeeTrait}
 import net.liftweb.common.{Box, Empty, Full}
@@ -54,12 +55,12 @@ object MappedProductFeeProvider extends ProductFeeProvider {
                 .Frequency(frequency)
                 .Type(`type`)
                 .saveMe()
-            }
+            } ?~! s"$UpdateProductFeeError"
             case _ => Empty
           }
       }
       case None => Future {
-        Full {
+        tryo {
           ProductFee
             .create
             .ProductFeeId(APIUtil.generateUUID)
@@ -73,7 +74,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
             .Frequency(frequency)
             .Type(`type`)
             .saveMe()
-        }
+        } ?~! s"$CreateProductFeeError"
       }
     }
   }
@@ -95,7 +96,7 @@ class ProductFee extends ProductFeeTrait with LongKeyedMapper[ProductFee] with I
   
   object ProductFeeId extends UUIDString(this) 
 
-  object Name extends MappedString(this, 50)
+  object Name extends MappedString(this, 100)
   
   object IsActive extends MappedBoolean(this) {
     override def defaultValue = true

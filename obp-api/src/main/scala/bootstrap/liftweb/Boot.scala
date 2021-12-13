@@ -403,13 +403,14 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.b1)
 
-    
-    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
+    def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
-      if(APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
+      if (APIUtil.getPropsAsBoolValue("openid_connect.enabled", false)) {
         LiftRules.dispatch.append(OpenIdConnect)
       }
-      
+    }
+    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
+
       //OAuth API call
       LiftRules.statelessDispatch.append(OAuthHandshake)
 
@@ -424,10 +425,20 @@ class Boot extends MdcLoggable {
     }
 
     APIUtil.getPropsValue("server_mode", "apis,portal") match {
-      case mode if mode == "portal" => 
-      case mode if mode == "apis" => enableAPIs
-      case mode if mode.contains("apis") && mode.contains("portal") => enableAPIs
-      case _ => enableAPIs
+      // Instance runs as the portal only
+      case mode if mode == "portal" => // Callback url in case of OpenID Connect MUST be enabled at portal side
+        enableOpenIdConnectApis
+      // Instance runs as the APIs only
+      case mode if mode == "apis" => 
+        enableAPIs
+      // Instance runs as the portal and APIs as well
+      // This is default mode
+      case mode if mode.contains("apis") && mode.contains("portal") => 
+        enableAPIs
+        enableOpenIdConnectApis
+      // Failure
+      case _ =>
+        throw new RuntimeException("The props server_mode`is not properly set. Allowed cases: { server_mode=portal, server_mode=apis, server_mode=apis,portal }")
     }
     
 
@@ -510,6 +521,7 @@ class Boot extends MdcLoggable {
       Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
     
       Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,
+      Menu("User Information", "User Information") / "user-information",
       Menu("User Invitation", "User Invitation") / "user-invitation",
       Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
       Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",

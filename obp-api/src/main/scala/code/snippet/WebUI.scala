@@ -142,7 +142,23 @@ class WebUI extends MdcLoggable{
     "#main-showcases *" #> scala.xml.Unparsed(sdksHtmlContent)
   }
 
+  val mainFaqHtmlLink = getWebUiPropsValue("webui_main_faq_external_link","")
+  
+  val mainFaqHtmlContent = try{
+    if (mainFaqHtmlLink.isEmpty)//If the webui_featured_sdks_external_link is not set, we will read the internal sdks.html file instead.
+      LiftRules.getResource("/main-faq.html").map{ url =>
+        Source.fromURL(url, "UTF-8").mkString
+      }.openOrThrowException("Please check the content of this file: src/main/webapp/main-faq.html")
+    else
+      Source.fromURL(mainFaqHtmlLink, "UTF-8").mkString
+  }catch {
+    case _ : Throwable => "<h1>FAQs is wrong, please check the props `webui_main_faq_external_link` </h1>"
+  }
 
+  // webui_featured_sdks_external_link props, we can set the sdks here. check the `SDK Showcases` in Homepage, and you can see all the sdks.
+  def mainFaqHtml: CssSel = {
+    "#main-faq *" #> scala.xml.Unparsed(mainFaqHtmlContent)
+  }
 
   val brandString = activeBrand match {
     case Some(v) => s"&brand=$v"
@@ -176,6 +192,10 @@ class WebUI extends MdcLoggable{
   // Link to API Tester
   def apiTesterLink: CssSel = {
     ".api-tester-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_tester_url", ""))
+  }
+  // Link to Hola app
+  def apiHolaLink: CssSel = {
+    ".api-hola-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_hola_url", "#"))
   }
 
   // Link to API
@@ -325,7 +345,7 @@ class WebUI extends MdcLoggable{
 
   // Support platform link
   def supportPlatformLink: CssSel = {
-    val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_support_platform_url", "https://slack.openbankproject.com/"))
+    val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_support_platform_url", "https://chat.openbankproject.com"))
         ".support-platform-link a [href]" #> supportplatformlink &
           ".support-platform-link a *" #> supportplatformlink.toString().replace("https://","").replace("http://", "")
   }

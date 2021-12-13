@@ -120,10 +120,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   def validateJwtToken(token: String): Box[PayloadOfJwtJSON] = {
     APIUtil.getPropsAsBoolValue("jwt.use.ssl", false) match {
       case true =>
+        logger.debug("validateJwtToken says: verifying jwt token with RSA: " + token)
         val claim = CertificateUtil.decryptJwtWithRsa(token)
         Box(parse(claim.toString).extractOpt[PayloadOfJwtJSON])
       case false =>
-        logger.debug("validateJwtToken says: verifying jwt token: " + token)
+        logger.debug("validateJwtToken says: verifying jwt token with HmacProtection: " + token)
         logger.debug(CertificateUtil.verifywtWithHmacProtection(token).toString)
         CertificateUtil.verifywtWithHmacProtection(token) match {
           case true =>
@@ -262,7 +263,8 @@ object GatewayLogin extends RestHelper with MdcLoggable {
               email = None,
               userId = None,
               createdByUserInvitationId = None,
-              company = None
+              company = None,
+              lastMarketingAgreementSignedDate = None
             )
           } match {
             case Full(u) =>
@@ -480,7 +482,7 @@ object GatewayLogin extends RestHelper with MdcLoggable {
         val payload = GatewayLogin.parseJwt(parameters)
         payload match {
           case Full(payload) =>
-            val username = getFieldFromPayloadJson(payload, "username")
+            val username = getFieldFromPayloadJson(payload, "login_user_name")
             logger.debug("username: " + username)
             Users.users.vend.getUserByProviderId(provider = gateway, idGivenByProvider = username)
           case _ =>

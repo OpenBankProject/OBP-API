@@ -28,32 +28,33 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.JSONFactory.{createAmountOfMoneyJSON, createOwnersJSON}
 import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSONV121}
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
-import code.api.v2_0_0.{EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
+import code.api.v2_0_0.JSONFactory200.UserJsonV200
+import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
 import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300._
 import code.api.v3_0_0._
 import code.api.v3_1_0.JSONFactory310.{createAccountAttributeJson, createProductAttributesJson}
-import code.api.v3_1_0.{AccountAttributeResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
+import code.api.v3_1_0.{AccountAttributeResponseJson, PostHistoricalTransactionResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
 import code.apicollection.ApiCollectionTrait
 import code.apicollectionendpoint.ApiCollectionEndpointTrait
 import code.atms.Atms.Atm
 import code.bankattribute.BankAttribute
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
+import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
-import code.users.UserInvitation
+import code.users.{UserAgreement, UserInvitation}
 import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
@@ -126,6 +127,31 @@ case class TransactionRequestWithChargeJSON400(
                                                 challenges: List[ChallengeJsonV400],
                                                 charge : TransactionRequestChargeJsonV200
                                               )
+case class PostHistoricalTransactionAtBankJson(
+                                                from_account_id: String,
+                                                to_account_id: String,
+                                                value: AmountOfMoneyJsonV121,
+                                                description: String,
+                                                posted: String,
+                                                completed: String,
+                                                `type`: String,
+                                                charge_policy: String
+                                              )
+case class HistoricalTransactionAccountJsonV400(
+                                                 bank_id: String,
+                                                 account_id : String
+                                               )
+case class PostHistoricalTransactionResponseJsonV400(
+                                                  transaction_id: String,
+                                                  from: HistoricalTransactionAccountJsonV400,
+                                                  to: HistoricalTransactionAccountJsonV400,
+                                                  value: AmountOfMoneyJsonV121,
+                                                  description: String,
+                                                  posted: Date,
+                                                  completed: Date,
+                                                  transaction_request_type: String,
+                                                  charge_policy: String
+                                                )
 case class PostResetPasswordUrlJsonV400(username: String, email: String, user_id: String)
 case class ResetPasswordUrlJsonV400(reset_password_url: String)
 
@@ -199,6 +225,22 @@ case class ModeratedFirehoseAccountJsonV400(
 case class ModeratedFirehoseAccountsJsonV400(
                                               accounts: List[ModeratedFirehoseAccountJsonV400]
                                             )
+
+case class FastFirehoseAccountJsonV400(
+  id: String,
+  bank_id: String,
+  label: String,
+  number: String,
+  owners: String,
+  product_code: String,
+  balance: AmountOfMoneyJsonV121,
+  account_routings: String ,
+  account_attributes: String
+)
+
+case class FastFirehoseAccountsJsonV400(
+  accounts: List[FastFirehoseAccountJsonV400]
+)
 
 case class ModeratedAccountJSON400(
                                     id : String,
@@ -312,6 +354,8 @@ case class StandingOrderJsonV400(standing_order_id: String,
                                  active: Boolean)
 case class PostViewJsonV400(view_id: String, is_system: Boolean)
 case class PostAccountAccessJsonV400(user_id: String, view: PostViewJsonV400)
+case class PostCreateUserAccountAccessJsonV400(username: String, provider:String, views: List[PostViewJsonV400])
+case class PostCreateUserWithRolesJsonV400(username: String, provider:String, roles: List[CreateEntitlementJSON])
 case class PostRevokeGrantAccountAccessJsonV400(views: List[String])
 case class RevokedJsonV400(revoked: Boolean)
 
@@ -637,7 +681,8 @@ case class ApiCollectionJson400 (
   api_collection_id: String,
   user_id: String,
   api_collection_name: String,
-  is_sharable: Boolean
+  is_sharable: Boolean,
+  description: String
 )
 case class ApiCollectionsJson400 (
   api_collections: List[ApiCollectionJson400] 
@@ -645,7 +690,8 @@ case class ApiCollectionsJson400 (
 
 case class PostApiCollectionJson400(
   api_collection_name: String,
-  is_sharable: Boolean
+  is_sharable: Boolean,
+  description: Option[String]
 )
 
 case class ApiCollectionEndpointJson400 (
@@ -887,6 +933,7 @@ case class AtmJsonV400 (
 
 case class AtmsJsonV400(atms : List[AtmJsonV400])
 
+case class UserAgreementJson(`type`: String, text: String)
 case class UserJsonV400(
                          user_id: String,
                          email : String,
@@ -895,12 +942,15 @@ case class UserJsonV400(
                          username : String,
                          entitlements : EntitlementJSONs,
                          views: Option[ViewsJSON300],
-                         is_deleted: Boolean
+                         agreements: Option[List[UserAgreementJson]],
+                         is_deleted: Boolean,
+                         last_marketing_agreement_signed_date: Option[Date]
                        )
+case class UsersJsonV400(users: List[UserJsonV400])
 
 object JSONFactory400 {
 
-  def createUserInfoJSON(user : User, entitlements: List[Entitlement]) : UserJsonV400 = {
+  def createUserInfoJSON(user : User, entitlements: List[Entitlement], agreements: Option[List[UserAgreement]]) : UserJsonV400 = {
     UserJsonV400(
       user_id = user.userId,
       email = user.emailAddress,
@@ -909,7 +959,23 @@ object JSONFactory400 {
       provider = stringOrNull(user.provider),
       entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
       views = None,
-      is_deleted = user.isDeleted.getOrElse(false)
+      agreements = agreements.map(_.map( i => 
+        UserAgreementJson(`type` = i.agreementType, text = i.agreementText))
+      ),
+      is_deleted = user.isDeleted.getOrElse(false),
+      last_marketing_agreement_signed_date = user.lastMarketingAgreementSignedDate
+    )
+  }
+
+  def createUsersJson(users : List[(ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])]) : UsersJsonV400 = {
+    UsersJsonV400(
+      users.map(t => 
+        createUserInfoJSON(
+          t._1, 
+          t._2.getOrElse(Nil),
+          t._3
+        )
+      )
     )
   }
 
@@ -1123,6 +1189,24 @@ object JSONFactory400 {
             createAccountRoutingsJSON(account.accountRoutings),
             createAccountRulesJSON(account.accountRules),
             account_attributes = getAttributes(account.bankId, account.accountId)
+          )
+      )
+    )
+  }
+  def createFirehoseBankAccountJSON(firehoseAccounts : List[FastFirehoseAccount]) : FastFirehoseAccountsJsonV400 =  {
+    FastFirehoseAccountsJsonV400(
+      firehoseAccounts.map(
+        account =>
+          FastFirehoseAccountJsonV400(
+            account.id,
+            account.bankId,
+            account.label,
+            account.number,
+            account.owners,
+            account.productCode,
+            AmountOfMoneyJsonV121(account.balance.currency, account.balance.amount),
+            account.accountRoutings,
+            account.accountAttributes
           )
       )
     )
@@ -1402,6 +1486,7 @@ object JSONFactory400 {
         apiCollection.userId,
         apiCollection.apiCollectionName,
         apiCollection.isSharable,
+        apiCollection.description
       )
   }
   def createIbanCheckerJson(iban: IbanChecker): IbanCheckerJsonV400 = {
@@ -1671,5 +1756,37 @@ object JSONFactory400 {
       ))))
     )
   }
+
+
+
+  def createPostHistoricalTransactionResponseJson(
+                                                   bankId: BankId,
+                                                   transactionId: TransactionId,
+                                                   fromAccountId: AccountId,
+                                                   toAccountId: AccountId,
+                                                   value: AmountOfMoneyJsonV121,
+                                                   description: String,
+                                                   posted: Date,
+                                                   completed: Date,
+                                                   transactionRequestType: String,
+                                                   chargePolicy: String
+                                                 ) : PostHistoricalTransactionResponseJsonV400 = {
+    PostHistoricalTransactionResponseJsonV400(
+      transaction_id = transactionId.value,
+      from = HistoricalTransactionAccountJsonV400(bankId.value, fromAccountId.value),
+      to = HistoricalTransactionAccountJsonV400(bankId.value, toAccountId.value),
+      value: AmountOfMoneyJsonV121,
+      description: String,
+      posted: Date,
+      completed: Date,
+      transaction_request_type = transactionRequestType,
+      chargePolicy: String
+    )
+  }
+  
+  
+  
+  
+  
 }
 
