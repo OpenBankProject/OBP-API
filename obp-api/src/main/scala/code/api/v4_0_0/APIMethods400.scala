@@ -64,7 +64,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{ListResult, _}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
-import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
+import deletion.{DeleteAccountCascade, DeleteBankCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -7291,6 +7291,42 @@ trait APIMethods400 {
         cc =>
           for {
             _ <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
+          } yield {
+            (Full(true), HttpCode.`200`(cc))
+          }
+      }
+    }  
+    
+    staticResourceDocs += ResourceDoc(
+      deleteBankCascade,
+      implementedInApiVersion,
+      nameOf(deleteBankCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID",
+      "Delete Bank Cascade",
+      s"""Delete a Bank Cascade specified by BANK_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canDeleteBankCascade)))
+
+    lazy val deleteBankCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            _ <- Future(DeleteBankCascade.atomicDelete(bankId))
           } yield {
             (Full(true), HttpCode.`200`(cc))
           }
