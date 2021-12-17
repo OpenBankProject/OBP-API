@@ -45,7 +45,7 @@ object ReflectUtils {
 
     def isFieldOrCallByPath(term: ru.TermSymbol) = {
       term.name.decodedName.toString.trim == fieldName &&
-        (term.isVal || term.isVal || term.isLazy || (term.isMethod && term.asMethod.paramLists.isEmpty))
+        (term.isVal || term.isLazy || (term.isMethod && term.asMethod.paramLists.isEmpty))
     }
 
     val fields: Iterable[ru.TermSymbol] = tp.members.collect({
@@ -495,7 +495,7 @@ object ReflectUtils {
   def findMethod(obj: Any, methodName: String)(predicate: Map[String, ru.Type] => Boolean): Option[MethodSymbol] = findMethod(getType(obj), methodName)(predicate)
 
   def findMethodByArgs(tp: ru.Type, methodName: String, args: Any*): Option[ru.MethodSymbol] = findMethod(tp, methodName) { nameToType =>
-      args.size == args.size && nameToType.values.zip(args).forall(it => isTypeOf(it._1, it._2))
+    nameToType.values.zip(args).forall(it => isTypeOf(it._1, it._2))
   }
 
   def findMethodByArgs(obj: Any,  methodName: String, args: Any*): Option[ru.MethodSymbol] = findMethodByArgs(getType(obj), methodName, args:_*)

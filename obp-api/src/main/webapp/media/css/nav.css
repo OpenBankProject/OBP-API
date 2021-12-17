@@ -20,12 +20,11 @@ nav .navbar-collapse.collapse {
     margin-left: 0;
 }
 .navbar-default .navbar-nav > li #navitem-logo img{
-    width:80px;
-    height: 40px;
+    height: 100%;
 }
 .navbar-default .navbar-nav > li > a {
     background-color: white;
-    font-family: Roboto-Light;
+   font-family: Roboto-Light,sans-serif;
     font-size: 18px;
     color: #333333;
     line-height: 31px;
@@ -53,7 +52,7 @@ nav .navbar-collapse.collapse {
     margin-right: 0;
 }
 .navbar-default .navbar-right .navitem p #register-link {
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -79,7 +78,7 @@ nav .navbar-collapse.collapse {
 
 .navbar-default .navbar-right .navbar-btn #loggedIn-username {
     margin-right: 24px;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;
@@ -130,7 +129,7 @@ nav .navbar-collapse.collapse {
 }
 
 #small-screen-navbar #small-nav-log-on-button .login{
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 12px;
     color: #FFFFFF;
     letter-spacing: 0;
@@ -157,7 +156,7 @@ nav .navbar-collapse.collapse {
 
 .sidebar a {
     text-decoration: none;
-    font-family: Roboto-Regular;
+    font-family: Roboto-Regular,sans-serif;
     font-size: 16px;
     color: #333333;
     line-height: 24px;

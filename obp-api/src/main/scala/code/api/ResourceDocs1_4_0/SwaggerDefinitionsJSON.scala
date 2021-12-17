@@ -4089,12 +4089,12 @@ object SwaggerDefinitionsJSON {
 
   val postAccountAccessJsonV400 = PostAccountAccessJsonV400(userIdExample.value, PostViewJsonV400(ExampleValue.viewIdExample.value, true))
   val postCreateUserAccountAccessJsonV400 = PostCreateUserAccountAccessJsonV400(
-    userIdExample.value,
-    providerExample.value,
-    List(PostViewJsonV400(ExampleValue.viewIdExample.value, true))
+    usernameExample.value,
+    s"dauth.${providerExample.value}",
+    List(PostViewJsonV400(viewIdExample.value, isSystemExample.value.toBoolean))
   )
   val postCreateUserWithRolesJsonV400 = PostCreateUserWithRolesJsonV400(
-    userIdExample.value,
+    usernameExample.value,
     s"dauth.${providerExample.value}",
     List(createEntitlementJSON)
   )
@@ -4265,7 +4265,7 @@ object SwaggerDefinitionsJSON {
     charge = transactionRequestChargeJsonV200
   )
   
-  val postApiCollectionJson400 = PostApiCollectionJson400(apiCollectionNameExample.value, true, descriptionExample.value)
+  val postApiCollectionJson400 = PostApiCollectionJson400(apiCollectionNameExample.value, true, Some(descriptionExample.value))
   
   val apiCollectionJson400 = ApiCollectionJson400(apiCollectionIdExample.value, userIdExample.value, apiCollectionNameExample.value, true, descriptionExample.value)
   val apiCollectionsJson400 = ApiCollectionsJson400(List(apiCollectionJson400))
@@ -4285,7 +4285,7 @@ object SwaggerDefinitionsJSON {
     requestVerb = requestVerbExample.value, 
     requestUrl = requestUrlExample.value, 
     summary = dynamicResourceDocSummaryExample.value, 
-    description = dynamicResourceDocdescriptionExample.value, 
+    description = dynamicResourceDocDescriptionExample.value, 
     exampleRequestBody = Option(json.parse(exampleRequestBodyExample.value)),
     successResponseBody = Option(json.parse(successResponseBodyExample.value)),
     errorResponseBodies = errorResponseBodiesExample.value, 

@@ -19,7 +19,7 @@
 @import url(/media/css/fonts.css);
 
 html {
-	font-family: "Roboto-Regular";
+	font-family: Roboto-Regular,sans-serif;
 	height: 100%
 }
 
@@ -31,7 +31,7 @@ body {
 }
 
 a {
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	color: #333333;
 	text-decoration: none;
 }
@@ -133,7 +133,7 @@ header #lift__noticesContainer__ {
 }
 
 .btn-danger {
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #FFFFFF;
 	text-align: center;
@@ -164,8 +164,7 @@ header #lift__noticesContainer__ {
 	padding-bottom: 11px;
 	padding-left: 20px;
 	padding-right: 20px;
-	font-family: Roboto-Regular;
-	font-size: 16px;
+	font-family: Roboto-Regular,sans-serif;
 	color: #333333;
 	text-align: center;
 	line-height: 24px;
@@ -213,7 +212,7 @@ input[type="text"]{
 }
 .select2-results__option {
 	padding: 6px;
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #333333;
 	line-height: 24px;
@@ -224,7 +223,7 @@ input[type="text"]{
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #333333;
 	line-height: 24px;
@@ -275,7 +274,7 @@ input[type="text"]{
 }
 
 body {
-	font-family: "Roboto-Light";
+	font-family: Roboto-Light,sans-serif;
 }
 
 header #header-decoration,
@@ -300,7 +299,6 @@ header #header-decoration,
 	min-width: 43%;
 	padding: 6%;
 	padding-top: 6%;
-	padding-right: 6%;
 	padding-bottom: 6%;
 	padding-left: 6%;
 	padding-right: 10%;
@@ -426,9 +424,8 @@ input{
 
 #add-user-auth-context-update-request-div #identifier-error .error,
 #confirm-user-auth-context-update-request-div #otp-value-error .error{
-	color: black;
 	background-color: white;
-	font-family: Roboto-Regular;
+	font-family: Roboto-Regular,sans-serif;
 	font-size: 16px;
 	color: #333333;
 	line-height: 24px;

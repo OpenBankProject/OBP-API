@@ -1666,7 +1666,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def buildOperationId(apiVersion: ScannedApiVersion, partialFunctionName: String) =
-    s"${apiVersion.fullyQualifiedVersion}-$partialFunctionName"
+    s"${apiVersion.fullyQualifiedVersion}-$partialFunctionName".trim
 
   //This is correct: OBPv3.0.0-getCoreAccountById
   //This is OBPv4_0_0-dynamicEntity_deleteFooBar33
@@ -2766,12 +2766,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // COMMON POST AUTHENTICATION CODE GOES BELOW
 
     // Check is it a user deleted or locked
-    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = ApiAuth.checkUserIsDeletedOrLocked(res)
+    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(res)
     // Check Rate Limiting
-    val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = ApiAuth.checkRateLimiting(userIsLockedOrDeleted)
+    val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
+    // User init actions
+    val resultWithUserInitActions: Future[(Box[User], Option[CallContext])] = AfterApiAuth.outerLoginUserInitAction(resultWithRateLimiting)
 
     // Update Call Context
-    resultWithRateLimiting map {
+    resultWithUserInitActions map {
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))

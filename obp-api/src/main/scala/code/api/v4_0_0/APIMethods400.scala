@@ -64,7 +64,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{ListResult, _}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
-import deletion.{DeleteAccountCascade, DeleteProductCascade, DeleteTransactionCascade}
+import deletion.{DeleteAccountCascade, DeleteBankCascade, DeleteProductCascade, DeleteTransactionCascade}
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -81,6 +81,8 @@ import org.apache.commons.lang3.StringUtils
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
+
+import code.api.util.Glossary.getGlossaryItem
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -2741,16 +2743,33 @@ trait APIMethods400 {
       nameOf(createUserWithRoles),
       "POST",
       "/user-entitlements",
-      "Create User with Roles",
-      """This will create the User with user_id and provider if it does not exist
+      "Create (DAuth) User with Roles",
+      s"""
+        |This endpoint is used as part of the DAuth solution to grant Entitlements for Roles to a smart contract on the blockchain.
         |
-        |Create Entitlement. Grant Role to User.
+        |Put the smart contract address in username
+        |
+        |For provider use "dauth"
+        |
+        |This endpoint will create the User with username and provider if the User does not already exist.
+        |
+        |Then it will create Entitlements i.e. grant Roles to the User.
         |
         |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |i.e. Entitlements are used to create / consume system or bank level resources where as views / account access are used to consume / create customer level resources.
         |
         |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
         |
         |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Note: The Roles actually granted will depend on the Roles that the calling user has.
+        |
+        |If you try to grant Entitlements to a user that already exist (duplicate entitilements) you will get an error.
+        |
+        |For information about DAuth see below:
+        |
+        |${getGlossaryItem("DAuth")}
         |
         |""",
       postCreateUserWithRolesJsonV400,
@@ -2765,7 +2784,7 @@ trait APIMethods400 {
         InvalidUserProvider,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle))
+      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle, apiTagDAuth))
 
     lazy val createUserWithRoles: OBPEndpoint = {
       case "user-entitlements" :: Nil JsonPost json -> _ =>  {
@@ -2782,11 +2801,6 @@ trait APIMethods400 {
               postedData.provider.startsWith("dauth.")
             }
 
-            //user_id set the length for the min length of the userId. eg: 36
-            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
-              postedData.user_id.length>=36
-            }
-            
             //check the system role bankId is Empty, but bank level role need bankId 
             _ <- checkRoleBankIdMappings(callContext, postedData)
 
@@ -2796,7 +2810,7 @@ trait APIMethods400 {
 
             canCreateEntitlementAtAnyBankRole = Entitlement.entitlement.vend.getEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank.toString())
             
-            (targetUser, callContext) <- NewStyle.function.getOrCreateUser(postedData.user_id, postedData.provider, callContext)
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postedData.username, postedData.provider, callContext)
 
             _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) { 
               //If the loggedIn User has `CanCreateEntitlementAtAnyBankRole` role, then we can grant all the requestRoles to the requestUser.
@@ -2808,7 +2822,7 @@ trait APIMethods400 {
               assertUserCanGrantRoles(loggedInUser.userId, postedData.roles, callContext)
             }
 
-            addedEntitlements <- addEntitlementsToUser(postedData, callContext)
+            addedEntitlements <- addEntitlementsToUser(targetUser.userId, postedData, callContext)
             
           } yield {
             (JSONFactory400.createEntitlementJSONs(addedEntitlements), HttpCode.`201`(callContext))
@@ -3874,6 +3888,12 @@ trait APIMethods400 {
          |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
          |Thus the User can manage the bank they create and assign Roles to other Users.
          |
+         |Only SANDBOX mode
+         |The settlement accounts are created specified by the bank in the POST body.
+         |Name and account id are created in accordance to the next rules:
+         |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
+         |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
+         |
          |""",
       bankJson400,
       bankJson400,
@@ -3927,6 +3947,13 @@ trait APIMethods400 {
                 Future()
               case false =>
                 Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
+            }
+            _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Future()
+              case false =>
+                Future(Entitlement.entitlement.vend.addEntitlement(bank.id, cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
             }
           } yield {
             (JSONFactory400.createBankJSON400(success), HttpCode.`201`(callContext))
@@ -4249,13 +4276,23 @@ trait APIMethods400 {
       nameOf(createUserWithAccountAccess),
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/user-account-access",
-      "Create User with Account Access",
-      s"""This will create the User with user_id and provider if it does not exist .
+      "Create (DAuth) User with Account Access",
+      s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
          |
-         |${authenticationRequiredMessage(true)} and the loggedin user needs to be account holder.
+         |Put the smart contract address in username
+         |
+         |For provider use "dauth"
+         |
+         |This endpoint will create the (DAuth) User with username and provider if the User does not already exist.
+         |
+         |${authenticationRequiredMessage(true)} and the logged in user needs to be account holder.
+         |
+         |For information about DAuth see below:
+         |
+         |${getGlossaryItem("DAuth")}
          |
          |""",
-      postCreateUserWithRolesJsonV400,
+      postCreateUserAccountAccessJsonV400,
       List(viewJsonV300),
       List(
         $UserNotLoggedIn,
@@ -4266,7 +4303,7 @@ trait APIMethods400 {
         CannotGrantAccountAccess,
         UnknownError
       ),
-      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagNewStyle))
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth, apiTagNewStyle))
 
     lazy val createUserWithAccountAccess : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "user-account-access" :: Nil JsonPost json -> _ => {
@@ -4281,15 +4318,10 @@ trait APIMethods400 {
               postJson.provider.startsWith("dauth.")
             }
 
-            //user_id set the length for the min length of the userId. eg: 36
-            _ <- Helper.booleanToFuture(s"$InvalidUserId The user.user_id length must be at least 36. ", cc=Some(cc)) {
-              postJson.user_id.length>=36
-            }
-
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
-            (user, callContext) <- NewStyle.function.getOrCreateUser(postJson.user_id, postJson.provider, cc.callContext)
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.username, postJson.provider, cc.callContext)
             views <- getViews(bankId, accountId, postJson, callContext)
-            addedView <- createAccountAccessesToUser(bankId, accountId, user, views, callContext)
+            addedView <- createAccountAccessesToUser(bankId, accountId, targetUser, views, callContext)
           } yield {
             val viewsJson = addedView.map(JSONFactory300.createViewJSON(_))
             (viewsJson, HttpCode.`201`(callContext))
@@ -7263,6 +7295,41 @@ trait APIMethods400 {
             (Full(true), HttpCode.`200`(cc))
           }
       }
+    }  
+    
+    staticResourceDocs += ResourceDoc(
+      deleteBankCascade,
+      implementedInApiVersion,
+      nameOf(deleteBankCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID",
+      "Delete Bank Cascade",
+      s"""Delete a Bank Cascade specified by BANK_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canDeleteBankCascade)))
+
+    lazy val deleteBankCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            _ <- Future(DeleteBankCascade.atomicDelete(bankId))
+          } yield {
+            (Full(true), HttpCode.`200`(cc))
+          }
+      }
     }
     
     staticResourceDocs += ResourceDoc(
@@ -8058,7 +8125,7 @@ trait APIMethods400 {
               cc.userId,
               postJson.api_collection_name,
               postJson.is_sharable,
-              postJson.description,
+              postJson.description.getOrElse(""),
               Some(cc)
             )
           } yield {
@@ -10927,8 +10994,8 @@ trait APIMethods400 {
     Future(Entitlement.entitlement.vend.addEntitlement(entitlement.bank_id, userId, entitlement.role_name)) map { unboxFull(_) }
   }
   
-  private def addEntitlementsToUser(postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
-    Future.sequence(postedData.roles.distinct.map(addEntitlementToUser(postedData.user_id, _, callContext)))
+  private def addEntitlementsToUser(userId:String, postedData: PostCreateUserWithRolesJsonV400, callContext: Option[CallContext]) = {
+    Future.sequence(postedData.roles.distinct.map(addEntitlementToUser(userId, _, callContext)))
   }
 
   /**

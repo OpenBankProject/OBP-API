@@ -115,6 +115,8 @@ object DirectLogin extends RestHelper with MdcLoggable {
       val authUser = AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")
       AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
       AuthUser.grantEmailDomainEntitlementsToUser(authUser)
+      // User init actions
+      AfterApiAuth.innerLoginUserInitAction(Full(authUser))
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
         this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin throw exception, details: $e" );

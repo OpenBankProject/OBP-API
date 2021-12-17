@@ -2,9 +2,10 @@ package code.api.util
 
 
 import code.api.util.APIUtil.parseDate
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UserHasMissingRoles, UserNotLoggedIn, UnknownError}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
+import code.apicollection.ApiCollection
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
 import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType}
 import com.openbankproject.commons.util.ReflectUtils
@@ -1200,8 +1201,8 @@ object ExampleValue {
   lazy val productAttributeIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("product_attribute_id", productAttributeIdExample)
 
-  lazy val isSystemExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("is_system", isSystemExample)
+  lazy val isSystemExample = ConnectorField("true", "If the view is the system level, then it is true")
+  glossaryItems += makeGlossaryItem("view.is_system", isSystemExample)
 
   lazy val detailsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("details", detailsExample)
@@ -1308,7 +1309,7 @@ object ExampleValue {
   lazy val webUiPropsIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("web_ui_props_id", webUiPropsIdExample)
 
-  lazy val providerExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val providerExample = ConnectorField("ETHEREUM","the provider name ")
   glossaryItems += makeGlossaryItem("provider", providerExample)
 
   lazy val canSeePhysicalLocationExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -2061,11 +2062,11 @@ object ExampleValue {
   lazy val indexExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("index", indexExample)
 
-  lazy val descriptionExample = ConnectorField("This is used for customer x!","The human readable description here.")
+  lazy val descriptionExample = ConnectorField(s"This an optional field. Maximum length is ${ApiCollection.Description.maxLen}. It can be any characters here.","The human readable description here.")
   glossaryItems += makeGlossaryItem("description", descriptionExample)
 
-  lazy val dynamicResourceDocdescriptionExample = ConnectorField("Create one User", "the description for this endpoint")
-  glossaryItems += makeGlossaryItem("DynamicResourceDoc.description", dynamicResourceDocdescriptionExample)
+  lazy val dynamicResourceDocDescriptionExample = ConnectorField("Create one User", "the description for this endpoint")
+  glossaryItems += makeGlossaryItem("DynamicResourceDoc.description", dynamicResourceDocDescriptionExample)
 
   lazy val canDeleteCommentExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_delete_comment", canDeleteCommentExample)

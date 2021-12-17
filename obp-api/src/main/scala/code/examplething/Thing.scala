@@ -10,15 +10,15 @@ import net.liftweb.util.SimpleInjector
 object Thing extends SimpleInjector {
 
     val thingProvider = new Inject(buildOne _) {}
-   // def buildOne: ThingProvider = MappedThingProvider
+    def buildOne: ThingProvider = MappedThingProvider
 
-
-  // This determines the provider we use
-  def buildOne: ThingProvider =
-    APIUtil.getPropsValue("provider.thing").openOr("mapped") match {
-      case "mapped" => MappedThingProvider
-      case _ => MappedThingProvider
-    }
+  //If you set props `provider.thing`, you can set to different providers
+//  // This determines the provider we use
+//  def buildOne: ThingProvider =
+//    APIUtil.getPropsValue("provider.thing").openOr("mapped") match {
+//      case "mapped" => MappedThingProvider
+//      case _ => MappedThingProvider
+//    }
 
 }
 

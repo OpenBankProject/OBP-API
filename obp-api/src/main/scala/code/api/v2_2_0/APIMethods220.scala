@@ -1,7 +1,6 @@
 package code.api.v2_2_0
 
 import java.util.Date
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canCreateBranch, _}
@@ -14,6 +13,7 @@ import code.api.v2_1_0._
 import code.api.v2_2_0.JSONFactory220.transformV220ToBranch
 import code.bankconnectors._
 import code.consumer.Consumers
+import code.entitlement.Entitlement
 import code.fx.{MappedFXRate, fx}
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metrics.ConnectorMetricsProvider
@@ -455,6 +455,23 @@ trait APIMethods220 {
               bank.bank_routing.scheme,
               bank.bank_routing.address
             )
+            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserId(u.userId)
+            
+            entitlementsByBank = entitlements.filter(_.bankId==bank.id)
+            _ <- entitlementsByBank.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Full()
+              case false =>
+                Full(Entitlement.entitlement.vend.addEntitlement(bank.id, u.userId, CanCreateEntitlementAtOneBank.toString()))
+            }
+            _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Full()
+              case false =>
+                Full(Entitlement.entitlement.vend.addEntitlement(bank.id, u.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+            }
           } yield {
             val json = JSONFactory220.createBankJSON(success)
             createdJsonResponse(Extraction.decompose(json))
