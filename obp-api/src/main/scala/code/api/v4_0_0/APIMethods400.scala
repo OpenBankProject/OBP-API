@@ -7315,7 +7315,6 @@ trait APIMethods400 {
       List(
         $UserNotLoggedIn,
         $BankNotFound,
-        $BankAccountNotFound,
         UserHasMissingRoles,
         UnknownError
       ),
