@@ -216,6 +216,9 @@ object DynamicEndpointHelper extends RestHelper {
         s"""
           |
           |MethodRouting settings example:
+          |
+          |<details>
+          |
           |```
           |{
           |  "is_bank_id_exact_match":false,
@@ -239,6 +242,7 @@ object DynamicEndpointHelper extends RestHelper {
           |}
           |```
           |
+          |</details>
           |""".stripMargin
       val exampleRequestBody: Product = getRequestExample(openAPI, op.getRequestBody)
       val (successCode, successResponseBody: Product) = getResponseExample(openAPI, op.getResponses)
