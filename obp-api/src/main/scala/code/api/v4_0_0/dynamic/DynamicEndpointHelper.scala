@@ -595,6 +595,10 @@ object DynamicEndpointHelper extends RestHelper {
         case v: Schema[_] if StringUtils.isNotBlank(v.get$ref()) =>
           val refSchema = getRefSchema(openAPI, v.get$ref())
           convertToProduct(rec(refSchema))
+        
+        //For OpenAPI30, have some default object, which do not have any ref.  
+        case v: Schema[_] if StringUtils.isNotBlank(v.getDescription) =>
+          getDefaultValue(v, v.getDescription)
 
         case v if v.getType() == "string" => "string"
         case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
