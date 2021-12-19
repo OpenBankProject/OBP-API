@@ -196,7 +196,14 @@ object DynamicEndpointHelper extends RestHelper {
     }
 
     val paths: mutable.Map[String, PathItem] = openAPI.getPaths.asScala
-    def entitlementSuffix(path: String) = Math.abs(path.hashCode).toString.substring(0, 3) // to avoid different swagger have same entitlement
+    def entitlementSuffix(path: String) = {
+      val pathHashCode = Math.abs(path.hashCode).toString
+      //eg: path can be "/" --> "/".hashCode => 47, the length is only 2, we need to prepare the worst case: 
+      if(pathHashCode.length>3)
+        pathHashCode.substring(0, 3)
+      else
+        pathHashCode.substring(0, 2)
+    } // to avoid different swagger have same entitlement
     val dynamicEndpointItems: mutable.Iterable[DynamicEndpointItem] = for {
       (path, pathItem) <- paths
       (method: HttpMethod, op: Operation) <- pathItem.readOperationsMap.asScala
