@@ -18,7 +18,7 @@ object MappedDynamicEndpointProvider extends DynamicEndpointProvider with Custom
   val dynamicEndpointTTL : Int = {
     if(Props.testMode) 0
     else //Better set this to 0, we maybe create multiple endpoints, when we create new ones. 
-      APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "32").toInt
+      APIUtil.getPropsValue(s"dynamicEndpoint.cache.ttl.seconds", "0").toInt
   }
 
   override def create(bankId:Option[String], userId: String, swaggerString: String): Box[DynamicEndpointT] = {
