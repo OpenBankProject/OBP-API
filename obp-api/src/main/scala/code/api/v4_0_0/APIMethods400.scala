@@ -1,5 +1,9 @@
 package code.api.v4_0_0
 
+import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.util.{Calendar, Date}
+
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -9,6 +13,7 @@ import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
+import code.api.util.Glossary.getGlossaryItem
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.api.util.migration.Migration
@@ -25,8 +30,8 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
 import code.api.v4_0_0.dynamic._
+import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
 import code.api.{ChargePolicy, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
@@ -41,7 +46,7 @@ import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
-import code.model.dataAccess.{AuthUser, BankAccountCreation, ResourceUser}
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
 import code.ratelimiting.RateLimitingDI
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
@@ -51,7 +56,7 @@ import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.userlocks.UserLocksProvider
-import code.users.{UserAgreement, Users}
+import code.users.Users
 import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
@@ -64,7 +69,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{ListResult, _}
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils, ScannedApiVersion}
-import deletion.{DeleteAccountCascade, DeleteBankCascade, DeleteProductCascade, DeleteTransactionCascade}
+import deletion._
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req, S}
@@ -78,11 +83,6 @@ import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailB
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
-import java.net.URLEncoder
-import java.text.SimpleDateFormat
-import java.util.{Calendar, Date}
-
-import code.api.util.Glossary.getGlossaryItem
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -7363,6 +7363,44 @@ trait APIMethods400 {
           for {
             (_, callContext) <- NewStyle.function.getProduct(bankId, code, Some(cc))
             _ <- Future(DeleteProductCascade.atomicDelete(bankId, code))
+          } yield {
+            (Full(true), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    staticResourceDocs += ResourceDoc(
+      deleteCustomerCascade,
+      implementedInApiVersion,
+      nameOf(deleteCustomerCascade),
+      "DELETE",
+      "/management/cascading/banks/BANK_ID/customers/CUSTOMER_ID",
+      "Delete Customer Cascade",
+      s"""Delete a Custoeer Cascade specified by CUSTOMER_ID.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerCascade)))
+
+    lazy val deleteCustomerCascade : OBPEndpoint = {
+      case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "customers" :: CustomerId(customerId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId.value, Some(cc))
+            _ <- Future(DeleteCustomerCascade.atomicDelete(customerId))
           } yield {
             (Full(true), HttpCode.`200`(callContext))
           }

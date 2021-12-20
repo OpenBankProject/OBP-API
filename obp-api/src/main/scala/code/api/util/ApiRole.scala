@@ -694,7 +694,10 @@ object ApiRole {
   lazy val canDeleteBankCascade = CanDeleteBankCascade()
   
   case class CanDeleteProductCascade(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteProductCascade = CanDeleteProductCascade()
+  lazy val canDeleteProductCascade = CanDeleteProductCascade()  
+  
+  case class CanDeleteCustomerCascade(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteCustomerCascade = CanDeleteCustomerCascade()
 
   case class CanGetConnectorEndpoint(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConnectorEndpoint = CanGetConnectorEndpoint()
