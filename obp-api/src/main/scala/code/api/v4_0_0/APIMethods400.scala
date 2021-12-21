@@ -11052,7 +11052,7 @@ trait APIMethods400 {
 
   private def createDynamicEndpointMethod(bankId: Option[String], json: JValue, cc: CallContext) = {
     for {
-      (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat+"The request json is not valid OpenAPIV3.", 400, cc.callContext) {
+      (postedJson, openAPI) <- NewStyle.function.tryons(InvalidJsonFormat+"The request json is not valid OpenAPIV3 or Swagger 2.0. Please check it in Swagger Editor or similar tools ", 400, cc.callContext) {
         //If it is bank level, we manually added /banks/bankId in all the paths:
         val jsonTweakedPath = DynamicEndpointHelper.addedBankToPath(json, bankId) 
         val swaggerContent = compactRender(jsonTweakedPath)
