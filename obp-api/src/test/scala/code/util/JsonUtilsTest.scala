@@ -892,36 +892,4 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
-
-//  "Swagger Version check" should "work well" taggedAs JsonUtilsTag in {
-
-  //OpenAPI3.0 
-//  https://github.com/OAI/OpenAPI-Specification/edit/main/examples/v3.0/uspto.json
-
-  //Swagger2.0
-//  https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v2.0/json/petstore.json
-  
-//    //1st: to know the swagger is 2.0 or 3.0
-//    
-//    val swaggerJValue = json.parse(dynamicEndpoint.swaggerString)
-//    val abc = swaggerJValue \ "swagger"
-//    val targetJValue =  JString(hostString)
-//    val targetJValue2 =  JField("url" , JString(hostString))
-//
-//    //If it is swagger2.0, need to replace `host` field.
-//    dynamicEndpoint.SwaggerString(json.compactRender(json.parse(dynamicEndpoint.swaggerString).replace("host" :: Nil, targetJValue))).saveMe()
-//    //If it is OpenAPI3.0, need to replace the `server` field.
-//    dynamicEndpoint.SwaggerString(json.compactRender(json.parse(dynamicEndpoint.swaggerString).replace("servers" :: Nil, JArray(JObject(targetJValue2)))).saveMe()
-//      
-//      
-//    val requestJson: JValue = JBool(true)
-//    val mapping = ("""{}""".stripMargin)
-//    val expectedJson = json.parse("""{}""".stripMargin)
-//
-//    val resultJson = buildJson(requestJson, mapping)
-//    val str1 = json.prettyRender(resultJson)
-//    println(str1)
-//    val str2 = json.prettyRender(expectedJson)
-//    str1 shouldEqual str2
-//  }
 }

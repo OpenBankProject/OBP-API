@@ -58,6 +58,26 @@ object DynamicEndpointHelper extends RestHelper {
 
   def isDynamicEntityResponse (serverUrl : String) = serverUrl matches (IsDynamicEntityUrl)
   def isMockedResponse (serverUrl : String) = serverUrl matches (IsMockUrlString)
+
+  /**
+   * @param openApiJson it can be swagger2.0 or openApi3.0
+   * @return the openapi
+   */
+  def getOpenApiVersion(openApiJson: String) ={
+    //1st: we check if it openAPI3.0,
+    //2rd: if not, we will check swgger2.0
+    //other case, we will return ""
+    val jValue = json.parse(openApiJson)
+    val openApiVersion = jValue \ "openapi"
+    val swaggerVersion = jValue \ "swagger"
+    if (openApiVersion != JNothing ) {
+      openApiVersion.values.toString
+    } else if (swaggerVersion != JNothing){
+      swaggerVersion.values.toString
+    }else{
+      ""
+    }
+  }
   
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll(None)
