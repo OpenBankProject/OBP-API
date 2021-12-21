@@ -60,23 +60,57 @@ object DynamicEndpointHelper extends RestHelper {
   def isMockedResponse (serverUrl : String) = serverUrl matches (IsMockUrlString)
 
   /**
+   * 1st: we check if it OpenAPI3.0,
+   * 2rd: if not, we will check Swagger2.0
+   * other case, we will return ""
    * @param openApiJson it can be swagger2.0 or openApi3.0
    * @return the openapi
    */
   def getOpenApiVersion(openApiJson: String) ={
-    //1st: we check if it openAPI3.0,
-    //2rd: if not, we will check swgger2.0
-    //other case, we will return ""
     val jValue = json.parse(openApiJson)
     val openApiVersion = jValue \ "openapi"
     val swaggerVersion = jValue \ "swagger"
     if (openApiVersion != JNothing ) {
-      openApiVersion.values.toString
+      openApiVersion.values.toString.trim
     } else if (swaggerVersion != JNothing){
-      swaggerVersion.values.toString
+      swaggerVersion.values.toString.trim
     }else{
       ""
     }
+  }
+
+  /**
+   * 1st: we check if it OpenAPI3.0, we will keep the OpenAPI3.0 format
+   * 
+   * 2rd: if not, we will change it as Swagger2.0 format
+   * 
+   */
+  def changeOpenApiVersionHost(openApiJson: String, newHost:String) ={
+    //for this case, there is no host/servers object, we will add the object
+    //https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
+    val openApiVersion = getOpenApiVersion(openApiJson)
+    val openApiJValue = json.parse(openApiJson)
+    val serversField = openApiJValue \ "servers"
+    val hostField = openApiJValue \ "host"
+    
+    if (openApiVersion.startsWith("3.") && serversField != JNothing) {
+      json.compactRender(openApiJValue.replace("servers"::Nil, JArray(List(JObject(List(JField("url",newHost)))))))
+    } else if (openApiVersion.startsWith("3.") && serversField == JNothing) {
+      val newServers =  json.parse(s"""{
+                          |  "servers": [
+                          |    {
+                          |      "url": "$newHost"
+                          |    }
+                          |  ]
+                          |}""".stripMargin)
+      json.compactRender(openApiJValue merge newServers)
+    } else if(hostField != JNothing){
+      json.compactRender(openApiJValue.replace("host" :: Nil, JString(newHost)))
+    } else {
+      val host =  json.parse(s"""{"host":  "$newHost"}""".stripMargin)
+      json.compactRender(openApiJValue merge host)
+    }
+   
   }
   
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
