@@ -7377,7 +7377,7 @@ trait APIMethods400 {
       "DELETE",
       "/management/cascading/banks/BANK_ID/customers/CUSTOMER_ID",
       "Delete Customer Cascade",
-      s"""Delete a Custoeer Cascade specified by CUSTOMER_ID.
+      s"""Delete a Customer Cascade specified by CUSTOMER_ID.
          |
          |
          |${authenticationRequiredMessage(true)}
