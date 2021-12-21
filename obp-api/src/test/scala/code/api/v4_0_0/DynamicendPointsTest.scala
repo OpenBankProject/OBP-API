@@ -1937,7 +1937,490 @@ class DynamicEndpointsTest extends V400ServerSetup {
       responseWithRolePut.code should equal(201)
       (responseWithRolePut.body \ "host").asInstanceOf[JString].s shouldEqual (dynamicEndpointHostJson.host)
 
+    }
 
+    scenario("We will call the endpoint with user credentials - OpenAPI3.0", ApiEndpoint7, VersionOfApi) {
+      When("We make a request v4.0.0")
+      //  OpenAPI3.0 
+      //  https://github.com/OAI/OpenAPI-Specification/edit/main/examples/v3.0/uspto.json
+      val openApiV301 ="""{
+                         |  "openapi": "3.0.1",
+                         |  "servers": [
+                         |    {
+                         |      "url": "{scheme}://developer.uspto.gov/ds-api",
+                         |      "variables": {
+                         |        "scheme": {
+                         |          "description": "The Data Set API is accessible via https and http",
+                         |          "enum": [
+                         |            "https",
+                         |            "http"
+                         |          ],
+                         |          "default": "https"
+                         |        }
+                         |      }
+                         |    }
+                         |  ],
+                         |  "info": {
+                         |    "description": "The Data Set API (DSAPI) allows the public users to discover and search USPTO exported data sets. This is a generic API that allows USPTO users to make any CSV based data files searchable through API. With the help of GET call, it returns the list of data fields that are searchable. With the help of POST call, data can be fetched based on the filters on the field names. Please note that POST call is used to search the actual data. The reason for the POST call is that it allows users to specify any complex search criteria without worry about the GET size limitations as well as encoding of the input parameters.",
+                         |    "version": "1.0.0",
+                         |    "title": "USPTO Data Set API",
+                         |    "contact": {
+                         |      "name": "Open Data Portal",
+                         |      "url": "https://developer.uspto.gov",
+                         |      "email": "developer@uspto.gov"
+                         |    }
+                         |  },
+                         |  "tags": [
+                         |    {
+                         |      "name": "metadata",
+                         |      "description": "Find out about the data sets"
+                         |    },
+                         |    {
+                         |      "name": "search",
+                         |      "description": "Search a data set"
+                         |    }
+                         |  ],
+                         |  "paths": {
+                         |    "/": {
+                         |      "get": {
+                         |        "tags": [
+                         |          "metadata"
+                         |        ],
+                         |        "operationId": "list-data-sets",
+                         |        "summary": "List available data sets",
+                         |        "responses": {
+                         |          "200": {
+                         |            "description": "Returns a list of data sets",
+                         |            "content": {
+                         |              "application/json": {
+                         |                "schema": {
+                         |                  "$ref": "#/components/schemas/dataSetList"
+                         |                },
+                         |                "example": {
+                         |                  "total": 2,
+                         |                  "apis": [
+                         |                    {
+                         |                      "apiKey": "oa_citations",
+                         |                      "apiVersionNumber": "v1",
+                         |                      "apiUrl": "https://developer.uspto.gov/ds-api/oa_citations/v1/fields",
+                         |                      "apiDocumentationUrl": "https://developer.uspto.gov/ds-api-docs/index.html?url=https://developer.uspto.gov/ds-api/swagger/docs/oa_citations.json"
+                         |                    },
+                         |                    {
+                         |                      "apiKey": "cancer_moonshot",
+                         |                      "apiVersionNumber": "v1",
+                         |                      "apiUrl": "https://developer.uspto.gov/ds-api/cancer_moonshot/v1/fields",
+                         |                      "apiDocumentationUrl": "https://developer.uspto.gov/ds-api-docs/index.html?url=https://developer.uspto.gov/ds-api/swagger/docs/cancer_moonshot.json"
+                         |                    }
+                         |                  ]
+                         |                }
+                         |              }
+                         |            }
+                         |          }
+                         |        }
+                         |      }
+                         |    },
+                         |    "/{dataset}/{version}/fields": {
+                         |      "get": {
+                         |        "tags": [
+                         |          "metadata"
+                         |        ],
+                         |        "summary": "Provides the general information about the API and the list of fields that can be used to query the dataset.",
+                         |        "description": "This GET API returns the list of all the searchable field names that are in the oa_citations. Please see the 'fields' attribute which returns an array of field names. Each field or a combination of fields can be searched using the syntax options shown below.",
+                         |        "operationId": "list-searchable-fields",
+                         |        "parameters": [
+                         |          {
+                         |            "name": "dataset",
+                         |            "in": "path",
+                         |            "description": "Name of the dataset.",
+                         |            "required": true,
+                         |            "example": "oa_citations",
+                         |            "schema": {
+                         |              "type": "string"
+                         |            }
+                         |          },
+                         |          {
+                         |            "name": "version",
+                         |            "in": "path",
+                         |            "description": "Version of the dataset.",
+                         |            "required": true,
+                         |            "example": "v1",
+                         |            "schema": {
+                         |              "type": "string"
+                         |            }
+                         |          }
+                         |        ],
+                         |        "responses": {
+                         |          "200": {
+                         |            "description": "The dataset API for the given version is found and it is accessible to consume.",
+                         |            "content": {
+                         |              "application/json": {
+                         |                "schema": {
+                         |                  "type": "string"
+                         |                }
+                         |              }
+                         |            }
+                         |          },
+                         |          "404": {
+                         |            "description": "The combination of dataset name and version is not found in the system or it is not published yet to be consumed by public.",
+                         |            "content": {
+                         |              "application/json": {
+                         |                "schema": {
+                         |                  "type": "string"
+                         |                }
+                         |              }
+                         |            }
+                         |          }
+                         |        }
+                         |      }
+                         |    },
+                         |    "/{dataset}/{version}/records": {
+                         |      "post": {
+                         |        "tags": [
+                         |          "search"
+                         |        ],
+                         |        "summary": "Provides search capability for the data set with the given search criteria.",
+                         |        "description": "This API is based on Solr/Lucene Search. The data is indexed using SOLR. This GET API returns the list of all the searchable field names that are in the Solr Index. Please see the 'fields' attribute which returns an array of field names. Each field or a combination of fields can be searched using the Solr/Lucene Syntax. Please refer https://lucene.apache.org/core/3_6_2/queryparsersyntax.html#Overview for the query syntax. List of field names that are searchable can be determined using above GET api.",
+                         |        "operationId": "perform-search",
+                         |        "parameters": [
+                         |          {
+                         |            "name": "version",
+                         |            "in": "path",
+                         |            "description": "Version of the dataset.",
+                         |            "required": true,
+                         |            "schema": {
+                         |              "type": "string",
+                         |              "default": "v1"
+                         |            }
+                         |          },
+                         |          {
+                         |            "name": "dataset",
+                         |            "in": "path",
+                         |            "description": "Name of the dataset. In this case, the default value is oa_citations",
+                         |            "required": true,
+                         |            "schema": {
+                         |              "type": "string",
+                         |              "default": "oa_citations"
+                         |            }
+                         |          }
+                         |        ],
+                         |        "responses": {
+                         |          "200": {
+                         |            "description": "successful operation",
+                         |            "content": {
+                         |              "application/json": {
+                         |                "schema": {
+                         |                  "type": "array",
+                         |                  "items": {
+                         |                    "type": "object",
+                         |                    "additionalProperties": {
+                         |                      "type": "object"
+                         |                    }
+                         |                  }
+                         |                }
+                         |              }
+                         |            }
+                         |          },
+                         |          "404": {
+                         |            "description": "No matching record found for the given criteria."
+                         |          }
+                         |        },
+                         |        "requestBody": {
+                         |          "content": {
+                         |            "application/x-www-form-urlencoded": {
+                         |              "schema": {
+                         |                "type": "object",
+                         |                "properties": {
+                         |                  "criteria": {
+                         |                    "description": "Uses Lucene Query Syntax in the format of propertyName:value, propertyName:[num1 TO num2] and date range format: propertyName:[yyyyMMdd TO yyyyMMdd]. In the response please see the 'docs' element which has the list of record objects. Each record structure would consist of all the fields and their corresponding values.",
+                         |                    "type": "string",
+                         |                    "default": "*:*"
+                         |                  },
+                         |                  "start": {
+                         |                    "description": "Starting record number. Default value is 0.",
+                         |                    "type": "integer",
+                         |                    "default": 0
+                         |                  },
+                         |                  "rows": {
+                         |                    "description": "Specify number of rows to be returned. If you run the search with default values, in the response you will see 'numFound' attribute which will tell the number of records available in the dataset.",
+                         |                    "type": "integer",
+                         |                    "default": 100
+                         |                  }
+                         |                },
+                         |                "required": [
+                         |                  "criteria"
+                         |                ]
+                         |              }
+                         |            }
+                         |          }
+                         |        }
+                         |      }
+                         |    }
+                         |  },
+                         |  "components": {
+                         |    "schemas": {
+                         |      "dataSetList": {
+                         |        "type": "object",
+                         |        "properties": {
+                         |          "total": {
+                         |            "type": "integer"
+                         |          },
+                         |          "apis": {
+                         |            "type": "array",
+                         |            "items": {
+                         |              "type": "object",
+                         |              "properties": {
+                         |                "apiKey": {
+                         |                  "type": "string",
+                         |                  "description": "To be used as a dataset parameter value"
+                         |                },
+                         |                "apiVersionNumber": {
+                         |                  "type": "string",
+                         |                  "description": "To be used as a version parameter value"
+                         |                },
+                         |                "apiUrl": {
+                         |                  "type": "string",
+                         |                  "format": "uriref",
+                         |                  "description": "The URL describing the dataset's fields"
+                         |                },
+                         |                "apiDocumentationUrl": {
+                         |                  "type": "string",
+                         |                  "format": "uriref",
+                         |                  "description": "A URL to the API console for each API"
+                         |                }
+                         |              }
+                         |            }
+                         |          }
+                         |        }
+                         |      }
+                         |    }
+                         |  }
+                         |}""".stripMargin
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
+   
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
+
+      val responseWithRole = makePostRequest(request, openApiV301)
+      Then("We should get a 201")
+      responseWithRole.code should equal(201)
+      responseWithRole.body.toString contains("dynamic_endpoint_id") should be (true)
+      val dynamicEndpointId = (responseWithRole.body \"dynamic_endpoint_id").asInstanceOf[JString].s
+
+      Then("We update the host")
+      val dynamicEndpointHostJson = SwaggerDefinitionsJSON.dynamicEndpointHostJson400
+
+      When("We make a request v4.0.0")
+      val requestPut = (v4_0_0_Request / "management" / "dynamic-endpoints"/dynamicEndpointId/ "host").PUT<@ (user1)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateDynamicEndpoint.toString)
+
+      When("We make a request v4.0.0")
+      val responseWithRolePut = makePutRequest(requestPut, write(dynamicEndpointHostJson))
+      Then("We should get a 201")
+      responseWithRolePut.code should equal(201)
+      (responseWithRolePut.body \ "servers").toString contains dynamicEndpointHostJson.host should be (true)
+    }
+
+    scenario("We will call the endpoint with user credentials - OpenAPI3.0 no host in json", ApiEndpoint7, VersionOfApi) {
+      When("We make a request v4.0.0")
+      //no host case: https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
+      val openApiV301NoHost = """{
+                                |  "openapi": "3.0.0",
+                                |  "info": {
+                                |    "title": "Simple API overview",
+                                |    "version": "2.0.0"
+                                |  },
+                                |  "paths": {
+                                |    "/": {
+                                |      "get": {
+                                |        "operationId": "listVersionsv2",
+                                |        "summary": "List API versions",
+                                |        "responses": {
+                                |          "200": {
+                                |            "description": "200 response",
+                                |            "content": {
+                                |              "application/json": {
+                                |                "examples": {
+                                |                  "foo": {
+                                |                    "value": {
+                                |                      "versions": [
+                                |                        {
+                                |                          "status": "CURRENT",
+                                |                          "updated": "2011-01-21T11:33:21Z",
+                                |                          "id": "v2.0",
+                                |                          "links": [
+                                |                            {
+                                |                              "href": "http://127.0.0.1:8774/v2/",
+                                |                              "rel": "self"
+                                |                            }
+                                |                          ]
+                                |                        },
+                                |                        {
+                                |                          "status": "EXPERIMENTAL",
+                                |                          "updated": "2013-07-23T11:33:21Z",
+                                |                          "id": "v3.0",
+                                |                          "links": [
+                                |                            {
+                                |                              "href": "http://127.0.0.1:8774/v3/",
+                                |                              "rel": "self"
+                                |                            }
+                                |                          ]
+                                |                        }
+                                |                      ]
+                                |                    }
+                                |                  }
+                                |                }
+                                |              }
+                                |            }
+                                |          },
+                                |          "300": {
+                                |            "description": "300 response",
+                                |            "content": {
+                                |              "application/json": {
+                                |                "examples": {
+                                |                  "foo": {
+                                |                    "value": "{\n \"versions\": [\n       {\n         \"status\": \"CURRENT\",\n         \"updated\": \"2011-01-21T11:33:21Z\",\n         \"id\": \"v2.0\",\n         \"links\": [\n             {\n                 \"href\": \"http://127.0.0.1:8774/v2/\",\n                 \"rel\": \"self\"\n             }\n         ]\n     },\n     {\n         \"status\": \"EXPERIMENTAL\",\n         \"updated\": \"2013-07-23T11:33:21Z\",\n         \"id\": \"v3.0\",\n         \"links\": [\n             {\n                 \"href\": \"http://127.0.0.1:8774/v3/\",\n                 \"rel\": \"self\"\n             }\n         ]\n     }\n ]\n}\n"
+                                |                  }
+                                |                }
+                                |              }
+                                |            }
+                                |          }
+                                |        }
+                                |      }
+                                |    },
+                                |    "/v2": {
+                                |      "get": {
+                                |        "operationId": "getVersionDetailsv2",
+                                |        "summary": "Show API version details",
+                                |        "responses": {
+                                |          "200": {
+                                |            "description": "200 response",
+                                |            "content": {
+                                |              "application/json": {
+                                |                "examples": {
+                                |                  "foo": {
+                                |                    "value": {
+                                |                      "version": {
+                                |                        "status": "CURRENT",
+                                |                        "updated": "2011-01-21T11:33:21Z",
+                                |                        "media-types": [
+                                |                          {
+                                |                            "base": "application/xml",
+                                |                            "type": "application/vnd.openstack.compute+xml;version=2"
+                                |                          },
+                                |                          {
+                                |                            "base": "application/json",
+                                |                            "type": "application/vnd.openstack.compute+json;version=2"
+                                |                          }
+                                |                        ],
+                                |                        "id": "v2.0",
+                                |                        "links": [
+                                |                          {
+                                |                            "href": "http://127.0.0.1:8774/v2/",
+                                |                            "rel": "self"
+                                |                          },
+                                |                          {
+                                |                            "href": "http://docs.openstack.org/api/openstack-compute/2/os-compute-devguide-2.pdf",
+                                |                            "type": "application/pdf",
+                                |                            "rel": "describedby"
+                                |                          },
+                                |                          {
+                                |                            "href": "http://docs.openstack.org/api/openstack-compute/2/wadl/os-compute-2.wadl",
+                                |                            "type": "application/vnd.sun.wadl+xml",
+                                |                            "rel": "describedby"
+                                |                          },
+                                |                          {
+                                |                            "href": "http://docs.openstack.org/api/openstack-compute/2/wadl/os-compute-2.wadl",
+                                |                            "type": "application/vnd.sun.wadl+xml",
+                                |                            "rel": "describedby"
+                                |                          }
+                                |                        ]
+                                |                      }
+                                |                    }
+                                |                  }
+                                |                }
+                                |              }
+                                |            }
+                                |          },
+                                |          "203": {
+                                |            "description": "203 response",
+                                |            "content": {
+                                |              "application/json": {
+                                |                "examples": {
+                                |                  "foo": {
+                                |                    "value": {
+                                |                      "version": {
+                                |                        "status": "CURRENT",
+                                |                        "updated": "2011-01-21T11:33:21Z",
+                                |                        "media-types": [
+                                |                          {
+                                |                            "base": "application/xml",
+                                |                            "type": "application/vnd.openstack.compute+xml;version=2"
+                                |                          },
+                                |                          {
+                                |                            "base": "application/json",
+                                |                            "type": "application/vnd.openstack.compute+json;version=2"
+                                |                          }
+                                |                        ],
+                                |                        "id": "v2.0",
+                                |                        "links": [
+                                |                          {
+                                |                            "href": "http://23.253.228.211:8774/v2/",
+                                |                            "rel": "self"
+                                |                          },
+                                |                          {
+                                |                            "href": "http://docs.openstack.org/api/openstack-compute/2/os-compute-devguide-2.pdf",
+                                |                            "type": "application/pdf",
+                                |                            "rel": "describedby"
+                                |                          },
+                                |                          {
+                                |                            "href": "http://docs.openstack.org/api/openstack-compute/2/wadl/os-compute-2.wadl",
+                                |                            "type": "application/vnd.sun.wadl+xml",
+                                |                            "rel": "describedby"
+                                |                          }
+                                |                        ]
+                                |                      }
+                                |                    }
+                                |                  }
+                                |                }
+                                |              }
+                                |            }
+                                |          }
+                                |        }
+                                |      }
+                                |    }
+                                |  }
+                                |}""".stripMargin
+
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
+
+      val responseWithRole = makePostRequest(request, openApiV301NoHost)
+      Then("We should get a 201")
+      responseWithRole.code should equal(201)
+      responseWithRole.body.toString contains("dynamic_endpoint_id") should be (true)
+      val dynamicEndpointId = (responseWithRole.body \"dynamic_endpoint_id").asInstanceOf[JString].s
+
+      Then("We update the host")
+      val dynamicEndpointHostJson = SwaggerDefinitionsJSON.dynamicEndpointHostJson400
+
+      When("We make a request v4.0.0")
+      val requestPut = (v4_0_0_Request / "management" / "dynamic-endpoints"/dynamicEndpointId/ "host").PUT<@ (user1)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateDynamicEndpoint.toString)
+
+      When("We make a request v4.0.0")
+      val responseWithRolePut = makePutRequest(requestPut, write(dynamicEndpointHostJson))
+      Then("We should get a 201")
+      responseWithRolePut.code should equal(201)
+      (responseWithRolePut.body \ "servers").toString contains dynamicEndpointHostJson.host should be (true)
     }
   }
 
