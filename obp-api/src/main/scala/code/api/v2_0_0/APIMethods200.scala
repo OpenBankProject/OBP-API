@@ -1958,10 +1958,10 @@ trait APIMethods200 {
             _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc=callContext) {
               ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
             }
-            allowedEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
-            allowedEntitlementsTxt = UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
+            requiredEntitlements = canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil
+            requiredEntitlementsTxt = UserNotSuperAdmin +" or" + UserHasMissingRoles + canCreateEntitlementAtOneBank + s" BankId(${postedData.bank_id})." + " or" + UserHasMissingRoles + canCreateEntitlementAtAnyBank
             _ <- if(isSuperAdmin(u.userId)) Future.successful(Full(Unit))
-                  else NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements, callContext)
+                  else NewStyle.function.hasAtLeastOneEntitlement(requiredEntitlementsTxt)(postedData.bank_id, u.userId, requiredEntitlements, callContext)
 
             _ <- Helper.booleanToFuture(failMsg = BankNotFound, cc=callContext) {
               postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false

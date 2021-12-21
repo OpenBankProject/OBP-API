@@ -20,8 +20,7 @@ nav .navbar-collapse.collapse {
     margin-left: 0;
 }
 .navbar-default .navbar-nav > li #navitem-logo img{
-    width:80px;
-    height: 40px;
+    height: 100%;
 }
 .navbar-default .navbar-nav > li > a {
     background-color: white;

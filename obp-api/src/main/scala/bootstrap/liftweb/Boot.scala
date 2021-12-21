@@ -120,7 +120,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.users.{UserAgreement, UserInvitation}
+import code.users.{UserAgreement, UserInitAction, UserInvitation}
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
@@ -131,7 +131,6 @@ import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
-
 import javax.mail.{Authenticator, PasswordAuthentication}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
@@ -963,7 +962,8 @@ object ToSchemify {
     DynamicResourceDoc,
     DynamicMessageDoc,
     EndpointTag,
-    ProductFee
+    ProductFee,
+    UserInitAction
   )++ APIBuilder_Connector.allAPIBuilderModels
 
   // start grpc server

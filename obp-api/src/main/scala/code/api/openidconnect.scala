@@ -29,7 +29,7 @@ package code.api
 import java.net.HttpURLConnection
 
 import code.api.util.APIUtil._
-import code.api.util.{APIUtil, ErrorMessages, JwtUtil}
+import code.api.util.{APIUtil, AfterApiAuth, ErrorMessages, JwtUtil}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.{AppType, Consumer}
@@ -126,18 +126,20 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
                       AuthUser.grantEmailDomainEntitlementsToUser(authUser)
                       // Grant roles according to the props email_domain_to_space_mappings
                       AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
+                      // User init actions
+                      AfterApiAuth.innerLoginUserInitAction(Full(authUser))
                       // Consumer
                       getOrCreateConsumer(idToken, user.userId) match {
                         case Full(consumer) =>
                           saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
                             case Full(token) => (200, "OK", Some(authUser))
-                            case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                            case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData+ "saveAuthorizationToken") 
                             case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "saveAuthorizationToken", Some(authUser))
                           }
-                        case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                        case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer")
                         case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer", Some(authUser))
                       }
-                    case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData)
+                    case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser")
                     case _ => (401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser", None)
                   }
                 case badObj@Failure(_, _, _) => chainErrorMessage(badObj, ErrorMessages.CouldNotSaveOpenIDConnectUser)

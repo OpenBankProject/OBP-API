@@ -29,7 +29,7 @@ package code.api
 import java.util.Date
 
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages.InvalidDirectLoginParameters
+import code.api.util.ErrorMessages.{InvalidDirectLoginParameters, attemptedToOpenAnEmptyBox}
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.consumer.Consumers._
@@ -115,6 +115,8 @@ object DirectLogin extends RestHelper with MdcLoggable {
       val authUser = AuthUser.findUserByUsernameLocally(resourceUser.name).openOrThrowException(s"$InvalidDirectLoginParameters can not find the auth user!")
       AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
       AuthUser.grantEmailDomainEntitlementsToUser(authUser)
+      // User init actions
+      AfterApiAuth.innerLoginUserInitAction(Full(authUser))
     } catch {
       case e: Throwable => // error handling, found wrong props value as early as possible.
         this.logger.error(s"directLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin throw exception, details: $e" );
@@ -251,6 +253,10 @@ object DirectLogin extends RestHelper with MdcLoggable {
     }
 
     S.request match {
+      // Recommended header style i.e. DirectLogin: username=s, password=s, consumer_key=s
+      case Full(a) if a.header("DirectLogin").isDefined == true =>
+        toMap(a.header("DirectLogin").openOrThrowException(attemptedToOpenAnEmptyBox + " => getAllParameters"))
+      // Deprecated header style i.e. Authorization: DirectLogin username=s, password=s, consumer_key=s
       case Full(a) => a.header("Authorization") match {
         case Full(header) => {
           if (header.contains("DirectLogin"))
@@ -258,11 +264,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
           else
             Map("error" -> "header incorrect")
         }
-        case _ => 
-          a.header("DirectLogin") match {
-            case Full(header) => toMap(header)
-            case _ => Map("error" -> "missing header")
-          }
+        case _ => Map("error" -> "missing header")
       }
       case _ => Map("error" -> "request incorrect")
     }
