@@ -104,7 +104,7 @@ class UserInvitation extends MdcLoggable {
       else {
         // Resource User table
         createResourceUser(
-          provider = "OBP-User-Invitation",
+          provider = "", // Let getProvider set this // TODO Make provider an enum
           providerId = Some(usernameVar.is),
           name = Some(usernameVar.is),
           email = Some(email),
