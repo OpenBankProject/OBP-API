@@ -104,7 +104,7 @@ class UserInvitation extends MdcLoggable {
       else {
         // Resource User table
         createResourceUser(
-          provider = "", // Let getProvider set this // TODO Make provider an enum
+          provider = APIUtil.getPropsValue("hostname",""), // TODO Make provider an enum
           providerId = Some(usernameVar.is),
           name = Some(usernameVar.is),
           email = Some(email),
