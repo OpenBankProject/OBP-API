@@ -36,7 +36,7 @@ import java.util.regex.Pattern
 import java.util.{Date, UUID}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL
 import io.swagger.v3.oas.models.examples.Example
-import net.liftweb.json.Formats
+import net.liftweb.json.{Formats, JBool}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
@@ -203,10 +203,22 @@ object DynamicEndpointHelper extends RestHelper {
 
             val mockResponse: Option[(Int, JValue)] = (serverUrl, doc.successResponseBody) match {
               case (IsMockUrl(), v: PrimaryDataBody[_]) =>
-                Some(code -> v.toJValue)
+                //If the openAPI json do not have response body, we return true as default
+                val response = if (v.toJValue == JNothing) {
+                  JBool(true)
+                } else{
+                  v.toJValue
+                }
+                Some(code -> response)
 
               case (IsMockUrl(), v: JValue) =>
-                Some(code -> v)
+                //If the openAPI json do not have response body, we return true as default
+                val response = if (v == JNothing) {
+                  JBool(true)
+                } else{
+                  v
+                }
+                Some(code -> response)
 
               case (IsMockUrl(), v) =>
                 Some(code -> json.Extraction.decompose(v))
