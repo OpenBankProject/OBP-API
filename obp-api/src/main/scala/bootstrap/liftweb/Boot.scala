@@ -776,7 +776,7 @@ class Boot extends MdcLoggable {
     val currentTime = now.toString
     val stackTrace = new String(outputStream.toByteArray)
     val error = currentTime + ": " + stackTrace
-    val host = APIUtil.getPropsValue("hostname", "unknown host")
+    val host = Constant.HostName
 
     val mailSent = for {
       from <- APIUtil.getPropsValue("mail.exception.sender.address") ?~ "Could not send mail: Missing props param for 'from'"

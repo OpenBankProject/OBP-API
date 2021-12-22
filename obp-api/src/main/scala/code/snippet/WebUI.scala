@@ -30,6 +30,7 @@ package code.snippet
 
 import java.io.InputStream
 
+import code.api.Constant
 import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
 import code.api.util.ApiRole.CanReadGlossary
 import code.api.util.{APIUtil, ApiRole, CustomJsonFormats, ErrorMessages, PegdownOptions}
@@ -200,14 +201,14 @@ class WebUI extends MdcLoggable{
 
   // Link to API
   def apiLink: CssSel = {
-    val hostname = scala.xml.Unparsed(APIUtil.getPropsValue("hostname", ""))
+    val hostname = scala.xml.Unparsed(Constant.HostName)
     ".api-link a *" #>  hostname &
     ".api-link a [href]" #> hostname
   }
 
   // Link to API Human
   def apiLinkHuman: CssSel = {
-    val hostname = scala.xml.Unparsed(APIUtil.getPropsValue("hostname", ""))
+    val hostname = scala.xml.Unparsed(Constant.HostName)
       ".api-link a [href]" #> hostname
   }
 

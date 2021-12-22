@@ -5,7 +5,7 @@ import java.util.UUID.randomUUID
 import java.util.{Date, GregorianCalendar}
 
 import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
-import code.api.APIFailureNewStyle
+import code.api.{APIFailureNewStyle, Constant}
 import code.api.util.APIUtil.fullBoxOrException
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
@@ -278,7 +278,7 @@ object Helper{
   }
 
   def getHostname(): String = {
-    APIUtil.getPropsValue("hostname", "") match {
+    Constant.HostName match {
       case s: String if s.nonEmpty => s.split(":").lift(1) match {
         case Some(s) => s.replaceAll("\\/", "").replaceAll("\\.", "-")
         case None => "unknown"

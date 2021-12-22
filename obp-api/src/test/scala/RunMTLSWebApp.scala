@@ -29,7 +29,7 @@ import java.lang.reflect.{Proxy => JProxy}
 import java.security.cert.X509Certificate
 
 import bootstrap.liftweb.Boot
-import code.api.RequestHeader
+import code.api.{Constant, RequestHeader}
 import code.api.util.APIUtil
 import code.setup.PropsProgrammatically
 import net.liftweb.http.LiftRules
@@ -47,9 +47,7 @@ object RunMTLSWebApp extends App with PropsProgrammatically {
   // Props hostname MUST be set to https protocol. 
   // Otherwise OAuth1.0a computed signature at OBP-API side cannot match API-Explorer generates
   // This automatic adjustment should enable out-of-box feature
-  APIUtil.getPropsValue("hostname").map{ x =>
-    setPropsValues("hostname"-> x.replaceFirst("http", "https"))
-  }
+  setPropsValues("hostname"-> Constant.HostName.replaceFirst("http", "https"))
 
   {
     val tempHTTPContext = JProxy.newProxyInstance(this.getClass.getClassLoader, Array(classOf[HTTPContext]),

@@ -28,7 +28,7 @@ package code.snippet
 
 import java.util
 
-import code.api.DirectLogin
+import code.api.{Constant, DirectLogin}
 import code.api.util.{APIUtil, ErrorMessages, X509}
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
@@ -126,8 +126,8 @@ class ConsumerRegistration extends MdcLoggable {
     }
 
     def showResults(consumer : Consumer) = {
-      val urlOAuthEndpoint = APIUtil.getPropsValue("hostname", "") + "/oauth/initiate"
-      val urlDirectLoginEndpoint = APIUtil.getPropsValue("hostname", "") + "/my/logins/direct"
+      val urlOAuthEndpoint = Constant.HostName + "/oauth/initiate"
+      val urlDirectLoginEndpoint = Constant.HostName + "/my/logins/direct"
       val jwksUri = jwksUriVar.is
       val jwks = jwksVar.is
       val jwsAlg = signingAlgVar.is
@@ -382,7 +382,7 @@ class ConsumerRegistration extends MdcLoggable {
       val consumerKeyOrMessage : String = if (sendSensitive) registered.key.get else "Configured so sensitive data is not sent by email (Consumer Key)."
       val consumerSecretOrMessage : String = if (sendSensitive) registered.secret.get else "Configured so sensitive data is not sent by email (Consumer Secret)."
 
-      val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
+      val thisApiInstance = Constant.HostName
       val apiExplorerUrl = getWebUiPropsValue("webui_api_explorer_url", "unknown host")
       val directLoginDocumentationUrl = getWebUiPropsValue("webui_direct_login_documentation_url", apiExplorerUrl + "/glossary#Direct-Login")
       val oauthDocumentationUrl = getWebUiPropsValue("webui_oauth_1_documentation_url", apiExplorerUrl + "/glossary#OAuth-1.0a")
@@ -433,7 +433,7 @@ class ConsumerRegistration extends MdcLoggable {
       toAddressesString <- APIUtil.getPropsValue("mail.api.consumer.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
     } yield {
 
-      val thisApiInstance = APIUtil.getPropsValue("hostname", "unknown host")
+      val thisApiInstance = Constant.HostName
       val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
       		s"Email: ${registered.developerEmail.get} \n" +
       		s"App name: ${registered.name.get} \n" +

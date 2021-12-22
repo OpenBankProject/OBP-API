@@ -28,6 +28,7 @@ package code.model.dataAccess
 
 import java.util.Date
 
+import code.api.Constant
 import code.api.util.APIUtil
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
@@ -68,7 +69,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     override def defaultValue = ""
   }
   object provider_ extends MappedString(this, 100){
-    override def defaultValue = APIUtil.getPropsValue("hostname","")
+    override def defaultValue = Constant.HostName
   }
 
   /**
