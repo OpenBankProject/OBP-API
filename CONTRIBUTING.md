@@ -20,6 +20,7 @@ Please structure git commit messages in a way as shown below:
 4. refactor/Something
 5. performance/Something
 6. test/Something
+7. enhancement/Something
 
 ## Code comments
 

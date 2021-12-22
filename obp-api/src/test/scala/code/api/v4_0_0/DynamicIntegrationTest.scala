@@ -25,28 +25,16 @@ class DynamicIntegrationTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object DynamicIntegration extends Tag("Dynamic Entity/Dynamic/Mapping")
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createBankLevelEndpointMapping))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getBankLevelEndpointMapping))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getAllBankLevelEndpointMappings))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.updateBankLevelEndpointMapping))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.deleteBankLevelEndpointMapping))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.createBankLevelDynamicEndpoint))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createBankLevelDynamicEntity))
 
-  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.createBankLevelDynamicEndpoint))
-  object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEndpoints))
-  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEndpoint))
-  object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.deleteBankLevelDynamicEndpoint))
-
-  object ApiEndpoint10 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEntities))
-  object ApiEndpoint11 extends Tag(nameOf(Implementations4_0_0.createBankLevelDynamicEntity))
-  object ApiEndpoint12 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEntities))
-  object ApiEndpoint13 extends Tag(nameOf(Implementations4_0_0.deleteBankLevelDynamicEntity))
-  object ApiEndpoint14 extends Tag(nameOf(Implementations4_0_0.updateBankLevelDynamicEntity))
 
 
   val mapping = endpointMappingRequestBodyExample
   val dynamicEntity = dynamicEntityRequestBodyExample.copy(bankId = None)
   val dynamicEndpoint = dynamicEndpointRequestBodyExample
   
-  feature("test Dynamic Entity/Endpoint and endpoint mappings together") {
+  feature(s"test Dynamic Entity/Endpoint and endpoint mappings together $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3") {
     scenario("test Dynamic Entity/Endpoint and endpoint mappings together ", DynamicIntegration, VersionOfApi) {
       //First, we need to prepare the dynamic entity, it should have two fields: name, balance.
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)

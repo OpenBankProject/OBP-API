@@ -35,7 +35,8 @@ import java.util
 import java.util.regex.Pattern
 import java.util.{Date, UUID}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL
-import net.liftweb.json.Formats
+import io.swagger.v3.oas.models.examples.Example
+import net.liftweb.json.{Formats, JBool}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
@@ -57,6 +58,60 @@ object DynamicEndpointHelper extends RestHelper {
 
   def isDynamicEntityResponse (serverUrl : String) = serverUrl matches (IsDynamicEntityUrl)
   def isMockedResponse (serverUrl : String) = serverUrl matches (IsMockUrlString)
+
+  /**
+   * 1st: we check if it OpenAPI3.0,
+   * 2rd: if not, we will check Swagger2.0
+   * other case, we will return ""
+   * @param openApiJson it can be swagger2.0 or openApi3.0
+   * @return the openapi
+   */
+  def getOpenApiVersion(openApiJson: String) ={
+    val jValue = json.parse(openApiJson)
+    val openApiVersion = jValue \ "openapi"
+    val swaggerVersion = jValue \ "swagger"
+    if (openApiVersion != JNothing ) {
+      openApiVersion.values.toString.trim
+    } else if (swaggerVersion != JNothing){
+      swaggerVersion.values.toString.trim
+    }else{
+      ""
+    }
+  }
+
+  /**
+   * 1st: we check if it OpenAPI3.0, we will keep the OpenAPI3.0 format
+   * 
+   * 2rd: if not, we will change it as Swagger2.0 format
+   * 
+   */
+  def changeOpenApiVersionHost(openApiJson: String, newHost:String) ={
+    //for this case, there is no host/servers object, we will add the object
+    //https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
+    val openApiVersion = getOpenApiVersion(openApiJson)
+    val openApiJValue = json.parse(openApiJson)
+    val serversField = openApiJValue \ "servers"
+    val hostField = openApiJValue \ "host"
+    
+    if (openApiVersion.startsWith("3.") && serversField != JNothing) {
+      json.compactRender(openApiJValue.replace("servers"::Nil, JArray(List(JObject(List(JField("url",newHost)))))))
+    } else if (openApiVersion.startsWith("3.") && serversField == JNothing) {
+      val newServers =  json.parse(s"""{
+                          |  "servers": [
+                          |    {
+                          |      "url": "$newHost"
+                          |    }
+                          |  ]
+                          |}""".stripMargin)
+      json.compactRender(openApiJValue merge newServers)
+    } else if(hostField != JNothing){
+      json.compactRender(openApiJValue.replace("host" :: Nil, JString(newHost)))
+    } else {
+      val host =  json.parse(s"""{"host":  "$newHost"}""".stripMargin)
+      json.compactRender(openApiJValue merge host)
+    }
+   
+  }
   
   private def dynamicEndpointInfos: List[DynamicEndpointInfo] = {
     val dynamicEndpoints: List[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.getAll(None)
@@ -148,10 +203,22 @@ object DynamicEndpointHelper extends RestHelper {
 
             val mockResponse: Option[(Int, JValue)] = (serverUrl, doc.successResponseBody) match {
               case (IsMockUrl(), v: PrimaryDataBody[_]) =>
-                Some(code -> v.toJValue)
+                //If the openAPI json do not have response body, we return true as default
+                val response = if (v.toJValue == JNothing) {
+                  JBool(true)
+                } else{
+                  v.toJValue
+                }
+                Some(code -> response)
 
               case (IsMockUrl(), v: JValue) =>
-                Some(code -> v)
+                //If the openAPI json do not have response body, we return true as default
+                val response = if (v == JNothing) {
+                  JBool(true)
+                } else{
+                  v
+                }
+                Some(code -> response)
 
               case (IsMockUrl(), v) =>
                 Some(code -> json.Extraction.decompose(v))
@@ -196,7 +263,14 @@ object DynamicEndpointHelper extends RestHelper {
     }
 
     val paths: mutable.Map[String, PathItem] = openAPI.getPaths.asScala
-    def entitlementSuffix(path: String) = Math.abs(path.hashCode).toString.substring(0, 3) // to avoid different swagger have same entitlement
+    def entitlementSuffix(path: String) = {
+      val pathHashCode = Math.abs(path.hashCode).toString
+      //eg: path can be "/" --> "/".hashCode => 47, the length is only 2, we need to prepare the worst case: 
+      if(pathHashCode.length>3)
+        pathHashCode.substring(0, 3)
+      else
+        pathHashCode.substring(0, 2)
+    } // to avoid different swagger have same entitlement
     val dynamicEndpointItems: mutable.Iterable[DynamicEndpointItem] = for {
       (path, pathItem) <- paths
       (method: HttpMethod, op: Operation) <- pathItem.readOperationsMap.asScala
@@ -216,6 +290,9 @@ object DynamicEndpointHelper extends RestHelper {
         s"""
           |
           |MethodRouting settings example:
+          |
+          |<details>
+          |
           |```
           |{
           |  "is_bank_id_exact_match":false,
@@ -239,6 +316,7 @@ object DynamicEndpointHelper extends RestHelper {
           |}
           |```
           |
+          |</details>
           |""".stripMargin
       val exampleRequestBody: Product = getRequestExample(openAPI, op.getRequestBody)
       val (successCode, successResponseBody: Product) = getResponseExample(openAPI, op.getResponses)
@@ -389,6 +467,12 @@ object DynamicEndpointHelper extends RestHelper {
           successResponse.flatMap(it => getMediaType(it.getContent))
         }
       maybeMediaType match {
+        // https://github.com/OAI/OpenAPI-Specification/blob/3.0.1/versions/3.0.1.md#mediaTypeObject
+        // following rule is also valid in Swagger UI using this json (object foo)
+        //: https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
+        // if schema is not null, then it has the 1st priority
+        // if schema is null, 2rd priority is examples.
+        // if schema is null and examples is null, 3rd priority is example field.
         case Some(mediaType) if mediaType.getSchema() != null =>
           val schema = mediaType.getSchema()
           if(schema.isInstanceOf[ArraySchema]) {
@@ -400,6 +484,15 @@ object DynamicEndpointHelper extends RestHelper {
               .map(getName)
               .orNull
           }
+        case Some(mediaType) if mediaType.getExamples() != null =>{
+          val examples: util.Map[String, Example] = mediaType.getExamples()
+          val objectName: Option[String] = examples.keySet().asScala.headOption
+          objectName.getOrElse(examples.values().toString)
+        }
+        case Some(mediaType) if mediaType.getExample() != null =>{
+          val example: AnyRef = mediaType.getExample()
+          example.toString //TODO, here better set a default value? or can get name from the object(but it depends on the input)
+        }
         case None => null
       }
     }
@@ -416,10 +509,34 @@ object DynamicEndpointHelper extends RestHelper {
 
       getExample(openAPI, schema)
     } else {
+      //body.content is `REQUIRED` field
       val mediaType = getMediaType(body.getContent())
       assert(mediaType.isDefined, s"RequestBody $body have no MediaType of 'application/json', 'application/x-www-form-urlencoded', 'multipart/form-data' or '*/*'")
-      val schema = mediaType.get.getSchema
-      getExample(openAPI, schema)
+      // https://github.com/OAI/OpenAPI-Specification/blob/3.0.1/versions/3.0.1.md#mediaTypeObject
+      // following rule is also valid in Swagger UI using this json (object foo)
+      //: https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
+      // if schema is not null, then it has the 1st priority
+      // if schema is null, 2rd priority is examples.
+      // if schema is null and examples is null, 3rd priority is example field.
+      if (mediaType.get.getSchema != null)
+        getExample(openAPI, mediaType.get.getSchema)
+      else if (body!=null
+        && body.getContent != null
+        && body.getContent.values().size()>0
+        && body.getContent.values().asScala.head.getExamples != null
+        && body.getContent.values().asScala.head.getExamples.values().size() > 0
+      ) {
+        val examplesValue = body.getContent.values().asScala.map(_.getExamples.values().asScala.map(_.getValue.toString)).map(_.head)
+        convertToProduct(json.parse(examplesValue.head))
+      } else if(body!=null
+        && body.getContent != null
+        && body.getContent.values().size()>0
+        && body.getContent.values().asScala.head.getExample != null
+      ) {
+        val exampleValue = body.getContent.values().asScala.map(_.getExample.toString)
+        convertToProduct(json.parse(exampleValue.head))
+      }else
+        EmptyBody
     }
   }
 
@@ -449,7 +566,32 @@ object DynamicEndpointHelper extends RestHelper {
     val result: Option[(Int, Product)] = for {
      (code, response) <- successResponse
      schema <- getResponseSchema(openAPI, response)
-     example = getExample(openAPI, schema)
+      // https://github.com/OAI/OpenAPI-Specification/blob/3.0.1/versions/3.0.1.md#mediaTypeObject
+      // following rule is also valid in Swagger UI using this json (object foo)
+      //: https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
+      // if schema is not null, then it has the 1st priority
+      // if schema is null, 2rd priority is examples.
+      // if schema is null and examples is null, 3rd priority is example field.
+     example = if (schema != null)
+       getExample(openAPI, schema)
+     else if (response!=null 
+       && response.getContent != null 
+       && response.getContent.values().size()>0
+       && response.getContent.values().asScala.head.getExamples != null
+       && response.getContent.values().asScala.head.getExamples.values().size() > 0 
+     ) {
+       val examplesValue = response.getContent.values().asScala.map(_.getExamples.values().asScala.map(_.getValue.toString)).map(_.head)
+       convertToProduct(json.parse(examplesValue.head))
+     } else if(response!=null 
+       && response.getContent != null 
+       && response.getContent.values().size()>0 
+       && response.getContent.values().asScala.head.getExample != null
+     ) {
+       val exampleValue = response.getContent.values().asScala.map(_.getExample.toString)
+       convertToProduct(json.parse(exampleValue.head))
+     }
+     else
+       EmptyBody
     } yield code -> example
 
     result
@@ -595,7 +737,28 @@ object DynamicEndpointHelper extends RestHelper {
         case v: Schema[_] if StringUtils.isNotBlank(v.get$ref()) =>
           val refSchema = getRefSchema(openAPI, v.get$ref())
           convertToProduct(rec(refSchema))
+        
+        //For OpenAPI30, have some default object, which do not have any ref.  
+        case v: Schema[_] if StringUtils.isNotBlank(v.getDescription) =>
+          getDefaultValue(v, v.getDescription)
 
+        //https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/petstore-expanded.json
+        //added this case according to the up swagger, it has `allOf` 
+        case v: ComposedSchema  =>{
+          if (v.getAllOf != null && v.getAllOf.size() >0)  {
+            v.getAllOf.asScala.map(rec(_))
+              .filter(_.!=(null))
+              .filter(_.isInstanceOf[JObject])
+              .map(_.asInstanceOf[JObject])
+              .reduceLeft(_ merge _)
+          } else if (v.getAnyOf != null && v.getAnyOf.size()>0){
+            rec(v.getAllOf.asScala.head)
+          }else if(v.getOneOf != null && v.getOneOf.size()>0){
+            rec(v.getOneOf.asScala.head)
+          }else{ 
+            EmptyBody
+          }
+        }
         case v if v.getType() == "string" => "string"
         case _ => throw new RuntimeException(s"Not support type $schema, please support it if necessary.")
       }
