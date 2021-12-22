@@ -32,7 +32,7 @@ import code.api.v4_0_0.JSONFactory400._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
 import code.api.v4_0_0.dynamic._
 import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
-import code.api.{ChargePolicy, JsonResponseException}
+import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
@@ -3710,7 +3710,7 @@ trait APIMethods400 {
           } yield {
             val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
             val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
-            val link = s"${APIUtil.getPropsValue("portal_hostname", APIUtil.getPropsValue("hostname", ""))}/user-invitation?id=${invitation.secretKey}"
+            val link = s"${APIUtil.getPropsValue("portal_hostname",Constant.HostName)}/user-invitation?id=${invitation.secretKey}"
             val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
             val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
               .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)

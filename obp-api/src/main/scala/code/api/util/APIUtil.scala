@@ -601,7 +601,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val (code, responseHeaders) =
       message match {
         case msg if check401(msg) =>
-          val host = APIUtil.getPropsValue("hostname", "unknown host")
+          val host = Constant.HostName
           val headerValue = s"""OAuth realm="$host", Bearer realm="$host", DirectLogin realm="$host""""
           val addHeader = List((ResponseHeader.`WWW-Authenticate`, headerValue))
           (401, getHeaders() ::: headers.list ::: addHeader)
