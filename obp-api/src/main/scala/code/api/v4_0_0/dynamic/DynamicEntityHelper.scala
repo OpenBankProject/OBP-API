@@ -295,6 +295,9 @@ object DynamicEntityHelper {
   private def methodRoutingExample(entityName: String) =
     s"""
       |MethodRouting settings example:
+      |
+      |<details>
+      |
       |```
       |{
       |  "is_bank_id_exact_match":false,
@@ -313,6 +316,8 @@ object DynamicEntityHelper {
       |  ]
       |}
       |```
+      |
+      |</details>
       |""".stripMargin
 
 }
