@@ -98,6 +98,7 @@ class UserInvitation extends MdcLoggable {
       if(secretLink.isEmpty || userInvitation.isEmpty) showErrorsForSecretLink()
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
       else if(timeDifference.abs.getSeconds > ttl) showErrorsForTtl()
+      else if(AuthUser.currentUser.isDefined) showErrorYouMustBeLoggedOff()
       else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
@@ -162,6 +163,9 @@ class UserInvitation extends MdcLoggable {
     }
     def showErrorsForTtl() = {
       showError(Helper.i18n("user.invitation.is.expired"))
+    }
+    def showErrorYouMustBeLoggedOff() = {
+      showError(Helper.i18n("you.must.be.logged.off"))
     }
     def showErrorsForTermsAndConditions() = {
       showError(Helper.i18n("terms.and.conditions.are.not.selected"))
