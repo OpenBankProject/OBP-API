@@ -524,6 +524,7 @@ class Boot extends MdcLoggable {
       Menu("User Invitation", "User Invitation") / "user-invitation",
       Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
       Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
+      Menu("User Invitation Warning", "User Invitation Warning") / "user-invitation-warning",
       Menu("Terms and Conditions", "Terms and Conditions") / "terms-and-conditions",
       Menu("Privacy Policy", "Privacy Policy") / "privacy-policy",
       // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL

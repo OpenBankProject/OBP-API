@@ -207,7 +207,10 @@ class UserInvitation extends MdcLoggable {
         // and the redirect
         S.redirectTo("/user-invitation-invalid")
     }
-    register
+    if(AuthUser.currentUser.isDefined) 
+      S.redirectTo("/user-invitation-warning") 
+    else 
+      register
   }
 
   private def createAuthUser(user: User, firstName: String, lastName: String): Box[AuthUser] = {
