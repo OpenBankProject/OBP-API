@@ -190,6 +190,9 @@ object ErrorMessages {
   val DAuthNoJwtForResponse = "OBP-20070: There is no useful value for JWT."
   val DAuthJwtTokenIsNotValid = "OBP-20071: The DAuth JWT is corrupted/changed during a transport."
   val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
+  
+  val InvalidAuthorizationHeader = "OBP-20080: Authorization Header format is not supported at this instance."
+  
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
@@ -413,6 +416,7 @@ object ErrorMessages {
   val EntitlementAlreadyExists = "OBP-30216: Entitlement already exists for the user."
   val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
   val EntitlementCannotBeGranted = "OBP-30220: Entitlement cannot be granted."
+  val EntitlementCannotBeGrantedGrantorIssue = "OBP-30221: Entitlement cannot be granted due to the grantor's insufficient privileges."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"

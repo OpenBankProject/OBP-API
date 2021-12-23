@@ -161,6 +161,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
   
   def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "DirectLogin").isDefined
+  
+  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "Authorization").isDefined
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
@@ -2760,7 +2762,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Future{(cc.user, Some(cc))}
       }
       else {
-        Future { (Empty, Some(cc)) }
+        if(hasAuthorizationHeader(reqHeaders)) {
+          // We want to throw error in case of wrong or unsupported header. For instance:
+          // - Authorization: mF_9.B5f-4.1JqM
+          // - Authorization: Basic mF_9.B5f-4.1JqM
+          Future { (Failure(ErrorMessages.InvalidAuthorizationHeader), Some(cc)) }
+        } else {
+          Future { (Empty, Some(cc)) }
+        }
       }
 
     // COMMON POST AUTHENTICATION CODE GOES BELOW
@@ -2769,9 +2778,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(res)
     // Check Rate Limiting
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
+    // User init actions
+    val resultWithUserInitActions: Future[(Box[User], Option[CallContext])] = AfterApiAuth.outerLoginUserInitAction(resultWithRateLimiting)
 
     // Update Call Context
-    resultWithRateLimiting map {
+    resultWithUserInitActions map {
       x => (x._1, ApiSession.updateCallContext(Spelling(spelling), x._2))
     } map {
       x => (x._1, x._2.map(_.copy(implementedInVersion = implementedInVersion)))

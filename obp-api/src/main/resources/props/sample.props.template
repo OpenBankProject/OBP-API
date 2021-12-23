@@ -725,6 +725,7 @@ display_internal_errors=false
 # -- OAuth 2 ---------------------------------------------------------------------------------
 # Enable/Disable OAuth 2 workflow at a server instance
 # In case isn't defined default value is false
+# NOTE: Make sure there is no space after the word true/false.
 # allow_oauth2_login=false
 # URL of Public server JWK set used for validating bearer JWT access tokens
 # It can contain more than one URL i.e. list of uris. Values are comma separated.

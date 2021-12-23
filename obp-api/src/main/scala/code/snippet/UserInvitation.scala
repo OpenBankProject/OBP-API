@@ -29,6 +29,7 @@ package code.snippet
 import java.time.{Duration, ZoneId, ZoneOffset, ZonedDateTime}
 import java.util.Date
 
+import code.api.Constant
 import code.api.util.{APIUtil, SecureRandomUtil}
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users
@@ -102,9 +103,10 @@ class UserInvitation extends MdcLoggable {
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
       else if(personalDataCollectionConsentCountryWaiverList.exists(_.toLowerCase == countryVar.is.toLowerCase) == false && consentForCollectingCheckboxVar.is == false) showErrorsForConsentForCollectingPersonalData()
       else {
+        val localIdentityProviderUrl = APIUtil.getPropsValue("local_identity_provider_url", Constant.HostName)
         // Resource User table
         createResourceUser(
-          provider = "OBP-User-Invitation",
+          provider = localIdentityProviderUrl, // TODO Make provider an enum
           providerId = Some(usernameVar.is),
           name = Some(usernameVar.is),
           email = Some(email),
