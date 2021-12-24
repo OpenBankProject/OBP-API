@@ -3149,7 +3149,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         composedFunc(it)
       }
     }
-  }
+  }.map(_.trim) // Remove trailing or leading spaces in the end
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
     getPropsValue(nameOfProperty) openOr(defaultValue)
   }
