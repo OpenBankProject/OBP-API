@@ -83,7 +83,7 @@ import scala.concurrent.Future
   *      one AuthUser <---> one ResourceUser 
   *
  */
-class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
+class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLoggable {
   def getSingleton = AuthUser // what's the "meta" server
 
   object user extends MappedLongForeignKey(this, ResourceUser)
