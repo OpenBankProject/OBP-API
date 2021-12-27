@@ -177,7 +177,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
       case _                                                => List(FieldError(this, Text(msg)))
     }
     override def displayName = S.?("Username")
-    override def dbIndexed_? = true
+    @deprecated("Use UniqueIndex(username, provider)","27 December 2021")
+    override def dbIndexed_? = false // We use more general index UniqueIndex(username, provider) :: super.dbIndexes
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ ::
                                usernameIsValid(Helper.i18n("invalid.username")) _ ::
                                valUnique(Helper.i18n("unique.username")) _ ::
@@ -415,6 +416,8 @@ import net.liftweb.util.Helpers._
   val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
 
+  override def dbIndexes: List[BaseIndex[AuthUser]] = UniqueIndex(username, provider) ::super.dbIndexes
+  
   override def emailFrom = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
