@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model.dataAccess
 
+import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
@@ -316,6 +317,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
   class userProvider extends MappedString(this, 100) {
     override def displayName = S.?("provider")
     override val fieldId = Some(Text("txtProvider"))
+    override def validations = validUri(this) _ :: super.validations
   }
 
 
