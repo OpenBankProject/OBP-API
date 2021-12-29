@@ -29,6 +29,7 @@ import bootstrap.liftweb.Boot
 import code.api.util.APIUtil
 import java.lang.reflect.{Proxy => JProxy}
 
+import RunMTLSWebApp.context
 import net.liftweb.http.LiftRules
 import net.liftweb.http.provider.HTTPContext
 import org.eclipse.jetty.server.Server
@@ -69,7 +70,8 @@ object RunWebApp extends App {
   val basePath = this.getClass.getResource("/").toString .replaceFirst("target[/\\\\].*$", "")
   context.setWar(s"${basePath}src/main/webapp")
   // rename JSESSIONID, avoid conflict with other project when start two project at local
-  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP_API")
+  val propsApiInstanceId = APIUtil.getPropsValue("api_instance_id").openOrThrowException("connector props filed `api_instance_id` not set")
+  context.getSessionHandler.getSessionCookieConfig.setName("JSESSIONID_OBP_API_" + propsApiInstanceId)
   server.setHandler(context)
 
   try {
