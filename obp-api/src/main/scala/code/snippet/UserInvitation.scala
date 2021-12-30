@@ -106,7 +106,7 @@ class UserInvitation extends MdcLoggable {
       else {
         // Resource User table
         createResourceUser(
-          provider = Constant.LocalIdentityProvider, // TODO Make provider an enum
+          provider = Constant.localIdentityProvider, // TODO Make provider an enum
           providerId = Some(usernameVar.is),
           name = Some(usernameVar.is),
           email = Some(email),
