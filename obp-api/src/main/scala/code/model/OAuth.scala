@@ -31,7 +31,7 @@ import code.api.util.APIUtil
 import code.api.util.CommonFunctions.validUri
 import code.api.util.migration.Migration.DbFunction
 import code.consumer.{Consumers, ConsumersProvider}
-import code.model.AppType.{Public, Confidential}
+import code.model.AppType.{Confidential, Public, Unknown}
 import code.model.dataAccess.ResourceUser
 import code.nonce.NoncesProvider
 import code.token.TokensProvider
@@ -163,6 +163,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         case Some(v) => v match {
           case Confidential => c.appType(Confidential.toString)
           case Public => c.appType(Public.toString)
+          case Unknown => c.appType(Unknown.toString)
         }
         case None =>
       }
@@ -236,6 +237,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           case Some(v) => v match {
             case Confidential => c.appType(Confidential.toString)
             case Public => c.appType(Public.toString)
+            case Unknown => c.appType(Unknown.toString)
           }
           case None =>
         }
@@ -408,6 +410,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             case Some(v) => v match {
               case Confidential => c.appType(Confidential.toString)
               case Public => c.appType(Public.toString)
+              case Unknown => c.appType(Unknown.toString)
             }
             case None =>
           }

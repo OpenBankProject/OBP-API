@@ -95,11 +95,11 @@ class ConsumerRegistration extends MdcLoggable {
       register &
       "#register-consumer-errors" #> ""
     
-    def displayAppType() = if(APIUtil.getPropsAsBoolValue("consumer_registration.display_app_type", true)) "display: block;" else "display: none" 
+    def displayAppType: Boolean = APIUtil.getPropsAsBoolValue("consumer_registration.display_app_type", true)
 
     def register = {
       "form" #> {
-          "#app-type-div [style] " #> displayAppType() &
+          "#app-type-div [style] " #> {if(displayAppType) "display: block;" else "display: none"} &
           "#appType" #> SHtml.select(appTypes, Box!! appType.is, appType(_)) &
           "#appName" #> SHtml.text(nameVar.is, nameVar(_)) &
           "#redirect_url_label *" #> {
@@ -341,12 +341,15 @@ class ConsumerRegistration extends MdcLoggable {
       } else if(submitButtonDefenseFlag.isEmpty) {
         showErrorsForDescription("The 'Register' button random name has been modified !")
       } else{
+        val appType =
+          if(displayAppType) appTypeSelected
+          else Some(AppType.Unknown) // If Application Type is hidden from Consumer registration it defaults to Unknown
         val consumer = Consumers.consumers.vend.createConsumer(
           Some(Helpers.randomString(40).toLowerCase),
           Some(Helpers.randomString(40).toLowerCase),
           Some(true),
           Some(nameVar.is),
-          appTypeSelected,
+          appType,
           Some(descriptionVar.is),
           Some(devEmailVar.is),
           Some(redirectionURLVar.is),
