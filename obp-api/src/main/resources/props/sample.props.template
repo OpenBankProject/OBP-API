@@ -1110,3 +1110,7 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 
 # Sngle Sign On/Off
 # sso.enabled=false
+
+# Local identity provider url
+# it defaults to the hostname props value
+# local_identity_provider=this is the hostname of the local obp server including scheme
