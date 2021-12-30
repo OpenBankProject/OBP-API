@@ -504,6 +504,8 @@ object SwaggerDefinitionsJSON {
     version_status = "String",
     git_commit = "String",
     connector = "String",
+    hostname = "String",
+    local_identity_provider = "String",
     hosted_by = hostedBy400,
     hosted_at = hostedAt400,
     energy_source = energySource400,

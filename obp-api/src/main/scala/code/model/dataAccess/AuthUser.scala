@@ -745,7 +745,7 @@ import net.liftweb.util.Helpers._
   def getResourceUserId(username: String, password: String): Box[Long] = {
     findUserByUsernameLocally(username) match {
       // We have a user from the local provider.
-      case Full(user) if (user.getProvider() == Constant.LocalIdentityProvider) =>
+      case Full(user) if (user.getProvider() == Constant.localIdentityProvider) =>
         if (
           user.validated_? &&
           // User is NOT locked AND the password is good
@@ -779,7 +779,7 @@ import net.liftweb.util.Helpers._
           Empty
         }
       // We have a user from an external provider.
-      case Full(user) if (user.getProvider() != Constant.LocalIdentityProvider) =>
+      case Full(user) if (user.getProvider() != Constant.localIdentityProvider) =>
         APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
             case true if !LoginAttempt.userIsLocked(username) =>
               val userId =

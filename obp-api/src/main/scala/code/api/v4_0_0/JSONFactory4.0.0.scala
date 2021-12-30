@@ -180,6 +180,8 @@ case class APIInfoJson400(
                         version_status: String,
                         git_commit : String,
                         connector : String,
+                        hostname : String,
+                        local_identity_provider : String,
                         hosted_by : HostedBy400,
                         hosted_at : HostedAt400,
                         energy_source : EnergySource400,

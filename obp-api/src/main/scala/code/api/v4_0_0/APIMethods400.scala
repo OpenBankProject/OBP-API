@@ -2588,7 +2588,18 @@ trait APIMethods400 {
       val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
       val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
 
-      APIInfoJson400(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, connector, hostedBy, hostedAt, energySource, resourceDocsRequiresRole)
+      APIInfoJson400(
+        apiVersion.vDottedApiVersion, 
+        apiVersionStatus, 
+        gitCommit, 
+        connector,
+        Constant.HostName,
+        Constant.localIdentityProvider, 
+        hostedBy, 
+        hostedAt, 
+        energySource, 
+        resourceDocsRequiresRole
+      )
     }
 
 
