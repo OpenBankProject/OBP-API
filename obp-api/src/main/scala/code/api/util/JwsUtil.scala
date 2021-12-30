@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{Duration, ZoneOffset, ZonedDateTime}
 import java.util
 
+import code.api.Constant
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.JWK
@@ -180,7 +181,7 @@ object JwsUtil extends MdcLoggable {
     val digest = "SHA-256=" + computeDigest(body.getOrElse(""))
     // The payload which will not be encoded and must be passed to
     // the JWS consumer in a detached manner
-    val host = APIUtil.getPropsValue("hostname", "")
+    val host = Constant.HostName
     val detachedPayload: Payload = new Payload(
       s"""($requestResponse): ${verb.toLowerCase} ${url}
          |host: ${host}

@@ -16,6 +16,7 @@ import java.lang.{Boolean => XBoolean, Double => XDouble, Float => XFloat, Integ
 import java.math.{BigDecimal => JBigDecimal}
 
 import code.api.AUOpenBanking.v1_0_0.ApiCollector
+import code.api.Constant
 import code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1
 import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
@@ -298,7 +299,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     val infoContact = InfoContactJson("TESOBE GmbH. / Open Bank Project", "https://openbankproject.com" ,"contact@tesobe.com")
     val infoApiVersion = requestedApiVersion
     val info = InfoJson(infoTitle, infoDescription, infoContact, infoApiVersion.toString)
-    val host = APIUtil.getPropsValue("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
+    val host = Constant.HostName.replaceFirst("http://", "").replaceFirst("https://", "")
     val basePath = "/"
     val schemas = List("http", "https")
     // Paths Object

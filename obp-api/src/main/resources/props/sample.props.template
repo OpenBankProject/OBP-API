@@ -1107,3 +1107,6 @@ webui_developer_user_invitation_email_html_text=<!DOCTYPE html>\
                                                   
 # List of countries where consent is not required for the collection of personal data
 personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgaria, Croatia, Republic of Cyprus, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania, Luxembourg, Malta, Netherlands, Poland, Portugal, Romania, Slovakia, Slovenia, Spain, Sweden, England, Scotland, Wales, Northern Ireland
+
+# Sngle Sign On/Off
+# sso.enabled=false

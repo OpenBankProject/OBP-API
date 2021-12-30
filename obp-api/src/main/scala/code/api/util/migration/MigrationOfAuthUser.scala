@@ -68,5 +68,50 @@ object MigrationOfAuthUser {
         isSuccessful
     }
   }
+
+  def dropIndexAtColumnUsername(name: String): Boolean = {
+    DbFunction.tableExists(AuthUser, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+      case true =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        var isSuccessful = false
+
+        val executedSql =
+          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+            APIUtil.getPropsValue("db.driver") match    {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () =>
+                  """
+                    |DROP INDEX IF EXISTS authuser_username;
+                    |""".stripMargin
+              case _ =>
+                () =>
+                  """
+                    |DROP INDEX IF EXISTS authuser_username;
+                    |""".stripMargin
+            }
+
+          }
+
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""Executed SQL: 
+             |$executedSql
+             |""".stripMargin
+        isSuccessful = true
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+
+      case false =>
+        val startDate = System.currentTimeMillis()
+        val commitId: String = APIUtil.gitCommit
+        val isSuccessful = false
+        val endDate = System.currentTimeMillis()
+        val comment: String =
+          s"""${AuthUser._dbTableNameLC} table does not exist""".stripMargin
+        saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+        isSuccessful
+    }
+  }
   
 }

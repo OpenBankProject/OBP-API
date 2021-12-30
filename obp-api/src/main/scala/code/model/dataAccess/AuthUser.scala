@@ -26,13 +26,14 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model.dataAccess
 
+import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper
-import code.api.{APIFailure, DirectLogin, GatewayLogin, OAuthHandshake}
+import code.api.{APIFailure, Constant, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
@@ -83,7 +84,7 @@ import scala.concurrent.Future
   *      one AuthUser <---> one ResourceUser 
   *
  */
-class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
+class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLoggable {
   def getSingleton = AuthUser // what's the "meta" server
 
   object user extends MappedLongForeignKey(this, ResourceUser)
@@ -177,7 +178,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
       case _                                                => List(FieldError(this, Text(msg)))
     }
     override def displayName = S.?("Username")
-    override def dbIndexed_? = true
+    @deprecated("Use UniqueIndex(username, provider)","27 December 2021")
+    override def dbIndexed_? = false // We use more general index UniqueIndex(username, provider) :: super.dbIndexes
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ ::
                                usernameIsValid(Helper.i18n("invalid.username")) _ ::
                                valUnique(Helper.i18n("unique.username")) _ ::
@@ -315,14 +317,15 @@ class AuthUser extends MegaProtoUser[AuthUser] with MdcLoggable {
   class userProvider extends MappedString(this, 100) {
     override def displayName = S.?("provider")
     override val fieldId = Some(Text("txtProvider"))
+    override def validations = validUri(this) _ :: super.validations
   }
 
 
   def getProvider() = {
     if(provider.get == null) {
-      APIUtil.getPropsValue("hostname","")
-    } else if ( provider.get == "" || provider.get == APIUtil.getPropsValue("hostname","") ) {
-      APIUtil.getPropsValue("hostname","")
+      Constant.HostName
+    } else if ( provider.get == "" || provider.get == Constant.HostName ) {
+      Constant.HostName
     } else {
       provider.get
     }
@@ -415,6 +418,8 @@ import net.liftweb.util.Helpers._
   val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
 
+  override def dbIndexes: List[BaseIndex[AuthUser]] = UniqueIndex(username, provider) ::super.dbIndexes
+  
   override def emailFrom = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "sender-not-set")
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
@@ -540,7 +545,7 @@ import net.liftweb.util.Helpers._
       case u if u.validated_? =>
         u.resetUniqueId().save
         //NOTE: here, if server_mode = portal, so we need modify the resetLink to portal_hostname, then developer can get proper response..
-        val resetPasswordLinkProps = APIUtil.getPropsValue("hostname", "ERROR")
+        val resetPasswordLinkProps = Constant.HostName
         val resetPasswordLink = APIUtil.getPropsValue("portal_hostname", resetPasswordLinkProps)+
           passwordResetPath.mkString("/", "/", "/")+urlEncode(u.getUniqueId())
         Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject + " - " + u.username),
@@ -584,7 +589,7 @@ import net.liftweb.util.Helpers._
    * Overridden to use the hostname set in the props file
    */
   override def sendValidationEmail(user: TheUserType) {
-    val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+"/"+validateUserPath.mkString("/")+
+    val resetLink = Constant.HostName+"/"+validateUserPath.mkString("/")+
       "/"+urlEncode(user.getUniqueId())
 
     val email: String = user.getEmail
@@ -740,7 +745,7 @@ import net.liftweb.util.Helpers._
   def getResourceUserId(username: String, password: String): Box[Long] = {
     findUserByUsernameLocally(username) match {
       // We have a user from the local provider.
-      case Full(user) if (user.getProvider() == APIUtil.getPropsValue("hostname","")) =>
+      case Full(user) if (user.getProvider() == Constant.LocalIdentityProviderUrl) =>
         if (
           user.validated_? &&
           // User is NOT locked AND the password is good
@@ -774,7 +779,7 @@ import net.liftweb.util.Helpers._
           Empty
         }
       // We have a user from an external provider.
-      case Full(user) if (user.getProvider() != APIUtil.getPropsValue("hostname","")) =>
+      case Full(user) if (user.getProvider() != Constant.LocalIdentityProviderUrl) =>
         APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
             case true if !LoginAttempt.userIsLocked(username) =>
               val userId =
@@ -959,7 +964,7 @@ def restoreSomeSessions(): Unit = {
     }
 
     def isObpProvider(user: AuthUser) = {
-      user.getProvider() == APIUtil.getPropsValue("hostname", "")
+      user.getProvider() == Constant.HostName
     }
 
     def obpUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
@@ -1305,7 +1310,7 @@ def restoreSomeSessions(): Unit = {
         Users.users.vend.getUserByUserId(userId) match {
           case Full(u) if u.name == name && u.emailAddress == email =>
             authUser.resetUniqueId().save
-            val resetLink = APIUtil.getPropsValue("hostname", "ERROR")+
+            val resetLink = Constant.HostName+
               passwordResetPath.mkString("/", "/", "/")+urlEncode(authUser.getUniqueId())
             logger.warn(s"Password reset url is created for this user: $email")
             // TODO Notify via email appropriate persons 
