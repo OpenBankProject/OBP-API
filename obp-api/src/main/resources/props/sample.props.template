@@ -3,6 +3,8 @@
 
 # See notes about WebUI Props below
 
+# Do NOT use trailing or leading spaces in your values.
+
 
 ### OBP-API configuration
 
