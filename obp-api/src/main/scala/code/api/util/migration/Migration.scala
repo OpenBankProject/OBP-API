@@ -88,6 +88,7 @@ object Migration extends MdcLoggable {
       addFastFirehoseAccountsView(startedBeforeSchemifier)
       addFastFirehoseAccountsMaterializedView(startedBeforeSchemifier)
       alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier)
+      dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -330,6 +331,17 @@ object Migration extends MdcLoggable {
         val name = nameOf(alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfUserAuthContextFieldLength.alterColumnKeyAndValueLength(name)
+        }
+      }
+    }    
+    private def dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.dropIndexAtColumnUsernameAtTableAuthUser(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfAuthUser.dropIndexAtColumnUsername(name)
         }
       }
     }

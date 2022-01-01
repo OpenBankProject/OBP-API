@@ -10,6 +10,7 @@ object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
 
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
+  def localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)
 
   // This is the part before the version. Do not change this default!
   final val ApiPathZero = APIUtil.getPropsValue("apiPathZero", ApiStandards.obp.toString)

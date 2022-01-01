@@ -161,6 +161,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
   
   def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "DirectLogin").isDefined
+  
+  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "Authorization").isDefined
 
   def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
 
@@ -599,7 +601,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val (code, responseHeaders) =
       message match {
         case msg if check401(msg) =>
-          val host = APIUtil.getPropsValue("hostname", "unknown host")
+          val host = Constant.HostName
           val headerValue = s"""OAuth realm="$host", Bearer realm="$host", DirectLogin realm="$host""""
           val addHeader = List((ResponseHeader.`WWW-Authenticate`, headerValue))
           (401, getHeaders() ::: headers.list ::: addHeader)
@@ -2760,7 +2762,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Future{(cc.user, Some(cc))}
       }
       else {
-        Future { (Empty, Some(cc)) }
+        if(hasAuthorizationHeader(reqHeaders)) {
+          // We want to throw error in case of wrong or unsupported header. For instance:
+          // - Authorization: mF_9.B5f-4.1JqM
+          // - Authorization: Basic mF_9.B5f-4.1JqM
+          Future { (Failure(ErrorMessages.InvalidAuthorizationHeader), Some(cc)) }
+        } else {
+          Future { (Empty, Some(cc)) }
+        }
       }
 
     // COMMON POST AUTHENTICATION CODE GOES BELOW
@@ -3140,7 +3149,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         composedFunc(it)
       }
     }
-  }
+  }.map(_.trim) // Remove trailing or leading spaces in the end
   def getPropsValue(nameOfProperty: String, defaultValue: String): String = {
     getPropsValue(nameOfProperty) openOr(defaultValue)
   }

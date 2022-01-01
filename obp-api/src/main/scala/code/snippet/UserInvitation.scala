@@ -29,6 +29,7 @@ package code.snippet
 import java.time.{Duration, ZoneId, ZoneOffset, ZonedDateTime}
 import java.util.Date
 
+import code.api.Constant
 import code.api.util.{APIUtil, SecureRandomUtil}
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users
@@ -97,6 +98,7 @@ class UserInvitation extends MdcLoggable {
       if(secretLink.isEmpty || userInvitation.isEmpty) showErrorsForSecretLink()
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
       else if(timeDifference.abs.getSeconds > ttl) showErrorsForTtl()
+      else if(AuthUser.currentUser.isDefined) showErrorYouMustBeLoggedOff()
       else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
@@ -104,7 +106,7 @@ class UserInvitation extends MdcLoggable {
       else {
         // Resource User table
         createResourceUser(
-          provider = "", // Let getProvider set this // TODO Make provider an enum
+          provider = Constant.localIdentityProvider, // TODO Make provider an enum
           providerId = Some(usernameVar.is),
           name = Some(usernameVar.is),
           email = Some(email),
@@ -161,6 +163,9 @@ class UserInvitation extends MdcLoggable {
     def showErrorsForTtl() = {
       showError(Helper.i18n("user.invitation.is.expired"))
     }
+    def showErrorYouMustBeLoggedOff() = {
+      showError(Helper.i18n("you.must.be.logged.off"))
+    }
     def showErrorsForTermsAndConditions() = {
       showError(Helper.i18n("terms.and.conditions.are.not.selected"))
     }
@@ -201,7 +206,10 @@ class UserInvitation extends MdcLoggable {
         // and the redirect
         S.redirectTo("/user-invitation-invalid")
     }
-    register
+    if(AuthUser.currentUser.isDefined) 
+      S.redirectTo("/user-invitation-warning") 
+    else 
+      register
   }
 
   private def createAuthUser(user: User, firstName: String, lastName: String): Box[AuthUser] = {

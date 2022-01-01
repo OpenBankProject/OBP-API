@@ -29,6 +29,8 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import java.util.Date
+
+import code.api.Constant
 import code.api.util.ErrorMessages._
 import code.api.util.APIUtil
 import code.consumer.Consumers
@@ -44,6 +46,7 @@ import net.liftweb.http.S
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Helpers, Props}
 import code.api.oauth1a.OauthParams._
+
 import scala.xml.NodeSeq
 
 object OAuthAuthorisation {
@@ -113,7 +116,7 @@ object OAuthAuthorisation {
           val oauthQueryParams: List[(String, String)] = (TokenName, unencodedTokenParam) ::(VerifierName, verifier) :: Nil
           val applicationRedirectionUrl = appendParams(appToken.callbackURL.get, oauthQueryParams)
           val encodedApplicationRedirectionUrl = urlEncode(applicationRedirectionUrl)
-          val redirectionUrl = APIUtil.getPropsValue("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref
+          val redirectionUrl = Constant.HostName + OAuthWorkedThanks.menu.loc.calcDefaultHref
           val redirectionParam = List(("redirectUrl", encodedApplicationRedirectionUrl))
           //The URLs get from callbankURL or OAuthWorkedThanks, they are all internal ones, no open redirect issue.
           S.redirectTo(appendParams(redirectionUrl, redirectionParam))

@@ -28,6 +28,8 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
+
+import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, stringOptionOrNull, stringOrNull}
@@ -178,6 +180,8 @@ case class APIInfoJson400(
                         version_status: String,
                         git_commit : String,
                         connector : String,
+                        hostname : String,
+                        local_identity_provider : String,
                         hosted_by : HostedBy400,
                         hosted_at : HostedAt400,
                         energy_source : EnergySource400,
@@ -1074,7 +1078,7 @@ object JSONFactory400 {
       // Some (mapped) data might not have the challenge. TODO Make this nicer
       challenges = {
         try {
-          val otpViaWebFormPath = APIUtil.getPropsValue("hostname", "") + List(
+          val otpViaWebFormPath = Constant.HostName + List(
             "/otp?flow=transaction_request&bankId=",
             stringOrNull(tr.from.bank_id),
             "&accountId=",
@@ -1088,7 +1092,7 @@ object JSONFactory400 {
             stringOrNull(tr.challenge.id)
           ).mkString("")
           
-          val otpViaApiPath = APIUtil.getPropsValue("hostname", "") + List(
+          val otpViaApiPath = Constant.HostName + List(
             "/obp/v4.0.0/banks/",
             stringOrNull(tr.from.bank_id),
             "/accounts/",

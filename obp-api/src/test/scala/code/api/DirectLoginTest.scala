@@ -197,7 +197,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Missing DirecLogin header") {
+    scenario("Missing DirectLogin header") {
 
       //setupUserAndConsumer
 
@@ -289,6 +289,61 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
     scenario("Login with correct everything!", ApiEndpoint1, ApiEndpoint2) {
 
       //setupUserAndConsumer
+
+      Given("the app we are testing is registered and active")
+      Then("We should be able to find it")
+      //assert(registeredApplication(KEY) == true)
+
+      When("the header and credentials are good")
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", validHeaders)
+      var token = "INVALID"
+      Then("We should get a 201 - OK and a token")
+      response.code should equal(201)
+      response.body match {
+        case JObject(List(JField(name, JString(value)))) =>
+          name should equal("token")
+          value.length should be > 0
+          token = value
+        case _ => fail("Expected a token")
+      }
+
+      // TODO Check that we are logged in. TODO Add an endpoint like /me that returns the currently logged in user.
+      When("when we use the token it should work")
+      val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
+      val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
+      val request2 = baseRequest / "obp" / "v2.0.0" / "my" / "accounts"
+      val response2 = makeGetRequest(request2, validHeadersWithToken)
+
+      Then("We should get a 200 - OK and an empty list of accounts")
+      response2.code should equal(200)
+      response2.body match {
+        case JArray(List()) =>
+        case _ => fail("Expected empty list of accounts")
+      }
+
+      When("when we use the token to get current user and it should work - New Style")
+      val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
+      val responseCurrentUserNewStyle = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 200")
+      responseCurrentUserNewStyle.code should equal(200)
+      val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
+      currentUserNewStyle.username shouldBe USERNAME
+      
+      When("when we use the token to get current user and it should work - Old Style")
+      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      And("We should get a 200")
+      responseCurrentUserOldStyle.code should equal(200)
+      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      currentUserOldStyle.username shouldBe USERNAME
+
+      currentUserNewStyle.username shouldBe currentUserOldStyle.username
+    } 
+    
+    scenario("Login with correct everything and use props local_identity_provider_url", ApiEndpoint1, ApiEndpoint2) {
+
+      setPropsValues("local_identity_provider"-> Constant.HostName)
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
