@@ -45,7 +45,7 @@ import scala.collection.mutable.ArrayBuffer
 This file defines which endpoints from all the versions are available in v1
  */
 object ApiCollector extends OBPRestHelper with MdcLoggable with ScannedApis {
-  override val apiVersion = ScannedApiVersion("BHOBF", "BHOBF", "v1.0.0")
+  override val apiVersion = ScannedApiVersion("BAHRAIN-OBF", "BAHRAIN-OBF", "v1.0.0")
   val versionStatus = "DRAFT"
 
   private[this] val endpoints =
