@@ -27,12 +27,17 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
+import code.api.util.DynamicUtil.Sandbox
 import code.api.util._
 import code.setup.PropsReset
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common.Box
 import net.liftweb.json
 import org.scalatest.{FeatureSpec, FlatSpec, GivenWhenThen, Matchers, Tag}
+
+import java.io.File
+import java.security.AccessControlException
+import scala.io.Source
 
 class DynamicUtilTest extends FlatSpec with Matchers {
   object DynamicUtilsTag extends Tag("DynamicUtil")
@@ -48,6 +53,31 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       getBankResponse should be (125)
   }
 
+  "Sandbox.createSandbox method" should "should throw exception" taggedAs DynamicUtilsTag in {
+    val permissionList = List(
+//      new java.net.SocketPermission("ir.dcs.gla.ac.uk:80","connect,resolve"),
+    )
+
+    intercept[AccessControlException] {
+      Sandbox.createSandbox(permissionList).runInSandbox {
+        scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
+      }
+    }
+  }
+
+  "Sandbox.createSandbox method" should "should work well" taggedAs DynamicUtilsTag in {
+    val permissionList = List(
+      new java.net.SocketPermission("apisandbox.openbankproject.com:443","connect,resolve"),
+      new java.util.PropertyPermission("user.dir","read"),
+      new java.io.FilePermission("README.md","read"),
+    )
+
+    Sandbox.createSandbox(permissionList).runInSandbox {
+      scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
+      Source.fromFile("README.md").getLines
+      new File(".").getCanonicalPath
+    }
+  }
 
   val zson = {
     """
