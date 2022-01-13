@@ -208,6 +208,10 @@ object DynamicUtil {
     }
 
     private val memoSandbox = new Memo[String, Sandbox]
+
+    /**
+     * this method will call create Sandbox underneath, but will have default permissions and bankId permission and cache.  
+     */
     def sandbox(bankId: String): Sandbox = memoSandbox.memoize(bankId) {
       Sandbox.createSandbox(BankId.permission(bankId) :: Validation.allowedRuntimePermissions)
     }

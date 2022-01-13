@@ -149,15 +149,15 @@ object BankId {
 
   def checkPermission(bankId: String): Unit = {
     val sm = System.getSecurityManager
-    // use FilePermission to control bankId value, it is a hack way.
-    if (sm != null) {
+    // use AuthPermission to control bankId value, it is a hack way.
+    if (sm != null) { //only check the permission when we using the security manager.
       val securityContext = sm.getSecurityContext.asInstanceOf[AccessControlContext]
       sm.checkPermission(permission(bankId), securityContext)
     }
   }
   def checkPermission(bankId: Option[String]): Unit = bankId.foreach(checkPermission)
 
-  def permission(bankId: String) = new AuthPermission(s"operateBank.$bankId")
+  def permission(bankId: String) = new AuthPermission(s"You do not have the permission for the BANK_ID($bankId)")
 }
 
 case class AccountRoutingAddress(val value: String) {
