@@ -269,9 +269,9 @@ object DynamicUtil {
     // Here is the Java Permission document, please extend these permissions carefully. 
     // https://docs.oracle.com/javase/8/docs/technotes/guides/security/spec/security-spec.doc3.html#17001
     // If you are not familiar with the permissions, we provide the clear error messages for the missing permissions in the log.
-    // eg:  "OBP-40047: DynamicResourceDoc method have no enough permissions.  No permission of: (\"java.io.FilePermission\" \"stop-words-en.txt\" \"write\")"
+    // eg1 scala test level : and have a look at the scala test for `createSandbox` method, you can see how to add permissions there too. 
+    // eg2 api level:  "OBP-40047: DynamicResourceDoc method have no enough permissions.  No permission of: (\"java.io.FilePermission\" \"stop-words-en.txt\" \"write\")"
     //       --> you can extends following permission: new java.net.SocketPermission("ir.dcs.gla.ac.uk:80", "connect,resolve"), 
-    //
     // NOTE: These permissions are only checked during runtime, not the compilation period.
     val allowedRuntimePermissions = List[Permission](
       new NetPermission("specifyStreamHandler"),
