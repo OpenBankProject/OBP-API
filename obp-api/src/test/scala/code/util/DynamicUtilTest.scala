@@ -30,6 +30,7 @@ package code.util
 import code.api.util.DynamicUtil.Sandbox
 import code.api.util._
 import code.setup.PropsReset
+import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common.Box
 import net.liftweb.json
@@ -76,6 +77,28 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
       Source.fromFile("README.md").getLines
       new File(".").getCanonicalPath
+    }
+  }
+  
+  "Sandbox.sandbox method test bankId" should "should throw exception" taggedAs DynamicUtilsTag in {
+    intercept[AccessControlException] {
+      Sandbox.sandbox(bankId= "abc").runInSandbox {
+        BankId("123" )
+      }
+    }
+  }
+  
+  "Sandbox.sandbox method test bankId" should "should work well" taggedAs DynamicUtilsTag in {
+    Sandbox.sandbox(bankId= "abc").runInSandbox {
+      BankId("abc" )
+    }
+  }
+
+  "Sandbox.sandbox method test default permission" should "should throw exception" taggedAs DynamicUtilsTag in {
+    intercept[AccessControlException] {
+      Sandbox.sandbox(bankId= "abc").runInSandbox {
+        scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
+      }
     }
   }
 
