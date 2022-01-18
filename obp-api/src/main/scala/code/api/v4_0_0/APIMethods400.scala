@@ -9239,7 +9239,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
-            _ =  Validation.validateDependency(connectorMethod.orNull)
+            _ =  Validation.validateDependency(connectorMethod.head)
             (connectorMethod, callContext) <- NewStyle.function.createJsonConnectorMethod(jsonConnectorMethod, callContext)
           } yield {
             (connectorMethod, HttpCode.`201`(callContext))
@@ -9284,7 +9284,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
             }
-            _ =  Validation.validateDependency(connectorMethod.orNull)
+            _ =  Validation.validateDependency(connectorMethod.head)
             (connectorMethod, callContext) <- NewStyle.function.updateJsonConnectorMethod(connectorMethodId, connectorMethodBody.methodBody, callContext)
           } yield {
             (connectorMethod, HttpCode.`200`(callContext))

@@ -136,12 +136,10 @@ class DynamicUtilTest extends FlatSpec with Matchers {
     val permissionList = List(
       new java.net.SocketPermission("apisandbox.openbankproject.com:443","connect,resolve"),
       new java.util.PropertyPermission("user.dir","read"),
-      new java.io.FilePermission("README.md","read"),
     )
 
     Sandbox.createSandbox(permissionList).runInSandbox {
       scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
-      Source.fromFile("README.md").getLines
       new File(".").getCanonicalPath
     }
   }
@@ -161,11 +159,11 @@ class DynamicUtilTest extends FlatSpec with Matchers {
   }
 
   "Sandbox.sandbox method test default permission" should "should throw exception" taggedAs DynamicUtilsTag in {
-//    intercept[AccessControlException] {
+    intercept[AccessControlException] {
       Sandbox.sandbox(bankId= "abc").runInSandbox {
         scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
       }
-//    }
+    }
   }
 
   val zson = {
