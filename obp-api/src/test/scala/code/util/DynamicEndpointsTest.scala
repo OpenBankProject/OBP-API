@@ -39,13 +39,30 @@ class DynamicEndpointsTest extends V400ServerSetup  with PropsReset {
   object DynamicUtilsTag extends Tag("DynamicEndpoints")
 
   feature("test DynamicEndpoints.CompiledObjects.validateDependency method") {
-    //This mean, we are only disabled the v4.0.0, all other versions should be enabled
-    setPropsValues(
-      "dynamic_code_compile_validate_enable" -> "true"
-    )
-    
-    val jsonDynamicResourceDoc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc
-    val compiledObject = CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
-      .validateDependency()
+    scenario("validateDependency should work well "){
+      //This mean, we are only disabled the v4.0.0, all other versions should be enabled
+      setPropsValues(
+        "dynamic_code_compile_validate_enable" -> "true",
+        "dynamic_code_compile_validate_dependencies" -> """[
+                                                          |      NewStyle.function.getClass.getTypeName -> "*",
+                                                          |      CompiledObjects.getClass.getTypeName -> "sandbox",
+                                                          |      HttpCode.getClass.getTypeName -> "200",
+                                                          |      DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",
+                                                          |      APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",
+                                                          |      ErrorMessages.getClass.getTypeName -> "*",
+                                                          |      ExecutionContext.Implicits.getClass.getTypeName -> "global",
+                                                          |      JSONFactory400.getClass.getTypeName -> "createBanksJson",
+                                                          |      classOf[Sandbox].getTypeName -> "runInSandbox",
+                                                          |      classOf[CallContext].getTypeName -> "*",
+                                                          |      classOf[ResourceDoc].getTypeName -> "getPathParams",
+                                                          |      "scala.reflect.runtime.package$" -> "universe",
+                                                          |      PractiseEndpoint.getClass.getTypeName + "*" -> "*"
+                                                          |]""".stripMargin
+      )
+
+      val jsonDynamicResourceDoc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc
+      CompiledObjects(jsonDynamicResourceDoc.exampleRequestBody, jsonDynamicResourceDoc.successResponseBody, jsonDynamicResourceDoc.methodBody)
+        .validateDependency() 
+    }
   }
 }
