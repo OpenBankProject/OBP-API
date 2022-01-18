@@ -77,7 +77,8 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
   override def update(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc] = {
     val dynamicMessageDocBox = if(bankId.isDefined){
       DynamicMessageDoc.find(
-        By(DynamicMessageDoc.DynamicMessageDocId, entity.dynamicMessageDocId.getOrElse(""))
+        By(DynamicMessageDoc.DynamicMessageDocId, entity.dynamicMessageDocId.getOrElse("")),
+        By(DynamicMessageDoc.BankId, bankId.head)
       )
     } else {
       DynamicMessageDoc.find(
