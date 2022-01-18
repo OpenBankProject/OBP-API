@@ -300,6 +300,16 @@ object DynamicUtil {
     // eg2 api level:  "OBP-40047: DynamicResourceDoc method have no enough permissions.  No permission of: (\"java.io.FilePermission\" \"stop-words-en.txt\" \"write\")"
     //       --> you can extends following permission: new java.net.SocketPermission("ir.dcs.gla.ac.uk:80", "connect,resolve"), 
     // NOTE: These permissions are only checked during runtime, not the compilation period.
+//    val allowedRuntimePermissions = List[Permission](
+//      new NetPermission("specifyStreamHandler"),
+//      new ReflectPermission("suppressAccessChecks"),
+//      new RuntimePermission("getenv.*"),
+//      new PropertyPermission("cglib.useCache", "read"),
+//      new PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
+//      new PropertyPermission("cglib.debugLocation", "read"),
+//      new RuntimePermission("accessDeclaredMembers"),
+//      new RuntimePermission("getClassLoader"),
+//    )
     val allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
 
     val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
@@ -314,6 +324,27 @@ object DynamicUtil {
      *  You can control all the OBP methods here.
      */
     // all allowed methods put at here, typeName -> methods
+//    val allowedCompilationMethods: Map[String, Set[String]] = Map(
+//      // companion objects methods
+//      NewStyle.function.getClass.getTypeName -> "*",
+//      CompiledObjects.getClass.getTypeName -> "sandbox",
+//      HttpCode.getClass.getTypeName -> "200",
+//      DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",
+//      APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",
+//      ErrorMessages.getClass.getTypeName -> "*",
+//      ExecutionContext.Implicits.getClass.getTypeName -> "global",
+//      JSONFactory400.getClass.getTypeName -> "createBanksJson",
+//
+//      // class methods
+//      classOf[Sandbox].getTypeName -> "runInSandbox",
+//      classOf[CallContext].getTypeName -> "*",
+//      classOf[ResourceDoc].getTypeName -> "getPathParams",
+//      "scala.reflect.runtime.package$" -> "universe",
+//
+//      // allow any method of PractiseEndpoint for test
+//      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
+//
+//    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
     val allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_compile_validate_dependencies` to Map")
 
     //Do not touch this Set, try to use the `allowedPermissions` and `allowedMethods` to control the sandbox 
