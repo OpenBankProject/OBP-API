@@ -1114,3 +1114,10 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # Local identity provider url
 # it defaults to the hostname props value
 # local_identity_provider=this is the hostname of the local obp server including scheme
+
+
+# enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
+dynamic_code_sandbox_enable=false
+# enable dynamic code compile validation, default is false, if set it to true, it will validate all the dynamic method body when you create/update any
+# dynamic scala method. Note, it only check all the obp code dependents for all the method in scala code.
+dynamic_code_compile_validate_enable=false

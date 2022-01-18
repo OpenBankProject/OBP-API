@@ -544,7 +544,11 @@ object ErrorMessages {
   val DynamicMessageDocNotFound = "OBP-40043: DynamicMessageDoc not found, please specify valid DYNAMIC_MESSAGE_DOC_ID. "
   val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc can not be deleted. "
   val DynamicCodeCompileFail = "OBP-40045: The code to do compile is illegal scala code, compilation failed. "
-  val InvalidOperationId = "OBP-40046: Invalid operation_id, please specify valid operation_id."
+
+  val DynamicResourceDocMethodDependency = "OBP-40046: DynamicResourceDoc method call forbidden methods. "
+  val DynamicResourceDocMethodPermission = "OBP-40047: DynamicResourceDoc method have no enough permissions. "
+
+  val InvalidOperationId = "OBP-40048: Invalid operation_id, please specify valid operation_id."
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

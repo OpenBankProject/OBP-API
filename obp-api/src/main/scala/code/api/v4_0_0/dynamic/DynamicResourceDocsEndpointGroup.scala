@@ -13,7 +13,7 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup {
 
 
   override protected def resourceDocs: List[APIUtil.ResourceDoc] =
-    DynamicResourceDocProvider.provider.vend.getAllAndConvert(toResourceDoc)
+    DynamicResourceDocProvider.provider.vend.getAllAndConvert(None, toResourceDoc) //TODO need to check if this can be `NONE`
 
   private val apiVersion : ScannedApiVersion = ApiVersion.v4_0_0
 
@@ -37,7 +37,7 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup {
   private val toResourceDoc: JsonDynamicResourceDoc => ResourceDoc = { dynamicDoc =>
     val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody)
     ResourceDoc(
-      partialFunction = compiledObjects.partialFunction, //connectorMethodBody
+      partialFunction = compiledObjects.sandboxEndpoint(dynamicDoc.bankId),
       implementedInApiVersion = apiVersion,
       partialFunctionName = dynamicDoc.partialFunctionName + "_" + (dynamicDoc.requestVerb + dynamicDoc.requestUrl).hashCode,
       requestVerb = dynamicDoc.requestVerb,

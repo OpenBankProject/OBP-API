@@ -10,7 +10,8 @@ import scala.collection.immutable.List
 class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
 
   override def getSingleton = DynamicResourceDoc
-  
+
+  object BankId extends MappedString(this, 255)
   object DynamicResourceDocId extends UUIDString(this)
   object PartialFunctionName extends MappedString(this, 255)
   object RequestVerb extends MappedString(this, 255)
@@ -30,6 +31,7 @@ class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK {
 object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[DynamicResourceDoc] {
   override def dbIndexes: List[BaseIndex[DynamicResourceDoc]] = UniqueIndex(DynamicResourceDocId) :: UniqueIndex(RequestUrl,RequestVerb) :: super.dbIndexes
   def getJsonDynamicResourceDoc(dynamicResourceDoc: DynamicResourceDoc) = JsonDynamicResourceDoc(
+    bankId = Some(dynamicResourceDoc.BankId.get),
     dynamicResourceDocId = Some(dynamicResourceDoc.DynamicResourceDocId.get),
     methodBody = dynamicResourceDoc.MethodBody.get,
     partialFunctionName = dynamicResourceDoc.PartialFunctionName.get,
