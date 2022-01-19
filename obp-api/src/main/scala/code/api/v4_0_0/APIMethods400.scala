@@ -3,7 +3,6 @@ package code.api.v4_0_0
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
-
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -45,6 +44,7 @@ import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.endpointMapping.EndpointMappingCommons
 import code.entitlement.Entitlement
+import code.loginattempts.LoginAttempt
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
@@ -3564,9 +3564,10 @@ trait APIMethods400 {
             acceptMarketingInfo <- NewStyle.function.getAgreementByUserId(user.userId, "accept_marketing_info", cc.callContext)
             termsAndConditions <- NewStyle.function.getAgreementByUserId(user.userId, "terms_and_conditions", cc.callContext)
             privacyConditions <- NewStyle.function.getAgreementByUserId(user.userId, "privacy_conditions", cc.callContext)
+            isLocked = LoginAttempt.userIsLocked(user.name)
           } yield {
             val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
-            (JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements)), HttpCode.`200`(cc.callContext))
+            (JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements), isLocked), HttpCode.`200`(cc.callContext))
           }
       }
     }
@@ -3600,8 +3601,9 @@ trait APIMethods400 {
               x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            isLocked = LoginAttempt.userIsLocked(user.name)
           } yield {
-            (JSONFactory400.createUserInfoJSON(user, entitlements, None), HttpCode.`200`(cc.callContext))
+            (JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked), HttpCode.`200`(cc.callContext))
           }
       }
     }

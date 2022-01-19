@@ -28,7 +28,6 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
@@ -50,6 +49,7 @@ import code.atms.Atms.Atm
 import code.bankattribute.BankAttribute
 import code.consent.MappedConsent
 import code.entitlement.Entitlement
+import code.loginattempts.LoginAttempt
 import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
@@ -948,13 +948,14 @@ case class UserJsonV400(
                          views: Option[ViewsJSON300],
                          agreements: Option[List[UserAgreementJson]],
                          is_deleted: Boolean,
-                         last_marketing_agreement_signed_date: Option[Date]
+                         last_marketing_agreement_signed_date: Option[Date],
+                         is_locked: Boolean
                        )
 case class UsersJsonV400(users: List[UserJsonV400])
 
 object JSONFactory400 {
 
-  def createUserInfoJSON(user : User, entitlements: List[Entitlement], agreements: Option[List[UserAgreement]]) : UserJsonV400 = {
+  def createUserInfoJSON(user : User, entitlements: List[Entitlement], agreements: Option[List[UserAgreement]], isLocked:Boolean) : UserJsonV400 = {
     UserJsonV400(
       user_id = user.userId,
       email = user.emailAddress,
@@ -967,7 +968,8 @@ object JSONFactory400 {
         UserAgreementJson(`type` = i.agreementType, text = i.agreementText))
       ),
       is_deleted = user.isDeleted.getOrElse(false),
-      last_marketing_agreement_signed_date = user.lastMarketingAgreementSignedDate
+      last_marketing_agreement_signed_date = user.lastMarketingAgreementSignedDate,
+      is_locked = isLocked,
     )
   }
 
@@ -977,7 +979,8 @@ object JSONFactory400 {
         createUserInfoJSON(
           t._1, 
           t._2.getOrElse(Nil),
-          t._3
+          t._3,
+          LoginAttempt.userIsLocked(t._1.name)
         )
       )
     )
