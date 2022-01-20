@@ -1,16 +1,43 @@
 package code.api.util
-import com.openbankproject.commons.util.JsonUtils
+import code.api.JsonResponseException
+import code.api.util.APIUtil.ResourceDoc
+import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
+import code.api.util.NewStyle.HttpCode
+import code.api.v4_0_0.JSONFactory400
+import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicCompileEndpoint}
+import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
+import com.openbankproject.commons.ExecutionContext
+import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.util.Functions.Memo
+import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
+import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.json.{JObject, JValue, prettyRender}
+import net.liftweb.http.JsonResponse
+import net.liftweb.json.{ JValue, prettyRender}
+import org.apache.commons.lang3.StringUtils
 
+import java.lang.reflect.ReflectPermission
+import java.net.NetPermission
+import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
+import java.util.PropertyPermission
 import java.util.concurrent.ConcurrentHashMap
+import scala.collection.immutable.List
+import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
+import scala.runtime.NonLocalReturnControl
 import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 object DynamicUtil {
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
+  private val memoClassPool = new Memo[ClassLoader, ClassPool]
+
+  private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
+    val cp = ClassPool.getDefault
+    cp.appendClassPath(new LoaderClassPath(classLoader))
+    cp
+  }
 
   // code -> dynamic method function
   // the same code should always be compiled once, so here cache them
@@ -115,6 +142,81 @@ object DynamicUtil {
     }
   }
 
+  def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true): List[(String, String, String)] = {
+    val className = clazz.getTypeName
+    val listBuffer = new ListBuffer[(String, String, String)]()
+    for {
+      method <- getClassPool(clazz.getClassLoader).get(className).getDeclaredMethods.toList
+      if predicate(method.getName)
+      ternary @ (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature)
+    } yield {
+      // if method is also dynamic compile code, extract it's dependent method
+      if(className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName+ "$")) {
+        listBuffer.appendAll(APIUtil.getDependentMethods(typeName, methodName, signature))
+      } else {
+        listBuffer.append(ternary)
+      }
+    }
+
+    listBuffer.distinct.toList
+  }
+
+  trait Sandbox {
+    @throws[Exception]
+    def runInSandbox[R](action: => R): R
+  }
+
+  object Sandbox {
+    // initialize SecurityManager if not initialized
+    if (System.getSecurityManager == null) {
+      Policy.setPolicy(new Policy() {
+        override def getPermissions(codeSource: CodeSource): PermissionCollection = {
+          for (element <- Thread.currentThread.getStackTrace) {
+            if ("sun.rmi.server.LoaderHandler" == element.getClassName && "loadClass" == element.getMethodName)
+              return new Permissions
+          }
+          super.getPermissions(codeSource)
+        }
+
+        override def implies(domain: ProtectionDomain, permission: Permission) = true
+      })
+      System.setSecurityManager(new SecurityManager)
+    }
+
+    def createSandbox(permissionList: List[Permission]): Sandbox = {
+      val accessControlContext: AccessControlContext = {
+        val permissions = new Permissions()
+        permissionList.foreach(permissions.add)
+        val protectionDomain = new ProtectionDomain(null, permissions)
+        new AccessControlContext(Array(protectionDomain))
+      }
+
+      new Sandbox {
+        @throws[Exception]
+        def runInSandbox[R](action: => R): R = try {
+          val privilegedAction:  PrivilegedAction[R] = () => action
+
+          AccessController.doPrivileged(privilegedAction, accessControlContext)
+        } catch {
+          case  e: NonLocalReturnControl[Full[JsonResponse]] if e.value.isInstanceOf[Full[JsonResponse]] =>
+            throw JsonResponseException(e.value.orNull)
+
+          case e: NonLocalReturnControl[JsonResponse] if e.value.isInstanceOf[JsonResponse] =>
+            throw JsonResponseException(e.value)
+        }
+      }
+    }
+
+    private val memoSandbox = new Memo[String, Sandbox]
+
+    /**
+     * this method will call create Sandbox underneath, but will have default permissions and bankId permission and cache.  
+     */
+    def sandbox(bankId: String): Sandbox = memoSandbox.memoize(bankId) {
+      Sandbox.createSandbox(BankId.permission(bankId) :: Validation.allowedRuntimePermissions)
+    }
+  }
+
   /**
    * common import statements those are used by compiler
    */
@@ -163,5 +265,130 @@ object DynamicUtil {
       |import scala.concurrent.duration._
       |import scala.concurrent.{Await, Future}
       |import com.openbankproject.commons.dto._
+      |import code.api.util.APIUtil.ResourceDoc
+      |import code.api.util.DynamicUtil.Sandbox
+      |import code.api.util.NewStyle.HttpCode
+      |import code.api.util._
+      |import code.api.v4_0_0.JSONFactory400
+      |import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicCompileEndpoint}
+      |import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
+      |import com.openbankproject.commons.ExecutionContext
+      |import com.openbankproject.commons.model.BankId
+      |import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
+      |import net.liftweb.common.{Box, Full}
+      |import org.apache.commons.lang3.StringUtils
+      |
+      |import java.io.File
+      |import java.security.{AccessControlException, Permission}
+      |import java.util.PropertyPermission
+      |import scala.collection.immutable.List
+      |import scala.io.Source
       |""".stripMargin
+
+
+  object Validation {
+
+    val dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
+    val scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
+    val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCode(scalaCodePermissioins)
+    
+    // all Permissions put at here
+    // Here is the Java Permission document, please extend these permissions carefully. 
+    // https://docs.oracle.com/javase/8/docs/technotes/guides/security/spec/security-spec.doc3.html#17001
+    // If you are not familiar with the permissions, we provide the clear error messages for the missing permissions in the log.
+    // eg1 scala test level : and have a look at the scala test for `createSandbox` method, you can see how to add permissions there too. 
+    // eg2 api level:  "OBP-40047: DynamicResourceDoc method have no enough permissions.  No permission of: (\"java.io.FilePermission\" \"stop-words-en.txt\" \"write\")"
+    //       --> you can extends following permission: new java.net.SocketPermission("ir.dcs.gla.ac.uk:80", "connect,resolve"), 
+    // NOTE: These permissions are only checked during runtime, not the compilation period.
+//    val allowedRuntimePermissions = List[Permission](
+//      new NetPermission("specifyStreamHandler"),
+//      new ReflectPermission("suppressAccessChecks"),
+//      new RuntimePermission("getenv.*"),
+//      new PropertyPermission("cglib.useCache", "read"),
+//      new PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
+//      new PropertyPermission("cglib.debugLocation", "read"),
+//      new RuntimePermission("accessDeclaredMembers"),
+//      new RuntimePermission("getClassLoader"),
+//    )
+    val allowedRuntimePermissions = permissions.openOrThrowException("Can not compile the props `dynamic_code_sandbox_permissions` to permissions")
+
+    val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
+    val scalaCodeDependencies = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map(").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)"
+    val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCode(scalaCodeDependencies)
+    
+    /**
+     * Compilation OBP Dependencies Guard, only checked the OBP methods, not scala/Java libraies(are checked during the runtime.).
+     * 
+     * allowedCompilationMethods --> 
+     * The following methods will be checked when you call the `Create Dynamic ResourceDoc/MessageDoc` endpoints.
+     *  You can control all the OBP methods here.
+     */
+    // all allowed methods put at here, typeName -> methods
+//    val allowedCompilationMethods: Map[String, Set[String]] = Map(
+//      // companion objects methods
+//      NewStyle.function.getClass.getTypeName -> "*",
+//      CompiledObjects.getClass.getTypeName -> "sandbox",
+//      HttpCode.getClass.getTypeName -> "200",
+//      DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",
+//      APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",
+//      ErrorMessages.getClass.getTypeName -> "*",
+//      ExecutionContext.Implicits.getClass.getTypeName -> "global",
+//      JSONFactory400.getClass.getTypeName -> "createBanksJson",
+//
+//      // class methods
+//      classOf[Sandbox].getTypeName -> "runInSandbox",
+//      classOf[CallContext].getTypeName -> "*",
+//      classOf[ResourceDoc].getTypeName -> "getPathParams",
+//      "scala.reflect.runtime.package$" -> "universe",
+//
+//      // allow any method of PractiseEndpoint for test
+//      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
+//
+//    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)
+    val allowedCompilationMethods: Map[String, Set[String]] = dependenciesBox.openOrThrowException("Can not compile the props `dynamic_code_compile_validate_dependencies` to Map")
+
+    //Do not touch this Set, try to use the `allowedPermissions` and `allowedMethods` to control the sandbox 
+    val restrictedTypes = Set(
+      "scala.reflect.runtime.",
+      "java.lang.reflect.",
+      "scala.concurrent.ExecutionContext"
+    )
+
+    private def isRestrictedType(typeName: String) = ReflectUtils.isObpClass(typeName) || restrictedTypes.exists(typeName.startsWith)
+
+    /**
+     * validate dependencies, (className, methodName, signature)
+     * 
+     * Here only validate the restricted types(isObpClass + val restrictedTypes), not all scala/java types.
+     */
+    private def validateDependency(dependentMethods: List[(String, String, String)]) = {
+      val notAllowedDependentMethods = dependentMethods collect {
+        case (typeName, method, _)
+          if isRestrictedType(typeName) &&
+            !allowedCompilationMethods.get(typeName).exists(set => set.contains(method) || set.contains("*")) &&
+            !allowedCompilationMethods.exists { it =>
+              val (tpName, allowedMethods) = it
+              tpName.endsWith("*") &&
+                typeName.startsWith(StringUtils.substringBeforeLast(tpName, "*")) &&
+                (allowedMethods.contains(method) || allowedMethods.contains("*"))
+            }
+        =>
+          s"$typeName.$method"
+      }
+      // change to JsonResponseException
+      if(notAllowedDependentMethods.nonEmpty) {
+        val illegalDependency = notAllowedDependentMethods.mkString("[", ", ", "]")
+        throw JsonResponseException(s"$DynamicResourceDocMethodDependency $illegalDependency", 400, "none")
+      }
+    }
+
+    def validateDependency(obj: AnyRef): Unit = {
+      if(APIUtil.getPropsAsBoolValue("dynamic_code_compile_validate_enable",false)){
+        val dependentMethods: List[(String, String, String)] = DynamicUtil.getDynamicCodeDependentMethods(obj.getClass)
+        validateDependency(dependentMethods)
+      } else{ // If false, nothing to do here.
+        ;
+      }
+    }
+  }
 }

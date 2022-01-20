@@ -16,6 +16,7 @@ object DynamicMessageDocProvider extends SimpleInjector {
 }
 
 case class JsonDynamicMessageDoc(
+  bankId: Option[String],
   dynamicMessageDocId: Option[String],
   process: String,
   messageFormat: String, 
@@ -34,12 +35,12 @@ case class JsonDynamicMessageDoc(
 
 trait DynamicMessageDocProvider {
 
-  def getById(dynamicMessageDocId: String): Box[JsonDynamicMessageDoc]
-  def getByProcess(process: String): Box[JsonDynamicMessageDoc]
-  def getAll(): List[JsonDynamicMessageDoc]
+  def getById(bankId: Option[String], dynamicMessageDocId: String): Box[JsonDynamicMessageDoc]
+  def getByProcess(bankId: Option[String], process: String): Box[JsonDynamicMessageDoc]
+  def getAll(bankId: Option[String]): List[JsonDynamicMessageDoc]
 
-  def create(entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]
-  def update(entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]
-  def deleteById(dynamicMessageDocId: String): Box[Boolean]
+  def create(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]
+  def update(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]
+  def deleteById(bankId: Option[String], dynamicMessageDocId: String): Box[Boolean]
 
 }

@@ -9,6 +9,7 @@ class DynamicMessageDoc extends LongKeyedMapper[DynamicMessageDoc] with IdPK {
 
   override def getSingleton = DynamicMessageDoc
 
+  object BankId extends MappedString(this, 255)
   object DynamicMessageDocId extends UUIDString(this)     
   object Process extends MappedString(this, 255)   
   object MessageFormat extends MappedString(this, 255)   
@@ -27,6 +28,7 @@ class DynamicMessageDoc extends LongKeyedMapper[DynamicMessageDoc] with IdPK {
 object DynamicMessageDoc extends DynamicMessageDoc with LongKeyedMetaMapper[DynamicMessageDoc] {
   override def dbIndexes: List[BaseIndex[DynamicMessageDoc]] = UniqueIndex(DynamicMessageDocId) :: UniqueIndex(Process) :: super.dbIndexes
   def getJsonDynamicMessageDoc(dynamicMessageDoc: DynamicMessageDoc) = JsonDynamicMessageDoc(
+    bankId = Some(dynamicMessageDoc.BankId.get),
     dynamicMessageDocId = Some(dynamicMessageDoc.DynamicMessageDocId.get),
     process = dynamicMessageDoc.Process.get,
     messageFormat = dynamicMessageDoc.MessageFormat.get,

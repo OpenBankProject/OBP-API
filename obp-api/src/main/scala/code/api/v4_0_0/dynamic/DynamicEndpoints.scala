@@ -1,5 +1,5 @@
 package code.api.v4_0_0.dynamic
-
+import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}
 import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
@@ -125,7 +125,7 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
   }
   val successResponse: Product = toCaseObject(successResponseBody)
 
-  val partialFunction: OBPEndpoint = {
+  private val partialFunction: OBPEndpoint = {
 
     //If the requestBody is PrimaryDataBody, return None. otherwise, return the exampleRequestBody:Option[JValue]
     // In side OBP resourceDoc, requestBody and successResponse must be Product type，
@@ -148,26 +148,36 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
 
     val code =
       s"""
-         |import code.api.util.APIUtil.errorJsonResponse
          |import code.api.util.CallContext
          |import code.api.util.ErrorMessages.{InvalidJsonFormat, InvalidRequestPayload}
          |import code.api.util.NewStyle.HttpCode
-         |import code.api.v4_0_0.dynamic.DynamicCompileEndpoint
+         |import code.api.util.APIUtil.{OBPReturnType, futureToBoxedResponse, scalaFutureToLaFuture, errorJsonResponse}
+         |
          |import net.liftweb.common.{Box, EmptyBox, Full}
          |import net.liftweb.http.{JsonResponse, Req}
          |import net.liftweb.json.MappingException
          |
          |import scala.concurrent.Future
+         |import com.openbankproject.commons.ExecutionContext.Implicits.global
+         |
+         |implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit m: Manifest[T]): Box[JsonResponse] = {
+         |    futureToBoxedResponse(scalaFutureToLaFuture(scf))
+         |}
+         |
+         |implicit val formats = code.api.util.CustomJsonFormats.formats
          |
          |$requestBodyCaseClasses
          |
          |$responseBodyCaseClasses
          |
-         |(new DynamicCompileEndpoint {
-         |    override protected def process(callContext: CallContext, request: Req): Box[JsonResponse] = {
-         |       $decodedMethodBody
-         |    }
-         |}).endpoint
+         |val endpoint: code.api.util.APIUtil.OBPEndpoint = {
+         |  case request => { callContext =>
+         |    val Some(pathParams) = callContext.resourceDocument.map(_.getPathParams(request.path.partPath))
+         |    $decodedMethodBody
+         |  }
+         |}
+         |
+         |endpoint
          |
          |""".stripMargin
     val endpointMethod = DynamicUtil.compileScalaCode[OBPEndpoint](code)
@@ -177,6 +187,37 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
       case Failure(msg: String, exception: Box[Throwable], _) =>
         throw exception.getOrElse(new RuntimeException(msg))
       case _ => throw new RuntimeException("compiled code return nothing")
+    }
+  }
+
+  /**
+   * this will check all the dynamic scala code dependencies at compile time.
+   * 
+   *Search for the usage, you can see how to use it in OBP code.
+   */
+  def validateDependency() = Validation.validateDependency(this.partialFunction)
+
+  /**
+   * This is used to check the security permission at the run time. 
+   * all the obp partialFunctions will be wrapped into the sandbox which under the permission control.
+   * 
+   */
+  def sandboxEndpoint(bankId: Option[String]) : OBPEndpoint = {
+    val sandbox = bankId match {
+      case Some(v) if StringUtils.isNotBlank(v) =>
+         Sandbox.sandbox(v)
+      case _ => Sandbox.sandbox("*")
+    }
+
+    new OBPEndpoint {
+      override def isDefinedAt(req: Req): Boolean = partialFunction.isDefinedAt(req)
+
+      // run dynamic code in sandbox
+      override def apply(req: Req): CallContext => Box[JsonResponse] = {cc =>
+        val fn = partialFunction.apply(req)
+
+        sandbox.runInSandbox(fn(cc))
+      }
     }
   }
 
@@ -194,5 +235,4 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
      }
   }
 }
-
 

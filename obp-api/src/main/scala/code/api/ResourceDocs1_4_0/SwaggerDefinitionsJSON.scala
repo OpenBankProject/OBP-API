@@ -4281,6 +4281,7 @@ object SwaggerDefinitionsJSON {
   val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyExample.value)
   
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
+    bankId = Some(bankIdExample.value),
     dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
     methodBody = dynamicResourceDocMethodBodyExample.value,
     partialFunctionName = dynamicResourceDocPartialFunctionNameExample.value,
@@ -4296,6 +4297,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val jsonDynamicMessageDoc = JsonDynamicMessageDoc(
+    bankId = Some(bankIdExample.value),
     dynamicMessageDocId = Some(dynamicMessageDocIdExample.value),
     process = processExample.value,
     messageFormat = messageFormatExample.value,
@@ -4494,6 +4496,8 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value,
     meta = metaJson,
   )
+
+  val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   val entitlementJsonV400 = EntitlementJsonV400(
     entitlement_id = entitlementIdExample.value,

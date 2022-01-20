@@ -2,9 +2,12 @@ package com.openbankproject.commons
 
 import com.alibaba.ttl.TtlRunnable
 
-import scala.concurrent.{ ExecutionContext => ScalaExecutionContext}
+import java.security.{AccessController, PrivilegedAction}
+import scala.concurrent.{ExecutionContext => ScalaExecutionContext}
 
 object ExecutionContext {
+  val enableSandbox = System.getProperty("dynamic_code_sandbox_enable", "false").toBoolean
+
   object Implicits {
     /**
      * The implicit global `ExecutionContext`. Import `global` when you want to provide the global
@@ -24,8 +27,17 @@ object ExecutionContext {
    */
   def wrapExecutionContext(executionContext: ScalaExecutionContext): ScalaExecutionContext = {
     new ScalaExecutionContext{
-      override def execute(runnable: Runnable): Unit = executionContext.execute(TtlRunnable.get(runnable, true, true))
+      override def execute(runnable: Runnable): Unit = {
+        val privilegedRunnable = if(enableSandbox) PrivilegedRunnable(runnable) else runnable
+        executionContext.execute(TtlRunnable.get(privilegedRunnable, true, true))
+      }
       override def reportFailure(cause: Throwable): Unit = executionContext.reportFailure(cause)
     }
+  }
+
+  def PrivilegedRunnable(runnable: Runnable): Runnable = {
+    val acc = AccessController.getContext
+    val privilegedAction: PrivilegedAction[Unit] = () => runnable.run()
+    () => AccessController.doPrivileged(privilegedAction, acc)
   }
 }

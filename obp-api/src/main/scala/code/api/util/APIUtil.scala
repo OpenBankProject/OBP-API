@@ -33,7 +33,6 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -45,6 +44,7 @@ import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
 import code.api.util.Glossary.GlossaryItem
+import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
@@ -95,6 +95,17 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
+import com.openbankproject.commons.util.Functions.Implicits._
+import com.openbankproject.commons.util.Functions.Memo
+import javassist.{ClassPool, LoaderClassPath}
+import javassist.expr.{ExprEditor, MethodCall}
+import org.apache.commons.io.IOUtils
+import org.apache.commons.lang3.StringUtils
+
+import java.security.AccessControlException
+import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
 import scala.util.Either
@@ -2478,7 +2489,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ => laf.abort
     }
     scf.onFailure {
-      case e: Throwable => laf.fail(Failure(e.getMessage(), Full(e), Empty))
+      case e: AccessControlException =>
+        laf.fail(Failure(s"$DynamicResourceDocMethodPermission No permission of: ${e.getPermission.toString}", Full(e), Empty))
+
+      case e: Throwable =>
+        laf.fail(Failure(e.getMessage(), Full(e), Empty))
     }
     laf
   }
@@ -3751,40 +3766,61 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     pool.appendClassPath(new LoaderClassPath(Thread.currentThread.getContextClassLoader))
     pool
   }
+  private val memoClassPool = new Memo[ClassLoader, ClassPool]
+
+  private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
+    val cp = ClassPool.getDefault
+    cp.appendClassPath(new LoaderClassPath(classLoader))
+    cp
+  }
+
+  /**
+   * according class name, method name and method's signature to get all dependent methods
+   */
+  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
+    val methods = ListBuffer[(String, String, String)]()
+    val method = cp.get(className).getMethod(methodName, signature)
+    method.instrument(new ExprEditor() {
+      @throws[CannotCompileException]
+      override def edit(m: MethodCall): Unit = {
+        val tuple = (m.getClassName, m.getMethodName, m.getSignature)
+        methods += tuple
+      }
+    })
+    methods.toList
+  }
 
   /**
    * get all dependent connector method names for an object
    * @param endpoint can be OBPEndpoint or other PartialFunction
    * @return a list of connector method name
    */
-  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]) = {
+  def getDependentConnectorMethods(endpoint: PartialFunction[_, _]): List[String] = {
     val connectorTypeName = classOf[Connector].getName
+    val endpointClassName = endpoint.getClass.getName
+    // not analyze dynamic code
+//    if(endpointClassName.startsWith("__wrapper$")) {
+//      return Nil
+//    }
+    val classPool = this.getClassPool(endpoint.getClass.getClassLoader)
+
     def getObpTrace(className: String, methodName: String, signature: String, exclude: List[(String, String, String)] = Nil): List[(String, String, String)] =
       memo.memoize((className, methodName, signature)) {
-        val methods = ListBuffer[(String, String, String)]()
-        val method = cp.get(className).getMethod(methodName, signature)
-        method.instrument(new ExprEditor() {
-          @throws[CannotCompileException]
-          override def edit(m: MethodCall): Unit = {
-            val tuple = (m.getClassName, m.getMethodName, m.getSignature)
-            if (ReflectUtils.isObpClass(m.getClassName)) {
-              methods += tuple
-            }
-          }
-        })
+        // List:: className->methodName->signature
+        val methods = getDependentMethods(className, methodName, signature)
 
-        val list = methods.distinct.toList.filterNot(exclude.contains)
+        val list = methods.distinct.filter(it => ReflectUtils.isObpClass(it._1)).filterNot(exclude.contains)
         list.collect {
           case x@(clazzName, _, _) if clazzName == connectorTypeName => x :: Nil
-          case (clazzName, mName, mSignature) =>
+          case (clazzName, mName, mSignature) if !clazzName.startsWith("__wrapper$") =>
             getObpTrace(clazzName, mName, mSignature, list ::: exclude)
         }.flatten.distinct
       }
 
-    val endpointClassName = endpoint.getClass.getName
+
     // list of connector method name
     val connectorMethods: Array[String] = for {
-      method <- cp.get(endpoint.getClass.getName).getDeclaredMethods
+      method <- classPool.get(endpointClassName).getDeclaredMethods
       (clazzName, methodName, _) <- getObpTrace(endpointClassName, method.getName, method.getSignature)
       if clazzName == connectorTypeName && !methodName.contains("$default$")
     } yield methodName

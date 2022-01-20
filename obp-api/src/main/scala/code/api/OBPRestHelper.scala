@@ -113,15 +113,18 @@ object ApiVersionHolder {
  * This is helpful if you want send back given error message and status code
  * @param jsonResponse
  */
-case class JsonResponseException(jsonResponse: JsonResponse) extends RuntimeException with NoStackTrace {
+case class JsonResponseException(jsonResponse: JsonResponse) extends RuntimeException with NoStackTrace
+
+object JsonResponseException {
   /**
    *
    * @param errorMsg error message
    * @param errorCode response error code and status code
    * @param correlationId this value can be got from callContext
    */
-  def this(errorMsg: String, errorCode: Int, correlationId: String) =
-    this(createErrorJsonResponse(errorMsg: String, errorCode: Int, correlationId: String))
+  def apply(errorMsg: String, errorCode: Int, correlationId: String):JsonResponseException = {
+    JsonResponseException(createErrorJsonResponse(errorMsg: String, errorCode: Int, correlationId: String))
+  }
 }
 
 trait OBPRestHelper extends RestHelper with MdcLoggable {
