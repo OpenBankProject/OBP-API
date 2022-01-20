@@ -95,6 +95,13 @@ trait AccountApplication {
   def status: String
 }
 
+trait UserAttributeTrait {
+  def userAttributeId: String
+  def name: String
+  def attributeType: UserAttributeType.Value
+  def value: String
+}
+
 trait AccountAttribute {
   def bankId: BankId
   def accountId: AccountId

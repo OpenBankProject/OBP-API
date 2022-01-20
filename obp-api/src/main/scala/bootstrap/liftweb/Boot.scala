@@ -29,6 +29,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
+
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -120,7 +121,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.users.{UserAgreement, UserInitAction, UserInvitation}
+import code.users.{UserAgreement, UserAttribute, UserInitAction, UserInvitation}
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
@@ -865,6 +866,7 @@ object ToSchemify {
     ResourceUser,
     UserInvitation,
     UserAgreement,
+    UserAttribute,
     MappedComment,
     MappedTag,
     MappedWhereTag,

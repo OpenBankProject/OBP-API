@@ -7,6 +7,15 @@ import net.liftweb.common.Box
 import net.liftweb.json.JsonAST.{JNothing, JString}
 import net.liftweb.json.{Formats, JBool, JDouble, JInt, JValue}
 
+
+sealed trait UserAttributeType extends EnumValue
+object UserAttributeType extends OBPEnumeration[UserAttributeType]{
+  object STRING         extends Value
+  object INTEGER        extends Value
+  object DOUBLE         extends Value
+  object DATE_WITH_DAY  extends Value
+}
+
 sealed trait BankAttributeType extends EnumValue
 object BankAttributeType extends OBPEnumeration[BankAttributeType]{
   object STRING         extends Value
