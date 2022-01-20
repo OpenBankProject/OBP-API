@@ -1716,7 +1716,8 @@ object SwaggerDefinitionsJSON {
     views = None,
     agreements = None,
     is_deleted = false,
-    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false
   )  
   val userJsonWithAgreementsV400 = UserJsonV400(
     user_id = ExampleValue.userIdExample.value,
@@ -1728,7 +1729,8 @@ object SwaggerDefinitionsJSON {
     views = None,
     agreements = Some(Nil),
     is_deleted = false,
-    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false
   )
   val userIdJsonV400 = UserIdJsonV400(
     user_id = ExampleValue.userIdExample.value
