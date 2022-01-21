@@ -8105,6 +8105,59 @@ trait APIMethods400 {
           }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      createCurrentUserAttribute,
+      implementedInApiVersion,
+      nameOf(createCurrentUserAttribute),
+      "POST",
+      "/my/user/attribute",
+      "Create User Attribute for current user",
+      s""" Create User Attribute forcurrent user
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      userAttributeJsonV400,
+      userAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List()))
+
+    lazy val createCurrentUserAttribute : OBPEndpoint = {
+      case "my" ::  "user" :: "attribute" :: Nil JsonPost json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
+          for {
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              json.extract[TransactionAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              cc.userId,
+              None,
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
     
 
     staticResourceDocs += ResourceDoc(

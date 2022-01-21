@@ -111,14 +111,23 @@ object ExampleValue {
   lazy val customerAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"Customer attribute id")
   glossaryItems += makeGlossaryItem("Customer.attributeId", customerAttributeIdExample)
   
+  lazy val userAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"User attribute id")
+  glossaryItems += makeGlossaryItem("Customer.attributeId", userAttributeIdExample)
+  
   lazy val customerAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Customer attribute name")
   glossaryItems += makeGlossaryItem("Customer.attributeName", customerAttributeNameExample)
+  
+  lazy val userAttributeNameExample = ConnectorField("ROLE", s"User attribute name")
+  glossaryItems += makeGlossaryItem("User.attributeName", userAttributeNameExample)
   
   lazy val templateAttributeNameExample = ConnectorField("SPECIAL_TAX_NUMBER", s"Attribute name")
   glossaryItems += makeGlossaryItem("Template.attributeName", templateAttributeNameExample)
 
   lazy val customerAttributeTypeExample = ConnectorField("STRING", s"Customer attribute type.")
   glossaryItems += makeGlossaryItem("Customer.attributeType", customerAttributeTypeExample)
+
+  lazy val userAttributeTypeExample = ConnectorField("STRING", s"User attribute type.")
+  glossaryItems += makeGlossaryItem("User.attributeType", userAttributeTypeExample)
   
   lazy val templateAttributeTypeExample = ConnectorField("STRING", s"Attribute type.")
   glossaryItems += makeGlossaryItem("Template.attributeType", templateAttributeTypeExample)
@@ -128,6 +137,9 @@ object ExampleValue {
 
   lazy val customerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
   glossaryItems += makeGlossaryItem("Customer.attributeValue", customerAttributeValueExample)
+
+  lazy val userAttributeValueExample = ConnectorField("123456789", s"Uset attribute value.")
+  glossaryItems += makeGlossaryItem("User.attributeValue", userAttributeValueExample)
   
   lazy val labelExample = ConnectorField("My Account", s"A lable that describes the Account")
   lazy val legalNameExample = ConnectorField("Eveline Tripman", s"The legal name of the Customer.")

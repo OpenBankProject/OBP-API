@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -66,7 +67,7 @@ import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
 import code.transactionrequests._
-import code.users.Users
+import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
@@ -3721,6 +3722,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
+    UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUser(userId: String) map {(_, callContext)}
+  }
+  override def createOrUpdateUserAttribute(
+                                            userId: String,
+                                            userAttributeId: Option[String],
+                                            name: String,
+                                            attributeType: UserAttributeType.Value,
+                                            value: String,
+                                            callContext: Option[CallContext]
+                                          ): OBPReturnType[Box[UserAttribute]] = {
+    UserAttributeProvider.userAttributeProvider.vend.createOrUpdateUserAttribute(
+      userId: String,
+      userAttributeId: Option[String],
+      name: String,
+      attributeType: UserAttributeType.Value,
+      value: String
+    ) map {
+      (_, callContext)
+    }
+  }
+  
   override def createOrUpdateTransactionAttribute(
                                                    bankId: BankId,
                                                    transactionId: TransactionId,

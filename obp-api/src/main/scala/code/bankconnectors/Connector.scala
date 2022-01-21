@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.attributedefinition.AttributeDefinition
@@ -33,7 +34,7 @@ import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import code.transactionrequests.TransactionRequests._
-import code.users.Users
+import code.users.{UserAttribute, Users}
 import code.util.Helper._
 import code.views.Views
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -2122,6 +2123,18 @@ trait Connector extends MdcLoggable {
     Future {
       (Failure(setUnimplementedError), callContext)
     }
+  
+  def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = 
+    Future{(Failure(setUnimplementedError), callContext)}  
+  
+  def createOrUpdateUserAttribute(
+    userId: String,
+    userAttributeId: Option[String],
+    name: String,
+    attributeType: UserAttributeType.Value,
+    value: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[UserAttribute]] = Future{(Failure(setUnimplementedError), callContext)} 
   
   def createOrUpdateTransactionAttribute(
     bankId: BankId,

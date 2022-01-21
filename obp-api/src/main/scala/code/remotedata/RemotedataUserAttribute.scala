@@ -16,8 +16,8 @@ object RemotedataUserAttribute extends ObpActorInit with UserAttributeProvider {
 
   val cc = RemotedataUserAttributeCaseClasses
   
-  override def getAccountAttributesByUser(userId: String): Future[Box[List[UserAttribute]]] = 
-    (actor ? cc.getAccountAttributesByUser(userId)).mapTo[Box[List[UserAttribute]]]
+  override def getUserAttributesByUser(userId: String): Future[Box[List[UserAttribute]]] = 
+    (actor ? cc.getUserAttributesByUser(userId)).mapTo[Box[List[UserAttribute]]]
 
   override def createOrUpdateUserAttribute(userId: String,
                                            userAttributeId: Option[String],

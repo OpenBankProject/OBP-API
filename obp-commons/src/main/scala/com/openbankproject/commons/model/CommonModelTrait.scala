@@ -97,6 +97,7 @@ trait AccountApplication {
 
 trait UserAttributeTrait {
   def userAttributeId: String
+  def userId: String
   def name: String
   def attributeType: UserAttributeType.Value
   def value: String

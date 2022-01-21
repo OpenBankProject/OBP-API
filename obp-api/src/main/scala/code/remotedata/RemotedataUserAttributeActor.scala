@@ -15,9 +15,9 @@ class RemotedataUserAttributeActor extends Actor with ObpActorHelper with MdcLog
 
   def receive: PartialFunction[Any, Unit] = {
 
-    case cc.getAccountAttributesByUser(userId: String) =>
-      logger.debug(s"getAccountAttributesByUser(${userId})")
-      mapper.getAccountAttributesByUser(userId) pipeTo sender
+    case cc.getUserAttributesByUser(userId: String) =>
+      logger.debug(s"getUserAttributesByUser(${userId})")
+      mapper.getUserAttributesByUser(userId) pipeTo sender
 
     case cc.createOrUpdateUserAttribute(userId: String, userAttributeId: Option[String], name: String, attributeType: UserAttributeType.Value, value: String) =>
       logger.debug(s"createOrUpdateUserAttribute(${userId}, ${userAttributeId}, ${name}, ${attributeType}, ${value})")

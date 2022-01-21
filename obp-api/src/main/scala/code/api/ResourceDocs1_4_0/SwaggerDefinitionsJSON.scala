@@ -4130,6 +4130,22 @@ object SwaggerDefinitionsJSON {
     value = customerAttributeValueExample.value
   )
 
+
+  val userAttributeResponseJson = UserAttributeResponseJsonV400 (
+    user_attribute_id = userAttributeIdExample.value,
+    name = userAttributeNameExample.value,
+    `type` = userAttributeTypeExample.value,
+    value = userAttributeValueExample.value
+  )
+  val userAttributesResponseJson = UserAttributesResponseJson (
+    user_attributes = List(userAttributeResponseJson)
+  )
+  val userAttributeJsonV400 = UserAttributeJsonV400(
+    name = userAttributeNameExample.value,
+    `type` = userAttributeTypeExample.value,
+    value = userAttributeValueExample.value
+  )
+
   val transactionAttributeResponseJson = TransactionAttributeResponseJson(
     transaction_attribute_id = transactionAttributeIdExample.value,
     name = transactionAttributeNameExample.value,
