@@ -8109,15 +8109,46 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getCurrentUserAttributes,
+      implementedInApiVersion,
+      nameOf(getCurrentUserAttributes),
+      "GET",
+      "/my/user/attributes",
+      "Get User Attribute for current user",
+      s"""Get User Attribute for current user.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      userAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle)
+    )
+
+    lazy val getCurrentUserAttributes: OBPEndpoint = {
+      case "my" ::  "user" :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+          } yield {
+            (JSONFactory400.createUserAttributesJson(attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       createCurrentUserAttribute,
       implementedInApiVersion,
       nameOf(createCurrentUserAttribute),
       "POST",
-      "/my/user/attribute",
+      "/my/user/attributes",
       "Create User Attribute for current user",
-      s""" Create User Attribute forcurrent user
+      s""" Create User Attribute for current user
          |
          |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
          |
@@ -8135,7 +8166,7 @@ trait APIMethods400 {
       Some(List()))
 
     lazy val createCurrentUserAttribute : OBPEndpoint = {
-      case "my" ::  "user" :: "attribute" :: Nil JsonPost json -> _=> {
+      case "my" ::  "user" :: "attributes" :: Nil JsonPost json -> _=> {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
           for {
@@ -8157,6 +8188,8 @@ trait APIMethods400 {
               callContext
             )
           } yield {
+            
+            org.scalameta.logger.elem(cc.userId)
             (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
           }
       }

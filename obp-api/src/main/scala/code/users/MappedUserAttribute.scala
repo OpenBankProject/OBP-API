@@ -28,6 +28,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
         UserAttribute.find(By(UserAttribute.UserAttributeId, id)) match {
           case Full(attribute) => tryo {
             attribute
+              .UserId(userId)
               .Name(name)
               .Type(attributeType.toString)
               .Value(value)
@@ -39,6 +40,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
       case None => Future {
         Full {
           UserAttribute.create
+            .UserId(userId)
             .Name(name)
             .Type(attributeType.toString())
             .Value(value)

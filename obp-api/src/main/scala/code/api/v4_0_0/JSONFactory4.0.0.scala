@@ -1310,6 +1310,10 @@ object JSONFactory400 {
     )
   }
 
+  def createUserAttributesJson(userAttribute: List[UserAttribute]) : UserAttributesResponseJson = {
+    UserAttributesResponseJson(userAttribute.map(createUserAttributeJson))
+  }
+
   def createTransactionAttributesJson(transactionAttributes: List[TransactionAttribute]) : TransactionAttributesResponseJson = {
     TransactionAttributesResponseJson (transactionAttributes.map( transactionAttribute => TransactionAttributeResponseJson(
       transaction_attribute_id = transactionAttribute.transactionAttributeId,
