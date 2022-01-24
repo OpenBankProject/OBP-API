@@ -1716,7 +1716,8 @@ object SwaggerDefinitionsJSON {
     views = None,
     agreements = None,
     is_deleted = false,
-    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false
   )  
   val userJsonWithAgreementsV400 = UserJsonV400(
     user_id = ExampleValue.userIdExample.value,
@@ -1728,7 +1729,8 @@ object SwaggerDefinitionsJSON {
     views = None,
     agreements = Some(Nil),
     is_deleted = false,
-    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject)
+    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
+    is_locked = false
   )
   val userIdJsonV400 = UserIdJsonV400(
     user_id = ExampleValue.userIdExample.value
@@ -4297,6 +4299,7 @@ object SwaggerDefinitionsJSON {
   val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyExample.value)
   
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
+    bankId = Some(bankIdExample.value),
     dynamicResourceDocId = Some(dynamicResourceDocIdExample.value),
     methodBody = dynamicResourceDocMethodBodyExample.value,
     partialFunctionName = dynamicResourceDocPartialFunctionNameExample.value,
@@ -4312,6 +4315,7 @@ object SwaggerDefinitionsJSON {
   )
   
   val jsonDynamicMessageDoc = JsonDynamicMessageDoc(
+    bankId = Some(bankIdExample.value),
     dynamicMessageDocId = Some(dynamicMessageDocIdExample.value),
     process = processExample.value,
     messageFormat = messageFormatExample.value,
@@ -4510,6 +4514,8 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value,
     meta = metaJson,
   )
+
+  val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   val entitlementJsonV400 = EntitlementJsonV400(
     entitlement_id = entitlementIdExample.value,

@@ -3,6 +3,11 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+18/01/2022    150a4d53      Added the security manager relevant props,they only used for the dynamic code endpoints
+                            dynamic_code_sandbox_enable, default is false 
+                            dynamic_code_sandbox_permissions, default is a list, please check sample.props.template
+                            dynamic_code_compile_validate_enable, default is false
+                            dynamic_code_compile_validate_dependencies, default is a list, please check sample.props.template
 01/11/2021    03305d2b      Added props: rest_connector_sends_x-sign_header, default is false
 17/09/2021    e65cd51d      Added props: webui_main_faq_external_link, default is obp static file: /main-faq.html
 09/09/2021    65952225      Added props: webui_support_email, default is contact@openbankproject.com

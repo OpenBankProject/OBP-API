@@ -1,6 +1,6 @@
 package code.api.util
 
-import java.io
+
 import java.util.Date
 import java.util.UUID.randomUUID
 
@@ -9,7 +9,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
-import code.api.util.APIUtil.{EntitlementAndScopeStatus, JsonResponseExtractor, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
@@ -54,6 +54,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
+import java.security.AccessControlException
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -63,7 +64,6 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
-import code.api.v4_0_0.ProductFeeJsonV400
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityInfo}
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
@@ -71,9 +71,6 @@ import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
-import net.liftweb.json
-
-import scala.util.Success
 
 object NewStyle {
   lazy val endpoints: List[(String, String)] = List(
@@ -191,6 +188,18 @@ object NewStyle {
 
     import com.openbankproject.commons.ExecutionContext.Implicits.global
 
+    private def validateBankId(bankId: Option[String], callContext: Option[CallContext]): Unit = {
+      bankId.foreach(validateBankId(_, callContext))
+    }
+
+    private def validateBankId(bankId: String, callContext: Option[CallContext]): Unit = try {
+      BankId.checkPermission(bankId)
+    } catch {
+      case _: AccessControlException =>
+        val correlationId = callContext.map(_.correlationId).getOrElse("none")
+        throw JsonResponseException(s"$DynamicResourceDocMethodPermission No permission of operate bank $bankId", 400, correlationId)
+    }
+
     def getBranch(bankId : BankId, branchId : BranchId, callContext: Option[CallContext]): OBPReturnType[BranchT] = {
       Connector.connector.vend.getBranch(bankId, branchId, callContext) map {
         x => fullBoxOrException(x ~> APIFailureNewStyle(BranchNotFoundByBranchId, 400, callContext.map(_.toLight)))
@@ -292,13 +301,17 @@ object NewStyle {
     }
 
     def createBankLevelEndpointTag(bankId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createBankLevelEndpointTag(bankId, operationId, tagName, callContext) map { 
         i => (unboxFullOrFail(i._1, callContext, s"$CreateEndpointTagError", 400), i._2)
       }
     }
     
     def updateBankLevelEndpointTag(bankId:String, endpointTagId: String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {
-     Connector.connector.vend.updateBankLevelEndpointTag(bankId, endpointTagId, operationId, tagName, callContext) map {
+      validateBankId(bankId, callContext)
+
+      Connector.connector.vend.updateBankLevelEndpointTag(bankId, endpointTagId, operationId, tagName, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$UpdateEndpointTagError", 400), i._2)
       }
     }
@@ -310,6 +323,8 @@ object NewStyle {
     }
     
     def checkBankLevelEndpointTagExists(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.getBankLevelEndpointTag(bankId: String, operationId: String, tagName: String, callContext) map {
         i => (i._1.isDefined, i._2)
       }
@@ -334,6 +349,8 @@ object NewStyle {
     }
 
     def getBankLevelEndpointTags(bankId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[List[EndpointTagT]] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.getBankLevelEndpointTags(bankId, operationId, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetEndpointTags Current OPERATION_ID is $operationId", 404), i._2)
       }
@@ -364,6 +381,7 @@ object NewStyle {
                            bankRoutingScheme: String,
                            bankRoutingAddress: String,
                            callContext: Option[CallContext]): OBPReturnType[Bank] = {
+      validateBankId(bankId, callContext)
       Future {
         Connector.connector.vend.createOrUpdateBank(
           bankId,
@@ -936,7 +954,7 @@ object NewStyle {
     }
 
     def hasEntitlement(bankId: String, userId: String, role: ApiRole, callContext: Option[CallContext], errorMsg: String = ""): Future[Box[Unit]] = {
-      val errorInfo = 
+      val errorInfo =
         if(StringUtils.isBlank(errorMsg)&& !bankId.isEmpty) UserHasMissingRoles + role.toString() + s" at Bank($bankId)" 
         else if(StringUtils.isBlank(errorMsg)&& bankId.isEmpty) UserHasMissingRoles + role.toString() 
         else errorMsg
@@ -1930,6 +1948,8 @@ object NewStyle {
     def getProductCollectionItemsTree(collectionCode: String, 
                                       bankId: String,
                                       callContext: Option[CallContext]): OBPReturnType[List[(ProductCollectionItem, Product, List[ProductAttribute])]] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.getProductCollectionItemsTree(collectionCode, bankId, callContext) map {
         i => {
           val data: Box[List[ProductCollectionItemsTree]] = i._1
@@ -2059,6 +2079,8 @@ object NewStyle {
                                 mSatisfied: Boolean,
                                 comments: String,
                                 callContext: Option[CallContext]): OBPReturnType[KycCheck] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createOrUpdateKycCheck(bankId, customerId, id, customerNumber, date, how, staffUserId, mStaffName, mSatisfied, comments, callContext)
        .map {
           i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse Can not create or update KycCheck in the backend. ", 400), i._2)
@@ -2075,6 +2097,8 @@ object NewStyle {
                                   issuePlace: String,
                                   expiryDate: Date,
                                   callContext: Option[CallContext]): OBPReturnType[KycDocument] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createOrUpdateKycDocument(
           bankId,
           customerId,
@@ -2101,6 +2125,8 @@ object NewStyle {
                                relatesToKycDocumentId: String,
                                relatesToKycCheckId: String,
                                callContext: Option[CallContext]): OBPReturnType[KycMedia] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createOrUpdateKycMedia(
         bankId,
         customerId,
@@ -2123,6 +2149,8 @@ object NewStyle {
       ok: Boolean,
       date: Date,
       callContext: Option[CallContext]): OBPReturnType[KycStatus] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createOrUpdateKycStatus(
         bankId,
         customerId,
@@ -2326,7 +2354,9 @@ object NewStyle {
       posted: Option[CardPostedInfo],
       customerId: String,
       callContext: Option[CallContext]
-    ): OBPReturnType[PhysicalCard] =
+    ): OBPReturnType[PhysicalCard] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createPhysicalCard(
         bankCardNumber: String,
         nameOnCard: String,
@@ -2352,6 +2382,7 @@ object NewStyle {
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateCardError"), i._2)
       }
+    }
 
     def updatePhysicalCard(
       cardId: String,
@@ -2376,7 +2407,9 @@ object NewStyle {
       posted: Option[CardPostedInfo],
       customerId: String,
       callContext: Option[CallContext]
-    ): OBPReturnType[PhysicalCardTrait] =
+    ): OBPReturnType[PhysicalCardTrait] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.updatePhysicalCard(
         cardId: String,
         bankCardNumber: String,
@@ -2403,7 +2436,8 @@ object NewStyle {
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$UpdateCardError"), i._2)
       }
-    
+    }
+
     def getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) : OBPReturnType[List[PhysicalCard]] =
       Connector.connector.vend.getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, CardNotFound), i._2)
@@ -2610,19 +2644,27 @@ object NewStyle {
       }
     }
 
-    def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = Future {
-      (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = {
+      validateBankId(bankId, callContext)
+      Future {
+        (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
-    def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = Future {
-      (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = {
+      validateBankId(bankId, callContext)
+      Future {
+        (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
     def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      validateBankId(bankId, callContext)
+
       val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getById(bankId, endpointMappingId)
       Future{
         val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByEndpointMappingId Current ENDPOINT_MAPPING_ID is $endpointMappingId", 404)
@@ -2631,6 +2673,8 @@ object NewStyle {
     }
 
     def getEndpointMappingByOperationId(bankId: Option[String], operationId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
+      validateBankId(bankId, callContext)
+
       val endpointMappingBox: Box[EndpointMappingT] = EndpointMappingProvider.endpointMappingProvider.vend.getByOperationId(bankId, operationId)
       Future{
         val endpointMapping = unboxFullOrFail(endpointMappingBox, callContext, s"$EndpointMappingNotFoundByOperationId Current OPERATION_ID is $operationId",404)
@@ -2642,6 +2686,8 @@ object NewStyle {
 
     def getEndpointMappings(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = {
       import scala.concurrent.duration._
+
+      validateBankId(bankId, callContext)
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
@@ -2701,24 +2747,29 @@ object NewStyle {
      * @param dynamicEntityId
      * @return
      */
-    def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = Future {
-      for {
-        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
-        deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
-        deleteEntitleMentResult <- if(deleteEntityResult) {
-          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
-        } else {
-          Box !! false
+    def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = {
+      validateBankId(bankId, None)
+      Future {
+        for {
+          entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
+          deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
+          deleteEntitleMentResult <- if (deleteEntityResult) {
+            Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
+          } else {
+            Box !! false
+          }
+        } yield {
+          if (deleteEntitleMentResult) {
+            DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
+          }
+          deleteEntitleMentResult
         }
-      } yield {
-        if(deleteEntitleMentResult) {
-          DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
-        }
-        deleteEntitleMentResult
       }
     }
 
     def getDynamicEntityById(bankId: Option[String], dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
+      validateBankId(bankId, callContext)
+
       val dynamicEntityBox: Box[DynamicEntityT] = DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
       val dynamicEntity = unboxFullOrFail(dynamicEntityBox, callContext, DynamicEntityNotFoundByDynamicEntityId, 404)
       Future{
@@ -2726,9 +2777,12 @@ object NewStyle {
       }
     }
 
-    def getDynamicEntityByEntityName(bankId: Option[String], entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = Future {
-      val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
-      (boxedDynamicEntity, callContext)
+    def getDynamicEntityByEntityName(bankId: Option[String], entityName : String, callContext: Option[CallContext]): OBPReturnType[Box[DynamicEntityT]] = {
+      validateBankId(bankId, callContext)
+      Future {
+        val boxedDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
+        (boxedDynamicEntity, callContext)
+      }
     }
 
     private[this] val dynamicEntityTTL = {
@@ -2738,6 +2792,8 @@ object NewStyle {
 
     def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT] = {
       import scala.concurrent.duration._
+
+      validateBankId(bankId, None)
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
@@ -2793,6 +2849,8 @@ object NewStyle {
                                queryParameters: Option[Map[String, List[String]]],
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
+      validateBankId(bankId, callContext)
+
       val dynamicEntityBox = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(entityName)
       // do validate, any validate process fail will return immediately
       if(dynamicEntityBox.isEmpty) {
@@ -2875,6 +2933,8 @@ object NewStyle {
                           dateStarts: Date,
                           dateExpires: Option[Date], 
                           callContext: Option[CallContext]): OBPReturnType[DirectDebitTrait] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createDirectDebit(
         bankId, 
         accountId, 
@@ -2902,6 +2962,8 @@ object NewStyle {
                             dateStarts: Date,
                             dateExpires: Option[Date],
                             callContext: Option[CallContext]): OBPReturnType[StandingOrderTrait] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.createStandingOrder(
         bankId,
         accountId,
@@ -2947,19 +3009,27 @@ object NewStyle {
       getConnectorByName(connectorName).flatMap(_.callableMethods.get(methodName))
     }
 
-    def createDynamicEndpoint(bankId:Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId:Option[String], userId, swaggerString), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    def createDynamicEndpoint(bankId:Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      validateBankId(bankId, callContext)
+      Future {
+        (DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId: Option[String], userId, swaggerString), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
-    def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
-    } map {
-      i => (connectorEmptyResponse(i._1, callContext), i._2)
+    def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      validateBankId(bankId, callContext)
+      Future {
+        (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
+      } map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
     }
 
     def getDynamicEndpoint(bankId: Option[String], dynamicEndpointId: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
+      validateBankId(bankId, callContext)
+
       val dynamicEndpointBox: Box[DynamicEndpointT] = DynamicEndpointProvider.connectorMethodProvider.vend.get(bankId, dynamicEndpointId)
       val errorMessage = 
         if(bankId.isEmpty)
@@ -2972,8 +3042,11 @@ object NewStyle {
       }
     }
 
-    def getDynamicEndpoints(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
-      (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(bankId), callContext)
+    def getDynamicEndpoints(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = {
+      validateBankId(bankId, callContext)
+      Future {
+        (DynamicEndpointProvider.connectorMethodProvider.vend.getAll(bankId), callContext)
+      }
     }
 
     def getDynamicEndpointsByUserId(userId: String, callContext: Option[CallContext]): OBPReturnType[List[DynamicEndpointT]] = Future {
@@ -2986,6 +3059,8 @@ object NewStyle {
      * @return
      */
     def deleteDynamicEndpoint(bankId: Option[String], dynamicEndpointId: String, callContext: Option[CallContext]): Future[Box[Boolean]] = {
+      validateBankId(bankId, callContext)
+
       val dynamicEndpoint: OBPReturnType[DynamicEndpointT] = this.getDynamicEndpoint(bankId, dynamicEndpointId, callContext)
         for {
           (entity, _) <- dynamicEndpoint
@@ -3283,89 +3358,91 @@ object NewStyle {
         (unboxFullOrFail(connectorMethod, callContext, s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID(${connectorMethodId})", 400), callContext)
       }
 
-    def isJsonDynamicResourceDocExists(requestVerb : String, requestUrl : String,  callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonDynamicResourceDocExists(bankId: Option[String], requestVerb : String, requestUrl : String,  callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result = DynamicResourceDocProvider.provider.vend.getByVerbAndUrl(requestVerb, requestUrl)
+        val result = DynamicResourceDocProvider.provider.vend.getByVerbAndUrl(bankId, requestVerb, requestUrl)
         (result.isDefined, callContext)
       }
 
-    def createJsonDynamicResourceDoc(dynamicResourceDoc: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+    def createJsonDynamicResourceDoc(bankId: Option[String], dynamicResourceDoc: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(dynamicResourceDoc)
+        val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(bankId, dynamicResourceDoc)
         val errorMsg = s"$UnknownError Can not create Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
-    def updateJsonDynamicResourceDoc(entity: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+    def updateJsonDynamicResourceDoc(bankId: Option[String], entity: JsonDynamicResourceDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(entity: JsonDynamicResourceDoc)
+        val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(bankId, entity: JsonDynamicResourceDoc)
         val errorMsg = s"$UnknownError Can not update Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
-    def isJsonDynamicResourceDocExists(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonDynamicResourceDocExists(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result =  DynamicResourceDocProvider.provider.vend.getById(dynamicResourceDocId)
+        val result =  DynamicResourceDocProvider.provider.vend.getById(bankId, dynamicResourceDocId)
         (result.isDefined, callContext)
       }
 
-    def getJsonDynamicResourceDocs(callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicResourceDoc]] =
+    def getJsonDynamicResourceDocs(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicResourceDoc]] =
       Future {
-        val dynamicResourceDocs: List[JsonDynamicResourceDoc] = DynamicResourceDocProvider.provider.vend.getAll()
+        val dynamicResourceDocs: List[JsonDynamicResourceDoc] = DynamicResourceDocProvider.provider.vend.getAll(bankId)
         dynamicResourceDocs -> callContext
       }
 
-    def getJsonDynamicResourceDocById(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
+    def getJsonDynamicResourceDocById(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicResourceDoc] =
       Future {
-        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.getById(dynamicResourceDocId)
+        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.getById(bankId, dynamicResourceDocId)
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocNotFound Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
       }
 
-    def deleteJsonDynamicResourceDocById(dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def deleteJsonDynamicResourceDocById(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(dynamicResourceDocId)
+        val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(bankId, dynamicResourceDocId)
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocDeleteError Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
       }
 
-    def createJsonDynamicMessageDoc(dynamicMessageDoc: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+    def createJsonDynamicMessageDoc(bankId: Option[String], dynamicMessageDoc: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(dynamicMessageDoc)
+        val newInternalConnector = DynamicMessageDocProvider.provider.vend.create(bankId, dynamicMessageDoc)
         val errorMsg = s"$UnknownError Can not create Dynamic Message Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
-    def updateJsonDynamicMessageDoc(entity: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+    def updateJsonDynamicMessageDoc(bankId: Option[String], entity: JsonDynamicMessageDoc, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(entity: JsonDynamicMessageDoc)
+        val updatedConnectorMethod = DynamicMessageDocProvider.provider.vend.update(bankId: Option[String], entity: JsonDynamicMessageDoc)
         val errorMsg = s"$UnknownError Can not update Dynamic Message Doc  in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
 
-    def isJsonDynamicMessageDocExists(process: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def isJsonDynamicMessageDocExists(bankId: Option[String], process: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val result =  DynamicMessageDocProvider.provider.vend.getByProcess(process)
+        val result =  DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process)
         (result.isDefined, callContext)
       }
 
-    def getJsonDynamicMessageDocs(callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicMessageDoc]] =
+    def getJsonDynamicMessageDocs(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[JsonDynamicMessageDoc]] =
       Future {
-        val dynamicMessageDocs: List[JsonDynamicMessageDoc] = DynamicMessageDocProvider.provider.vend.getAll()
+        val dynamicMessageDocs: List[JsonDynamicMessageDoc] = DynamicMessageDocProvider.provider.vend.getAll(bankId)
         dynamicMessageDocs -> callContext
       }
 
-    def getJsonDynamicMessageDocById(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
+    def getJsonDynamicMessageDocById(bankId: Option[String], dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[JsonDynamicMessageDoc] =
       Future {
-        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.getById(dynamicMessageDocId)
+        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.getById(bankId, dynamicMessageDocId)
         (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocNotFound Current DYNAMIC_RESOURCE_DOC_ID(${dynamicMessageDocId})", 400), callContext)
       }
 
-    def deleteJsonDynamicMessageDocById(dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+    def deleteJsonDynamicMessageDocById(bankId: Option[String], dynamicMessageDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
-        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.deleteById(dynamicMessageDocId)
+        val dynamicMessageDoc = DynamicMessageDocProvider.provider.vend.deleteById(bankId, dynamicMessageDocId)
         (unboxFullOrFail(dynamicMessageDoc, callContext, s"$DynamicMessageDocDeleteError", 400), callContext)
       }
 
     def validateUserAuthContextUpdateRequest(bankId: String, userId: String, key: String, value: String, scaMethod: String, callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
+      validateBankId(bankId, callContext)
+
       Connector.connector.vend.validateUserAuthContextUpdateRequest(bankId, userId, key, value, scaMethod, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }

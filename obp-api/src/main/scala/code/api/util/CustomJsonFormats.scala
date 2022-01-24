@@ -23,6 +23,7 @@ object CustomJsonFormats {
 
   val formats: Formats = JsonSerializers.commonFormats + PrimaryDataBodySerializer + ToStringDeSerializer + TupleSerializer
 
+
   val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless ++ JsonSerializers.serializers
 
   val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) ++ JsonSerializers.serializers

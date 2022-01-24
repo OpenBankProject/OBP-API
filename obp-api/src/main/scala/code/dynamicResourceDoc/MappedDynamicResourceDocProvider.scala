@@ -20,29 +20,58 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     else APIUtil.getPropsValue(s"dynamicResourceDoc.cache.ttl.seconds", "40").toInt
   }
 
-  override def getById(dynamicResourceDocId: String): Box[JsonDynamicResourceDoc] = DynamicResourceDoc
-    .find(By(DynamicResourceDoc.DynamicResourceDocId, dynamicResourceDocId))
-    .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+  override def getById(bankId: Option[String], dynamicResourceDocId: String): Box[JsonDynamicResourceDoc] = { 
+    if(bankId.isEmpty){
+      DynamicResourceDoc
+      .find(By(DynamicResourceDoc.DynamicResourceDocId, dynamicResourceDocId))
+      .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+    } else{
+      DynamicResourceDoc
+        .find(
+          By(DynamicResourceDoc.DynamicResourceDocId, dynamicResourceDocId),
+          By(DynamicResourceDoc.BankId, bankId.getOrElse("")),
+        )
+        .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+    }
+  }
 
-  override def getByVerbAndUrl(requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc] = DynamicResourceDoc
-    .find(By(DynamicResourceDoc.RequestVerb, requestVerb), By(DynamicResourceDoc.RequestUrl, requestUrl))
-    .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+  override def getByVerbAndUrl(bankId: Option[String], requestVerb: String, requestUrl: String): Box[JsonDynamicResourceDoc] =
+    if(bankId.isEmpty){
+      DynamicResourceDoc
+        .find(By(DynamicResourceDoc.RequestVerb, requestVerb), By(DynamicResourceDoc.RequestUrl, requestUrl))
+        .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+    } else{
+      DynamicResourceDoc
+        .find(
+          By(DynamicResourceDoc.BankId, bankId.getOrElse("")), 
+          By(DynamicResourceDoc.RequestVerb, requestVerb), 
+          By(DynamicResourceDoc.RequestUrl, requestUrl))
+        .map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+    }
   
-  override def getAllAndConvert[T: Manifest](transform: JsonDynamicResourceDoc => T): List[T] = {
+  override def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T] = {
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicResourceDocTTL second) {
-        DynamicResourceDoc.findAll()
-          .map(doc => transform(DynamicResourceDoc.getJsonDynamicResourceDoc(doc)))
-      }}
+        if(bankId.isEmpty){
+          DynamicResourceDoc.findAll()
+            .map(doc => transform(DynamicResourceDoc.getJsonDynamicResourceDoc(doc)))
+        } else {
+          DynamicResourceDoc.findAll(
+            By(DynamicResourceDoc.BankId, bankId.getOrElse("")))
+            .map(doc => transform(DynamicResourceDoc.getJsonDynamicResourceDoc(doc)))
+        }
+      }
+      }
   }
 
-  override def create(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]=
+  override def create(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc]=
     tryo {
       val requestBody = entity.exampleRequestBody.map(json.compactRender(_)).orNull
       val responseBody = entity.successResponseBody.map(json.compactRender(_)).orNull
 
       DynamicResourceDoc.create
+      .BankId(bankId.getOrElse(null))
       .DynamicResourceDocId(APIUtil.generateUUID())
       .PartialFunctionName(entity.partialFunctionName)
       .RequestVerb(entity.requestVerb)
@@ -59,13 +88,14 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
 
-  override def update(entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc] = {
+  override def update(bankId: Option[String], entity: JsonDynamicResourceDoc): Box[JsonDynamicResourceDoc] = {
     DynamicResourceDoc.find(By(DynamicResourceDoc.DynamicResourceDocId, entity.dynamicResourceDocId.getOrElse(""))) match {
       case Full(v) =>
         tryo {
           val requestBody = entity.exampleRequestBody.map(json.compactRender(_)).orNull
           val responseBody = entity.successResponseBody.map(json.compactRender(_)).orNull
           v.PartialFunctionName(entity.partialFunctionName)
+            .BankId(bankId.getOrElse(null))
             .RequestVerb(entity.requestVerb)
             .RequestUrl(entity.requestUrl)
             .Summary(entity.summary)
@@ -82,8 +112,15 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     }
   }
 
-  override def deleteById(id: String): Box[Boolean] = tryo {
-    DynamicResourceDoc.bulkDelete_!!(By(DynamicResourceDoc.DynamicResourceDocId, id))
+  override def deleteById(bankId: Option[String], id: String): Box[Boolean] = tryo {
+    if(bankId.isEmpty) {
+      DynamicResourceDoc.bulkDelete_!!(By(DynamicResourceDoc.DynamicResourceDocId, id))
+    }else{
+      DynamicResourceDoc.bulkDelete_!!(
+        By(DynamicResourceDoc.BankId, bankId.getOrElse("")),
+        By(DynamicResourceDoc.DynamicResourceDocId, id)
+      )
+    }
   }
 }
 
