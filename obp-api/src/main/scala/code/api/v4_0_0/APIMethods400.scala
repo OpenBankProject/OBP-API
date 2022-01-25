@@ -8188,9 +8188,63 @@ trait APIMethods400 {
               callContext
             )
           } yield {
-            
-            org.scalameta.logger.elem(cc.userId)
             (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateCurrentUserAttribute,
+      implementedInApiVersion,
+      nameOf(updateCurrentUserAttribute),
+      "PUT",
+      "/my/user/attributes/USER_ATTRIBUTE_ID",
+      "Update User Attribute for current user",
+      s"""Update User Attribute for current user by USER_ATTRIBUTE_ID
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      userAttributeJsonV400,
+      userAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List()))
+
+    lazy val updateCurrentUserAttribute : OBPEndpoint = {
+      case "my" ::  "user" :: "attributes" :: userAttributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
+          for {
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+            failMsg = s"$UserAttributeNotFound"
+            _ <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              attributes.exists(_.userAttributeId == userAttributeId)
+            }
+            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              json.extract[TransactionAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              cc.userId,
+              Some(userAttributeId),
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`200`(callContext))
           }
       }
     }
