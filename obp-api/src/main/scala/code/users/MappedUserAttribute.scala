@@ -1,5 +1,7 @@
 package code.users
 
+import java.util.Date
+
 import code.util.MappedUUID
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.UserAttributeTrait
@@ -52,7 +54,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
   
 }
 
-class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribute] with IdPK {
+class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribute] with IdPK with CreatedUpdated {
 
   override def getSingleton = UserAttribute
   object UserAttributeId extends MappedUUID(this)
@@ -66,6 +68,7 @@ class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribut
   override def name: String = Name.get
   override def attributeType: UserAttributeType.Value = UserAttributeType.withName(Type.get)
   override def value: String = Value.get
+  override def insertDate: Date = createdAt.get
 }
 
 object UserAttribute extends UserAttribute with LongKeyedMetaMapper[UserAttribute] {

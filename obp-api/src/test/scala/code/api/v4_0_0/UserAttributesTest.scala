@@ -30,7 +30,8 @@ class UserAttributesTest extends V400ServerSetup {
 
   lazy val bankId = testBankId1.value
   lazy val accountId = testAccountId1.value
-  lazy val postUserAttributeJsonV400 = SwaggerDefinitionsJSON.userAttributeJsonV400
+  lazy val batteryLevel = "BATTERY_LEVEL"
+  lazy val postUserAttributeJsonV400 = SwaggerDefinitionsJSON.userAttributeJsonV400.copy(name = batteryLevel)
   lazy val putUserAttributeJsonV400 = SwaggerDefinitionsJSON.userAttributeJsonV400.copy(name = "ROLE_2")
 
   
@@ -54,7 +55,7 @@ class UserAttributesTest extends V400ServerSetup {
       Then("We should get a 201")
       response400.code should equal(201)
       val jsonResponse = response400.body.extract[UserAttributeResponseJsonV400]
-      jsonResponse.name should be ("ROLE")
+      jsonResponse.name should be (batteryLevel)
     }
   }
 
@@ -82,7 +83,7 @@ class UserAttributesTest extends V400ServerSetup {
       Then("We should get a 200")
       getResponse400.code should equal(200)
       val jsonResponse = getResponse400.body.extract[UserAttributesResponseJson]
-      jsonResponse.user_attributes.exists(_.name =="ROLE") should be (true)
+      jsonResponse.user_attributes.exists(_.name == batteryLevel) should be (true)
     }
   }
 
@@ -112,7 +113,7 @@ class UserAttributesTest extends V400ServerSetup {
       Then("We should get a 200")
       getResponse400.code should equal(200)
       val jsonResponse = getResponse400.body.extract[UserAttributesResponseJson]
-      jsonResponse.user_attributes.exists(_.name =="ROLE") should be (true)
+      jsonResponse.user_attributes.exists(_.name == batteryLevel) should be (true)
 
       When("We make a request v4.0.0")
       val userAttributeId = response400.body.extract[UserAttributeResponseJsonV400].user_attribute_id

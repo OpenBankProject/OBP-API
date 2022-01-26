@@ -101,6 +101,7 @@ trait UserAttributeTrait {
   def name: String
   def attributeType: UserAttributeType.Value
   def value: String
+  def insertDate: Date
 }
 
 trait AccountAttribute {

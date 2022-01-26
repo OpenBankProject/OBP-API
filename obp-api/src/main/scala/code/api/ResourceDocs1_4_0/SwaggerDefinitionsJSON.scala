@@ -4137,7 +4137,8 @@ object SwaggerDefinitionsJSON {
     user_attribute_id = userAttributeIdExample.value,
     name = userAttributeNameExample.value,
     `type` = userAttributeTypeExample.value,
-    value = userAttributeValueExample.value
+    value = userAttributeValueExample.value,
+    insert_date = new Date()
   )
   val userAttributesResponseJson = UserAttributesResponseJson (
     user_attributes = List(userAttributeResponseJson)

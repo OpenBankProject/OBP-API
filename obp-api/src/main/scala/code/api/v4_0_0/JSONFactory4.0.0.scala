@@ -434,7 +434,8 @@ case class UserAttributeResponseJsonV400(
   user_attribute_id: String,
   name: String,
   `type`: String,
-  value: String
+  value: String,
+  insert_date: Date                                    
 )
 case class UserAttributesResponseJson(
   user_attributes: List[UserAttributeResponseJsonV400]
@@ -1306,7 +1307,8 @@ object JSONFactory400 {
       user_attribute_id = userAttribute.userAttributeId,
       name = userAttribute.name,
       `type` = userAttribute.attributeType.toString,
-      value = userAttribute.value
+      value = userAttribute.value,
+      insert_date = userAttribute.insertDate
     )
   }
 
