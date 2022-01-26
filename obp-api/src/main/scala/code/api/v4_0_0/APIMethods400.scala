@@ -8115,8 +8115,8 @@ trait APIMethods400 {
       nameOf(getCurrentUserAttributes),
       "GET",
       "/my/user/attributes",
-      "Get User Attribute for current user",
-      s"""Get User Attribute for current user.
+      "Get User Attributes for current user",
+      s"""Get User Attributes for current user.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -8136,6 +8136,40 @@ trait APIMethods400 {
             (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
           } yield {
             (JSONFactory400.createUserAttributesJson(attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    staticResourceDocs += ResourceDoc(
+      getUserWithAttributes,
+      implementedInApiVersion,
+      nameOf(getUserWithAttributes),
+      "GET",
+      "/users/USER_ID/attributes",
+      "Get User Attributes for the user",
+      s"""Get User Attributes for the user defined via USER_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      userAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(canGetUsersWithAttributes :: Nil)
+    )
+
+    lazy val getUserWithAttributes: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(userId, callContext)
+          } yield {
+            (JSONFactory400.createUserWithAttributesJson(user, attributes), HttpCode.`200`(callContext))
           }
       }
     }

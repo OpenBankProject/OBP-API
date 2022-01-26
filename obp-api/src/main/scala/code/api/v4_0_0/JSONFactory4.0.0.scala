@@ -441,6 +441,15 @@ case class UserAttributesResponseJson(
   user_attributes: List[UserAttributeResponseJsonV400]
 )
 
+case class UserWithAttributesResponseJson(
+                                           user_id: String,
+                                           email : String,
+                                           provider_id: String,
+                                           provider : String,
+                                           username : String,
+                                           user_attributes: List[UserAttributeResponseJsonV400]
+                                         )
+
 
 case class CustomerAttributeJsonV400(
   name: String,
@@ -1314,6 +1323,16 @@ object JSONFactory400 {
 
   def createUserAttributesJson(userAttribute: List[UserAttribute]) : UserAttributesResponseJson = {
     UserAttributesResponseJson(userAttribute.map(createUserAttributeJson))
+  }
+  def createUserWithAttributesJson(user: User, userAttribute: List[UserAttribute]) : UserWithAttributesResponseJson = {
+    UserWithAttributesResponseJson(
+      user_id = user.userId,
+      email = user.emailAddress,
+      provider_id = user.idGivenByProvider,
+      provider = user.provider,
+      username = user.name,
+      user_attributes = userAttribute.map(createUserAttributeJson(_))
+    )
   }
 
   def createTransactionAttributesJson(transactionAttributes: List[TransactionAttribute]) : TransactionAttributesResponseJson = {
