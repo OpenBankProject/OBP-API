@@ -5727,15 +5727,15 @@ trait APIMethods400 {
 //                  }yield{
 //                    JBool(isDeleted)
 //                  }
-                  throw new RuntimeException(s"$NotImplemented Only support Http Method `GET`,`CREATE`,`DELETE` yet, current  is ${method.value}")
+                  throw new RuntimeException(s"$NotImplemented We only support the Http Methods GET and POST . The current method is: ${method.value}")
                 } else if (method.value.equalsIgnoreCase("put")) {
                 
-                  throw new RuntimeException(s"$NotImplemented Only support Http Method `GET`,`CREATE`,`DELETE` yet, current  is ${method.value}")
+                  throw new RuntimeException(s"$NotImplemented We only support the Http Methods GET and POST . The current method is: ${method.value}")
                 }else {
                   NewStyle.function.tryons(s"$InvalidEndpointMapping `request_mapping` must  be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
                   }
-                  throw new RuntimeException(s"$NotImplemented Only support Http Method `GET`,`CREATE`,`DELETE` yet, current  is ${method.value}")
+                  throw new RuntimeException(s"$NotImplemented We only support the Http Methods GET and POST . The current method is: ${method.value}")
                 }
               } yield{
                 (Full(("code", 200) ~ ("value", responseBody)), callContext)
