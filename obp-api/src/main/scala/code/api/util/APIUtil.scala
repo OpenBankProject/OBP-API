@@ -1518,11 +1518,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         if (isNeedCheckAuth) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
       }
 
-      def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] = {
+      def checkRoles(bankId: Option[BankId], user: Box[User], cc: Option[CallContext]):Future[Box[Unit]] = {
         if (isNeedCheckRoles) {
           val bankIdStr = bankId.map(_.value).getOrElse("")
           val userIdStr = user.map(_.userId).openOr("")
-          checkRolesFun(bankIdStr)(userIdStr, rolesForCheck)
+          checkRolesFun(bankIdStr)(userIdStr, rolesForCheck, cc)
         } else {
           Future.successful(Full(Unit))
         }
@@ -1643,7 +1643,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               (bank, callContext) <- checkBank(bankId, callContext)
 
               // roles check
-              _ <- checkRoles(bankId, boxUser)
+              _ <- checkRoles(bankId, boxUser, callContext)
 
               // check accountId is valid
               (account, callContext) <- checkAccount(bankId, accountId, callContext)
@@ -3742,8 +3742,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private val anonymousAccessFun: PartialFunction[CallContext, OBPReturnType[Box[User]]] = {
     case x => anonymousAccess(x)
   }
-  private val checkRolesFun: PartialFunction[String, (String, List[ApiRole]) => Future[Box[Unit]]] = {
-    case x => NewStyle.function.hasAtLeastOneEntitlement(x, _, _, None)
+  private val checkRolesFun: PartialFunction[String, (String, List[ApiRole], Option[CallContext]) => Future[Box[Unit]]] = {
+    case x => NewStyle.function.hasAtLeastOneEntitlement(x, _, _, _)
   }
   private val checkBankFun: PartialFunction[BankId, Option[CallContext] => OBPReturnType[Bank]] = {
     case x => NewStyle.function.getBank(x, _)
