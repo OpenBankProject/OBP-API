@@ -1281,6 +1281,7 @@ def restoreSomeSessions(): Unit = {
     * This is a helper method
     * update the views, accountHolders for OBP side when sign up new remote user
     * This method can only be used by the original user(account holder).
+   *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far. 
     */
     def updateUserAccountViews(user: User, accounts: List[InboundAccount]): Unit = {
     for {
