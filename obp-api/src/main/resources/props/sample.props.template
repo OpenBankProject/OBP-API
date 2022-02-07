@@ -1117,3 +1117,42 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # Local identity provider url
 # it defaults to the hostname props value
 # local_identity_provider=this is the hostname of the local obp server including scheme
+
+
+# enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
+dynamic_code_sandbox_enable=false
+# Here is the default permissions if you set the dynamic_code_sandbox_enable = true. If you need more permission need to add it manually here.
+# Better search for comment code `val allowedRuntimePermissions = List[Permission]( ....` need to provide the fully qualified class name and proper parameters.
+dynamic_code_sandbox_permissions=[\
+    new java.net.NetPermission("specifyStreamHandler"),\
+    new java.lang.reflect.ReflectPermission("suppressAccessChecks"),\
+    new java.lang.RuntimePermission("getenv.*"),\
+    new java.util.PropertyPermission("cglib.useCache", "read"),\
+    new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),\
+    new java.util.PropertyPermission("cglib.debugLocation", "read"),\
+    new java.lang.RuntimePermission("accessDeclaredMembers"),\
+    new java.lang.RuntimePermission("getClassLoader")\
+]
+
+
+# enable dynamic code compile validation, default is false, if set it to true, it will validate all the dynamic method body when you create/update any
+# dynamic scala method. Note, it only check all the obp code dependents for all the method in OBP code.
+dynamic_code_compile_validate_enable=false
+# The default support dependencies if set dynamic_code_compile_validate_enable = true. it can be the class level or the method level, 
+# you can add them in the following list. Better check search for comment code: val allowedCompilationMethods: Map[String, Set[String]] = Map( ...
+# need to prepare the correct OBP scala code.
+dynamic_code_compile_validate_dependencies=[\
+      NewStyle.function.getClass.getTypeName -> "*",\
+      CompiledObjects.getClass.getTypeName -> "sandbox",\
+      HttpCode.getClass.getTypeName -> "200",\
+      DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",\
+      APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse\$default\$1, errorJsonResponse\$default\$2, errorJsonResponse\$default\$3, errorJsonResponse\$default\$4, scalaFutureToLaFuture, futureToBoxedResponse",\
+      ErrorMessages.getClass.getTypeName -> "*",\
+      ExecutionContext.Implicits.getClass.getTypeName -> "global",\
+      JSONFactory400.getClass.getTypeName -> "createBanksJson",\
+      classOf[Sandbox].getTypeName -> "runInSandbox",\
+      classOf[CallContext].getTypeName -> "*",\
+      classOf[ResourceDoc].getTypeName -> "getPathParams",\
+      "scala.reflect.runtime.package\$" -> "universe",\
+      PractiseEndpoint.getClass.getTypeName + "*" -> "*"\
+]

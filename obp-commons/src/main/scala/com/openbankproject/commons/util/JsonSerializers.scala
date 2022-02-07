@@ -1,7 +1,6 @@
 package com.openbankproject.commons.util
 
 import java.lang.reflect.{Constructor, Modifier, Parameter}
-
 import com.openbankproject.commons.model.{JsonFieldReName, ListResult}
 import com.openbankproject.commons.model.enums.{SimpleEnum, SimpleEnumCollection}
 import com.openbankproject.commons.util.Functions.Implicits._
@@ -20,6 +19,24 @@ import scala.reflect.runtime.{universe => ru}
 
 object JsonSerializers {
 
+  object CustomFormats extends DefaultFormats {
+    private val defaultFormats =  net.liftweb.json.DefaultFormats
+    val losslessDate = defaultFormats.losslessDate
+    val UTC = defaultFormats.UTC
+
+    /**
+     * DefaultFormats#parameterNameReader has bug, when execute fail, cause return Nil, this is not reasonable,
+     * Here override it to: when execute fail, try to call constructor.getParamters
+     */
+    override val parameterNameReader: ParameterNameReader = new ParameterNameReader {
+      override def lookupParameterNames(constructor: Constructor[_]): Traversable[String] =  try {
+          defaultFormats.parameterNameReader.lookupParameterNames(constructor)
+        } catch {
+          case _ => constructor.getParameters.map(_.getName)
+        }
+    }
+  }
+
   val serializers: List[Serializer[_]] =
       AbstractTypeDeserializer :: SimpleEnumDeserializer ::
       BigDecimalSerializer :: StringDeserializer ::
@@ -27,7 +44,7 @@ object JsonSerializers {
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
       MapperSerializer :: Nil
 
-  implicit val commonFormats = net.liftweb.json.DefaultFormats ++ serializers
+  implicit val commonFormats =  CustomFormats ++ serializers
 
   val nullTolerateFormats = commonFormats + JNothingSerializer
 

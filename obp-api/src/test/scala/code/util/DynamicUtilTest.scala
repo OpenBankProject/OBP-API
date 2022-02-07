@@ -27,12 +27,19 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
+import code.api.util.DynamicUtil.Sandbox
 import code.api.util._
 import code.setup.PropsReset
+import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
-import net.liftweb.common.Box
+import net.liftweb.common.{Box}
 import net.liftweb.json
 import org.scalatest.{FeatureSpec, FlatSpec, GivenWhenThen, Matchers, Tag}
+
+import java.io.File
+import java.security.{AccessControlException}
+import scala.collection.immutable.List
+import scala.io.Source
 
 class DynamicUtilTest extends FlatSpec with Matchers {
   object DynamicUtilsTag extends Tag("DynamicUtil")
@@ -48,6 +55,116 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       getBankResponse should be (125)
   }
 
+  "DynamicUtil.compileScalaCode method" should "compile the permissions and dependences" taggedAs DynamicUtilsTag in {
+
+    val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCode("""
+                                                                                 |List[java.security.Permission](
+                                                                                 |      new java.net.NetPermission("specifyStreamHandler"),
+                                                                                 |      new java.lang.reflect.ReflectPermission("suppressAccessChecks"),
+                                                                                 |      new java.lang.RuntimePermission("getenv.*")
+                                                                                 |    ) """.stripMargin)
+
+    val permissionList = permissions.openOrThrowException("Can not compile the string to permissions")
+    Sandbox.createSandbox(permissionList)
+    permissionList.toString contains ("""java.net.NetPermission""") shouldBe (true)
+
+    val permissionString =
+      """[new java.net.NetPermission("specifyStreamHandler"),
+        |new java.lang.reflect.ReflectPermission("suppressAccessChecks"),
+        |new java.lang.RuntimePermission("getenv.*"),
+        |new java.util.PropertyPermission("cglib.useCache", "read"),
+        |new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
+        |new java.util.PropertyPermission("cglib.debugLocation", "read"),
+        |new java.lang.RuntimePermission("accessDeclaredMembers"),
+        |new java.lang.RuntimePermission("getClassLoader")]""".stripMargin
+
+    val scalaCode = "List[java.security.Permission]"+permissionString.replaceFirst("\\[","(").dropRight(1)+")"
+    val permissions2:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCode(scalaCode)
+
+    val permissionList2 = permissions2.openOrThrowException("Can not compile the string to permissions")
+    Sandbox.createSandbox(permissionList2)
+    permissionList2.toString contains ("""java.net.NetPermission""") shouldBe (true)
+
+    
+    val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCode(s"${DynamicUtil.importStatements}"+"""
+                                                                             |
+                                                                             |Map(
+                                                                             |      // companion objects methods
+                                                                             |      NewStyle.function.getClass.getTypeName -> "*",
+                                                                             |      CompiledObjects.getClass.getTypeName -> "sandbox",
+                                                                             |      HttpCode.getClass.getTypeName -> "200",
+                                                                             |      DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",
+                                                                             |      APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",
+                                                                             |      ErrorMessages.getClass.getTypeName -> "*",
+                                                                             |      ExecutionContext.Implicits.getClass.getTypeName -> "global",
+                                                                             |      JSONFactory400.getClass.getTypeName -> "createBanksJson",
+                                                                             |
+                                                                             |      // class methods
+                                                                             |      classOf[Sandbox].getTypeName -> "runInSandbox",
+                                                                             |      classOf[CallContext].getTypeName -> "*",
+                                                                             |      classOf[ResourceDoc].getTypeName -> "getPathParams",
+                                                                             |      "scala.reflect.runtime.package$" -> "universe",
+                                                                             |
+                                                                             |      // allow any method of PractiseEndpoint for test
+                                                                             |      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
+                                                                             |
+                                                                             |    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)""".stripMargin)
+    val dependencies = dependenciesBox.openOrThrowException("Can not compile the string to Map")
+    dependencies.toString contains ("code.api.util.NewStyle") shouldBe (true)
+
+    val dependenciesString = """[NewStyle.function.getClass.getTypeName -> "*",CompiledObjects.getClass.getTypeName -> "sandbox",HttpCode.getClass.getTypeName -> "200",DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",ErrorMessages.getClass.getTypeName -> "*",ExecutionContext.Implicits.getClass.getTypeName -> "global",JSONFactory400.getClass.getTypeName -> "createBanksJson",classOf[Sandbox].getTypeName -> "runInSandbox",classOf[CallContext].getTypeName -> "*",classOf[ResourceDoc].getTypeName -> "getPathParams","scala.reflect.runtime.package$" -> "universe",PractiseEndpoint.getClass.getTypeName + "*" -> "*"]""".stripMargin
+    
+    val scalaCode2 = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map(").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)"
+    val dependenciesBox2: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCode(scalaCode2)
+    val dependencies2 = dependenciesBox2.openOrThrowException("Can not compile the string to Map")
+    dependencies2.toString contains ("code.api.util.NewStyle") shouldBe (true)
+  }
+
+  "Sandbox.createSandbox method" should "should throw exception" taggedAs DynamicUtilsTag in {
+    val permissionList = List(
+//      new java.net.SocketPermission("ir.dcs.gla.ac.uk:80","connect,resolve"),
+    )
+
+    intercept[AccessControlException] {
+      Sandbox.createSandbox(permissionList).runInSandbox {
+        scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
+      }
+    }
+  }
+
+  "Sandbox.createSandbox method" should "should work well" taggedAs DynamicUtilsTag in {
+    val permissionList = List(
+      new java.net.SocketPermission("apisandbox.openbankproject.com:443","connect,resolve"),
+      new java.util.PropertyPermission("user.dir","read"),
+    )
+
+    Sandbox.createSandbox(permissionList).runInSandbox {
+      scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
+      new File(".").getCanonicalPath
+    }
+  }
+  
+  "Sandbox.sandbox method test bankId" should "should throw exception" taggedAs DynamicUtilsTag in {
+    intercept[AccessControlException] {
+      Sandbox.sandbox(bankId= "abc").runInSandbox {
+        BankId("123" )
+      }
+    }
+  }
+  
+  "Sandbox.sandbox method test bankId" should "should work well" taggedAs DynamicUtilsTag in {
+    Sandbox.sandbox(bankId= "abc").runInSandbox {
+      BankId("abc" )
+    }
+  }
+
+  "Sandbox.sandbox method test default permission" should "should throw exception" taggedAs DynamicUtilsTag in {
+    intercept[AccessControlException] {
+      Sandbox.sandbox(bankId= "abc").runInSandbox {
+        scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
+      }
+    }
+  }
 
   val zson = {
     """

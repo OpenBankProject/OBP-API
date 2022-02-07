@@ -50,7 +50,7 @@ object InternalConnector {
    * @param methodBody method body of connector method
    * @return function of connector method that is dynamic created, can be Function0, Function1, Function2...
    */
-  def createFunction(methodName: String, methodBody:String): Box[Any] =
+  def createFunction(methodName: String, methodBody:String): Box[AnyRef]=
     methodNameToSignature.get(methodName)  match {
       case Some(signature) =>
         val method = s"""

@@ -1,5 +1,6 @@
 package code.api.v4_0_0.dynamic.practise
 
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.requestRootJsonClass
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{ResourceDoc, StringBody}
 import code.api.util.ApiTag.{apiTagDynamicResourceDoc, apiTagNewStyle}
@@ -24,10 +25,18 @@ object PractiseEndpointGroup extends EndpointGroup{
     PractiseEndpoint.requestUrl,
     "A test endpoint",
     s"""A test endpoint.
-       |Just for debug method body of dynamic resource doc
+       |
+       |Just for debug method body of dynamic resource doc.
+       |better watch the following introduction video first 
+       |* [Dynamic resourceDoc version1](https://vimeo.com/623381607)
+       |
+       |The endpoint return the response from PractiseEndpoint code.
+       |Here, code.api.v4_0_0.dynamic.practise.PractiseEndpoint.process
+       |You can test the method body grammar, and try the business logic, but need to restart the OBP-API code .
+       |
        |""",
-    StringBody("Any request body"),
-    StringBody("Any response body"),
+    requestRootJsonClass,
+    requestRootJsonClass,
     List(
       UnknownError
     ),
