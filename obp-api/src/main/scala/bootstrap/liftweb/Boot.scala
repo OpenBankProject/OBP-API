@@ -44,7 +44,7 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
-import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
+import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
@@ -662,6 +662,11 @@ class Boot extends MdcLoggable {
         case false => logger.info("Akka middleware layer is disabled.")
       }
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
+    }
+
+    if((ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).isEmpty) && 
+      APIUtil.getPropsAsBoolValue("allow_roles_or_scopes", false)){
+      throw new Exception(s"Incompatible Props values for Scopes.")
     }
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
