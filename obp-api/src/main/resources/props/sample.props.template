@@ -826,6 +826,7 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # require_scopes_for_all_roles=false
 # require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
+# allow_roles_or_scopes=false
 # ---------------------------------------------------------------
 
 # -- Database scheduler -----------------------------
