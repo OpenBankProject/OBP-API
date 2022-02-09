@@ -974,11 +974,20 @@ object NewStyle {
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg, cc=callContext) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
+      } map validateRequestPayload(callContext) 
+    
+    def hasAtLeastOneEntitlementOrScope(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
+      Helper.booleanToFuture(failMsg, cc=callContext) {
+        APIUtil.hasAtLeastOneEntitlementOrScope(bankId, userId, APIUtil.getConsumerPrimaryKey(callContext),roles)
       } map validateRequestPayload(callContext)
 
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
       val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
       hasAtLeastOneEntitlement(errorMessage)(bankId, userId, roles, callContext)
+    }
+    def hasAtLeastOneEntitlementOrScope(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
+      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
+      hasAtLeastOneEntitlementOrScope(errorMessage)(bankId, userId, roles, callContext)
     }
 
     def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {

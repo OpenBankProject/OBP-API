@@ -2129,6 +2129,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // when roles is empty, that means no access control, treat as pass auth check
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+  
+  // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
+  // i.e. does user has assigned at least one role from the list
+  // when roles is empty, that means no access control, treat as pass auth check
+  def hasAtLeastOneEntitlementOrScope(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean =
+    roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _)) || roles.exists(hasScope(bankId, consumerId, _))
 
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
@@ -3743,7 +3749,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case x => anonymousAccess(x)
   }
   private val checkRolesFun: PartialFunction[String, (String, List[ApiRole], Option[CallContext]) => Future[Box[Unit]]] = {
-    case x => NewStyle.function.hasAtLeastOneEntitlement(x, _, _, _)
+    case x => NewStyle.function.hasAtLeastOneEntitlementOrScope(x, _, _, _)
   }
   private val checkBankFun: PartialFunction[BankId, Option[CallContext] => OBPReturnType[Bank]] = {
     case x => NewStyle.function.getBank(x, _)
