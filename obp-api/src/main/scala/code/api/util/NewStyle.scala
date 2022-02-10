@@ -36,7 +36,7 @@ import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.model.dataAccess.{AuthUser, BankAccountRouting}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
-import code.users.{UserAgreement, UserAgreementProvider, UserInvitation, UserInvitationProvider, Users}
+import code.users.{UserAgreement, UserAgreementProvider, UserAttribute, UserInvitation, UserInvitationProvider, Users}
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -1607,6 +1607,33 @@ object NewStyle {
         transactionAttributeId: Option[String],
         name: String,
         attributeType: TransactionAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
+    def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
+      Connector.connector.vend.getUserAttributes(
+        userId: String, callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    def createOrUpdateUserAttribute(
+      userId: String,
+      userAttributeId: Option[String],
+      name: String,
+      attributeType: UserAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[UserAttribute] = {
+      Connector.connector.vend.createOrUpdateUserAttribute(
+        userId: String,
+        userAttributeId: Option[String],
+        name: String,
+        attributeType: UserAttributeType.Value,
         value: String,
         callContext: Option[CallContext]
       ) map {

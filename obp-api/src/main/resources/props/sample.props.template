@@ -951,6 +951,10 @@ dynamic_endpoints_url_prefix=dynamic
 # refresh_user.interval=30
 # --------------------------------------------------------------------
 
+# Enables actions during log on a user at Sofit application
+# The actions are typically: Create bank, incoming and outgoing account, assign entitlement etc.
+sofit.logon_init_action.enabled=false
+
 ## Inbound and Outbound ignore field names, case class name can be prefix.
 inbound.optional.fields=\
 inboundAdapterCallContext.generalContext,\

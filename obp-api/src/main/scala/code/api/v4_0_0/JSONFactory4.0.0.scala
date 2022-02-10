@@ -56,7 +56,7 @@ import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
-import code.users.{UserAgreement, UserInvitation}
+import code.users.{UserAgreement, UserAttribute, UserInvitation}
 import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
@@ -424,6 +424,32 @@ case class RefundJson(
   transaction_id: String,
   reason_code: String
 )
+
+case class UserAttributeJsonV400(
+  name: String,
+  `type`: String,
+  value: String,
+)
+case class UserAttributeResponseJsonV400(
+  user_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+  insert_date: Date                                    
+)
+case class UserAttributesResponseJson(
+  user_attributes: List[UserAttributeResponseJsonV400]
+)
+
+case class UserWithAttributesResponseJson(
+                                           user_id: String,
+                                           email : String,
+                                           provider_id: String,
+                                           provider : String,
+                                           username : String,
+                                           user_attributes: List[UserAttributeResponseJsonV400]
+                                         )
+
 
 case class CustomerAttributeJsonV400(
   name: String,
@@ -1282,6 +1308,30 @@ object JSONFactory400 {
       name = transactionAttribute.name,
       `type` = transactionAttribute.attributeType.toString,
       value = transactionAttribute.value
+    )
+  }
+  
+  def createUserAttributeJson(userAttribute: UserAttribute) : UserAttributeResponseJsonV400 = {
+    UserAttributeResponseJsonV400(
+      user_attribute_id = userAttribute.userAttributeId,
+      name = userAttribute.name,
+      `type` = userAttribute.attributeType.toString,
+      value = userAttribute.value,
+      insert_date = userAttribute.insertDate
+    )
+  }
+
+  def createUserAttributesJson(userAttribute: List[UserAttribute]) : UserAttributesResponseJson = {
+    UserAttributesResponseJson(userAttribute.map(createUserAttributeJson))
+  }
+  def createUserWithAttributesJson(user: User, userAttribute: List[UserAttribute]) : UserWithAttributesResponseJson = {
+    UserWithAttributesResponseJson(
+      user_id = user.userId,
+      email = user.emailAddress,
+      provider_id = user.idGivenByProvider,
+      provider = user.provider,
+      username = user.name,
+      user_attributes = userAttribute.map(createUserAttributeJson(_))
     )
   }
 
