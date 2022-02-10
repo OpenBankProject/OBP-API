@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
+
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -93,8 +94,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.{immutable, mutable}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
 import com.openbankproject.commons.util.Functions.Implicits._
@@ -103,8 +103,8 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.security.AccessControlException
+
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.io.BufferedSource
@@ -2135,7 +2135,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // when roles is empty, that means no access control, treat as pass auth check
   def handleEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
     // Consumer AND User has the Role
-    if(ApiPropsWithAlias.requireScopesForAllRoles){ 
+    val enforceScopesForRoles = getPropsValue("enable_scopes_for_roles").toList.map(_.split(","))
+    val enableScopesForRoles: immutable.Seq[String] = roles.map(_.toString()) intersect enforceScopesForRoles
+    if(ApiPropsWithAlias.requireScopesForAllRoles || !enableScopesForRoles.isEmpty) {
       roles.isEmpty || (roles.exists(hasEntitlement(bankId, userId, _)) && roles.exists(hasScope(bankId, consumerId, _)))
     } 
     // Consumer OR User has the Role
