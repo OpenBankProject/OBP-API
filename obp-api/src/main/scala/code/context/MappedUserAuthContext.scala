@@ -17,6 +17,7 @@ class MappedUserAuthContext extends UserAuthContext with LongKeyedMapper[MappedU
   override def key = mKey.get  
   override def value = mValue.get  
   override def userAuthContextId = mUserAuthContextId.get  
+  override def timeStamp = createdAt.get  
   
 }
 

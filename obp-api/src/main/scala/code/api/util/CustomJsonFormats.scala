@@ -11,6 +11,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{TypeInfo, _}
 import org.apache.commons.lang3.StringUtils
 
+import java.text.SimpleDateFormat
 import scala.collection.immutable.List
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe._

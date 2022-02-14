@@ -4661,7 +4661,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data= UserAuthContextCommons(userAuthContextId=userAuthContextIdExample.value,
       userId=userIdExample.value,
       key=keyExample.value,
-      value=valueExample.value))
+      value=valueExample.value,
+      timeStamp=parseDate(timeStampExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format."))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4775,7 +4776,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       data=List( UserAuthContextCommons(userAuthContextId=userAuthContextIdExample.value,
       userId=userIdExample.value,
       key=keyExample.value,
-      value=valueExample.value)))
+      value=valueExample.value,
+      timeStamp=parseDate(timeStampExample.value).getOrElse(sys.error("dateOfBirthExample.value is not validate date format.")))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
