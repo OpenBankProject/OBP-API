@@ -605,7 +605,7 @@ class Boot extends MdcLoggable {
       if(useMessageQueue)
         BankAccountCreationListener.startListen
     } catch {
-      case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
+      case e: ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
     }
 
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
@@ -664,10 +664,8 @@ class Boot extends MdcLoggable {
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
 
-    if((ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).isEmpty) && 
-      APIUtil.getPropsAsBoolValue("allow_roles_or_scopes", false)){
-      throw new Exception(s"Incompatible Props values for Scopes.")
-    }
+    // Sanity check for incompatible Props values for Scopes.
+    sanityCheckOPropertiesRegardingScopes()
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
     // Please note that migration scripts are executed after Lift Mapper Schemifier
@@ -749,6 +747,14 @@ class Boot extends MdcLoggable {
       createHydraClients()
     }
   }
+
+  def sanityCheckOPropertiesRegardingScopes() = {
+    if ((ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).isEmpty) &&
+      APIUtil.getPropsAsBoolValue("allow_roles_or_scopes", false)) {
+      throw new Exception(s"Incompatible Props values for Scopes.")
+    }
+  }
+
   // create Hydra client if exists active consumer but missing Hydra client
   def createHydraClients() = {
     import scala.concurrent.ExecutionContext.Implicits.global
