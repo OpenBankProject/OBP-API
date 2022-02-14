@@ -748,11 +748,15 @@ class Boot extends MdcLoggable {
     }
   }
 
-  def sanityCheckOPropertiesRegardingScopes() = {
-    if ((ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).isEmpty) &&
-      APIUtil.getPropsAsBoolValue("allow_roles_or_scopes", false)) {
+  private def sanityCheckOPropertiesRegardingScopes() = {
+    if (checkPropertiesRegardingScopes()) {
       throw new Exception(s"Incompatible Props values for Scopes.")
     }
+  }
+
+  def checkPropertiesRegardingScopes() = {
+    (ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).isEmpty) &&
+      APIUtil.getPropsAsBoolValue("allow_roles_or_scopes", false)
   }
 
   // create Hydra client if exists active consumer but missing Hydra client
