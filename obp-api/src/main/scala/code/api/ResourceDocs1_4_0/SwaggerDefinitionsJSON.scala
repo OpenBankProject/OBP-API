@@ -3494,7 +3494,8 @@ object SwaggerDefinitionsJSON {
     user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     user_id = ExampleValue.userIdExample.value,
     key = "CUSTOMER_NUMBER",
-    value = "78987432"
+    value = "78987432",
+    timeStamp = parseDate(timeStampExample.value).getOrElse(sys.error("timeStampExample.value is not validate date format."))
   )
 
   val userAuthContextUpdateJson = UserAuthContextUpdateJson(

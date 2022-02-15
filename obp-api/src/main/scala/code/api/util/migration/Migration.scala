@@ -89,6 +89,7 @@ object Migration extends MdcLoggable {
       addFastFirehoseAccountsMaterializedView(startedBeforeSchemifier)
       alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier)
       dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier)
+      dropIndexAtUserAuthContext()
     }
     
     private def dummyScript(): Boolean = {
@@ -343,6 +344,13 @@ object Migration extends MdcLoggable {
         runOnce(name) {
           MigrationOfAuthUser.dropIndexAtColumnUsername(name)
         }
+      }
+    }
+
+    private def dropIndexAtUserAuthContext(): Boolean = {
+      val name = nameOf(dropIndexAtUserAuthContext)
+      runOnce(name) {
+        MigrationOfMappedUserAuthContext.dropUniqueIndex(name)
       }
     }
     

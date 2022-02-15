@@ -876,7 +876,7 @@ class Token extends LongKeyedMapper[Token]{
   def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
   def consumer = Consumers.consumers.vend.getConsumerByPrimaryId(consumerId.get)
-  def isValid : Boolean = expirationDate.get after now
+  def isValid : Boolean = expirationDate.get after new Date(System.currentTimeMillis())
   def gernerateVerifier : String =
     if (verifier.get.isEmpty){
         def fiveRandomNumbers() : String = {

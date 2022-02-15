@@ -1,7 +1,7 @@
 package code.api.util
 
 
-import code.api.util.APIUtil.parseDate
+import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, parseDate}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
@@ -277,6 +277,7 @@ object ExampleValue {
 
   lazy val dateExample = ConnectorField("2020-01-27", "The Date in the format: yyyy-MM-dd")
   lazy val dateTimeExample = ConnectorField("2021-04-08T09:12:27Z", "The Date in the format: yyyy-MM-dd'T'HH:mm:ss'Z'")
+  lazy val timeStampExample = ConnectorField(DateWithMsExampleString, s"The TimeStamp in the format: $DateWithMs")
   lazy val cancelledDateExample = ConnectorField("2020-01-27", "The Cancelled Date in the format: yyyy-MM-dd")
   lazy val dateCancelledExample = cancelledDateExample
   lazy val signedDateExample = ConnectorField("2020-01-27", "The Signed Date in the format: yyyy-MM-dd")

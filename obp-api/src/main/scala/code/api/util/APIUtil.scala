@@ -136,9 +136,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // (Else caching is invalidated by constantly changing date)
 
   val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
-  val DateWithSecondsExampleObject = DateWithDayFormat.parse(DateWithSecondsExampleString)
-  val DateWithMsExampleObject = DateWithDayFormat.parse(DateWithMsExampleString)
-  val DateWithMsRollbackExampleObject = DateWithDayFormat.parse(DateWithMsRollbackExampleString)
+  val DateWithSecondsExampleObject = DateWithSecondsFormat.parse(DateWithSecondsExampleString)
+  val DateWithMsExampleObject = DateWithMsFormat.parse(DateWithMsExampleString)
+  val DateWithMsRollbackExampleObject = DateWithMsRollbackFormat.parse(DateWithMsRollbackExampleString)
 
   private def oneYearAgo(toDate: Date): Date = {
     val oneYearAgo = Calendar.getInstance

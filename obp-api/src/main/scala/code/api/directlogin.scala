@@ -36,6 +36,7 @@ import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, UserX}
 import code.token.Tokens
+import code.transaction.MappedTransaction
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -43,6 +44,7 @@ import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.mapper.{By, By_>, Descending, OrderBy}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
@@ -274,9 +276,19 @@ object DirectLogin extends RestHelper with MdcLoggable {
   //Check if the request (access token or request token) is valid and return a tuple
   def validator(requestType : String, allParameters: Map[String, String] = getAllParameters) : (Int, String, Map[String,String]) = {
 
-    def validAccessToken(tokenKey: String) = {
+    def validAccessToken(tokenKey: String): Boolean = {
       Tokens.tokens.vend.getTokenByKeyAndType(tokenKey, TokenType.Access) match {
-        case Full(token) => token.isValid
+        case Full(token) => token.isValid match {
+          case true =>
+            // Only last issued token is considered as a valid one
+            val isNotLastIssuedToken = Token.findAll(
+              By(Token.userForeignKey, token.userForeignKey.get),
+              By(Token.consumerId, token.consumerId.get),
+              By_>(Token.expirationDate, token.expirationDate.get)
+            ).size > 0
+            if(isNotLastIssuedToken) false else true
+          case false => false
+        }
         case _ => false
       }
     }
@@ -327,7 +339,17 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
     def validAccessTokenFuture(tokenKey: String) = {
       Tokens.tokens.vend.getTokenByKeyAndTypeFuture(tokenKey, TokenType.Access) map {
-        case Full(token) => token.isValid
+        case Full(token) => token.isValid match {
+          case true => 
+            // Only last issued token is considered as a valid one
+            val isNotLastIssuedToken = Token.findAll(
+              By(Token.userForeignKey, token.userForeignKey.get), 
+              By(Token.consumerId, token.consumerId.get),
+              By_>(Token.expirationDate, token.expirationDate.get)
+            ).size > 0
+            if(isNotLastIssuedToken) false else true
+          case false => false
+        }
         case _ => false
       }
     }
