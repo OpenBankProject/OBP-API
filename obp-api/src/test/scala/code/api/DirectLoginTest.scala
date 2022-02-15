@@ -1,5 +1,6 @@
 package code.api
 
+import code.api.util.APIUtil.OAuth.Token
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -7,6 +8,7 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_0_0.UserJsonV300
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
+import code.model
 import code.model.dataAccess.AuthUser
 import code.setup.{APIResponse, ServerSetup}
 import code.userlocks.UserLocksProvider
@@ -341,7 +343,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     } 
     
-    scenario("Login with correct everything and use props local_identity_provider_url", ApiEndpoint1, ApiEndpoint2) {
+    scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, ApiEndpoint2) {
 
       setPropsValues("local_identity_provider"-> Constant.HostName)
 
@@ -447,6 +449,44 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       responseCurrentUserOldStyle.code should equal(400)
       responseCurrentUserOldStyle.body.extract[ErrorMessage].message should include(ErrorMessages.UsernameHasBeenLocked)
     }
+
+
+
+    scenario("Test oly last issued token is valid", ApiEndpoint2) {
+
+      When("The header and credentials are good")
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", validHeaders)
+      var token = ""
+      Then("We should get a 201 - OK and a token")
+      response.code should equal(201)
+      response.body match {
+        case JObject(List(JField(name, JString(value)))) =>
+          name should equal("token")
+          value.length should be > 0
+          token = value
+        case _ => fail("Expected a token")
+      }
+
+      val headerWithToken = ("DirectLogin", "token=%s".format(token))
+      val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
+      When("When we use the token to get current user and it should work - New Style")
+      val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
+      val responseCurrentUserNewStyle = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 200")
+      responseCurrentUserNewStyle.code should equal(200)
+      val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
+      currentUserNewStyle.username shouldBe USERNAME
+
+      When("When we issue a new token")
+      makePostRequestAdditionalHeader(request, "", validHeaders)
+      Then("The previous one should be invalid")
+      val failedResponse = makeGetRequest(requestCurrentUserNewStyle, validHeadersWithToken)
+      And("We should get a 400")
+      failedResponse.code should equal(400)
+      assertResponse(failedResponse, DirectLoginInvalidToken)
+    }
+
 
   }
 

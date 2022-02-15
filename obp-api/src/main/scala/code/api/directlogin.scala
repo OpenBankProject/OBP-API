@@ -44,7 +44,7 @@ import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.mapper.{By, Descending, OrderBy}
+import net.liftweb.mapper.{By, By_>, Descending, OrderBy}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 
@@ -283,8 +283,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
             // Only last issued token is considered as a valid one
             val isNotLastIssuedToken = Token.findAll(
               By(Token.userForeignKey, token.userForeignKey.get),
-              By(Token.consumerId, token.consumerId.get)
-            ).exists(_.expirationDate.get after token.expirationDate.get)
+              By(Token.consumerId, token.consumerId.get),
+              By_>(Token.expirationDate, token.expirationDate.get)
+            ).size > 0
             if(isNotLastIssuedToken) false else true
           case false => false
         }
@@ -343,8 +344,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
             // Only last issued token is considered as a valid one
             val isNotLastIssuedToken = Token.findAll(
               By(Token.userForeignKey, token.userForeignKey.get), 
-              By(Token.consumerId, token.consumerId.get)
-            ).exists(_.expirationDate.get after token.expirationDate.get)
+              By(Token.consumerId, token.consumerId.get),
+              By_>(Token.expirationDate, token.expirationDate.get)
+            ).size > 0
             if(isNotLastIssuedToken) false else true
           case false => false
         }
