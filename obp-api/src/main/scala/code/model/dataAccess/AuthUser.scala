@@ -1279,23 +1279,55 @@ def restoreSomeSessions(): Unit = {
 
   /**
     * This is a helper method
-    * update the views, accountHolders for OBP side when sign up new remote user
+    * create/update/delete the views, accountAccesses, accountHolders for OBP get accounts from CBS side.
     * This method can only be used by the original user(account holder).
    *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far. 
     */
-    def updateUserAccountViews(user: User, accounts: List[InboundAccount]): Unit = {
-    for {
-      account <- accounts
-      viewId <- account.viewsToGenerate if(user.isOriginalUser) // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
-      bankAccountUID <- Full(BankIdAccountId(BankId(account.bankId), AccountId(account.accountId)))
-      view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)//this method will return both system views and custom views back.
-    } yield {
-      if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
-        Views.views.vend.grantAccessToSystemView(BankId(account.bankId), AccountId(account.accountId), view, user)
-      else //otherwise, we will call `grantAccessToCustomView`
-        Views.views.vend.grantAccessToCustomView(view.uid, user)
-      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
-    }
+    def updateUserAccountViews(user: User, cbsAccounts: List[InboundAccount]): Unit = {
+      if(user.isOriginalUser){
+        //first, we compare the accounts in obp  and the accounts in cbs,   
+        val (_, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccess(user)
+        val obpBankAccountViewIds = privateAccountAccesses.map(accountAccesses =>(accountAccesses.bank_id.get,accountAccesses.account_id.get, accountAccesses.view_id.get))
+        val cbsBankAccountViewIds = cbsAccounts.map(
+          account =>
+            account.viewsToGenerate.map(
+              viewId => (account.bankId,account.accountId,viewId)
+            )
+        ).flatten
+        
+        //cbs removed this accounts, but OBP still contains the data for them, so we need to clean data in OBP side.
+        val cbsRemovedBankAccountViewIds = obpBankAccountViewIds diff cbsBankAccountViewIds
+        //cbs has new accounts which are not in obp yet, we need to create new data for these accounts.
+        val csbNewBankAccountViewIds = cbsBankAccountViewIds diff obpBankAccountViewIds
+       
+        //1st: create views/accountAccesses/accountHolders for the new coming accounts
+        for {
+          bankAccountViewId <- csbNewBankAccountViewIds
+          viewId = bankAccountViewId._3  // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
+          bankAccountUID = BankIdAccountId(BankId(bankAccountViewId._1), AccountId(bankAccountViewId._2))
+          view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)//this method will return both system views and custom views back.
+        } yield {
+          if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
+            Views.views.vend.grantAccessToSystemView(view.bankId, view.accountId, view, user)
+          else //otherwise, we will call `grantAccessToCustomView`
+            Views.views.vend.grantAccessToCustomView(view.uid, user)
+          AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
+        }
+  
+        //2rd remove the deprecated accounts
+        for{
+          cbsRemovedBankAccountId <- cbsRemovedBankAccountViewIds
+          bankId = BankId(cbsRemovedBankAccountId._1)
+          accountId = AccountId(cbsRemovedBankAccountId._2)
+          viewId = ViewId(cbsRemovedBankAccountId._3) 
+        } yield{
+          Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId,accountId))
+          Views.views.vend.revokeAllAccountAccesses(bankId, accountId, user) 
+          AccountHolders.accountHolders.vend.deleteAccountHolder(user,BankIdAccountId(bankId, accountId))
+        }
+      } else{
+        
+      }
   }
   /**
     * Find the authUser by author user name(authUser and resourceUser are the same).

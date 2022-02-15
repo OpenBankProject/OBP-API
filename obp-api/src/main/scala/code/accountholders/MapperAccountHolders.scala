@@ -106,4 +106,13 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
     Full( MapperAccountHolders.bulkDelete_!!() )
   }
 
+  def deleteAccountHolder(user: User, bankIdAccountId :BankIdAccountId): Box[Boolean] = {
+    MapperAccountHolders.find(
+      By(MapperAccountHolders.user, user.userPrimaryKey.value),
+      By(MapperAccountHolders.accountBankPermalink, bankIdAccountId.bankId.value),
+      By(MapperAccountHolders.accountPermalink, bankIdAccountId.accountId.value)
+    ).map(_.delete_!)
+  }
+  
+
 }
