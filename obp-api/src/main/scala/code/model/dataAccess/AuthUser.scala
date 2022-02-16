@@ -1307,6 +1307,7 @@ def restoreSomeSessions(): Unit = {
         val csbNewBankAccountViewIds = cbsBankAccountViewIds diff obpBankAccountViewIds
 
         //1rd remove the deprecated accounts
+        //TODO. need to double check if we need to clean accountidmapping table, account meta data (MappedTag) ....
         for{
           cbsRemovedBankAccountId <- cbsRemovedBankAccountViewIds
           bankId = BankId(cbsRemovedBankAccountId._1)
