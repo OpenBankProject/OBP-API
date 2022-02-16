@@ -1287,7 +1287,13 @@ def restoreSomeSessions(): Unit = {
       if(user.isOriginalUser){
         //first, we compare the accounts in obp  and the accounts in cbs,   
         val (_, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccess(user)
-        val obpBankAccountViewIds = privateAccountAccesses.map(accountAccesses =>(accountAccesses.bank_id.get,accountAccesses.account_id.get, accountAccesses.view_id.get))
+        val obpAccountAccessBankAccountViewIds = privateAccountAccesses.map(accountAccesses =>(accountAccesses.bank_id.get,accountAccesses.account_id.get, accountAccesses.view_id.get))
+        val userOwnBankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
+        
+        //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
+        val obpBankAccountViewIds = obpAccountAccessBankAccountViewIds.filter(accessBankAccountViewId => 
+          userOwnBankAccountIds.contains(BankIdAccountId(BankId(accessBankAccountViewId._1), AccountId(accessBankAccountViewId._2))))
+        
         val cbsBankAccountViewIds = cbsAccounts.map(
           account =>
             account.viewsToGenerate.map(
@@ -1299,8 +1305,20 @@ def restoreSomeSessions(): Unit = {
         val cbsRemovedBankAccountViewIds = obpBankAccountViewIds diff cbsBankAccountViewIds
         //cbs has new accounts which are not in obp yet, we need to create new data for these accounts.
         val csbNewBankAccountViewIds = cbsBankAccountViewIds diff obpBankAccountViewIds
-       
-        //1st: create views/accountAccesses/accountHolders for the new coming accounts
+
+        //1rd remove the deprecated accounts
+        for{
+          cbsRemovedBankAccountId <- cbsRemovedBankAccountViewIds
+          bankId = BankId(cbsRemovedBankAccountId._1)
+          accountId = AccountId(cbsRemovedBankAccountId._2)
+          viewId = ViewId(cbsRemovedBankAccountId._3)
+        } yield{
+          Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId,accountId))
+          Views.views.vend.revokeAllAccountAccesses(bankId, accountId, user)
+          AccountHolders.accountHolders.vend.deleteAccountHolder(user,BankIdAccountId(bankId, accountId))
+        }
+        
+        //2st: create views/accountAccesses/accountHolders for the new coming accounts
         for {
           bankAccountViewId <- csbNewBankAccountViewIds
           viewId = bankAccountViewId._3  // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
@@ -1314,17 +1332,7 @@ def restoreSomeSessions(): Unit = {
           AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
         }
   
-        //2rd remove the deprecated accounts
-        for{
-          cbsRemovedBankAccountId <- cbsRemovedBankAccountViewIds
-          bankId = BankId(cbsRemovedBankAccountId._1)
-          accountId = AccountId(cbsRemovedBankAccountId._2)
-          viewId = ViewId(cbsRemovedBankAccountId._3) 
-        } yield{
-          Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId,accountId))
-          Views.views.vend.revokeAllAccountAccesses(bankId, accountId, user) 
-          AccountHolders.accountHolders.vend.deleteAccountHolder(user,BankIdAccountId(bankId, accountId))
-        }
+        
       } else{
         
       }
