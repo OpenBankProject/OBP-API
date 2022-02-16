@@ -2100,7 +2100,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def requireScopes(role: ApiRole) = {
     ApiPropsWithAlias.requireScopesForAllRoles match {
       case false =>
-        getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).flatten.exists(_ == role.toString())
+        getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).flatten.exists(_ == role.toString())
       case true =>
         true
     }
@@ -2136,9 +2136,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // when roles is empty, that means no access control, treat as pass auth check
   def handleEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
     // Consumer AND User has the Role
-    val enforceScopesForRoles = getPropsValue("enable_scopes_for_roles").toList.map(_.split(","))
-    val enableScopesForRoles: immutable.Seq[String] = roles.map(_.toString()) intersect enforceScopesForRoles
-    if(ApiPropsWithAlias.requireScopesForAllRoles || !enableScopesForRoles.isEmpty) {
+    val requireScopesForListedRoles: List[String] = getPropsValue("require_scopes_for_listed_roles", "").split(",").toList
+    val requireScopesForRoles: immutable.Seq[String] = roles.map(_.toString()) intersect requireScopesForListedRoles
+    if(ApiPropsWithAlias.requireScopesForAllRoles || !requireScopesForRoles.isEmpty) {
       roles.isEmpty || (roles.exists(hasEntitlement(bankId, userId, _)) && roles.exists(hasScope(bankId, consumerId, _)))
     } 
     // Consumer OR User has the Role

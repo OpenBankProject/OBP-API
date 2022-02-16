@@ -807,7 +807,7 @@ object JSONFactory220 {
     val scopes = 
       ScopesJSON(
         ApiPropsWithAlias.requireScopesForAllRoles,
-        getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).flatten
+        getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).flatten
       )
 
     ConfigurationJSON(akka, ElasticSearchJSON(metrics, warehouse), cache, scopes)

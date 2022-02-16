@@ -755,7 +755,7 @@ class Boot extends MdcLoggable {
   }
 
   def checkPropertiesRegardingScopes() = {
-    (ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).isEmpty) &&
+    (ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).isEmpty) &&
       APIUtil.getPropsAsBoolValue("allow_roles_or_scopes", false)
   }
 
