@@ -120,7 +120,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMinutes = "yyyy-MM-dd'T'HH:mm'Z'"
   val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-  val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+  val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ" //?? what does this `Rollback` mean ??
 
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
