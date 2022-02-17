@@ -756,7 +756,7 @@ class Boot extends MdcLoggable {
 
   def checkPropertiesRegardingScopes() = {
     (ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).isEmpty) &&
-      APIUtil.getPropsAsBoolValue("allow_roles_or_scopes", false)
+      APIUtil.getPropsAsBoolValue("allow_entitlements_or_scopes", false)
   }
 
   // create Hydra client if exists active consumer but missing Hydra client

@@ -828,8 +828,8 @@ featured_apis=elasticSearchWarehouseV300
 # Scopes are a way to limit the APIs a Consumer can call.
 # In case isn't defined default value is "false"
 # require_scopes_for_all_roles=false
-# enable_scopes_for_roles=CanCreateUserAuthContext,CanGetCustomer
-# allow_roles_or_scopes=false
+# require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
+# allow_entitlements_or_scopes=false
 # ---------------------------------------------------------------
 
 # -- Database scheduler -----------------------------
