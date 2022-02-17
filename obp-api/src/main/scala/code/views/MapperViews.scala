@@ -177,8 +177,6 @@ object MapperViews extends Views with MdcLoggable {
     } else {
       viewDefinitions.foreach(v => {
         if(v._1.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
-        val viewDefinition = v._1
-        val viewIdBankIdAccountId = v._2
         // This is idempotent 
         revokeAccess(v._2, user)
       })

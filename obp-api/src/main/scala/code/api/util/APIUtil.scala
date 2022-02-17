@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
+
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -93,8 +94,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{List, Nil}
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.{immutable, mutable}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, Functions, JsonAble, ReflectUtils, ScannedApiVersion}
 import com.openbankproject.commons.util.Functions.Implicits._
@@ -103,9 +103,10 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.security.AccessControlException
+
 import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
 import scala.io.BufferedSource
 import scala.util.Either
@@ -1518,11 +1519,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         if (isNeedCheckAuth) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
       }
 
-      def checkRoles(bankId: Option[BankId], user: Box[User]):Future[Box[Unit]] = {
+      def checkRoles(bankId: Option[BankId], user: Box[User], cc: Option[CallContext]):Future[Box[Unit]] = {
         if (isNeedCheckRoles) {
           val bankIdStr = bankId.map(_.value).getOrElse("")
           val userIdStr = user.map(_.userId).openOr("")
-          checkRolesFun(bankIdStr)(userIdStr, rolesForCheck)
+          checkRolesFun(bankIdStr)(userIdStr, rolesForCheck, cc)
         } else {
           Future.successful(Full(Unit))
         }
@@ -1643,7 +1644,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
               (bank, callContext) <- checkBank(bankId, callContext)
 
               // roles check
-              _ <- checkRoles(bankId, boxUser)
+              _ <- checkRoles(bankId, boxUser, callContext)
 
               // check accountId is valid
               (account, callContext) <- checkAccount(bankId, accountId, callContext)
@@ -2099,7 +2100,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def requireScopes(role: ApiRole) = {
     ApiPropsWithAlias.requireScopesForAllRoles match {
       case false =>
-        getPropsValue("enable_scopes_for_roles").toList.map(_.split(",")).flatten.exists(_ == role.toString())
+        getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).flatten.exists(_ == role.toString())
       case true =>
         true
     }
@@ -2129,6 +2130,27 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // when roles is empty, that means no access control, treat as pass auth check
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
     roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+  
+  // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
+  // i.e. does user has assigned at least one role from the list
+  // when roles is empty, that means no access control, treat as pass auth check
+  def handleEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
+    // Consumer AND User has the Role
+    val requireScopesForListedRoles: List[String] = getPropsValue("require_scopes_for_listed_roles", "").split(",").toList
+    val requireScopesForRoles: immutable.Seq[String] = roles.map(_.toString()) intersect requireScopesForListedRoles
+    if(ApiPropsWithAlias.requireScopesForAllRoles || !requireScopesForRoles.isEmpty) {
+      roles.isEmpty || (roles.exists(hasEntitlement(bankId, userId, _)) && roles.exists(hasScope(bankId, consumerId, _)))
+    } 
+    // Consumer OR User has the Role
+    else if(getPropsAsBoolValue("allow_entitlements_or_scopes", false)) {
+      roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _)) || roles.exists(hasScope(bankId, consumerId, _))
+    }
+    // User has the Role
+    else {
+      roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+    }
+    
+  }
 
 
   // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
@@ -3742,8 +3764,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private val anonymousAccessFun: PartialFunction[CallContext, OBPReturnType[Box[User]]] = {
     case x => anonymousAccess(x)
   }
-  private val checkRolesFun: PartialFunction[String, (String, List[ApiRole]) => Future[Box[Unit]]] = {
-    case x => NewStyle.function.hasAtLeastOneEntitlement(x, _, _, None)
+  private val checkRolesFun: PartialFunction[String, (String, List[ApiRole], Option[CallContext]) => Future[Box[Unit]]] = {
+    case x => NewStyle.function.handleEntitlementsAndScopes(x, _, _, _)
   }
   private val checkBankFun: PartialFunction[BankId, Option[CallContext] => OBPReturnType[Bank]] = {
     case x => NewStyle.function.getBank(x, _)

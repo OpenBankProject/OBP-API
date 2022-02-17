@@ -44,7 +44,7 @@ import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
 import code.api.builder.APIBuilder_Connector
-import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse}
+import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getPropsValue}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
@@ -605,7 +605,7 @@ class Boot extends MdcLoggable {
       if(useMessageQueue)
         BankAccountCreationListener.startListen
     } catch {
-      case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
+      case e: ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
     }
 
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
@@ -663,6 +663,9 @@ class Boot extends MdcLoggable {
       }
       case _ => throw new Exception(s"Unexpected error occurs during Akka sanity check!")
     }
+
+    // Sanity check for incompatible Props values for Scopes.
+    sanityCheckOPropertiesRegardingScopes()
 
     // Migration Scripts are used to update the model of OBP-API DB to a latest version.
     // Please note that migration scripts are executed after Lift Mapper Schemifier
@@ -744,6 +747,18 @@ class Boot extends MdcLoggable {
       createHydraClients()
     }
   }
+
+  private def sanityCheckOPropertiesRegardingScopes() = {
+    if (checkPropertiesRegardingScopes()) {
+      throw new Exception(s"Incompatible Props values for Scopes.")
+    }
+  }
+
+  def checkPropertiesRegardingScopes() = {
+    (ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).isEmpty) &&
+      APIUtil.getPropsAsBoolValue("allow_entitlements_or_scopes", false)
+  }
+
   // create Hydra client if exists active consumer but missing Hydra client
   def createHydraClients() = {
     import scala.concurrent.ExecutionContext.Implicits.global
