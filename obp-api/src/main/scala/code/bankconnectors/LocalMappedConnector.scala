@@ -469,16 +469,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBanksLegacy(callContext)
   }
 
-  //This method is only for testing now. Normall this method 
+  //This method is only for testing now. 
   override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] = for {
       //1 get all the accounts for one user
       user <- Users.users.vend.getUserByUserName(username)
-      bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
+       (_, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccess(user)
+      obpAccountAccessBankAccountViewIds = privateAccountAccesses.map(accountAccesses =>(accountAccesses.bank_id.get,accountAccesses.account_id.get, accountAccesses.view_id.get)).toSet
     } yield {
       for {
-        bankAccountId <- bankAccountIds
-        (bankAccount, callContext) <- getBankAccountCommon(bankAccountId.bankId, bankAccountId.accountId, callContext)
+        bankAccountIdViewId <- obpAccountAccessBankAccountViewIds
+        (bankAccount, callContext) <- getBankAccountCommon(BankId(bankAccountIdViewId._1), AccountId(bankAccountIdViewId._2), callContext)
         inboundAccountCommons = InboundAccountCommons(
           bankId = bankAccount.bankId.value,
           branchId = bankAccount.branchId,
@@ -488,7 +489,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           balanceAmount = bankAccount.balance.toString(),
           balanceCurrency = bankAccount.currency,
           owners = bankAccount.userOwners.map(_.name).toList,
-          viewsToGenerate = List("Owner"),
+          viewsToGenerate = List(bankAccountIdViewId._3),
           bankRoutingScheme = bankAccount.bankRoutingScheme,
           bankRoutingAddress = bankAccount.bankRoutingAddress,
           branchRoutingScheme = "",

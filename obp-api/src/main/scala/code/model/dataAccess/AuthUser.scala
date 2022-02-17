@@ -1292,14 +1292,14 @@ def restoreSomeSessions(): Unit = {
         
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
         val obpBankAccountViewIds = obpAccountAccessBankAccountViewIds.filter(accessBankAccountViewId => 
-          userOwnBankAccountIds.contains(BankIdAccountId(BankId(accessBankAccountViewId._1), AccountId(accessBankAccountViewId._2))))
+          userOwnBankAccountIds.contains(BankIdAccountId(BankId(accessBankAccountViewId._1), AccountId(accessBankAccountViewId._2)))).toSet
         
         val cbsBankAccountViewIds = cbsAccounts.map(
           account =>
             account.viewsToGenerate.map(
               viewId => (account.bankId,account.accountId,viewId)
             )
-        ).flatten
+        ).flatten.toSet
         
         //cbs removed this accounts, but OBP still contains the data for them, so we need to clean data in OBP side.
         val cbsRemovedBankAccountViewIds = obpBankAccountViewIds diff cbsBankAccountViewIds
