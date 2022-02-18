@@ -2892,7 +2892,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
         // make sure, if `refreshUserIfRequired` throw exception, do not break the `authenticatedAccess`, 
         // TODO better move `refreshUserIfRequired` to other place.
-        tryo{refreshUserIfRequired(x._1,x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.refreshUserIfRequired throw exception! "))
+        // 2022-02-18 from now, we will put this method after user create UserAuthContext successfully.
+//        tryo{refreshUserIfRequired(x._1,x._2)}.openOr(logger.error(s"${x._1} authenticatedAccess.refreshUserIfRequired throw exception! "))
         x
     }
   }
