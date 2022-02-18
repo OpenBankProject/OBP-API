@@ -8131,6 +8131,35 @@ trait APIMethods400 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      correlatedUser,
+      implementedInApiVersion,
+      nameOf(correlatedUser),
+      "GET",
+      "/my/correlated-user/CORRELATED_USER_ID",
+      "Bound correlated user",
+      s"""Bound correlated user.""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagApi, apiTagNewStyle)
+    )
+
+    lazy val correlatedUser: OBPEndpoint = {
+      case "my" :: "correlated-user" :: correlatedUserId :: Nil JsonGet req => {
+        cc =>
+          for {
+            (successful, _) <- NewStyle.function.correlatedUser(correlatedUserId, cc.userId, cc.callContext)
+          } yield {
+            (successful, HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       getCurrentUserAttributes,
       implementedInApiVersion,
