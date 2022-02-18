@@ -1296,6 +1296,8 @@ def restoreSomeSessions(): Unit = {
         //cbs has new accounts which are not in obp yet, we need to create new data for these accounts.
         val csbNewBankAccountIds = cbsBankAccountIds diff obpBankAccountIds
 
+        logger.debug("updateUserAccountViews.cbsRemovedBankAccountIds-------"+cbsRemovedBankAccountIds)
+        logger.debug("updateUserAccountViews.csbNewBankAccountIds-------" + csbNewBankAccountIds)
         //1rd remove the deprecated accounts
         //TODO. need to double check if we need to clean accountidmapping table, account meta data (MappedTag) ....
         for{

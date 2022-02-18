@@ -7,6 +7,9 @@ import code.model.dataAccess.{AuthUser, ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.MapperViews
 import code.views.system.{AccountAccess, ViewDefinition}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
   * Created by zhanghongwei on 17/07/2017.
@@ -32,10 +35,10 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
   
   
   feature("Test the updateUserAccountViews method") {
-    scenario("we fack the output from getBankAccounts(), and check the functions there") {
+    scenario("we fake the output from getBankAccounts(), and check the functions there") {
 
       When("We call the method use resourceUser1")
-      AuthUser.refreshUserAccountAccesses(resourceUser1, None)
+      val result = Await.result(AuthUser.refreshUserAccountAccesses(resourceUser1, None), Duration.Inf)
 
       Then("We check the accountHolders")
       var accountholder1 = MapperAccountHolders.getAccountHolders(bankIdAccountId.bankId, bankIdAccountId.accountId)
