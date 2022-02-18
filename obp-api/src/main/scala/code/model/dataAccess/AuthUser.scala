@@ -1267,6 +1267,7 @@ def restoreSomeSessions(): Unit = {
       _ = logger.debug(s"-->AuthUser.refreshUserAccountAccesses.accounts : ${accounts}")
     }yield {
       updateUserAccountViews(user, accounts)
+      UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
     }
   }
 
