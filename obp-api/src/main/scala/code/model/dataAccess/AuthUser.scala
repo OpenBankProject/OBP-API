@@ -1258,19 +1258,6 @@ def restoreSomeSessions(): Unit = {
    * In this method is used for onboarding bank customer to OBP.
    *  1st: we will get all the accounts from CBS side.
    *  2rd: we will create the account Holder, view and account accesses.
-    */
-  def refreshUserAccountAccessesLegacy(user: User, callContext: Option[CallContext]): Unit = {
-    //get all accounts from Kafka
-    val accounts = Connector.connector.vend.getBankAccountsForUserLegacy(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
-    logger.debug(s"-->AuthUser.refreshUserAccountAccessesLegacy.accounts : ${accounts} ")
-
-    updateUserAccountViews(user, accounts._1)
-  }
-
-  /**
-   * In this method is used for onboarding bank customer to OBP.
-   *  1st: we will get all the accounts from CBS side.
-   *  2rd: we will create the account Holder, view and account accesses.
    */
   def refreshUserAccountAccesses(user: User, callContext: Option[CallContext]) = {
     for{
