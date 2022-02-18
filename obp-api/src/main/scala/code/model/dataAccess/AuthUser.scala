@@ -1135,8 +1135,9 @@ def restoreSomeSessions(): Unit = {
     if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        u <- Users.users.vend.getUserByUserName(username)
-       v <- Full (updateUserAccountViews(u, None))
-      } yield v
+      } yield {
+        refreshUserAccountAccesses(u, None)
+      }
     }
   }
 
@@ -1254,26 +1255,31 @@ def restoreSomeSessions(): Unit = {
   }
   
   /**
-    * This is a helper method 
-    * update the views, accountHolders for OBP side when sign up new remote user
-    * 
+   * In this method is used for onboarding bank customer to OBP.
+   *  1st: we will get all the accounts from CBS side.
+   *  2rd: we will create the account Holder, view and account accesses.
     */
-  def updateUserAccountViews(user: User, callContext: Option[CallContext]): Unit = {
+  def refreshUserAccountAccessesLegacy(user: User, callContext: Option[CallContext]): Unit = {
     //get all accounts from Kafka
     val accounts = Connector.connector.vend.getBankAccountsForUserLegacy(user.name,callContext).openOrThrowException(attemptedToOpenAnEmptyBox)
-    logger.debug(s"-->AuthUser.updateUserAccountViews.accounts : ${accounts} ")
+    logger.debug(s"-->AuthUser.refreshUserAccountAccessesLegacy.accounts : ${accounts} ")
 
     updateUserAccountViews(user, accounts._1)
   }
-  
-  def updateUserAccountViewsFuture(user: User, callContext: Option[CallContext]) = {
+
+  /**
+   * In this method is used for onboarding bank customer to OBP.
+   *  1st: we will get all the accounts from CBS side.
+   *  2rd: we will create the account Holder, view and account accesses.
+   */
+  def refreshUserAccountAccesses(user: User, callContext: Option[CallContext]) = {
     for{
       (accounts, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
+      _ = logger.debug(s"-->AuthUser.refreshUserAccountAccesses.accounts : ${accounts}")
     }yield {
       updateUserAccountViews(user, accounts)
-      UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
     }
   }
 
@@ -1287,55 +1293,51 @@ def restoreSomeSessions(): Unit = {
       if(user.isOriginalUser){
         //first, we compare the accounts in obp  and the accounts in cbs,   
         val (_, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccess(user)
-        val obpAccountAccessBankAccountViewIds = privateAccountAccesses.map(accountAccesses =>(accountAccesses.bank_id.get,accountAccesses.account_id.get, accountAccesses.view_id.get))
+        val obpAccountAccessBankAccountIds = privateAccountAccesses.map(accountAccesses =>BankIdAccountId(BankId(accountAccesses.bank_id.get), AccountId(accountAccesses.account_id.get))).toSet
         val userOwnBankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
+
+        //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
+        val obpBankAccountIds = obpAccountAccessBankAccountIds.filter(bankAccountId => userOwnBankAccountIds.contains(bankAccountId)).toSet
         
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
-        val obpBankAccountViewIds = obpAccountAccessBankAccountViewIds.filter(accessBankAccountViewId => 
-          userOwnBankAccountIds.contains(BankIdAccountId(BankId(accessBankAccountViewId._1), AccountId(accessBankAccountViewId._2)))).toSet
-        
-        val cbsBankAccountViewIds = cbsAccounts.map(
-          account =>
-            account.viewsToGenerate.map(
-              viewId => (account.bankId,account.accountId,viewId)
-            )
-        ).flatten.toSet
+        val cbsBankAccountIds = cbsAccounts.map(account =>BankIdAccountId(BankId(account.bankId),AccountId(account.accountId))).toSet
         
         //cbs removed this accounts, but OBP still contains the data for them, so we need to clean data in OBP side.
-        val cbsRemovedBankAccountViewIds = obpBankAccountViewIds diff cbsBankAccountViewIds
+        val cbsRemovedBankAccountIds = obpBankAccountIds diff cbsBankAccountIds
+        
         //cbs has new accounts which are not in obp yet, we need to create new data for these accounts.
-        val csbNewBankAccountViewIds = cbsBankAccountViewIds diff obpBankAccountViewIds
+        val csbNewBankAccountIds = cbsBankAccountIds diff obpBankAccountIds
 
         //1rd remove the deprecated accounts
         //TODO. need to double check if we need to clean accountidmapping table, account meta data (MappedTag) ....
         for{
-          cbsRemovedBankAccountId <- cbsRemovedBankAccountViewIds
-          bankId = BankId(cbsRemovedBankAccountId._1)
-          accountId = AccountId(cbsRemovedBankAccountId._2)
-          viewId = ViewId(cbsRemovedBankAccountId._3)
-        } yield{
-          Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId,accountId))
-          Views.views.vend.revokeAllAccountAccesses(bankId, accountId, user)
-          AccountHolders.accountHolders.vend.deleteAccountHolder(user,BankIdAccountId(bankId, accountId))
+          cbsRemovedBankAccountId <- cbsRemovedBankAccountIds
+          bankId = cbsRemovedBankAccountId.bankId
+          accountId = cbsRemovedBankAccountId.accountId
+          _ = Views.views.vend.revokeAllAccountAccesses(bankId, accountId, user)
+          _ = AccountHolders.accountHolders.vend.deleteAccountHolder(user,cbsRemovedBankAccountId)
+          cbsAccount = cbsAccounts.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
+          viewId <- cbsAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
+        } yield {
+          Views.views.vend.removeCustomView(ViewId(viewId), cbsRemovedBankAccountId)
         }
         
         //2st: create views/accountAccesses/accountHolders for the new coming accounts
         for {
-          bankAccountViewId <- csbNewBankAccountViewIds
-          viewId = bankAccountViewId._3  // for now, we support four views here: Owner, Accountant, Auditor, _Public, first three are system views, the last is custom view.
-          bankAccountUID = BankIdAccountId(BankId(bankAccountViewId._1), AccountId(bankAccountViewId._2))
-          view <- Views.views.vend.getOrCreateAccountView(bankAccountUID, viewId)//this method will return both system views and custom views back.
+          newBankAccountId <- csbNewBankAccountIds
+          _ = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,newBankAccountId)
+          bankId = newBankAccountId.bankId
+          accountId = newBankAccountId.accountId
+          newBankAccount = cbsAccounts.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
+          viewId <- newBankAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
+          view <- Views.views.vend.getOrCreateAccountView(newBankAccountId, viewId)//this method will return both system views and custom views back.
         } yield {
           if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
-            Views.views.vend.grantAccessToSystemView(view.bankId, view.accountId, view, user)
+            Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)
           else //otherwise, we will call `grantAccessToCustomView`
             Views.views.vend.grantAccessToCustomView(view.uid, user)
-          AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,bankAccountUID)
         }
-  
-        
-      } else{
-        
+      } else {
       }
   }
   /**

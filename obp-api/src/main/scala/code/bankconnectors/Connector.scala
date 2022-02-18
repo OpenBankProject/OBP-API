@@ -431,15 +431,22 @@ trait Connector extends MdcLoggable {
   def getBanks(callContext: Option[CallContext]): Future[Box[(List[Bank], Option[CallContext])]] = Future{(Failure(setUnimplementedError))}
 
   /**
-    *
-    * @param username username of the user.
-    * @return all the accounts, get from Main Frame.
-    */
+   * please see @getBankAccountsForUser
+   */
   def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]) : Box[(List[InboundAccount], Option[CallContext])] = Failure(setUnimplementedError)
 
   /**
-    *
+    * Get Accounts from cbs, this method is mainly used for onboarding Bank Customer to OBP.
+   *  If it is CBS connector: 
+   *   the input is the username + userAuthContext (we can get it from callContext),
+   *    userAuthContext can be CustomerNumber, AccountNumber, TelephoneNumber ..., any values which CBS need to identify a bank Customer
+   *  the output is the CBS accounts belong to the user:
+   *    So far the InboundAccount.BankId, InboundAccount.AccountId and InboundAccount.viewsToGenerate are mandatory, OBP need these to 
+   *    create view and grant the account access.
+   *  If it is Mapped connector:  
+   *    OBP will return all the accounts from accountHolder
     * @param username username of the user.
+    * @param callContext inside, should contains the proper values for CBS to identify a bank Customer 
     * @return all the accounts, get from Main Frame.
     */
   def getBankAccountsForUser(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{

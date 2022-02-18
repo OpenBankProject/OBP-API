@@ -2869,7 +2869,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
     if(user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
-      user.map(AuthUser.updateUserAccountViewsFuture(_, callContext))
+      user.map(AuthUser.refreshUserAccountAccesses(_, callContext))
     else
       None
   }

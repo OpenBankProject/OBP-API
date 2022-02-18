@@ -149,7 +149,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
 
       When("We try to make the GET request v3.1.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
-      val successGetReq = (v3_1_0_Request / "users" / userId.value / "auth-context").GET <@(user1)
+      val successGetReq = (v3_1_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
       val successGetRes = makeGetRequest(successGetReq)
       Then("We should get a 200")
       successGetRes.code should equal(200)

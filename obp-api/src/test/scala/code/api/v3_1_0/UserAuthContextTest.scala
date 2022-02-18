@@ -60,7 +60,7 @@ class UserAuthContextTest extends V310ServerSetup {
   feature("Add/Get/Delete User Auth Context v3.1.0") {
     scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context").POST
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").POST
       val response310 = makePostRequest(request310, write(postUserAuthContextJson))
       Then("We should get a 401")
       response310.code should equal(401)
@@ -69,7 +69,7 @@ class UserAuthContextTest extends V310ServerSetup {
     }
     scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context").POST <@(user1)
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
       val response310 = makePostRequest(request310, write(postUserAuthContextJson))
       Then("We should get a 403")
       response310.code should equal(403)
@@ -79,7 +79,7 @@ class UserAuthContextTest extends V310ServerSetup {
 
     scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context").GET
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
@@ -88,7 +88,7 @@ class UserAuthContextTest extends V310ServerSetup {
     }
     scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context").GET <@(user1)
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -98,7 +98,7 @@ class UserAuthContextTest extends V310ServerSetup {
 
     scenario("We will call the deleteUserAuthContexts endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context").DELETE
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").DELETE
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
@@ -107,7 +107,7 @@ class UserAuthContextTest extends V310ServerSetup {
     }
     scenario("We will call the deleteUserAuthContexts endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context").DELETE <@(user1)
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -117,7 +117,7 @@ class UserAuthContextTest extends V310ServerSetup {
 
     scenario("We will call the deleteUserAuthContextById endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context"/ "userAuthContextId").DELETE
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context"/ "userAuthContextId").DELETE
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
@@ -126,7 +126,7 @@ class UserAuthContextTest extends V310ServerSetup {
     }
     scenario("We will call the deleteUserAuthContextById endpoint without a proper role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId.value / "auth-context" / "userAuthContextId").DELETE <@(user1)
+      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context" / "userAuthContextId").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -137,14 +137,14 @@ class UserAuthContextTest extends V310ServerSetup {
     scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We try to create the UserAuthContext v3.1.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateUserAuthContext.toString)
-      val requestUserAuthContext310 = (v3_1_0_Request / "users" / userId.value / "auth-context").POST <@(user1)
+      val requestUserAuthContext310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
       val responseUserAuthContext310 = makePostRequest(requestUserAuthContext310, write(postUserAuthContextJson))
       Then("We should get a 201")
       responseUserAuthContext310.code should equal(201)
       val customerJson = responseUserAuthContext310.body.extract[UserAuthContextJson]
 
       When("We try to create the UserAuthContext v3.1.0")
-      val successReq = (v3_1_0_Request / "users" / userId.value / "auth-context").POST <@(user1)
+      val successReq = (v3_1_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
       val successRes = makePostRequest(successReq, write(postUserAuthContextJson2))
       Then("We should get a 201")
       successRes.code should equal(201)
@@ -152,24 +152,24 @@ class UserAuthContextTest extends V310ServerSetup {
 
       When("We try to make the GET request v3.1.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
-      val successGetReq = (v3_1_0_Request / "users" / userId.value / "auth-context").GET <@(user1)
+      val successGetReq = (v3_1_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
       val successGetRes = makeGetRequest(successGetReq)
       Then("We should get a 200")
       successGetRes.code should equal(200)
       val userAuthContexts = successGetRes.body.extract[UserAuthContextsJson]
-      userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId.value ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
 
       When("We try to make the DELETE request v3.1.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteUserAuthContext.toString)
       val existsUserAuthContextId = userAuthContexts.user_auth_contexts.head.user_auth_context_id
-      val successDeleteReq = (v3_1_0_Request / "users" / userId.value / "auth-context" / existsUserAuthContextId).DELETE <@(user1)
+      val successDeleteReq = (v3_1_0_Request / "users" / userId1.value / "auth-context" / existsUserAuthContextId).DELETE <@(user1)
       val successDeleteRes = makeDeleteRequest(successDeleteReq)
       Then("We should get a 200")
       successDeleteRes.code should equal(200)
 
       When("We try to make the DELETE request v3.1.0")
       makePostRequest(requestUserAuthContext310, write(postUserAuthContextJson)) // add a new UserAuthContext to do delete
-      val successDeleteUserAuthContextsReq = (v3_1_0_Request / "users" / userId.value / "auth-context").DELETE <@(user1)
+      val successDeleteUserAuthContextsReq = (v3_1_0_Request / "users" / userId1.value / "auth-context").DELETE <@(user1)
       val successDeleteUserAuthContextsRes = makeDeleteRequest(successDeleteUserAuthContextsReq)
       Then("We should get a 200")
       successDeleteUserAuthContextsRes.code should equal(200)
