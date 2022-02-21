@@ -93,7 +93,7 @@ object CreateTestAccountForm{
                                                                          "", List.empty)//added field in V220
                                                                         
       } yield {
-        BankAccountCreation.setAccountHolderAndRefreshAccountAccesses(bankId, accountId, user, None)
+        BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, user, None)
         bankAccount
       }
     }

@@ -38,7 +38,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
     scenario("we fake the output from getBankAccounts(), and check the functions there") {
 
       When("We call the method use resourceUser1")
-      val result = Await.result(AuthUser.refreshUserAccountAccesses(resourceUser1, None), Duration.Inf)
+      val result = Await.result(AuthUser.refreshUserAccountAccess(resourceUser1, None), Duration.Inf)
 
       Then("We check the accountHolders")
       var accountholder1 = MapperAccountHolders.getAccountHolders(bankIdAccountId.bankId, bankIdAccountId.accountId)

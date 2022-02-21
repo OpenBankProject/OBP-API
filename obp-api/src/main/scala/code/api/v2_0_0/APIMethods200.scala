@@ -1134,7 +1134,7 @@ trait APIMethods200 {
               List.empty
             )
           } yield {
-            BankAccountCreation.setAccountHolderAndRefreshAccountAccesses(bankId, accountId, postedOrLoggedInUser, Some(cc))
+            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, Some(cc))
 
             val dataContext = DataContext(cc.user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
             val links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
@@ -1899,7 +1899,7 @@ trait APIMethods200 {
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
             _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(user.name)
-            _ <- Full(AuthUser.refreshUserAccountAccesses(user, callContext))
+            _ <- Full(AuthUser.refreshUserAccountAccess(user, callContext))
             
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))

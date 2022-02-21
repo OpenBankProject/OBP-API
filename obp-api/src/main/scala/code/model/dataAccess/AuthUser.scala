@@ -1136,7 +1136,7 @@ def restoreSomeSessions(): Unit = {
       for {
        u <- Users.users.vend.getUserByUserName(username)
       } yield {
-        refreshUserAccountAccesses(u, None)
+        refreshUserAccountAccess(u, None)
       }
     }
   }
@@ -1259,12 +1259,12 @@ def restoreSomeSessions(): Unit = {
    *  1st: we will get all the accounts from CBS side.
    *  2rd: we will create the account Holder, view and account accesses.
    */
-  def refreshUserAccountAccesses(user: User, callContext: Option[CallContext]) = {
+  def refreshUserAccountAccess(user: User, callContext: Option[CallContext]) = {
     for{
       (accounts, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
-      _ = logger.debug(s"-->AuthUser.refreshUserAccountAccesses.accounts : ${accounts}")
+      _ = logger.debug(s"-->AuthUser.refreshUserAccountAccess.accounts : ${accounts}")
     }yield {
       updateUserAccountViews(user, accounts)
       UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
