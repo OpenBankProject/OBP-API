@@ -1,6 +1,6 @@
 package code.setup
 
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import code.api.{Constant, GatewayLogin}
 import code.api.util.APIUtil
@@ -12,6 +12,8 @@ import code.model.{AppType, UserX}
 import code.token.Tokens
 import net.liftweb.util.Helpers._
 import net.liftweb.util.TimeHelpers.TimeSpan
+
+import scala.compat.Platform
 
 /**
   * This trait prepare the login users, it simulate the Direct Login,
@@ -60,8 +62,8 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some(TimeSpan(tokenDuration + now.getTime)),
-    Some(now),
+    Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+    Some(new Date(System.currentTimeMillis())),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
@@ -72,8 +74,8 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some(TimeSpan(tokenDuration + now.getTime)),
-    Some(now),
+    Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+    Some(new Date(System.currentTimeMillis())),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
@@ -83,8 +85,8 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some(TimeSpan(tokenDuration + now.getTime)),
-    Some(now),
+    Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+    Some(new Date(System.currentTimeMillis())),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
 
@@ -94,8 +96,8 @@ trait DefaultUsers {
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
     Some(tokenDuration),
-    Some(TimeSpan(tokenDuration + now.getTime)),
-    Some(now),
+    Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+    Some(new Date(System.currentTimeMillis())),
     None
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   

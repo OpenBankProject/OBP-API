@@ -837,14 +837,14 @@ object Glossary extends MdcLoggable  {
 			|	Content-Type:  application/json
 			|
 			|
-			|    Authorization: DirectLogin username="janeburel",
-			|                    password="the-password-of-jane",
-			|                    consumer_key="your-consumer-key-from-step-one"
+			|    DirectLogin: username=janeburel,
+			|                 password=the-password-of-jane,
+			|                 consumer_key=your-consumer-key-from-step-one
 			|
 			|Here is it all together:
 			|
 			|	POST $getServerUrl/my/logins/direct HTTP/1.1
-			|	Authorization: DirectLogin username="janeburel",   password="686876",  consumer_key="GET-YOUR-OWN-API-KEY-FROM-THE-OBP"
+			|	DirectLogin: username=janeburel, password=686876, consumer_key=GET-YOUR-OWN-API-KEY-FROM-THE-OBP
 			|	Content-Type: application/json
 			|	Host: 127.0.0.1:8080
 			|	Connection: close
@@ -877,12 +877,12 @@ object Glossary extends MdcLoggable  {
 			|
 			|	Content-Type:  application/json
 			|
-			|	Authorization: DirectLogin token="your-token-from-step-2"
+			|	DirectLogin: token=your-token-from-step-2
 			|
 			|Here is another example:
 			|
 			|	PUT $getObpApiRoot/v2.0.0/banks/enbd-egy--p3/accounts/newaccount1 HTTP/1.1
-			|	Authorization: DirectLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyIiOiIifQ.C8hJZNPDI59OOu78pYs4BWp0YY_21C6r4A9VbgfZLMA"
+			|	DirectLogin: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyIiOiIifQ.C8hJZNPDI59OOu78pYs4BWp0YY_21C6r4A9VbgfZLMA
 			|	Content-Type: application/json
 			|	Cookie: JSESSIONID=7h1ssu6d7j151u08p37a6tsx1
 			|	Host: 127.0.0.1:8080

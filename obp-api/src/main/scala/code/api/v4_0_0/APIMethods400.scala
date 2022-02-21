@@ -8130,6 +8130,180 @@ trait APIMethods400 {
           }
       }
     }
+
+    staticResourceDocs += ResourceDoc(
+      getCurrentUserAttributes,
+      implementedInApiVersion,
+      nameOf(getCurrentUserAttributes),
+      "GET",
+      "/my/user/attributes",
+      "Get User Attributes for current user",
+      s"""Get User Attributes for current user.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      userAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle)
+    )
+
+    lazy val getCurrentUserAttributes: OBPEndpoint = {
+      case "my" ::  "user" :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+          } yield {
+            (JSONFactory400.createUserAttributesJson(attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+    staticResourceDocs += ResourceDoc(
+      getUserWithAttributes,
+      implementedInApiVersion,
+      nameOf(getUserWithAttributes),
+      "GET",
+      "/users/USER_ID/attributes",
+      "Get User Attributes for the user",
+      s"""Get User Attributes for the user defined via USER_ID.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      userAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(canGetUsersWithAttributes :: Nil)
+    )
+
+    lazy val getUserWithAttributes: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(userId, callContext)
+          } yield {
+            (JSONFactory400.createUserWithAttributesJson(user, attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      createCurrentUserAttribute,
+      implementedInApiVersion,
+      nameOf(createCurrentUserAttribute),
+      "POST",
+      "/my/user/attributes",
+      "Create User Attribute for current user",
+      s""" Create User Attribute for current user
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      userAttributeJsonV400,
+      userAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List()))
+
+    lazy val createCurrentUserAttribute : OBPEndpoint = {
+      case "my" ::  "user" :: "attributes" :: Nil JsonPost json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
+          for {
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              json.extract[TransactionAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              cc.userId,
+              None,
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateCurrentUserAttribute,
+      implementedInApiVersion,
+      nameOf(updateCurrentUserAttribute),
+      "PUT",
+      "/my/user/attributes/USER_ATTRIBUTE_ID",
+      "Update User Attribute for current user",
+      s"""Update User Attribute for current user by USER_ATTRIBUTE_ID
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      userAttributeJsonV400,
+      userAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List()))
+
+    lazy val updateCurrentUserAttribute : OBPEndpoint = {
+      case "my" ::  "user" :: "attributes" :: userAttributeId :: Nil JsonPut json -> _=> {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
+          for {
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+            failMsg = s"$UserAttributeNotFound"
+            _ <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              attributes.exists(_.userAttributeId == userAttributeId)
+            }
+            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              json.extract[TransactionAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              cc.userId,
+              Some(userAttributeId),
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
     
 
     staticResourceDocs += ResourceDoc(

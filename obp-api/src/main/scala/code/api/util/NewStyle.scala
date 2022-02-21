@@ -36,7 +36,7 @@ import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.model.dataAccess.{AuthUser, BankAccountRouting}
 import code.standingorders.StandingOrderTrait
 import code.usercustomerlinks.UserCustomerLink
-import code.users.{UserAgreement, UserAgreementProvider, UserInvitation, UserInvitationProvider, Users}
+import code.users.{UserAgreement, UserAgreementProvider, UserAttribute, UserInvitation, UserInvitationProvider, Users}
 import code.util.Helper
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import code.views.Views
@@ -975,11 +975,20 @@ object NewStyle extends MdcLoggable{
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
       Helper.booleanToFuture(failMsg, cc=callContext) {
         APIUtil.hasAtLeastOneEntitlement(bankId, userId, roles)
+      } map validateRequestPayload(callContext) 
+    
+    def handleEntitlementsAndScopes(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =
+      Helper.booleanToFuture(failMsg, cc=callContext) {
+        APIUtil.handleEntitlementsAndScopes(bankId, userId, APIUtil.getConsumerPrimaryKey(callContext),roles)
       } map validateRequestPayload(callContext)
 
     def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
       val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
       hasAtLeastOneEntitlement(errorMessage)(bankId, userId, roles, callContext)
+    }
+    def handleEntitlementsAndScopes(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] = {
+      val errorMessage = if (roles.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + roles.mkString(" or ") else UserHasMissingRoles + roles.mkString(" or ") + s" for BankId($bankId)."
+      handleEntitlementsAndScopes(errorMessage)(bankId, userId, roles, callContext)
     }
 
     def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Box[Unit] = {
@@ -1618,6 +1627,33 @@ object NewStyle extends MdcLoggable{
         transactionAttributeId: Option[String],
         name: String,
         attributeType: TransactionAttributeType.Value,
+        value: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
+    def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
+      Connector.connector.vend.getUserAttributes(
+        userId: String, callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    def createOrUpdateUserAttribute(
+      userId: String,
+      userAttributeId: Option[String],
+      name: String,
+      attributeType: UserAttributeType.Value,
+      value: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[UserAttribute] = {
+      Connector.connector.vend.createOrUpdateUserAttribute(
+        userId: String,
+        userAttributeId: Option[String],
+        name: String,
+        attributeType: UserAttributeType.Value,
         value: String,
         callContext: Option[CallContext]
       ) map {

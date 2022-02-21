@@ -3,6 +3,8 @@
 
 # See notes about WebUI Props below
 
+# Do NOT use trailing or leading spaces in your values.
+
 
 ### OBP-API configuration
 
@@ -421,7 +423,8 @@ webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SD
 
 # the external html page for the sdks. the default link is the obp one. Please following the div to modify it. This link should be anonymous access.
 # then OBP-API can show the content to the HomePage `SDK Showcases`. Please check it over the sandbox homepage first.
-#webui_featured_sdks_external_link = https://static.openbankproject.com/obp/sdks.html   
+# Example value: https://static.openbankproject.com/obp/sdks.html
+#webui_featured_sdks_external_link = /sdks.html
 
 
 # the external html page for the FAQ section. the default link is the obp one. Please following the div to modify it. This link should be anonymous access.
@@ -826,6 +829,7 @@ featured_apis=elasticSearchWarehouseV300
 # In case isn't defined default value is "false"
 # require_scopes_for_all_roles=false
 # require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
+# allow_entitlements_or_scopes=false
 # ---------------------------------------------------------------
 
 # -- Database scheduler -----------------------------
@@ -947,6 +951,10 @@ dynamic_endpoints_url_prefix=dynamic
 # You can also explicitly refresh the user using the refresh user endpoint.
 # refresh_user.interval=30
 # --------------------------------------------------------------------
+
+# Enables actions during log on a user at Sofit application
+# The actions are typically: Create bank, incoming and outgoing account, assign entitlement etc.
+sofit.logon_init_action.enabled=false
 
 ## Inbound and Outbound ignore field names, case class name can be prefix.
 inbound.optional.fields=\
