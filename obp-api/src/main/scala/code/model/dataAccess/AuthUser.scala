@@ -1136,7 +1136,7 @@ def restoreSomeSessions(): Unit = {
       for {
        u <- Users.users.vend.getUserByUserName(username)
       } yield {
-        refreshUserAccountAccess(u, None)
+        refreshUser(u, None)
       }
     }
   }
@@ -1255,19 +1255,18 @@ def restoreSomeSessions(): Unit = {
   }
   
   /**
-   * In this method is used for onboarding bank customer to OBP.
-   *  1st: we will get all the accounts from CBS side.
+   * This method is used for onboarding bank customer to OBP.
+   *  1st: we will get all the accountsHeld from CBS side.
    *  2rd: we will create the account Holder, view and account accesses.
    */
-  def refreshUserAccountAccess(user: User, callContext: Option[CallContext]) = {
+  def refreshUser(user: User, callContext: Option[CallContext]) = {
     for{
-      (accounts, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
+      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
-      _ = logger.debug(s"-->AuthUser.refreshUserAccountAccess.accounts : ${accounts}")
+      _ = logger.debug(s"-->AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
     }yield {
-      updateUserAccountViews(user, accounts)
-      UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+      refreshViewsAccountAccessAndHolders(user, accountsHeld)
     }
   }
 
@@ -1277,18 +1276,18 @@ def restoreSomeSessions(): Unit = {
     * This method can only be used by the original user(account holder).
    *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far. 
     */
-    def updateUserAccountViews(user: User, cbsAccounts: List[InboundAccount]): Unit = {
+    def refreshViewsAccountAccessAndHolders(user: User, accountsHeld: List[InboundAccount]): Unit = {
       if(user.isOriginalUser){
         //first, we compare the accounts in obp  and the accounts in cbs,   
-        val (_, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccess(user)
-        val obpAccountAccessBankAccountIds = privateAccountAccesses.map(accountAccesses =>BankIdAccountId(BankId(accountAccesses.bank_id.get), AccountId(accountAccesses.account_id.get))).toSet
+        val (_, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
+        val obpAccountAccessBankAccountIds = privateAccountAccess.map(accountAccess =>BankIdAccountId(BankId(accountAccess.bank_id.get), AccountId(accountAccess.account_id.get))).toSet
         val userOwnBankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
 
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
         val obpBankAccountIds = obpAccountAccessBankAccountIds.filter(bankAccountId => userOwnBankAccountIds.contains(bankAccountId)).toSet
         
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
-        val cbsBankAccountIds = cbsAccounts.map(account =>BankIdAccountId(BankId(account.bankId),AccountId(account.accountId))).toSet
+        val cbsBankAccountIds = accountsHeld.map(account =>BankIdAccountId(BankId(account.bankId),AccountId(account.accountId))).toSet
         
         //cbs removed this accounts, but OBP still contains the data for them, so we need to clean data in OBP side.
         val cbsRemovedBankAccountIds = obpBankAccountIds diff cbsBankAccountIds
@@ -1296,8 +1295,8 @@ def restoreSomeSessions(): Unit = {
         //cbs has new accounts which are not in obp yet, we need to create new data for these accounts.
         val csbNewBankAccountIds = cbsBankAccountIds diff obpBankAccountIds
 
-        logger.debug("updateUserAccountViews.cbsRemovedBankAccountIds-------"+cbsRemovedBankAccountIds)
-        logger.debug("updateUserAccountViews.csbNewBankAccountIds-------" + csbNewBankAccountIds)
+        logger.debug("refreshViewsAccountAccessAndHolders.cbsRemovedBankAccountIds-------"+cbsRemovedBankAccountIds)
+        logger.debug("refreshViewsAccountAccessAndHolders.csbNewBankAccountIds-------" + csbNewBankAccountIds)
         //1rd remove the deprecated accounts
         //TODO. need to double check if we need to clean accountidmapping table, account meta data (MappedTag) ....
         for{
@@ -1306,7 +1305,7 @@ def restoreSomeSessions(): Unit = {
           accountId = cbsRemovedBankAccountId.accountId
           _ = Views.views.vend.revokeAllAccountAccesses(bankId, accountId, user)
           _ = AccountHolders.accountHolders.vend.deleteAccountHolder(user,cbsRemovedBankAccountId)
-          cbsAccount = cbsAccounts.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
+          cbsAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- cbsAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
         } yield {
           Views.views.vend.removeCustomView(ViewId(viewId), cbsRemovedBankAccountId)
@@ -1318,7 +1317,7 @@ def restoreSomeSessions(): Unit = {
           _ = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,newBankAccountId)
           bankId = newBankAccountId.bankId
           accountId = newBankAccountId.accountId
-          newBankAccount = cbsAccounts.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
+          newBankAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- newBankAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
           view <- Views.views.vend.getOrCreateAccountView(newBankAccountId, viewId)//this method will return both system views and custom views back.
         } yield {
@@ -1327,6 +1326,8 @@ def restoreSomeSessions(): Unit = {
           else //otherwise, we will call `grantAccessToCustomView`
             Views.views.vend.grantAccessToCustomView(view.uid, user)
         }
+
+        UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
       } else {
       }
   }

@@ -1022,7 +1022,7 @@ object NewStyle extends MdcLoggable{
           //We will call the `refreshUserAccountAccess` after we successfully create the UserAuthContext
           // because `createUserAuthContext` is a connector method, here is the entry point for OBP to refreshUserAccountAccess
           if(callContext.isDefined && callContext.get.user.isDefined) {
-            AuthUser.refreshUserAccountAccess(callContext.get.user.head, callContext)
+            AuthUser.refreshUser(callContext.get.user.head, callContext)
           } else {
             logger.info(s"AuthUser.refreshUserAccountAccess can not be run properly. The user is missing in the current callContext.")   
           }

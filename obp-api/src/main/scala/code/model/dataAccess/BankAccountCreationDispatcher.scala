@@ -91,7 +91,7 @@ package code.model.dataAccess {
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
       
       // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
-      AuthUser.refreshUserAccountAccess(user, callContext)
+      AuthUser.refreshUser(user, callContext)
     }
     
     private def addPermissionToSystemOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
