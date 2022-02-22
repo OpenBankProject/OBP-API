@@ -1622,12 +1622,6 @@ object NewStyle {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-
-    def correlatedUser(correlatedUserId: String, loggedInUserId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
-      // TODO 1) Get or Create a Customer and then create a user_customer_link from that Customer to the currently logged in User
-      // TODO 2) Get or Create an additional User Customer Link for the Customer.customer_id from step 1) and User.user_id = correlated_user_id from step 
-      Future(true, callContext)
-    }
     
     def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
       Connector.connector.vend.getUserAttributes(
