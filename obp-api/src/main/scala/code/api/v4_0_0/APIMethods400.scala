@@ -7259,6 +7259,74 @@ trait APIMethods400 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      createCustomer,
+      implementedInApiVersion,
+      nameOf(createCustomer),
+      "POST",
+      "/banks/BANK_ID/customers",
+      "Create Customer",
+      s"""
+         |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+         |Dates need to be in the format 2013-01-21T23:08:00Z
+         |
+         |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""",
+      postCustomerJsonV310,
+      customerJsonV310,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        CustomerAlreadyExistsForUser,
+        CreateConsumerError,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
+      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank))
+    )
+    lazy val createCustomer : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV310 ", 400, cc.callContext) {
+              json.extract[PostCustomerJsonV310]
+            }
+            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length }) of dob_of_dependants array", 400, cc.callContext) {
+              postedData.dependants == postedData.dob_of_dependants.length
+            }
+            (customer, callContext) <- NewStyle.function.createCustomer(
+              bankId,
+              postedData.legal_name,
+              postedData.mobile_phone_number,
+              postedData.email,
+              CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              postedData.date_of_birth,
+              postedData.relationship_status,
+              postedData.dependants,
+              postedData.dob_of_dependants,
+              postedData.highest_education_attained,
+              postedData.employment_status,
+              postedData.kyc_status,
+              postedData.last_ok_date,
+              Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
+              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
+              postedData.title,
+              postedData.branch_id,
+              postedData.name_suffix,
+              cc.callContext,
+            )
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       deleteTransactionCascade,
       implementedInApiVersion,
