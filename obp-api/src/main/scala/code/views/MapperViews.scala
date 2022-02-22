@@ -545,8 +545,10 @@ object MapperViews extends Views with MdcLoggable {
         getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else if (auditorsView)
         getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
-      else 
+      else {
+        logger.error(ViewIdNotSupported+ s"Your input viewId is :$viewId")
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
+      }
     
     logger.debug(s"-->getOrCreateAccountView.${viewId } : ${theView} ")
     

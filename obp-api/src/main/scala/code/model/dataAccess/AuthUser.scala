@@ -1303,11 +1303,12 @@ def restoreSomeSessions(): Unit = {
           cbsRemovedBankAccountId <- cbsRemovedBankAccountIds
           bankId = cbsRemovedBankAccountId.bankId
           accountId = cbsRemovedBankAccountId.accountId
-          _ = Views.views.vend.revokeAllAccountAccesses(bankId, accountId, user)
+          _ = Views.views.vend.revokeAccountAccessesByUser(bankId, accountId, user)
           _ = AccountHolders.accountHolders.vend.deleteAccountHolder(user,cbsRemovedBankAccountId)
           cbsAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- cbsAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
         } yield {
+          UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
           Views.views.vend.removeCustomView(ViewId(viewId), cbsRemovedBankAccountId)
         }
         
@@ -1321,13 +1322,14 @@ def restoreSomeSessions(): Unit = {
           viewId <- newBankAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
           view <- Views.views.vend.getOrCreateAccountView(newBankAccountId, viewId)//this method will return both system views and custom views back.
         } yield {
+          UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
           if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
             Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)
           else //otherwise, we will call `grantAccessToCustomView`
             Views.views.vend.grantAccessToCustomView(view.uid, user)
         }
 
-        UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+        
       } else {
       }
   }
