@@ -4,7 +4,6 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateUserCustomerLink, CanDeleteUserCustomerLink, CanGetUserCustomerLink}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.UserCustomerLinksJson
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
@@ -26,14 +25,12 @@ class UserCustomerLinkTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getUserCustomerLinksByUserId))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.deleteUserCustomerLink))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getUserCustomerLinksByCustomerId))
-  
-  object VersionOfApi2 extends Tag(ApiVersion.v2_0_0.toString)
-  object ApiEndpoint4 extends Tag(nameOf(Implementations2_0_0.createUserCustomerLinks))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.createUserCustomerLinks))
 
   lazy val bankId = randomBankId
   lazy val firstUserId = resourceUser1.userId
-  
-  
+
+
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -57,7 +54,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       errorMessage contains (CanGetUserCustomerLink.toString()) should be (true)
     }
   }
-  
+
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
     lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -82,7 +79,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       errorMessage contains (CanGetUserCustomerLink.toString()) should be (true)
     }
   }
-  
+
 
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
@@ -107,11 +104,39 @@ class UserCustomerLinkTest extends V400ServerSetup {
     }
   }
 
+
+  feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+      lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
+        .copy(user_id = firstUserId, customer_id = customerId)
+      When("We make a request v4.0.0")
+      val createRequest = (v4_0_0_Request / "banks" / bankId / "user_customer_links" ).POST
+      val createResponse = makePostRequest(createRequest, write(postJson))
+      Then("We should get a 401")
+      createResponse.code should equal(401)
+      createResponse.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+  }
+  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+      lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
+        .copy(user_id = firstUserId, customer_id = customerId)
+      When("We make a request v4.0.0")
+      val createRequest = (v4_0_0_Request / "banks" / bankId / "user_customer_links" ).POST <@(user1)
+      val createResponse = makePostRequest(createRequest, write(postJson))
+      Then("We should get a 403")
+      createResponse.code should equal(403)
+      val errorMessage = createResponse.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+    }
+  }
   feature(s"test $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint4 version $VersionOfApi - All good") {
     lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
     lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
       .copy(user_id = firstUserId, customer_id = customerId)
-    
+
     scenario("We will call the endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint4, VersionOfApi) {
 
       // 1st Get User Customer Link
@@ -122,7 +147,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       getResponse.code should equal(200)
       val initialSize = getResponse.body.extract[UserCustomerLinksJson]
         .user_customer_links.size
-      
+
       // Create User Customer Link
       Entitlement.entitlement.vend.addEntitlement(bankId, firstUserId, CanCreateUserCustomerLink.toString())
       val createRequest = (v4_0_0_Request / "banks" / bankId / "user_customer_links" ).POST <@(user1)
@@ -140,15 +165,15 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val deleteResponse = makeDeleteRequest(deleteRequest)
       Then("We should get a 200")
       deleteResponse.code should equal(200)
-      
+
       // 2nd Delete User Customer Link call should fail due to already deleted row in a table
       makeDeleteRequest(deleteRequest).code should equal(400)
 
       // 3rd Get User Customer Link
       makeGetRequest(getRequest).body.extract[UserCustomerLinksJson]
         .user_customer_links.size should equal(initialSize)
-      
+
     }
   }
-  
+
 }

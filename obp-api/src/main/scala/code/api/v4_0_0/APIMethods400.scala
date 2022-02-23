@@ -7251,7 +7251,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagUser),
-      Some(List(canCreateUserCustomerLink,canCreateUserCustomerLinkAtAnyBank)))
+      Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)))
 
     lazy val createUserCustomerLinks : OBPEndpoint = {
       case "banks" :: BankId(bankId):: "user_customer_links" :: Nil JsonPost json -> _ => {
