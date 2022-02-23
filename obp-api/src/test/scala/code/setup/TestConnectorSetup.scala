@@ -52,7 +52,7 @@ trait TestConnectorSetup {
   }
   
   /**
-    * This method will create lots of account relevant resources: accounts, views, accountAccesses, accountHolders
+    * This method will create lots of account relevant resources: accounts, views, accountAccess, accountHolders
     * 1st: this will create some accounts,
     * 2rd: for each account, it will create 3 custom views: ownerView, PublicView and RandomView.
     *      and plus systemViews: owner, auditor, accountant.(created in boot, please check `create_system_views_at_boot` props.)

@@ -532,8 +532,8 @@ object NewStyle extends MdcLoggable{
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
-    def revokeAllAccountAccesses(account: BankAccount, u: User, provider : String, providerId: String) = Future {
-      account.revokeAllAccountAccesses(u, provider, providerId)
+    def revokeAllAccountAccess(account: BankAccount, u: User, provider : String, providerId: String) = Future {
+      account.revokeAllAccountAccess(u, provider, providerId)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     

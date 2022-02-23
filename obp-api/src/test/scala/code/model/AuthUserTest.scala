@@ -183,9 +183,9 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount2.toString().contains("auditor") should equal(true)
       allViews.length should equal(5) // 3 system views + 2 custom views
 
-      Then("We check the AccountAccesses")
-      val numberOfAccountAccesses = AccountAccess.findAll().length
-      numberOfAccountAccesses should equal(8) 
+      Then("We check the AccountAccess")
+      val numberOfAccountAccess = AccountAccess.findAll().length
+      numberOfAccountAccess should equal(8) 
 
     }
   }
@@ -204,7 +204,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List())
       allViewsForAccount2.map(_.viewId.value) should equal(List())
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(0)
       account2Access.length should equal(0)
 
@@ -222,7 +222,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(1)
       account2Access.length should equal(0)
 
@@ -241,7 +241,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(0)
       account2Access.length should equal(0)
 
@@ -263,7 +263,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List())
       allViewsForAccount2.map(_.viewId.value) should equal(List())
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(0)
       account2Access.length should equal(0)
 
@@ -281,7 +281,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(1)
       account2Access.length should equal(0)
 
@@ -299,7 +299,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(1)
       account2Access.length should equal(1)
 
@@ -318,7 +318,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(0)
       account2Access.length should equal(1)
 
@@ -336,7 +336,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(0)
       account2Access.length should equal(0)
 
@@ -358,7 +358,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List())
       allViewsForAccount2.map(_.viewId.value) should equal(List())
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(0)
       account2Access.length should equal(0)
 
@@ -376,7 +376,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(1)
       account2Access.length should equal(0)
       account1AccessUser2.length should equal(0)
@@ -397,7 +397,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(1)
       account2Access.length should equal(0)
       account1AccessUser2.length should equal(1)
@@ -417,7 +417,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
-      Then("We check the AccountAccesses")
+      Then("We check the AccountAccess")
       account1Access.length should equal(0)
       account2Access.length should equal(0)
       account1AccessUser2.length should equal(1)

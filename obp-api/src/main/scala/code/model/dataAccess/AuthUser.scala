@@ -1272,7 +1272,7 @@ def restoreSomeSessions(): Unit = {
 
   /**
     * This is a helper method
-    * create/update/delete the views, accountAccesses, accountHolders for OBP get accounts from CBS side.
+    * create/update/delete the views, accountAccess, accountHolders for OBP get accounts from CBS side.
     * This method can only be used by the original user(account holder).
    *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far. 
     */
@@ -1303,7 +1303,7 @@ def restoreSomeSessions(): Unit = {
           cbsRemovedBankAccountId <- cbsRemovedBankAccountIds
           bankId = cbsRemovedBankAccountId.bankId
           accountId = cbsRemovedBankAccountId.accountId
-          _ = Views.views.vend.revokeAccountAccessesByUser(bankId, accountId, user)
+          _ = Views.views.vend.revokeAccountAccessByUser(bankId, accountId, user)
           _ = AccountHolders.accountHolders.vend.deleteAccountHolder(user,cbsRemovedBankAccountId)
           cbsAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- cbsAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
@@ -1312,7 +1312,7 @@ def restoreSomeSessions(): Unit = {
           Views.views.vend.removeCustomView(ViewId(viewId), cbsRemovedBankAccountId)
         }
         
-        //2st: create views/accountAccesses/accountHolders for the new coming accounts
+        //2st: create views/accountAccess/accountHolders for the new coming accounts
         for {
           newBankAccountId <- csbNewBankAccountIds
           _ = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,newBankAccountId)
