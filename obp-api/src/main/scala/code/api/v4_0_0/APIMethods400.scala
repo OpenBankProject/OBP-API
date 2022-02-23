@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
+
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -24,7 +25,7 @@ import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
-import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200}
+import code.api.v2_0_0.{CreateEntitlementJSON, CreateUserCustomerLinkJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
@@ -56,9 +57,10 @@ import code.transactionrequests.MappedTransactionRequestProvider
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
+import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper.booleanToFuture
+import code.util.Helper.{booleanToBox, booleanToFuture}
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
@@ -7222,6 +7224,69 @@ trait APIMethods400 {
           }
       }
     }
+    
+    staticResourceDocs += ResourceDoc(
+      createUserCustomerLinks,
+      implementedInApiVersion,
+      "createUserCustomerLinks",
+      "POST",
+      "/banks/BANK_ID/user_customer_links",
+      "Create User Customer Link",
+      s"""Link a User to a Customer
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      createUserCustomerLinkJson,
+      userCustomerLinkJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        CustomerAlreadyExistsForUser,
+        CreateUserCustomerLinksError,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser),
+      Some(List(canCreateUserCustomerLink,canCreateUserCustomerLinkAtAnyBank)))
+
+    lazy val createUserCustomerLinks : OBPEndpoint = {
+      case "banks" :: BankId(bankId):: "user_customer_links" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            _ <- NewStyle.function.tryons(s"$InvalidBankIdFormat", 400, cc.callContext) {
+              assert(isValidID(bankId.value))
+            }
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateUserCustomerLinkJson ", 400, cc.callContext) {
+              json.extract[CreateUserCustomerLinkJson]
+            }
+            user <- Users.users.vend.getUserByUserIdFuture(postedData.user_id) map {
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+            }
+            _ <- booleanToFuture("Field customer_id is not defined in the posted json!", 400, cc.callContext) {
+              postedData.customer_id.nonEmpty
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, cc.callContext)
+            _ <- booleanToFuture(s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bankId.value}) in URL", 400, callContext) {
+              customer.bankId == bankId.value
+            }
+            _ <- booleanToFuture(CustomerAlreadyExistsForUser, 400, callContext) {
+              UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true
+            }
+            userCustomerLink <- Future {
+              UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true)
+            } map {
+              x => unboxFullOrFail(x, callContext, CreateUserCustomerLinksError, 400)
+            }
+          } yield {
+            (code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       getUserCustomerLinksByCustomerId,
