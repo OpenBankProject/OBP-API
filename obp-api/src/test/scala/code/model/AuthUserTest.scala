@@ -18,7 +18,8 @@ import scala.concurrent.duration.Duration
 /**
   * Created by zhanghongwei on 17/07/2017.
   */
-class AuthUserTest extends ServerSetup with DefaultUsers {
+class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
+  
   
   override def beforeAll() = {
     super.beforeAll()
@@ -49,6 +50,18 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
   
   def account2Access = AccountAccess.findAll(
     By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
+    By(AccountAccess.bank_id, bankIdAccountId2.bankId.value),
+    By(AccountAccess.account_id, bankIdAccountId2.accountId.value),
+  )
+  
+  def account1AccessUser2 = AccountAccess.findAll(
+    By(AccountAccess.user_fk, resourceUser2.userPrimaryKey.value),
+    By(AccountAccess.bank_id, bankIdAccountId1.bankId.value),
+    By(AccountAccess.account_id, bankIdAccountId1.accountId.value),
+  )
+  
+  def account2AccessUser2 = AccountAccess.findAll(
+    By(AccountAccess.user_fk, resourceUser2.userPrimaryKey.value),
     By(AccountAccess.bank_id, bankIdAccountId2.bankId.value),
     By(AccountAccess.account_id, bankIdAccountId2.accountId.value),
   )
@@ -179,15 +192,15 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
   
   feature("Test the refreshViewsAccountAccessAndHolders method") {
     scenario("Test one account views,account access and account holder") {
-
-      When("1rd Step: no accounts in the List")
+      
+      When("1st Step: no accounts in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
 
       Then("We check the accountHolders")
       accountholder1.size should be(0)
       accountholder2.size should be(0)
 
-      Then("We check the views, only support the system views")
+      Then("There is not system views at all in the ViewDefinition table, so both should be Empty")
       allViewsForAccount1.map(_.viewId.value) should equal(List())
       allViewsForAccount2.map(_.viewId.value) should equal(List())
 
@@ -206,7 +219,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system view. both accounts should have the `owner` view.")
-      allViewsForAccount1.map(_.viewId.value) should equal(List("owner")) //TODO. check this, only one account in the list, why two `owner` here.
+      allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
       Then("We check the AccountAccesses")
@@ -216,8 +229,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
 
-      //3rd: we remove the accounts 
-      Then("we delete the account")
+      Then("3rd: we remove the accounts ")
       val accountsHeld = List()
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeld)
 
@@ -238,12 +250,27 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
 
     }
     
-    
-    
     scenario("Test two accounts views,account access and account holder") {
 
-      //1st block, we prepare one account
-      When("first we have 1st new account in the accountsHeld")
+      When("1rd Step: no accounts in the List")
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+
+      Then("We check the accountHolders")
+      accountholder1.size should be(0)
+      accountholder2.size should be(0)
+
+      Then("There is not system views at all in the ViewDefinition table, so both should be Empty")
+      allViewsForAccount1.map(_.viewId.value) should equal(List())
+      allViewsForAccount2.map(_.viewId.value) should equal(List())
+
+      Then("We check the AccountAccesses")
+      account1Access.length should equal(0)
+      account2Access.length should equal(0)
+
+      Then("We check the MappedUserRefreshes table")
+      MappedUserRefreshes.findAll().length should be (0)
+      
+      When("2rd block, we prepare one account")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held)
 
       Then("We check the accountHolders")
@@ -261,8 +288,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
 
-      //2rd block, we prepare second account
-      Then("first we have two accounts in the accountsHeld")
+      Then("3rd:  we have two accounts in the accountsHeld")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, twoAccountsHeld)
 
       Then("We check the accountHolders")
@@ -281,28 +307,25 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
       MappedUserRefreshes.findAll().length should be (1)
         
 
-      //3rd block, we removed the 2rd account, only have 1st account there.
-      When("we delete 2rd account, only have 1st account in the accountsHeld")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held)
+      When("4th, we removed the 1rd account, only have 2rd account there.")
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account2Held)
 
       Then("We check the accountHolders")
-      accountholder1.size should be(1)
-      accountholder2.size should be(0)
+      accountholder1.size should be(0)
+      accountholder2.size should be(1)
 
       Then("We check the views, only support the system views")
       allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
       allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
 
       Then("We check the AccountAccesses")
-      account1Access.length should equal(1)
-      account2Access.length should equal(0)
+      account1Access.length should equal(0)
+      account2Access.length should equal(1)
 
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
       
-
-      //4th, we do not have any accounts 
-      When("we delete all accounts, no account in the accountsHeld")
+      When("5th, we do not have any accounts ")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
 
       Then("We check the accountHolders")
@@ -319,6 +342,89 @@ class AuthUserTest extends ServerSetup with DefaultUsers {
 
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
+
+    }
+
+    scenario("Test two users, account views,account access and account holder") {
+
+      When("1st Step: no accounts in the List")
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+
+      Then("We check the accountHolders")
+      accountholder1.size should be(0)
+      accountholder2.size should be(0)
+
+      Then("There is not system views at all in the ViewDefinition table, so both should be Empty")
+      allViewsForAccount1.map(_.viewId.value) should equal(List())
+      allViewsForAccount2.map(_.viewId.value) should equal(List())
+
+      Then("We check the AccountAccesses")
+      account1Access.length should equal(0)
+      account2Access.length should equal(0)
+
+      Then("We check the MappedUserRefreshes table")
+      MappedUserRefreshes.findAll().length should be (0)
+
+      Then("2rd Step: 1st user and  1st account in the List")
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held)
+
+      Then("We check the accountHolders")
+      accountholder1.size should be(1)
+      accountholder2.size should be(0)
+
+      Then("We check the views, only support the system view. both accounts should have the `owner` view.")
+      allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
+      allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
+
+      Then("We check the AccountAccesses")
+      account1Access.length should equal(1)
+      account2Access.length should equal(0)
+      account1AccessUser2.length should equal(0)
+      account2AccessUser2.length should equal(0)
+
+      Then("We check the MappedUserRefreshes table")
+      MappedUserRefreshes.findAll().length should be (1)
+
+
+      Then("3rd Step: 2rd user and 1st account in the List")
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser2, account1Held)
+
+      Then("We check the accountHolders")
+      accountholder1.size should be(2)
+      accountholder2.size should be(0)
+
+      Then("We check the views, only support the system view. both accounts should have the `owner` view.")
+      allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
+      allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
+
+      Then("We check the AccountAccesses")
+      account1Access.length should equal(1)
+      account2Access.length should equal(0)
+      account1AccessUser2.length should equal(1)
+      account2AccessUser2.length should equal(0)
+
+      Then("We check the MappedUserRefreshes table")
+      MappedUserRefreshes.findAll().length should be (2)
+
+      When("4th, User1 we do not have any accounts ")
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+
+      Then("We check the accountHolders")
+      accountholder1.size should be(1)
+      accountholder2.size should be(0)
+
+      Then("We check the views, only support the system views")
+      allViewsForAccount1.map(_.viewId.value) should equal(List("owner"))
+      allViewsForAccount2.map(_.viewId.value) should equal(List("owner"))
+
+      Then("We check the AccountAccesses")
+      account1Access.length should equal(0)
+      account2Access.length should equal(0)
+      account1AccessUser2.length should equal(1)
+      account2AccessUser2.length should equal(0)
+
+      Then("We check the MappedUserRefreshes table")
+      MappedUserRefreshes.findAll().length should be (2)
 
     }
   }
