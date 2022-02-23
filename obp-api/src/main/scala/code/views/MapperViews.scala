@@ -259,7 +259,7 @@ object MapperViews extends Views with MdcLoggable {
   This removes the link between a User and a View (Account Access)
    */
 
-  def revokeAllAccountAccesses(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
+  def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
     val allUserPrivs = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
 
@@ -439,6 +439,7 @@ object MapperViews extends Views with MdcLoggable {
     ).map(_.view_fk.obj).flatten.distinct
   }
   
+  //this is more like possible views, it contains the system views+custom views
   def availableViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
     ViewDefinition.findAll(
       By(ViewDefinition.bank_id, bankAccountId.bankId.value), 

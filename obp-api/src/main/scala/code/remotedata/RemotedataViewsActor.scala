@@ -51,7 +51,7 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.revokeAllAccountAccesses(bankId : BankId, accountId : AccountId, user : User) =>
       logger.debug("revokeAllAccountAccesses(" + bankId +"," + accountId +","+ user +")")
-      sender ! (mapper.revokeAllAccountAccesses(bankId, accountId, user))
+      sender ! (mapper.revokeAllAccountAccess(bankId, accountId, user))
       
     case cc.revokeAccountAccessesByUser(bankId : BankId, accountId : AccountId, user : User) =>
       logger.debug("revokeAccountAccessesByUser(" + bankId +"," + accountId +","+ user +")")

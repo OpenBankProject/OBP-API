@@ -339,7 +339,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(canRevokeAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
-        isRevoked <- Views.views.vend.revokeAllAccountAccesses(bankId, accountId, otherUser)
+        isRevoked <- Views.views.vend.revokeAllAccountAccess(bankId, accountId, otherUser)
       } yield isRevoked
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
