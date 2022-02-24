@@ -93,7 +93,7 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
     //create fake data for the tests
     //fake banks
     val banks = createBanks()
-    //fake bank accounts, views, accountHolders, AccountAccesses
+    //fake bank accounts, views, accountHolders, AccountAccess
     val accounts = createAccountRelevantResources(resourceUser1, banks)
     //fake transactions
     createTransactions(accounts)

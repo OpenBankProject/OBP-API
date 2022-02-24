@@ -45,8 +45,8 @@ trait Views {
   def revokeAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
-  def revokeAllAccountAccesses(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
-  def revokeAccountAccessesByUser(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
+  def revokeAllAccountAccess(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
+  def revokeAccountAccessByUser(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def systemView(viewId : ViewId) : Box[View]
@@ -129,8 +129,8 @@ class RemotedataViewsCaseClasses {
   case class revokePermissions(views: List[ViewIdBankIdAccountId], user: User)
   case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
-  case class revokeAllAccountAccesses(bankId: BankId, accountId: AccountId, user: User)
-  case class revokeAccountAccessesByUser(bankId: BankId, accountId: AccountId, user: User)
+  case class revokeAllAccountAccess(bankId: BankId, accountId: AccountId, user: User)
+  case class revokeAccountAccessByUser(bankId: BankId, accountId: AccountId, user: User)
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class createSystemView(view: CreateViewJson)
   case class removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId)

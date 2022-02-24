@@ -45,7 +45,7 @@ package code.model.dataAccess {
 
   import code.accountholders.AccountHolders
   import code.api.Constant._
-  import code.api.util.APIUtil
+  import code.api.util.{APIUtil, CallContext}
   import code.bankconnectors.Connector
   import code.users.Users
   import code.util.Helper.MdcLoggable
@@ -75,9 +75,9 @@ package code.model.dataAccess {
   object BankAccountCreation extends MdcLoggable {
   
     /**
-      * 1 Create `Owner` view if the account do not have `Owner` view.
-      * 2 Add Permission to `Owner` view
-      * 3 Set the User as the account Holder.
+      * 1 Set the User as the account Holder. 
+      * 2 Create `Owner` view if the account do not have `Owner` view. 
+      * 3 Add Permission to `Owner` view
       * 
       * @param bankId 
       * @param accountId
@@ -85,9 +85,13 @@ package code.model.dataAccess {
       *             
       * @return This is a procedure, no return value. Just use the side effect.
       */
-    def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
-      addPermissionToSystemOwnerView(bankId, accountId, user)
-      val accountHolder = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
+    def setAccountHolderAndRefreshUserAccountAccess(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext]): Unit = {
+      // Here, we can call `addPermissionToSystemOwnerView` directly, but from now on, we try to simulate the CBS account creation.
+      // 1st-getOrCreateAccountHolder: in this method, we only create the account holder, no view, account access involved here. 
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
+      
+      // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
+      AuthUser.refreshUser(user, callContext)
     }
     
     private def addPermissionToSystemOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
@@ -138,7 +142,7 @@ package code.model.dataAccess {
             )
           } yield {
             logger.debug(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
-            BankAccountCreation.setAsOwner(bankAccount.bankId, bankAccount.accountId, user)
+            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankAccount.bankId, bankAccount.accountId, user, None)
           }
 
           result match {

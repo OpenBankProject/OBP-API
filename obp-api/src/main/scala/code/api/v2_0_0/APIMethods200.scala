@@ -158,8 +158,8 @@ trait APIMethods200 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            (privateViewsUserCanAccess, privateAccountAccesses) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-            privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccesses))
+            (privateViewsUserCanAccess, privateAccountAccess) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+            privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccess))
           } yield {
             successJsonResponse(privateBankAccountsListToJson(privateAccounts, privateViewsUserCanAccess ))
           }
@@ -197,8 +197,8 @@ trait APIMethods200 {
             cc =>
               for {
                 u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-                (privateViewsUserCanAccess, privateAccountAccesses) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-                privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccesses))
+                (privateViewsUserCanAccess, privateAccountAccess) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+                privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccess))
               } yield {
                 val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(corePrivateAccountsAllBanks), codeContext, u, privateAccounts, privateViewsUserCanAccess)
                 val response = successJsonResponse(coreBankAccountListJson)
@@ -233,9 +233,9 @@ trait APIMethods200 {
       case "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for {
-            (publicViews, publicAccountAccesses) <- Future(Views.views.vend.publicViews)
+            (publicViews, publicAccountAccess) <- Future(Views.views.vend.publicViews)
             publicAccountsJson <- NewStyle.function.tryons(CannotGetAccounts, 400, Some(cc)){
-              publicBankAccountBasicList(BankAccountX.publicAccounts(publicAccountAccesses), publicViews)
+              publicBankAccountBasicList(BankAccountX.publicAccounts(publicAccountAccess), publicViews)
             }
           } yield {
             (BasicAccountsJSON(publicAccountsJson), HttpCode.`200`(cc))
@@ -276,8 +276,8 @@ trait APIMethods200 {
           for{
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
             (processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts), HttpCode.`200`(callContext))
           }
@@ -323,8 +323,8 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
             val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank)
             (result, HttpCode.`200`(callContext))
@@ -336,8 +336,8 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (privateAccountsForOneBank, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
            val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, privateAccountsForOneBank, privateViewsUserCanAccessAtOneBank)
             (result, HttpCode.`200`(callContext))
@@ -349,8 +349,8 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(BankId(defaultBankId), callContext)
-            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, BankId(defaultBankId))
-            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, BankId(defaultBankId))
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
             val result = corePrivateAccountsAtOneBankResult(CallerContext(corePrivateAccountsAtOneBank), codeContext, u, availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
             (result, HttpCode.`200`(callContext))
@@ -390,8 +390,8 @@ trait APIMethods200 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccesses, callContext)
+            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            (availablePrivateAccounts, callContext) <- bank.privateAccountsFuture(privateAccountAccess, callContext)
           } yield {
             (privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank), HttpCode.`200`(callContext))
           }
@@ -428,8 +428,8 @@ trait APIMethods200 {
             (_, callContext) <- anonymousAccess(cc)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
           } yield {
-            val (publicViewsForBank, publicAccountAccesses) = Views.views.vend.publicViewsForBank(bank.bankId)
-            val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicAccountAccesses), publicViewsForBank)
+            val (publicViewsForBank, publicAccountAccess) = Views.views.vend.publicViewsForBank(bank.bankId)
+            val publicAccountsJson = publicBankAccountBasicListToJson(bank.publicAccounts(publicAccountAccess), publicViewsForBank)
             (publicAccountsJson, HttpCode.`200`(callContext))
           }
       }
@@ -1134,7 +1134,7 @@ trait APIMethods200 {
               List.empty
             )
           } yield {
-            BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
+            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, Some(cc))
 
             val dataContext = DataContext(cc.user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
             val links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
@@ -1899,7 +1899,7 @@ trait APIMethods200 {
             _ <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~! CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! CreateUserCustomerLinksError
             _ <- Connector.connector.vend.UpdateUserAccoutViewsByUsername(user.name)
-            _ <- Full(AuthUser.updateUserAccountViews(user, callContext))
+            _ <- Full(AuthUser.refreshUser(user, callContext))
             
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
