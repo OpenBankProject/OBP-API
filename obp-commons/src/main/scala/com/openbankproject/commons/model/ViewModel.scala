@@ -228,7 +228,7 @@ trait View {
     * 2rd: the view can grant the access to any other (not owner) users. eg: Simon's accountant view can grant access to Carola, then Carola can see Simon's accountant data
     * also look into some createView methods in code, you can understand more:
     * create1: code.bankconnectors.Connector.createViews
-    * need also look into here code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017.updateUserAccountViewsOld
+    * need also look into here KafkaMappedConnector_vMar2017.updateUserAccountViewsOld
     * after createViews method, always need call addPermission(v.uid, user). This will create this field
     * Create2: code.model.dataAccess.BankAccountCreation.createOwnerView
     * after create view, always need call `addPermission(ownerViewUID, user)`, this will create this field

@@ -386,7 +386,7 @@ trait APIMethods220 {
         |
         | Note: API Explorer provides a Message Docs page where these messages are displayed.
         | 
-        | `CONNECTOR`:kafka_vMar2017 , kafka_vJune2017, kafka_vSept2018, stored_procedure_vDec2019 ...
+        | `CONNECTOR`: kafka_vSept2018, stored_procedure_vDec2019 ...
       """.stripMargin,
       emptyObjectJson,
       messageDocsJson,
@@ -398,9 +398,8 @@ trait APIMethods220 {
       case "message-docs" :: connector :: Nil JsonGet _ => {
         cc => {
           for {
-            //kafka_vJune2017 --> vJune2017 : get the valid version for search the connector object.
             connectorObject <- Future(tryo{Connector.getConnectorInstance(connector)}) map { i =>
-              val msg = "$InvalidConnector Current Input is $connector. It should be eg: kafka_vJune2017, kafka_vSept2018..."
+              val msg = "$InvalidConnector Current Input is $connector. It should be eg: kafka_vSept2018..."
               unboxFullOrFail(i, cc.callContext, msg)
             }
           } yield {

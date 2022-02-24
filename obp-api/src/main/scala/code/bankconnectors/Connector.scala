@@ -20,8 +20,6 @@ import code.bankconnectors.LocalMappedConnector.setUnimplementedError
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
-import code.bankconnectors.vJune2017.KafkaMappedConnector_vJune2017
-import code.bankconnectors.vMar2017.KafkaMappedConnector_vMar2017
 import code.bankconnectors.vMay2019.KafkaMappedConnector_vMay2019
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.endpointTag.EndpointTagT
@@ -82,9 +80,6 @@ object Connector extends SimpleInjector {
     "mapped" -> lazyValue(LocalMappedConnector),
     "akka_vDec2018" -> lazyValue(AkkaConnector_vDec2018),
     "mongodb" -> lazyValue(LocalRecordConnector),
-    "kafka" -> lazyValue(KafkaMappedConnector),
-    "kafka_vMar2017" -> lazyValue(KafkaMappedConnector_vMar2017),
-    "kafka_vJune2017" -> lazyValue(KafkaMappedConnector_vJune2017),
     "kafka_vSept2018" -> lazyValue(KafkaMappedConnector_vSept2018),
     "kafka_vMay2019" -> lazyValue(KafkaMappedConnector_vMay2019),
     "rest_vMar2019" -> lazyValue(RestConnector_vMar2019),

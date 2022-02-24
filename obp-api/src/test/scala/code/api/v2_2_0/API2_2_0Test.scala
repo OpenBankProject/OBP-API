@@ -418,8 +418,8 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
   }
   
   feature("Get Message Docs - v2.2.0"){
-    scenario("Get Message Docs - kafka_vJune2017") {
-      val request = (v2_2Request / "message-docs" / "kafka_vJune2017" )
+    scenario("Get Message Docs - kafka_vMay2019") {
+      val request = (v2_2Request / "message-docs" / "kafka_vMay2019" )
       val response: APIResponse = makeGetRequest(request)
   
       response.code should be (200)

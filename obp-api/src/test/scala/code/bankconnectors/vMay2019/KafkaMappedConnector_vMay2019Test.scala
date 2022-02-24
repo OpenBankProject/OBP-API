@@ -27,7 +27,6 @@ Berlin 13359, Germany
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
 import code.bankconnectors.Connector
-import code.bankconnectors.vMar2017.InboundBank
 import code.bankconnectors.vSept2018._
 import code.kafka.KafkaHelper
 import code.setup.{KafkaSetup, ServerSetupWithTestData}
