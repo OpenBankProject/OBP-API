@@ -5,7 +5,7 @@ import code.bankconnectors._
 import code.bankconnectors.vJune2017.InboundAccountJune2017
 import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, InboundAccountCommons}
 import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
@@ -24,18 +24,46 @@ object MockedJune2017Connector extends ServerSetup
   implicit override val nameOfConnector = "MockedCardConnector"
   
   //These bank id and account ids are real data over adapter  
-  val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
-  val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
+  val bankIdAccountId1 = BankIdAccountId(BankId("obp-bank-id1"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfH-accountId1"))
+  val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-id2"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfH-accountId2"))
   
-  override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccountJune2017], Option[CallContext])] = {
-    Full(
-      InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId.bankId.value, branchId = "222", accountId = bankIdAccountId.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "_Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: InboundAccountJune2017("", cbsToken = "cbsToken", bankId = bankIdAccountId2.bankId.value, branchId = "222", accountId = bankIdAccountId2.accountId.value, accountNumber = "123", accountType = "AC", balanceAmount = "50", balanceCurrency = "EUR", owners = Nil, viewsToGenerate = "Owner" :: "_Public" :: "Accountant" :: "Auditor" :: Nil, bankRoutingScheme = "iban", bankRoutingAddress = "bankRoutingAddress", branchRoutingScheme = "branchRoutingScheme", branchRoutingAddress = " branchRoutingAddress", accountRoutingScheme = "accountRoutingScheme", accountRoutingAddress = "accountRoutingAddress", accountRouting = Nil, accountRules = Nil) :: Nil,
-      callContext
-    )
-  }
 
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountJune2017], Option[CallContext])]] = Future{
-    getBankAccountsForUserLegacy(username,callContext)
+  override def getBankAccountsForUser(username: String, callContext: Option[CallContext])= Future{
+    Full(
+      (InboundAccountCommons(
+        bankId = bankIdAccountId1.bankId.value,
+        accountId = bankIdAccountId1.accountId.value,
+        viewsToGenerate = "Owner" :: "_Public" :: "Accountant" :: "Auditor" :: Nil,
+        branchId = "",
+        accountNumber = "",
+        accountType = "",
+        balanceAmount = "",
+        balanceCurrency = "",
+        owners = List(""),
+        bankRoutingScheme = "",
+        bankRoutingAddress = "",
+        branchRoutingScheme = "",
+        branchRoutingAddress = "",
+        accountRoutingScheme = "",
+        accountRoutingAddress = ""
+      ) :: InboundAccountCommons(
+        bankId = bankIdAccountId2.bankId.value,
+        accountId = bankIdAccountId2.accountId.value,
+        viewsToGenerate = "Owner" :: "_Public" :: "Accountant" :: "Auditor" :: Nil,
+        branchId = "",
+        accountNumber = "",
+        accountType = "",
+        balanceAmount = "",
+        balanceCurrency = "",
+        owners = List(""),
+        bankRoutingScheme = "",
+        bankRoutingAddress = "",
+        branchRoutingScheme = "",
+        branchRoutingAddress = "",
+        accountRoutingScheme = "",
+        accountRoutingAddress = ""
+      ) :: Nil,callContext)
+    )
   }
 }
 

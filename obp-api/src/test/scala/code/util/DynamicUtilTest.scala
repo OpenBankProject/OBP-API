@@ -134,12 +134,12 @@ class DynamicUtilTest extends FlatSpec with Matchers {
 
   "Sandbox.createSandbox method" should "should work well" taggedAs DynamicUtilsTag in {
     val permissionList = List(
-      new java.net.SocketPermission("apisandbox.openbankproject.com:443","connect,resolve"),
+//      new java.net.SocketPermission("apisandbox.openbankproject.com:443","connect,resolve"),
       new java.util.PropertyPermission("user.dir","read"),
     )
 
     Sandbox.createSandbox(permissionList).runInSandbox {
-      scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
+//      scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
       new File(".").getCanonicalPath
     }
   }

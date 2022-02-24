@@ -31,4 +31,7 @@ object RemotedataAccountHolders extends ObpActorInit with AccountHolders {
     (actor ? cc.bulkDeleteAllAccountHolders()).mapTo[Box[Boolean]]
   )
 
+  override def deleteAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[Boolean]  = getValueFromFuture(
+    (actor ? cc.deleteAccountHolder(user: User, bankAccountUID :BankIdAccountId)).mapTo[Box[Boolean]]
+  )
 }

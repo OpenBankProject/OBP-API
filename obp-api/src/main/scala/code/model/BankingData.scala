@@ -52,21 +52,21 @@ import scala.concurrent.Future
 
 case class BankExtended(bank: Bank) {
 
-  def publicAccounts(publicAccountAccessesForBank: List[AccountAccess]) : List[BankAccount] = {
-    publicAccountAccessesForBank
+  def publicAccounts(publicAccountAccessForBank: List[AccountAccess]) : List[BankAccount] = {
+    publicAccountAccessForBank
       .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
   // TODO refactor this function to get accounts from list in a single call via connector
-  def privateAccounts(privateAccountAccessesAtOneBank : List[AccountAccess]) : List[BankAccount] = {
-    privateAccountAccessesAtOneBank
+  def privateAccounts(privateAccountAccessAtOneBank : List[AccountAccess]) : List[BankAccount] = {
+    privateAccountAccessAtOneBank
       .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }
 
-  def privateAccountsFuture(privateAccountAccessesAtOneBank : List[AccountAccess], callContext: Option[CallContext]): Future[(List[BankAccount], Option[CallContext])] = {
-    val accounts: List[BankIdAccountId] = privateAccountAccessesAtOneBank
+  def privateAccountsFuture(privateAccountAccessAtOneBank : List[AccountAccess], callContext: Option[CallContext]): Future[(List[BankAccount], Option[CallContext])] = {
+    val accounts: List[BankIdAccountId] = privateAccountAccessAtOneBank
       .map(a=>BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
     Connector.connector.vend.getBankAccounts(accounts, callContext) map { i =>
       (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFound", 400 ), i._2)
@@ -335,11 +335,11 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
 
-  final def revokeAllAccountAccesses(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  final def revokeAllAccountAccess(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     if(canRevokeAccessToViewCommon(bankId, accountId, user))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
-        isRevoked <- Views.views.vend.revokeAllAccountAccesses(bankId, accountId, otherUser)
+        isRevoked <- Views.views.vend.revokeAllAccountAccess(bankId, accountId, otherUser)
       } yield isRevoked
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
@@ -617,8 +617,8 @@ object BankAccountX {
   }
 
 
-  def publicAccounts(publicAccountAccesses: List[AccountAccess]) : List[BankAccount] = {
-    publicAccountAccesses
+  def publicAccounts(publicAccountAccess: List[AccountAccess]) : List[BankAccount] = {
+    publicAccountAccess
       .map(a => BankIdAccountId(BankId(a.bank_id.get), AccountId(a.account_id.get))).distinct
       .flatMap(a => BankAccountX(a.bankId, a.accountId))
   }

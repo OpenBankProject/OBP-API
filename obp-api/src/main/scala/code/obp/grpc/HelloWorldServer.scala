@@ -94,8 +94,8 @@ class HelloWorldServer(executionContext: ExecutionContext) { self =>
         (bank, _) <- NewStyle.function.getBank(bankId, callContext)
         (user, _) <- NewStyle.function.findByUserId(userId, callContext)
       } yield {
-        val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bankId)
-        val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
+        val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bankId)
+        val availablePrivateAccounts = bank.privateAccounts(privateAccountAccess)
         val jValue = OBPAPI4_0_0.Implementations2_0_0.processAccounts(privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
         val jArray = JArray(
           jValue.asInstanceOf[JArray].arr.map(it => {
