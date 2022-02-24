@@ -239,7 +239,6 @@ object DynamicUtil {
       |import code.api.util.{APIUtil, CallContext, OBPQueryParam}
       |import code.api.v4_0_0.dynamic.MockResponseHolder
       |import code.bankconnectors._
-      |import code.bankconnectors.vJune2017.AuthInfo
       |import code.customer.internalMapping.MappedCustomerIdMappingProvider
       |import code.kafka.KafkaHelper
       |import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider

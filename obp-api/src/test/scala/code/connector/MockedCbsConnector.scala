@@ -44,6 +44,22 @@ object MockedCbsConnector extends ServerSetup
         branchRoutingAddress = "",
         accountRoutingScheme = "",
         accountRoutingAddress = "",
+      ),InboundAccountCommons(
+        bankId = bankIdAccountId2.bankId.value,
+        branchId = "",
+        accountId = bankIdAccountId2.accountId.value,
+        accountNumber = "",
+        accountType = "",
+        balanceAmount = "",
+        balanceCurrency = "",
+        owners = List(""),
+        viewsToGenerate = "Owner" :: "_Public" :: "Accountant" :: "Auditor" :: Nil,
+        bankRoutingScheme = "",
+        bankRoutingAddress = "",
+        branchRoutingScheme = "",
+        branchRoutingAddress = "",
+        accountRoutingScheme = "",
+        accountRoutingAddress = "",
       )),
       callContext
     )
