@@ -22,7 +22,10 @@ import scala.compat.Platform
   */
 trait DefaultUsers {
   
-  lazy val userId = Some(UUID.randomUUID.toString)
+  lazy val userId1 = Some(UUID.randomUUID.toString)
+  lazy val userId2 = Some(UUID.randomUUID.toString)
+  lazy val userId3 = Some(UUID.randomUUID.toString)
+  lazy val userId4 = Some(UUID.randomUUID.toString)
 
   //create the application(consumer, used it in the Login credential, mainly used the consume_key and consumer_secret)
   lazy val testConsumer = Consumers.consumers.vend.createConsumer(
@@ -34,7 +37,7 @@ trait DefaultUsers {
     description = Some("description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId
+    createdByUserId = userId1
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   lazy val consumer = Consumer(testConsumer.key.get, testConsumer.secret.get)
   
@@ -46,12 +49,12 @@ trait DefaultUsers {
   val defaultProvider = Constant.HostName
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = UserX.createResourceUser(defaultProvider, None, None, None, None, userId, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser2 = UserX.createResourceUser(defaultProvider, None, None, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser3 = UserX.createResourceUser(defaultProvider, None, None, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser4 = UserX.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser1 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser1"), userId1, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser2 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser2"), userId2, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser3 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser3"), userId3, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser4 = UserX.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, Some("resourceUser4"), userId4, None).openOrThrowException(attemptedToOpenAnEmptyBox)
 
-  // create the tokens in database, we only need token-key and token-secret
+  // create the tokens in database, we only need token-key and token-secretAllCases
   lazy val testToken1 = Tokens.tokens.vend.createToken(
     Access,
     Some(testConsumer.id.get),

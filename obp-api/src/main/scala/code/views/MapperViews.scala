@@ -259,7 +259,7 @@ object MapperViews extends Views with MdcLoggable {
   This removes the link between a User and a View (Account Access)
    */
 
-  def revokeAllAccountAccesses(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
+  def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
     val allUserPrivs = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
 
@@ -281,7 +281,7 @@ object MapperViews extends Views with MdcLoggable {
 
   }
 
-  def revokeAccountAccessesByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
+  def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     canRevokeAccessToViewCommon(bankId, accountId, user) match {
       case true =>
         val permissions = AccountAccess.findAll(
@@ -439,6 +439,7 @@ object MapperViews extends Views with MdcLoggable {
     ).map(_.view_fk.obj).flatten.distinct
   }
   
+  //this is more like possible views, it contains the system views+custom views
   def availableViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
     ViewDefinition.findAll(
       By(ViewDefinition.bank_id, bankAccountId.bankId.value), 
@@ -456,8 +457,8 @@ object MapperViews extends Views with MdcLoggable {
   def publicViews: (List[View], List[AccountAccess]) = {
     if (APIUtil.allowPublicViews) {
       val publicViews = ViewDefinition.findAll(By(ViewDefinition.isPublic_, true)) // Custom and System views
-      val publicAccountAccesses = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
-      (publicViews, publicAccountAccesses)
+      val publicAccountAccess = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      (publicViews, publicAccountAccess)
     } else {
       (Nil, Nil)
     }
@@ -469,52 +470,52 @@ object MapperViews extends Views with MdcLoggable {
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, false)) ::: // Custom views
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.isSystem_, true)) ::: // System views
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, true)) // System views
-      val publicAccountAccesses = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
-      (publicViews.distinct, publicAccountAccesses)
+      val publicAccountAccess = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      (publicViews.distinct, publicAccountAccess)
     } else {
       (Nil, Nil)
     }
   }
   
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
-    val accountAccesses = AccountAccess.findAll(
+    val accountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       PreCache(AccountAccess.view_fk)
     ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
-    val privateViews  = accountAccesses.map(_.view_fk.obj).flatten.distinct
-    (privateViews, accountAccesses)
+    val privateViews  = accountAccess.map(_.view_fk.obj).flatten.distinct
+    (privateViews, accountAccess)
   }
   def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess]) ={
-    val accountAccesses = AccountAccess.findAll(
+    val accountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       ByList(AccountAccess.view_id, viewIds.map(_.value))
     ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
-    PrivateViewsUserCanAccessCommon(accountAccesses)
+    PrivateViewsUserCanAccessCommon(accountAccess)
   }
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) ={
-    val accountAccesses = AccountAccess.findAll(
+    val accountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, bankId.value)
     ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
-    PrivateViewsUserCanAccessCommon(accountAccesses)
+    PrivateViewsUserCanAccessCommon(accountAccess)
   }
 
-  private def PrivateViewsUserCanAccessCommon(accountAccesses: List[AccountAccess]): (List[ViewDefinition], List[AccountAccess]) = {
-    val listOfTuples: List[(AccountAccess, Box[ViewDefinition])] = accountAccesses.map(x => (x, x.view_fk.obj))
+  private def PrivateViewsUserCanAccessCommon(accountAccess: List[AccountAccess]): (List[ViewDefinition], List[AccountAccess]) = {
+    val listOfTuples: List[(AccountAccess, Box[ViewDefinition])] = accountAccess.map(x => (x, x.view_fk.obj))
     val privateViews = listOfTuples.flatMap(
       tuple => tuple._2.map(v => v.bank_id(tuple._1.bank_id.get).account_id(tuple._1.account_id.get))
     )
-    (privateViews, accountAccesses)
+    (privateViews, accountAccess)
   }
 
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =   {
-    val accountAccesses = AccountAccess.findAll(
+    val accountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
       By(AccountAccess.account_id, bankIdAccountId.accountId.value),
       PreCache(AccountAccess.view_fk)
     )
-    accountAccesses.map(_.view_fk.obj).flatten.filter(view => view.isPrivate == true).distinct
+    accountAccess.map(_.view_fk.obj).flatten.filter(view => view.isPrivate == true).distinct
   }
 
   /**
@@ -545,8 +546,10 @@ object MapperViews extends Views with MdcLoggable {
         getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else if (auditorsView)
         getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
-      else 
+      else {
+        logger.error(ViewIdNotSupported+ s"Your input viewId is :$viewId")
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
+      }
     
     logger.debug(s"-->getOrCreateAccountView.${viewId } : ${theView} ")
     

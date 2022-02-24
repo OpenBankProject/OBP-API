@@ -636,7 +636,8 @@ object DynamicEndpointHelper extends RestHelper {
   }
 
   private def convertToProduct(example: Any): Product = example match {
-    case null => EmptyBody
+    //In Swagger UI, if the schema reference is not existing, it just return a `string` instead
+    case null => StringBody("string") 
     case v: String => StringBody(v)
     case v: Boolean => BooleanBody(v)
     case v: Int => IntBody(v)
@@ -715,7 +716,47 @@ object DynamicEndpointHelper extends RestHelper {
               case v => json.Extraction.decompose(Array(v))
             }
           })
-        case v: MapSchema => getDefaultValue(v, Map("name"-> "John", "age" -> 12))
+        case v: MapSchema => 
+          //additionalProperties filed: 
+//        eg1:
+//          "parameters": {
+//            "type": "object",
+//            "additionalProperties": {
+//            "$ref": "#/components/schemas/ParameterModel"
+//          }
+//          
+//        eg2:
+//          "a1":{
+//            "type": "object",
+//            "additionalProperties":{
+//              "type": "string"
+//              }
+//            },
+//        eg3:
+//          "a2":{
+//            "type": "object",
+//            "additionalProperties":{
+//            "type": "integer"
+//          }
+//          },
+//        eg4:
+//          "a3":{
+//            "type": "object",
+//            "additionalProperties":{
+//            "type": "array",
+//            "items": {
+//              "type": "string"
+//            }
+//            }
+//          },
+          if (v.getType =="object" && v.getAdditionalProperties() != null && v.getAdditionalProperties().isInstanceOf[Schema[_]]) {
+            val value = v.getAdditionalProperties().asInstanceOf[Schema[_]]
+            val valueExample = rec(value)
+            getDefaultValue(v, Map("additionalProp1"-> valueExample, "additionalProp2" -> valueExample, "additionalProp3" -> valueExample))
+          }
+          else{
+            getDefaultValue(v, Map("additionalProp1"-> "string", "additionalProp2" -> "string", "additionalProp3" -> "string"))
+          }
         //The swagger object schema may not contain any properties: eg:
         // "Account": {
         //   "title": "accountTransactibility",

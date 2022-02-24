@@ -250,8 +250,8 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            (privateViewsUserCanAccess, privateAccountAccesses) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-            availablePrivateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccesses))
+            (privateViewsUserCanAccess, privateAccountAccess) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+            availablePrivateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccess))
           } yield {
             successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccess))
           }
@@ -282,8 +282,8 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            (privateViewsUserCanAccess, privateAccountAccesses) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
-            privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccesses))
+            (privateViewsUserCanAccess, privateAccountAccess) <- Full(Views.views.vend.privateViewsUserCanAccess(u))
+            privateAccounts <- Full(BankAccountX.privateAccounts(privateAccountAccess))
           } yield {
             successJsonResponse(privateBankAccountsListToJson(privateAccounts, privateViewsUserCanAccess))
           }
@@ -313,8 +313,8 @@ trait APIMethods121 {
       case "accounts" :: "public" :: Nil JsonGet req => {
         cc =>
           for{
-            (publicViews, publicAccountAccesses) <- Full(Views.views.vend.publicViews)
-            publicAccounts <- Full(BankAccountX.publicAccounts(publicAccountAccesses))
+            (publicViews, publicAccountAccess) <- Full(Views.views.vend.publicViews)
+            publicAccounts <- Full(BankAccountX.publicAccounts(publicAccountAccess))
             publicAccountsJson <- Full(publicBankAccountsListToJson(publicAccounts, publicViews))
           } yield{
             successJsonResponse(publicAccountsJson)
@@ -348,8 +348,8 @@ trait APIMethods121 {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
           } yield {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
+            val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccess)
             successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
           }
       }
@@ -381,8 +381,8 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
           } yield {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccesses) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccesses)
+            val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
+            val availablePrivateAccounts = bank.privateAccounts(privateAccountAccess)
             successJsonResponse(privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank))
           }
       }
@@ -411,8 +411,8 @@ trait APIMethods121 {
         cc =>
           for {
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-            (publicViewsForBank, publicAccountAccesses) <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
-            publicAccounts<- Full(bank.publicAccounts(publicAccountAccesses))
+            (publicViewsForBank, publicAccountAccess) <- Full(Views.views.vend.publicViewsForBank(bank.bankId))
+            publicAccounts<- Full(bank.publicAccounts(publicAccountAccess))
           } yield {
             val publicAccountsJson = publicBankAccountsListToJson(publicAccounts, publicViewsForBank)
             successJsonResponse(publicAccountsJson)
@@ -948,7 +948,7 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            _ <- NewStyle.function.revokeAllAccountAccesses(account, u, provider, providerId)
+            _ <- NewStyle.function.revokeAllAccountAccess(account, u, provider, providerId)
           } yield {
             (Full(""), HttpCode.`204`(callContext))
           }

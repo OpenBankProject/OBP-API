@@ -470,32 +470,40 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     getBanksLegacy(callContext)
   }
 
-  //This method is only for testing now. Normall this method 
+  /**
+   * this connector method is for onboarding user from CBS side, here OBP simulate the process.
+   * The CBS connector: 
+   *   OBP send the bank customer indentity (eg: customer_number, telephone ...) to CBS side.
+   *   CSB will return the accounts for the customer. 
+   * So in this localmapped connector:
+   *   we read all accounts from accountHolder and set `owner`(later need to simulate more) view, 
+   *   and return the accounts back.
+   * 
+   */
   override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
+    val userId = callContext.map(_.userId).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] = for {
-      //1 get all the accounts for one user
-      user <- Users.users.vend.getUserByUserName(username)
+      user <- Users.users.vend.getUserByUserId(userId)
       bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
     } yield {
       for {
         bankAccountId <- bankAccountIds
-        (bankAccount, callContext) <- getBankAccountCommon(bankAccountId.bankId, bankAccountId.accountId, callContext)
         inboundAccountCommons = InboundAccountCommons(
-          bankId = bankAccount.bankId.value,
-          branchId = bankAccount.branchId,
-          accountId = bankAccount.accountId.value,
-          accountNumber = bankAccount.number,
-          accountType = bankAccount.accountType,
-          balanceAmount = bankAccount.balance.toString(),
-          balanceCurrency = bankAccount.currency,
-          owners = bankAccount.userOwners.map(_.name).toList,
-          viewsToGenerate = List("Owner"),
-          bankRoutingScheme = bankAccount.bankRoutingScheme,
-          bankRoutingAddress = bankAccount.bankRoutingAddress,
+          bankId = bankAccountId.bankId.value,
+          accountId = bankAccountId.accountId.value,
+          viewsToGenerate = List("owner"), //TODO, so far only set the `owner` view, later need to simulate other views.
+          branchId = "",
+          accountNumber = "",
+          accountType = "",
+          balanceAmount = "",
+          balanceCurrency = "",
+          owners = List(""),
+          bankRoutingScheme = "",
+          bankRoutingAddress = "",
           branchRoutingScheme = "",
           branchRoutingAddress = "",
-          accountRoutingScheme = bankAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
-          accountRoutingAddress = bankAccount.accountRoutings.headOption.map(_.address).getOrElse("")
+          accountRoutingScheme = "",
+          accountRoutingAddress = ""
         )
       } yield {
         inboundAccountCommons

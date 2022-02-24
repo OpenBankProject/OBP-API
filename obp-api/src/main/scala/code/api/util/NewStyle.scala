@@ -71,8 +71,9 @@ import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
+import code.util.Helper.MdcLoggable
 
-object NewStyle {
+object NewStyle extends MdcLoggable{
   lazy val endpoints: List[(String, String)] = List(
     (nameOf(ImplementationsResourceDocs.getResourceDocsObp), ApiVersion.v1_4_0.toString),
     (nameOf(Implementations1_2_1.deleteWhereTagForViewOnTransaction), ApiVersion.v1_2_1.toString),
@@ -531,8 +532,8 @@ object NewStyle {
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
-    def revokeAllAccountAccesses(account: BankAccount, u: User, provider : String, providerId: String) = Future {
-      account.revokeAllAccountAccesses(u, provider, providerId)
+    def revokeAllAccountAccess(account: BankAccount, u: User, provider : String, providerId: String) = Future {
+      account.revokeAllAccountAccess(u, provider, providerId)
     } map { fullBoxOrException(_)
     } map { unboxFull(_) }
     
@@ -1016,6 +1017,16 @@ object NewStyle {
     def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
       Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
+      } map {
+        result =>
+          //We will call the `refreshUserAccountAccess` after we successfully create the UserAuthContext
+          // because `createUserAuthContext` is a connector method, here is the entry point for OBP to refreshUserAccountAccess
+          if(callContext.isDefined && callContext.get.user.isDefined) {
+            AuthUser.refreshUser(callContext.get.user.head, callContext)
+          } else {
+            logger.info(s"AuthUser.refreshUserAccountAccess can not be run properly. The user is missing in the current callContext.")   
+          }
+          result
       }
     }
     def createUserAuthContextUpdate(userId: String, key: String, value: String, callContext: Option[CallContext]): OBPReturnType[UserAuthContextUpdate] = {
