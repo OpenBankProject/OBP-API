@@ -479,7 +479,7 @@
     <dependency>
       <groupId>org.iban4j</groupId>
       <artifactId>iban4j</artifactId>
-      <version>3.2.1</version>
+      <version>3.2.3-RELEASE</version>
     </dependency>
 
     <!--macro cache-->
