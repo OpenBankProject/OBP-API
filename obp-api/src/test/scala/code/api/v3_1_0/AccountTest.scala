@@ -23,6 +23,7 @@ import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.util.Random
 
 class AccountTest extends V310ServerSetup with DefaultUsers {
@@ -205,6 +206,10 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       account.label should be (putCreateAccountJSONV310.label)
       account.account_routings should be (putCreateAccountJSONV310.account_routings)
 
+
+      //We need to waite some time for the account creation, because we introduce `AuthUser.refreshUser(user, callContext)`
+      //It may not finished when we call the get accounts directly.
+      TimeUnit.SECONDS.sleep(2)
       
       Then(s"we call $ApiEndpoint4 to get the account back")
       val requestApiEndpoint4 = (v3_1_0_Request / "my" / "accounts" ).PUT <@(user1)
@@ -213,8 +218,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       responseApiEndpoint4.code should equal(200)
       val accounts = responseApiEndpoint4.body.extract[CoreAccountsJsonV300].accounts
       accounts.map(_.id).toList.toString() contains(account.account_id) should be (true)
-
-
+      
       Then(s"we call $ApiEndpoint5 to get the account back")
       val requestApiEndpoint5 = (v3_1_0_Request /"banks" / testBankId.value / "accounts").GET <@ (user1)
       val responseApiEndpoint5 = makeGetRequest(requestApiEndpoint5)
