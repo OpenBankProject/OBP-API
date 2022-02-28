@@ -12,7 +12,7 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.10</scala.compiler>
-    <akka.version>2.5.19</akka.version>
+    <akka.version>2.6.18</akka.version>
     <akka-streams-kafka.version>0.22</akka-streams-kafka.version>
     <kafka.version>1.1.0</kafka.version>
     <avro.version>1.8.2</avro.version>
