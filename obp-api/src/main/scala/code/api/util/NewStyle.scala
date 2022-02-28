@@ -64,7 +64,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityInfo}
+import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
@@ -2895,10 +2895,7 @@ object NewStyle extends MdcLoggable{
       // check if there is (entityIdName, entityIdValue) pair in the requestBody, if no, we will add it. 
       val requestBodyDynamicInstance: Option[JObject] = requestBody.map { requestJsonJObject =>
        
-        // (?<=[a-z0-9])(?=[A-Z]) --> mean `Positive Lookbehind (?<=[a-z0-9])` && Positive Lookahead (?=[A-Z]) --> So we can find the space to replace to  `_`
-        val regexPattern = "(?<=[a-z0-9])(?=[A-Z])|-"
-        // eg: entityName = PetEntity => entityIdName = pet_entity_id
-        val entityIdName = s"${entityName}_Id".replaceAll(regexPattern, "_").toLowerCase
+        val entityIdName = DynamicEntityHelper.createEntityId(entityName)
         
         val entityIdValue = requestJsonJObject \ entityIdName
 

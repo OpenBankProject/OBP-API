@@ -56,6 +56,13 @@ object DynamicEntityHelper {
     collection.mutable.ArrayBuffer(docs:_*)
   }
 
+  def createEntityId(entityName: String) = {
+    // (?<=[a-z0-9])(?=[A-Z]) --> mean `Positive Lookbehind (?<=[a-z0-9])` && Positive Lookahead (?=[A-Z]) --> So we can find the space to replace to  `_`
+    val regexPattern = "(?<=[a-z0-9])(?=[A-Z])|-"
+    // eg: entityName = PetEntity => entityIdName = pet_entity_id
+    s"${entityName}_Id".replaceAll(regexPattern, "_").toLowerCase
+  }
+  
   def operationToResourceDoc: Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val addPrefix = APIUtil.getPropsAsBoolValue("dynamic_entities_have_prefix", true)
 

@@ -5716,21 +5716,42 @@ trait APIMethods400 {
                     responseBody
                   }
                 } else if (method.value.equalsIgnoreCase("delete")) {
-//                  for {
-//                    (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-//                      DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
-//                    }
-//                    isDeleted <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                  //We need to delete the record by the the request key and value, 
-//                      DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, entityIdValueFromUrl.head).head
-//                    }
-//                  }yield{
-//                    JBool(isDeleted)
-//                  }
-                  throw new RuntimeException(s"$NotImplemented We only support the Http Methods GET and POST . The current method is: ${method.value}")
+                  for {
+                    (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                      DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
+                    }
+                    dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
+                    dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
+                    entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
+                    isDeleted <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                      val entityIdName = DynamicEntityHelper.createEntityId(entityName)
+                      val entityIdValue = (entityObject \ entityIdName).asInstanceOf[JString].s
+                      DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, entityIdValue).head
+                    }
+                  }yield{
+                    JBool(isDeleted)
+                  }
                 } else if (method.value.equalsIgnoreCase("put")) {
-                
-                  throw new RuntimeException(s"$NotImplemented We only support the Http Methods GET and POST . The current method is: ${method.value}")
+                  for {
+                    (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                      DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
+                    }
+                    dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
+                    dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
+                    entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
+                    _ <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                      val entityIdName = DynamicEntityHelper.createEntityId(entityName)
+                      val entityIdValue = (entityObject \ entityIdName).asInstanceOf[JString].s
+                      DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, entityIdValue).head
+                    }
+                    entityBody = JsonUtils.buildJson(json,requestMappingJvalue)
+                    (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, None, None, Some(cc))
+                    singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+                    responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
+                    responseBody = JsonUtils.buildJson(singleObject, responseBodyScheme)
+                  }yield{
+                    responseBody
+                  }
                 }else {
                   NewStyle.function.tryons(s"$InvalidEndpointMapping `request_mapping` must  be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)

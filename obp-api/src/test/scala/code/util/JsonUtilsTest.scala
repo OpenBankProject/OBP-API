@@ -9,128 +9,130 @@ import net.liftweb.json.JsonAST.{JNothing, JValue}
 class JsonUtilsTest extends FlatSpec with Matchers {
   object JsonUtilsTag extends Tag("JsonUtils")
 
-  val zson = json.parse(
-    """
-      |{
-      |  "level": 3,
-      |  "banks":[{
-      |    "id":"dmo.01.uk.uk",
-      |    "short_name":"uk",
-      |    "full_name":"uk",
-      |    "is_deleted": true,
-      |    "is_new": true,
-      |    "score": 10,
-      |    "logo":"http://www.example.com",
-      |    "website":"http://www.example.com",
-      |    "bank_routings":[{
-      |      "scheme":"OBP",
-      |      "address":"dmo.01.uk.uk"
-      |    }]
-      |  },{
-      |    "id":"dmo.02.uk.uk",
-      |    "short_name":"uk",
-      |    "full_name":"uk",
-      |    "is_deleted": false,
-      |    "is_new": true,
-      |    "score": 5.3,
-      |    "logo":"https://static.openbankproject.com/images/sandbox/bank_y.png",
-      |    "website":"http://www.example.com"
-      |  },{
-      |    "id":"dmo.02.de.de",
-      |    "short_name":"de",
-      |    "full_name":"de",
-      |    "is_deleted": false,
-      |    "is_new": false,
-      |    "score": 2,
-      |    "logo":"https://static.openbankproject.com/images/sandbox/bank_z.png",
-      |    "website":"http://www.example.com",
-      |    "bank_routings":[{
-      |      "scheme":"OBP",
-      |      "address":"dmo.02.de.de"
-      |    }]
-      |  }]
-      |}
-      |""".stripMargin)
-
-  val schema = json.parse(
-    """
-      |{
-      | "value": " 'number: 1.0' + 'int:1' * level",
-      | "code": 200,
-      | "meta$default": {
-      |   "count": 10,
-      |   "classInfo": {
-      |       "someInfo": "hello"
-      |   }
-      | },
-      | "result[]": {
-      |   "bkId": "banks.id",
-      |   "bkName": "'hello:' + banks.short_name+ ' +  ' + banks.full_name",
-      |   "is_exists": "!banks.is_deleted",
-      |   "newBank": "!banks.is_deleted & banks.is_new",
-      |   "routing": "banks.bank_routings[0]"
-      | },
-      | "secondBank[1]": {
-      |   "id": "banks.id",
-      |   "name": "banks.short_name",
-      |   "count": "banks.score * 'int: 2'"
-      | }
-      |}
-      |""".stripMargin)
-
-  val expectedJson = json.parse(
-    """
-      |{
-      | "value":6.0,
-      |  "code":200,
-      |  "meta":{
-      |    "count":10,
-      |    "classInfo":{
-      |      "someInfo":"hello"
-      |    }
-      |  },
-      |  "result":[
-      |    {
-      |      "bkId":"dmo.01.uk.uk",
-      |      "bkName":"hello:uk +  uk",
-      |      "is_exists":false,
-      |      "newBank":false,
-      |      "routing":{
-      |        "scheme":"OBP",
-      |        "address":"dmo.01.uk.uk"
-      |      }
-      |    },
-      |    {
-      |      "bkId":"dmo.02.uk.uk",
-      |      "bkName":"hello:uk +  uk",
-      |      "is_exists":true,
-      |      "newBank":true
-      |    },
-      |    {
-      |      "bkId":"dmo.02.de.de",
-      |      "bkName":"hello:de +  de",
-      |      "is_exists":true,
-      |      "newBank":false,
-      |      "routing":{
-      |        "scheme":"OBP",
-      |        "address":"dmo.02.de.de"
-      |      }
-      |    }
-      |  ],
-      |  "secondBank": {
-      |      "id":"dmo.02.uk.uk",
-      |      "name":"uk",
-      |      "count":10.6
-      |    }
-      |}
-      |""".stripMargin)
   "buildJson" should "generate JValue according schema" taggedAs JsonUtilsTag in {
+
+    val zson = json.parse(
+      """
+        |{
+        |  "level": 3,
+        |  "banks":[{
+        |    "id":"dmo.01.uk.uk",
+        |    "short_name":"uk",
+        |    "full_name":"uk",
+        |    "is_deleted": true,
+        |    "is_new": true,
+        |    "score": 10,
+        |    "logo":"http://www.example.com",
+        |    "website":"http://www.example.com",
+        |    "bank_routings":[{
+        |      "scheme":"OBP",
+        |      "address":"dmo.01.uk.uk"
+        |    }]
+        |  },{
+        |    "id":"dmo.02.uk.uk",
+        |    "short_name":"uk",
+        |    "full_name":"uk",
+        |    "is_deleted": false,
+        |    "is_new": true,
+        |    "score": 5.3,
+        |    "logo":"https://static.openbankproject.com/images/sandbox/bank_y.png",
+        |    "website":"http://www.example.com"
+        |  },{
+        |    "id":"dmo.02.de.de",
+        |    "short_name":"de",
+        |    "full_name":"de",
+        |    "is_deleted": false,
+        |    "is_new": false,
+        |    "score": 2,
+        |    "logo":"https://static.openbankproject.com/images/sandbox/bank_z.png",
+        |    "website":"http://www.example.com",
+        |    "bank_routings":[{
+        |      "scheme":"OBP",
+        |      "address":"dmo.02.de.de"
+        |    }]
+        |  }]
+        |}
+        |""".stripMargin)
+
+    val schema = json.parse(
+      """
+        |{
+        | "value": " 'number: 1.0' + 'int:1' * level",
+        | "code": 200,
+        | "meta$default": {
+        |   "count": 10,
+        |   "classInfo": {
+        |       "someInfo": "hello"
+        |   }
+        | },
+        | "result[]": {
+        |   "bkId": "banks.id",
+        |   "bkName": "'hello:' + banks.short_name+ ' +  ' + banks.full_name",
+        |   "is_exists": "!banks.is_deleted",
+        |   "newBank": "!banks.is_deleted & banks.is_new",
+        |   "routing": "banks.bank_routings[0]"
+        | },
+        | "secondBank[1]": {
+        |   "id": "banks.id",
+        |   "name": "banks.short_name",
+        |   "count": "banks.score * 'int: 2'"
+        | }
+        |}
+        |""".stripMargin)
+
+    val expectedJson = json.parse(
+      """
+        |{
+        | "value":6.0,
+        |  "code":200,
+        |  "meta":{
+        |    "count":10,
+        |    "classInfo":{
+        |      "someInfo":"hello"
+        |    }
+        |  },
+        |  "result":[
+        |    {
+        |      "bkId":"dmo.01.uk.uk",
+        |      "bkName":"hello:uk +  uk",
+        |      "is_exists":false,
+        |      "newBank":false,
+        |      "routing":{
+        |        "scheme":"OBP",
+        |        "address":"dmo.01.uk.uk"
+        |      }
+        |    },
+        |    {
+        |      "bkId":"dmo.02.uk.uk",
+        |      "bkName":"hello:uk +  uk",
+        |      "is_exists":true,
+        |      "newBank":true
+        |    },
+        |    {
+        |      "bkId":"dmo.02.de.de",
+        |      "bkName":"hello:de +  de",
+        |      "is_exists":true,
+        |      "newBank":false,
+        |      "routing":{
+        |        "scheme":"OBP",
+        |        "address":"dmo.02.de.de"
+        |      }
+        |    }
+        |  ],
+        |  "secondBank": {
+        |      "id":"dmo.02.uk.uk",
+        |      "name":"uk",
+        |      "count":10.6
+        |    }
+        |}
+        |""".stripMargin)
+    
     val resultJson = buildJson(zson, schema)
 
     val str1 = json.prettyRender(resultJson)
-//    println(str1)
+
     val str2 = json.prettyRender(expectedJson)
-//    println(str2)
+
     str1 shouldEqual str2
   }
 
@@ -160,12 +162,11 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(zson, schema)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
-
-
+  
   """buildJson-request single{}, mapping is {"photoUrls[]":"field5"}""" should "generate JValue according schema3" taggedAs JsonUtilsTag in {
     val zson = (
       """{
@@ -220,7 +221,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(zson, mapping)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
@@ -254,7 +255,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(requestJson, mapping)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
@@ -308,7 +309,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(zson, schema)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
@@ -368,9 +369,9 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(requestJson, mapping)
     
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    
     val str2 = json.prettyRender(expectedJson)
-    println(str2)
+    
     str1 shouldEqual str2
   }
 
@@ -394,7 +395,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(zson, schema)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
     
@@ -494,7 +494,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
    
     val resultJson = buildJson(requestJson, mapping)
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
@@ -516,7 +516,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       val resultJson = buildJson(requestJson, mapping)
     
       val str1 = json.prettyRender(resultJson)
-      println(str1)
       val str2 = json.prettyRender(expectedJson)
       str1 shouldEqual str2
   }
@@ -545,7 +544,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(requestJson, mapping)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    
 
     val expectedJson = json.parse(
       """
@@ -689,7 +688,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val resultJson = buildJson(jsonList, jsonListSchema)
 
     val str1 = json.prettyRender(resultJson)
-    println(str1)
     val str2 = json.prettyRender(expectListResult)
     str1 shouldEqual str2
   }
@@ -730,6 +728,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     str1 shouldEqual expectedJson
 
   }
+  
   "$root[] name field and subField[][] type field" should "properly be converted" taggedAs JsonUtilsTag in {
     val jsonList = json.parse(
       """
@@ -802,7 +801,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
         |]""".stripMargin)
     val resultJson = buildJson(jsonList, schema)
     val str1 = json.prettyRender(resultJson)
-//    println(str1)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
 
@@ -843,7 +841,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
 
     val resultJson = buildJson(requestJson, mapping)
     val str1 = json.prettyRender(resultJson)
-    println(str1)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
@@ -876,7 +873,44 @@ class JsonUtilsTest extends FlatSpec with Matchers {
 
     val resultJson = buildJson(requestJson, mapping)
     val str1 = json.prettyRender(resultJson)
-    println(str1)
+    val str2 = json.prettyRender(expectedJson)
+    str1 shouldEqual str2
+  }
+  
+  "buildJson - request is Array1, mapping is []object" should "work well" taggedAs JsonUtilsTag in {
+    val requestJson = (
+      """[
+        |  {
+        |    "name": "family account200",
+        |    "number": 200,
+        |    "sample_entity_id": "9b344781-32f5-4afb-a4f1-2c93087e6e71"
+        |  },
+        |  {
+        |    "name": "family account201",
+        |    "number": 201,
+        |    "sample_entity_id": "38ff936d-6780-444f-81b9-ac7ab8565035"
+        |  }
+        |]""".stripMargin)
+    val mapping = ("""{
+                     |  "$root[]": {
+                     |    "name": "name",
+                     |    "balance": "number"
+                     |  }
+                     |}""".stripMargin)
+    val expectedJson = json.parse(
+      """[
+        |  {
+        |    "name":"family account200",
+        |    "balance":200,
+        |  },
+        |  {
+        |    "name":"family account201",
+        |    "balance":201
+        |  }
+        |]""".stripMargin)
+
+    val resultJson = buildJson(requestJson, mapping)
+    val str1 = json.prettyRender(resultJson)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
@@ -888,7 +922,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
 
     val resultJson = buildJson(requestJson, mapping)
     val str1 = json.prettyRender(resultJson)
-    println(str1)
     val str2 = json.prettyRender(expectedJson)
     str1 shouldEqual str2
   }
