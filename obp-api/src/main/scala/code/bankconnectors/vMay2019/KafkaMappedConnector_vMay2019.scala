@@ -37,8 +37,6 @@ import code.api.util.ExampleValue._
 import code.api.util._
 import code.api.v2_1_0.TransactionRequestBodyCommonJSON
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.{InternalCustomer, JsonFactory_vJune2017}
-import code.bankconnectors.vMar2017._
 import code.bankconnectors.vSept2018.KafkaMappedConnector_vSept2018
 import code.customer._
 import code.kafka.{KafkaHelper, Topics}

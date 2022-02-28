@@ -1034,8 +1034,7 @@ def restoreSomeSessions(): Unit = {
     
               // If user cannot be found locally, try to authenticate user via connector
               case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) || 
-                APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ||
-                APIUtil.getPropsAsBoolValue("obpjvm.user.authentication", false)) =>
+                APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ) =>
                 
                 val preLoginState = capturePreLoginState()
                 logger.info("login redirect: " + loginRedirect.get)
@@ -1092,7 +1091,7 @@ def restoreSomeSessions(): Unit = {
     */
  def testExternalPassword(usernameFromGui: String, passwordFromGui: String): Boolean = {
    // TODO Remove kafka and obpjvm special cases
-   if (connector.startsWith("kafka") || connector == "obpjvm") {
+   if (connector.startsWith("kafka")) {
      getUserFromConnector(usernameFromGui, passwordFromGui) match {
        case Full(user:AuthUser) => true
        case _ => false
@@ -1110,7 +1109,7 @@ def restoreSomeSessions(): Unit = {
     */
   def externalUserHelper(name: String, password: String): Box[AuthUser] = {
     // TODO Remove kafka and obpjvm special cases
-    if (connector.startsWith("kafka") || connector == "obpjvm") {
+    if (connector.startsWith("kafka") ) {
       for {
        user <- getUserFromConnector(name, password)
        u <- Users.users.vend.getUserByUserName(name)
@@ -1132,7 +1131,7 @@ def restoreSomeSessions(): Unit = {
     * This method will update the views and createAccountHolder ....
     */
   def registeredUserHelper(username: String) = {
-    if (connector.startsWith("kafka") || connector == "obpjvm") {
+    if (connector.startsWith("kafka")) {
       for {
        u <- Users.users.vend.getUserByUserName(username)
       } yield {
