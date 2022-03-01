@@ -3,7 +3,7 @@ package code.model
 import code.UserRefreshes.MappedUserRefreshes
 import code.accountholders.MapperAccountHolders
 import code.bankconnectors.Connector
-import code.connector.MockedJune2017Connector
+import code.connector.MockedCbsConnector
 import code.model.dataAccess.{AuthUser, ViewImpl, ViewPrivileges}
 import code.setup.{DefaultUsers, PropsReset, ServerSetup}
 import code.views.MapperViews
@@ -23,7 +23,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
   
   override def beforeAll() = {
     super.beforeAll()
-    Connector.connector.default.set(MockedJune2017Connector)
+    Connector.connector.default.set(MockedCbsConnector)
     ViewDefinition.bulkDelete_!!()
     MapperAccountHolders.bulkDelete_!!()
     AccountAccess.bulkDelete_!!()
@@ -39,8 +39,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     MappedUserRefreshes.bulkDelete_!!()
   }
   
-  val bankIdAccountId1 = MockedJune2017Connector.bankIdAccountId1
-  val bankIdAccountId2 = MockedJune2017Connector.bankIdAccountId2
+  val bankIdAccountId1 = MockedCbsConnector.bankIdAccountId
+  val bankIdAccountId2 = MockedCbsConnector.bankIdAccountId2
 
   def account1Access = AccountAccess.findAll(
     By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),

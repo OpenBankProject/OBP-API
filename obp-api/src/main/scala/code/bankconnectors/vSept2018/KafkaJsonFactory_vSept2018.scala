@@ -3,8 +3,6 @@ package code.bankconnectors.vSept2018
 import java.util.Date
 
 import code.api.util.APIUtil
-import code.bankconnectors.vJune2017.InternalCustomer
-import code.bankconnectors.vMar2017._
 import code.branches.Branches.{DriveUpString, LobbyString}
 import code.model.dataAccess.MappedBankAccountData
 import com.openbankproject.commons.model.{CounterpartyTrait, Customer, UserAuthContext, _}
@@ -164,18 +162,6 @@ case class InternalInboundCoreAccount(
   accountRoutings: List[AccountRouting]
 )
 
-case class AuthInfo(
-  userId: String = "", 
-  username: String = "", 
-  cbsToken: String = "", 
-  isFirst: Boolean = true, 
-  correlationId: String = "",
-  sessionId: String = "", 
-  linkedCustomers: List[BasicCustomer] = Nil,
-  userAuthContexts: List[BasicUserAuthContext]= Nil,
-  authViews: List[AuthView] = Nil,
-)
-
 case class InboundAuthInfo(
   cbsToken: String = "",
   sessionId: String = ""
@@ -235,12 +221,6 @@ case class BankAccountSept2018(r: InboundAccountSept2018) extends BankAccount {
   def accountRules: List[AccountRule] = r.accountRules
   
 }
-
-case class BasicCustomer(
-  customerId: String,
-  customerNumber: String,
-  legalName: String,
-)
 
 case class InternalCreateChallengeSept2018(
   errorCode: String,

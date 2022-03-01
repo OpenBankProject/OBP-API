@@ -32,7 +32,6 @@ import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.{APIUtil, CallContext, HashUtil, OBPQueryParam}
 import code.bankconnectors._
-import code.bankconnectors.vJune2017.AuthInfo
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.util.Helper

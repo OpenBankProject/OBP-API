@@ -14,12 +14,9 @@
 ## Which data connector to use, if config `star` as connector, please also check `starConnector_supported_types` 
 connector=mapped
 #connector=mongodb
-#connector=kafka
-#conenctor=kafka_vMar2017
 #connector=akka_vDec2018
 #connector=rest_vMar2019
 #connector=stored_procedure_vDec2019
-#connector=obpjvm
 #connector=star
 ## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @optional, inbound.optional.fields props, outbound.optional.fields props
 ## the proxy connector only for test purpose
@@ -106,9 +103,6 @@ read_authentication_type_validation_requires_role=false
 ##Added Props property_name_prefix, default is OBP_. This adds the prefix only for the system environment property name, eg: db.driver --> OBP_db.driver
 #system_environment_property_name_prefix=OBP_
 
-## OBP-JVM transport type. currently supported: kafka, mock
-#obpjvm.transport=kafka
-
 ## Transaction status scheduler delay in seconds.
 ## Retrieves transactionRequest status from south-side connector.
 ## Scheduler will be disabled if delay is not set.
@@ -125,9 +119,6 @@ read_authentication_type_validation_requires_role=false
 ## Enable user authentication via kafka
 #kafka.user.authentication=true
 
-## DEPRECATED
-## Enable user authentication via obpjvm
-#obpjvm.user.authentication=true
 
 ## Enable user authentication via the connector
 #connector.user.authentication=true
