@@ -449,7 +449,9 @@ case class UserWithAttributesResponseJson(
                                            username : String,
                                            user_attributes: List[UserAttributeResponseJsonV400]
                                          )
-
+case class UsersWithAttributesResponseJson(
+                                       users: List[UserWithAttributesResponseJson]
+                                     )
 
 case class CustomerAttributeJsonV400(
   name: String,
@@ -1333,6 +1335,9 @@ object JSONFactory400 {
       username = user.name,
       user_attributes = userAttribute.map(createUserAttributeJson(_))
     )
+  }
+  def createUsersWithAttributesJson(users: List[User], userAttribute: List[UserAttribute]) : UsersWithAttributesResponseJson = {
+    UsersWithAttributesResponseJson(users.map(i => createUserWithAttributesJson(i, userAttribute.filter(_.userId==i.userId))))
   }
 
   def createTransactionAttributesJson(transactionAttributes: List[TransactionAttribute]) : TransactionAttributesResponseJson = {

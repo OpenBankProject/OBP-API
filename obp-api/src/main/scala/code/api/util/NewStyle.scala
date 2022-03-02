@@ -64,6 +64,7 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.api.v4_0_0.JSONFactory400
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
@@ -1637,6 +1638,14 @@ object NewStyle extends MdcLoggable{
     def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
       Connector.connector.vend.getUserAttributes(
         userId: String, callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    } 
+    
+    def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
+      Connector.connector.vend.getUserAttributesByUsers(
+        userIds, callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
@@ -3215,6 +3224,16 @@ object NewStyle extends MdcLoggable{
       Users.users.vend.getUserByUserIdFuture(userId) map {
         x => (unboxFullOrFail(x, callContext, s"$UserNotFoundByUserId Current USER_ID($userId) "),callContext)
       }
+    }
+    def getUsersByUserIds(userIds : List[String], callContext: Option[CallContext]) : OBPReturnType[List[User]] = {
+      val users = for {
+        userId <- userIds
+        user <- Users.users.vend.getUserByUserId(userId)
+        //(attributes, callContext) <- NewStyle.function.getUserAttributes(userId, callContext)
+      } yield {
+        user
+      }
+      Future(users,callContext)
     }
 
     def deleteApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {

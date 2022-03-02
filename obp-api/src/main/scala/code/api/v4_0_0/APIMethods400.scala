@@ -21,6 +21,7 @@ import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
 import code.api.util.newstyle.Consumer._
 import code.api.util.newstyle.UserCustomerLinkNewStyle
+import code.api.util.newstyle.UserCustomerLinkNewStyle.getUserCustomerLinks
 import code.api.v1_2_1.{JSONFactory, PostTransactionTagJSON}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
@@ -60,7 +61,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.usercustomerlinks.UserCustomerLink
 import code.userlocks.UserLocksProvider
 import code.users.Users
-import code.util.Helper.{booleanToBox, booleanToFuture}
+import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
@@ -7335,12 +7336,44 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "user_customer_links" :: "customers" :: customerId :: Nil JsonGet _ => {
         cc =>
           for {
-            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinks(
-              customerId,
-              cc.callContext
-            )
+            (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, cc.callContext)
           } yield {
             (JSONFactory200.createUserCustomerLinkJSONs(userCustomerLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }    
+
+    staticResourceDocs += ResourceDoc(
+      getCorrelatedUsersInfoByCustomerId,
+      implementedInApiVersion,
+      nameOf(getCorrelatedUsersInfoByCustomerId),
+      "GET",
+      "/banks/BANK_ID/correlated-user-info/customers/CUSTOMER_ID",
+      "Get Correlated User Info by Customer",
+      s"""Get Correlated User Info by CUSTOMER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      correlatedUsersResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCorrelatedUsersInfoAtAnyBank)))
+
+    lazy val getCorrelatedUsersInfoByCustomerId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "correlated-user-info" :: "customers" :: customerId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, cc.callContext)
+            (users, callContext) <- NewStyle.function.getUsersByUserIds(userCustomerLinks.map(_.userId), callContext)
+            (attributes, callContext) <- NewStyle.function.getUserAttributesByUsers(userCustomerLinks.map(_.userId), callContext)
+          } yield {
+            (JSONFactory400.createUsersWithAttributesJson(users, attributes), HttpCode.`200`(callContext))
           }
       }
     }

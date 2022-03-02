@@ -38,6 +38,7 @@ trait UserAttributeProvider {
   private val logger = Logger(classOf[UserAttributeProvider])
 
   def getUserAttributesByUser(userId: String): Future[Box[List[UserAttribute]]]
+  def getUserAttributesByUsers(userIds: List[String]): Future[Box[List[UserAttribute]]]
   def createOrUpdateUserAttribute(userId: String,
                                   userAttributeId: Option[String],
                                   name: String,
@@ -48,6 +49,7 @@ trait UserAttributeProvider {
 
 class RemotedataUserAttributeCaseClasses {
   case class getUserAttributesByUser(userId: String)
+  case class getUserAttributesByUsers(userIds: List[String])
   case class createOrUpdateUserAttribute(userId: String,
                                          userAttributeId: Option[String],
                                          name: String,
