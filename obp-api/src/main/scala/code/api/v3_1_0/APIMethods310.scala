@@ -1971,8 +1971,8 @@ trait APIMethods310 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", userId, canRefreshUser, callContext)
             startTime <- Future{Helpers.now}
-            _ <- NewStyle.function.findByUserId(userId, callContext)
-            _ = AuthUser.refreshUser(_, callContext) 
+            (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            _ = AuthUser.refreshUser(user, callContext) 
             endTime <- Future{Helpers.now}
             durationTime = endTime.getTime - startTime.getTime
           } yield {
