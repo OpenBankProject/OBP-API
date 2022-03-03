@@ -8362,7 +8362,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
       EmptyBody,
-      userAttributesResponseJson,
+      userWithAttributesResponseJson,
       List(
         $UserNotLoggedIn,
         UnknownError
