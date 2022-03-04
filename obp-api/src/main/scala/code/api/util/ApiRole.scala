@@ -113,6 +113,9 @@ object ApiRole {
   case class CanCreateCustomerAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateCustomerAtAnyBank = CanCreateCustomerAtAnyBank()
   
+  case class CanGetCorrelatedUsersInfo(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCorrelatedUsersInfo = CanGetCorrelatedUsersInfo() 
+  
   case class CanGetCorrelatedUsersInfoAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCorrelatedUsersInfoAtAnyBank = CanGetCorrelatedUsersInfoAtAnyBank()
 

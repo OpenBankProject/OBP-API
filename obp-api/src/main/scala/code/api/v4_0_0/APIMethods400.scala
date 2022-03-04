@@ -7363,17 +7363,18 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCorrelatedUsersInfoAtAnyBank)))
+      Some(List(canGetCorrelatedUsersInfoAtAnyBank, canGetCorrelatedUsersInfo)))
 
     lazy val getCorrelatedUsersInfoByCustomerId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "correlated-user-info" :: "customers" :: customerId :: Nil JsonGet _ => {
         cc =>
           for {
-            (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, cc.callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, callContext)
             (users, callContext) <- NewStyle.function.getUsersByUserIds(userCustomerLinks.map(_.userId), callContext)
             (attributes, callContext) <- NewStyle.function.getUserAttributesByUsers(userCustomerLinks.map(_.userId), callContext)
           } yield {
-            (JSONFactory400.createUsersWithAttributesJson(users, attributes), HttpCode.`200`(callContext))
+            (JSONFactory400.createCustomerAdUsersWithAttributesJson(customer, users, attributes), HttpCode.`200`(callContext))
           }
       }
     }

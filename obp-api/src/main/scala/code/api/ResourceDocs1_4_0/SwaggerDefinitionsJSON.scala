@@ -4152,7 +4152,9 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     user_attributes = List(userAttributeResponseJson))
   
-  val correlatedUsersResponseJson = UsersWithAttributesResponseJson(users = List(userWithAttributesResponseJson))
+  val correlatedUsersResponseJson = CustomerAndUsersWithAttributesResponseJson(
+    customer = customerJsonV310, users = List(userWithAttributesResponseJson)
+  )
   
   val userAttributeJsonV400 = UserAttributeJsonV400(
     name = userAttributeNameExample.value,
