@@ -26,7 +26,7 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
     lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "correlated-user-info" / "customers" / customerId ).GET
+      val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "correlated-users").GET
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
@@ -37,7 +37,7 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
     lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / bankId / "correlated-user-info" / "customers" / customerId).GET <@(user1)
+      val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "correlated-users").GET <@(user1)
       val response400 = makeGetRequest(request400)
       Then("We should get a 403")
       response400.code should equal(403)

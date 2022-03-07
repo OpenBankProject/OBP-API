@@ -7348,7 +7348,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getCorrelatedUsersInfoByCustomerId),
       "GET",
-      "/banks/BANK_ID/correlated-user-info/customers/CUSTOMER_ID",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/correlated-users",
       "Get Correlated User Info by Customer",
       s"""Get Correlated User Info by CUSTOMER_ID
          |
@@ -7366,7 +7366,7 @@ trait APIMethods400 {
       Some(List(canGetCorrelatedUsersInfoAtAnyBank, canGetCorrelatedUsersInfo)))
 
     lazy val getCorrelatedUsersInfoByCustomerId : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "correlated-user-info" :: "customers" :: customerId :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "correlated-users" :: Nil JsonGet _ => {
         cc =>
           for {
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
