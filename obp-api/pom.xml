@@ -87,12 +87,12 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpg-jdk15on</artifactId>
-      <version>1.62</version>
+      <version>1.70</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
-      <version>1.62</version>
+      <version>1.70</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -314,7 +314,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>9.9.3</version>
+      <version>9.19</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>
@@ -337,7 +337,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>oauth2-oidc-sdk</artifactId>
-      <version>9.5.2</version>
+      <version>9.27</version>
     </dependency>
     <dependency>
       <groupId>com.vladsch.flexmark</groupId>
@@ -359,7 +359,7 @@
     <dependency>
       <groupId>net.manub</groupId>
       <artifactId>scalatest-embedded-kafka_2.12</artifactId>
-      <version>1.1.1</version>
+      <version>2.0.0</version>
       <scope>test</scope>
     </dependency>
     <!-- embeded kafka for unit test end -->
@@ -379,11 +379,6 @@
           <groupId>javax.mail</groupId>
         </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-      <version>2.9.8</version>
     </dependency>
 
     <!-- convert word to plural -->
@@ -464,7 +459,7 @@
     <dependency>
       <groupId>org.iban4j</groupId>
       <artifactId>iban4j</artifactId>
-      <version>3.2.1</version>
+      <version>3.2.3-RELEASE</version>
     </dependency>
 
     <!--macro cache-->

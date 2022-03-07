@@ -2125,6 +2125,9 @@ trait Connector extends MdcLoggable {
     }
   
   def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = 
+    Future{(Failure(setUnimplementedError), callContext)}   
+  
+  def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = 
     Future{(Failure(setUnimplementedError), callContext)}  
   
   def createOrUpdateUserAttribute(

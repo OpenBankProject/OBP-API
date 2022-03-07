@@ -3733,6 +3733,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
     UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUser(userId: String) map {(_, callContext)}
   }
+  override def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
+    UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUsers(userIds) map {(_, callContext)}
+  }
   override def createOrUpdateUserAttribute(
                                             userId: String,
                                             userAttributeId: Option[String],

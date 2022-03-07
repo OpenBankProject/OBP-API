@@ -28,6 +28,7 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
+
 import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
@@ -42,7 +43,7 @@ import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300._
 import code.api.v3_0_0._
 import code.api.v3_1_0.JSONFactory310.{createAccountAttributeJson, createProductAttributesJson}
-import code.api.v3_1_0.{AccountAttributeResponseJson, PostHistoricalTransactionResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
+import code.api.v3_1_0.{AccountAttributeResponseJson, CustomerJsonV310, JSONFactory310, PostHistoricalTransactionResponseJson, ProductAttributeResponseWithoutBankIdJson, RedisCallLimitJson}
 import code.apicollection.ApiCollectionTrait
 import code.apicollectionendpoint.ApiCollectionEndpointTrait
 import code.atms.Atms.Atm
@@ -449,7 +450,10 @@ case class UserWithAttributesResponseJson(
                                            username : String,
                                            user_attributes: List[UserAttributeResponseJsonV400]
                                          )
-
+case class CustomerAndUsersWithAttributesResponseJson(
+                                          customer: CustomerJsonV310,
+                                          users: List[UserWithAttributesResponseJson]
+                                          )
 
 case class CustomerAttributeJsonV400(
   name: String,
@@ -1332,6 +1336,14 @@ object JSONFactory400 {
       provider = user.provider,
       username = user.name,
       user_attributes = userAttribute.map(createUserAttributeJson(_))
+    )
+  }
+  def createCustomerAdUsersWithAttributesJson(customer: Customer,
+                                              users: List[User],
+                                              userAttribute: List[UserAttribute]) : CustomerAndUsersWithAttributesResponseJson = {
+    CustomerAndUsersWithAttributesResponseJson(
+      JSONFactory310.createCustomerJson(customer), 
+      users.map(i => createUserWithAttributesJson(i, userAttribute.filter(_.userId==i.userId)))
     )
   }
 
