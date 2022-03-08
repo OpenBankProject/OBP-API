@@ -357,7 +357,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canGetDoubleEntryTransactionAtOneBank))
+      Some(List(canGetDoubleEntryTransactionAtAnyBank, canGetDoubleEntryTransactionAtOneBank))
     )
 
     lazy val getDoubleEntryTransaction : OBPEndpoint = {
