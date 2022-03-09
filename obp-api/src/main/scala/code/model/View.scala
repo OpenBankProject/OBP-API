@@ -550,8 +550,8 @@ case class ViewExtended(val view: View) {
           number = otherAccountNumber,
           metadata = otherAccountMetadata,
           kind = otherAccountKind,
-          bankRoutingAddress = otherBankRoutingScheme,
-          bankRoutingScheme = otherBankRoutingAddress,
+          bankRoutingScheme = otherBankRoutingScheme ,
+          bankRoutingAddress = otherBankRoutingAddress,
           accountRoutingScheme = otherAccountRoutingScheme,
           accountRoutingAddress = otherAccountRoutingAddress
         )
