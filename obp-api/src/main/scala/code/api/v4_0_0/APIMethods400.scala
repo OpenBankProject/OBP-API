@@ -5205,9 +5205,9 @@ trait APIMethods400 {
       case "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            customers <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
+            (customers, callContext) <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
           } yield {
-            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
         }
       }
@@ -5240,9 +5240,9 @@ trait APIMethods400 {
       case "customers" :: "minimal" :: Nil JsonGet _ => {
         cc => {
           for {
-            customers <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
+            (customers, callContext) <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
           } yield {
-            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
         }
       }
