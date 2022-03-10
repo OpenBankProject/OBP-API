@@ -80,6 +80,9 @@ object ApiRole {
   case class CanSearchMetrics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSearchMetrics = CanSearchMetrics()
 
+  case class CanGetCustomersAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCustomersAtAnyBank = CanGetCustomersAtAnyBank()
+  
   case class CanGetCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomer = CanGetCustomer()
 

@@ -722,6 +722,11 @@ object NewStyle extends MdcLoggable{
         connectorEmptyResponse(_, callContext)
       }
     }
+    def getCustomersAtAllBanks(callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[List[Customer]] = {
+      Connector.connector.vend.getCustomersAtAllBanks(callContext, queryParams) map {
+        connectorEmptyResponse(_, callContext)
+      }
+    }
     def getCustomersByCustomerPhoneNumber(bankId : BankId, phoneNumber: String, callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
       Connector.connector.vend.getCustomersByCustomerPhoneNumber(bankId, phoneNumber, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

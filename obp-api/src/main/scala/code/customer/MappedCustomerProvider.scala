@@ -23,7 +23,16 @@ import scala.concurrent.Future
 
 object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
 
+  override def getCustomersAtAllBanks(queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
+    val mapperParams = getOptionalParams(queryParams)
+    Full(MappedCustomer.findAll(mapperParams:_*))
+  }
   override def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] = Future {
+    val mapperParams = Seq(By(MappedCustomer.mBank, bankId.value)) ++ getOptionalParams(queryParams)
+    Full(MappedCustomer.findAll(mapperParams:_*))
+  }
+
+  private def getOptionalParams(queryParams: List[OBPQueryParam]) = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedCustomer](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedCustomer](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedCustomer.mLastOkDate, date) }.headOption
@@ -35,9 +44,8 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
           case OBPDescending => OrderBy(MappedCustomer.mLastOkDate, Descending)
         }
     }
-    val optionalParams : Seq[QueryParam[MappedCustomer]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
-    val mapperParams = Seq(By(MappedCustomer.mBank, bankId.value)) ++ optionalParams
-    Full(MappedCustomer.findAll(mapperParams:_*))
+    val optionalParams: Seq[QueryParam[MappedCustomer]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
+    optionalParams
   }
 
   override def getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String): Future[Box[List[Customer]]] = Future {

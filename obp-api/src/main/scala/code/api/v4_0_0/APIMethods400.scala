@@ -71,7 +71,7 @@ import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.GetProductsParam
+import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{ListResult, _}
@@ -5174,6 +5174,42 @@ trait APIMethods400 {
             // Return
             (json, HttpCode.`201`(callContext))
           }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomersAtAnyBank,
+      implementedInApiVersion,
+      nameOf(getCustomersAtAnyBank),
+      "GET",
+      "/customers",
+      "Get Customers at Any Bank",
+      s"""Get Customers at Any Bank.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customersJsonV300,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      Some(List(canGetCustomersAtAnyBank))
+    )
+    lazy val getCustomersAtAnyBank : OBPEndpoint = {
+      case "customers" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            customers <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
+          } yield {
+            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+          }
+        }
       }
     }
 

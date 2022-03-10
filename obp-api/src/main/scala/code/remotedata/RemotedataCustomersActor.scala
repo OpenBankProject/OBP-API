@@ -22,6 +22,10 @@ class RemotedataCustomersActor extends Actor with ObpActorHelper with MdcLoggabl
 
   def receive: PartialFunction[Any, Unit] = {
 
+    case cc.getCustomersAtAllBanks(queryParams: List[OBPQueryParam]) =>
+      logger.debug(s"getCustomersAtAllBanks($queryParams)")
+      (mapper.getCustomersAtAllBanks(queryParams)) pipeTo sender
+      
     case cc.getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getCustomersFuture($bankId, $queryParams)")
       (mapper.getCustomersFuture(bankId, queryParams)) pipeTo sender

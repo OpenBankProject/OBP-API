@@ -17,6 +17,9 @@ object RemotedataCustomers extends ObpActorInit with CustomerProvider {
 
   val cc = RemotedataCustomerProviderCaseClasses
 
+  def getCustomersAtAllBanks(queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
+    (actor ? cc.getCustomersAtAllBanks(queryParams)).mapTo[Box[List[Customer]]]
+  
   def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     (actor ? cc.getCustomersFuture(bankId, queryParams)).mapTo[Box[List[Customer]]]
   
