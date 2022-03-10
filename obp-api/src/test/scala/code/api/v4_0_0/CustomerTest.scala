@@ -63,6 +63,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getCustomersAtAnyBank))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomersMinimalAtAnyBank))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createCustomer))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
@@ -102,6 +103,41 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
       Then("We should get a 200")
       response.code should equal(200)
       val customers = response.body.extract[CustomerJSONsV300]
+    }
+  }
+
+  feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers" / "minimal").GET
+      val response = makeGetRequest(request)
+      Then("We should get a 401")
+      response.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+  feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers" / "minimal").GET<@(user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 403")
+      response.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canGetCustomersMinimalAtAnyBank
+      And("error should be " + errorMsg)
+      val errorMessage = response.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canGetCustomersMinimalAtAnyBank.toString()) should be (true)
+    }
+    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAnyBank.toString)
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers" / "minimal").GET <@(user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+      val customers = response.body.extract[CustomersMinimalJsonV400]
     }
   }
   

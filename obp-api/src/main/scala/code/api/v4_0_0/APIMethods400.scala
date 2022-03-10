@@ -5213,6 +5213,41 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getCustomersMinimalAtAnyBank,
+      implementedInApiVersion,
+      nameOf(getCustomersMinimalAtAnyBank),
+      "GET",
+      "/customers/minimal",
+      "Get Customers at Any Bank",
+      s"""Get Customers at Any Bank.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customersJsonV300,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      Some(List(canGetCustomersMinimalAtAnyBank))
+    )
+    lazy val getCustomersMinimalAtAnyBank : OBPEndpoint = {
+      case "customers" :: "minimal" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            customers <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
+          } yield {
+            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+          }
+        }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       addScope,
