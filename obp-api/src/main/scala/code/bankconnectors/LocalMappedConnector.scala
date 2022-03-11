@@ -987,7 +987,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getPhysicalCardsForUser(user: User): Box[List[PhysicalCard]] = {
+  override def getPhysicalCardsForUser(user: User, callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = Future {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
     val cardList = for (l <- list) yield
       PhysicalCard(
@@ -1013,7 +1013,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         posted = l.posted,
         customerId = l.customerId
       )
-    Full(cardList)
+    (Full(cardList), callContext)
   }
 
   override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = Future {

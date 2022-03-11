@@ -3174,8 +3174,8 @@ object NewStyle extends MdcLoggable{
     }
 
     def getPhysicalCardsForUser(user : User, callContext: Option[CallContext]) : OBPReturnType[List[PhysicalCard]] = {
-      Future{Connector.connector.vend.getPhysicalCardsForUser(user : User)} map {
-        i => (unboxFullOrFail(i, callContext, CardNotFound), callContext)
+      Connector.connector.vend.getPhysicalCardsForUser(user : User, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CardNotFound"), i._2)
       }
     }
 
