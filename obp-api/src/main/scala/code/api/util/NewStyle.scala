@@ -9,7 +9,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
-import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrl, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
@@ -919,6 +919,18 @@ object NewStyle extends MdcLoggable{
       createHttpParamsByUrlFuture(url) map { unboxFull(_) }
     }
     def createObpParams(httpParams: List[HTTPParam], allowedParams: List[String], callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
+      val httpParamsAllowed = httpParams.filter(
+        x => allowedParams.contains(x.name)
+      )
+      createQueriesByHttpParamsFuture(httpParamsAllowed) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+    
+    def extractQueryParams(url: String,
+                           allowedParams: List[String],
+                           callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
+      val httpParams = createHttpParamsByUrl(url).toList.flatten
       val httpParamsAllowed = httpParams.filter(
         x => allowedParams.contains(x.name)
       )

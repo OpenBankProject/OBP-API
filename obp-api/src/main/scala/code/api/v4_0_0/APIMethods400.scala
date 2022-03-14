@@ -17,6 +17,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.Glossary.getGlossaryItem
 import code.api.util.NewStyle.HttpCode
+import code.api.util.NewStyle.function.{extractQueryParams, getCustomersAtAllBanks}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
@@ -42,7 +43,6 @@ import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.consent.{ConsentStatus, Consents}
-import code.consumer.Consumers
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
@@ -71,7 +71,7 @@ import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam}
+import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{ListResult, _}
@@ -5205,7 +5205,8 @@ trait APIMethods400 {
       case "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            (customers, callContext) <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
+            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            (customers, callContext) <- getCustomersAtAllBanks(cc.callContext, requestParams)
           } yield {
             (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
@@ -5219,15 +5220,15 @@ trait APIMethods400 {
       nameOf(getCustomersMinimalAtAnyBank),
       "GET",
       "/customers/minimal",
-      "Get Customers at Any Bank",
-      s"""Get Customers at Any Bank.
+      "Get Customers Minimal at Any Bank",
+      s"""Get Customers Minimal at Any Bank.
          |
          |
          |${authenticationRequiredMessage(true)}
          |
          |""",
       emptyObjectJson,
-      customersJsonV300,
+      customersMinimalJsonV300,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -5240,7 +5241,8 @@ trait APIMethods400 {
       case "customers" :: "minimal" :: Nil JsonGet _ => {
         cc => {
           for {
-            (customers, callContext) <- NewStyle.function.getCustomersAtAllBanks(cc.callContext, Nil)
+            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            (customers, callContext) <- getCustomersAtAllBanks(cc.callContext, requestParams)
           } yield {
             (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
