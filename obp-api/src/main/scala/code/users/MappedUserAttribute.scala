@@ -20,6 +20,12 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
     )
   }
 
+  override def getUserAttributesByUsers(userIds: List[String]): Future[Box[List[UserAttribute]]] = Future {
+    tryo(
+      UserAttribute.findAll(ByList(UserAttribute.UserId, userIds))
+    )
+  }
+
   override def createOrUpdateUserAttribute(userId: String,
                                            userAttributeId: Option[String],
                                            name: String,

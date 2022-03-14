@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
+import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
@@ -2174,6 +2174,12 @@ object SwaggerDefinitionsJSON {
 
   val customersJsonV300 = code.api.v3_0_0.CustomerJSONsV300(List(customerJsonV300))
   
+  val customerMinimalJsonV400 = CustomerMinimalJsonV400(
+    bank_id = bankIdExample.value,
+    customer_id = customerIdExample.value
+  )
+  val customersMinimalJsonV300 = code.api.v4_0_0.CustomersMinimalJsonV400(List(customerMinimalJsonV400))
+  
   val postCustomerJsonV310 =
     PostCustomerJsonV310(
       legal_name = ExampleValue.legalNameExample.value,
@@ -4144,6 +4150,18 @@ object SwaggerDefinitionsJSON {
   val userAttributesResponseJson = UserAttributesResponseJson (
     user_attributes = List(userAttributeResponseJson)
   )
+
+  val userWithAttributesResponseJson = UserWithAttributesResponseJson(user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    user_attributes = List(userAttributeResponseJson))
+  
+  val correlatedUsersResponseJson = CustomerAndUsersWithAttributesResponseJson(
+    customer = customerJsonV310, users = List(userWithAttributesResponseJson)
+  )
+  
   val userAttributeJsonV400 = UserAttributeJsonV400(
     name = userAttributeNameExample.value,
     `type` = userAttributeTypeExample.value,

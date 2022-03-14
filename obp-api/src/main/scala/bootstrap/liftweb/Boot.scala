@@ -749,12 +749,12 @@ class Boot extends MdcLoggable {
   }
 
   private def sanityCheckOPropertiesRegardingScopes() = {
-    if (checkPropertiesRegardingScopes()) {
+    if (propertiesRegardingScopesAreValid()) {
       throw new Exception(s"Incompatible Props values for Scopes.")
     }
   }
 
-  def checkPropertiesRegardingScopes() = {
+  def propertiesRegardingScopesAreValid() = {
     (ApiPropsWithAlias.requireScopesForAllRoles || !getPropsValue("require_scopes_for_listed_roles").toList.map(_.split(",")).isEmpty) &&
       APIUtil.getPropsAsBoolValue("allow_entitlements_or_scopes", false)
   }

@@ -1,6 +1,7 @@
 package code.api.v1_3_0
 
 import java.util.Date
+
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
@@ -8,6 +9,9 @@ import code.setup.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
+
+import scala.concurrent.Future
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
@@ -60,7 +64,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getBankLegacy(bankId : BankId, callContext: Option[CallContext])  = Full(bank, callContext)
   
     //these methods are required in this test, there is no need to extends connector.
-    override def getPhysicalCardsForUser(user : User) = {
+    override def getPhysicalCardsForUser(user : User, callContext: Option[CallContext]) = {
       val cardList = if(user == resourceUser1) {
         user1AllCards
       } else if (user == resourceUser2) {
@@ -68,7 +72,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
       } else {
         List()
       }
-      Full(cardList)
+      Future(Full(cardList), callContext)
     }
   
     override def getPhysicalCardsForBankLegacy(bank: Bank, user: User, queryParams: List[OBPQueryParam]) = {

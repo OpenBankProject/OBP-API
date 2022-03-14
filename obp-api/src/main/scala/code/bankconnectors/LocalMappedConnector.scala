@@ -987,7 +987,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getPhysicalCardsForUser(user: User): Box[List[PhysicalCard]] = {
+  override def getPhysicalCardsForUser(user: User, callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = Future {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
     val cardList = for (l <- list) yield
       PhysicalCard(
@@ -1013,7 +1013,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         posted = l.posted,
         customerId = l.customerId
       )
-    Full(cardList)
+    (Full(cardList), callContext)
   }
 
   override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = Future {
@@ -3401,6 +3401,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         )
     }
 
+  override def getCustomersAtAllBanks(callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Customer]]] =
+    CustomerX.customerProvider.vend.getCustomersAtAllBanks(queryParams) map {
+      (_, callContext)
+    }
+  
   override def getCustomers(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]] =
     CustomerX.customerProvider.vend.getCustomersFuture(bankId, queryParams)
 
@@ -3732,6 +3737,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
     UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUser(userId: String) map {(_, callContext)}
+  }
+  override def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
+    UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUsers(userIds) map {(_, callContext)}
   }
   override def createOrUpdateUserAttribute(
                                             userId: String,

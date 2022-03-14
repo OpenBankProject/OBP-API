@@ -2143,7 +2143,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     } 
     // Consumer OR User has the Role
     else if(getPropsAsBoolValue("allow_entitlements_or_scopes", false)) {
-      roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _)) || roles.exists(hasScope(bankId, consumerId, _))
+      roles.isEmpty || 
+        roles.exists(hasEntitlement(bankId, userId, _)) || 
+        roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
     }
     // User has the Role
     else {
