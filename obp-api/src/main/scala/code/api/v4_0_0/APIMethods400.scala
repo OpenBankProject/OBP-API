@@ -7,6 +7,7 @@ import java.util.{Calendar, Date}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
@@ -16,6 +17,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.Glossary.getGlossaryItem
 import code.api.util.NewStyle.HttpCode
+import code.api.util.NewStyle.function.{extractQueryParams, getCustomersAtAllBanks}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
@@ -28,7 +30,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.api.v2_0_0.{CreateEntitlementJSON, CreateUserCustomerLinkJson, EntitlementJSONs, JSONFactory200}
 import code.api.v2_1_0._
-import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.{CreateScopeJson, JSONFactory300}
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400._
 import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
@@ -52,6 +54,7 @@ import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
 import code.model.{toUserExtended, _}
 import code.ratelimiting.RateLimitingDI
+import code.scope.Scope
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
@@ -357,7 +360,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagTransaction, apiTagNewStyle),
-      Some(List(canGetDoubleEntryTransactionAtOneBank))
+      Some(List(canGetDoubleEntryTransactionAtAnyBank, canGetDoubleEntryTransactionAtOneBank))
     )
 
     lazy val getDoubleEntryTransaction : OBPEndpoint = {
@@ -5173,6 +5176,145 @@ trait APIMethods400 {
           }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomersAtAnyBank,
+      implementedInApiVersion,
+      nameOf(getCustomersAtAnyBank),
+      "GET",
+      "/customers",
+      "Get Customers at Any Bank",
+      s"""Get Customers at Any Bank.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customersJsonV300,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      Some(List(canGetCustomersAtAnyBank))
+    )
+    lazy val getCustomersAtAnyBank : OBPEndpoint = {
+      case "customers" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            (customers, callContext) <- getCustomersAtAllBanks(cc.callContext, requestParams)
+          } yield {
+            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomersMinimalAtAnyBank,
+      implementedInApiVersion,
+      nameOf(getCustomersMinimalAtAnyBank),
+      "GET",
+      "/customers/minimal",
+      "Get Customers Minimal at Any Bank",
+      s"""Get Customers Minimal at Any Bank.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customersMinimalJsonV300,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      Some(List(canGetCustomersMinimalAtAnyBank))
+    )
+    lazy val getCustomersMinimalAtAnyBank : OBPEndpoint = {
+      case "customers" :: "minimal" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            (customers, callContext) <- getCustomersAtAllBanks(cc.callContext, requestParams)
+          } yield {
+            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      addScope,
+      implementedInApiVersion,
+      nameOf(addScope),
+      "POST",
+      "/consumers/CONSUMER_ID/scopes",
+      "Create Scope for a Consumer",
+      """Create Scope. Grant Role to Consumer.
+        |
+        |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |""",
+      SwaggerDefinitionsJSON.createScopeJson,
+      scopeJson,
+      List(
+        UserNotLoggedIn,
+        ConsumerNotFoundById,
+        InvalidJsonFormat,
+        IncorrectRoleName,
+        EntitlementIsBankRole,
+        EntitlementIsSystemRole,
+        EntitlementAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle),
+      Some(List(canCreateScopeAtAnyBank, canCreateScopeAtOneBank)))
+
+    lazy val addScope : OBPEndpoint = {
+      case "consumers" :: consumerId :: "scopes" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, callContext)
+            postedData <- Future { tryo{json.extract[CreateScopeJson]} } map {
+              val msg = s"$InvalidJsonFormat The Json body should be the $CreateScopeJson "
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            role <- Future { tryo{valueOf(postedData.role_name)} } map {
+              val msg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", ")
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(failMsg = if (ApiRole.valueOf(postedData.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole, cc=callContext) {
+              ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty
+            }
+            allowedEntitlements = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
+            allowedEntitlementsTxt = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = allowedEntitlementsTxt)(postedData.bank_id, u.userId, allowedEntitlements, callContext)
+            _ <- Helper.booleanToFuture(failMsg = BankNotFound, cc=callContext) {
+              postedData.bank_id.nonEmpty == false || BankX(BankId(postedData.bank_id), callContext).map(_._1).isEmpty == false
+            }
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc=callContext) {
+              hasScope(postedData.bank_id, consumerId, role) == false
+            }
+            addedEntitlement <- Future {Scope.scope.vend.addScope(postedData.bank_id, consumer.id.get.toString, postedData.role_name)} map { unboxFull(_) }
+          } yield {
+            (JSONFactory300.createScopeJson(addedEntitlement), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
 
     val customerAttributeGeneralInfo =
       s"""

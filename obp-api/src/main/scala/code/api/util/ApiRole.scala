@@ -80,6 +80,12 @@ object ApiRole {
   case class CanSearchMetrics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSearchMetrics = CanSearchMetrics()
 
+  case class CanGetCustomersAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCustomersAtAnyBank = CanGetCustomersAtAnyBank()
+  
+  case class CanGetCustomersMinimalAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetCustomersMinimalAtAnyBank = CanGetCustomersMinimalAtAnyBank()
+  
   case class CanGetCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomer = CanGetCustomer()
 
@@ -623,6 +629,9 @@ object ApiRole {
 
   case class CanGetDoubleEntryTransactionAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetDoubleEntryTransactionAtOneBank = CanGetDoubleEntryTransactionAtOneBank()
+  
+  case class CanGetDoubleEntryTransactionAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDoubleEntryTransactionAtAnyBank = CanGetDoubleEntryTransactionAtAnyBank()
 
   case class CanReadResourceDoc(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadResourceDoc = CanReadResourceDoc()

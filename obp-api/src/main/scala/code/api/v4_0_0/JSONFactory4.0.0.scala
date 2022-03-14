@@ -313,6 +313,9 @@ case class AccountBalancesJsonV400(
   
 )
 
+case class CustomerMinimalJsonV400(bank_id: String, customer_id: String)
+case class CustomersMinimalJsonV400(customers: List[CustomerMinimalJsonV400])
+
 case class PostCustomerPhoneNumberJsonV400(mobile_phone_number: String)
 case class PostDirectDebitJsonV400(customer_id: String,
                                    user_id: String,
@@ -1852,9 +1855,11 @@ object JSONFactory400 {
       chargePolicy: String
     )
   }
-  
-  
-  
+
+
+  def createCustomersMinimalJson(customers : List[Customer]) : CustomersMinimalJsonV400 = {
+    CustomersMinimalJsonV400(customers.map(i => CustomerMinimalJsonV400(i.bankId, i.customerId)))
+  }
   
   
 }

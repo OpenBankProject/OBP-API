@@ -26,6 +26,8 @@ object CustomerX extends SimpleInjector {
 }
 
 trait CustomerProvider {
+  def getCustomersAtAllBanks(queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]]
+  
   def getCustomersFuture(bankId : BankId, queryParams: List[OBPQueryParam]): Future[Box[List[Customer]]]
 
   def getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String): Future[Box[List[Customer]]]
@@ -101,6 +103,7 @@ trait CustomerProvider {
 }
 
 class RemotedataCustomerProviderCaseClasses {
+  case class getCustomersAtAllBanks(queryParams: List[OBPQueryParam])
   case class getCustomersFuture(bankId: BankId, queryParams: List[OBPQueryParam])
   case class getCustomersByCustomerPhoneNumber(bankId: BankId, phoneNumber: String)
   case class getCustomerByUserId(bankId: BankId, userId: String)

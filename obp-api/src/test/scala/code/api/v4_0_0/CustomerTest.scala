@@ -29,7 +29,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_0_0.CustomerJSONsV300
+import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v3_1_0.{CustomerJsonV310, PostCustomerNumberJsonV310}
 import code.customer.CustomerX
 import code.entitlement.Entitlement
@@ -61,45 +62,119 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.createCustomer))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getCustomersAtAnyBank))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomersMinimalAtAnyBank))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createCustomer))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
   lazy val bankId = randomBankId
 
-  feature("Create Customer v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST
-      val response310 = makePostRequest(request310, write(postCustomerJson))
+
+  feature(s"Get Customers at Any Bank $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers").GET
+      val response = makeGetRequest(request)
       Then("We should get a 401")
-      response310.code should equal(401)
+      response.code should equal(401)
       And("error should be " + UserNotLoggedIn)
-      response310.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+  feature(s"Get Customers at Any Bank $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers").GET<@(user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 403")
+      response.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canGetCustomersAtAnyBank
+      And("error should be " + errorMsg)
+      val errorMessage = response.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canGetCustomersAtAnyBank.toString()) should be (true)
+    }
+    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCustomersAtAnyBank.toString)
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers").GET <@(user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+      val customers = response.body.extract[CustomerJSONsV300]
     }
   }
 
-  feature("Create Customer v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
-      val response310 = makePostRequest(request310, write(postCustomerJson))
+  feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers" / "minimal").GET
+      val response = makeGetRequest(request)
+      Then("We should get a 401")
+      response.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+  feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers" / "minimal").GET<@(user1)
+      val response = makeGetRequest(request)
       Then("We should get a 403")
-      response310.code should equal(403)
+      response.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canGetCustomersMinimalAtAnyBank
+      And("error should be " + errorMsg)
+      val errorMessage = response.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canGetCustomersMinimalAtAnyBank.toString()) should be (true)
+    }
+    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAnyBank.toString)
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers" / "minimal").GET <@(user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+      val customers = response.body.extract[CustomersMinimalJsonV400]
+    }
+  }
+  
+
+  feature(s"Create Customer $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST
+      val response = makePostRequest(request, write(postCustomerJson))
+      Then("We should get a 401")
+      response.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+
+  feature(s"Create Customer $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response = makePostRequest(request, write(postCustomerJson))
+      Then("We should get a 403")
+      response.code should equal(403)
       val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
       And("error should be " + errorMsg)
-      val errorMessage = response310.body.extract[ErrorMessage].message
+      val errorMessage = response.body.extract[ErrorMessage].message
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
     }
     scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
-      When("We make a request v3.1.0")
-      val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
-      val response310 = makePostRequest(request310, write(postCustomerJson))
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response = makePostRequest(request, write(postCustomerJson))
       Then("We should get a 201")
-      response310.code should equal(201)
-      val infoPost = response310.body.extract[CustomerJsonV310]
+      response.code should equal(201)
+      val infoPost = response.body.extract[CustomerJsonV310]
 
       When("We make the request: Get Customer specified by CUSTOMER_ID")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)

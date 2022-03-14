@@ -9,7 +9,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
-import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrl, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
@@ -722,6 +722,11 @@ object NewStyle extends MdcLoggable{
         connectorEmptyResponse(_, callContext)
       }
     }
+    def getCustomersAtAllBanks(callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[List[Customer]] = {
+      Connector.connector.vend.getCustomersAtAllBanks(callContext, queryParams) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
     def getCustomersByCustomerPhoneNumber(bankId : BankId, phoneNumber: String, callContext: Option[CallContext]): OBPReturnType[List[Customer]] = {
       Connector.connector.vend.getCustomersByCustomerPhoneNumber(bankId, phoneNumber, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
@@ -914,6 +919,18 @@ object NewStyle extends MdcLoggable{
       createHttpParamsByUrlFuture(url) map { unboxFull(_) }
     }
     def createObpParams(httpParams: List[HTTPParam], allowedParams: List[String], callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
+      val httpParamsAllowed = httpParams.filter(
+        x => allowedParams.contains(x.name)
+      )
+      createQueriesByHttpParamsFuture(httpParamsAllowed) map {
+        x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
+      } map { unboxFull(_) }
+    }
+    
+    def extractQueryParams(url: String,
+                           allowedParams: List[String],
+                           callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
+      val httpParams = createHttpParamsByUrl(url).toList.flatten
       val httpParamsAllowed = httpParams.filter(
         x => allowedParams.contains(x.name)
       )
@@ -3169,8 +3186,8 @@ object NewStyle extends MdcLoggable{
     }
 
     def getPhysicalCardsForUser(user : User, callContext: Option[CallContext]) : OBPReturnType[List[PhysicalCard]] = {
-      Future{Connector.connector.vend.getPhysicalCardsForUser(user : User)} map {
-        i => (unboxFullOrFail(i, callContext, CardNotFound), callContext)
+      Connector.connector.vend.getPhysicalCardsForUser(user : User, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CardNotFound"), i._2)
       }
     }
 
