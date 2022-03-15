@@ -4136,6 +4136,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (boxedData, callContext)
   }
 
+  override def createCustomerMessage(
+    customer: Customer,
+    bankId : BankId,
+    transport: String,
+    message : String,
+    fromDepartment : String,
+    fromPerson : String,
+    callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{
+    val boxedData = Box !! CustomerMessages.customerMessageProvider.vend.createCustomerMessage(customer, bankId, transport, message, fromDepartment, fromPerson)
+    (boxedData, callContext)
+  }
+
+  override def getCustomerMessages(
+    customer: Customer,
+    bankId: BankId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[CustomerMessage]]] = Future{
+    val boxedData = Box !! CustomerMessages.customerMessageProvider.vend.getCustomerMessages(customer, bankId)
+    (boxedData, callContext)
+  }
+
   override def dynamicEntityProcess(operation: DynamicEntityOperation,
                                     entityName: String,
                                     requestBody: Option[JObject],
