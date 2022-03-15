@@ -17,7 +17,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.Glossary.getGlossaryItem
 import code.api.util.NewStyle.HttpCode
-import code.api.util.NewStyle.function.{extractQueryParams, getCustomersAtAllBanks}
+import code.api.util.NewStyle.function.{isValidCurrencyISOCode => isValidCurrencyISOCodeNS, _}
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.newstyle.AttributeDefinition._
@@ -7585,6 +7585,43 @@ trait APIMethods400 {
             )
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCorrelatedUsersInfoByCustomerId,
+      implementedInApiVersion,
+      nameOf(getCorrelatedUsersInfoByCustomerId),
+      "GET",
+      "/customers/CUSTOMER_ID/accounts-minimal",
+      "Get Accounts Minimal by CUSTOMER_ID",
+      s"""Get Accounts Minimal by CUSTOMER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      accountsMinimalJson400,
+      List(
+        $UserNotLoggedIn,
+        CustomerNotFound,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetAccountsMinimalByCustomerID)))
+
+    lazy val GetAccountsMinimalByCustomerId : OBPEndpoint = {
+      case "customers" :: customerId :: "accounts-minimal" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- getCustomerByCustomerId(customerId, cc.callContext)
+            (userCustomerLinks, callContext) <- getUserCustomerLinks(customerId, callContext)
+            (users, callContext) <- getUsersByUserIds(userCustomerLinks.map(_.userId), callContext)
+          } yield {
+            val accountAccess = for (user <- users) yield Views.views.vend.privateViewsUserCanAccess(user)._2
+            (JSONFactory400.createAccountsMinimalJson400(accountAccess.flatten), HttpCode.`200`(callContext))
           }
       }
     }

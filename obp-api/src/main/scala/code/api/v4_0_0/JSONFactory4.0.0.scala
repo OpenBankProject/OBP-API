@@ -58,6 +58,7 @@ import code.standingorders.StandingOrderTrait
 import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.userlocks.UserLocks
 import code.users.{UserAgreement, UserAttribute, UserInvitation}
+import code.views.system.AccountAccess
 import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
@@ -247,6 +248,8 @@ case class FastFirehoseAccountsJsonV400(
   accounts: List[FastFirehoseAccountJsonV400]
 )
 
+case class AccountMinimalJson400(bankId: String, account_id: String, view_id: String)
+case class AccountsMinimalJson400(accounts: List[AccountMinimalJson400])
 case class ModeratedAccountJSON400(
                                     id : String,
                                     label : String,
@@ -1252,7 +1255,17 @@ object JSONFactory400 {
     )
   }
 
-
+  def createAccountMinimalJson400(accountAccess: AccountAccess): AccountMinimalJson400 = {
+    AccountMinimalJson400(
+      bankId = accountAccess.bank_id.get,
+      account_id = accountAccess.account_id.get,
+      view_id = accountAccess.view_id.get
+    )
+  }
+  def createAccountsMinimalJson400(accountAccesses: List[AccountAccess]): AccountsMinimalJson400 = {
+    AccountsMinimalJson400(accountAccesses.map(createAccountMinimalJson400))
+  }
+  
   def createEntitlementJSONs(entitlements: List[Entitlement]): EntitlementsJsonV400 = {
     EntitlementsJsonV400(entitlements.map(entitlement => EntitlementJsonV400(
       entitlement_id = entitlement.entitlementId,

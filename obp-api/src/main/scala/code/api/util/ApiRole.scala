@@ -870,7 +870,10 @@ object ApiRole {
   lazy val canGetBankLevelEndpointTag = CanGetBankLevelEndpointTag()
   
   case class CanCreateHistoricalTransactionAtBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canCreateHistoricalTransactionAtBank = CanCreateHistoricalTransactionAtBank()
+  lazy val canCreateHistoricalTransactionAtBank = CanCreateHistoricalTransactionAtBank(),
+
+  case class CanGetAccountsMinimalByCustomerID(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAccountsMinimalByCustomerID = CanGetAccountsMinimalByCustomerID()
   
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
