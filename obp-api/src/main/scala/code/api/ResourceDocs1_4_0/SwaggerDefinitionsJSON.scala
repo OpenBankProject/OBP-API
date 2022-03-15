@@ -4535,6 +4535,26 @@ object SwaggerDefinitionsJSON {
     meta = metaJson,
   )
 
+  val createMessageJsonV400 = CreateMessageJsonV400(
+    message = messageExample.value,
+    transport = transportExample.value,
+    from_department = fromDepartmentExample.value,
+    from_person = fromPersonExample.value,
+  )
+
+  val customerMessageJsonV400 = CustomerMessageJsonV400(
+    id = customerMessageId.value,
+    date = DateWithDayExampleObject,
+    transport = transportExample.value,
+    message = messageExample.value,
+    from_department = fromDepartmentExample.value,
+    from_person = fromPersonExample.value,
+  )
+
+  val customerMessagesJsonV400 = CustomerMessagesJsonV400(
+    messages = List(customerMessageJsonV400)
+  )
+
   val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   val entitlementJsonV400 = EntitlementJsonV400(

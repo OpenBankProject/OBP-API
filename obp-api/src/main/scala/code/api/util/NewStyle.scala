@@ -2255,7 +2255,39 @@ object NewStyle extends MdcLoggable{
         fromDepartment : String,
         fromPerson : String,
         callContext: Option[CallContext]) map {
+          i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Can not create message in the backend.", 400), i._2)
+      }
+    }
+
+    def createCustomerMessage(
+      customer: Customer,
+      bankId: BankId,
+      transport: String,
+      message: String,
+      fromDepartment: String,
+      fromPerson: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[CustomerMessage] = {
+      Connector.connector.vend.createCustomerMessage(
+        customer: Customer,
+        bankId : BankId,
+        transport: String,
+        message : String,
+        fromDepartment : String,
+        fromPerson : String,
+        callContext: Option[CallContext]
+      ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Can not create message in the backend.", 400), i._2)
+      }
+    }
+    
+     def getCustomerMessages(customer : Customer, bankId : BankId, callContext: Option[CallContext]) : OBPReturnType[List[CustomerMessage]] = {
+      Connector.connector.vend.getCustomerMessages(
+        customer : Customer, 
+        bankId : BankId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse  Can not get messages in the backend.", 400), i._2)
       }
     }
 

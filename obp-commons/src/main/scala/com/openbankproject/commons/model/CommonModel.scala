@@ -451,7 +451,8 @@ case class CustomerMessageCommons(
   override val date: Date,
   override val message: String,
   override val fromDepartment: String,
-  override val fromPerson: String
+  override val fromPerson: String,
+  override val transport: Option[String] = None,
 ) extends CustomerMessage
 object CustomerMessageCommons extends Converter[CustomerMessage, CustomerMessageCommons]
 

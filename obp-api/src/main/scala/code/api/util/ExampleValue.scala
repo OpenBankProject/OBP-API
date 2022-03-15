@@ -1126,8 +1126,21 @@ object ExampleValue {
   lazy val accountWebhookIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("account_webhook_id", accountWebhookIdExample)
 
-  lazy val messageExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val customerMessageId = ConnectorField("5995d6a2-01b3-423c-a173-5481df49bdaf",
+    "A string that, in combination with the bankId MUST uniquely identify the customer message on this OBP instance")
+  glossaryItems += makeGlossaryItem("id", customerMessageId)
+  
+  lazy val messageExample = ConnectorField("123456","The messsage content to send to customer.")
   glossaryItems += makeGlossaryItem("message", messageExample)
+
+  lazy val transportExample = ConnectorField("SMS", "It can be SMS or Email or other transport types")
+  glossaryItems += makeGlossaryItem("transport", transportExample)
+  
+  lazy val fromDepartmentExample = ConnectorField("Open Bank", "The department of the sender")
+  glossaryItems += makeGlossaryItem("from_department", fromDepartmentExample)
+  
+  lazy val fromPersonExample = ConnectorField("Tom", "The name of the sender")
+  glossaryItems += makeGlossaryItem("from_person", fromPersonExample)
 
   lazy val canSeePrivateAliasExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_private_alias", canSeePrivateAliasExample)
@@ -1702,9 +1715,6 @@ object ExampleValue {
   lazy val canBeSeenOnViewsExample = ConnectorField(booleanTrue,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_be_seen_on_views", canBeSeenOnViewsExample)
 
-  lazy val fromPersonExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("from_person", fromPersonExample)
-
   lazy val kidExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("kid", kidExample)
 
@@ -1917,9 +1927,6 @@ object ExampleValue {
 
   lazy val canSeeWhereTagExample = ConnectorField(booleanTrue,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_where_tag", canSeeWhereTagExample)
-
-  lazy val fromDepartmentExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("from_department", fromDepartmentExample)
 
   lazy val bankidExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("bankid", bankidExample)

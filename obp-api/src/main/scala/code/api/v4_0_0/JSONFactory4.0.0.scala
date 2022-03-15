@@ -28,7 +28,6 @@ package code.api.v4_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil
@@ -986,8 +985,43 @@ case class UserJsonV400(
                        )
 case class UsersJsonV400(users: List[UserJsonV400])
 
+case class CreateMessageJsonV400(
+  message : String, 
+  transport : String,
+  from_department : String, 
+  from_person : String
+)
+
+case class CustomerMessagesJsonV400(
+  messages: List[CustomerMessageJsonV400]
+)
+
+case class CustomerMessageJsonV400(
+  id: String, 
+  date: Date, 
+  transport: String,
+  message: String, 
+  from_department: String, 
+  from_person: String
+)
+
 object JSONFactory400 {
 
+  def createCustomerMessageJson(cMessage : CustomerMessage) : CustomerMessageJsonV400 = {
+    CustomerMessageJsonV400(
+      id = cMessage.messageId,
+      date = cMessage.date,
+      transport = cMessage.transport.getOrElse(""),
+      message = cMessage.message,
+      from_department = cMessage.fromDepartment,
+      from_person = cMessage.fromPerson
+    )
+  }
+
+  def createCustomerMessagesJson(messages : List[CustomerMessage]) : CustomerMessagesJsonV400 = {
+    CustomerMessagesJsonV400(messages.map(createCustomerMessageJson))
+  }
+  
   def createUserInfoJSON(user : User, entitlements: List[Entitlement], agreements: Option[List[UserAgreement]], isLocked:Boolean) : UserJsonV400 = {
     UserJsonV400(
       user_id = user.userId,
