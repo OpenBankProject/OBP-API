@@ -7427,7 +7427,7 @@ trait APIMethods400 {
               json.extract[CreateUserCustomerLinkJson]
             }
             user <- Users.users.vend.getUserByUserIdFuture(postedData.user_id) map {
-              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUserId, 404)
             }
             _ <- booleanToFuture("Field customer_id is not defined in the posted json!", 400, cc.callContext) {
               postedData.customer_id.nonEmpty
