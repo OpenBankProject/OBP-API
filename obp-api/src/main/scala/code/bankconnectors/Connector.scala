@@ -2414,6 +2414,20 @@ trait Connector extends MdcLoggable {
                     fromDepartment : String,
                     fromPerson : String,
                     callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def createCustomerMessage(customer: Customer,
+                    bankId : BankId,
+                    message : String,
+                    fromDepartment : String,
+                    fromPerson : String,
+                    transport : String,
+                    callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getCustomerMessages(
+    customer: Customer,
+    bankId: BankId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[CustomerMessage]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def makeHistoricalPayment(fromAccount: BankAccount,
                             toAccount: BankAccount,
