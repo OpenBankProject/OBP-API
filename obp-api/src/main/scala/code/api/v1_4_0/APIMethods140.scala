@@ -98,7 +98,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       "getCustomerMessages",
       "GET",
       "/banks/BANK_ID/customer/messages",
-      "Get Customer Messages (current)",
+      "Get Customer Messages for a Customer",
       """Get messages for the logged in customer
       |Messages sent to the currently authenticated user.
       |
