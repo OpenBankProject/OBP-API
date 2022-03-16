@@ -1302,6 +1302,72 @@ object Glossary extends MdcLoggable  {
 			|
 
 		  """)
+
+	glossaryItems += GlossaryItem(
+		title = "Scenario 6: Update credit score based on transaction and device data.",
+		description =
+			s"""
+			|### 1) Use Case
+			|
+			| As an App developer you want to give a Credit Rating to a Customer based on their Transactions and also device data.
+			|
+|### 2) Solution Overview:
+|
+|In general your application will need to:
+|				1) Loop through Customers
+|     	2) For each Customer, get its related Users and associated device data
+|       3) For each Customer or User get the related accounts
+|       4) For each Account, get its Transaction data
+|       5) Update the Credit Rating and Credit Rating Readiness score of the Customer.
+|
+|### 3) Authentication and Authorisation
+|
+|Depending on the configuration of this OBP instance, the Consumer will need Scopes and / or the User will need Entitlements.
+|To get started, we suggest requesting Entitlements via the API Explorer.
+|
+|### 4) Endpoints
+|
+|* Get Customers (minimal). Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getCustomersMinimalAtAnyBank&currentTag=Customer#OBPv4_0_0-getCustomersMinimalAtAnyBank) for documentation.
+|
+|Alternatively you could use the following endpoint which returns more information about the customer.
+|
+|* Get Customers. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getCustomersMinimalAtAnyBank&currentTag=Customer#OBPv4_0_0-getCustomersAtAnyBank) for documentation.
+|
+|
+|The above endpoints return a list of bank_id and customer_id which can be used for getting correlated Users and their attributes:
+|
+|* Get Correlated Users for a Customer. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getCustomersMinimalAtAnyBank&currentTag=Customer#OBPv4_0_0-getCorrelatedUsersInfoByCustomerId) for documentation.
+|
+|Then get Accounts related to a User:
+|
+|* Get Accounts (firehose). Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getFastFirehoseAccountsAtOneBank&currentTag=Account#OBPv4_0_0-getFastFirehoseAccountsAtOneBank) for documentation.
+|
+|The response from the above endpoint will need parsing to extract the user_id from the owners field.
+|
+|Or, get accounts related to a Customer
+|
+|* GET Accounts Minimal by Customer ID. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getFastFirehoseAccountsAtOneBank&currentTag=Account#group-Account) for documentation.
+|
+|Once you have the accounts, you can get their transactions which include metadata in tags:
+|
+|* GET Firehose Transactions. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv3_0_0-getFirehoseTransactionsForBankAccount&currentTag=Transaction#OBPv3_0_0-getFirehoseTransactionsForBankAccount) for documentation.
+|
+|After your processing of the data you can update the Credit Score:
+|
+|* Update Credit Score. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv3_1_0-updateCustomerCreditRatingAndSource&currentTag=Customer#OBPv3_1_0-updateCustomerCreditRatingAndSource) for documentation.
+|
+|You can create a CREDIT_SCORE_READINESS attribute using the following endpoint:
+|
+|* Create Customer Attribute. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv3_1_0-updateCustomerCreditRatingAndSource&currentTag=Customer#OBPv4_0_0-createCustomerAttribute) for documentation.
+|
+|And update it here:
+|
+|* Update Customer Attribute. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv3_1_0-updateCustomerCreditRatingAndSource&currentTag=Customer#OBPv4_0_0-updateCustomerAttribute) for documentation.
+|
+|""")
+
+
+
 	glossaryItems += GlossaryItem(
 		title = "KYC (Know Your Customer)",
 		description =

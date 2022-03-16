@@ -370,6 +370,12 @@ object ApiRole {
 
   case class CanSetCallLimits(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSetCallLimits = CanSetCallLimits()
+  
+  case class CanCreateCustomerMessage(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateCustomerMessage = CanCreateCustomerMessage()  
+  
+  case class CanGetCustomerMessages(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerMessages = CanGetCustomerMessages()
 
   case class CanReadCallLimits(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadCallLimits = CanReadCallLimits()

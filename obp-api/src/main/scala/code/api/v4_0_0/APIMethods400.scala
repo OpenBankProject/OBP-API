@@ -3,7 +3,6 @@ package code.api.v4_0_0
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
-
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -7428,7 +7427,7 @@ trait APIMethods400 {
               json.extract[CreateUserCustomerLinkJson]
             }
             user <- Users.users.vend.getUserByUserIdFuture(postedData.user_id) map {
-              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUserId, 404)
             }
             _ <- booleanToFuture("Field customer_id is not defined in the posted json!", 400, cc.callContext) {
               postedData.customer_id.nonEmpty
@@ -12026,6 +12025,88 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      createCustomerMessage,
+      implementedInApiVersion,
+      nameOf(createCustomerMessage),
+      "POST",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/messages",
+      "Create Customer Message",
+      s"""
+         |Create a message for the customer specified by CUSTOMER_ID 
+         |${authenticationRequiredMessage(true)}
+         | 
+         |""".stripMargin,
+      createMessageJsonV400,
+      successMessage,
+      List(
+        UserNotLoggedIn,
+        $BankNotFound
+      ),
+      List(apiTagMessage, apiTagCustomer, apiTagPerson),
+      Some(List(canCreateCustomerMessage))
+    )
+
+    lazy val createCustomerMessage : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "messages" :: Nil JsonPost json -> _ => {
+        cc =>{
+          for {
+            (Full(u), callContext) <- SS.user 
+            failMsg = s"$InvalidJsonFormat The Json body should be the $CreateMessageJsonV400 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateMessageJsonV400]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)
+            (_, callContext)<- NewStyle.function.createCustomerMessage(
+              customer,
+              bankId,
+              postedData.transport,
+              postedData.message,
+              postedData.from_department,
+              postedData.from_person,
+              callContext
+            )
+          } yield {
+            (successMessage, HttpCode.`201`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+     getCustomerMessages,
+     implementedInApiVersion,
+     nameOf(getCustomerMessages),
+     "GET",
+     "/banks/BANK_ID/customers/CUSTOMER_ID/messages",
+     "Get Customer Messages (current)",
+     s"""Get messages for the customer specified by CUSTOMER_ID
+         ${authenticationRequiredMessage(true)}
+        """,
+     emptyObjectJson,
+     customerMessagesJsonV400,
+     List(
+       UserNotLoggedIn,
+       $BankNotFound,
+       UnknownError),
+     List(apiTagMessage, apiTagCustomer),
+     Some(List(canGetCustomerMessages)) 
+    )
+
+    lazy val getCustomerMessages: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "messages" :: Nil JsonGet _ => {
+        cc =>{
+          for {
+            (Full(u), callContext) <- SS.user 
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, callContext)   
+            (messages, callContext) <- NewStyle.function.getCustomerMessages(customer, bankId, callContext)   
+          } yield {
+            (JSONFactory400.createCustomerMessagesJson(messages), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+    
   }
 
   private def checkRoleBankIdExsiting(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {
