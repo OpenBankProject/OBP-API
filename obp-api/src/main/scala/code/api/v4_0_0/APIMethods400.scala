@@ -7590,9 +7590,9 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
-      getCorrelatedUsersInfoByCustomerId,
+      getAccountsMinimalByCustomerId,
       implementedInApiVersion,
-      nameOf(getCorrelatedUsersInfoByCustomerId),
+      nameOf(getAccountsMinimalByCustomerId),
       "GET",
       "/customers/CUSTOMER_ID/accounts-minimal",
       "Get Accounts Minimal by CUSTOMER_ID",
@@ -7608,10 +7608,10 @@ trait APIMethods400 {
         CustomerNotFound,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagAccount, apiTagNewStyle),
       Some(List(canGetAccountsMinimalByCustomerID)))
 
-    lazy val GetAccountsMinimalByCustomerId : OBPEndpoint = {
+    lazy val getAccountsMinimalByCustomerId : OBPEndpoint = {
       case "customers" :: customerId :: "accounts-minimal" :: Nil JsonGet _ => {
         cc =>
           for {
