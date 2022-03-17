@@ -820,7 +820,7 @@ object SwaggerDefinitionsJSON {
   )
 
   val accountMinimalJson400 = AccountMinimalJson400(
-    bankId = bankIdExample.value,
+    bank_id = bankIdExample.value,
     account_id = accountIdExample.value,
     view_id = viewIdExample.value
   )
