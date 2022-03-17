@@ -1338,17 +1338,11 @@ object Glossary extends MdcLoggable  {
 |
 |* Get Correlated Users for a Customer. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getCustomersMinimalAtAnyBank&currentTag=Customer#OBPv4_0_0-getCorrelatedUsersInfoByCustomerId) for documentation.
 |
-|Then get Accounts related to a User:
+|Then get Accounts related to a Customer:
 |
-|* Get Accounts (firehose). Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getFastFirehoseAccountsAtOneBank&currentTag=Account#OBPv4_0_0-getFastFirehoseAccountsAtOneBank) for documentation.
+|* GET Accounts Minimal for a Customer. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getAccountsMinimalByCustomerId&currentTag=Account#OBPv4_0_0-getAccountsMinimalByCustomerId) for documentation.
 |
-|The response from the above endpoint will need parsing to extract the user_id from the owners field.
-|
-|Or, get accounts related to a Customer
-|
-|* GET Accounts Minimal by Customer ID. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getFastFirehoseAccountsAtOneBank&currentTag=Account#group-Account) for documentation.
-|
-|Once you have the accounts, you can get their transactions which include metadata in tags:
+|Once you have the list of bank_ids and account_ids, you can get their transactions which include tags for each transaction:
 |
 |* GET Firehose Transactions. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv3_0_0-getFirehoseTransactionsForBankAccount&currentTag=Transaction#OBPv3_0_0-getFirehoseTransactionsForBankAccount) for documentation.
 |
