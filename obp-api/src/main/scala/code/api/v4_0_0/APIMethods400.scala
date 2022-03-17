@@ -12079,7 +12079,7 @@ trait APIMethods400 {
      nameOf(getCustomerMessages),
      "GET",
      "/banks/BANK_ID/customers/CUSTOMER_ID/messages",
-     "Get Customer Messages (current)",
+     "Get Customer Messages for a Customer",
      s"""Get messages for the customer specified by CUSTOMER_ID
          ${authenticationRequiredMessage(true)}
         """,

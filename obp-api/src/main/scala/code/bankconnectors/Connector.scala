@@ -2417,10 +2417,10 @@ trait Connector extends MdcLoggable {
   
   def createCustomerMessage(customer: Customer,
                     bankId : BankId,
+                    transport : String,
                     message : String,
                     fromDepartment : String,
                     fromPerson : String,
-                    transport : String,
                     callContext: Option[CallContext]) : OBPReturnType[Box[CustomerMessage]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getCustomerMessages(
