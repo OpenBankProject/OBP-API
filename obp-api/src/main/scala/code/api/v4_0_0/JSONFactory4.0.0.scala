@@ -247,7 +247,7 @@ case class FastFirehoseAccountsJsonV400(
   accounts: List[FastFirehoseAccountJsonV400]
 )
 
-case class AccountMinimalJson400(bankId: String, account_id: String, view_id: String)
+case class AccountMinimalJson400(bank_id: String, account_id: String, view_id: String)
 case class AccountsMinimalJson400(accounts: List[AccountMinimalJson400])
 case class ModeratedAccountJSON400(
                                     id : String,
@@ -1291,7 +1291,7 @@ object JSONFactory400 {
 
   def createAccountMinimalJson400(accountAccess: AccountAccess): AccountMinimalJson400 = {
     AccountMinimalJson400(
-      bankId = accountAccess.bank_id.get,
+      bank_id = accountAccess.bank_id.get,
       account_id = accountAccess.account_id.get,
       view_id = accountAccess.view_id.get
     )

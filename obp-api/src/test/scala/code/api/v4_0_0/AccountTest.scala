@@ -3,7 +3,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.accountAttributeJson
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateUserCustomerLink, CanGetAccountsMinimalByCustomerID, canGetCustomersMinimalAtAnyBank}
+import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateUserCustomerLink, CanGetAccountsMinimalForCustomerAtAnyBank, canGetCustomersMinimalAtAnyBank}
 import code.api.util.ErrorMessages.{BankAccountNotFoundByAccountRouting, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v2_0_0.BasicAccountJSON
@@ -435,10 +435,10 @@ class AccountTest extends V400ServerSetup {
       badResponseGet.code should equal(403)
       val errorMessage = badResponseGet.body.extract[ErrorMessage].message
       errorMessage contains UserHasMissingRoles should be (true)
-      errorMessage contains CanGetAccountsMinimalByCustomerID.toString() should be (true)
+      errorMessage contains CanGetAccountsMinimalForCustomerAtAnyBank.toString() should be (true)
 
       // All good
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAccountsMinimalByCustomerID.toString())
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAccountsMinimalForCustomerAtAnyBank.toString())
       val goodResponseGet = makeGetRequest(requestGet)
       goodResponseGet.code should equal(200)
       goodResponseGet.body.extract[AccountsMinimalJson400]

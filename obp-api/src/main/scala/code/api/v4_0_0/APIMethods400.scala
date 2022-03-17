@@ -7595,7 +7595,7 @@ trait APIMethods400 {
       nameOf(getAccountsMinimalByCustomerId),
       "GET",
       "/customers/CUSTOMER_ID/accounts-minimal",
-      "Get Accounts Minimal by CUSTOMER_ID",
+      "Get Accounts Minimal for a Customer",
       s"""Get Accounts Minimal by CUSTOMER_ID
          |
          |${authenticationRequiredMessage(true)}
@@ -7609,7 +7609,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagAccount, apiTagNewStyle),
-      Some(List(canGetAccountsMinimalByCustomerID)))
+      Some(List(canGetAccountsMinimalForCustomerAtAnyBank)))
 
     lazy val getAccountsMinimalByCustomerId : OBPEndpoint = {
       case "customers" :: customerId :: "accounts-minimal" :: Nil JsonGet _ => {
