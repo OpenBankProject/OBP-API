@@ -1329,11 +1329,6 @@ object Glossary extends MdcLoggable  {
 |
 |* Get Customers (minimal). Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getCustomersMinimalAtAnyBank&currentTag=Customer#OBPv4_0_0-getCustomersMinimalAtAnyBank) for documentation.
 |
-|Alternatively you could use the following endpoint which returns more information about the customer.
-|
-|* Get Customers. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getCustomersMinimalAtAnyBank&currentTag=Customer#OBPv4_0_0-getCustomersAtAnyBank) for documentation.
-|
-|
 |The above endpoints return a list of bank_id and customer_id which can be used for getting correlated Users and their attributes:
 |
 |* Get Correlated Users for a Customer. Click [here](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getCustomersMinimalAtAnyBank&currentTag=Customer#OBPv4_0_0-getCorrelatedUsersInfoByCustomerId) for documentation.
