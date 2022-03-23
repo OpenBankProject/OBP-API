@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 object UserCustomerLinkNewStyle {
 
-  def getUserCustomerLink(userId: String,
+  def getUserCustomerLinksByUserId(userId: String,
                              callContext: Option[CallContext]
                             ): OBPReturnType[List[UserCustomerLink]] = {
     Future(UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(userId: String), callContext)
