@@ -7570,48 +7570,7 @@ trait APIMethods400 {
               HttpCode.`200`(callContext))
           }
       }
-    }   
-
-    staticResourceDocs += ResourceDoc(
-      getMyCorrelatedCustomers,
-      implementedInApiVersion,
-      nameOf(getMyCorrelatedCustomers),
-      "GET",
-      "/my/correlated-customers",
-      "Get Correlated Customers for the current User",
-      s"""Get Correlated Customers for the current User 
-         |
-         |${authenticationRequiredMessage(true)}
-         |
-         |""",
-      EmptyBody,
-      customerAndUsersWithAttributesResponseJson,
-      List(
-        $UserNotLoggedIn,
-        $BankNotFound,
-        UnknownError
-      ),
-      List(apiTagCustomer, apiTagNewStyle))
-
-    lazy val getMyCorrelatedCustomers: OBPEndpoint = {
-      case "my" :: "correlated-customers" :: Nil JsonGet _ => {
-        cc =>
-          for {
-            (Full(u), callContext) <- SS.user
-            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinksByUserId(
-              u.userId,
-              callContext
-            )
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId("13", cc.callContext)
-            (userCustomerLinks, callContext) <- getUserCustomerLinks("123", callContext)
-            (users, callContext) <- NewStyle.function.getUsersByUserIds(userCustomerLinks.map(_.userId), callContext)
-            (attributes, callContext) <- NewStyle.function.getUserAttributesByUsers(userCustomerLinks.map(_.userId), callContext)
-          } yield {
-            (JSONFactory400.createCustomerAdUsersWithAttributesJson(customer, users, attributes), HttpCode.`200`(callContext))
-          }
-      }
     }
-
 
     staticResourceDocs += ResourceDoc(
       createCustomer,
