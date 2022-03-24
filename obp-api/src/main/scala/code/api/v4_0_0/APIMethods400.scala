@@ -7378,7 +7378,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "user_customer_links" :: "users" :: userId :: Nil JsonGet _ => {
         cc =>
           for {
-            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLink(
+            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinksByUserId(
               userId,
               cc.callContext
             )
@@ -7497,7 +7497,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      correlatedUsersResponseJson,
+      customerAndUsersWithAttributesResponseJson,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -7520,6 +7520,57 @@ trait APIMethods400 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getMyCorrelatedEntities,
+      implementedInApiVersion,
+      nameOf(getMyCorrelatedEntities),
+      "GET",
+      "/my/correlated-entities",
+      "Get Correlated Entities for the current User",
+      s"""Correlated Entities are users and customers linked to the currently authenticated user via User-Customer-Links
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      correlatedUsersResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle))
+
+    private def getCorrelatedUsersInfo(userCustomerLink:UserCustomerLink, callContext: Option[CallContext]) = for {
+      (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(userCustomerLink.customerId, callContext)
+      (userCustomerLinks, callContext) <- getUserCustomerLinks(userCustomerLink.customerId, callContext)
+      (users, callContext) <- NewStyle.function.getUsersByUserIds(userCustomerLinks.map(_.userId), callContext)
+      (attributes, callContext) <- NewStyle.function.getUserAttributesByUsers(userCustomerLinks.map(_.userId), callContext)
+    } yield{
+      (customer, users, attributes, callContext)
+    }
+    
+    lazy val getMyCorrelatedEntities : OBPEndpoint = {
+      case "my" :: "correlated-entities" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user  
+            (userCustomerLinks, callContext) <- UserCustomerLinkNewStyle.getUserCustomerLinksByUserId(
+              u.userId,
+              callContext
+            )
+            correlatedUserInfoList <- Future.sequence(userCustomerLinks.map(getCorrelatedUsersInfo(_, callContext)))
+          } yield {
+            (CorrelatedEntities(correlatedUserInfoList.map(
+              correlatedUserInfo => 
+                JSONFactory400.createCustomerAdUsersWithAttributesJson(
+                  correlatedUserInfo._1, 
+                  correlatedUserInfo._2, 
+                  correlatedUserInfo._3))), 
+              HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createCustomer,

@@ -2,7 +2,6 @@ package code.api.v4_0_0
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
@@ -11,7 +10,7 @@ import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, CanCreateCusto
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_2_1._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
-import code.api.v2_0_0.{BasicAccountsJSON, TransactionRequestBodyJsonV200}
+import code.api.v2_0_0.{BasicAccountsJSON, TransactionRequestBodyJsonV200, UserCustomerLinkJson}
 import code.api.v2_1_0.{TransactionRequestWithChargeJSON210, TransactionRequestWithChargeJSONs210}
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, TransactionsJsonV300, UserJsonV300, ViewJsonV300}
 import code.api.v3_1_0._
@@ -191,6 +190,16 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       response310.body.extract[CustomerJsonV310]
     }
     createCustomer(consumerAndToken).customer_id
+  } 
+  
+  //This will call create user customer link
+  def createUserCustomerLink(bankId:String, userId:String, customerId:String ) = {
+    val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
+      .copy(user_id = userId, customer_id = customerId)
+    Entitlement.entitlement.vend.addEntitlement(bankId, userId, CanCreateUserCustomerLink.toString())
+    val createRequest = (v4_0_0_Request / "banks" / bankId / "user_customer_links" ).POST <@(user1)
+    val response = makePostRequest(createRequest, write(postJson)).body.extract[UserCustomerLinkJson]
+    response
   }
   
   def createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, consumerAndToken: Option[(Consumer, Token)], postCustomerAttributeJson: Option[CustomerAttributeJsonV400] = None) = {

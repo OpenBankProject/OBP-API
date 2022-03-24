@@ -460,6 +460,10 @@ case class CustomerAndUsersWithAttributesResponseJson(
                                           users: List[UserWithAttributesResponseJson]
                                           )
 
+case class CorrelatedEntities(
+  correlated_entities: List[CustomerAndUsersWithAttributesResponseJson]
+)
+
 case class CustomerAttributeJsonV400(
   name: String,
   `type`: String,
