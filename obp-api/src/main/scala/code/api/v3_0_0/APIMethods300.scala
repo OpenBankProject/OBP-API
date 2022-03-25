@@ -1812,7 +1812,7 @@ trait APIMethods300 {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementRequestJSON "
                 x => unboxFullOrFail(x, callContext, msg)
               }
-              _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(BankId(postedData.bank_id), callContext)}
+              _ <- if (postedData.bank_id == "") Future.successful("") else NewStyle.function.getBank(BankId(postedData.bank_id), callContext)
               
               _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", "), cc=callContext) {
                 availableRoles.exists(_ == postedData.role_name)
