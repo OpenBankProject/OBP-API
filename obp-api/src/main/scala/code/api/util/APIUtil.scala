@@ -571,16 +571,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     JsonResponse(jsonAst, getHeaders() ::: headers.list, Nil, httpCode)
   }
 
+  // exclude all values that defined in props "excluded.response.field.values"
+  val excludedFieldValues = APIUtil.getPropsValue("excluded.response.field.values").map[JArray](it => json.parse(it).asInstanceOf[JArray])
+
   def successJsonResponseNewStyle(cc: Any, callContext: Option[CallContext], httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val jsonAst: JValue = ApiSession.processJson((Extraction.decompose(cc)), callContext)
-
-    // exclude all values that defined in props "excluded.response.field.values"
-    val excludedFieldValues = APIUtil.getPropsValue("excluded.response.field.values").map[JArray](it => json.parse(it).asInstanceOf[JArray])
     val jsonValue = excludedFieldValues match {
       case Full(JArray(arr:List[JValue])) =>
         JsonUtils.deleteFieldRec(jsonAst)(v => arr.contains(v.value))
       case _ => jsonAst
     }
+
     callContext match {
       case Some(c) if c.httpCode.isDefined && c.httpCode.get == 204 =>
         val httpBody = None
