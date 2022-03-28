@@ -5349,4 +5349,42 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]) = 
     UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.checkAnswer(authContextUpdateId, challenge) map { ( _, callContext) }
+
+  override def sendCustomerNotification(
+    scaMethod: StrongCustomerAuthentication,
+    recipient: String,
+    subject: Option[String], //Only for EMAIL, SMS do not need it, so here it is Option
+    message: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[String]] = {
+    if (scaMethod == StrongCustomerAuthentication.EMAIL){ // Send the email
+      val params = PlainMailBodyType(message) :: List(To(recipient))
+      Mailer.sendMail(From("challenge@tesobe.com"), Subject("OBP Consent Challenge"), params :_*)
+      Future{(Full("Success"), callContext)}
+    } else if (scaMethod == StrongCustomerAuthentication.SMS){ // Send the SMS
+      for {
+        phoneNumber <- Future.successful(recipient)
+        failMsg =s"$MissingPropsValueAtThisInstance sca_phone_api_key"
+        smsProviderApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
+          APIUtil.getPropsValue("sca_phone_api_key").openOrThrowException(s"")
+        }
+        failMsg = s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
+        smsProviderApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
+          APIUtil.getPropsValue("sca_phone_api_secret").openOrThrowException(s"")
+        }
+        client = new NexmoClient.Builder()
+          .apiKey(smsProviderApiKey)
+          .apiSecret(smsProviderApiSecret)
+          .build();
+        messageSent = new TextMessage("OBP-API", phoneNumber, message);
+        response <- Future{client.getSmsClient().submitMessage(messageSent)}
+        failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
+        _ <- Helper.booleanToFuture(failMsg, cc=callContext) {
+          response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
+        }
+      }yield Future{(Full("Success"), callContext)}
+    } else
+      Future{(Full("Success"), callContext)}
+  }
+  
 }

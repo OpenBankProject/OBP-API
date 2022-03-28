@@ -2514,4 +2514,12 @@ trait Connector extends MdcLoggable {
 
   def checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def sendCustomerNotification(
+    scaMethod: StrongCustomerAuthentication,
+    recipient: String, 
+    subject: Option[String], //Only for EMAIL, SMS do not need it, so here it is Option
+    message: String, 
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[String]] = Future{(Failure(setUnimplementedError), callContext)}
+  
 }

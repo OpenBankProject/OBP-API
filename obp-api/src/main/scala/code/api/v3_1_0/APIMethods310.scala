@@ -3535,9 +3535,14 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                params = PlainMailBodyType(challengeText) :: List(To(postConsentEmailJson.email))
-                _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("OBP Consent Challenge"), params :_*)}
-              } yield Future{true}
+                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                  StrongCustomerAuthentication.EMAIL, 
+                  postConsentEmailJson.email, 
+                  Some("OBP Consent Challenge"),
+                  challengeText, 
+                  callContext
+                )
+              } yield Future{status}
             case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
               for {
                 failMsg <- Future {
@@ -3547,27 +3552,15 @@ trait APIMethods310 {
                   json.extract[PostConsentPhoneJsonV310]
                 }
                 phoneNumber = postConsentPhoneJson.phone_number
-                failMsg =s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-                smsProviderApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                  APIUtil.getPropsValue("sca_phone_api_key").openOrThrowException(s"")
-                }
-                failMsg = s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-                smsProviderApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                   APIUtil.getPropsValue("sca_phone_api_secret").openOrThrowException(s"")
-                }
-                client = new NexmoClient.Builder()
-                  .apiKey(smsProviderApiKey)
-                  .apiSecret(smsProviderApiSecret)
-                  .build();
-                messageText = challengeText;
-                message = new TextMessage("OBP-API", phoneNumber, messageText);
-                response <- Future{client.getSmsClient().submitMessage(message)}
-                failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
-                _ <- Helper.booleanToFuture(failMsg, cc=callContext) {
-                  response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
-                }
-              } yield Future{true}
-            case _ =>Future{true}
+                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                  StrongCustomerAuthentication.SMS, 
+                  phoneNumber, 
+                  None,
+                  challengeText, 
+                  callContext
+                )
+              } yield Future{status}
+            case _ =>Future{"Success"}
             }
           } yield {
             (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
