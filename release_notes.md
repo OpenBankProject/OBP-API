@@ -3,6 +3,8 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+31/03/2022    a0262c3f      added new value SIMPLE to props `transactionRequests_supported_types`  
+                            added new props `SIMPLE_OTP_INSTRUCTION_TRANSPORT`, default value is `DUMMY`
 24/02/2022    2882805c      removed `kafka`,`kafka_vJune2017` and `kafka_vMar2017` connectors
 24/02/2022    c7a206fc      removed `obpjvm` relevent connectors and java adapter `obp-ri-xxx` dependences
 18/01/2022    150a4d53      Added the security manager relevant props,they only used for the dynamic code endpoints
