@@ -4318,6 +4318,27 @@ object SwaggerDefinitionsJSON {
     challenges = List(challengeJsonV400),
     charge = transactionRequestChargeJsonV200
   )
+
+  val postSimpleCounterpartyJson400 = PostSimpleCounterpartyJson400(
+    name = counterpartyNameExample.value,
+    description = transactionDescriptionExample.value,
+    other_account_routing_scheme = counterpartyOtherAccountRoutingSchemeExample.value,
+    other_account_routing_address = counterpartyOtherAccountRoutingAddressExample.value,
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address = counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+    other_bank_routing_scheme = counterpartyOtherBankRoutingSchemeExample.value,
+    other_bank_routing_address = counterpartyOtherBankRoutingAddressExample.value,
+    other_branch_routing_scheme = counterpartyOtherBranchRoutingSchemeExample.value,
+    other_branch_routing_address = counterpartyOtherBranchRoutingAddressExample.value
+  )
+  
+  val transactionRequestBodySimpleJsonV400 = TransactionRequestBodySimpleJsonV400(
+    to= postSimpleCounterpartyJson400,
+    amountOfMoneyJsonV121,
+    "A description for the transaction to the counterparty",
+    "SHARED",
+    Some("20881230")
+  )
   
   val postApiCollectionJson400 = PostApiCollectionJson400(apiCollectionNameExample.value, true, Some(descriptionExample.value))
   

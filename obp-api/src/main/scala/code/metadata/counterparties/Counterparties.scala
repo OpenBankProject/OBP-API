@@ -37,6 +37,20 @@ trait Counterparties {
   def getCounterpartyByIban(iban : String): Box[CounterpartyTrait]
 
   def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId): Box[CounterpartyTrait]
+  
+  def getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  ): Box[CounterpartyTrait]
+  
+  def getCounterpartyBySecondaryRouting(    
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String
+  ): Box[CounterpartyTrait]
 
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]]
 
@@ -102,6 +116,20 @@ class RemotedataCounterpartiesCaseClasses {
   case class getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId)
 
   case class getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId)
+
+  case class getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  )
+
+  case class getCounterpartyBySecondaryRouting(
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String
+  )
 
   case class createCounterparty(
     createdByUserId: String,

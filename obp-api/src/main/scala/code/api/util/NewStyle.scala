@@ -1206,6 +1206,92 @@ object NewStyle extends MdcLoggable{
           i._2)
       }
     }
+
+    def getOrCreateCounterparty(
+      name: String,
+      description: String,
+      currency: String,
+      createdByUserId: String,
+      thisBankId: String,
+      thisAccountId: String,
+      thisViewId: String,
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String,
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[CounterpartyTrait] =
+    {
+      Connector.connector.vend.getOrCreateCounterparty(
+        name: String,
+        description: String,
+        currency: String,
+        createdByUserId: String,
+        thisBankId: String,
+        thisAccountId: String,
+        thisViewId: String,
+        otherBankRoutingScheme: String,
+        otherBankRoutingAddress: String,
+        otherBranchRoutingScheme: String,
+        otherBranchRoutingAddress: String,
+        otherAccountRoutingScheme: String,
+        otherAccountRoutingAddress: String,
+        otherAccountSecondaryRoutingScheme: String,
+        otherAccountSecondaryRoutingAddress: String,
+        callContext: Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(
+          i._1,
+          callContext,
+          s"$CreateCounterpartyError.",
+          404),
+          i._2)
+      }
+    }
+    
+    def getCounterpartyByRoutings(
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String,
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[CounterpartyTrait] =
+    {
+      Connector.connector.vend.getCounterpartyByRoutings(
+        otherBankRoutingScheme: String,
+        otherBankRoutingAddress: String,
+        otherBranchRoutingScheme: String,
+        otherBranchRoutingAddress: String,
+        otherAccountRoutingScheme: String,
+        otherAccountRoutingAddress: String,
+        otherAccountSecondaryRoutingScheme: String,
+        otherAccountSecondaryRoutingAddress: String,
+        callContext: Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(
+          i._1,
+          callContext,
+          s"$CounterpartyNotFoundByRoutings. Current routings: " +
+            s"otherBankRoutingScheme($otherBankRoutingScheme), " +
+            s"otherBankRoutingAddress($otherBankRoutingAddress)"+
+            s"otherBranchRoutingScheme($otherBranchRoutingScheme)"+
+            s"otherBranchRoutingAddress($otherBranchRoutingAddress)"+
+            s"otherAccountRoutingScheme($otherAccountRoutingScheme)"+
+            s"otherAccountRoutingAddress($otherAccountRoutingAddress)"+
+            s"otherAccountSecondaryRoutingScheme($otherAccountSecondaryRoutingScheme)"+
+            s"otherAccountSecondaryRoutingAddress($otherAccountSecondaryRoutingAddress)"+
+          404),
+          i._2)
+      }
+    }
     
     def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] = 
     {

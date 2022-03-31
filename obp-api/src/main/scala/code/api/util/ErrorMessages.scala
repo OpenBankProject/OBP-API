@@ -419,6 +419,8 @@ object ErrorMessages {
   val EntitlementCannotBeDeleted = "OBP-30219: EntitlementId cannot be deleted."
   val EntitlementCannotBeGranted = "OBP-30220: Entitlement cannot be granted."
   val EntitlementCannotBeGrantedGrantorIssue = "OBP-30221: Entitlement cannot be granted due to the grantor's insufficient privileges."
+
+  val CounterpartyNotFoundByRoutings = "OBP-30222: Counterparty not found. Please specify valid value for Routings."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"

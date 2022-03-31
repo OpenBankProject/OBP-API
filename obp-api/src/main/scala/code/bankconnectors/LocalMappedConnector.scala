@@ -2,7 +2,6 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -20,6 +19,7 @@ import code.api.util.ErrorMessages.{attemptedToOpenAnEmptyBox, _}
 import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
+import code.api.v4_0_0.{PostSimpleCounterpartyJson400, TransactionRequestBodySimpleJsonV400}
 import code.atms.Atms.Atm
 import code.atms.MappedAtm
 import code.bankattribute.{BankAttribute, BankAttributeX}
@@ -986,6 +986,118 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Future(Counterparties.counterparties.vend.getCounterpartyByIbanAndBankAccountId(iban, bankId, accountId), callContext)
   }
 
+  override def getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]] = Future {
+    lazy val counterpartyFromRoutings= Counterparties.counterparties.vend.getCounterpartyByRoutings(
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String
+    )
+
+    lazy val counterpartyFromSecondaryRouting = Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String
+    )
+
+    if(counterpartyFromRoutings.isDefined) {
+      (counterpartyFromRoutings, callContext)
+    } else if(counterpartyFromSecondaryRouting.isDefined) {
+      (counterpartyFromSecondaryRouting, callContext)
+    } else {
+      (Failure(CounterpartyNotFoundByRoutings), callContext)
+    }
+  
+  }
+  
+  
+  override def getOrCreateCounterparty(
+    name: String,
+    description: String,
+    currency: String,
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]] = Future {
+    
+    lazy val counterpartyFromRoutings= Counterparties.counterparties.vend.getCounterpartyByRoutings(
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String
+    ) 
+    
+    lazy val counterpartyFromSecondaryRouting = Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String
+    )
+
+
+    if(counterpartyFromRoutings.isDefined) {
+      (counterpartyFromRoutings, callContext)
+    } else if(counterpartyFromSecondaryRouting.isDefined) {
+      (counterpartyFromSecondaryRouting, callContext)
+    } else{
+      val newCounterparty = for{
+        _ <- Helper.booleanToBox(
+          Counterparties.counterparties.vend.checkCounterpartyExists(
+            name: String,
+            thisBankId: String,
+            thisAccountId: String,
+            thisViewId: String
+          ).isEmpty, 
+          CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
+          s"COUNTERPARTY_NAME(${name}) for the BANK_ID(${thisBankId}) and ACCOUNT_ID(${thisAccountId}) and VIEW_ID($thisViewId)")
+        )
+        
+        counterparty <- Counterparties.counterparties.vend.createCounterparty(
+          createdByUserId = createdByUserId,
+          thisBankId = thisBankId,
+          thisAccountId = thisAccountId,
+          thisViewId = thisViewId,
+          name = name,
+          otherAccountRoutingScheme = otherAccountRoutingScheme,
+          otherAccountRoutingAddress = otherAccountRoutingAddress,
+          otherBankRoutingScheme = otherBankRoutingScheme,
+          otherBankRoutingAddress = otherBankRoutingAddress,
+          otherBranchRoutingScheme = otherBranchRoutingScheme,
+          otherBranchRoutingAddress = otherBranchRoutingAddress,
+          isBeneficiary = true,
+          otherAccountSecondaryRoutingScheme = otherAccountSecondaryRoutingScheme,
+          otherAccountSecondaryRoutingAddress = otherAccountSecondaryRoutingAddress,
+          description = description,
+          currency = currency,
+          bespoke = Nil
+        )
+      } yield{
+        counterparty
+      }
+      (newCounterparty, callContext)
+    }
+  }
 
   override def getPhysicalCardsForUser(user: User, callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = Future {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
@@ -5003,6 +5115,55 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               charge_policy = transactionRequest.charge_policy,
               future_date = transactionRequest.future_date)
 
+            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
+              fromAccount,
+              toAccount,
+              transactionRequest.id,
+              transactionRequestCommonBody = counterpartyBody,
+              BigDecimal(counterpartyBody.value.amount),
+              counterpartyBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy,
+              callContext
+            )
+          } yield {
+            (transactionId, callContext)
+          }
+        case SIMPLE =>
+          for {
+            bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
+              body.to_simple.get
+            }
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByRoutings(
+              bodyToSimple.otherBankRoutingScheme,
+              bodyToSimple.otherBankRoutingAddress,
+              bodyToSimple.otherBranchRoutingScheme,
+              bodyToSimple.otherBranchRoutingAddress,
+              bodyToSimple.otherAccountRoutingScheme,
+              bodyToSimple.otherAccountRoutingAddress,
+              bodyToSimple.otherAccountSecondaryRoutingScheme,
+              bodyToSimple.otherAccountSecondaryRoutingAddress,
+              callContext
+            )
+            toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            counterpartyBody = TransactionRequestBodySimpleJsonV400(
+              to = PostSimpleCounterpartyJson400(
+                name = toCounterparty.name,
+                description = toCounterparty.description,
+                other_bank_routing_scheme = toCounterparty.otherBankRoutingScheme,
+                other_bank_routing_address = toCounterparty.otherBankRoutingAddress,
+                other_account_routing_scheme = toCounterparty.otherAccountRoutingScheme,
+                other_account_routing_address = toCounterparty.otherAccountRoutingAddress,
+                other_account_secondary_routing_scheme = toCounterparty.otherAccountSecondaryRoutingScheme,
+                other_account_secondary_routing_address = toCounterparty.otherAccountSecondaryRoutingAddress,
+                other_branch_routing_scheme = toCounterparty.otherBranchRoutingScheme,
+                other_branch_routing_address = toCounterparty.otherBranchRoutingAddress,
+              ),
+              value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
+              description = body.description,
+              charge_policy = transactionRequest.charge_policy,
+              future_date = transactionRequest.future_date
+            )
             (transactionId, callContext) <- NewStyle.function.makePaymentv210(
               fromAccount,
               toAccount,

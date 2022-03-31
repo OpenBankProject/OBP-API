@@ -113,6 +113,20 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
 
   override def getCounterpartyByIbanAndBankAccountId(iban : String, bankId: BankId, accountId: AccountId): Box[CounterpartyTrait] = Empty
 
+  override def getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  ): Box[CounterpartyTrait] = Empty
+
+  override def getCounterpartyBySecondaryRouting(
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String
+  ): Box[CounterpartyTrait] = Empty
+  
   override def createCounterparty(
                                    createdByUserId: String,
                                    thisBankId: String,
