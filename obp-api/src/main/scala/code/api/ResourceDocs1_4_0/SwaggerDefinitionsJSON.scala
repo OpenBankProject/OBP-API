@@ -435,7 +435,7 @@ object SwaggerDefinitionsJSON {
     other_bank_routing_scheme= counterpartyOtherBankRoutingSchemeExample.value,
     other_bank_routing_address= counterpartyOtherBankRoutingAddressExample.value,
     is_beneficiary= true,
-    future_date = Some("20881230")
+    future_date = Some(futureDateExample.value)
   )
 
   val adapterImplementationJson = AdapterImplementationJson("CORE",3)
@@ -1168,7 +1168,7 @@ object SwaggerDefinitionsJSON {
     end_date = DateWithDayExampleObject,
     challenge = transactionRequestChallenge,
     charge = transactionRequestCharge,
-    charge_policy = "String",
+    charge_policy = chargePolicyExample.value,
     counterparty_id = counterpartyIdSwagger,
     name = counterpartyNameExample.value,
     this_bank_id = bankIdSwagger,
@@ -2066,23 +2066,23 @@ object SwaggerDefinitionsJSON {
     counterpartyIdJson,
     amountOfMoneyJsonV121,
     "A description for the transaction to the counterparty",
-    "SHARED",
-    Some("20881230")
+    chargePolicyExample.value,
+    Some(futureDateExample.value)
   )
 
   val transactionRequestBodySEPAJSON = TransactionRequestBodySEPAJSON(
     amountOfMoneyJsonV121,
     ibanJson,
     "This is a SEPA Transaction Request",
-    "SHARED",
-    Some("20881230")
+    chargePolicyExample.value,
+    Some(futureDateExample.value)
   )
   val transactionRequestBodySEPAJsonV400 = TransactionRequestBodySEPAJsonV400(
     amountOfMoneyJsonV121,
     ibanJson,
     description = "This is a SEPA Transaction Request",
-    charge_policy = "SHARED",
-    future_date = Some("20881230"),
+    charge_policy = chargePolicyExample.value,
+    future_date = Some(futureDateExample.value),
     reasons = Some(List(
       TransactionRequestReasonJsonV400(
         code = "410",
@@ -3896,7 +3896,7 @@ object SwaggerDefinitionsJSON {
     posted = DateWithSecondsExampleString,
     completed= DateWithSecondsExampleString,
     `type`= SANDBOX_TAN.toString,
-    charge_policy= "SHARED"
+    charge_policy= chargePolicyExample.value
   )  
   val postHistoricalTransactionAtBankJson = PostHistoricalTransactionAtBankJson(
     from_account_id = "",
@@ -3906,7 +3906,7 @@ object SwaggerDefinitionsJSON {
     posted = DateWithSecondsExampleString,
     completed= DateWithSecondsExampleString,
     `type`= SANDBOX_TAN.toString,
-    charge_policy= "SHARED"
+    charge_policy = chargePolicyExample.value
   )
 
   val postHistoricalTransactionResponseJson = PostHistoricalTransactionResponseJson(
@@ -3918,7 +3918,7 @@ object SwaggerDefinitionsJSON {
     posted = DateWithMsExampleObject,
     completed= DateWithMsExampleObject,
     transaction_request_type= SANDBOX_TAN.toString,
-    charge_policy= "SHARED"
+    charge_policy = chargePolicyExample.value
   )
   
   val viewBasicCommons = ViewBasic(
@@ -4335,9 +4335,9 @@ object SwaggerDefinitionsJSON {
   val transactionRequestBodySimpleJsonV400 = TransactionRequestBodySimpleJsonV400(
     to= postSimpleCounterpartyJson400,
     amountOfMoneyJsonV121,
-    "A description for the transaction to the counterparty",
-    "SHARED",
-    Some("20881230")
+    descriptionExample.value,
+    chargePolicyExample.value,
+    Some(futureDateExample.value)
   )
   
   val postApiCollectionJson400 = PostApiCollectionJson400(apiCollectionNameExample.value, true, Some(descriptionExample.value))

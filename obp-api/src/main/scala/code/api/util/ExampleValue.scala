@@ -173,6 +173,9 @@ object ExampleValue {
   lazy val transactionIdExample = ConnectorField("2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub", s"The Transaction ID used in URLs. Used to store Metadata for the Transaction.")
   glossaryItems += makeGlossaryItem("Transaction.transactionId", transactionIdExample)
 
+  lazy val chargePolicyExample = ConnectorField("SHARED", s"The transaction fee charge policy, can be shared, debit account or credit account.")
+  glossaryItems += makeGlossaryItem("Transaction.charge_policy", chargePolicyExample)
+  
   lazy val transactionAttributeIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"Transaction attribute id")
   glossaryItems += makeGlossaryItem("Transaction.attributeId", transactionAttributeIdExample)
 
@@ -1555,9 +1558,6 @@ object ExampleValue {
 
   lazy val currentStateExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("current_state", currentStateExample)
-
-  lazy val chargePolicyExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("charge_policy", chargePolicyExample)
 
   lazy val customersExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("customers", customersExample)
