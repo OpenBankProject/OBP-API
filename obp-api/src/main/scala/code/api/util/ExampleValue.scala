@@ -1673,7 +1673,7 @@ object ExampleValue {
   lazy val canCreateDirectDebitExample = ConnectorField(booleanTrue,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_create_direct_debit", canCreateDirectDebitExample)
 
-  lazy val futureDateExample = ConnectorField("2020-01-27",NoDescriptionProvided)
+  lazy val futureDateExample = ConnectorField("20200127",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("future_date", futureDateExample)
 
   lazy val toTransferToAccountExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
