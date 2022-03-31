@@ -37,7 +37,7 @@ import code.api.v1_2_1.{BankRoutingJsonV121, JSONFactory, UserJSONV121, ViewJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{LocationJsonV140, MetaJsonV140, TransactionRequestAccountJsonV140, transformToLocationFromV140, transformToMetaFromV140}
 import code.api.v2_0_0.JSONFactory200.UserJsonV200
 import code.api.v2_0_0.{CreateEntitlementJSON, EntitlementJSONs, JSONFactory200, TransactionRequestChargeJsonV200}
-import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON}
+import code.api.v2_1_0.{IbanJson, JSONFactory210, PostCounterpartyBespokeJson, ResourceUserJSON, TransactionRequestBodyCounterpartyJSON}
 import code.api.v2_2_0.CounterpartyMetadataJson
 import code.api.v3_0_0.JSONFactory300._
 import code.api.v3_0_0._
@@ -389,6 +389,26 @@ case class TransactionRequestBodySEPAJsonV400(
                                                future_date: Option[String] = None,
                                                reasons: Option[List[TransactionRequestReasonJsonV400]] = None
                                              ) extends TransactionRequestCommonBodyJSON
+case class PostSimpleCounterpartyJson400(
+  name: String,
+  description: String,
+  other_bank_routing_scheme: String,
+  other_bank_routing_address: String,
+  other_account_routing_scheme: String,
+  other_account_routing_address: String,
+  other_account_secondary_routing_scheme: String,
+  other_account_secondary_routing_address: String,
+  other_branch_routing_scheme: String,
+  other_branch_routing_address: String
+)
+
+case class TransactionRequestBodySimpleJsonV400(
+  to: PostSimpleCounterpartyJson400,
+  value: AmountOfMoneyJsonV121,
+  description: String,
+  charge_policy: String,
+  future_date: Option[String] = None
+) extends TransactionRequestCommonBodyJSON
 
 case class TransactionRequestReasonJsonV400(
                                              code: String,

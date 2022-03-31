@@ -1154,3 +1154,6 @@ dynamic_code_compile_validate_dependencies=[\
       "scala.reflect.runtime.package\$" -> "universe",\
       PractiseEndpoint.getClass.getTypeName + "*" -> "*"\
 ]
+
+## when api response json field value in the json array, the field will be excluded
+excluded.response.field.values=["String", "", null, []]
