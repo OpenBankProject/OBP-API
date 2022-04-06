@@ -437,7 +437,13 @@ object ExampleValue {
     "20%20%20%20%20%20%29",
     "the URL-encoded format String, the original code is the OBP connector method body.")
   glossaryItems += makeGlossaryItem("DynamicConnectorMethod.methodBody", connectorMethodBodyExample)
-  
+
+  lazy val connectorMethodLangExample = ConnectorField("Scala",
+    "the programming language of OBP connector method body.")
+  glossaryItems += makeGlossaryItem("DynamicConnectorMethod.lang", connectorMethodLangExample)
+
+
+
   lazy val dynamicResourceDocIdExample = ConnectorField("vce035ca-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the dynamic Resource Doc on this OBP instance, can be used in all cache. ")
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.dynamicResourceDocId", dynamicResourceDocIdExample)
   

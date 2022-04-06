@@ -1,12 +1,17 @@
 package code.bankconnectors
 
+import code.api.APIFailureNewStyle
 import code.api.util.DynamicUtil.compileScalaCode
 import code.api.util.{CallContext, DynamicUtil}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
-import net.liftweb.common.Box
+import com.openbankproject.commons.ExecutionContext.Implicits._
+import code.api.util.CustomJsonFormats.formats
+import net.liftweb.common.{Box, Empty, Full, ParamFailure}
+import net.liftweb.json.{Extraction, JValue}
+import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
 
-import scala.concurrent.Future
-
+import java.util.function.Consumer
+import scala.concurrent.{Future, Promise}
 
 object DynamicConnector {
 
@@ -30,7 +35,7 @@ object DynamicConnector {
   private def getFunction(bankId: Option[String], process: String) = {
     DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process) map {
       case v :JsonDynamicMessageDoc =>
-        createFunction(process, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail")
+        createFunction(v.lang, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail")
     }
   }
 
@@ -42,7 +47,21 @@ object DynamicConnector {
    * @param methodBody method body of connector method
    * @return function of connector method that is dynamic created, can be Function0, Function1, Function2...
    */
-  def createFunction(process: String, methodBody:String): Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(AnyRef, Option[CallContext])]]] =
+  def createFunction(lang: String, methodBody:String): Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(AnyRef, Option[CallContext])]]] =
+  lang match {
+    case "js" | "Js" | "javascript" | "JavaScript" => createJsFunction(methodBody)
+    case "Scala" | "scala" | "" | null => createScalaFunction(methodBody)
+    // TODO refactor Exception type and message
+    case _ => throw new Exception(s"Illegal lang: $lang")
+  }
+
+  /**
+   * dynamic create scala function
+   * @param lang programming language name of method body
+   * @param methodBody method body of connector method
+   * @return function of connector method that is dynamic created, can be Function0, Function1, Function2...
+   */
+  def createScalaFunction(methodBody:String): Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(AnyRef, Option[CallContext])]]] =
   {
     //messageDoc.process is a bit different with the methodName, we need tweak the format of it:
     //eg: process("obp.getBank") ==> methodName("getBank")
@@ -59,6 +78,51 @@ object DynamicConnector {
                     |""".stripMargin
     compileScalaCode(method)
   }
+
+  private val sharedEngine = Engine.newBuilder.option("engine.WarnInterpreterOnly", "false")
+    .allowExperimentalOptions(true)
+    .build()
+
+  def createJsFunction(methodBody:String): Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]] = Box tryo {
+    val jsCode = s"""async function processor(args) {
+       $methodBody
+      }
+      // wrap function in order to convert return value to json string
+      async (args) => JSON.stringify(await processor(args));
+      """;
+    val context = Context.newBuilder("js")
+      .allowHostAccess(HostAccess.ALL)
+      .allowPolyglotAccess(PolyglotAccess.ALL)
+      .allowHostClassLookup(_ => true)
+      .option("js.ecmascript-version", "2020")
+      .engine(sharedEngine).build
+
+    // bind variables
+    val bindings = context.getBindings("js")
+//    bindings.putMember("abc", "some value push to js")
+
+    // call js
+    val jsFunc= context.eval("js", jsCode)
+
+    (args: Array[AnyRef], cc: Option[CallContext]) => {
+      val p = Promise[Box[(String, Option[CallContext])]]()
+      // to JValue: Extraction.decompose(it)(formats)
+      val resolve: Consumer[String] = (it: String) =>
+        p.success(Full(it -> cc))
+
+      // TODO refactor APIFailureNewStyle error message.
+      val reject:Consumer[Any]= e =>
+        p.success(ParamFailure(s"Js reject error message: $e", Empty, Empty, APIFailureNewStyle(e.toString, 400, cc.map(_.toLight))))
+
+
+      jsFunc.execute(args)
+        .invokeMember("then", resolve, reject)
+        .invokeMember("catch", reject)
+      p.future
+    }
+  }
+
+
 
 }
 

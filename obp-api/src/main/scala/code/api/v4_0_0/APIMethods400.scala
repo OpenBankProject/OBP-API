@@ -10514,7 +10514,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = s"$DynamicMessageDocAlreadyExists The json body process(${dynamicMessageDoc.process}) already exists", cc=callContext) {
               (!dynamicMessageDocExisted)
             }
-            connectorMethod = DynamicConnector.createFunction(dynamicMessageDoc.process, dynamicMessageDoc.decodedMethodBody)
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDoc.lang, dynamicMessageDoc.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
@@ -10559,7 +10559,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = s"$DynamicMessageDocAlreadyExists The json body process(${dynamicMessageDoc.process}) already exists", cc=callContext) {
               (!dynamicMessageDocExisted)
             }
-            connectorMethod = DynamicConnector.createFunction(dynamicMessageDoc.process, dynamicMessageDoc.decodedMethodBody)
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDoc.lang, dynamicMessageDoc.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=callContext) {
               connectorMethod.isDefined
@@ -10599,7 +10599,7 @@ trait APIMethods400 {
             dynamicMessageDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
             }
-            connectorMethod = DynamicConnector.createFunction(dynamicMessageDocBody.process, dynamicMessageDocBody.decodedMethodBody)
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDocBody.lang, dynamicMessageDocBody.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=cc.callContext) {
               connectorMethod.isDefined
@@ -10735,7 +10735,7 @@ trait APIMethods400 {
             dynamicMessageDocBody <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $JsonDynamicMessageDoc", 400, cc.callContext) {
               json.extract[JsonDynamicMessageDoc]
             }
-            connectorMethod = DynamicConnector.createFunction(dynamicMessageDocBody.process, dynamicMessageDocBody.decodedMethodBody)
+            connectorMethod = DynamicConnector.createFunction(dynamicMessageDocBody.lang, dynamicMessageDocBody.decodedMethodBody)
             errorMsg = if(connectorMethod.isEmpty) s"$ConnectorMethodBodyCompileFail ${connectorMethod.asInstanceOf[Failure].msg}" else ""
             _ <- Helper.booleanToFuture(failMsg = errorMsg, cc=cc.callContext) {
               connectorMethod.isDefined
