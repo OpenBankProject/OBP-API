@@ -386,6 +386,12 @@ object ApiRole {
   case class CanCreateWebhook(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateWebhook = CanCreateWebhook()
 
+  case class CanCreateSystemAccountNotificationWebhook(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateSystemAccountNotificationWebhook = CanCreateSystemAccountNotificationWebhook()
+  
+  case class CanCreateAccountNotificationWebhookAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountNotificationWebhookAtOneBank = CanCreateAccountNotificationWebhookAtOneBank()
+  
   case class CanUpdateWebhook(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateWebhook = CanUpdateWebhook()
 

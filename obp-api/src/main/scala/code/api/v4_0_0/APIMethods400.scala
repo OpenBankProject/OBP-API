@@ -12,7 +12,7 @@ import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
 import code.api.util.ApiTag._
 import code.api.util.DynamicUtil.Validation
-import code.api.util.ErrorMessages._
+import code.api.util.ErrorMessages.{BankNotFound, _}
 import code.api.util.ExampleValue._
 import code.api.util.Glossary.getGlossaryItem
 import code.api.util.NewStyle.HttpCode
@@ -67,6 +67,7 @@ import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
+import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -12251,7 +12252,121 @@ trait APIMethods400 {
         }
       }
     }
+
+    val webHookInfo = s"""
+      |Webhooks are used to call external URLs when certain events happen.
+      |
+      |Account Webhooks focus on events around accounts.
+      |
+      |For instance, a webhook could be used to notify an external service if a balance changes on an account.
+      |
+      |This functionality is work in progress! Please note that current trigger is: ${ApiTrigger.onCreateTransaction}
+      |"""
     
+    staticResourceDocs += ResourceDoc(
+      createSystemAccountNotificationWebhook,
+      implementedInApiVersion,
+      nameOf(createSystemAccountNotificationWebhook),
+      "POST",
+      "/web-hooks/account/notifications/on-create-transaction",
+      "Create System Account Notification Webhook",
+      s"""Create System Account Notification Webhook
+         |
+         |$webHookInfo
+         |""",
+      accountNotificationWebhookPostJson,
+      systemAccountNotificationWebhookJson,
+      List(UnknownError),
+      apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canCreateSystemAccountNotificationWebhook))
+    )
+
+    lazy val createSystemAccountNotificationWebhook : OBPEndpoint = {
+      case "web-hooks" ::"account" ::"notifications" ::"on-create-transaction" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountNotificationWebhookPostJson "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountNotificationWebhookPostJson]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpMethod Only Support `POST` currently. Current value is (${postJson.http_method})", cc=callContext) {
+              postJson.http_method.equals("POST")
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpProtocol Only Support `HTTP/1.1` currently. Current value is (${postJson.http_protocol})", cc=callContext) {
+              postJson.http_protocol.equals("HTTP/1.1")
+            }
+            onCreateTransaction = ApiTrigger.onCreateTransaction.toString()
+            wh <- SystemAccountNotificationWebhookTrait.systemAccountNotificationWebhook.vend.createSystemAccountNotificationWebhookFuture(
+              userId = u.userId,
+              triggerName= onCreateTransaction,
+              url = postJson.url,
+              httpMethod = postJson.http_method,
+              httpProtocol= postJson.http_protocol,
+            ) map {
+              unboxFullOrFail(_, callContext, CreateWebhookError)
+            }
+          } yield {
+            (createSystemLevelAccountWebhookJsonV400(wh), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      createBankAccountNotificationWebhook,
+      implementedInApiVersion,
+      nameOf(createBankAccountNotificationWebhook),
+      "POST",
+      "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction",
+      "Create Bank Account Notification Webhook",
+      s"""Create Bank Account Notification Webhook
+         |
+         |$webHookInfo
+         |""",
+      accountNotificationWebhookPostJson,
+      bankAccountNotificationWebhookJson,
+      List(
+        UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canCreateAccountNotificationWebhookAtOneBank))
+    )
+
+    lazy val createBankAccountNotificationWebhook : OBPEndpoint = {
+      case  "banks" :: BankId(bankId) :: "web-hooks" ::"account" ::"notifications" ::"on-create-transaction" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountNotificationWebhookPostJson "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountNotificationWebhookPostJson]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpMethod Only Support `POST` currently. Current value is (${postJson.http_method})", cc=callContext) {
+              postJson.http_method.equals("POST")
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpProtocol Only Support `HTTP/1.1` currently. Current value is (${postJson.http_protocol})", cc=callContext) {
+              postJson.http_protocol.equals("HTTP/1.1")
+            }
+            onCreateTransaction = ApiTrigger.onCreateTransaction.toString()
+            wh <- BankAccountNotificationWebhookTrait.bankAccountNotificationWebhook.vend.createBankAccountNotificationWebhookFuture(
+              bankId = bankId.value,
+              userId = u.userId,
+              triggerName = onCreateTransaction,
+              url = postJson.url,
+              httpMethod = postJson.http_method,
+              httpProtocol = postJson.http_protocol
+            ) map {
+              unboxFullOrFail(_, callContext, CreateWebhookError)
+            }
+          } yield {
+            (createBankLevelAccountWebhookJsonV400(wh), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
   }
 
   private def checkRoleBankIdExsiting(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {

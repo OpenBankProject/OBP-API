@@ -6,6 +6,9 @@ sealed trait ApiTrigger{
 
 object ApiTrigger {
 
+  case class OnCreateTransaction() extends ApiTrigger
+  lazy val onCreateTransaction = OnCreateTransaction()
+  
   case class OnBalanceChange() extends ApiTrigger
   lazy val onBalanceChange = OnBalanceChange()
 
