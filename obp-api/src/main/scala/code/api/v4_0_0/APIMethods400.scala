@@ -12253,16 +12253,42 @@ trait APIMethods400 {
       }
     }
 
-    val webHookInfo = s"""
-      |Webhooks are used to call external URLs when certain events happen.
+    val generalWebHookInfo = s"""
+      |Webhooks are used to call external web services when certain events happen.
       |
-      |Account Webhooks focus on events around accounts.
+      |For instance, a webhook can be used to notify an external service if a transaction is created on an account.
       |
-      |For instance, a webhook could be used to notify an external service if a balance changes on an account.
-      |
-      |This functionality is work in progress! Please note that current trigger is: ${ApiTrigger.onCreateTransaction}
       |"""
-    
+
+
+    val accountNotificationWebhookInfo = s"""
+                         |When an account notification webhook fires it will POST to the URL you specify during the creation of the webhook.
+                         |
+                         |The POST body, that is, the payload of the Webhook will recieve will have the following structure:
+                         |
+                         |{
+                         |  "event_name": "OnCreateTransaction",
+                         |  "event_id": "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "bank_id": "gh.29.uk",
+                         |  "account_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "transaction_id": "7ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "related_entities": [
+                         |    {
+                         |      "user_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |      "customer_ids": ["3ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"]
+                         |    }
+                         |  ]
+                         |}
+                         |
+                         |Thus the web service you specify will be informed about an event on the account.
+                         |Related information including the User and any linked Customers is also included.
+                         |
+                         |Further information about the event or related entities can then be retrieved using the standard REST APIs.
+                         |"""
+
+
+
+
     staticResourceDocs += ResourceDoc(
       createSystemAccountNotificationWebhook,
       implementedInApiVersion,
@@ -12272,7 +12298,10 @@ trait APIMethods400 {
       "Create System Account Notification Webhook",
       s"""Create System Account Notification Webhook
          |
-         |$webHookInfo
+         |$generalWebHookInfo
+         |
+         |$accountNotificationWebhookInfo
+         |
          |""",
       accountNotificationWebhookPostJson,
       systemAccountNotificationWebhookJson,
@@ -12322,7 +12351,10 @@ trait APIMethods400 {
       "Create Bank Account Notification Webhook",
       s"""Create Bank Account Notification Webhook
          |
-         |$webHookInfo
+         |$generalWebHookInfo
+         |
+         |$accountNotificationWebhookInfo
+         |
          |""",
       accountNotificationWebhookPostJson,
       bankAccountNotificationWebhookJson,
