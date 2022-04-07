@@ -106,7 +106,7 @@ To compile and run jetty, install Maven 3, create your configuration in obp-api/
 
 Set memory options
 
-    export MAVEN_OPTS="-Xmx3000m -XX:MaxPermSize=512m"
+    export MAVEN_OPTS="-Xmx3000m -Xss2m"
 
 Run one test
 
