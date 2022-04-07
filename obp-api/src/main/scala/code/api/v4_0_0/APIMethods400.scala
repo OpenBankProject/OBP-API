@@ -12280,8 +12280,8 @@ trait APIMethods400 {
                          |  ]
                          |}
                          |
-                         |Thus the web service you specify will be informed about an event on the account.
-                         |Related information including the User and any linked Customers is also included.
+                         |In this way, the web service you specify will be informed about an event on the acccount.
+                         |Included in the payload are related entities such as related User IDs and Customer IDs.
                          |
                          |Further information about the event or related entities can then be retrieved using the standard REST APIs.
                          |"""
@@ -12295,8 +12295,9 @@ trait APIMethods400 {
       nameOf(createSystemAccountNotificationWebhook),
       "POST",
       "/web-hooks/account/notifications/on-create-transaction",
-      "Create System Account Notification Webhook",
-      s"""Create System Account Notification Webhook
+      "Create system level Account Notification Webhook",
+      s"""
+         |Create a notification Webhook that will fire for all accounts on the system.
          |
          |$generalWebHookInfo
          |
@@ -12348,8 +12349,8 @@ trait APIMethods400 {
       nameOf(createBankAccountNotificationWebhook),
       "POST",
       "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction",
-      "Create Bank Account Notification Webhook",
-      s"""Create Bank Account Notification Webhook
+      "Create bank level Account Notification Webhook",
+      s"""Create a notification Webhook that will fire for all accounts on the specified Bank.
          |
          |$generalWebHookInfo
          |
