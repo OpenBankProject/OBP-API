@@ -93,6 +93,8 @@ object ErrorMessages {
     "Note: When you are making a POST or PUT request, the Content-Type header MUST be `application/json`. Note: OBP only supports JSON formatted bodies."
   val ResourceDoesNotExist = "OBP-10405: Resource does not exist."
   val InvalidJsonValue = "OBP-10035: Incorrect json value."
+  val InvalidHttpMethod = "OBP-10037: Incorrect http_method."
+  val InvalidHttpProtocol = "OBP-10038: Incorrect http_protocol."
   
   // General Sort and Paging
   val FilterSortDirectionError = "OBP-10023: obp_sort_direction parameter can only take two values: DESC or ASC!" // was OBP-20023

@@ -1,13 +1,16 @@
 package code.transaction
 
 
+import code.accountholders.AccountHolders
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, ApiTrigger}
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.bankconnectors.LocalMappedConnector.getBankAccountCommon
 import code.model._
+import code.usercustomerlinks.UserCustomerLink
 import code.util._
 import code.webhook.WebhookActor
+import code.webhook.WebhookActor.RelatedEntity
 import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.common.Box.tryo
@@ -242,23 +245,46 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
           Helper.smallestCurrencyUnitToBigDecimal(value, t.currency.get).toString() + " " + t.currency.get
         }
         def sendMessage(apiTrigger: ApiTrigger): Unit = {
-          actor ! WebhookActor.WebhookRequest(
-            apiTrigger,
-            APIUtil.generateUUID(),
-            t.theBankId.value,
-            t.theAccountId.value,
-            getAmount(t.amount.get),
-            getAmount(t.newAccountBalance.get)
-          )
+          if(apiTrigger.equals(ApiTrigger.onCreateTransaction)){
+
+            val userIdCustomerIdPairs: List[(String, String)] = for{
+              holder <- AccountHolders.accountHolders.vend.getAccountHolders(t.theBankId, t.theAccountId).toList
+              userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(holder.userId)
+            } yield{
+              (holder.userId, userCustomerLink.customerId)
+            }
+
+            val userIdCustomerIdsPairs: Map[String, List[String]] = userIdCustomerIdPairs.groupBy(_._1).map( a => (a._1,a._2.map(_._2)))
+
+            actor ! WebhookActor.AccountNotificationWebhookRequest(
+              apiTrigger,
+              APIUtil.generateUUID(),
+              t.theBankId.value,
+              t.theAccountId.value,
+              t.theTransactionId.value,
+              userIdCustomerIdsPairs.map(pair => RelatedEntity(pair._1, pair._2)).toList
+            )
+          } else{
+            actor ! WebhookActor.WebhookRequest(
+              apiTrigger,
+              APIUtil.generateUUID(),
+              t.theBankId.value,
+              t.theAccountId.value,
+              getAmount(t.amount.get),
+              getAmount(t.newAccountBalance.get)
+            )
+          }
         }
 
         t.amount.get match {
           case amount if amount > 0 =>
             sendMessage(ApiTrigger.onBalanceChange)
             sendMessage(ApiTrigger.onCreditTransaction)
+            sendMessage(ApiTrigger.onCreateTransaction)
           case amount if amount < 0 =>
             sendMessage(ApiTrigger.onBalanceChange)
             sendMessage(ApiTrigger.onDebitTransaction)
+            sendMessage(ApiTrigger.onCreateTransaction)
           case _  => 
             // Do not send anything
         }

@@ -4603,6 +4603,30 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJsonV400)
   )
   
+  val accountNotificationWebhookPostJson = AccountNotificationWebhookPostJson(
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST",
+    http_protocol = "HTTP/1.1"
+  )
+
+  val systemAccountNotificationWebhookJson =  SystemAccountNotificationWebhookJson(
+    webhook_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+    trigger_name = ApiTrigger.onCreateTransaction.toString(),
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST",
+    http_protocol = "HTTP/1.1",
+    created_by_user_id = ExampleValue.userIdExample.value
+  )
+
+  val bankAccountNotificationWebhookJson =  BankAccountNotificationWebhookJson(
+    webhook_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+    bank_id = bankIdExample.value,
+    trigger_name = ApiTrigger.onCreateTransaction.toString(),
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST",
+    http_protocol = "HTTP/1.1",
+    created_by_user_id = ExampleValue.userIdExample.value
+  )
   
   //The common error or success format.
   //Just some helper format to use in Json 

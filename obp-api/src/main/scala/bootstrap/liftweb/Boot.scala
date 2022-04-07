@@ -127,7 +127,7 @@ import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
-import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
+import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
@@ -965,6 +965,8 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
+    SystemAccountNotificationWebhook,
+    BankAccountNotificationWebhook,
     MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
