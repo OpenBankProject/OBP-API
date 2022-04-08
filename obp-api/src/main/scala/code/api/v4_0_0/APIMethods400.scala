@@ -12264,7 +12264,9 @@ trait APIMethods400 {
     val accountNotificationWebhookInfo = s"""
                          |When an account notification webhook fires it will POST to the URL you specify during the creation of the webhook.
                          |
-                         |The POST body, that is, the payload of the Webhook will recieve will have the following structure:
+                         |Inside the payload you will find account_id and transaction_id and also user_ids and customer_ids of the Users / Customers linked to the Account.
+                         |                     |
+                         |The webhook will POST the following structure to your service:
                          |
                          |{
                          |  "event_name": "OnCreateTransaction",
@@ -12280,10 +12282,11 @@ trait APIMethods400 {
                          |  ]
                          |}
                          |
-                         |In this way, the web service you specify will be informed about an event on the acccount.
-                         |Included in the payload are related entities such as related User IDs and Customer IDs.
+                         |Thus, your service should accept the above POST body structure.
                          |
-                         |Further information about the event or related entities can then be retrieved using the standard REST APIs.
+                         |In this way, your web service can be informed about an event on an account and act accordingly.
+                         |
+                         |Further information about the account, transaction or related entities can then be retrieved using the standard REST APIs.
                          |"""
 
 
