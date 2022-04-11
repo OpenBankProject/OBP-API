@@ -4515,7 +4515,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       key=keyExample.value,
       value=valueExample.value,
       challenge=challengeExample.value,
-      status=statusExample.value))
+      status=statusExample.value,
+      consumerId=consumerIdExample.value
+      ))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

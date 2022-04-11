@@ -4681,8 +4681,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       key=keyExample.value,
       value=valueExample.value,
       challenge=challengeExample.value,
-      status=statusExample.value))
-    ),
+      status=statusExample.value,
+      consumerId=consumerIdExample.value))),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 

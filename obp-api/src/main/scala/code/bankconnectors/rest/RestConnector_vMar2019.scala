@@ -4703,7 +4703,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       key=keyExample.value,
       value=valueExample.value,
       challenge=challengeExample.value,
-      status=statusExample.value))
+      status=statusExample.value,
+      consumerId=consumerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

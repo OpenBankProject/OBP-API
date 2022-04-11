@@ -26,7 +26,7 @@
   */
 package code.api.v5_0_0
 
-import com.openbankproject.commons.model.UserAuthContext
+import com.openbankproject.commons.model.{UserAuthContext, UserAuthContextUpdate}
 
 import java.util.Date
 
@@ -43,7 +43,14 @@ case class UserAuthContextsJsonV500(
   user_auth_contexts: List[UserAuthContextJsonV500]
 )
 
-
+case class UserAuthContextUpdateJsonV500(
+  user_auth_context_update_id: String,
+  user_id: String,
+  key: String,
+  value: String,
+  status: String,
+  consumer_id: String,
+)
 
 object JSONFactory500 {
 
@@ -60,6 +67,17 @@ object JSONFactory500 {
   
   def createUserAuthContextsJson(userAuthContext: List[UserAuthContext]): UserAuthContextsJsonV500 = {
     UserAuthContextsJsonV500(userAuthContext.map(createUserAuthContextJson))
+  }
+
+  def createUserAuthContextUpdateJson(userAuthContextUpdate: UserAuthContextUpdate): UserAuthContextUpdateJsonV500 = {
+    UserAuthContextUpdateJsonV500(
+      user_auth_context_update_id= userAuthContextUpdate.userAuthContextUpdateId,
+      user_id = userAuthContextUpdate.userId,
+      key = userAuthContextUpdate.key,
+      value = userAuthContextUpdate.value,
+      status = userAuthContextUpdate.status,
+      consumer_id = userAuthContextUpdate.consumerId
+    )
   }
 }
 
