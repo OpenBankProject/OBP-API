@@ -18,6 +18,7 @@ import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.api.v4_0_0.{AccountMinimalJson400, BankAttributeBankResponseJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
+import code.api.v5_0_0.UserAuthContextJsonV500
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
@@ -4626,6 +4627,15 @@ object SwaggerDefinitionsJSON {
     http_method = "POST",
     http_protocol = "HTTP/1.1",
     created_by_user_id = ExampleValue.userIdExample.value
+  )
+
+  val userAuthContextJsonV500 = UserAuthContextJsonV500(
+    user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    user_id = ExampleValue.userIdExample.value,
+    key = "CUSTOMER_NUMBER",
+    value = "78987432",
+    time_stamp = parseDate(timeStampExample.value).getOrElse(sys.error("timeStampExample.value is not validate date format.")),
+    consumer_id = consumerIdExample.value
   )
   
   //The common error or success format.

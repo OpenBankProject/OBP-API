@@ -26,8 +26,40 @@
   */
 package code.api.v5_0_0
 
+import com.openbankproject.commons.model.UserAuthContext
+
+import java.util.Date
+
+case class UserAuthContextJsonV500(
+  user_auth_context_id: String,
+  user_id: String,
+  key: String,
+  value: String,
+  time_stamp: Date,
+  consumer_id: String,
+)
+
+case class UserAuthContextsJsonV500(
+  user_auth_contexts: List[UserAuthContextJsonV500]
+)
+
+
 
 object JSONFactory500 {
+
+  def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJsonV500 = {
+    UserAuthContextJsonV500(
+      user_auth_context_id= userAuthContext.userAuthContextId,
+      user_id = userAuthContext.userId,
+      key = userAuthContext.key,
+      value = userAuthContext.value,
+      time_stamp = userAuthContext.timeStamp,
+      consumer_id = userAuthContext.consumerId,
+    )
+  }
   
+  def createUserAuthContextsJson(userAuthContext: List[UserAuthContext]): UserAuthContextsJsonV500 = {
+    UserAuthContextsJsonV500(userAuthContext.map(createUserAuthContextJson))
+  }
 }
 
