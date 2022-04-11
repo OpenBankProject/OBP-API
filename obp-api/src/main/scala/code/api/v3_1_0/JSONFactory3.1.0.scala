@@ -305,7 +305,7 @@ case class UserAuthContextJson(
   user_id: String,
   key: String,
   value: String,
-  timeStamp: Date
+  time_stamp: Date
 )
 case class UserAuthContextUpdateJson(
   user_auth_context_update_id: String,
@@ -994,7 +994,7 @@ object JSONFactory310{
       user_id = userAuthContext.userId,
       key = userAuthContext.key,
       value = userAuthContext.value,
-      timeStamp = userAuthContext.timeStamp
+      time_stamp = userAuthContext.timeStamp
     )
   }
   
