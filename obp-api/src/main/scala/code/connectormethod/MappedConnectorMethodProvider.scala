@@ -17,14 +17,15 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
     if(Props.testMode) 0
     else APIUtil.getPropsValue(s"connectorMethod.cache.ttl.seconds", "40").toInt
   }
+  private def getLang(connectorMethod: ConnectorMethod): String = Option(connectorMethod.Lang.get).getOrElse("Scala")
 
   override def getById(connectorMethodId: String): Box[JsonConnectorMethod] = ConnectorMethod
     .find(By(ConnectorMethod.ConnectorMethodId, connectorMethodId))
-    .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, it.Lang.get))
+    .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
 
   override def getByMethodNameWithoutCache(methodName: String): Box[JsonConnectorMethod] = {
     ConnectorMethod.find(By(ConnectorMethod.MethodName, methodName))
-      .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, it.Lang.get))
+      .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
   }
   
   override def getByMethodNameWithCache(methodName: String): Box[JsonConnectorMethod] = {
@@ -39,7 +40,7 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL second) {
         ConnectorMethod.findAll()
-          .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, it.Lang.get))
+          .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
       }}
   }
 
@@ -51,7 +52,7 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
       .MethodBody(entity.methodBody)
         .Lang(entity.lang)
       .saveMe()
-    }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get))
+    }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, getLang(it)))
 
 
   override def update(connectorMethodId: String, connectorMethodBody: String, lang: String): Box[JsonConnectorMethod] = {
@@ -59,7 +60,7 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
       case Full(v) =>
         tryo {
           v.MethodBody(connectorMethodBody).Lang(lang).saveMe()
-        }.map(it => JsonConnectorMethod(Some(connectorMethodId), it.MethodName.get, it.MethodBody.get, it.Lang.get))
+        }.map(it => JsonConnectorMethod(Some(connectorMethodId), it.MethodName.get, it.MethodBody.get, getLang(it)))
       case _ => Empty
     }
   }
