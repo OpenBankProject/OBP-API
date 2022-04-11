@@ -308,6 +308,7 @@ trait UserAuthContext {
   def key : String
   def value : String
   def timeStamp : Date
+  def consumerId : String
 }
 
 trait ConsentAuthContext {

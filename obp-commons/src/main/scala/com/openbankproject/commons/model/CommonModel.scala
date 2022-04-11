@@ -112,7 +112,8 @@ case class UserAuthContextCommons(
                                    userId :String,
                                    key :String,
                                    value :String,
-                                   timeStamp :Date) extends UserAuthContext
+                                   timeStamp :Date,
+                                   consumerId :String) extends UserAuthContext
 
 object UserAuthContextCommons extends Converter[UserAuthContext, UserAuthContextCommons]
 

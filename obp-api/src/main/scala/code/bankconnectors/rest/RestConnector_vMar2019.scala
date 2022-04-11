@@ -4669,7 +4669,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample)))
+      timeStamp=toDate(timeStampExample),
+      consumerId=consumerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4784,7 +4785,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample))))
+      timeStamp=toDate(timeStampExample),
+      consumerId=consumerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

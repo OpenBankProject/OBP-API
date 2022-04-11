@@ -13,13 +13,13 @@ import scala.concurrent.Future
 
 object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLoggable {
   
-  override def createUserAuthContext(userId: String, key: String, value: String): Future[Box[MappedUserAuthContext]] =
+  override def createUserAuthContext(userId: String, key: String, value: String, consumerId: String): Future[Box[MappedUserAuthContext]] =
     Future {
-      createUserAuthContextAkka(userId, key, value)
+      createUserAuthContextAkka(userId, key, value, consumerId)
     }
-  def createUserAuthContextAkka(userId: String, key: String, value: String): Box[MappedUserAuthContext] =
+  def createUserAuthContextAkka(userId: String, key: String, value: String, consumerId: String): Box[MappedUserAuthContext] =
     tryo {
-      MappedUserAuthContext.create.mUserId(userId).mKey(key).mValue(value).saveMe()
+      MappedUserAuthContext.create.mUserId(userId).mKey(key).mValue(value).mConsumerId(consumerId).saveMe()
     }
 
   override def getUserAuthContexts(userId: String): Future[Box[List[MappedUserAuthContext]]] = Future {

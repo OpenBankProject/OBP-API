@@ -4480,7 +4480,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample)))
+      timeStamp=toDate(timeStampExample),
+      consumerId=consumerIdExample.value
+      ))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4595,7 +4597,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample))))
+      timeStamp=toDate(timeStampExample), 
+      consumerId=consumerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
