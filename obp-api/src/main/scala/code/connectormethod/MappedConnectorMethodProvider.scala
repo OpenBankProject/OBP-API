@@ -20,11 +20,11 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
 
   override def getById(connectorMethodId: String): Box[JsonConnectorMethod] = ConnectorMethod
     .find(By(ConnectorMethod.ConnectorMethodId, connectorMethodId))
-    .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get))
+    .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, it.Lang.get))
 
   override def getByMethodNameWithoutCache(methodName: String): Box[JsonConnectorMethod] = {
     ConnectorMethod.find(By(ConnectorMethod.MethodName, methodName))
-      .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get))
+      .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, it.Lang.get))
   }
   
   override def getByMethodNameWithCache(methodName: String): Box[JsonConnectorMethod] = {
@@ -39,7 +39,7 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
     CacheKeyFromArguments.buildCacheKey {
       Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL second) {
         ConnectorMethod.findAll()
-          .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get))
+          .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, it.Lang.get))
       }}
   }
 
@@ -49,16 +49,17 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
       .ConnectorMethodId(APIUtil.generateUUID())
       .MethodName(entity.methodName)
       .MethodBody(entity.methodBody)
+        .Lang(entity.lang)
       .saveMe()
     }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get))
 
 
-  override def update(connectorMethodId: String, connectorMethodBody: String): Box[JsonConnectorMethod] = {
+  override def update(connectorMethodId: String, connectorMethodBody: String, lang: String): Box[JsonConnectorMethod] = {
     ConnectorMethod.find(By(ConnectorMethod.ConnectorMethodId, connectorMethodId)) match {
       case Full(v) =>
         tryo {
-          v.MethodBody(connectorMethodBody).saveMe()
-        }.map(it => JsonConnectorMethod(Some(connectorMethodId), it.MethodName.get, it.MethodBody.get))
+          v.MethodBody(connectorMethodBody).Lang(lang).saveMe()
+        }.map(it => JsonConnectorMethod(Some(connectorMethodId), it.MethodName.get, it.MethodBody.get, it.Lang.get))
       case _ => Empty
     }
   }

@@ -12,6 +12,7 @@ class ConnectorMethod extends LongKeyedMapper[ConnectorMethod] with IdPK {
 
   object MethodBody extends MappedText(this)
 
+  object Lang extends MappedString(this, 50)
 }
 
 
