@@ -10,15 +10,30 @@ async function processor(args) {
     // call java or scala type in this way
     const BigDecimal = Java.type('java.math.BigDecimal');
     // define a class
-    class Person{
-        constructor(name, age) {
+    class SwiftBic{
+        constructor(name, value) {
             this.name = name;
-            this.age = age;
+            this.value = value;
         }
     }
     // define async function
     const someAsyncFn = async () => new BigDecimal('123.456')
     // call other async methods
     const data = await someAsyncFn();
-    return {bankId: "HelloBank:"+ args[0], result: data.toString(), person: new Person("Shuang", 10)};
+
+    const bank = {
+        "bankId":{
+            "value":"HelloBank:"+ args[0]
+        },
+        "shortName":"The Royal Bank of Scotland" + data.toString(),
+        "fullName":"The Royal Bank of Scotland",
+        "logoUrl":"http://www.red-bank-shoreditch.com/logo.gif",
+        "websiteUrl":"http://www.red-bank-shoreditch.com",
+        "bankRoutingScheme":"OBP",
+        "bankRoutingAddress":"rbs",
+        "swiftBic": new SwiftBic("Mock Swift", 10).name,
+        "nationalIdentifier":"String",
+    }
+
+    return bank;
 }
