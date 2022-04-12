@@ -259,9 +259,13 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canDeleteWhereTag_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  
+  //internal transfer between my own accounts
   object canAddTransactionRequestToOwnAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  
+  // transfer to any account
   object canAddTransactionRequestToAnyAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
