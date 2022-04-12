@@ -356,6 +356,7 @@ trait APIMethods400 {
         $UserNotLoggedIn,
         $BankNotFound,
         $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -367,6 +368,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "double-entry-transaction" :: Nil JsonGet _ => {
         cc =>
           for {
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
             (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, callContext)
           } yield {
@@ -1317,6 +1319,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         $BankNotFound,
         $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
         AllowedAttemptsUsedUp,
@@ -1330,7 +1333,7 @@ trait APIMethods400 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), fromAccount, callContext) <- SS.userAccount
+            (user @Full(u), _, fromAccount, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
               isValidID(accountId.value)
@@ -3027,6 +3030,7 @@ trait APIMethods400 {
         $UserNotLoggedIn,
         $BankNotFound,
         $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         InvalidJsonFormat,
         NoViewPermission,
         $UserNoPermissionAccessView,
@@ -3038,7 +3042,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), view, callContext) <- SS.userView
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)", cc=callContext) {
               view.canAddTag
             }
@@ -3082,7 +3086,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)", cc=callContext) {
               view.canDeleteTag
             }
@@ -3124,7 +3128,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonGet req => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)", cc=callContext) {
               view.canSeeTags
             }
@@ -4104,7 +4108,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)", cc=callContext) {
               view.canCreateDirectDebit
             }
@@ -4223,7 +4227,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)", cc=callContext) {
               view.canCreateStandingOrder
             }
@@ -5138,7 +5142,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
               u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
@@ -8063,7 +8067,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), view, callContext) <-  SS.userView
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
             _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, callContext) {
@@ -8230,6 +8234,8 @@ trait APIMethods400 {
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         AccountNotFound,
         InvalidJsonFormat,
         InvalidISOCurrencyCode,
@@ -8245,7 +8251,7 @@ trait APIMethods400 {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  callContext) {
               json.extract[PostCounterpartyJson400]
             }
@@ -8339,7 +8345,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
               view.canAddCounterparty == true
             }
@@ -8386,7 +8392,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
               view.canAddCounterparty == true
             }
@@ -8419,6 +8425,7 @@ trait APIMethods400 {
         InvalidBankIdFormat,
         $BankNotFound,
         $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         InvalidJsonFormat,
         ViewNotFound,
         UnknownError
@@ -8430,7 +8437,7 @@ trait APIMethods400 {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: counterpartyName :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(counterpartyName, bankId.value, accountId.value, viewId.value, callContext)
 
