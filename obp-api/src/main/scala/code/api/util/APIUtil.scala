@@ -53,11 +53,13 @@ import code.api.{DirectLogin, _}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
+import code.context.UserAuthContextProvider
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
+import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
@@ -542,6 +544,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getHeadersCommonPart() = headers ::: List((ResponseHeader.`Correlation-Id`, getCorrelationId()))
 
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
+  
+  def consumerPassedSmallPaymentVerification(consumerId: String, accountId:String) = {
+    val accountPlainTextReference =  MappedAccountIdMappingProvider.getAccountPlainTextReference(AccountId(accountId))
+    
+    //TODO this maybe be changed , So far, accountPlainTextReference is ACCOUNT_NUMBER.
+    val accountNumber = accountPlainTextReference.getOrElse("")
+    
+    if(accountNumber.nonEmpty){
+      val result = UserAuthContextProvider.userAuthContextProvider.vend.consumerHasSmallPaymentVerification(consumerId, accountNumber)
+      if(result.isDefined) 
+        true 
+      else 
+        false 
+    } else {
+      false
+    }
+    
+  }
 
   case class CustomResponseHeaders(list: List[(String, String)])
   //This is used for get the value from props `email_domain_to_space_mappings`

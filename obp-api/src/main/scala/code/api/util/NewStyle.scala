@@ -73,6 +73,8 @@ import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceD
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import code.util.Helper.MdcLoggable
+import code.views.system.AccountAccess
+import net.liftweb.mapper.{By}
 
 object NewStyle extends MdcLoggable{
   lazy val endpoints: List[(String, String)] = List(
@@ -591,15 +593,64 @@ object NewStyle extends MdcLoggable{
     
     def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future{
-        APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) match {
-          case true => Full(true)
-          case false => user.hasOwnerViewAccess(BankIdAccountId(bankAccountId.bankId,bankAccountId.accountId)) match {
-            case true => Full(true)
-            case false => Empty
+        
+        lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) 
+        
+        lazy val userAccessedView = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user))
+
+        lazy val viewPermission = userAccessedView.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
+        
+        lazy val accountAccess = AccountAccess.find(
+          By(AccountAccess.user_fk, user.userPrimaryKey.value),
+          By(AccountAccess.bank_id, bankAccountId.bankId.value),
+          By(AccountAccess.account_id, bankAccountId.accountId.value),
+          By(AccountAccess.view_fk,userAccessedView.head.id)
+        )
+
+        lazy val consumerIdFromAccountAccess = accountAccess.map(_.consumer_id.get).getOrElse("")
+        
+        lazy val consumerIdFromCallContext = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
+
+        lazy val consumerContainsSmallPaymentVerified =  APIUtil.consumerPassedSmallPaymentVerification(consumerIdFromCallContext, bankAccountId.accountId.value)
+        
+        //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
+        if(hasCanCreateAnyTransactionRequestRole) {
+          Full(true) 
+        //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
+        } else if (!hasCanCreateAnyTransactionRequestRole && viewPermission) {
+          Full(true)
+        //3rd: check if consumerIdFromCallContext == consumerIdFromAccountAccess, and the consumerIdFromCallContext contains the consumerContainsSmallPaymentVerified flag
+        }else if (!hasCanCreateAnyTransactionRequestRole 
+          && !viewPermission 
+          && consumerIdFromAccountAccess.nonEmpty
+          && consumerIdFromCallContext.nonEmpty
+          && consumerIdFromCallContext.equals(consumerIdFromAccountAccess)
+          && consumerContainsSmallPaymentVerified) {
+          Full(true)
+        //4th: check if consumerIdFromCallContext == consumerIdFromAccountAccess, and the consumerIdFromCallContext does not contain the consumerContainsSmallPaymentVerified
+        // we need to remove the accountAccess.
+        }else if (!hasCanCreateAnyTransactionRequestRole
+          && !viewPermission
+          && consumerIdFromAccountAccess.nonEmpty
+          && consumerIdFromCallContext.nonEmpty
+          && consumerIdFromCallContext.equals(consumerIdFromAccountAccess)
+          && !consumerContainsSmallPaymentVerified){
+          //we remove the consumerAccountAccess
+          if(userAccessedView.isDefined){
+            userAccessedView.head.isSystem match {
+              case true => Views.views.vend.revokeAccessToSystemViewForConsumer(bankAccountId.bankId, bankAccountId.accountId, userAccessedView.head, consumerIdFromCallContext)
+              case false => Views.views.vend.revokeAccessToCustomViewForConsumer(userAccessedView.head, consumerIdFromCallContext)
+            }
           }
+          Full(false)
+        } else{
+          Full(false)
         }
       } map {
-        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest")
+        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest " +
+          s"Current ViewId(${viewId.value})," +
+          s"current UserId(${user.userId})"
+        )
       }
     }
     

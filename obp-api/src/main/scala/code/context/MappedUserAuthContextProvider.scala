@@ -30,6 +30,16 @@ object MappedUserAuthContextProvider extends UserAuthContextProvider with MdcLog
       MappedUserAuthContext.findAll(By(MappedUserAuthContext.mUserId, userId))
     }
   }
+
+  override def consumerHasSmallPaymentVerification(consumerId: String,  value:String): Box[Boolean] = {
+    val userAuthContext = MappedUserAuthContext.find(
+      By(MappedUserAuthContext.mConsumerId, consumerId),
+      By(MappedUserAuthContext.mKey, "SMALL_PAYMENT_VERIFIED"),
+      By(MappedUserAuthContext.mValue, value)
+    )
+    if(userAuthContext.isDefined) Full(true) else Full(false)
+  }
+  
   // This function creates or replaces only user auth contexts provided a parameter to this function. (It does not delete other user auth contexts)
   // For this reason developers are encouraged to use name space in the key.
   override def createOrUpdateUserAuthContexts(userId: String, userAuthContexts: List[BasicUserAuthContext]): Box[List[MappedUserAuthContext]] = {

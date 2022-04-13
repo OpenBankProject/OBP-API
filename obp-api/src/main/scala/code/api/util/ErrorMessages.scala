@@ -499,7 +499,12 @@ object ErrorMessages {
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
-  val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account or you don't have access to canCreateAnyTransactionRequest."
+  val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. " +
+    "The Transaction Request could not be created " +
+    "because the login user doesn't have access to the view of the from account " +
+    "or the view don't have the `canAddTransactionRequestToAnyAccount` permission " +
+    "or your consumer doesn't not have the access to the view of the from account " +
+    "or you don't have access to canCreateAnyTransactionRequest."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."

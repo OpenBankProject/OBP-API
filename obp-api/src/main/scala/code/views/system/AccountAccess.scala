@@ -14,7 +14,7 @@ class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with Create
   
   //If consumer_id is null, any consumers can use this record
   //If consumer_id is not null, only same consumer can use this record
-//  object consumer_id extends MappedString(this, 255)
+  object consumer_id extends MappedString(this, 255)
   object account_id extends MappedString(this, 255)
   object view_id extends UUIDString(this)
   object view_fk extends MappedLongForeignKey(this, ViewDefinition)
