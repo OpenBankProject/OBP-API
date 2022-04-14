@@ -46,9 +46,10 @@ object DynamicConnector {
    */
   def createFunction(lang: String, methodBody:String): Box[DynamicFunction] = lang match {
     case "js" | "Js" | "javascript" | "JavaScript" => DynamicUtil.createJsFunction(methodBody)
+    case "java" | "Java" => DynamicUtil.createJavaFunction(methodBody)
     case "Scala" | "scala" | "" | null => createScalaFunction(methodBody)
     // TODO refactor Exception type and message
-    case _ => Failure(s"Illegal lang: $lang")
+    case _ => Failure(s"Illegal lang: $lang, current supported language: Java, Javascript and Scala")
   }
 
   /**

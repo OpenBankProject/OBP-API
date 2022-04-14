@@ -7,6 +7,7 @@
  * @returns {Promise<Object>}
  */
 async function processor(args) {
+    const [bankId] = args;
     // call java or scala type in this way
     const BigDecimal = Java.type('java.math.BigDecimal');
     // define a class
@@ -23,7 +24,7 @@ async function processor(args) {
 
     const bank = {
         "bankId":{
-            "value":"HelloBank:"+ args[0]
+            "value":"HelloBank:"+ bankId
         },
         "shortName":"The Royal Bank of Scotland" + data.toString(),
         "fullName":"The Royal Bank of Scotland",

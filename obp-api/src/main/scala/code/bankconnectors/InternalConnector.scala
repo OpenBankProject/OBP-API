@@ -10,8 +10,11 @@ import java.lang.reflect.Method
 import code.api.util.{CallContext, DynamicUtil}
 import com.auth0.jwt.internal.org.apache.commons.lang3.StringEscapeUtils
 import org.apache.commons.lang3.StringUtils
+import com.github.dwickern.macros.NameOf.{nameOf, qualifiedNameOfType}
+import com.openbankproject.commons.util.ReflectUtils
 
 import scala.reflect.runtime.universe.{MethodSymbol, TermSymbol, typeOf}
+
 
 object InternalConnector {
 
@@ -59,7 +62,7 @@ object InternalConnector {
 
   private val otherTypeRegx = """^.+\)\s*:(.+)$""".r
 
-  private def buildJsMethodBody(methodName: String, methodBody: String): String = methodNameToSignature.get(methodName)  match {
+  private def buildDynamicMethodBody(methodName: String, methodBody: String, dynamicFunctionCreator: String): String = methodNameToSignature.get(methodName)  match {
     case Some(signature) =>
       val convertor = signature match {
           case boxRegx1(t) =>
@@ -154,9 +157,9 @@ object InternalConnector {
       val args = s"Array($argList)"
       val body = StringEscapeUtils.escapeJava(methodBody)
       s"""val convertor = $convertor
-      val net.liftweb.common.Full(jsFunc) = code.api.util.DynamicUtil.createJsFunction("$body")
-      val jsResult = jsFunc($args, $cc)
-      convertor(jsResult)"""
+      val net.liftweb.common.Full(dynamicFunc) = $dynamicFunctionCreator("$body")
+      val result = dynamicFunc($args, $cc)
+      convertor(result)"""
 
 
     case _ => ""
@@ -172,11 +175,20 @@ object InternalConnector {
    */
   def createFunction(methodName: String, methodBody:String, lang: String): Box[AnyRef] = lang match {
     case "js" | "Js" | "javascript" | "JavaScript" =>
-      val jsMethodBody = buildJsMethodBody(methodName, methodBody)
+      // just the value: "code.api.util.DynamicUtil.createJsFunction"
+      val jsFunctionCreator = s"${ReflectUtils.getType(DynamicUtil).typeSymbol.fullName}.${nameOf(DynamicUtil.createJsFunction _)}"
+      val jsMethodBody = buildDynamicMethodBody(methodName, methodBody, jsFunctionCreator)
       createScalaFunction(methodName, jsMethodBody)
+
+    case "Java" | "java" =>
+      // just the value: "code.api.util.DynamicUtil.createJavaFunction"
+      val javaFunctionCreator = s"${ReflectUtils.getType(DynamicUtil).typeSymbol.fullName}.${nameOf(DynamicUtil.createJavaFunction _)}"
+      val javaMethodBody = buildDynamicMethodBody(methodName, methodBody, javaFunctionCreator)
+      createScalaFunction(methodName, javaMethodBody)
+
     case "Scala" | "scala" | "" | null => createScalaFunction(methodName, methodBody)
     // TODO refactor Exception type and message
-    case _ => Failure(s"Illegal lang: $lang")
+    case _ => Failure(s"Illegal lang: $lang, current supported language: Java, Javascript and Scala")
   }
 
   /**

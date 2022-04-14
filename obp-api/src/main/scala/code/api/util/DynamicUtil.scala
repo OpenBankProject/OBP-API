@@ -13,19 +13,22 @@ import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.JsonResponse
-import net.liftweb.json.{JValue, prettyRender}
+import net.liftweb.json.{Extraction, JValue, prettyRender}
 import org.apache.commons.lang3.StringUtils
 import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
 
 import java.lang.reflect.ReflectPermission
 import java.net.NetPermission
 import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
-import java.util.PropertyPermission
+import java.util.{PropertyPermission, UUID}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
+import java.util.regex.Pattern
+import javax.script.ScriptEngineManager
 import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
+import scala.reflect.api
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
 import scala.runtime.NonLocalReturnControl
@@ -395,15 +398,15 @@ object DynamicUtil {
     }
   }
 
-  type JsFunction = Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]]
+  type DynamicFunction = Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]]
 
   private val jsEngine = Engine.newBuilder.option("engine.WarnInterpreterOnly", "false")
     .allowExperimentalOptions(true)
     .build()
 
-  private val memoJsFunction = new Memo[String, JsFunction]
+  private val memoDynamicFunction = new Memo[String, DynamicFunction]
 
-  def createJsFunction(methodBody:String, bindingVars: Map[String, AnyRef] = Map.empty): JsFunction = memoJsFunction.memoize(methodBody) {
+  def createJsFunction(methodBody:String, bindingVars: Map[String, AnyRef] = Map.empty): DynamicFunction = memoDynamicFunction.memoize("Javascript:" + methodBody) {
     Box tryo {
       val jsCode = s"""async function processor(args, callContext) {
        $methodBody
@@ -440,6 +443,31 @@ object DynamicUtil {
           .invokeMember("then", resolve, reject)
           .invokeMember("catch", reject)
         p.future
+      }
+    }
+  }
+
+  private val javaEngine = (new ScriptEngineManager).getEngineByName("java")
+
+  def createJavaFunction(methodBody:String): DynamicFunction = memoDynamicFunction.memoize("java:" + methodBody) {
+    import com.openbankproject.commons.ExecutionContext.Implicits.global
+    import net.liftweb.json.compactRender
+
+    Box tryo {
+      val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")
+      val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
+
+      val javaCode = s"""package code.api.util.dynamic.${packageExp};
+                        |${packageMatcher.replaceFirst("")}
+                        |""".stripMargin
+
+      val func = javaEngine.eval(javaCode).asInstanceOf[java.util.function.Function[Array[AnyRef], Any]]
+
+      (args: Array[AnyRef], cc: Option[CallContext]) => Future {
+        val value = func(args ++ cc)
+        val jValue = Extraction.decompose(value)(CustomJsonFormats.formats)
+        val zson = compactRender(jValue)
+        Box !! (zson-> cc)
       }
     }
   }
