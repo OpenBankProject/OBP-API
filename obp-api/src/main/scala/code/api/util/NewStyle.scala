@@ -596,53 +596,44 @@ object NewStyle extends MdcLoggable{
         
         lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) 
         
-        lazy val userAccessedView = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user))
+        lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user))
 
-        lazy val viewPermission = userAccessedView.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
+        lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
         
-        lazy val accountAccess = AccountAccess.find(
+        lazy val consumerIdFromCallContext = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
+        
+        lazy val accountAccessByExplictConsumer = AccountAccess.find(
           By(AccountAccess.user_fk, user.userPrimaryKey.value),
           By(AccountAccess.bank_id, bankAccountId.bankId.value),
           By(AccountAccess.account_id, bankAccountId.accountId.value),
-          By(AccountAccess.view_fk,userAccessedView.head.id)
+          By(AccountAccess.view_fk,view.head.id),
+          By(AccountAccess.consumer_id,consumerIdFromCallContext)
         )
-
-        lazy val consumerIdFromAccountAccess = accountAccess.map(_.consumer_id.get).getOrElse("")
         
-        lazy val consumerIdFromCallContext = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
-
-        lazy val consumerContainsSmallPaymentVerified =  APIUtil.consumerPassedSmallPaymentVerification(consumerIdFromCallContext, bankAccountId.accountId.value)
+        lazy val accountAccessWithAnyConsumer: Box[AccountAccess] = AccountAccess.find(
+          By(AccountAccess.user_fk, user.userPrimaryKey.value),
+          By(AccountAccess.bank_id, bankAccountId.bankId.value),
+          By(AccountAccess.account_id, bankAccountId.accountId.value),
+          By(AccountAccess.view_fk,view.head.id),
+          By(AccountAccess.consumer_id, null)
+        )
+        
+        //this method to check the consumer's userAuthContext SmallPaymentVerified value.
+//        lazy val consumerContainsSmallPaymentVerified =  APIUtil.consumerPassedSmallPaymentVerification(consumerIdFromCallContext, bankAccountId.accountId.value)
         
         //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
         if(hasCanCreateAnyTransactionRequestRole) {
           Full(true) 
         //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
-        } else if (!hasCanCreateAnyTransactionRequestRole && viewPermission) {
+        } else if (canAddTransactionRequestToAnyAccount) {
           Full(true)
-        //3rd: check if consumerIdFromCallContext == consumerIdFromAccountAccess, and the consumerIdFromCallContext contains the consumerContainsSmallPaymentVerified flag
-        }else if (!hasCanCreateAnyTransactionRequestRole 
-          && !viewPermission 
-          && consumerIdFromAccountAccess.nonEmpty
-          && consumerIdFromCallContext.nonEmpty
-          && consumerIdFromCallContext.equals(consumerIdFromAccountAccess)
-          && consumerContainsSmallPaymentVerified) {
+        //3rd: check if accountAccessByExplictConsumer isDefined, so the consumer can do the payment
+        }else if (consumerIdFromCallContext.nonEmpty && accountAccessByExplictConsumer.isDefined) {
           Full(true)
-        //4th: check if consumerIdFromCallContext == consumerIdFromAccountAccess, and the consumerIdFromCallContext does not contain the consumerContainsSmallPaymentVerified
+        //4th: check if accountAccessWithAnyConsumer isDefined, that mean all the consumers can do the payment -- WIP
         // we need to remove the accountAccess.
-        }else if (!hasCanCreateAnyTransactionRequestRole
-          && !viewPermission
-          && consumerIdFromAccountAccess.nonEmpty
-          && consumerIdFromCallContext.nonEmpty
-          && consumerIdFromCallContext.equals(consumerIdFromAccountAccess)
-          && !consumerContainsSmallPaymentVerified){
-          //we remove the consumerAccountAccess
-          if(userAccessedView.isDefined){
-            userAccessedView.head.isSystem match {
-              case true => Views.views.vend.revokeAccessToSystemViewForConsumer(bankAccountId.bankId, bankAccountId.accountId, userAccessedView.head, consumerIdFromCallContext)
-              case false => Views.views.vend.revokeAccessToCustomViewForConsumer(userAccessedView.head, consumerIdFromCallContext)
-            }
-          }
-          Full(false)
+//        }else if (consumerIdFromCallContext.nonEmpty && accountAccessWithAnyConsumer.isDefined) {
+//          Full(false)
         } else{
           Full(false)
         }
