@@ -58,15 +58,22 @@ case class UserExtended(val user: User) extends MdcLoggable {
     * @param view the view object, need check the existence before calling the method
     * @param bankIdAccountId for the system view there is not ids in the view, so we need get it from parameters.
     * @return if has the input view access, return true, otherwise false.
-    */
-  final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId): Boolean ={
+    */ 
+  final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, consumerId:Option[String] = None): Boolean ={
+    val resourceUser = user.asInstanceOf[ResourceUser]
+    
     val viewDefinition = view.asInstanceOf[ViewDefinition]
-    !(AccountAccess.count(
-      By(AccountAccess.user_fk, this.userPrimaryKey.value), 
+    
+    val consumerAccountAccess = AccountAccess.find(
+      By(AccountAccess.user_fk, resourceUser.id.get),
       By(AccountAccess.view_fk, viewDefinition.id),
       By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
       By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-    ) == 0)
+//      If the value is defined, we will find the access by consumerId. 
+//      if not, we will find the consumer_id == null. If we found it, that mean this accountAccess can be used for all consumers.
+      By(AccountAccess.consumer_id, consumerId.getOrElse(null)) 
+    )
+    consumerAccountAccess.isDefined
   }
 
   final def checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId: BankIdAccountId) = {

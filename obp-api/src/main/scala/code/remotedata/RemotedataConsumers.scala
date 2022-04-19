@@ -81,8 +81,5 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
   def populateMissingUUIDs(): Boolean = getValueFromFuture(
     (actor ? cc.populateMissingUUIDs()).mapTo[Boolean]
   )
-  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String) = getValueFromFuture(
-    (actor ? cc.hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String)).mapTo[Boolean]
-  )
 
 }

@@ -52,7 +52,6 @@ trait ConsumersProvider {
                           createdByUserId: Option[String]): Box[Consumer]
   def populateMissingUUIDs(): Boolean
   
-  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String): Boolean 
 }
 
 
@@ -85,7 +84,6 @@ class RemotedataConsumersCaseClasses {
                                  redirectURL: Option[String], 
                                  createdByUserId: Option[String])
   case class populateMissingUUIDs()
-  case class hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String)
 }
 
 object RemotedataConsumersCaseClasses extends RemotedataConsumersCaseClasses

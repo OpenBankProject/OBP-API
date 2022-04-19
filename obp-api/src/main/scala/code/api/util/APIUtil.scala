@@ -3350,9 +3350,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
       // 3rd: The user has account access to this custom view
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customView
-      // 4th: The consumer has account access to this custom view
-      case Full(v) if(user.isDefined && consumerId.isDefined && Consumers.consumers.vend.hasAccountAccess(v, bankIdAccountId, user.get, consumerId.get)) => customView
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => customView
       // The user has NO account access via custom view
       case _ =>
         val systemView = Views.views.vend.systemView(viewId)
@@ -3362,13 +3360,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           // 2nd: View is Pubic and Public views are allowed on this instance.
           case Full(v) if(isPublicView(v)) => systemView
           // 3rd: The user has account access to this system view
-          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
+          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => systemView
           // 4th: The user has firehose access to this system view
           case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
-          // 5th: The user has firehose access at a bank to this system view
-          case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
-          // 6th: The consumer has account access to this custom view
-          case Full(v) if(user.isDefined && consumerId.isDefined && Consumers.consumers.vend.hasAccountAccess(v, bankIdAccountId, user.get, consumerId.get)) => customView
           // The user has NO account access at all
           case _ => Empty
         }

@@ -455,18 +455,6 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     }
   }.forall(_ == true)
 
-  override def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String): Boolean = {
-    val resourceUser = user.asInstanceOf[ResourceUser]
-    val viewDefinition = view.asInstanceOf[ViewDefinition]
-    !(AccountAccess.count(
-      By(AccountAccess.user_fk, resourceUser.id.get),
-      By(AccountAccess.view_fk, viewDefinition.id),
-      By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
-      By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-      By(AccountAccess.consumer_id, consumerId),
-    ) == 0)
-  }
-
 }
 
 class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
