@@ -5,6 +5,7 @@ import code.actorsystem.ObpActorHelper
 import code.consumer.RemotedataConsumersCaseClasses
 import code.model.{MappedConsumersProvider, _}
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{BankIdAccountId, User, View}
 
 class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -64,6 +65,10 @@ class RemotedataConsumersActor extends Actor with ObpActorHelper with MdcLoggabl
     case cc.populateMissingUUIDs() =>
       logger.debug("populateMissingUUIDs()")
       sender ! (mapper.populateMissingUUIDs())
+
+    case cc.hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String) =>
+      logger.debug("hasAccountAccess()")
+      sender ! (mapper.hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String))
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

@@ -39,8 +39,10 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.util.HydraUtil
 import code.util.HydraUtil._
+import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{BankIdAccountId, User, View}
 import net.liftweb.common._
 import net.liftweb.http.S
 import net.liftweb.mapper.{LongKeyedMetaMapper, _}
@@ -452,6 +454,18 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
       consumer.consumerId(APIUtil.generateUUID()).save()
     }
   }.forall(_ == true)
+
+  override def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String): Boolean = {
+    val resourceUser = user.asInstanceOf[ResourceUser]
+    val viewDefinition = view.asInstanceOf[ViewDefinition]
+    !(AccountAccess.count(
+      By(AccountAccess.user_fk, resourceUser.id.get),
+      By(AccountAccess.view_fk, viewDefinition.id),
+      By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
+      By(AccountAccess.account_id, bankIdAccountId.accountId.value),
+      By(AccountAccess.consumer_id, consumerId),
+    ) == 0)
+  }
 
 }
 

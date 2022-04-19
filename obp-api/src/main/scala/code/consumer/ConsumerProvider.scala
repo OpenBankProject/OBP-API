@@ -3,6 +3,7 @@ package code.consumer
 import code.api.util.APIUtil
 import code.model.{AppType, Consumer, MappedConsumersProvider}
 import code.remotedata.RemotedataConsumers
+import com.openbankproject.commons.model.{BankIdAccountId, User, View}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -50,6 +51,8 @@ trait ConsumersProvider {
                           redirectURL: Option[String], 
                           createdByUserId: Option[String]): Box[Consumer]
   def populateMissingUUIDs(): Boolean
+  
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String): Boolean 
 }
 
 
@@ -82,6 +85,7 @@ class RemotedataConsumersCaseClasses {
                                  redirectURL: Option[String], 
                                  createdByUserId: Option[String])
   case class populateMissingUUIDs()
+  case class hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String)
 }
 
 object RemotedataConsumersCaseClasses extends RemotedataConsumersCaseClasses

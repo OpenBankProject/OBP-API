@@ -596,27 +596,27 @@ object NewStyle extends MdcLoggable{
         
         lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) 
         
-        lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user))
+        lazy val consumerIdFromCallContext = callContext.map(_.consumer.map(_.consumerId.get).getOrElse(""))
+        
+        lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user), consumerIdFromCallContext)
 
         lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
         
-        lazy val consumerIdFromCallContext = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
         
-        lazy val accountAccessByExplictConsumer = AccountAccess.find(
-          By(AccountAccess.user_fk, user.userPrimaryKey.value),
-          By(AccountAccess.bank_id, bankAccountId.bankId.value),
-          By(AccountAccess.account_id, bankAccountId.accountId.value),
-          By(AccountAccess.view_fk,view.head.id),
-          By(AccountAccess.consumer_id,consumerIdFromCallContext)
-        )
-        
-        lazy val accountAccessWithAnyConsumer: Box[AccountAccess] = AccountAccess.find(
-          By(AccountAccess.user_fk, user.userPrimaryKey.value),
-          By(AccountAccess.bank_id, bankAccountId.bankId.value),
-          By(AccountAccess.account_id, bankAccountId.accountId.value),
-          By(AccountAccess.view_fk,view.head.id),
-          By(AccountAccess.consumer_id, null)
-        )
+//        lazy val accountAccessByExplictConsumer = AccountAccess.find(
+//          By(AccountAccess.user_fk, user.userPrimaryKey.value),
+//          By(AccountAccess.bank_id, bankAccountId.bankId.value),
+//          By(AccountAccess.account_id, bankAccountId.accountId.value),
+//          By(AccountAccess.view_fk,view.head.id),
+//          By(AccountAccess.consumer_id,consumerIdFromCallContext)
+//        )
+//        lazy val accountAccessWithAnyConsumer: Box[AccountAccess] = AccountAccess.find(
+//          By(AccountAccess.user_fk, user.userPrimaryKey.value),
+//          By(AccountAccess.bank_id, bankAccountId.bankId.value),
+//          By(AccountAccess.account_id, bankAccountId.accountId.value),
+//          By(AccountAccess.view_fk,view.head.id),
+//          By(AccountAccess.consumer_id, null)
+//        )
         
         //this method to check the consumer's userAuthContext SmallPaymentVerified value.
 //        lazy val consumerContainsSmallPaymentVerified =  APIUtil.consumerPassedSmallPaymentVerification(consumerIdFromCallContext, bankAccountId.accountId.value)
@@ -627,9 +627,9 @@ object NewStyle extends MdcLoggable{
         //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
         } else if (canAddTransactionRequestToAnyAccount) {
           Full(true)
-        //3rd: check if accountAccessByExplictConsumer isDefined, so the consumer can do the payment
-        }else if (consumerIdFromCallContext.nonEmpty && accountAccessByExplictConsumer.isDefined) {
-          Full(true)
+//        //3rd: check if accountAccessByExplictConsumer isDefined, so the consumer can do the payment
+//        }else if (consumerIdFromCallContext.nonEmpty && accountAccessByExplictConsumer.isDefined) {
+//          Full(true)
         //4th: check if accountAccessWithAnyConsumer isDefined, that mean all the consumers can do the payment -- WIP
         // we need to remove the accountAccess.
 //        }else if (consumerIdFromCallContext.nonEmpty && accountAccessWithAnyConsumer.isDefined) {

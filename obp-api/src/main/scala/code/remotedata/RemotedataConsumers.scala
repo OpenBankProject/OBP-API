@@ -6,6 +6,7 @@ import code.api.util.APIUtil
 import code.consumer.{ConsumersProvider, RemotedataConsumersCaseClasses}
 import code.model._
 import com.google.common.cache.CacheBuilder
+import com.openbankproject.commons.model.{BankIdAccountId, User, View}
 import net.liftweb.common._
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache
@@ -79,6 +80,9 @@ object RemotedataConsumers extends ObpActorInit with ConsumersProvider {
   )
   def populateMissingUUIDs(): Boolean = getValueFromFuture(
     (actor ? cc.populateMissingUUIDs()).mapTo[Boolean]
+  )
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String) = getValueFromFuture(
+    (actor ? cc.hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, consumerId: String)).mapTo[Boolean]
   )
 
 }

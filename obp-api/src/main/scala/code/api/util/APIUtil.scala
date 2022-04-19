@@ -3342,7 +3342,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * to the account specified by parameter bankIdAccountId over the view specified by parameter viewId
    * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
-  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]): Box[View] = {
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], consumerId: Option[String] = None): Box[View] = {
     val customView = Views.views.vend.customView(viewId, bankIdAccountId)
     customView match { // CHECK CUSTOM VIEWS
       // 1st: View is Pubic and Public views are NOT allowed on this instance.
@@ -3351,6 +3351,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Full(v) if(isPublicView(v)) => customView
       // 3rd: The user has account access to this custom view
       case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customView
+      // 4th: The consumer has account access to this custom view
+      case Full(v) if(user.isDefined && consumerId.isDefined && Consumers.consumers.vend.hasAccountAccess(v, bankIdAccountId, user.get, consumerId.get)) => customView
       // The user has NO account access via custom view
       case _ =>
         val systemView = Views.views.vend.systemView(viewId)
@@ -3365,6 +3367,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
           // 5th: The user has firehose access at a bank to this system view
           case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
+          // 6th: The consumer has account access to this custom view
+          case Full(v) if(user.isDefined && consumerId.isDefined && Consumers.consumers.vend.hasAccountAccess(v, bankIdAccountId, user.get, consumerId.get)) => customView
           // The user has NO account access at all
           case _ => Empty
         }
