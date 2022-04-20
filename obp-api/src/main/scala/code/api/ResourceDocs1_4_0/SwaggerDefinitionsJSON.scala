@@ -179,7 +179,10 @@ object SwaggerDefinitionsJSON {
       "can_see_bank_account_credit_limit",
       //v400
       "can_create_direct_debit",
-      "can_create_standing_order"
+      "can_create_standing_order",
+      
+      //payments
+      "can_add_transaction_request_to_any_account"
     )
   )
 

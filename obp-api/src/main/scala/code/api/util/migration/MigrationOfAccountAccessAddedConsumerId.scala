@@ -29,14 +29,14 @@ object MigrationOfAccountAccessAddedConsumerId {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255);
+                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT 'ALL-CONSUMERS';
                     |DROP INDEX accountaccess_bank_id_account_id_view_fk_user_fk;
                     |CREATE UNIQUE INDEX "accountaccess_bank_id_account_id_view_fk_user_fk_consumer_id" ON accountaccess ("bank_id","account_id","view_fk","user_fk","consumer_id");
                     |""".stripMargin
               case _ =>
                 () =>
                   """
-                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255);
+                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT 'ALL-CONSUMERS';
                     |DROP INDEX accountaccess_bank_id_account_id_view_fk_user_fk;
                     |CREATE UNIQUE INDEX "accountaccess_bank_id_account_id_view_fk_user_fk_consumer_id" ON accountaccess ("bank_id","account_id","view_fk","user_fk","consumer_id");
                     |""".stripMargin

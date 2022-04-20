@@ -609,12 +609,13 @@ object NewStyle extends MdcLoggable{
         } else if (canAddTransactionRequestToAnyAccount) {
           Full(true)
         } else{
-          Full(false)
+          Empty
         }
       } map {
         unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest " +
           s"Current ViewId(${viewId.value})," +
-          s"current UserId(${user.userId})"
+          s"current UserId(${user.userId})"+
+          s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
         )
       }
     }
