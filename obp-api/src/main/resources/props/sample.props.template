@@ -1158,3 +1158,7 @@ dynamic_code_compile_validate_dependencies=[\
 
 ## when api response json field value in the json array, the field will be excluded
 excluded.response.field.values=["String", "", null, []]
+
+# If you want to make the Lift inactivity timeout shorter than
+# the container inactivity timeout, set the inactivity timeout here
+session_inactivity_timeout_in_minutes = 30
