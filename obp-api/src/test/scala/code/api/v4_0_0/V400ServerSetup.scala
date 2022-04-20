@@ -350,11 +350,11 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val toAccount = createAccountViaEndpoint(bank.bankId.value, addAccountJson2, user1)
     // Create a custom view
     val customViewJson = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
-    val customView = createViewViaEndpoint(bank.bankId.value, toAccount.account_id, customViewJson, user1)
+    val customView = createViewViaEndpoint(bank.bankId.value, fromAccount.account_id, customViewJson, user1)
     // Grant access to the view
     grantUserAccessToViewViaEndpoint(
       bank.bankId.value,
-      toAccount.account_id,
+      fromAccount.account_id,
       resourceUser1.userId,
       user1,
       PostViewJsonV400(view_id = customView.id, is_system = false)
