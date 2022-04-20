@@ -53,13 +53,11 @@ import code.api.{DirectLogin, _}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
-import code.context.UserAuthContextProvider
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
-import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.sanitycheck.SanityCheck
 import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink

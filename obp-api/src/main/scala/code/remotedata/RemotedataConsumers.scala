@@ -6,7 +6,6 @@ import code.api.util.APIUtil
 import code.consumer.{ConsumersProvider, RemotedataConsumersCaseClasses}
 import code.model._
 import com.google.common.cache.CacheBuilder
-import com.openbankproject.commons.model.{BankIdAccountId, User, View}
 import net.liftweb.common._
 import scalacache.ScalaCache
 import scalacache.guava.GuavaCache

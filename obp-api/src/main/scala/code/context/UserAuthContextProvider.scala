@@ -28,8 +28,6 @@ trait UserAuthContextProvider {
   def createOrUpdateUserAuthContexts(userId: String, userAuthContexts: List[BasicUserAuthContext]): Box[List[UserAuthContext]]
   def deleteUserAuthContexts(userId: String): Future[Box[Boolean]]
   def deleteUserAuthContextById(userAuthContextId: String): Future[Box[Boolean]]
-  
-  def consumerHasSmallPaymentVerification(consumerId: String, value:String): Box[Boolean]
 }
 
 class RemotedataUserAuthContextCaseClasses {
@@ -39,8 +37,6 @@ class RemotedataUserAuthContextCaseClasses {
   case class createOrUpdateUserAuthContexts(userId: String, userAuthContext: List[BasicUserAuthContext])
   case class deleteUserAuthContexts(userId: String)
   case class deleteUserAuthContextById(userAuthContextId: String)
-  
-  case class consumerHasSmallPaymentVerification(consumerId: String,  value:String)
 }
 
 object RemotedataUserAuthContextCaseClasses extends RemotedataUserAuthContextCaseClasses

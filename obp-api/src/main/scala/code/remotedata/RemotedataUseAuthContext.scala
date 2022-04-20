@@ -32,8 +32,4 @@ object RemotedataUserAuthContext extends ObpActorInit with UserAuthContextProvid
 
   override def deleteUserAuthContextById(userAuthContextId: String): Future[Box[Boolean]] =
     (actor ? cc.deleteUserAuthContextById(userAuthContextId)).mapTo[Box[Boolean]]
-    
-  override def consumerHasSmallPaymentVerification(consumerId: String, value:String): Box[Boolean] = getValueFromFuture(
-    (actor ? cc.consumerHasSmallPaymentVerification(consumerId, value)).mapTo[Box[Boolean]]
-  )
 }
