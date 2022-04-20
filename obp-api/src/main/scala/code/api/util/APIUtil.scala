@@ -3363,6 +3363,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => systemView
           // 4th: The user has firehose access to this system view
           case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
+          // 5th: The user has firehose access at a bank to this system view
+          case Full(v) if (user.isDefined && hasAccountFirehoseAccessAtBank(v, user.get, bankIdAccountId.bankId)) => systemView
           // The user has NO account access at all
           case _ => Empty
         }
