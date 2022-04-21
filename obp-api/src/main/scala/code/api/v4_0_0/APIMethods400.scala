@@ -12257,26 +12257,59 @@ trait APIMethods400 {
       }
     }
 
-    val webHookInfo = s"""
-      |Webhooks are used to call external URLs when certain events happen.
+    val generalWebHookInfo = s"""
+      |Webhooks are used to call external web services when certain events happen.
       |
-      |Account Webhooks focus on events around accounts.
+      |For instance, a webhook can be used to notify an external service if a transaction is created on an account.
       |
-      |For instance, a webhook could be used to notify an external service if a balance changes on an account.
-      |
-      |This functionality is work in progress! Please note that current trigger is: ${ApiTrigger.onCreateTransaction}
       |"""
-    
+
+
+    val accountNotificationWebhookInfo = s"""
+                         |When an account notification webhook fires it will POST to the URL you specify during the creation of the webhook.
+                         |
+                         |Inside the payload you will find account_id and transaction_id and also user_ids and customer_ids of the Users / Customers linked to the Account.
+                         |                     |
+                         |The webhook will POST the following structure to your service:
+                         |
+                         |{
+                         |  "event_name": "OnCreateTransaction",
+                         |  "event_id": "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "bank_id": "gh.29.uk",
+                         |  "account_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "transaction_id": "7ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "related_entities": [
+                         |    {
+                         |      "user_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |      "customer_ids": ["3ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"]
+                         |    }
+                         |  ]
+                         |}
+                         |
+                         |Thus, your service should accept the above POST body structure.
+                         |
+                         |In this way, your web service can be informed about an event on an account and act accordingly.
+                         |
+                         |Further information about the account, transaction or related entities can then be retrieved using the standard REST APIs.
+                         |"""
+
+
+
+
     staticResourceDocs += ResourceDoc(
       createSystemAccountNotificationWebhook,
       implementedInApiVersion,
       nameOf(createSystemAccountNotificationWebhook),
       "POST",
       "/web-hooks/account/notifications/on-create-transaction",
-      "Create System Account Notification Webhook",
-      s"""Create System Account Notification Webhook
+      "Create system level Account Notification Webhook",
+      s"""
+         |Create a notification Webhook that will fire for all accounts on the system.
          |
-         |$webHookInfo
+         |$generalWebHookInfo
+         |
+         |$accountNotificationWebhookInfo
+         |
          |""",
       accountNotificationWebhookPostJson,
       systemAccountNotificationWebhookJson,
@@ -12323,10 +12356,13 @@ trait APIMethods400 {
       nameOf(createBankAccountNotificationWebhook),
       "POST",
       "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction",
-      "Create Bank Account Notification Webhook",
-      s"""Create Bank Account Notification Webhook
+      "Create bank level Account Notification Webhook",
+      s"""Create a notification Webhook that will fire for all accounts on the specified Bank.
          |
-         |$webHookInfo
+         |$generalWebHookInfo
+         |
+         |$accountNotificationWebhookInfo
+         |
          |""",
       accountNotificationWebhookPostJson,
       bankAccountNotificationWebhookJson,

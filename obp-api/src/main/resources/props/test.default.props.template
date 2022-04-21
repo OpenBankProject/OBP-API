@@ -1,8 +1,12 @@
 #this is a sample props file you should edit and rename
 #see https://www.assembla.com/wiki/show/liftweb/Properties for all the naming options, or just use "default.props" in this same folder
 
+## REQUIREMENTS
+# see https://github.com/OpenBankProject/OBP-API#from-the-command-line for minimal memory requirements
+
 ####################################
 ## Minimum Settings
+
 
 ### Log level
 #logger.loglevel=INFO
