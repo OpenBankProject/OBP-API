@@ -61,8 +61,6 @@ case class UserExtended(val user: User) extends MdcLoggable {
     * @return if has the input view access, return true, otherwise false.
     */ 
   final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, consumerId:Option[String] = None): Boolean ={
-    val resourceUser = user.asInstanceOf[ResourceUser]
-    
     val viewDefinition = view.asInstanceOf[ViewDefinition]
     
     val consumerAccountAccess = {
@@ -86,7 +84,7 @@ case class UserExtended(val user: User) extends MdcLoggable {
           By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
           By(AccountAccess.account_id, bankIdAccountId.accountId.value),
           By(AccountAccess.view_fk, viewDefinition.id),
-          By(AccountAccess.user_fk, resourceUser.id.get),
+          By(AccountAccess.user_fk, this.userPrimaryKey.value),
           By(AccountAccess.consumer_id, ALL_CONSUMERS)
         ).isDefined
       }
