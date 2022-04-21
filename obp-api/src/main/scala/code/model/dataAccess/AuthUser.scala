@@ -615,7 +615,14 @@ import net.liftweb.util.Helpers._
       grantDefaultEntitlementsToAuthUser(user)
       logUserIn(user, () => {
         S.notice(S.?("account.validated"))
-        S.redirectTo(homePage)
+        APIUtil.getPropsValue("user_account_validated_redirect_url") match {
+          case Full(redirectUrl) => 
+            logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
+            S.redirectTo(redirectUrl)
+          case _ =>
+            logger.debug(s"user_account_validated_redirect_url is NOT defined")
+            S.redirectTo(homePage)
+        }
       })
 
     case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)

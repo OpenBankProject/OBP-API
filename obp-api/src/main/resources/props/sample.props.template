@@ -1162,3 +1162,7 @@ excluded.response.field.values=["String", "", null, []]
 # If you want to make the Lift inactivity timeout shorter than
 # the container inactivity timeout, set the inactivity timeout here
 session_inactivity_timeout_in_minutes = 30
+
+# Defines redirect URL after user account is validated
+# In case is not defined default value is the home page of this application
+user_account_validated_redirect_url = 
