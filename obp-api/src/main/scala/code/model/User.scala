@@ -69,10 +69,10 @@ case class UserExtended(val user: User) extends MdcLoggable {
       //If we find the AccountAccess by consumerId, this mean the accountAccess already assigned to some consumers
       val explictConsumerHasAccountAccess = if(consumerId.isDefined){
         AccountAccess.find(
-          By(AccountAccess.user_fk, this.userPrimaryKey.value),
-          By(AccountAccess.view_fk, viewDefinition.id),
           By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
           By(AccountAccess.account_id, bankIdAccountId.accountId.value),
+          By(AccountAccess.view_fk, viewDefinition.id),
+          By(AccountAccess.user_fk, this.userPrimaryKey.value),
           By(AccountAccess.consumer_id, consumerId.get)).isDefined
       } else {
         false
@@ -83,11 +83,11 @@ case class UserExtended(val user: User) extends MdcLoggable {
       }else{
       //If we can not find accountAccess by consumerId, then we will find AccountAccess by default "ALL-CONSUMERS" , this mean the accountAccess can be used for all consumers
         AccountAccess.find(
-          By(AccountAccess.user_fk, resourceUser.id.get),
-          By(AccountAccess.view_fk, viewDefinition.id),
           By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
           By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-          By(AccountAccess.consumer_id, DEFAULT_ACCOUNT_ACCESS_CONSUMER_ID)
+          By(AccountAccess.view_fk, viewDefinition.id),
+          By(AccountAccess.user_fk, resourceUser.id.get),
+          By(AccountAccess.consumer_id, ALL_CONSUMERS)
         ).isDefined
       }
     }

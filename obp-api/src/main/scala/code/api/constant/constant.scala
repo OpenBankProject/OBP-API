@@ -41,7 +41,7 @@ object Constant extends MdcLoggable {
   //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
   final val INCOMING_ACCOUNT_ID= "OBP_DEFAULT_INCOMING_ACCOUNT_ID"    
   final val OUTGOING_ACCOUNT_ID= "OBP_DEFAULT_OUTGOING_ACCOUNT_ID"    
-  final val DEFAULT_ACCOUNT_ACCESS_CONSUMER_ID = "ALL-CONSUMERS"  
+  final val ALL_CONSUMERS = "ALL-CONSUMERS"  
 
 }
 
