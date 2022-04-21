@@ -1,5 +1,6 @@
 package code.views.system
 
+import code.api.Constant.DEFAULT_ACCOUNT_ACCESS_CONSUMER_ID
 import code.model.dataAccess.ResourceUser
 import code.util.UUIDString
 import net.liftweb.mapper._
@@ -15,7 +16,7 @@ class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with Create
   //If consumer_id is `ALL-CONSUMERS`, any consumers can use this record
   //If consumer_id is consumerId (obp UUID), only same consumer can use this record
   object consumer_id extends MappedString(this, 255){
-    override def defaultValue = "ALL-CONSUMERS"
+    override def defaultValue = DEFAULT_ACCOUNT_ACCESS_CONSUMER_ID
   }
   object account_id extends MappedString(this, 255)
   object view_id extends UUIDString(this)

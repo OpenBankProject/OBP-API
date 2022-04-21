@@ -81,13 +81,13 @@ case class UserExtended(val user: User) extends MdcLoggable {
       if(explictConsumerHasAccountAccess) {
         true
       }else{
-      //If we can not find accountAccess by consumerId, then we will find AccountAccess by default NullRef , this mean the accountAccess can be used for all consumers
+      //If we can not find accountAccess by consumerId, then we will find AccountAccess by default "ALL-CONSUMERS" , this mean the accountAccess can be used for all consumers
         AccountAccess.find(
           By(AccountAccess.user_fk, resourceUser.id.get),
           By(AccountAccess.view_fk, viewDefinition.id),
           By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
           By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-          By(AccountAccess.consumer_id, "ALL-CONSUMERS")
+          By(AccountAccess.consumer_id, DEFAULT_ACCOUNT_ACCESS_CONSUMER_ID)
         ).isDefined
       }
     }
