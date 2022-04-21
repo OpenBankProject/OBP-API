@@ -1,5 +1,6 @@
 package code.api.util.migration
 
+import code.api.Constant.ALL_CONSUMERS
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.views.system.AccountAccess
@@ -28,14 +29,14 @@ object MigrationOfAccountAccessAddedConsumerId {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
-                  """
-                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT 'ALL-CONSUMERS';
+                  s"""
+                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT '$ALL_CONSUMERS';
                     |DROP INDEX IF EXISTS accountaccess_bank_id_account_id_view_fk_user_fk;
                     |""".stripMargin
               case _ =>
                 () =>
-                  """
-                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT 'ALL-CONSUMERS';
+                  s"""
+                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT '$ALL_CONSUMERS';
                     |DROP INDEX IF EXISTS accountaccess_bank_id_account_id_view_fk_user_fk;
                     |""".stripMargin
             }
