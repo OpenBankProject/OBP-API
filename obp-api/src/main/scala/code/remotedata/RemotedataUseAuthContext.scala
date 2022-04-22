@@ -24,8 +24,8 @@ object RemotedataUserAuthContext extends ObpActorInit with UserAuthContextProvid
     (actor ? cc.createOrUpdateUserAuthContexts(userId, userAuthContexts)).mapTo[Box[List[UserAuthContext]]]
   )
 
-  def createUserAuthContext(userId: String, key: String, value: String): Future[Box[UserAuthContext]] =
-    (actor ? cc.createUserAuthContext(userId, key, value)).mapTo[Box[UserAuthContext]]
+  def createUserAuthContext(userId: String, key: String, value: String, consumerId: String): Future[Box[UserAuthContext]] =
+    (actor ? cc.createUserAuthContext(userId, key, value, consumerId)).mapTo[Box[UserAuthContext]]
 
   override def deleteUserAuthContexts(userId: String): Future[Box[Boolean]] =
     (actor ? cc.deleteUserAuthContexts(userId)).mapTo[Box[Boolean]]

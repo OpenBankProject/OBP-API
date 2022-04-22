@@ -348,7 +348,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
         Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
         val error: String = (response.body \ "message").values.toString
-        error should equal(ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        error contains(ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest) should be (true)
       }
     }
 

@@ -9,7 +9,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
-import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrl, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
@@ -73,6 +73,8 @@ import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceD
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import code.util.Helper.MdcLoggable
+import code.views.system.AccountAccess
+import net.liftweb.mapper.{By}
 
 object NewStyle extends MdcLoggable{
   lazy val endpoints: List[(String, String)] = List(
@@ -591,15 +593,30 @@ object NewStyle extends MdcLoggable{
     
     def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future{
-        APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) match {
-          case true => Full(true)
-          case false => user.hasOwnerViewAccess(BankIdAccountId(bankAccountId.bankId,bankAccountId.accountId)) match {
-            case true => Full(true)
-            case false => Empty
-          }
+        
+        lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) 
+        
+        lazy val consumerIdFromCallContext = callContext.map(_.consumer.map(_.consumerId.get).getOrElse(""))
+        
+        lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user), consumerIdFromCallContext)
+
+        lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
+        
+        //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
+        if(hasCanCreateAnyTransactionRequestRole) {
+          Full(true) 
+        //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
+        } else if (canAddTransactionRequestToAnyAccount) {
+          Full(true)
+        } else{
+          Empty
         }
       } map {
-        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest")
+        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest " +
+          s"Current ViewId(${viewId.value})," +
+          s"current UserId(${user.userId})"+
+          s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
+        )
       }
     }
     

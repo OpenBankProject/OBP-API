@@ -230,6 +230,35 @@ object MapperViews extends Views with MdcLoggable {
     }
     res
   }
+  
+  //Custom View will have bankId and accountId inside the `View`, so no need both in the parameters
+  def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean] = {
+    for {
+      viewDefinition <- ViewDefinition.findCustomView(view.bankId.value, view.accountId.value, view.viewId.value)
+      accountAccess  <- AccountAccess.find(
+        By(AccountAccess.consumer_id, consumerId),
+        By(AccountAccess.view_fk, viewDefinition.id),
+        By(AccountAccess.bank_id, view.bankId.value),
+        By(AccountAccess.account_id, view.accountId.value)
+      ) ?~! CannotFindAccountAccess
+    } yield {
+      accountAccess.delete_!
+    }
+  }
+  
+  //System View only have the viewId in inside the `View`, both bankId and accountId are empty in the `View`. So we need both in the parameters
+  def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean] = {
+    for {
+      viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
+      accountAccess  <- AccountAccess.find(
+        By(AccountAccess.consumer_id, consumerId),
+        By(AccountAccess.bank_id, bankId.value),
+        By(AccountAccess.account_id, accountId.value),
+        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
+    } yield {
+      accountAccess.delete_!
+    }
+  }
 
   //returns Full if deletable, Failure if not
   def canRevokeAccessAsBox(viewImpl : ViewDefinition, user : User) : Box[Unit] = {
@@ -536,6 +565,7 @@ object MapperViews extends Views with MdcLoggable {
     val publicView = CUSTOM_PUBLIC_VIEW_ID.equals(viewId.toLowerCase)
     val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
     val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
+    val smallPaymentVerifiedView = SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID.equals(viewId.toLowerCase)
     
     val theView =
       if (ownerView)
@@ -546,6 +576,8 @@ object MapperViews extends Views with MdcLoggable {
         getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else if (auditorsView)
         getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
+      else if (smallPaymentVerifiedView)
+        getOrCreateSystemView(SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID)
       else {
         logger.error(ViewIdNotSupported+ s"Your input viewId is :$viewId")
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")

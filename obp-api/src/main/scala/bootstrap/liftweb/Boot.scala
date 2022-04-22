@@ -407,6 +407,7 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v3_0_0)
     enableVersionIfAllowed(ApiVersion.v3_1_0)
     enableVersionIfAllowed(ApiVersion.v4_0_0)
+    enableVersionIfAllowed(ApiVersion.v5_0_0)
     enableVersionIfAllowed(ApiVersion.b1)
 
     def enableOpenIdConnectApis = {
@@ -700,6 +701,7 @@ class Boot extends MdcLoggable {
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
+      val smallPaymentVerified = Views.views.vend.getOrCreateSystemView(SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -711,6 +713,7 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
+           |System view ${SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID} exists/created at the instance: ${smallPaymentVerified}
            |""".stripMargin
       logger.info(comment)
 
