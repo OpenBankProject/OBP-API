@@ -443,6 +443,9 @@ object ErrorMessages {
   val UpdateAccountApplicationStatusError = "OBP-30315: AccountApplication Status can not be updated. "
   val CreateAccountApplicationError = "OBP-30316: AccountApplication Status can not be created. "
 
+  val DeleteCounterpartyError = "OBP-30317: Could not delete the Counterparty."
+  val DeleteCounterpartyMetadataError = "OBP-30036: Could not delete CounterpartyMetadata"
+  
   // Branch related messages
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
   val BranchesNotFound = "OBP-32002: No branches available."

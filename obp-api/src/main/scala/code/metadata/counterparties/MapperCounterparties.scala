@@ -111,6 +111,14 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
     )
   }
 
+  override def deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[Boolean] = {
+    MappedCounterpartyMetadata.find(
+      By(MappedCounterpartyMetadata.thisBankId, originalPartyBankId.value),
+      By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
+      By(MappedCounterpartyMetadata.counterpartyId, counterpartyMetadataId)
+    ).map(_.delete_!)
+  }
+
   def addMetadata(bankId: BankId, accountId : AccountId): Box[CounterpartyMetadata] = {
     Full(
     MappedCounterpartyMetadata.create
@@ -123,6 +131,10 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
 
   override def getCounterparty(counterpartyId : String): Box[CounterpartyTrait] = {
     MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId))
+  }
+
+  override def deleteCounterparty(counterpartyId : String): Box[Boolean] = {
+    MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId)).map(_.delete_!)
   }
   
   //TODO, here has a problem, MappedCounterparty has no unique constrain on IBan. But we get Counterparty By Iban. For now, we do not support update Counterpary endpoint. Here we only return the latest record.
