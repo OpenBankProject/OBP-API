@@ -5,7 +5,6 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
-import code.api.v2_2_0.CounterpartyWithMetadataJson
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.views.Views

@@ -8442,7 +8442,7 @@ trait APIMethods400 {
         cc =>
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_add_counterparty", 403, cc=callContext) {
               view.canAddCounterparty == true
             }
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
@@ -8539,7 +8539,7 @@ trait APIMethods400 {
         cc =>
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
               view.canGetCounterparty == true
             }
             (counterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
