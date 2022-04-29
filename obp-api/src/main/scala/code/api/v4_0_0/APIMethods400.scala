@@ -7839,9 +7839,12 @@ trait APIMethods400 {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete _ => {
         cc =>
           for {
-            _ <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
+            result <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
           } yield {
-            (Full(true), HttpCode.`200`(cc))
+            if(result.getOrElse(false))
+              (Full(true), HttpCode.`200`(cc))
+            else
+              (Full(false), HttpCode.`404`(cc))
           }
       }
     }  
