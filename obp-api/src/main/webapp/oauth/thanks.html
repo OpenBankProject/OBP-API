@@ -7,10 +7,6 @@
 		<div id="manual-redirect">
 			<a class="btn btn-danger pull-left" id="redirect-link" href="">View <span class="app-name">Your App</span></a>
 		</div>
-
-		<script class="redirect-script" type="text/javascript">
-			$('#manual-redirect').hide(); //don't need the manual link if js is enabled
-			window.location.assign($('#redirect-link').attr('href'));
-		</script>
+		<script src="/media/js/redirect.js"></script>
 	</div>
 </div>
