@@ -18,6 +18,7 @@ import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
+import java.util.concurrent.TimeUnit
 import scala.collection.immutable.List
 import scala.util.Random
 
@@ -123,6 +124,10 @@ class SettlementAccountTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateSettlementAccountAtOneBank.toString)
       makePostRequest((v4_0_0_Request / "banks" / testBankId.value / "settlement-accounts" ).POST <@(user1), write(createSettlementAccountJson))
       makePostRequest((v4_0_0_Request / "banks" / testBankId.value / "settlement-accounts" ).POST <@(user1), write(createSettlementAccountOtherUser))
+
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(4)
 
       When("We send the request")
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanGetSettlementAccountAtOneBank.toString)

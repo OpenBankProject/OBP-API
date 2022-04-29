@@ -18,6 +18,7 @@ import net.liftweb.common.Box
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
+import java.util.concurrent.TimeUnit
 import scala.collection.immutable.List
 import scala.util.Random
 
@@ -105,6 +106,10 @@ class AccountTest extends V400ServerSetup {
 
       Then("We should get a 201")
       response400.code should equal(201)
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
+      
       val account = response400.body.extract[CreateAccountResponseJsonV310]
       account.account_id should not be empty
       account.product_code should be (addAccountJson.product_code)
@@ -116,6 +121,10 @@ class AccountTest extends V400ServerSetup {
       account.label should be (addAccountJson.label)
       account.account_routings should be (addAccountJson.account_routings)
 
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(3)
+      
 
       Then(s"We call $ApiEndpoint1 to get the account back")
       val request = (v4_0_0_Request /"my" / "banks" / testBankId.value/ "accounts" / account.account_id / "account").GET <@ (user1)
@@ -160,6 +169,11 @@ class AccountTest extends V400ServerSetup {
       val response400_1 = makePostRequest(request400_1, write(addAccountJson))
       Then("We should get a 201")
       response400_1.code should equal(201)
+
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
+      
       val account = response400_1.body.extract[CreateAccountResponseJsonV310]
       account.account_id should not be empty
       account.product_code should be (addAccountJson.product_code)

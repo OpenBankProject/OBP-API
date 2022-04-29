@@ -17,6 +17,8 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
+import java.util.concurrent.TimeUnit
+
 class DeleteBankCascadeTest extends V400ServerSetup {
 
   /**
@@ -64,6 +66,11 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       And("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" ).POST <@(user1)
       val response400 = makePostRequest(request400, write(addAccountJson))
+
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(3)
+      
       Then("We should get a 201")
       response400.code should equal(201)
       val account = response400.body.extract[CreateAccountResponseJsonV310]

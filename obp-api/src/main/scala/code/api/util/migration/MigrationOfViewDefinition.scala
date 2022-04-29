@@ -91,6 +91,8 @@ object TableViewDefinition {
 
             viewDefinition
               .canAddCounterparty_(view.canAddCounterparty)
+              .canGetCounterparty_(view.canGetCounterparty)
+              .canDeleteCounterparty_(view.canDeleteCounterparty)
               .canDeleteCorporateLocation_(view.canDeleteCorporateLocation)
               .canDeletePhysicalLocation_(view.canDeletePhysicalLocation)
               .canEditOwnerComment_(view.canEditOwnerComment)

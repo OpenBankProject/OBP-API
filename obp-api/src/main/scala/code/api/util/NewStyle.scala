@@ -901,16 +901,17 @@ object NewStyle extends MdcLoggable{
 
     def getMetadata(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyMetadata] = {
       Future(Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId)) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(CounterpartyMetadataNotFound, 400, callContext.map(_.toLight)))
+        x => fullBoxOrException(x ~> APIFailureNewStyle(CounterpartyNotFoundByCounterpartyId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
-    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
-      Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i=>
-        (connectorEmptyResponse(i._1, callContext), i._2)
-      } 
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    {
+      Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+          i._2)
+      }
     }
-
 
     def isEnabledTransactionRequests(callContext: Option[CallContext]): Future[Box[Unit]] = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled, cc=callContext)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
@@ -1186,6 +1187,14 @@ object NewStyle extends MdcLoggable{
     {
       Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+          i._2)
+      }
+    }
+    
+    def deleteCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+    {
+      Connector.connector.vend.deleteCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$DeleteCounterpartyError Current counterpartyId($counterpartyId) ", 400),
           i._2)
       }
     }
@@ -3318,6 +3327,18 @@ object NewStyle extends MdcLoggable{
         counterpartyId:String,
         counterpartyName:String
       ), callContext, CreateOrUpdateCounterpartyMetadataError), callContext)}
+    }
+    def deleteMetadata(
+      bankId: BankId, 
+      accountId : AccountId, 
+      counterpartyId:String, 
+      callContext: Option[CallContext]
+    )  : OBPReturnType[Boolean]= {
+      Future{(unboxFullOrFail(Counterparties.counterparties.vend.deleteMetadata(
+        bankId: BankId,
+        accountId : AccountId,
+        counterpartyId:String
+      ), callContext, DeleteCounterpartyMetadataError), callContext)}
     }
 
     def getPhysicalCardsForUser(user : User, callContext: Option[CallContext]) : OBPReturnType[List[PhysicalCard]] = {
