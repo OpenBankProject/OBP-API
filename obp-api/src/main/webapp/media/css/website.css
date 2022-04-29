@@ -56,6 +56,13 @@ header #logo-right {
 	display: none;
 }
 
+.logo-responsive-design-mobile {
+    max-width: 50%;
+    min-width: 50%;
+    vertical-align: baseline;
+    padding:3%;
+    padding-left: 10%;
+}
 #logo-left-xs {
     max-width: 50%;
     min-width: 50%;
