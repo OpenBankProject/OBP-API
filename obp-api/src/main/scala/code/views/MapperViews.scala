@@ -870,6 +870,8 @@ object MapperViews extends Views with MdcLoggable {
       .canAddPublicAlias_(true)
       .canAddPrivateAlias_(true)
       .canAddCounterparty_(true)
+      .canGetCounterparty_(true)
+      .canDeleteCounterparty_(true)
       .canDeleteCorporateLocation_(true)
       .canDeletePhysicalLocation_(true)
       .canEditOwnerComment_(true)
@@ -957,6 +959,8 @@ object MapperViews extends Views with MdcLoggable {
       .canAddPublicAlias_(true)
       .canAddPrivateAlias_(true)
       .canAddCounterparty_(true)
+      .canGetCounterparty_(true)
+      .canDeleteCounterparty_(true)
       .canDeleteCorporateLocation_(true)
       .canDeletePhysicalLocation_(true)
       .canEditOwnerComment_(true)
@@ -1045,6 +1049,8 @@ object MapperViews extends Views with MdcLoggable {
       .canAddPublicAlias_(true)
       .canAddPrivateAlias_(true)
       .canAddCounterparty_(true)
+      .canGetCounterparty_(true)
+      .canDeleteCounterparty_(true)
       .canDeleteCorporateLocation_(true)
       .canDeletePhysicalLocation_(true)
       .canEditOwnerComment_(true)
@@ -1144,6 +1150,8 @@ object MapperViews extends Views with MdcLoggable {
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
       canAddCounterparty_(true).
+      canGetCounterparty_(true).
+      canDeleteCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
@@ -1240,6 +1248,8 @@ object MapperViews extends Views with MdcLoggable {
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
       canAddCounterparty_(true).
+      canGetCounterparty_(true).
+      canDeleteCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
@@ -1335,6 +1345,8 @@ Auditors
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
       canAddCounterparty_(true).
+      canGetCounterparty_(true).
+      canDeleteCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
