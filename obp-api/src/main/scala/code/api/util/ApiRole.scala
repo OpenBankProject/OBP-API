@@ -116,6 +116,9 @@ object ApiRole {
   case class CanUpdateCustomerCreditRatingAndSource(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateCustomerCreditRatingAndSource = CanUpdateCustomerCreditRatingAndSource()
 
+  case class CanUpdateCustomerCreditRatingAndSourceAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateCustomerCreditRatingAndSourceAtAnyBank = CanUpdateCustomerCreditRatingAndSourceAtAnyBank()
+
   case class CanCreateCustomerAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateCustomerAtAnyBank = CanCreateCustomerAtAnyBank()
   
