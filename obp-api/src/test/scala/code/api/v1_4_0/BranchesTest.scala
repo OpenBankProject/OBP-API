@@ -296,7 +296,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
       val branches = responseBody.branches
 
       // Order of branches in the list is arbitrary
-      branches.size should equal(2)
+      branches.size should equal(3)
       val first = branches(0)
       if(first.id == fakeBranch1.branchId.value) {
         verifySameData(fakeBranch1, first)

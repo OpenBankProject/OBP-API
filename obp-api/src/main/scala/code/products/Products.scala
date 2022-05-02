@@ -45,8 +45,10 @@ trait ProductsProvider {
   Return one Product at a bank
    */
   final def getProduct(bankId : BankId, productCode : ProductCode, adminView: Boolean = false) : Option[Product] = {
-    // Filter out if no license data
-    getProductFromProvider(bankId, productCode).filter(x => (adminView || (x.meta.license.id != "" && x.meta.license.name != "")))
+    if (adminView) 
+      getProductFromProvider(bankId, productCode)
+    else
+      None
   }
 
   protected def getProductFromProvider(bankId : BankId, productCode : ProductCode) : Option[Product]

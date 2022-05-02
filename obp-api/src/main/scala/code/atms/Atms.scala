@@ -96,8 +96,7 @@ trait AtmsProvider {
   Return one Atm
    */
   final def getAtm(bankId: BankId, branchId : AtmId) : Option[AtmT] = {
-    // Filter out if no license data
-    getAtmFromProvider(bankId,branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
+    getAtmFromProvider(bankId,branchId)
   }
 
   protected def getAtmFromProvider(bankId: BankId, branchId : AtmId) : Option[AtmT]
