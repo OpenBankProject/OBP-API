@@ -88,7 +88,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       val fixture = defaultSetup()
 
       // Only these have license set
-      val expectedBranches =  List(fixture.branch1, fixture.branch2)
+      val expectedBranches =  List(fixture.branch1, fixture.branch2, fixture.unlicensedBranch)
 
       Given("the bank in question has branches")
       MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdX)).isDefined should equal(true)
@@ -100,8 +100,8 @@ class MappedBranchesProviderTest extends ServerSetup {
       branchesOpt.isDefined should equal (true)
       val branches = branchesOpt.get
 
-      And("it should contain two branches")
-      branches.size should equal(2)
+      And("it should contain 3 branches")
+      branches.size should equal(3)
 
       And("they should be the licensed ones")
       branches should equal (expectedBranches)
