@@ -215,7 +215,7 @@ object ErrorMessages {
   val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
   val Oauth2TokenMatchCertificateFail = "OBP-20210: The token linked with a different client certificate. "
 
-  val OneTimePasswordExpired = "OBP-20211: This OTP is expired. "
+  val OneTimePasswordExpired = "OBP-20211: The One Time Password (OTP) has expired. "
   
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."

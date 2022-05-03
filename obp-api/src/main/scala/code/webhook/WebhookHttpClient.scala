@@ -51,11 +51,11 @@ object WebhookHttpClient extends MdcLoggable {
     ) map {
       i =>
         logEvent(request)
-        logger.debug("http_Url: " + i.url)
-        logger.debug("http_Method: " + i.httpMethod)
-        logger.debug("http_Protocol: " + i.httpProtocol)
+        logger.debug("WebhookHttpClient i.url: " + i.url)
+        logger.debug("WebhookHttpClient i.httpMethod: " + i.httpMethod)
+        logger.debug("WebhookHttpClient i.httpProtocol: " + i.httpProtocol)
         val payload = getEventPayload(request)
-        logger.debug("http_payload: " + payload.toString)
+        logger.debug("WebhookHttpClient payload.toString: " + payload.toString)
         makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
     }
   }
