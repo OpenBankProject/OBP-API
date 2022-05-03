@@ -1319,7 +1319,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         $BankNotFound,
         $BankAccountNotFound,
-        $UserNoPermissionAccessView,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
         AllowedAttemptsUsedUp,
@@ -1333,7 +1332,7 @@ trait APIMethods400 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (user @Full(u), _, fromAccount, view, callContext) <- SS.userBankAccountView
+            (user @Full(u), _, fromAccount, callContext) <- SS.userBankAccount
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
               isValidID(accountId.value)
@@ -1441,7 +1440,7 @@ trait APIMethods400 {
 
                   (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
-                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ", cc=callContext) {
+                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer.replace("answer may be expired.",s"answer may be expired, current expiration time is ${otpExpirationSeconds} seconds .")} ", cc=callContext) {
                     challengeAnswerIsValidated
                   }
 

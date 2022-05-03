@@ -4195,4 +4195,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       |* You can define a collection (also known as baskets or buckets) of products using Product Collections.
       |
       """.stripMargin
+
+  val otpExpirationSeconds = APIUtil.getPropsAsLongValue("payment_otp_expiration_seconds", 600)
 }

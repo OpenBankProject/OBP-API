@@ -1,14 +1,18 @@
 package code.transactionChallenge
 
-import code.api.util.ErrorMessages
+import code.api.util.APIUtil.otpExpirationSeconds
+import code.api.util.{APIUtil, ErrorMessages}
 import com.openbankproject.commons.model.{ChallengeTrait, ErrorMessage}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers
 import org.mindrot.jbcrypt.BCrypt
 import net.liftweb.util.Helpers.tryo
+
+import scala.compat.Platform
 
 object MappedChallengeProvider extends ChallengeProvider {
   
@@ -54,23 +58,32 @@ object MappedChallengeProvider extends ChallengeProvider {
   ): Box[ChallengeTrait] = {
     
     val challenge = getChallenge(challengeId).openOrThrowException(s"${ErrorMessages.InvalidChallengeAnswer}")
+    val createDate = challenge.createdAt.get
+    val tokenDuration : Long = Helpers.seconds(APIUtil.otpExpirationSeconds)
     
-    val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
-    val expectedHashedAnswer = challenge.expectedAnswer
-
-    userId match {
-      case None => 
-        if(currentHashedAnswer==expectedHashedAnswer) {
-          tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-        } else {
-          Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
-        }
-      case Some(id) =>
-        if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
-          tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-        } else {
-          Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
-        }
+    val expiredDateTime: Long = createDate.getTime+tokenDuration
+    val currentTime: Long = Platform.currentTime
+    
+    if(expiredDateTime > currentTime) {
+      val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
+      val expectedHashedAnswer = challenge.expectedAnswer
+  
+      userId match {
+        case None => 
+          if(currentHashedAnswer==expectedHashedAnswer) {
+            tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+          } else {
+            Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+          }
+        case Some(id) =>
+          if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
+            tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+          } else {
+            Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+          }
+      }
+    }else{
+      Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $otpExpirationSeconds seconds")
     }
   }
 }
