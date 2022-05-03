@@ -118,11 +118,13 @@ class WebhookActor extends Actor with ActorLogging with MdcLoggable {
       implicit val ec = context.dispatcher
       WebhookHttpClient.startEvent(request)
     case WebhookResponse(status, request) =>
-      logger.info("EVENT_ID: " + request.eventId)
-      logger.info("STATUS: " + status)
+      logger.info("WebhookActor.waitingForRequest.WebhookResponse(status, request).status: " + status)
+      logger.info("WebhookActor.waitingForRequest.WebhookResponse(status, request).request.eventId:: " + request.eventId)
+      logger.info("WebhookActor.waitingForRequest.WebhookResponse(status, request).request.toEventPayload: " + request.toEventPayload)
     case WebhookFailure(error, request) =>
-      logger.info("EVENT_ID: " + request.eventId)
-      logger.error("ERROR: " + error)
+      logger.info("WebhookActor.waitingForRequest.WebhookFailure(error, request).error: " + error)
+      logger.info("WebhookActor.waitingForRequest.WebhookFailure(error, request).request.eventId:: " + request.eventId)
+      logger.info("WebhookActor.waitingForRequest.WebhookFailure(error, request).request.toEventPayload: " + request.toEventPayload)
   }
 
 }
