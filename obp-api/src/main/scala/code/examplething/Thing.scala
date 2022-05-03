@@ -59,7 +59,7 @@ trait ThingProvider {
       case Some(things) => {
 
         val certainThings = for {
-         thing <- things // if thing.meta.license.name.size > 3
+         thing <- things
         } yield thing
         Option(certainThings)
       }

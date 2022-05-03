@@ -4631,7 +4631,7 @@ trait APIMethods310 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(canUpdateCustomerCreditRatingAndSource :: Nil)
+      Some(canUpdateCustomerCreditRatingAndSource :: canUpdateCustomerCreditRatingAndSourceAtAnyBank :: Nil)
     )
 
     lazy val updateCustomerCreditRatingAndSource : OBPEndpoint = {
@@ -4640,7 +4640,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerCreditRatingAndSource, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, List(canUpdateCustomerCreditRatingAndSource,canUpdateCustomerCreditRatingAndSourceAtAnyBank), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerCreditRatingAndSourceJsonV310 "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutUpdateCustomerCreditRatingAndSourceJsonV310]

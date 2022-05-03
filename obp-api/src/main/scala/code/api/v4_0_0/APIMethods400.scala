@@ -11796,10 +11796,7 @@ trait APIMethods400 {
                 fullBoxOrException(Empty ?~! atmsNotFound)
               case Full((List(), callContext)) =>
                 Full(List())
-              case Full((list, _)) =>
-                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
-                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
-                else Full(branchesWithLicense)
+              case Full((list, _)) =>Full(list)
               case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
               case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
             } map { unboxFull(_) } map {

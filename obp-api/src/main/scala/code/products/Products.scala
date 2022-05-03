@@ -38,25 +38,14 @@ trait ProductsProvider {
    */
   final def getProducts(bankId : BankId, adminView: Boolean = false) : Option[List[Product]] = {
     logger.info(s"Hello from getProducts bankId is: $bankId")
-
-    getProductsFromProvider(bankId) match {
-      case Some(products) => {
-        val productsWithLicense = for {
-          // Only return products that have a license set unless its for an admin view
-          product <- products if (adminView || (product.meta.license.name.size > 3))
-        } yield product
-        Option(productsWithLicense)
-      }
-      case None => None
-    }
+    getProductsFromProvider(bankId) 
   }
 
   /*
   Return one Product at a bank
    */
   final def getProduct(bankId : BankId, productCode : ProductCode, adminView: Boolean = false) : Option[Product] = {
-    // Filter out if no license data
-    getProductFromProvider(bankId, productCode).filter(x => (adminView || (x.meta.license.id != "" && x.meta.license.name != "")))
+      getProductFromProvider(bankId, productCode)
   }
 
   protected def getProductFromProvider(bankId : BankId, productCode : ProductCode) : Option[Product]

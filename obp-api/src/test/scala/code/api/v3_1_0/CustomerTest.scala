@@ -405,6 +405,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val errorMessage = response310.body.extract[ErrorMessage].message
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerCreditRatingAndSource.toString()) should be (true)
+      errorMessage contains (canUpdateCustomerCreditRatingAndSourceAtAnyBank.toString()) should be (true)
     }
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -416,6 +417,27 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val infoPost = postResponse310.body.extract[CustomerJsonV310]
 
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateCustomerCreditRatingAndSource.toString)
+      When("We make a request v3.1.0")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "credit-rating-and-source" ).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(putUpdateCustomerCreditRatingAndSourceJsonV310))
+      Then("We should get a 200")
+      response310.code should equal(200)
+
+      val infoGet = response310.body.extract[CustomerJsonV310]
+      infoGet.credit_rating.map(_.rating).getOrElse("") should equal(putUpdateCustomerCreditRatingAndSourceJsonV310.credit_rating)
+      infoGet.credit_rating.map(_.source).getOrElse("") should equal(putUpdateCustomerCreditRatingAndSourceJsonV310.credit_source)
+    }
+    
+    scenario(s"We will call the endpoint with user credentials and the $canUpdateCustomerCreditRatingAndSourceAtAnyBank role", ApiEndpoint8, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When("We make a request v3.1.0")
+      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
+      Then("We should get a 201")
+      postResponse310.code should equal(201)
+      val infoPost = postResponse310.body.extract[CustomerJsonV310]
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateCustomerCreditRatingAndSourceAtAnyBank.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id / "credit-rating-and-source" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditRatingAndSourceJsonV310))

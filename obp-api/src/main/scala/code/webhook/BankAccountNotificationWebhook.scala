@@ -74,7 +74,7 @@ class BankAccountNotificationWebhook extends BankAccountNotificationWebhookTrait
   object WebhookId extends MappedUUID(this)
   object BankId extends UUIDString(this)
   object TriggerName extends MappedString(this, 64)
-  object Url extends MappedString(this, 64)
+  object Url extends MappedString(this, 1024)
   object HttpMethod extends MappedString(this, 64)
   object HttpProtocol extends MappedString(this, 64)
   object CreatedByUserId extends UUIDString(this)

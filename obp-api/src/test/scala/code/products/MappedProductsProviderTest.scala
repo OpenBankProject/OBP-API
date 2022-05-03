@@ -29,7 +29,7 @@ class MappedProductsProviderTest extends ServerSetup {
 
       // 3 products for bank X (one product does not have a license)
 
-      val unlicensedAtm = MappedProduct.create
+      val unlicensedProduct = MappedProduct.create
         .mBankId(bankIdX)
         .mCode("code-unlicensed")
         .mName("Name Unlicensed")
@@ -76,7 +76,7 @@ class MappedProductsProviderTest extends ServerSetup {
       val fixture = defaultSetup()
 
       // Only these have license set
-      val expectedProducts =  List(fixture.product1, fixture.product2)
+      val expectedProducts =  List(fixture.product1, fixture.product2, fixture.unlicensedProduct)
 
 
       Given("the bank in question has Products")
@@ -89,8 +89,8 @@ class MappedProductsProviderTest extends ServerSetup {
       productsOpt.isDefined should equal (true)
       val products = productsOpt.get
 
-      And("it should contain two Products")
-      products.size should equal(2)
+      And("it should contain 3 Products")
+      products.size should equal(3)
 
       And("they should be the licensed ones")
       products should equal (expectedProducts)

@@ -89,23 +89,14 @@ trait AtmsProvider {
    */
   final def getAtms(bankId : BankId, queryParams: List[OBPQueryParam]) : Option[List[AtmT]] = {
     // If we get atms filter them
-    getAtmsFromProvider(bankId,queryParams) match {
-      case Some(atms) => {
-        val atmsWithLicense = for {
-         branch <- atms if branch.meta.license.name.size > 3
-        } yield branch
-        Option(atmsWithLicense)
-      }
-      case None => None
-    }
+    getAtmsFromProvider(bankId,queryParams)
   }
 
   /*
   Return one Atm
    */
   final def getAtm(bankId: BankId, branchId : AtmId) : Option[AtmT] = {
-    // Filter out if no license data
-    getAtmFromProvider(bankId,branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
+    getAtmFromProvider(bankId,branchId)
   }
 
   protected def getAtmFromProvider(bankId: BankId, branchId : AtmId) : Option[AtmT]
