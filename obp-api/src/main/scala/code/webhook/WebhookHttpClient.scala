@@ -51,11 +51,11 @@ object WebhookHttpClient extends MdcLoggable {
     ) map {
       i =>
         logEvent(request)
-        logger.debug("WebhookHttpClient i.url: " + i.url)
-        logger.debug("WebhookHttpClient i.httpMethod: " + i.httpMethod)
-        logger.debug("WebhookHttpClient i.httpProtocol: " + i.httpProtocol)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) i.url: " + i.url)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) i.httpMethod: " + i.httpMethod)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) i.httpProtocol: " + i.httpProtocol)
         val payload = getEventPayload(request)
-        logger.debug("WebhookHttpClient payload.toString: " + payload.toString)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) payload: " + payload.toString)
         makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
     }
   }
@@ -78,12 +78,12 @@ object WebhookHttpClient extends MdcLoggable {
 
     accountWebhooks map {
       i =>{
-        logEvent(request)  
-        logger.debug("http_Url: " + i.url)
-        logger.debug("http_Method: " + i.httpMethod)
-        logger.debug("http_Protocol: " + i.httpProtocol)
+        logEvent(request)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) i.url: " + i.url)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) i.httpMethod: " + i.httpMethod)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) i.httpProtocol: " + i.httpProtocol)
         val payload = getEventPayload(request)
-        logger.debug("http_payload: " + payload.toString)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) payload: " + payload.toString)
         makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, payload), request)
       }
     }
