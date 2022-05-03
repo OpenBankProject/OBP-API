@@ -215,6 +215,8 @@ object ErrorMessages {
   val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
   val Oauth2TokenMatchCertificateFail = "OBP-20210: The token linked with a different client certificate. "
 
+  val OneTimePasswordExpired = "OBP-20211: This OTP is expired. "
+  
   // X.509
   val X509GeneralError = "OBP-20300: PEM Encoded Certificate issue."
   val X509ParsingFailed = "OBP-20301: Parsing failed for PEM Encoded Certificate."
@@ -507,7 +509,7 @@ object ErrorMessages {
     "because the login user doesn't have access to the view of the from account " +
     "or the view don't have the `canAddTransactionRequestToAnyAccount` permission " +
     "or your consumer doesn't not have the access to the view of the from account " +
-    "or you don't have access to canCreateAnyTransactionRequest."
+    "or you don't have the role CanCreateAnyTransactionRequest."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
@@ -522,8 +524,9 @@ object ErrorMessages {
   val AllowedAttemptsUsedUp = "OBP-40014: Sorry, you've used up your allowed attempts. "
   val InvalidChallengeType = "OBP-40015: Invalid Challenge Type. Please specify a valid value for CHALLENGE_TYPE, when you create the transaction request."
   val InvalidChallengeAnswer = "OBP-40016: Invalid Challenge Answer. Please specify a valid value for answer in Json body. " +
-    "If connector = mapped and transactionRequestType_OTP_INSTRUCTION_TRANSPORT = DUMMY and suggested_default_sca_method=DUMMY, the answer must be `123`. " +
-    "If connector = others, the challenge answer can be got by phone message or other security ways."
+    "The challenge answer may be expired." +
+    "Or if connector = mapped and transactionRequestType_OTP_INSTRUCTION_TRANSPORT = DUMMY and suggested_default_sca_method=DUMMY, the answer must be `123`. " +
+    "Or if connector = others, the challenge answer can be got by phone message or other security ways."
   val InvalidPhoneNumber = "OBP-40017: Invalid Phone Number. Please specify a valid value for PHONE_NUMBER. Eg:+9722398746 "
   val TransactionRequestsNotEnabled = "OBP-40018: Sorry, Transaction Requests are not enabled in this API instance."
   val NextChallengePending = s"OBP-40019: Cannot create transaction due to transaction request is in status: ${NEXT_CHALLENGE_PENDING}."

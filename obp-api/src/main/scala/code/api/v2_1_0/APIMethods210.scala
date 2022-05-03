@@ -637,7 +637,7 @@ trait APIMethods210 {
                 existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
               }
               
-              //Check the allowed attemps, Note: not support yet, the default value is 3
+              //Check the allowed attempts, Note: not support yet, the default value is 3
               _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}", cc=callContext) {
                 existingTransactionRequest.challenge.allowed_attempts > 0
               }

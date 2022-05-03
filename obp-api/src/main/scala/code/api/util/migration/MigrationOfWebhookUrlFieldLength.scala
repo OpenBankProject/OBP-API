@@ -33,9 +33,9 @@ object MigrationOfWebhookUrlFieldLength {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE SystemAccountNotificationWebhook ALTER COLUMN Url varchar(4000);
-                    |ALTER TABLE BankAccountNotificationWebhook ALTER COLUMN Url varchar(4000);
-                    |ALTER TABLE MappedAccountWebhook ALTER COLUMN mUrl varchar(4000);
+                    |ALTER TABLE SystemAccountNotificationWebhook ALTER COLUMN Url varchar(1024);
+                    |ALTER TABLE BankAccountNotificationWebhook ALTER COLUMN Url varchar(1024);
+                    |ALTER TABLE MappedAccountWebhook ALTER COLUMN mUrl varchar(1024);
                     |""".stripMargin
               case _ =>
                 () =>

@@ -91,6 +91,30 @@ class CustomerAttributesTest extends V400ServerSetup {
       responseWithRole.body.extract[CustomerAttributeResponseJsonV300].value equals(postCustomerAttributeJsonV400.value) should be (true)
       responseWithRole.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
     }
+
+    scenario("We will call the endpoint with user role - canCreateCustomerAttributeAtAnyBank", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val bankId = randomBankId
+      val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
+      val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+
+      val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
+      val response400 = makePostRequest(request400, write(putCustomerAttributeJsonV400))
+      Then("We should get a 403")
+      response400.code should equal(403)
+      response400.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateCustomerAttributeAtAnyBank.toString)
+
+      val responseWithRole = makePostRequest(request400, write(putCustomerAttributeJsonV400))
+      Then("We should get a 201")
+      responseWithRole.code should equal(201)
+      responseWithRole.body.extract[CustomerAttributeResponseJsonV300].name equals("test") should be (true)
+      responseWithRole.body.extract[CustomerAttributeResponseJsonV300].value equals(postCustomerAttributeJsonV400.value) should be (true)
+      responseWithRole.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
+    }
   }
 
   feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
@@ -197,6 +221,26 @@ class CustomerAttributesTest extends V400ServerSetup {
       responseWithId.body.extract[CustomerAttributeResponseJsonV300].value  equals(putCustomerAttributeJsonV400.value) should be (true)
       responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type`  equals(putCustomerAttributeJsonV400.`type`) should be (true)
     }
+    scenario("We will call the endpoint with user credentials -canUpdateCustomerAttributeAtAnyBank ", ApiEndpoint2, VersionOfApi) {
+
+      val bankId = randomBankId
+      val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
+      val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+
+      Then("We grant the role to the user1")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateCustomerAttributeAtAnyBank.toString)
+
+      Then("we create the Customer Attribute ")
+      val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
+
+      val requestWithId = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / customerAttributeId).PUT <@ (user1)
+      val responseWithId = makePutRequest(requestWithId, write(putCustomerAttributeJsonV400))
+
+      responseWithId.body.extract[CustomerAttributeResponseJsonV300].name  equals("test") should be (true)
+      responseWithId.body.extract[CustomerAttributeResponseJsonV300].value  equals(putCustomerAttributeJsonV400.value) should be (true)
+      responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type`  equals(putCustomerAttributeJsonV400.`type`) should be (true)
+    }
   }
 
     feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access - with role - wrong customerAttributeId") {
@@ -239,6 +283,26 @@ class CustomerAttributesTest extends V400ServerSetup {
 
         Then("We grant the role to the user1")
         Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomerAttributeAtOneBank.toString)
+
+        val requestWithId = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / customerAttributeId).GET <@ (user1)
+        val responseWithId = makeGetRequest(requestWithId)
+
+        responseWithId.body.extract[CustomerAttributeResponseJsonV300].name equals(postCustomerAttributeJsonV400.name) should be (true)
+        responseWithId.body.extract[CustomerAttributeResponseJsonV300].value equals(postCustomerAttributeJsonV400.value) should be (true)
+        responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
+      }
+      scenario("We will call the endpoint with user credentials- canGetCustomerAttributeAtAnyBank", ApiEndpoint4, VersionOfApi) {
+
+        val bankId = randomBankId
+        val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
+        val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
+        val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+
+        Then("we create the Customer Attribute ")
+        val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
+
+        Then("We grant the role to the user1")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomerAttributeAtAnyBank.toString)
 
         val requestWithId = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / customerAttributeId).GET <@ (user1)
         val responseWithId = makeGetRequest(requestWithId)
@@ -336,6 +400,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       response5.results.length should be(1)
     }
   }
+  
   feature(s"test $ApiEndpoint6 version $VersionOfApi will enforce proper entitlements") {
       scenario("We will call the endpoint", ApiEndpoint6, VersionOfApi) {
         When("We create an attribute for later deletion")
@@ -373,7 +438,42 @@ class CustomerAttributesTest extends V400ServerSetup {
         responseWithRole.code should equal(204)
 
       }
-    }
+    
+      scenario("We will call the endpoint- canDeleteCustomerAttributeAtAnyBank", ApiEndpoint6, VersionOfApi) {
+        When("We create an attribute for later deletion - canDeleteCustomerAttributeAtAnyBank")
+        val bankId = randomBankId
+        val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
+        val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
 
+        val requestCreation = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
+        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)
 
+        val responseCreation = makePostRequest(requestCreation, write(putCustomerAttributeJsonV400))
+        Then("We should get a 201")
+        responseCreation.code should equal(201)
+        val customer_attribute_id = responseCreation.body.extract[CustomerAttributeResponseJsonV300].customer_attribute_id
+
+        When("We try to delete the customer attribute without login")
+        val requestNoLogin = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE
+        val responseNoLogin = makeDeleteRequest(requestNoLogin)
+        Then("We should get a 401")
+        responseNoLogin.code should equal(401)
+        responseNoLogin.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+
+        When("We try to delete the customer attribute with login and without Role")
+        val requestNoRole = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE <@ (user1)
+        val responseNoRole = makeDeleteRequest(requestNoRole)
+        Then("We should get a 403")
+        responseNoRole.code should equal(403)
+        responseNoRole.body.extract[ErrorMessage].message.toString contains (UserHasMissingRoles) should be (true)
+
+        When("We try to delete the customer attribute with login and without Role")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canDeleteCustomerAttributeAtAnyBank.toString)
+        val requestWithRole = (v4_0_0_Request / "banks" / bankId / "customers" / "attributes" / customer_attribute_id).DELETE <@ (user1)
+        val responseWithRole = makeDeleteRequest(requestWithRole)
+        Then("We should get a 204")
+        responseWithRole.code should equal(204)
+
+      }
+  }
 }
