@@ -51,6 +51,11 @@ object WebhookHttpClient extends MdcLoggable {
     ) map {
       i =>
         logEvent(request)
+        logger.debug("http_Url: " + i.url)
+        logger.debug("http_Method: " + i.httpMethod)
+        logger.debug("http_Protocol: " + i.httpProtocol)
+        val payload = getEventPayload(request)
+        logger.debug("http_payload: " + payload.toString)
         makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
     }
   }
@@ -72,9 +77,15 @@ object WebhookHttpClient extends MdcLoggable {
     }
 
     accountWebhooks map {
-      i =>
-        logEvent(request)
-        makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
+      i =>{
+        logEvent(request)  
+        logger.debug("http_Url: " + i.url)
+        logger.debug("http_Method: " + i.httpMethod)
+        logger.debug("http_Protocol: " + i.httpProtocol)
+        val payload = getEventPayload(request)
+        logger.debug("http_payload: " + payload.toString)
+        makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, payload), request)
+      }
     }
   }
 
