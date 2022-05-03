@@ -241,6 +241,9 @@ mail.smtp.port=25
 ## Oauth token timeout
 token_expiration_weeks=4
 
+## payment challenge answer timeout,default is 600 seconds/10 minutes
+payment_otp_expiration_seconds=600
+
 
 
 ### Sandbox
