@@ -4570,7 +4570,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canCreateCustomerAttributeAtOneBank)))
+      Some(List(canCreateCustomerAttributeAtOneBank, canCreateCustomerAttributeAtAnyBank)))
 
     lazy val createCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: customerId :: "attribute" :: Nil JsonPost json -> _=> {
@@ -4624,7 +4624,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canUpdateCustomerAttributeAtOneBank))
+      Some(List(canUpdateCustomerAttributeAtOneBank, canUpdateCustomerAttributeAtAnyBank))
     )
 
     lazy val updateCustomerAttribute : OBPEndpoint = {
@@ -4682,7 +4682,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomerAttributesAtOneBank))
+      Some(List(canGetCustomerAttributesAtOneBank, canGetCustomerAttributesAtAnyBank))
     )
 
     lazy val getCustomerAttributes : OBPEndpoint = {
@@ -4723,7 +4723,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomerAttributeAtOneBank))
+      Some(List(canGetCustomerAttributeAtOneBank, canGetCustomerAttributeAtAnyBank))
     )
 
     lazy val getCustomerAttributeById : OBPEndpoint = {
@@ -5441,7 +5441,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canDeleteCustomerAttributeAtOneBank)))
+      Some(List(canDeleteCustomerAttributeAtOneBank, canDeleteCustomerAttributeAtAnyBank)))
 
     lazy val deleteCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
