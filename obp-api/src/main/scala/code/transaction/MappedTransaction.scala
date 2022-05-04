@@ -255,19 +255,22 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
             }
 
             val userIdCustomerIdsPairs: Map[String, List[String]] = userIdCustomerIdPairs.groupBy(_._1).map( a => (a._1,a._2.map(_._2)))
-
+            val eventId = APIUtil.generateUUID()
+            logger.debug("Before firing WebhookActor.AccountNotificationWebhookRequest.eventId: " + eventId)
             actor ! WebhookActor.AccountNotificationWebhookRequest(
               apiTrigger,
-              APIUtil.generateUUID(),
+              eventId,
               t.theBankId.value,
               t.theAccountId.value,
               t.theTransactionId.value,
               userIdCustomerIdsPairs.map(pair => RelatedEntity(pair._1, pair._2)).toList
             )
           } else{
+            val eventId = APIUtil.generateUUID()
+            logger.debug("Before firing WebhookActor.WebhookRequest.eventId: " + eventId)
             actor ! WebhookActor.WebhookRequest(
               apiTrigger,
-              APIUtil.generateUUID(),
+              eventId,
               t.theBankId.value,
               t.theAccountId.value,
               getAmount(t.amount.get),
