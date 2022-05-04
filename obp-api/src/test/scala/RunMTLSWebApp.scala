@@ -97,6 +97,7 @@ object RunMTLSWebApp extends App with PropsProgrammatically {
 
     sslContextFactory.setTrustStorePath(this.getClass.getResource("/cert/server.trust.jks").toExternalForm)
     sslContextFactory.setTrustStorePassword("123456")
+    // This sets MTLS 
     sslContextFactory.setNeedClientAuth(true)
 
     sslContextFactory.setProtocol("TLSv1.2")

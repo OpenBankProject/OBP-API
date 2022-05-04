@@ -113,18 +113,20 @@ class WebhookActor extends Actor with ActorLogging with MdcLoggable {
   private def waitingForRequest: Receive = {
     case request@WebhookRequest(trigger, eventId, bankId, accountId, amount, balance) =>
       implicit val ec = context.dispatcher
+      logger.debug("WebhookActor.waitingForRequest.WebhookRequest(request).eventId: " + eventId)
       WebhookHttpClient.startEvent(request)
     case request@AccountNotificationWebhookRequest(trigger, eventId, bankId, accountId, transactionId, relatedEntities) =>
       implicit val ec = context.dispatcher
+      logger.debug("WebhookActor.waitingForRequest.AccountNotificationWebhookRequest(request).eventId: " + eventId)
       WebhookHttpClient.startEvent(request)
     case WebhookResponse(status, request) =>
-      logger.info("WebhookActor.waitingForRequest.WebhookResponse(status, request).status: " + status)
-      logger.info("WebhookActor.waitingForRequest.WebhookResponse(status, request).request.eventId:: " + request.eventId)
-      logger.info("WebhookActor.waitingForRequest.WebhookResponse(status, request).request.toEventPayload: " + request.toEventPayload)
+      logger.debug("WebhookActor.waitingForRequest.WebhookResponse(status, request).status: " + status)
+      logger.debug("WebhookActor.waitingForRequest.WebhookResponse(status, request).request.eventId: " + request.eventId)
+      logger.debug("WebhookActor.waitingForRequest.WebhookResponse(status, request).request.toEventPayload: " + request.toEventPayload)
     case WebhookFailure(error, request) =>
-      logger.info("WebhookActor.waitingForRequest.WebhookFailure(error, request).error: " + error)
-      logger.info("WebhookActor.waitingForRequest.WebhookFailure(error, request).request.eventId:: " + request.eventId)
-      logger.info("WebhookActor.waitingForRequest.WebhookFailure(error, request).request.toEventPayload: " + request.toEventPayload)
+      logger.debug("WebhookActor.waitingForRequest.WebhookFailure(error, request).error: " + error)
+      logger.debug("WebhookActor.waitingForRequest.WebhookFailure(error, request).request.eventId:: " + request.eventId)
+      logger.debug("WebhookActor.waitingForRequest.WebhookFailure(error, request).request.toEventPayload: " + request.toEventPayload)
   }
 
 }
