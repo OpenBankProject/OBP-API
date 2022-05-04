@@ -545,6 +545,12 @@ webui_register_consumer_success_message_email = Thank you for registering to use
 ## End of webui_ section ########
 
 
+
+# Set Locale
+language_tag = en-GB
+
+
+
 ## API Options
 apiOptions.getBranchesIsPublic = true
 apiOptions.getAtmsIsPublic = true
