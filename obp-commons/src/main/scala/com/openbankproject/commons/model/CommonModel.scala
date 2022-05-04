@@ -532,7 +532,7 @@ case class ChallengeCommons(
   override val scaMethod: Option[SCA],
   override val scaStatus: Option[SCAStatus],
   override val authenticationMethodId: Option[String] ,
-  override val attemptCounter: Int  = 0
+  override val attemptCounter: Int  = 0 //NOTE: set the default value here, so do not break current connectors
 ) extends ChallengeTrait
 object ChallengeCommons extends Converter[ChallengeTrait, ChallengeCommons]
 
