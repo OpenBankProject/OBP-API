@@ -8,6 +8,7 @@ import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.bankconnectors.LocalMappedConnector.getBankAccountCommon
 import code.model._
 import code.usercustomerlinks.UserCustomerLink
+import code.util.Helper.MdcLoggable
 import code.util._
 import code.webhook.WebhookActor
 import code.webhook.WebhookActor.RelatedEntity
@@ -16,9 +17,7 @@ import net.liftweb.common._
 import net.liftweb.common.Box.tryo
 import net.liftweb.mapper._
 
-class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated with TransactionUUID {
-
-  private val logger = Logger(classOf[MappedTransaction])
+class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated with TransactionUUID with MdcLoggable {
 
   def getSingleton = MappedTransaction
 
