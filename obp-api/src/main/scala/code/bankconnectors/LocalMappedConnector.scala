@@ -978,6 +978,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (Counterparties.counterparties.vend.getCounterparty(counterpartyId.value), callContext)
   }
 
+  override def deleteCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
+    (Counterparties.counterparties.vend.deleteCounterparty(counterpartyId.value), callContext)
+  }
+
   override def getCounterpartyByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
     Future(Counterparties.counterparties.vend.getCounterpartyByIban(iban), callContext)
   }

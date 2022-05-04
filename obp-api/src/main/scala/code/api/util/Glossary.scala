@@ -1355,6 +1355,106 @@ object Glossary extends MdcLoggable  {
 |
 |""")
 
+	glossaryItems += GlossaryItem(
+		title = "Scenario 7: Onboarding a User with multiple User Auth Context records",
+		description =
+			s"""
+			|### 1) Assuming a User is registered.
+			|
+			|The User can authenticate using OAuth, OIDC, Direct Login etc.
+      |
+			|### 2) Create a first User Auth Context record e.g. ACCOUNT_NUMBER
+|
+			| The setting of the first User Auth Context record for a User, typically involves sending an SMS to the User.
+      | The phone number used for the SMS is retrieved from the bank's Core Banking System via an Account Number to Phone Number lookup.
+|If this step succeeds we can be reasonably confident that the User who initiated it has access to a SIM card that can use the Phone Number linked to the Bank Account on the Core Banking System:
+|
+			|
+			|Action:
+			|
+			|	POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
+			|
+			|Body:
+			|
+			|	{  "key":"ACCOUNT_NUMBER",  "value":"78987432"}
+			|
+			|Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	DirectLogin: token="your-token-from-direct-login"
+			|
+|### 3) Create a second User Auth Context record e.g. SMALL_PAYMENT_VERIFIED
+|
+| Once the first User Auth Context record is set, we can require the App to set a second record which builds on the information of the first.
+|
+|Action:
+|
+|	POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
+|
+|Body:
+|
+|	{  "key":"SMALL_PAYMENT_VERIFIED",  "value":"78987432"}
+|
+|Headers:
+|
+|	Content-Type:  application/json
+|
+|	DirectLogin: token="your-token-from-direct-login"
+|
+|
+|Following this request the API will send a small payment with a random code from the Users bank account specified in the SMALL_PAYMENT_VERIFIED key value.
+|
+|In order to answer the challenge, the User must have access to the online banking statement (or some other App that already can read transactions in realtime) so they can read the code in the description of the payment.
+|
+|Note! The above logic must be encoded in a dynamic connector method for the OBP internal function validateUserAuthContextUpdateRequest which is used by the endpoint Create User Auth Context Update Request See the next step.
+|
+|
+|### 4) Create or Update Connector Method for validateUserAuthContextUpdateRequest
+|
+| Using this endpoint you can modify the Scala logic
+|
+|Action:
+|
+|	POST $getObpApiRoot/obp/v4.0.0/management/connector-methods
+|
+|Body:
+|
+|	{  "method_name":"validateUserAuthContextUpdateRequest",  "method_body":"%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%20%20%20%20%20%20%29"}
+|
+|Headers:
+|
+|	Content-Type:  application/json
+|
+|	DirectLogin: token="your-token-from-direct-login"
+|
+|### 5) Allow automated access to the App with Create Consent (SMS)
+|
+|
+| Following the creation of User Auth Context records, OBP will create the relevant Account Access Views which allows the User to access their account(s).
+| The App can then request an OBP consent which can be used as a bearer token and have automated access to the accounts.
+| The Consent can be deleted at any time by the User.
+|
+| The Consent can have access to everything the User has access to, or a subset of this.
+|
+|Action:
+|
+|	POST $getObpApiRoot/obp/v4.0.0/banks/BANK_ID/my/consents/SMS
+|
+|Body:
+|
+|	{  "everything":false,  "views":[{    "bank_id":"gh.29.uk",    "account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",    "view_id":"owner"  }],  "entitlements":[{    "bank_id":"gh.29.uk",    "role_name":"CanGetCustomer"  }],  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",  "phone_number":"+44 07972 444 876",  "valid_from":"2022-04-29T10:40:03Z",  "time_to_live":3600}
+|
+|Headers:
+|
+|	Content-Type:  application/json
+|
+|	DirectLogin: token="your-token-from-direct-login"
+|
+|![OBP User Auth Context, Views, Consents 2022](https://user-images.githubusercontent.com/485218/165982767-f656c965-089b-46de-a5e6-9f05b14db182.png)
+|
+|
+		  """)
 
 
 	glossaryItems += GlossaryItem(

@@ -241,6 +241,9 @@ mail.smtp.port=25
 ## Oauth token timeout
 token_expiration_weeks=4
 
+## payment challenge answer timeout,default is 600 seconds/10 minutes
+payment_otp_expiration_seconds=600
+
 
 
 ### Sandbox
@@ -540,6 +543,12 @@ webui_register_consumer_success_message_email = Thank you for registering to use
 #Log in page
 #webui_login_button_text = 
 ## End of webui_ section ########
+
+
+
+# Set Locale
+language_tag = en-GB
+
 
 
 ## API Options

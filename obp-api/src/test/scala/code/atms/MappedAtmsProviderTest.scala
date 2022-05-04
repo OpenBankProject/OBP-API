@@ -88,7 +88,7 @@ class MappedAtmsProviderTest extends ServerSetup {
       val fixture = defaultSetup()
 
       // Only these have license set
-      val expectedAtms =  List(fixture.atm1, fixture.atm2)
+      val expectedAtms =  List(fixture.atm1, fixture.atm2, fixture.unlicensedAtm)
 
 
       Given("the bank in question has atms")
@@ -101,8 +101,8 @@ class MappedAtmsProviderTest extends ServerSetup {
       atmsOpt.isDefined should equal (true)
       val atms = atmsOpt.get
 
-      And("it should contain two atms")
-      atms.size should equal(2)
+      And("it should contain 3 atms")
+      atms.size should equal(3)
 
       And("they should be the licensed ones")
       atms should equal (expectedAtms)

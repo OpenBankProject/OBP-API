@@ -1319,7 +1319,6 @@ trait APIMethods400 {
         InvalidJsonFormat,
         $BankNotFound,
         $BankAccountNotFound,
-        $UserNoPermissionAccessView,
         TransactionRequestStatusNotInitiated,
         TransactionRequestTypeHasChanged,
         AllowedAttemptsUsedUp,
@@ -1333,7 +1332,7 @@ trait APIMethods400 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (user @Full(u), _, fromAccount, view, callContext) <- SS.userBankAccountView
+            (user @Full(u), _, fromAccount, callContext) <- SS.userBankAccount
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
               isValidID(accountId.value)
@@ -1441,7 +1440,7 @@ trait APIMethods400 {
 
                   (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
-                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ", cc=callContext) {
+                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer.replace("answer may be expired.",s"answer may be expired, current expiration time is ${otpExpirationSeconds} seconds .")} ", cc=callContext) {
                     challengeAnswerIsValidated
                   }
 
@@ -4571,7 +4570,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canCreateCustomerAttributeAtOneBank)))
+      Some(List(canCreateCustomerAttributeAtOneBank, canCreateCustomerAttributeAtAnyBank)))
 
     lazy val createCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: customerId :: "attribute" :: Nil JsonPost json -> _=> {
@@ -4625,7 +4624,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canUpdateCustomerAttributeAtOneBank))
+      Some(List(canUpdateCustomerAttributeAtOneBank, canUpdateCustomerAttributeAtAnyBank))
     )
 
     lazy val updateCustomerAttribute : OBPEndpoint = {
@@ -4683,7 +4682,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomerAttributesAtOneBank))
+      Some(List(canGetCustomerAttributesAtOneBank, canGetCustomerAttributesAtAnyBank))
     )
 
     lazy val getCustomerAttributes : OBPEndpoint = {
@@ -4724,7 +4723,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomerAttributeAtOneBank))
+      Some(List(canGetCustomerAttributeAtOneBank, canGetCustomerAttributeAtAnyBank))
     )
 
     lazy val getCustomerAttributeById : OBPEndpoint = {
@@ -5442,7 +5441,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canDeleteCustomerAttributeAtOneBank)))
+      Some(List(canDeleteCustomerAttributeAtOneBank, canDeleteCustomerAttributeAtAnyBank)))
 
     lazy val deleteCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
@@ -7839,9 +7838,12 @@ trait APIMethods400 {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete _ => {
         cc =>
           for {
-            _ <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
+            result <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
           } yield {
-            (Full(true), HttpCode.`200`(cc))
+            if(result.getOrElse(false))
+              (Full(true), HttpCode.`200`(cc))
+            else
+              (Full(false), HttpCode.`404`(cc))
           }
       }
     }  
@@ -7957,7 +7959,7 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      createCounterparty,
+      createExplicitCounterparty,
       implementedInApiVersion,
       "createCounterparty",
       "POST",
@@ -8063,7 +8065,7 @@ trait APIMethods400 {
       List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
 
 
-    lazy val createCounterparty: OBPEndpoint = {
+    lazy val createExplicitCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
@@ -8074,7 +8076,9 @@ trait APIMethods400 {
               json.extract[PostCounterpartyJson400]
             }
 
-            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", cc=callContext) {view.canAddCounterparty}
+            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", 403, cc=callContext) {
+              view.canAddCounterparty
+            }
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
 
@@ -8134,6 +8138,101 @@ trait APIMethods400 {
 
           } yield {
             (JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteExplicitCounterparty,
+      implementedInApiVersion,
+      nameOf(deleteExplicitCounterparty),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Delete Counterparty (Explicit)",
+      s"""Delete Counterparty (Explicit) for an Account.
+         |and also delete the Metadata for its counterparty.
+         |
+         |need the view permission `can_delete_counterparty`
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle)
+    )
+
+    lazy val deleteExplicitCounterparty: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
+
+            _ <- Helper.booleanToFuture(s"$NoViewPermission can_delete_counterparty. Please use a view with that permission or add the permission to this view.",403, cc=callContext) {
+              view.canDeleteCounterparty
+            }
+
+            (counterparty, callContext) <- NewStyle.function.deleteCounterpartyByCounterpartyId(counterpartyId, callContext)
+
+            (counterpartyMetadata, callContext) <- NewStyle.function.deleteMetadata(bankId, accountId, counterpartyId.value, callContext)
+
+          } yield {
+            (Full(counterparty), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteCounterpartyForAnyAccount,
+      implementedInApiVersion,
+      nameOf(deleteCounterpartyForAnyAccount),
+      "DELETE",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Delete Counterparty for any account (Explicit)",
+      s"""Delete Counterparty (Explicit) for any account 
+         |and also delete the Metadata for its counterparty.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankAccountNotFound,
+        $BankNotFound,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
+      Some(List(canDeleteCounterparty, canDeleteCounterpartyAtAnyBank)))
+
+    lazy val deleteCounterpartyForAnyAccount: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
+            
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+            
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
+
+            (counterparty, callContext) <- NewStyle.function.deleteCounterpartyByCounterpartyId(counterpartyId, callContext)
+
+            (counterpartyMetadata, callContext) <- NewStyle.function.deleteMetadata(bankId, accountId, counterpartyId.value, callContext)
+
+          } yield {
+            (Full(counterparty), HttpCode.`200`(callContext))
           }
       }
     }
@@ -8235,7 +8334,6 @@ trait APIMethods400 {
         InvalidBankIdFormat,
         $BankNotFound,
         $BankAccountNotFound,
-        $UserNoPermissionAccessView,
         AccountNotFound,
         InvalidJsonFormat,
         InvalidISOCurrencyCode,
@@ -8251,7 +8349,7 @@ trait APIMethods400 {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  callContext) {
               json.extract[PostCounterpartyJson400]
             }
@@ -8333,10 +8431,10 @@ trait APIMethods400 {
       counterpartiesJson400,
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
         $BankAccountNotFound,
-        ViewNotFound,
-        NoViewPermission,
         $UserNoPermissionAccessView,
+        ViewNotFound,
         UnknownError
       ),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount, apiTagNewStyle))
@@ -8346,9 +8444,59 @@ trait APIMethods400 {
         cc =>
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_add_counterparty", 403, cc=callContext) {
               view.canAddCounterparty == true
             }
+            (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
+            //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
+            //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
+            _ <- Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc=callContext) {
+              {
+                for {
+                  counterparty <- counterparties
+                } yield {
+                  Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name) match {
+                    case Full(_) => true
+                    case _ => false
+                  }
+                }
+              }.forall(_ == true)
+            }
+          } yield {
+            val counterpartiesJson = JSONFactory400.createCounterpartiesJson400(counterparties)
+            (counterpartiesJson, HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getCounterpartiesForAnyAccount,
+      implementedInApiVersion,
+      nameOf(getCounterpartiesForAnyAccount),
+      "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      "Get Counterparties for any account (Explicit)",
+      s"""Get the Counterparties (Explicit) for any account .
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      counterpartiesJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount, apiTagNewStyle),
+    Some(List(canGetCounterparties, canGetCounterpartiesAtAnyBank))
+    )
+
+    lazy val getCounterpartiesForAnyAccount : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
@@ -8377,7 +8525,7 @@ trait APIMethods400 {
       "getExplictCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-      "Get Counterparty by Counterparty Id (Explicit)",
+      "Get Counterparty by Id (Explicit)",
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
          |${authenticationRequiredMessage(true)}
@@ -8393,11 +8541,11 @@ trait APIMethods400 {
         cc =>
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
-              view.canAddCounterparty == true
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
+              view.canGetCounterparty == true
             }
+            (counterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
             counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
-            (counterparty, callContext) <- NewStyle.function.getCounterpartyTrait(bankId, accountId, counterpartyId.value, callContext)
           } yield {
             val counterpartyJson = JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata)
             (counterpartyJson, HttpCode.`200`(callContext))
@@ -8410,7 +8558,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getCounterpartyByNameForAnyAccount),
       "GET",
-      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_NAME",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparty-names/COUNTERPARTY_NAME",
       "Get Counterparty by name for any account (Explicit) ",
       s"""
          |
@@ -8425,7 +8573,6 @@ trait APIMethods400 {
         InvalidBankIdFormat,
         $BankNotFound,
         $BankAccountNotFound,
-        $UserNoPermissionAccessView,
         InvalidJsonFormat,
         ViewNotFound,
         UnknownError
@@ -8434,10 +8581,10 @@ trait APIMethods400 {
       Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
 
     lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: counterpartyName :: Nil JsonGet _ => {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparty-names" :: counterpartyName :: Nil JsonGet _ => {
         cc =>
           for {
-            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(counterpartyName, bankId.value, accountId.value, viewId.value, callContext)
 
@@ -8451,6 +8598,47 @@ trait APIMethods400 {
 
           } yield {
             (JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getCounterpartyByIdForAnyAccount,
+      implementedInApiVersion,
+      nameOf(getCounterpartyByIdForAnyAccount),
+      "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Get Counterparty by Id for any account (Explicit) ",
+      s"""
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      counterpartyWithMetadataJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        ViewNotFound,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
+      Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
+
+    lazy val getCounterpartyByIdForAnyAccount: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user @Full(u), _, account, callContext) <- SS.userBankAccount
+            (counterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
+            counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
+          } yield {
+            val counterpartyJson = JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata)
+            (counterpartyJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -11607,10 +11795,7 @@ trait APIMethods400 {
                 fullBoxOrException(Empty ?~! atmsNotFound)
               case Full((List(), callContext)) =>
                 Full(List())
-              case Full((list, _)) =>
-                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
-                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
-                else Full(branchesWithLicense)
+              case Full((list, _)) =>Full(list)
               case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
               case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
             } map { unboxFull(_) } map {

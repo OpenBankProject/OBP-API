@@ -585,6 +585,26 @@ class Boot extends MdcLoggable {
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
+/*
+  TODO 
+    //set base localization according to a props value (instead of computer default)
+    val locale = Locale.getAvailableLocales().toList.filter { l =>
+      l.toLanguageTag == Props.get("language_tag", "en-GB")
+    }.head
+    Locale.setDefault(locale)
+    logger.info("Default Project Locale is :" + locale)
+
+    // Properly convert a language tag to a Locale
+    def computeLocale(tag : String) = tag.split(Array('-', '_')) match {
+      case Array(lang) => new Locale(lang)
+      case Array(lang, country) => new Locale(lang, country)
+      case Array(lang, country, variant) => new Locale(lang, country, variant)
+    }
+
+*/
+
+
+
     //set base localization to english (instead of computer default)
     Locale.setDefault(Locale.ENGLISH)
     logger.info("Current Project Locale is :" +Locale.getDefault)

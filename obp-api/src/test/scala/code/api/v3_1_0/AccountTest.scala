@@ -102,6 +102,10 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       responsePut1.code should equal(200)
       responsePut1.body.extract[UpdateAccountResponseJsonV310].account_routings should be (testPutJsonWithIban.account_routings)
 
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
+      
       val responseGet1 = makeGetRequest(requestGet)
       And("We should get 200 and updated account routings in the getAccount response")
       responseGet1.code should equal(200)
@@ -116,6 +120,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       responsePut2.code should equal(200)
       responsePut2.body.extract[UpdateAccountResponseJsonV310].account_routings should be (testPutJsonWithoutAccountNumber.account_routings)
 
+      
       val responseGet2 = makeGetRequest(requestGet)
       And("We should get 200 and updated account routings in the getAccount response")
       responseGet2.code should equal(200)
@@ -196,6 +201,11 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
       Then("We should get a 201")
       response310.code should equal(201)
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
+      
+      
       val account = response310.body.extract[CreateAccountResponseJsonV310]
       account.product_code should be (putCreateAccountJSONV310.product_code)
       account.`label` should be (putCreateAccountJSONV310.`label`)
@@ -214,6 +224,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       Then(s"we call $ApiEndpoint4 to get the account back")
       val requestApiEndpoint4 = (v3_1_0_Request / "my" / "accounts" ).PUT <@(user1)
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
+      
+      
 
       responseApiEndpoint4.code should equal(200)
       val accounts = responseApiEndpoint4.body.extract[CoreAccountsJsonV300].accounts
@@ -265,6 +277,10 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val response310 = makePutRequest(request310, write(putCreateAccountJson))
       Then("We should get a 201")
       response310.code should equal(201)
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
+      
       val account = response310.body.extract[CreateAccountResponseJsonV310]
       account.product_code should be (putCreateAccountJson.product_code)
       account.`label` should be (putCreateAccountJson.`label`)
@@ -291,6 +307,10 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       Then("We should get a 201")
       responseUser2_310.code should equal(201)
 
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
+
 
       Then(s"we call $ApiEndpoint6 to get the account back by user2")
       val requestApiUser2Endpoint6 = (v3_1_0_Request /"banks" / testBankId.value / "accounts" / userAccountId / Constant.SYSTEM_OWNER_VIEW_ID/ "account" ).GET <@(user2)
@@ -306,6 +326,10 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val response310_1 = makePutRequest(request310_1, write(putCreateAccountJSONV310))
       Then("We should get a 201")
       response310_1.code should equal(201)
+
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
       val account = response310_1.body.extract[CreateAccountResponseJsonV310]
       account.product_code should be (putCreateAccountJSONV310.product_code)
       account.`label` should be (putCreateAccountJSONV310.`label`)

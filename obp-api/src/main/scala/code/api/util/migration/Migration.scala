@@ -91,6 +91,7 @@ object Migration extends MdcLoggable {
       alterUserAuthContextColumnKeyAndValueLength(startedBeforeSchemifier)
       dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier)
       dropIndexAtUserAuthContext()
+      alterWebhookColumnUrlLength()
     }
     
     private def dummyScript(): Boolean = {
@@ -359,6 +360,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(addAccountAccessConsumerId)
       runOnce(name) {
         MigrationOfAccountAccessAddedConsumerId.addAccountAccessConsumerId(name)
+      }
+    }
+
+    private def alterWebhookColumnUrlLength(): Boolean = {
+      val name = nameOf(alterWebhookColumnUrlLength)
+      runOnce(name) {
+        MigrationOfWebhookUrlFieldLength.alterColumnUrlLength(name)
       }
     }
     

@@ -31,6 +31,8 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
     } yield m
   }
 
+  def deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[Boolean] = Empty
+  
   def getOrCreateMetadata(bankId: BankId, accountId : AccountId, counterpartyId:String, counterpartyName:String)  : Box[CounterpartyMetadata] = {
 
     /**
@@ -108,6 +110,8 @@ object MongoCounterparties extends Counterparties with MdcLoggable {
   }
 
   override def getCounterparty(counterpartyId : String): Box[CounterpartyTrait] = Empty
+  
+  override def deleteCounterparty(counterpartyId : String): Box[Boolean] = Empty
 
   override def getCounterpartyByIban(iban : String): Box[CounterpartyTrait] = Empty
 

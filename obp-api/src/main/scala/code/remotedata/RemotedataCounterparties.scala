@@ -28,8 +28,16 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
     (actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[Box[CounterpartyMetadata]]
   )
 
+  override def deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[Box[Boolean]]
+  )
+
   override def getCounterparty(counterpartyId: String): Box[CounterpartyTrait] = getValueFromFuture(
     (actor ? cc.getCounterparty(counterpartyId: String)).mapTo[Box[CounterpartyTrait]]
+  )
+
+  override def deleteCounterparty(counterpartyId : String): Box[Boolean]= getValueFromFuture(
+    (actor ? cc.deleteCounterparty(counterpartyId: String)).mapTo[Box[Boolean]]
   )
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = getValueFromFuture(

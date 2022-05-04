@@ -249,7 +249,7 @@ trait OBPDataImport extends MdcLoggable {
     // Check the data products is OK before calling calling createSaveableProducts
 
     logger.debug("Get existing products that match the bank id and product code")
-    val existing = data.products.flatMap(p => Products.productsProvider.vend.getProduct(BankId(p.bank_id), ProductCode(p.code), true))
+    val existing = data.products.flatMap(p => Products.productsProvider.vend.getProduct(BankId(p.bank_id), ProductCode(p.code)))
 
     val allNewCodes = data.products.map(_.code)
     val emptyCodes = allNewCodes.filter(_.isEmpty)
