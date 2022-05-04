@@ -42,7 +42,8 @@ object WebhookHttpClient extends MdcLoggable {
     *         2. requestActor ! WebhookResponse(res.status.toString(), request)
     */
   def startEvent(request: WebhookRequestTrait): List[Unit] = {
-
+    logger.debug(s"Query table MappedAccountWebhook by mIsActive, mBankId, mAccountId, mTriggerName: true, ${request.bankId}, ${request.accountId}, ${request.trigger.toString()}" )
+    logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait).request.eventId: " + request.eventId)
     MappedAccountWebhook.findAll(
       By(MappedAccountWebhook.mIsActive, true), 
       By(MappedAccountWebhook.mBankId, request.bankId), 
@@ -75,7 +76,8 @@ object WebhookHttpClient extends MdcLoggable {
 
       bankLevelWebhooks++ systemLevelWebhooks
     }
-
+    logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest).request.eventId: " + request.eventId)
+    logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest).accountWebhooks: " + accountWebhooks)
     accountWebhooks map {
       i =>{
         logEvent(request)
