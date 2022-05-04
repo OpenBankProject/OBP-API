@@ -1249,10 +1249,20 @@ trait APIMethods400 {
                MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
                 .map(mappedExpectedChallengeAnswer => 
-                  ChallengeJson(mappedExpectedChallengeAnswer.challengeId,mappedExpectedChallengeAnswer.transactionRequestId,mappedExpectedChallengeAnswer.expectedUserId) )
+                  ChallengeJson(
+                    mappedExpectedChallengeAnswer.challengeId,
+                    mappedExpectedChallengeAnswer.transactionRequestId,
+                    mappedExpectedChallengeAnswer.expectedUserId, 
+                    mappedExpectedChallengeAnswer.attemptCounter
+                  ))
             } else {
               if(!("COMPLETED").equals(createdTransactionRequest.status)) 
-                List(ChallengeJson(createdTransactionRequest.challenge.id, createdTransactionRequest.id.value, u.userId))
+                List(ChallengeJson(
+                  createdTransactionRequest.challenge.id, 
+                  createdTransactionRequest.id.value, 
+                  u.userId, 
+                  createdTransactionRequest.challenge.allowed_attempts
+                ))
               else 
                 null
             }
