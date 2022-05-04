@@ -64,18 +64,22 @@ object WebhookHttpClient extends MdcLoggable {
   def startEvent(request: AccountNotificationWebhookRequest): List[Unit] = {
 
     val accountWebhooks = {
-     
+      logger.debug("Finding BankAccountNotificationWebhook with Triggername = " + request.trigger.toString())
       val bankLevelWebhooks = BankAccountNotificationWebhook.findAll(
         By(BankAccountNotificationWebhook.BankId, request.bankId),
         By(BankAccountNotificationWebhook.TriggerName, request.trigger.toString())
       )
-
+      logger.debug(s"Found ${bankLevelWebhooks.size} BankAccountNotificationWebhook with Triggername = " + request.trigger.toString())
+      
+      logger.debug("Finding SystemAccountNotificationWebhook with Triggername = " + request.trigger.toString())
       val systemLevelWebhooks = SystemAccountNotificationWebhook.findAll(
         By(SystemAccountNotificationWebhook.TriggerName, request.trigger.toString())
       )
-
-      bankLevelWebhooks++ systemLevelWebhooks
+      logger.debug(s"Found ${systemLevelWebhooks.size} SystemAccountNotificationWebhook with Triggername = " + request.trigger.toString())
+      
+      bankLevelWebhooks ++ systemLevelWebhooks
     }
+    
     logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest).request.eventId: " + request.eventId)
     logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest).accountWebhooks: " + accountWebhooks)
     accountWebhooks map {
