@@ -561,6 +561,8 @@ trait ChallengeTrait {
   def scaMethod: Option[SCA]
   def scaStatus: Option[SCAStatus]
   def authenticationMethodId: Option[String]
+  
+  def attemptCounter: Int
 }
 
 

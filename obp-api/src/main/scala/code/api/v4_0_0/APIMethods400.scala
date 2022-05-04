@@ -1363,11 +1363,6 @@ trait APIMethods400 {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
             
-            //Check the allowed attempts, Note: not supported yet, the default value is 3
-            _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}", cc=callContext) {
-              existingTransactionRequest.challenge.allowed_attempts > 0
-            }
-
             //Check the challenge type, Note: not supported yet, the default value is SANDBOX_TAN
             _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ", cc=callContext) {
               List(

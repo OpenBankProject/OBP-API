@@ -24,6 +24,9 @@ class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[
   object mScaStatus extends MappedString(this,100)
   object mConsentId extends MappedString(this,100)
   object mAuthenticationMethodId extends MappedString(this,100)
+  object mAttemptCounter extends MappedInt(this){
+    override def defaultValue = 0
+  }
   
   override def challengeId: String = mChallengeId.get
   override def challengeType: String = mChallengeType.get
@@ -36,6 +39,7 @@ class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[
   override def scaMethod: Option[SCA] = Option(StrongCustomerAuthentication.withName(mScaMethod.get))
   override def scaStatus: Option[SCAStatus] = Option(StrongCustomerAuthenticationStatus.withName(mScaStatus.get))
   override def authenticationMethodId: Option[String] = Option(mAuthenticationMethodId.get)
+  override def attemptCounter: Int = mAttemptCounter.get
 }
 
 object MappedExpectedChallengeAnswer extends MappedExpectedChallengeAnswer with LongKeyedMetaMapper[MappedExpectedChallengeAnswer] {
