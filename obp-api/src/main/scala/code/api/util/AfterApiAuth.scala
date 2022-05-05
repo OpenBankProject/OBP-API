@@ -2,6 +2,7 @@ package code.api.util
 
 import java.util.Date
 
+import code.accountholders.AccountHolders
 import code.api.Constant
 import code.api.util.APIUtil.getPropsAsBoolValue
 import code.api.util.ApiRole.{CanCreateAccount, CanCreateHistoricalTransactionAtBank}
@@ -15,7 +16,7 @@ import code.ratelimiting.{RateLimiting, RateLimitingDI}
 import code.users.{UserInitActionProvider, Users}
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, User, ViewId}
+import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, BankId, BankIdAccountId, User, ViewId}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.mapper.By
@@ -178,12 +179,14 @@ object AfterApiAuth extends MdcLoggable{
             }.isDefined
             UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-entitlement", CanCreateHistoricalTransactionAtBank.toString(), addCanCreateHistoricalTransactionAtBank)
             // Create Cash account
-            val bankAccount = getOrCreateBankAccount(bank, "cash", "cash-flow").flatMap( account =>
-              Views.views.vend.systemView(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).flatMap( view =>
+            val bankAccount = getOrCreateBankAccount(bank, "cash", "cash-flow").flatMap { account =>
+              Views.views.vend.systemView(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).flatMap(view =>
                 // Grant account access
                 Views.views.vend.grantAccessToSystemView(bank.bankId, account.accountId, view, resourceUser)
               )
-            ).isDefined
+              // Create account holder
+              AccountHolders.accountHolders.vend.getOrCreateAccountHolder(resourceUser, BankIdAccountId(bank.bankId, account.accountId))
+            }.isDefined
             UserInitActionProvider.createOrUpdateInitAction(resourceUser.userId, "add-bank-account", "cache", bankAccount)
             addCanCreateAccount && addCanCreateHistoricalTransactionAtBank && bankAccount
           case _ =>
