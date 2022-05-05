@@ -127,10 +127,10 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         other_account_secondary_routing_address= counterpartyCounterparty.otherAccountSecondaryRoutingAddress
       ), bodyValue, description, sharedChargePolicy)
 
-      def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId, consumerAndToken: Option[(Consumer, Token)] = user1) = {
+      def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId, consumerAndToken: Option[(Consumer, Token)] = user1 , challengeAnswer:String = "123") = {
         this.challengeId = challengeId
         this.transRequestId = transRequestId
-        answerJson = ChallengeAnswerJson400(id = challengeId, answer = "123")
+        answerJson = ChallengeAnswerJson400(id = challengeId, answer = challengeAnswer)
         val answerRequestNew = (v4_0_0_Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           CUSTOM_OWNER_VIEW_ID / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (consumerAndToken)
         answerRequest = answerRequestNew
@@ -514,6 +514,41 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
         Then("we need check the account amount info")
         helper.checkBankAccountBalance(true)
+      }
+      
+      scenario("With challenge, No FX, test the allowed_attempts times ", ApiEndpoint1, ApiEndpoint2) {
+        When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
+        val helper = defaultSetup()
+        And("We set the special conditions for different currencies")
+        val fromCurrency = "AED"
+        val toCurrency = "AED"
+        val amt = "50000.00"
+        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
+        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
+
+        Then("we call the 'V400 Create Transaction Request' endpoint")
+        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        And("We checked all the fields of createTransactionRequestResponse body ")
+        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+
+     
+        Then("We call 'Answer Transaction Request Challenge - V400' to finish the request")
+        And("we prepare the parameters for it")
+        helper.setAnswerTransactionRequest(challengeAnswer ="1234")
+        And("we call the endpoint")
+        val ansReqResponse1 = helper.makeAnswerRequest
+        val ansReqResponse2 = helper.makeAnswerRequest
+        val ansReqResponse3 = helper.makeAnswerRequest
+        ansReqResponse3.code should be (400)
+        ansReqResponse3.body.toString contains("OBP-40016: Invalid Challenge Answer") should be (true)
+
+        Then("We use the proper answer `123` and check the response. ")
+        helper.setAnswerTransactionRequest(challengeAnswer ="123")
+        val ansReqResponse4 = helper.makeAnswerRequest
+        ansReqResponse4.code should be (400)
+        ansReqResponse4.body.toString contains("you've used up your allowed attempts (3 times).") should be (true)
       }
     }
 

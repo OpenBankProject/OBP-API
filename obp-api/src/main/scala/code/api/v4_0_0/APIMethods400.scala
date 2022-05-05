@@ -1249,10 +1249,20 @@ trait APIMethods400 {
                MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
                 .map(mappedExpectedChallengeAnswer => 
-                  ChallengeJson(mappedExpectedChallengeAnswer.challengeId,mappedExpectedChallengeAnswer.transactionRequestId,mappedExpectedChallengeAnswer.expectedUserId) )
+                  ChallengeJson(
+                    mappedExpectedChallengeAnswer.challengeId,
+                    mappedExpectedChallengeAnswer.transactionRequestId,
+                    mappedExpectedChallengeAnswer.expectedUserId, 
+                    mappedExpectedChallengeAnswer.attemptCounter
+                  ))
             } else {
               if(!("COMPLETED").equals(createdTransactionRequest.status)) 
-                List(ChallengeJson(createdTransactionRequest.challenge.id, createdTransactionRequest.id.value, u.userId))
+                List(ChallengeJson(
+                  createdTransactionRequest.challenge.id, 
+                  createdTransactionRequest.id.value, 
+                  u.userId, 
+                  createdTransactionRequest.challenge.allowed_attempts
+                ))
               else 
                 null
             }
@@ -1363,11 +1373,6 @@ trait APIMethods400 {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
             
-            //Check the allowed attempts, Note: not supported yet, the default value is 3
-            _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}", cc=callContext) {
-              existingTransactionRequest.challenge.allowed_attempts > 0
-            }
-
             //Check the challenge type, Note: not supported yet, the default value is SANDBOX_TAN
             _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ", cc=callContext) {
               List(
@@ -1440,7 +1445,7 @@ trait APIMethods400 {
 
                   (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
-                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer.replace("answer may be expired.",s"answer may be expired, current expiration time is ${otpExpirationSeconds} seconds .")} ", cc=callContext) {
+                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer.replace("answer may be expired.",s"answer may be expired, current expiration time is ${transactionRequestChallengeTtl} seconds .")} ", cc=callContext) {
                     challengeAnswerIsValidated
                   }
 
