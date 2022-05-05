@@ -1,6 +1,6 @@
 package code.transactionChallenge
 
-import code.api.util.APIUtil.otpExpirationSeconds
+import code.api.util.APIUtil.transactionRequestChallengeTtl
 import code.api.util.{APIUtil, ErrorMessages}
 import com.openbankproject.commons.model.{ChallengeTrait, ErrorMessage}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -62,12 +62,13 @@ object MappedChallengeProvider extends ChallengeProvider {
     //We update the counter anyway.
     challenge.mAttemptCounter(currentAttemptCounterValue+1).saveMe()
     
-    val createDate = challenge.createdAt.get
-    val tokenDuration : Long = Helpers.seconds(APIUtil.otpExpirationSeconds)
+    val createDateTime = challenge.createdAt.get
+    val challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
     
-    val expiredDateTime: Long = createDate.getTime+tokenDuration
+    val expiredDateTime: Long = createDateTime.getTime+challengeTTL
     val currentTime: Long = Platform.currentTime
     
+    //TODO, add column maxAttemptsAllowed (Int) to `mappedexpectedchallengeanswer`  table instead of this hardcode number 3
     if(currentAttemptCounterValue <3){
       if(expiredDateTime > currentTime) {
         val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
@@ -88,7 +89,7 @@ object MappedChallengeProvider extends ChallengeProvider {
             }
         }
       }else{
-        Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $otpExpirationSeconds seconds")
+        Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $transactionRequestChallengeTtl seconds")
       }
   }else{
       Failure(s"${ErrorMessages.AllowedAttemptsUsedUp}")
