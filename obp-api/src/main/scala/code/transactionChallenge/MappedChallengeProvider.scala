@@ -1,6 +1,6 @@
 package code.transactionChallenge
 
-import code.api.util.APIUtil.otpExpirationSeconds
+import code.api.util.APIUtil.transactionRequestChallengeTtl
 import code.api.util.{APIUtil, ErrorMessages}
 import com.openbankproject.commons.model.{ChallengeTrait, ErrorMessage}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -58,32 +58,41 @@ object MappedChallengeProvider extends ChallengeProvider {
   ): Box[ChallengeTrait] = {
     
     val challenge = getChallenge(challengeId).openOrThrowException(s"${ErrorMessages.InvalidChallengeAnswer}")
-    val createDate = challenge.createdAt.get
-    val tokenDuration : Long = Helpers.seconds(APIUtil.otpExpirationSeconds)
+    val currentAttemptCounterValue = challenge.attemptCounter 
+    //We update the counter anyway.
+    challenge.mAttemptCounter(currentAttemptCounterValue+1).saveMe()
     
-    val expiredDateTime: Long = createDate.getTime+tokenDuration
+    val createDateTime = challenge.createdAt.get
+    val challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
+    
+    val expiredDateTime: Long = createDateTime.getTime+challengeTTL
     val currentTime: Long = Platform.currentTime
     
-    if(expiredDateTime > currentTime) {
-      val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
-      val expectedHashedAnswer = challenge.expectedAnswer
-  
-      userId match {
-        case None => 
-          if(currentHashedAnswer==expectedHashedAnswer) {
-            tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-          } else {
-            Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
-          }
-        case Some(id) =>
-          if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
-            tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-          } else {
-            Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
-          }
+    //TODO, add column maxAttemptsAllowed (Int) to `mappedexpectedchallengeanswer`  table instead of this hardcode number 3
+    if(currentAttemptCounterValue <3){
+      if(expiredDateTime > currentTime) {
+        val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
+        val expectedHashedAnswer = challenge.expectedAnswer
+    
+        userId match {
+          case None => 
+            if(currentHashedAnswer==expectedHashedAnswer) {
+              tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+            } else {
+              Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+            }
+          case Some(id) =>
+            if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
+              tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+            } else {
+              Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+            }
+        }
+      }else{
+        Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $transactionRequestChallengeTtl seconds")
       }
-    }else{
-      Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $otpExpirationSeconds seconds")
+  }else{
+      Failure(s"${ErrorMessages.AllowedAttemptsUsedUp}")
     }
   }
 }

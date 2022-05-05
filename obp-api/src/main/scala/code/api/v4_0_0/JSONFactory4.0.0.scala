@@ -580,7 +580,8 @@ case class DatabaseInfoJson(product_name: String, product_version: String)
 case class ChallengeJson(
   challenge_id: String,
   transaction_request_id: String,
-  expected_user_id: String
+  expected_user_id: String,
+  allowed_attempts: Int
 )
 
 case class SettlementAccountRequestJson(
@@ -1232,7 +1233,7 @@ object JSONFactory400 {
             case _ => ""
           }
           challenges.map(
-            e => ChallengeJsonV400(id = stringOrNull(e.challenge_id), user_id = e.expected_user_id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
+            e => ChallengeJsonV400(id = stringOrNull(e.challenge_id), user_id = e.expected_user_id, allowed_attempts = e.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
           )
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}

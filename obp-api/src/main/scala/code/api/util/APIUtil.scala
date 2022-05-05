@@ -4196,5 +4196,5 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       |
       """.stripMargin
 
-  val otpExpirationSeconds = APIUtil.getPropsAsLongValue("payment_otp_expiration_seconds", 600)
+  val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transaction_request_challenge_ttl", 600)
 }
