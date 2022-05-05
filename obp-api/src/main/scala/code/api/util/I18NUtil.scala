@@ -7,7 +7,6 @@ import net.liftweb.util.Props
 
 object I18NUtil {
   // Copied from Sofit
-
   def getLocalDate(date: Date): String = {
     import java.text.DateFormat
     val df = DateFormat.getDateInstance(DateFormat.LONG, currentLocale())
