@@ -9,7 +9,7 @@ import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
-import code.api.Constant.{INCOMING_ACCOUNT_ID, OUTGOING_ACCOUNT_ID}
+import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
@@ -1602,12 +1602,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
-                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), callContext))
             }
             settlementAccount.flatMap(settlementAccount => {
               val fromTransAmtSettlementAccount: BigDecimal = {
               // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == INCOMING_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
                   Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
@@ -1628,11 +1628,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)
-                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount => {
               val toTransAmtSettlementAccount: BigDecimal = {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == OUTGOING_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
                   Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
@@ -1643,8 +1643,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           }
       )
 
-      debitTransaction = debitTransactionBox.openOrThrowException(s"Error while opening debitTransaction. This error can happen when no settlement can be found, please check that $INCOMING_ACCOUNT_ID exists at bank ${toAccount.bankId.value}")
-      creditTransaction = creditTransactionBox.openOrThrowException(s"Error while opening creditTransaction. This error can happen when no settlement can be found, please check that $OUTGOING_ACCOUNT_ID exists at bank ${fromAccount.bankId.value}")
+      debitTransaction = debitTransactionBox.openOrThrowException(s"Error while opening debitTransaction. This error can happen when no settlement can be found, please check that $INCOMING_SETTLEMENT_ACCOUNT_ID exists at bank ${toAccount.bankId.value}")
+      creditTransaction = creditTransactionBox.openOrThrowException(s"Error while opening creditTransaction. This error can happen when no settlement can be found, please check that $OUTGOING_SETTLEMENT_ACCOUNT_ID exists at bank ${fromAccount.bankId.value}")
 
       _ <- NewStyle.function.saveDoubleEntryBookTransaction(
         DoubleEntryTransaction(
@@ -1759,11 +1759,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
-                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_ACCOUNT_ID), callContext))
+                .or(BankAccountX(toAccount.bankId, AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount => {
               val fromTransAmtSettlementAccount = {
                 // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == INCOMING_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
                   Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
@@ -1784,11 +1784,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)
-                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_ACCOUNT_ID), callContext))
+                .or(BankAccountX(fromAccount.bankId, AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), callContext))
             settlementAccount.flatMap(settlementAccount => {
               val toTransAmtSettlementAccount = {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == OUTGOING_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value))
                   Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
@@ -1799,8 +1799,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           }
       }
 
-      debitTransaction = debitTransactionBox.openOrThrowException(s"Error while opening debitTransaction. This error can happen when no settlement can be found, please check that $INCOMING_ACCOUNT_ID exists at bank ${toAccount.bankId.value}")
-      creditTransaction = creditTransactionBox.openOrThrowException(s"Error while opening creditTransaction. This error can happen when no settlement can be found, please check that $OUTGOING_ACCOUNT_ID exists at bank ${fromAccount.bankId.value}")
+      debitTransaction = debitTransactionBox.openOrThrowException(s"Error while opening debitTransaction. This error can happen when no settlement can be found, please check that $INCOMING_SETTLEMENT_ACCOUNT_ID exists at bank ${toAccount.bankId.value}")
+      creditTransaction = creditTransactionBox.openOrThrowException(s"Error while opening creditTransaction. This error can happen when no settlement can be found, please check that $OUTGOING_SETTLEMENT_ACCOUNT_ID exists at bank ${fromAccount.bankId.value}")
 
       _ <- NewStyle.function.saveDoubleEntryBookTransaction(
         DoubleEntryTransaction(
@@ -3284,36 +3284,36 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
 
     // Insert the default settlement accounts if they doesn't exist
-    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, INCOMING_ACCOUNT_ID)) match {
+    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, INCOMING_SETTLEMENT_ACCOUNT_ID)) match {
       case Full(_) =>
-        logger.debug(s"BankAccount(${bankId}, $INCOMING_ACCOUNT_ID) is found.")
+        logger.debug(s"BankAccount(${bankId}, $INCOMING_SETTLEMENT_ACCOUNT_ID) is found.")
       case _ =>
         MappedBankAccount.create
           .bank(bankId)
-          .theAccountId(INCOMING_ACCOUNT_ID)
+          .theAccountId(INCOMING_SETTLEMENT_ACCOUNT_ID)
           .accountCurrency("EUR")
           .kind("SETTLEMENT")
-          .holder(fullBankName)
+          .holder(fullBankName)// TODO Consider to use the table MapperAccountHolder 
           .accountName("Default incoming settlement account")
           .accountLabel("Settlement account: Do not delete!")
           .saveMe()
-        logger.debug(s"creating BankAccount(${bankId}, $INCOMING_ACCOUNT_ID).")
+        logger.debug(s"creating BankAccount(${bankId}, $INCOMING_SETTLEMENT_ACCOUNT_ID).")
     }
 
-    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, OUTGOING_ACCOUNT_ID)) match {
+    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, OUTGOING_SETTLEMENT_ACCOUNT_ID)) match {
       case Full(_) =>
-        logger.debug(s"BankAccount(${bankId}, $OUTGOING_ACCOUNT_ID) is found.")
+        logger.debug(s"BankAccount(${bankId}, $OUTGOING_SETTLEMENT_ACCOUNT_ID) is found.")
       case _ =>
         MappedBankAccount.create
           .bank(bankId)
-          .theAccountId(OUTGOING_ACCOUNT_ID)
+          .theAccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID)
           .accountCurrency("EUR")
           .kind("SETTLEMENT")
           .holder(fullBankName)
           .accountName("Default outgoing settlement account")
           .accountLabel("Settlement account: Do not delete!")
           .saveMe()
-        logger.debug(s"creating BankAccount(${bankId}, $OUTGOING_ACCOUNT_ID).")
+        logger.debug(s"creating BankAccount(${bankId}, $OUTGOING_SETTLEMENT_ACCOUNT_ID).")
     }
 
     bank

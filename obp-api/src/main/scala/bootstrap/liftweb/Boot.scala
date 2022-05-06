@@ -586,14 +586,9 @@ class Boot extends MdcLoggable {
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
- 
-    //TODO set base localization according to a props value (instead of computer default)
-    val locale = Locale.getAvailableLocales().toList.filter { l =>
-      l.toLanguageTag == Props.get("language_tag", "en-GB")
-    }.head
+    val locale = I18NUtil.getLocale()
     Locale.setDefault(locale)
     logger.info("Default Project Locale is :" + locale)
-    
     
     // Cookie name
     val localeCookieName = "SELECTED_LOCALE"
@@ -871,8 +866,8 @@ class Boot extends MdcLoggable {
    */
   private def createDefaultBankAndDefaultAccountsIfNotExisting() ={
     val defaultBankId= APIUtil.defaultBankId
-    val incomingAccountId= INCOMING_ACCOUNT_ID
-    val outgoingAccountId= OUTGOING_ACCOUNT_ID
+    val incomingAccountId= INCOMING_SETTLEMENT_ACCOUNT_ID
+    val outgoingAccountId= OUTGOING_SETTLEMENT_ACCOUNT_ID
     
     MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
       case Full(b) =>

@@ -13,15 +13,17 @@ object I18NUtil {
     val formattedDate = df.format(date)
     formattedDate
   }
+
+  def getLocale(): Locale = Locale.getAvailableLocales().toList.filter { l =>
+    l.toLanguageTag == Props.get("language_tag", "en-GB")
+  }.headOption.getOrElse(Locale.ENGLISH)
+  
   def currentLocale() : Locale = {
-    val locale = Locale.getAvailableLocales().toList.filter { l =>
-      l.toLanguageTag == Props.get("language_tag", "en-GB")
-    }.head
     // Cookie name
     val localeCookieName = "SELECTED_LOCALE"
     S.findCookie(localeCookieName).flatMap {
       cookie => cookie.value.map(computeLocale)
-    } openOr locale
+    } openOr getLocale()
   }
   // Properly convert a language tag to a Locale
   def computeLocale(tag : String) = tag.split(Array('-', '_')) match {
