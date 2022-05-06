@@ -3293,7 +3293,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .theAccountId(INCOMING_SETTLEMENT_ACCOUNT_ID)
           .accountCurrency("EUR")
           .kind("SETTLEMENT")
-          .holder(fullBankName)
+          .holder(fullBankName)// TODO Consider to use the table MapperAccountHolder 
           .accountName("Default incoming settlement account")
           .accountLabel("Settlement account: Do not delete!")
           .saveMe()
