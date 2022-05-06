@@ -871,8 +871,8 @@ class Boot extends MdcLoggable {
    */
   private def createDefaultBankAndDefaultAccountsIfNotExisting() ={
     val defaultBankId= APIUtil.defaultBankId
-    val incomingAccountId= INCOMING_ACCOUNT_ID
-    val outgoingAccountId= OUTGOING_ACCOUNT_ID
+    val incomingAccountId= INCOMING_SETTLEMENT_ACCOUNT_ID
+    val outgoingAccountId= OUTGOING_SETTLEMENT_ACCOUNT_ID
     
     MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
       case Full(b) =>
