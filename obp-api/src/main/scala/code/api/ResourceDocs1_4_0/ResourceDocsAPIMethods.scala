@@ -35,6 +35,7 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import java.util.concurrent.ConcurrentHashMap
 import code.api.util.NewStyle.HttpCode
+import code.api.v5_0_0.OBPAPI5_0_0
 import code.util.Helper
 
 import scala.collection.immutable.{List, Nil}
@@ -117,6 +118,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.`b1`     => OBP_APIBuilder.allResourceDocs
+        case ApiVersion.v5_0_0 => OBPAPI5_0_0.allResourceDocs
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.allResourceDocs
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
@@ -134,6 +136,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.`b1`     => OBP_APIBuilder.routes
+        case ApiVersion.v5_0_0 => OBPAPI5_0_0.routes
         case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
         case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
@@ -311,7 +314,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
     
-    private def getResourceDocsObpDynamicCached(requestedApiVersion : ApiVersion,
+    private def getResourceDocsObpDynamicCached( //Note: dynamicEndpoints are only in V4.0.0 so far.
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]],
                                          languageParam: Option[LanguageParam],
@@ -325,11 +328,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicResourceDocsTTL second) {
           val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
             .filter(rd => if (bankId.isDefined) rd.createdByBankId == bankId else true)
-            .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
             .map(it => it.specifiedUrl match {
               case Some(_) => it
               case _ =>
-                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/v4.0.0${it.requestUrl}")
                 it
             })
             .toList
@@ -581,7 +583,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case _ =>
               contentParam match {
                 case Some(DYNAMIC) =>
-                  val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, None, isVersion4OrHigher)
+                  val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(tags, partialFunctions, languageParam, contentParam, cacheModifierParam, None, isVersion4OrHigher)
                   Future(dynamicDocs.map(successJsonResponse(_)))
                 case Some(STATIC) =>
                   val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, isVersion4OrHigher)
@@ -632,7 +634,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             }
             requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
             json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
-              getResourceDocsObpDynamicCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, Some(bankId), false).map(successJsonResponse(_)).get
+              getResourceDocsObpDynamicCached(tags, partialFunctions, languageParam, contentParam,  cacheModifierParam, Some(bankId), false).map(successJsonResponse(_)).get
             }
           } yield {
             (Full(json), HttpCode.`200`(callContext))
