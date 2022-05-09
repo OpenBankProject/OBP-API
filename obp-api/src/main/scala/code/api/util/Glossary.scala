@@ -1364,19 +1364,36 @@ object Glossary extends MdcLoggable  {
 			|The User can authenticate using OAuth, OIDC, Direct Login etc.
       |
 			|### 2) Create a first User Auth Context record e.g. ACCOUNT_NUMBER
-|
+			|
 			| The setting of the first User Auth Context record for a User, typically involves sending an SMS to the User.
       | The phone number used for the SMS is retrieved from the bank's Core Banking System via an Account Number to Phone Number lookup.
-|If this step succeeds we can be reasonably confident that the User who initiated it has access to a SIM card that can use the Phone Number linked to the Bank Account on the Core Banking System:
-|
+			| If this step succeeds we can be reasonably confident that the User who initiated it has access to a SIM card that can use the Phone Number linked to the Bank Account on the Core Banking System.
+			| 
+			|Action: Create User Auth Context Update Request
 			|
-			|Action:
-			|
-			|	POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
+			|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/SMS
 			|
 			|Body:
 			|
 			|	{  "key":"ACCOUNT_NUMBER",  "value":"78987432"}
+			|
+			|Headers:
+			|
+			|	Content-Type:  application/json
+			|
+			|	DirectLogin: token="your-token-from-direct-login"
+			| 
+			| When customer get the the challenge answer from SMS, then need to call `Answer Auth Context Update Challenge` to varify the challenge. 
+			| Then the customer create the 1st `User Auth Context` successfully.
+			| 
+			| 
+			|Action: Answer Auth Context Update Challenge
+			|
+			|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge
+			|
+			|Body:
+			|
+			|	{  "answer": "12345678"}
 			|
 			|Headers:
 			|
@@ -1388,9 +1405,9 @@ object Glossary extends MdcLoggable  {
 |
 | Once the first User Auth Context record is set, we can require the App to set a second record which builds on the information of the first.
 |
-|Action:
+|Action: Create User Auth Context Update Request
 |
-|	POST $getObpApiRoot/obp/v4.0.0/users/USER_ID/auth-context
+|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/SMS
 |
 |Body:
 |
@@ -1403,12 +1420,27 @@ object Glossary extends MdcLoggable  {
 |	DirectLogin: token="your-token-from-direct-login"
 |
 |
-|Following this request the API will send a small payment with a random code from the Users bank account specified in the SMALL_PAYMENT_VERIFIED key value.
+|
+|Following `Create User Auth Context Update Request` request the API will send a small payment with a random code from the Users bank account specified in the SMALL_PAYMENT_VERIFIED key value.
 |
 |In order to answer the challenge, the User must have access to the online banking statement (or some other App that already can read transactions in realtime) so they can read the code in the description of the payment.
 |
-|Note! The above logic must be encoded in a dynamic connector method for the OBP internal function validateUserAuthContextUpdateRequest which is used by the endpoint Create User Auth Context Update Request See the next step.
 |
+|Then Action:Answer Auth Context Update Challenge
+|
+|	POST $getObpApiRoot/obp/v5.0.0/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge
+|
+|Body:
+|
+|	{  "answer": "12345678"}
+|
+|Headers:
+|
+|	Content-Type:  application/json
+|
+|	DirectLogin: token="your-token-from-direct-login"
+| 
+| Note! The above logic must be encoded in a dynamic connector method for the OBP internal function validateUserAuthContextUpdateRequest which is used by the endpoint Create User Auth Context Update Request See the next step.
 |
 |### 4) Create or Update Connector Method for validateUserAuthContextUpdateRequest
 |
