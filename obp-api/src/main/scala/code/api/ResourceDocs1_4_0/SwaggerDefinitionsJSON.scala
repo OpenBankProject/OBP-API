@@ -4594,7 +4594,7 @@ object SwaggerDefinitionsJSON {
     messages = List(customerMessageJsonV400)
   )
 
-  val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
+  val requestRootJsonClass = code.api.dynamic.helper.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   val entitlementJsonV400 = EntitlementJsonV400(
     entitlement_id = entitlementIdExample.value,

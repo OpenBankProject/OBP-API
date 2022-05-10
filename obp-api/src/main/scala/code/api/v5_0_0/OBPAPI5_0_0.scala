@@ -37,6 +37,7 @@ import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
+import code.api.v4_0_0.APIMethods400
 import code.api.v4_0_0.OBPAPI4_0_0.{Implementations4_0_0, endpointsOf4_0_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -48,7 +49,19 @@ import org.apache.http.HttpStatus
 /*
 This file defines which endpoints from all the versions are available in v5.0.0
  */
-object OBPAPI5_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with APIMethods310 with APIMethods500 with MdcLoggable with VersionedOBPApis{
+object OBPAPI5_0_0 extends OBPRestHelper 
+  with APIMethods130 
+  with APIMethods140 
+  with APIMethods200 
+  with APIMethods210 
+  with APIMethods220 
+  with APIMethods300 
+  with CustomAPIMethods300 
+  with APIMethods310 
+  with APIMethods400 
+  with APIMethods500 
+  with MdcLoggable 
+  with VersionedOBPApis{
 
   val version : ApiVersion = ApiVersion.v5_0_0
 

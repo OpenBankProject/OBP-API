@@ -33,10 +33,10 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
+import code.api.dynamic.helper.DynamicEndpointHelper
 import code.api.OAuthHandshake._
 import code.api.builder.OBP_APIBuilder
 import code.api.oauth1a.Arithmetics
@@ -48,7 +48,7 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
+import code.api.dynamic.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
 import code.api.{DirectLogin, _}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
@@ -103,8 +103,8 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
@@ -2444,6 +2444,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
         case ApiVersion.v5_0_0 => LiftRules.statelessDispatch.append(v5_0_0.OBPAPI5_0_0)
+        case ApiVersion.dynamic => LiftRules.statelessDispatch.append(dynamic.OBPAPIDynamic)
         case ApiVersion.`b1` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")

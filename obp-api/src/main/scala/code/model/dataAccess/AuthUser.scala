@@ -32,7 +32,7 @@ import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v4_0_0.dynamic.DynamicEndpointHelper
+import code.api.dynamic.helper.DynamicEndpointHelper
 import code.api.{APIFailure, Constant, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider

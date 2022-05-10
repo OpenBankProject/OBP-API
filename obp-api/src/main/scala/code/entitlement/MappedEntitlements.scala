@@ -2,7 +2,7 @@ package code.entitlement
 
 import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanCreateEntitlementAtOneBank}
 import code.api.util.ErrorMessages
-import code.api.v4_0_0.dynamic.DynamicEntityInfo
+import code.api.dynamic.helper.DynamicEntityInfo
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._

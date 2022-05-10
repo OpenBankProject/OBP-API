@@ -3,7 +3,7 @@ package code.DynamicEndpoint
 import java.util.UUID.randomUUID
 import code.api.cache.Caching
 import code.api.util.{APIUtil, CustomJsonFormats}
-import code.api.v4_0_0.dynamic.DynamicEndpointHelper
+import code.api.dynamic.helper.DynamicEndpointHelper
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box

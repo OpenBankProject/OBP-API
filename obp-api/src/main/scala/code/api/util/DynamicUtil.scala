@@ -4,8 +4,8 @@ import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
 import code.api.util.NewStyle.HttpCode
 import code.api.v4_0_0.JSONFactory400
-import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicCompileEndpoint}
-import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
+import code.api.dynamic.helper.{CompiledObjects, DynamicCompileEndpoint}
+import code.api.dynamic.helper.practise.PractiseEndpoint
 import com.openbankproject.commons.ExecutionContext
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
@@ -237,7 +237,7 @@ object DynamicUtil {
       |import code.api.util.ErrorMessages._
       |import code.api.util.ExampleValue._
       |import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-      |import code.api.v4_0_0.dynamic.MockResponseHolder
+      |import code.api.dynamic.helper.MockResponseHolder
       |import code.bankconnectors._
       |import code.customer.internalMapping.MappedCustomerIdMappingProvider
       |import code.kafka.KafkaHelper
@@ -269,8 +269,8 @@ object DynamicUtil {
       |import code.api.util.NewStyle.HttpCode
       |import code.api.util._
       |import code.api.v4_0_0.JSONFactory400
-      |import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicCompileEndpoint}
-      |import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
+      |import code.api.dynamic.helper.{CompiledObjects, DynamicCompileEndpoint}
+      |import code.api.dynamic.helper.practise.PractiseEndpoint
       |import com.openbankproject.commons.ExecutionContext
       |import com.openbankproject.commons.model.BankId
       |import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}

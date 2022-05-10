@@ -1,4 +1,4 @@
-package code.api.v4_0_0.dynamic
+package code.api.dynamic.helper
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicData.{DynamicDataProvider, DynamicDataT}
@@ -50,7 +50,7 @@ object DynamicEndpointHelper extends RestHelper {
   /**
    * dynamic endpoints url prefix
    */
-  val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "dynamic")
+  val urlPrefix = APIUtil.getPropsValue("dynamic_endpoints_url_prefix", "")
   private val implementedInApiVersion = ApiVersion.v4_0_0
   private val IsDynamicEntityUrl = """.*dynamic_entity.*"""
   private val IsMockUrlString = """.*obp_mock(?::\d+)?.*"""
@@ -173,15 +173,18 @@ object DynamicEndpointHelper extends RestHelper {
      * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
      */
     def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
-      val partPath = r.path.partPath//eg: List("dynamic","feature-test")
-      if (!testResponse_?(r) || partPath.headOption != Option(urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
+      
+      val requestUri = r.request.uri //eg: `/obp/dynamic/fashion-brand-list/BRAND_ID`
+      val partPath = r.path.partPath //eg: List("fashion-brand-list","BRAND_ID"), the dynamic is from OBP URL, not in the partPath now.
+      
+      if (!testResponse_?(r) || !requestUri.startsWith("/obp/dynamic/"+urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
         None //if do not match `URL and Content-Type`, then can not find this endpoint. return None.
       else {
         val akkaHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get
         val httpMethod = HttpMethod.valueOf(r.requestType.method)
         val urlQueryParameters = r.params
         // url that match original swagger endpoint.
-        val url = partPath.tail.mkString("/", "/", "") // eg: --> /feature-test
+        val url = partPath.mkString("/", "/", "") // eg: --> /feature-test
         val foundDynamicEndpoint: Option[(String, String, Int, ResourceDoc, Option[String])] = dynamicEndpointInfos
           .map(_.findDynamicEndpoint(httpMethod, url))
           .collectFirst {
@@ -195,7 +198,7 @@ object DynamicEndpointHelper extends RestHelper {
             val pathParams: Map[String, String] = if(endpointUrl == url) {
               Map.empty[String, String]
             } else {
-              val tuples: Array[(String, String)] = StringUtils.split(endpointUrl, "/").zip(partPath.tail)
+              val tuples: Array[(String, String)] = StringUtils.split(endpointUrl, "/").zip(partPath)
               tuples.collect {
                 case (ExpressionRegx(name), value) => name->value
               }.toMap

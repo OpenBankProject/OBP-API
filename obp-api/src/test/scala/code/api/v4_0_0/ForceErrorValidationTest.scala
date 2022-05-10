@@ -7,6 +7,7 @@ import code.api.util.ErrorMessages._
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations2_2_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.dynamic.APIMethodsDynamic.ImplementationsDynamic
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -30,9 +31,9 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
 
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.genericEndpoint))
+  object ApiEndpoint3 extends Tag(nameOf(ImplementationsDynamic.genericEndpoint))
 
-  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.dynamicEndpoint))
+  object ApiEndpoint4 extends Tag(nameOf(ImplementationsDynamic.dynamicEndpoint))
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 

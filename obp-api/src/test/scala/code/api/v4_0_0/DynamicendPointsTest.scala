@@ -7,6 +7,7 @@ import code.api.util.ErrorMessages.{DynamicEndpointExists, EndpointMappingNotFou
 import code.api.util.ExampleValue
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.dynamic.APIMethodsDynamic.ImplementationsDynamic
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -32,7 +33,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getMyDynamicEndpoints))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.deleteMyDynamicEndpoint))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.updateDynamicEndpointHost))
-  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.dynamicEndpoint))
+  object ApiEndpoint8 extends Tag(nameOf(ImplementationsDynamic.dynamicEndpoint))
   object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.createBankLevelDynamicEndpoint))
   object ApiEndpoint10 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEndpoints))
   object ApiEndpoint11 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEndpoint))

@@ -1,4 +1,4 @@
-package code.api.v4_0_0.dynamic.practise
+package code.api.dynamic.helper.practise
 
 // any import statement here need be moved into the process method body
 
@@ -13,7 +13,7 @@ package code.api.v4_0_0.dynamic.practise
  *    
  * 
  */
-object PractiseEndpoint extends code.api.v4_0_0.dynamic.DynamicCompileEndpoint {
+object PractiseEndpoint extends code.api.dynamic.helper.DynamicCompileEndpoint {
   // don't modify these import statement
   import code.api.util.CallContext
   import code.api.util.ErrorMessages.{InvalidJsonFormat, InvalidRequestPayload}
@@ -26,7 +26,7 @@ object PractiseEndpoint extends code.api.v4_0_0.dynamic.DynamicCompileEndpoint {
 
   import scala.concurrent.Future
   import com.openbankproject.commons.ExecutionContext.Implicits.global
-  import code.api.v4_0_0.dynamic.DynamicCompileEndpoint._
+  import code.api.dynamic.helper.DynamicCompileEndpoint._
 
 
   // request method

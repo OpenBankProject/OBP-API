@@ -39,7 +39,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.RSAUtil.{computeXSign, getPrivateKeyFromString}
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-import code.api.v4_0_0.dynamic.MockResponseHolder
+import code.api.dynamic.helper.MockResponseHolder
 import code.bankconnectors._
 import code.context.UserAuthContextProvider
 import code.customer.internalMapping.MappedCustomerIdMappingProvider

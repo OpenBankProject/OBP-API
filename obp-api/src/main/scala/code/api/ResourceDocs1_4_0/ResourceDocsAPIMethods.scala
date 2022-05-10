@@ -14,7 +14,7 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
+import code.api.dynamic.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper.MdcLoggable
@@ -331,7 +331,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             .map(it => it.specifiedUrl match {
               case Some(_) => it
               case _ =>
-                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/v4.0.0${it.requestUrl}")
+                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/$dynamic${it.requestUrl}")
                 it
             })
             .toList
