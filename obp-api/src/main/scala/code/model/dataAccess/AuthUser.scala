@@ -769,20 +769,20 @@ import net.liftweb.util.Helpers._
           ! LoginAttempt.userIsLocked(username) &&
           ! user.testPassword(Full(password))
         ) {
-          LoginAttempt.incrementBadLoginAttempts(username)
+          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
           Empty
         }
         // User is locked
         else if (LoginAttempt.userIsLocked(username))
         {
-          LoginAttempt.incrementBadLoginAttempts(username)
+          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
           logger.info(ErrorMessages.UsernameHasBeenLocked)
           //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode)
         }
         else {
           // Nothing worked, so just increment bad login attempts
-          LoginAttempt.incrementBadLoginAttempts(username)
+          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
           Empty
         }
       // We have a user from an external provider.
@@ -802,16 +802,16 @@ import net.liftweb.util.Helpers._
               userId match {
                 case Full(l: Long) => Full(l)
                 case _ =>
-                  LoginAttempt.incrementBadLoginAttempts(username)
+                  LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
                   Empty
               }
             case false =>
-              LoginAttempt.incrementBadLoginAttempts(username)
+              LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
               Empty
           }
       // Everything else.
       case _ =>
-        LoginAttempt.incrementBadLoginAttempts(username)
+        LoginAttempt.incrementBadLoginAttempts(username, user.foreign.map(_.provider).getOrElse(Constant.HostName))
         Empty
     }
   }
@@ -1014,13 +1014,13 @@ def restoreSomeSessions(): Unit = {
                   val redirect = redirectUri()
                   checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                 } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
-                  LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                  LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.getProvider())
                   S.error(Helper.i18n("invalid.login.credentials"))
                 }
 
               // If user is locked, send the error to GUI
               case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
-                LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.getProvider())
                 S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
     
               // Check if user came from kafka/obpjvm/stored_procedure and
@@ -1053,7 +1053,7 @@ def restoreSomeSessions(): Unit = {
                       AfterApiAuth.innerLoginUserInitAction(Full(user))
                       checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                     case _ =>
-                      LoginAttempt.incrementBadLoginAttempts(username.get)
+                      LoginAttempt.incrementBadLoginAttempts(username.get, user.foreign.map(_.provider).getOrElse(Constant.HostName))
                       Empty
                       S.error(Helper.i18n("invalid.login.credentials"))
                 }
@@ -1062,7 +1062,7 @@ def restoreSomeSessions(): Unit = {
               case Empty => 
                 S.error(Helper.i18n("invalid.login.credentials"))
               case _ =>
-                LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.foreign.map(_.provider).getOrElse(Constant.HostName))
                 S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
             }
         }

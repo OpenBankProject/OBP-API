@@ -12,7 +12,7 @@ object LoginAttempt extends MdcLoggable {
 
   val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "5"
   
-  def incrementBadLoginAttempts(username: String): Unit = {
+  def incrementBadLoginAttempts(username: String, provider: String): Unit = {
 
     logger.debug(s"Hello from incrementBadLoginAttempts with $username")
 
@@ -29,15 +29,14 @@ object LoginAttempt extends MdcLoggable {
           .save
       case _ =>
         // If none exists, add one
-        val newLoginAttempt = MappedBadLoginAttempt.create
+        MappedBadLoginAttempt.create
           .mUsername(username)
+          .Provider(provider)
           .mLastFailureDate(now)
           .mBadAttemptsSinceLastSuccessOrReset(1) // Start with 1
           .save()
 
         logger.debug(s"incrementBadLoginAttempts created loginAttempt")
-
-
     }
   }
   
