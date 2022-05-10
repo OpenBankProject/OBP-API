@@ -1480,7 +1480,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("When we create the endpoint properly, then we can call the `accounts` endpoint")
 
       {
-        val request = (v4_0_0_Request  / "dynamic" / "banks"/testBankId1.value/  "accounts").POST<@ (user1)
+        val request = (dynamic_Request / "banks"/testBankId1.value/  "accounts").POST<@ (user1)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(201)
         response.body.toString contains("name") should be (true)
@@ -1490,7 +1490,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("we test the other user missing roles.")
 
       {
-        val request = (v4_0_0_Request  / "dynamic" / "banks"/testBankId1.value/  "accounts").POST<@ (user2)
+        val request = (dynamic_Request / "banks"/testBankId1.value/  "accounts").POST<@ (user2)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(403)
         response.body.toString contains(UserHasMissingRoles) should be (true)
@@ -1520,7 +1520,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       responseWithRole.body.toString contains("dynamic_endpoint_id") should be (true)
 
       {
-        val request = (v4_0_0_Request  / "dynamic" / "banks"/testBankId1.value/  "accounts").POST<@ (user1)
+        val request = (dynamic_Request / "banks"/testBankId1.value/  "accounts").POST<@ (user1)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(201)
         response.body.toString contains("name") should be (true)
@@ -2438,7 +2438,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("we test authentication error")
 
       {
-        val request = (v4_0_0_Request / "dynamic" / "accounts").POST
+        val request = (dynamic_Request / "accounts").POST
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(401)
         response.body.toString contains(UserNotLoggedIn) should be (true)
@@ -2447,7 +2447,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("we test missing role error")
 
       {
-        val request = (v4_0_0_Request / "dynamic" / "accounts").POST<@ (user2)
+        val request = (dynamic_Request / "accounts").POST<@ (user2)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(403)
         response.body.toString contains(UserHasMissingRoles) should be (true)
@@ -2456,7 +2456,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("we test successful cases")
 
       {
-        val request = (v4_0_0_Request / "dynamic" / "accounts").POST<@ (user1)
+        val request = (dynamic_Request / "accounts").POST<@ (user1)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(201)
         response.body.toString contains("name") should be (true)
@@ -2474,7 +2474,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
         val responsePut = makePutRequest(requestPut, write(dynamicEndpointHostJson))
 
         Then("if we changed the host, the response should be the errors")
-        val request = (v4_0_0_Request / "dynamic" / "accounts").POST<@ (user1)
+        val request = (dynamic_Request / "accounts").POST<@ (user1)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(404)
         response.body.toString contains(EndpointMappingNotFoundByOperationId) should be (true)
@@ -2496,7 +2496,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("we test authentication error")
 
       {
-        val request = (v4_0_0_Request / "dynamic"/"banks"/testBankId1.value / "accounts").POST
+        val request = (dynamic_Request/"banks"/testBankId1.value / "accounts").POST
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(401)
         response.body.toString contains(UserNotLoggedIn) should be (true)
@@ -2505,7 +2505,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("we test missing role error")
 
       {
-        val request = (v4_0_0_Request / "dynamic"/"banks"/testBankId1.value / "accounts").POST<@ (user2)
+        val request = (dynamic_Request/"banks"/testBankId1.value / "accounts").POST<@ (user2)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(403)
         response.body.toString contains(UserHasMissingRoles) should be (true)
@@ -2514,7 +2514,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       Then("we test successful cases")
 
       {
-        val request = (v4_0_0_Request / "dynamic" /"banks"/testBankId1.value / "accounts").POST<@ (user1)
+        val request = (dynamic_Request /"banks"/testBankId1.value / "accounts").POST<@ (user1)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(201)
         response.body.toString contains("name") should be (true)
@@ -2532,7 +2532,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
         val responsePut = makePutRequest(requestPut, write(dynamicEndpointHostJson))
 
         Then("if we changed the host, the response should be the errors")
-        val request = (v4_0_0_Request / "dynamic" /"banks"/testBankId1.value / "accounts").POST<@ (user1)
+        val request = (dynamic_Request /"banks"/testBankId1.value / "accounts").POST<@ (user1)
         val response = makePostRequest(request, postDynamicEndpointSwagger)
         response.code should equal(404)
         response.body.toString contains(EndpointMappingNotFoundByOperationId) should be (true)

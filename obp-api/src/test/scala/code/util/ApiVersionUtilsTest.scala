@@ -12,12 +12,13 @@ class ApiVersionUtilsTest extends V400ServerSetup {
 
     ApiVersionUtils.valueOf("v1.3")
     ApiVersionUtils.valueOf("BGv1.3")
+    ApiVersionUtils.valueOf("dynamic")
 
     
     versions.map(version => ApiVersionUtils.valueOf(version.apiShortVersion))
     versions.map(version => ApiVersionUtils.valueOf(version.fullyQualifiedVersion))
 
     //NOTE, when we added the new version, better fix this number manually. and also check the versions
-    versions.length shouldBe(20)
+    versions.length shouldBe(22)
   }}
 }

@@ -35,6 +35,7 @@ import scala.util.Random.nextInt
 trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def v4_0_0_Request: Req = baseRequest / "obp" / "v4.0.0"
+  def dynamic_Request: Req = baseRequest / "obp" / "dynamic"
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {
