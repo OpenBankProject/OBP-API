@@ -3509,6 +3509,8 @@ object SwaggerDefinitionsJSON {
     key = "CUSTOMER_NUMBER",
     value = "78987432"
   )
+
+  val postUserAuthContextUpdateJsonV310 = PostUserAuthContextUpdateJsonV310(answer = "123")
   
   val userAuthContextJson = UserAuthContextJson(
     user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
