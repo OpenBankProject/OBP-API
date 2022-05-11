@@ -37,7 +37,7 @@ import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
-import code.api.v4_0_0.APIMethods400
+import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.api.v4_0_0.OBPAPI4_0_0.{Implementations4_0_0, endpointsOf4_0_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -70,30 +70,19 @@ object OBPAPI5_0_0 extends OBPRestHelper
   // Possible Endpoints from 5.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
   val endpointsOf5_0_0 = getEndpoints(Implementations5_0_0)
-  
-  lazy val excludeEndpoints =
-    nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
-      nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
-      nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
-      nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
-      nameOf(Implementations3_1_0.createAccount) ::
-      Nil
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(
-    OBPAPI3_1_0.allResourceDocs,
-    Implementations4_0_0.resourceDocs,
+    OBPAPI4_0_0.allResourceDocs,
     Implementations5_0_0.resourceDocs
-  ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
-    //TODO exclude two endpoints, after training we need add logic to exclude endpoints
+  )
 
   // all endpoints
-  private val endpoints: List[OBPEndpoint] = OBPAPI3_1_0.routes ++ endpointsOf4_0_0 ++ endpointsOf5_0_0
+  private val endpoints: List[OBPEndpoint] = OBPAPI4_0_0.routes ++ endpointsOf5_0_0
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] =
-      APIUtil.dynamicEndpointStub ::  // corresponding all dynamic generated endpoints's OBPEndpoint
-      getAllowedEndpoints(endpoints, allResourceDocs)
+  val routes : List[OBPEndpoint] = Implementations4_0_0.root :: // For now we make this mandatory
+   getAllowedEndpoints(endpoints, allResourceDocs)
 
   // register v5.0.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
