@@ -410,7 +410,8 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.v5_0_0)
     enableVersionIfAllowed(ApiVersion.b1)
-    enableVersionIfAllowed(ApiVersion.dynamic)
+    enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
+    enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
     def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator

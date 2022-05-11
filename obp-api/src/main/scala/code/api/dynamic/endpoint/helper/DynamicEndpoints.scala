@@ -1,6 +1,7 @@
-package code.api.dynamic.helper
+package code.api.dynamic.endpoint.helper
 
-import code.api.dynamic.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
+import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
 import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}

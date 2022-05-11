@@ -1,7 +1,9 @@
 package code.api.util
 
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper}
+
 import java.util.concurrent.ConcurrentHashMap
-import code.api.dynamic.helper.{DynamicEndpointHelper, DynamicEntityHelper}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
 import net.liftweb.json.{Formats, JsonAST}
 import net.liftweb.json.JsonDSL._

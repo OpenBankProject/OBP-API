@@ -1,4 +1,4 @@
-package code.api.dynamic.helper
+package code.api.dynamic.endpoint.helper
 
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, authenticationRequiredMessage, generateUUID}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole

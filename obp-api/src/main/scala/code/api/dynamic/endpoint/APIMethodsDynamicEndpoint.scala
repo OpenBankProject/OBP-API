@@ -1,8 +1,9 @@
-package code.api.dynamic
+package code.api.dynamic.endpoint
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
-import code.api.dynamic.helper.DynamicEndpointHelper.DynamicReq
-import code.api.dynamic.helper.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper.DynamicReq
+import code.api.dynamic.endpoint.helper.MockResponseHolder
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
@@ -28,14 +29,14 @@ import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
-trait APIMethodsDynamic {
+trait APIMethodsDynamicEndpoint {
   self: RestHelper =>
 
-  val ImplementationsDynamic = new ImplementationsDynamic()
+  val ImplementationsDynamicEndpoint = new ImplementationsDynamicEndpoint()
 
-  class ImplementationsDynamic {
+  class ImplementationsDynamicEndpoint {
 
-    val implementedInApiVersion = ApiVersion.v4_0_0
+    val implementedInApiVersion = ApiVersion.`dynamic-endpoint`
 
     private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
 
@@ -55,219 +56,6 @@ trait APIMethodsDynamic {
       }
 
       box.openOrThrowException("impossible error")
-    }
-
-    //TODO temp solution to support query by field name and value
-    private def filterDynamicObjects(resultList: JArray, req: Req): JArray = {
-      req.params match {
-        case map if map.isEmpty => resultList
-        case params =>
-          val filteredWithFieldValue = resultList.arr.filter { jValue =>
-            params.forall { kv =>
-              val (path, values) = kv
-              values.exists(JsonUtils.isFieldEquals(jValue, path, _))
-            }
-          }
-
-          JArray(filteredWithFieldValue)
-      }
-    }
-
-    lazy val genericEndpoint: OBPEndpoint = {
-      case EntityName(bankId, entityName, id) JsonGet req => { cc =>
-        val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
-        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        val isGetAll = StringUtils.isBlank(id)
-
-        val operation: DynamicEntityOperation = if (StringUtils.isBlank(id)) GET_ALL else GET_ONE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if (beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-
-          (_, callContext) <-
-            if (bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else {
-              Future.successful {
-                ("", callContext)
-              }
-            }
-
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(cc))
-
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc = callContext) {
-            box.isDefined
-          }
-        } yield {
-          val jValue = if (isGetAll) {
-            val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-            if (bankId.isDefined) {
-              val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
-              bankIdJobject merge result
-            } else {
-              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
-              result
-            }
-          } else {
-            val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-            if (bankId.isDefined) {
-              val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-              val result: JObject = (singleName -> singleObject)
-              bankIdJobject merge result
-            } else {
-              val result: JObject = (singleName -> singleObject)
-              result
-            }
-          }
-          (jValue, HttpCode.`200`(Some(cc)))
-        }
-      }
-
-      case EntityName(bankId, entityName, _) JsonPost json -> _ => { cc =>
-        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        val operation: DynamicEntityOperation = CREATE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if (beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-          (_, callContext) <-
-            if (bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else {
-              Future.successful {
-                ("", callContext)
-              }
-            }
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(cc))
-          singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-        } yield {
-          val result: JObject = (singleName -> singleObject)
-          val entity = if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            bankIdJobject merge result
-          } else {
-            result
-          }
-          (entity, HttpCode.`201`(Some(cc)))
-        }
-      }
-      case EntityName(bankId, entityName, id) JsonPut json -> _ => { cc =>
-        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        val operation: DynamicEntityOperation = UPDATE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if (beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-          (_, callContext) <-
-            if (bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else {
-              Future.successful {
-                ("", callContext)
-              }
-            }
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc = callContext) {
-            box.isDefined
-          }
-          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None, Some(cc))
-          singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-        } yield {
-          val result: JObject = (singleName -> singleObject)
-          val entity = if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            bankIdJobject merge result
-          } else {
-            result
-          }
-          (entity, HttpCode.`200`(Some(cc)))
-        }
-      }
-      case EntityName(bankId, entityName, id) JsonDelete _ => { cc =>
-        val operation: DynamicEntityOperation = DELETE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if (beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-          (_, callContext) <-
-            if (bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else {
-              Future.successful {
-                ("", callContext)
-              }
-            }
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canDeleteRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc = callContext) {
-            box.isDefined
-          }
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None, Some(cc))
-          deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
-        } yield {
-          (deleteResult, HttpCode.`204`(Some(cc)))
-        }
-      }
     }
 
     lazy val dynamicEndpoint: OBPEndpoint = {
@@ -415,8 +203,8 @@ trait APIMethodsDynamic {
   }
 }
 
-object APIMethodsDynamic extends RestHelper with APIMethodsDynamic {
-  lazy val newStyleEndpoints: List[(String, String)] = ImplementationsDynamic.resourceDocs.map {
+object APIMethodsDynamicEndpoint extends RestHelper with APIMethodsDynamicEndpoint {
+  lazy val newStyleEndpoints: List[(String, String)] = ImplementationsDynamicEndpoint.resourceDocs.map {
     rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
   }.toList
 }

@@ -4,6 +4,7 @@ import java.util.UUID.randomUUID
 import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadStaticResourceDoc}
 import code.api.util.ApiTag._
@@ -14,7 +15,6 @@ import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0
-import code.api.dynamic.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper.MdcLoggable
@@ -33,6 +33,7 @@ import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
+
 import java.util.concurrent.ConcurrentHashMap
 import code.api.util.NewStyle.HttpCode
 import code.api.v5_0_0.OBPAPI5_0_0
@@ -331,7 +332,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             .map(it => it.specifiedUrl match {
               case Some(_) => it
               case _ =>
-                it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/$dynamic${it.requestUrl}")
+                it.specifiedUrl = if(it.partialFunctionName.startsWith("dynamicEntity"))Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}") else Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")
                 it
             })
             .toList

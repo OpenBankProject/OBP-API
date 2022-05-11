@@ -1,11 +1,11 @@
-package code.api.dynamic.helper.practise
+package code.api.dynamic.endpoint.helper.practise
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.requestRootJsonClass
+import code.api.dynamic.endpoint.helper.EndpointGroup
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{ResourceDoc, StringBody}
 import code.api.util.ApiTag.{apiTagDynamicResourceDoc, apiTagNewStyle}
 import code.api.util.ErrorMessages.UnknownError
-import code.api.dynamic.helper.EndpointGroup
 import com.openbankproject.commons.util.ApiVersion
 
 import scala.collection.immutable.List

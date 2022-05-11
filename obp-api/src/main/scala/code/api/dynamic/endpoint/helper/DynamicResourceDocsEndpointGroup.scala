@@ -1,4 +1,4 @@
-package code.api.dynamic.helper
+package code.api.dynamic.endpoint.helper
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{APIUtil, ApiRole, ApiTag}

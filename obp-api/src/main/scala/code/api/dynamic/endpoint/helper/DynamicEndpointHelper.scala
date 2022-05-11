@@ -1,4 +1,4 @@
-package code.api.dynamic.helper
+package code.api.dynamic.endpoint.helper
 
 import akka.http.scaladsl.model.{HttpMethods, HttpMethod => AkkaHttpMethod}
 import code.DynamicData.{DynamicDataProvider, DynamicDataT}
@@ -7,7 +7,7 @@ import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBod
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{DynamicDataNotFound, InvalidUrlParameters, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats, NewStyle}
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards, ApiVersion}
 import com.openbankproject.commons.util.Functions.Memo
 import io.swagger.v3.oas.models.PathItem.HttpMethod
 import io.swagger.v3.oas.models.media._
@@ -174,10 +174,10 @@ object DynamicEndpointHelper extends RestHelper {
      */
     def unapply(r: Req): Option[(String, JValue, AkkaHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
       
-      val requestUri = r.request.uri //eg: `/obp/dynamic/fashion-brand-list/BRAND_ID`
+      val requestUri = r.request.uri //eg: `/obp/dynamic-endpoint/fashion-brand-list/BRAND_ID`
       val partPath = r.path.partPath //eg: List("fashion-brand-list","BRAND_ID"), the dynamic is from OBP URL, not in the partPath now.
       
-      if (!testResponse_?(r) || !requestUri.startsWith("/obp/dynamic/"+urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
+      if (!testResponse_?(r) || !requestUri.startsWith(s"/${ApiStandards.obp.toString}/${ApiShortVersions.`dynamic-endpoint`.toString}"+urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
         None //if do not match `URL and Content-Type`, then can not find this endpoint. return None.
       else {
         val akkaHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get

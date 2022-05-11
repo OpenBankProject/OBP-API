@@ -24,11 +24,11 @@ This product includes software developed at
 TESOBE (http://www.tesobe.com/)
 
   */
-package code.api.dynamic
+package code.api.dynamic.endpoint
 
-import code.api.dynamic.APIMethodsDynamic.ImplementationsDynamic
-import code.api.dynamic.helper.DynamicEndpoints
+import APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint
 import code.api.OBPRestHelper
+import code.api.dynamic.endpoint.helper.DynamicEndpoints
 import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.{APIUtil, VersionedOBPApis}
 import code.api.v5_0_0.OBPAPI5_0_0.{allResourceDocs, apiPrefix, registerRoutes, routes}
@@ -41,20 +41,18 @@ import org.apache.http.HttpStatus
 /*
 This file defines which endpoints from all the versions are available in v4.0.0
  */
-object OBPAPIDynamic extends OBPRestHelper with MdcLoggable with VersionedOBPApis{
+object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable with VersionedOBPApis{
 
-  val version : ApiVersion = ApiVersion.dynamic
+  val version : ApiVersion = ApiVersion.`dynamic-endpoint`
 
   val versionStatus = "BLEEDING-EDGE" // TODO this should be a property of ApiVersion.
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
-  def allResourceDocs = collectResourceDocs(ImplementationsDynamic.resourceDocs)
+  def allResourceDocs = collectResourceDocs(ImplementationsDynamicEndpoint.resourceDocs)
 
   val routes : List[OBPEndpoint] = List(APIUtil.dynamicEndpointStub,
-    //This is the dynamic endpoints which are created by dynamic entities 
-    ImplementationsDynamic.genericEndpoint,
     //This is for the dynamic endpoints which are created by dynamic swagger files
-    ImplementationsDynamic.dynamicEndpoint,
+    ImplementationsDynamicEndpoint.dynamicEndpoint,
     /**
      * Here is the place where we register the dynamicEndpoint, all the dynamic resource docs endpoints are here.    
      * Actually, we only register one endpoint for all the dynamic resource docs endpoints.                          
