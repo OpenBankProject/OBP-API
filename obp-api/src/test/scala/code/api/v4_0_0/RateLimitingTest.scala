@@ -235,14 +235,14 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         responseWithRole.code should equal(201)
 
         // Set Rate Limiting in case of a Dynamic Endpoint
-        val operationId = "OBPv4.0.0-dynamicEndpoint_GET_accounts_ACCOUNT_ID"
+        val operationId = "dynamicEndpoint_GET_accounts_ACCOUNT_ID"
         val apiName = "dynamicEndpoint_GET_accounts_ACCOUNT_ID"
-        val apiVersion = "v4.0.0"
+        val apiVersion = "dynamic"
         val response01 = setRateLimiting(user1, callLimitJsonHour.copy(api_name = Some(apiName), api_version = Some(apiVersion)))
         Then("We should get a 200")
         response01.code should equal(200)
 
-        val requestDynamicEndpoint = baseRequest / "obp" / "v4.0.0" / "dynamic" / "accounts" / "accountId"
+        val requestDynamicEndpoint = dynamic_Request / "accounts" / "accountId"
         // 1st call dos NOT exceed rate limit
         When("We make the first call after update")
         Then("We should get a 200")
