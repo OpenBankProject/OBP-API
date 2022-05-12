@@ -1,4 +1,4 @@
-package code.api.v4_0_0.dynamic
+package code.api.dynamic.endpoint.helper
 
 import code.api.util.APIUtil.{OBPEndpoint, OBPReturnType, futureToBoxedResponse, scalaFutureToLaFuture}
 import code.api.util.DynamicUtil.{Sandbox, Validation}

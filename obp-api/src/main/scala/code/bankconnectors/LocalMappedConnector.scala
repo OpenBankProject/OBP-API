@@ -1525,6 +1525,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       ))
     ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
+  override def getBalancingTransaction(transactionId: TransactionId,
+                                       callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
+    Future(
+      DoubleEntryBookTransaction.find(
+          By(DoubleEntryBookTransaction.DebitTransactionId, transactionId.value)
+        ).or(DoubleEntryBookTransaction.find(
+        By(DoubleEntryBookTransaction.CreditTransactionId, transactionId.value)
+      ))
+    ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
+  }
 
   override def makePaymentV400(transactionRequest: TransactionRequest,
                                reasons: Option[List[TransactionRequestReason]],
