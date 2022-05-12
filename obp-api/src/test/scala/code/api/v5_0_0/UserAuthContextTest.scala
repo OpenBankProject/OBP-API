@@ -59,75 +59,75 @@ class UserAuthContextTest extends V500ServerSetupAsync {
   val postUserAuthContextJsonV310 = SwaggerDefinitionsJSON.postUserAuthContextJson
   val postUserAuthContextJsonV5002 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key="TOKEN")
 
-//  feature("Add/Get Auth Context v5.0.0") {
-//    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
-//      When("We make a request v5.0.0")
-//      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST
-//      val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
-//      Then("We should get a 401")
-//      response500.code should equal(401)
-//      And("error should be " + UserNotLoggedIn)
-//      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//    }
-//    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
-//      When("We make a request v5.0.0")
-//      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
-//      val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
-//      Then("We should get a 403")
-//      response500.code should equal(403)
-//      And("error should be " + UserHasMissingRoles + CanCreateUserAuthContext)
-//      response500.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateUserAuthContext)
-//    }
-//
-//    scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
-//      When("We make a request v5.0.0")
-//      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET
-//      val response500 = makeGetRequest(request500)
-//      Then("We should get a 401")
-//      response500.code should equal(401)
-//      And("error should be " + UserNotLoggedIn)
-//      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//    }
-//    scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
-//      When("We make a request v5.0.0")
-//      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
-//      val response500 = makeGetRequest(request500)
-//      Then("We should get a 403")
-//      response500.code should equal(403)
-//      And("error should be " + UserHasMissingRoles + CanGetUserAuthContext)
-//      response500.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetUserAuthContext)
-//    }
-//
-//
-//    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2,  VersionOfApi) {
-//      When("We try to create the UserAuthContext v5.0.0")
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateUserAuthContext.toString)
-//      val requestUserAuthContext500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
-//      val responseUserAuthContext500 = makePostRequest(requestUserAuthContext500, write(postUserAuthContextJsonV310))
-//      Then("We should get a 201")
-//      responseUserAuthContext500.code should equal(201)
-//      val customerJson = responseUserAuthContext500.body.extract[UserAuthContextJsonV500]
-//
-//      When("We try to create the UserAuthContext v5.0.0")
-//      val successReq = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
-//      val successRes = makePostRequest(successReq, write(postUserAuthContextJsonV5002))
-//      Then("We should get a 201")
-//      successRes.code should equal(201)
-//      successRes.body.extract[UserAuthContextJsonV500]
-//
-//      When("We try to make the GET request v5.0.0")
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
-//      val successGetReq = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
-//      val successGetRes = makeGetRequest(successGetReq)
-//      Then("We should get a 200")
-//      successGetRes.code should equal(200)
-//      val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
-//      userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
-//      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
-//    }
-//    
-//    
-//  }
+  feature("Add/Get Auth Context v5.0.0") {
+    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v5.0.0")
+      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST
+      val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
+      Then("We should get a 401")
+      response500.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v5.0.0")
+      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
+      val response500 = makePostRequest(request500, write(postUserAuthContextJsonV310))
+      Then("We should get a 403")
+      response500.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanCreateUserAuthContext)
+      response500.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateUserAuthContext)
+    }
+
+    scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
+      When("We make a request v5.0.0")
+      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET
+      val response500 = makeGetRequest(request500)
+      Then("We should get a 401")
+      response500.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response500.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+    scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
+      When("We make a request v5.0.0")
+      val request500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
+      val response500 = makeGetRequest(request500)
+      Then("We should get a 403")
+      response500.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanGetUserAuthContext)
+      response500.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetUserAuthContext)
+    }
+
+
+    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2,  VersionOfApi) {
+      When("We try to create the UserAuthContext v5.0.0")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateUserAuthContext.toString)
+      val requestUserAuthContext500 = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
+      val responseUserAuthContext500 = makePostRequest(requestUserAuthContext500, write(postUserAuthContextJsonV310))
+      Then("We should get a 201")
+      responseUserAuthContext500.code should equal(201)
+      val customerJson = responseUserAuthContext500.body.extract[UserAuthContextJsonV500]
+
+      When("We try to create the UserAuthContext v5.0.0")
+      val successReq = (v5_0_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
+      val successRes = makePostRequest(successReq, write(postUserAuthContextJsonV5002))
+      Then("We should get a 201")
+      successRes.code should equal(201)
+      successRes.body.extract[UserAuthContextJsonV500]
+
+      When("We try to make the GET request v5.0.0")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetUserAuthContext.toString)
+      val successGetReq = (v5_0_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
+      val successGetRes = makeGetRequest(successGetReq)
+      Then("We should get a 200")
+      successGetRes.code should equal(200)
+      val userAuthContexts = successGetRes.body.extract[UserAuthContextsJsonV500]
+      userAuthContexts.user_auth_contexts.map(_.user_id).forall(userId1.value ==) shouldBe (true)
+      userAuthContexts.user_auth_contexts.map(_.consumer_id).forall(testConsumer.consumerId.get ==) shouldBe (true)
+    }
+
+
+  }
   
   feature("Add/Get User Auth Context Update Request v5.0.0") {
     scenario("We will call the Add endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {

@@ -195,7 +195,7 @@ trait APIMethods500 {
               json.extract[PostUserAuthContextUpdateJsonV310]
             }
             (userAuthContextUpdate, callContext) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, callContext)
-            (user, callContext) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, cc.callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, callContext)
             (_, callContext) <-
               userAuthContextUpdate.status match {
                 case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString =>
