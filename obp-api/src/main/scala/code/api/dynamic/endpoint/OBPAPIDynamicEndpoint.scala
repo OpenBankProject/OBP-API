@@ -24,72 +24,51 @@ This product includes software developed at
 TESOBE (http://www.tesobe.com/)
 
   */
-package code.api.v5_0_0
+package code.api.dynamic.endpoint
 
+import APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
+import code.api.dynamic.endpoint.helper.DynamicEndpoints
+import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.{APIUtil, VersionedOBPApis}
-import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.APIMethods140
-import code.api.v2_0_0.APIMethods200
-import code.api.v2_1_0.APIMethods210
-import code.api.v2_2_0.APIMethods220
-import code.api.v3_0_0.APIMethods300
-import code.api.v3_0_0.custom.CustomAPIMethods300
-import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
-import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
-import code.api.v4_0_0.OBPAPI4_0_0.{Implementations4_0_0, endpointsOf4_0_0}
+import code.api.v5_0_0.OBPAPI5_0_0.{allResourceDocs, apiPrefix, registerRoutes, routes}
 import code.util.Helper.MdcLoggable
-import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
 
 /*
-This file defines which endpoints from all the versions are available in v5.0.0
+This file defines which endpoints from all the versions are available in v4.0.0
  */
-object OBPAPI5_0_0 extends OBPRestHelper 
-  with APIMethods130 
-  with APIMethods140 
-  with APIMethods200 
-  with APIMethods210 
-  with APIMethods220 
-  with APIMethods300 
-  with CustomAPIMethods300 
-  with APIMethods310 
-  with APIMethods400 
-  with APIMethods500 
-  with MdcLoggable 
-  with VersionedOBPApis{
+object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable with VersionedOBPApis{
 
-  val version : ApiVersion = ApiVersion.v5_0_0
+  val version : ApiVersion = ApiVersion.`dynamic-endpoint`
 
   val versionStatus = "BLEEDING-EDGE" // TODO this should be a property of ApiVersion.
 
-  // Possible Endpoints from 5.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
-  // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
-  val endpointsOf5_0_0 = getEndpoints(Implementations5_0_0)
-
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
-  def allResourceDocs = collectResourceDocs(
-    OBPAPI4_0_0.allResourceDocs,
-    Implementations5_0_0.resourceDocs
-  )
+  def allResourceDocs = collectResourceDocs(ImplementationsDynamicEndpoint.resourceDocs)
 
-  // all endpoints
-  private val endpoints: List[OBPEndpoint] = OBPAPI4_0_0.routes ++ endpointsOf5_0_0
+  val routes : List[OBPEndpoint] = List(APIUtil.dynamicEndpointStub,
+    //This is for the dynamic endpoints which are created by dynamic swagger files
+    ImplementationsDynamicEndpoint.dynamicEndpoint,
+    /**
+     * Here is the place where we register the dynamicEndpoint, all the dynamic resource docs endpoints are here.    
+     * Actually, we only register one endpoint for all the dynamic resource docs endpoints.                          
+     * For Liftweb, it just need to handle one endpoint,                                                             
+     *  all the router functionalities are in OBP code.                                                              
+     *  details: please also check code/api/vDynamic/dynamic/DynamicEndpoints.findEndpoint method                      
+     * NOTE: this must be the last one endpoint to register into Liftweb                                             
+     * Because firstly, Liftweb should look for the static endpoints --> then the dynamic ones. 
+     * This is for the dynamic endpoints which are createdy by dynamic resourceDocs
+     */
+    DynamicEndpoints.dynamicEndpoint
+  ) 
 
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = Implementations4_0_0.root :: // For now we make this mandatory
-   getAllowedEndpoints(endpoints, allResourceDocs)
-
-  // register v5.0.0 apis first, Make them available for use!
-  registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-
+  routes.map(endpoint => oauthServe(apiPrefix{endpoint}, None))
+  
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
-
   // specified response for OPTIONS request.
   private val corsResponse: Box[LiftResponse] = Full{
     val corsHeaders = List(

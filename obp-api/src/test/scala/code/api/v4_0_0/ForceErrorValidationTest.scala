@@ -7,6 +7,8 @@ import code.api.util.ErrorMessages._
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations2_2_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.dynamic.endpoint.APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint
+import code.api.dynamic.entity.APIMethodsDynamicEntity.ImplementationsDynamicEntity
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -30,9 +32,9 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
 
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.genericEndpoint))
+  object ApiEndpoint3 extends Tag(nameOf(ImplementationsDynamicEntity.genericEndpoint))
 
-  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.dynamicEndpoint))
+  object ApiEndpoint4 extends Tag(nameOf(ImplementationsDynamicEndpoint.dynamicEndpoint))
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 
@@ -89,7 +91,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addDynamicEntity()
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST
+      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST
       val response = makePostRequest(request, correctFooBar, ("Force-Error", "OBP-20006"))
 
       Then("We should get a 401")
@@ -101,7 +103,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addDynamicEndpoints()
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST
+      val request = (dynamicEndpoint_Request / "save").POST
       val response = makePostRequest(request, correctUser, ("Force-Error", "OBP-20006"))
 
       Then("We should get a 401")
@@ -412,7 +414,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-xxxx"))
 
       Then("We should get a 400")
@@ -428,7 +430,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20009"))
       Then("We should get a 400")
       response.code should equal(400)
@@ -443,7 +445,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"), ("Response-Code" -> "not_integer"))
       Then("We should get a 400")
       response.code should equal(400)
@@ -458,7 +460,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"))
       Then("We should get a 403")
       response.code should equal(403)
@@ -475,7 +477,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"), ("Response-Code" -> "444"))
       Then("We should get a 444")
       response.code should equal(444)
@@ -493,7 +495,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"))
       Then("We should not get a 403")
       response.code should not  equal(403)
@@ -514,7 +516,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response = makePostRequest(request, correctUser, ("Force-Error" -> "OBP-xxxx"))
 
       Then("We should get a 400")
@@ -531,7 +533,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response = makePostRequest(request, correctUser, ("Force-Error" -> "OBP-20009"))
       Then("We should get a 400")
       response.code should equal(400)
@@ -547,7 +549,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response = makePostRequest(request, correctUser, ("Force-Error" -> "OBP-20006"), ("Response-Code" -> "not_integer"))
       Then("We should get a 400")
       response.code should equal(400)
@@ -563,7 +565,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response = makePostRequest(request, correctUser, ("Force-Error" -> "OBP-20006"))
       Then("We should get a 403")
       response.code should equal(403)
@@ -581,7 +583,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response = makePostRequest(request, correctUser, ("Force-Error" -> "OBP-20006"), ("Response-Code" -> "444"))
       Then("We should get a 444")
       response.code should equal(444)
@@ -600,7 +602,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response = makePostRequest(request, correctUser, ("Force-Error" -> "OBP-20006"))
       Then("We should not get a 403")
       response.code should not equal(403)

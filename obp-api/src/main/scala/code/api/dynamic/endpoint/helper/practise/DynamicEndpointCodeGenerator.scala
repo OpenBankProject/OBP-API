@@ -1,4 +1,4 @@
-package code.api.v4_0_0.dynamic.practise
+package code.api.dynamic.endpoint.helper.practise
 
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v4_0_0.ResourceDocFragment
