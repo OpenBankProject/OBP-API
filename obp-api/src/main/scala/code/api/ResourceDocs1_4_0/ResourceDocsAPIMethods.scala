@@ -315,7 +315,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
     
-    private def getResourceDocsObpDynamicCached( //Note: dynamicEndpoints are only in V4.0.0 so far.
+    private def getResourceDocsObpDynamicCached(
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]],
                                          languageParam: Option[LanguageParam],
