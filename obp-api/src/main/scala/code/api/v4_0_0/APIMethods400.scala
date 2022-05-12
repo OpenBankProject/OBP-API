@@ -376,6 +376,40 @@ trait APIMethods400 {
           }
       }
     }
+    staticResourceDocs += ResourceDoc(
+      getBalancingTransaction,
+      implementedInApiVersion,
+      nameOf(getBalancingTransaction),
+      "GET",
+      "/transactions/TRANSACTION_ID/balancing-transaction",
+      "Get Balancing Transaction",
+      s"""Get Balancing Transaction
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      doubleEntryTransactionJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List(canGetDoubleEntryTransactionAtAnyBank, canGetDoubleEntryTransactionAtOneBank))
+    )
+
+    lazy val getBalancingTransaction : OBPEndpoint = {
+      case "transactions" :: TransactionId(transactionId) :: "balancing-transaction" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (doubleEntryTransaction, callContext) <- NewStyle.function.getBalancingTransaction(transactionId, cc.callContext)
+          } yield {
+            (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       createSettlementAccount,
