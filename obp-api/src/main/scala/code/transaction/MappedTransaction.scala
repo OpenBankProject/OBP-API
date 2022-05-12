@@ -60,7 +60,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
   //The following are the fields from CounterpartyTrait, previous just save BankAccount to simulate the counterparty.
   //Now we save the real Counterparty data 
-  //CP--> CounterParty
+  //CP means CounterParty
   object CPCounterPartyId extends UUIDString(this)
   object CPOtherAccountProvider extends MappedString(this, 36)
   object CPOtherAccountRoutingScheme extends MappedString(this, 255)

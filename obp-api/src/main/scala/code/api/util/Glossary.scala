@@ -708,8 +708,56 @@ object Glossary extends MdcLoggable  {
 		title = "Transaction",
 		description =
 		  """
-			|Records of successful movements of money from / to an `Account`. OBP Transactions don't contain any "draft" or "pending" Transactions. (see Transaction Requests). Transactions contain infomration including type, description, from, to, currency, amount and new balance information.
+			|Transactions are records of successful movements of value into or out of an `Account`.
 			|
+			|OBP Transactions don't contain any "draft" or "pending" Transactions; pending transactions see represented by Transaction Requests.
+			|
+			|OBP Transactions are modelled on a Bank statement where everything is based on the perspective of my account.
+			|That is, if I look at "my account", I see credits (positive numbers) and debits (negative numbers)
+
+			|An OBP transaction stores information including the:
+			|Bank ID
+			|Account ID
+			|Currency
+			|Amount (positive for a credit, negative for a debit)
+			|Date
+			|Counterparty (information that describes the other party in the transaction)
+			|- optionally description and new balance.
+|
+|Note, OBP operates a Double-Entry Bookkeeping system which means that every transfer of value within OBP is represented by *two* transactions.
+|
+|For instance, to represent 5 Euros going from Account A to Account B, we would have 2 transactions:
+|
+|Transaction 1.
+|
+|Account: A
+|Currency: EUR
+|Amount: -5
+|Counterparty: Account B
+|
+|Transaction 2.
+|
+|Account: B
+|Currency: EUR
+|Amount: +5
+|Counterparty: Account A
+|
+|The sum of the two transactions must be zero.
+|
+|What about representing value coming into or out of the system? Here we use "settlement accounts":
+|
+|OBP-INCOMING-SETTLEMENT-ACCOUNT is typically the ID for a default incoming settlement account
+|
+|OBP-OUTGOING-SETTLEMENT-ACCOUNT is typically the ID for a default outgoing settlement account
+|
+|See the following diagram:
+|
+|![OBP Double-Entry Bookkeeping](https://user-images.githubusercontent.com/485218/167990092-e76e6265-faa2-4425-b366-e570ed3301b9.png)
+|
+|See the [Get Double Entry Transaction](/index?version=OBPv4.0.0&operation_id=OBPv4_0_0-getDoubleEntryTransaction&currentTag=Transaction#OBPv4_0_0-getDoubleEntryTransaction) endpoint
+|
+|
+|
 		  """)
 
 	  glossaryItems += GlossaryItem(
