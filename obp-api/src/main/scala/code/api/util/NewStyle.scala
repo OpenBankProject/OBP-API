@@ -1496,6 +1496,10 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
       }
+    def getBalancingTransaction(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.getBalancingTransaction(transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
+      }
 
     def cancelPaymentV400(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[CancelPayment] = {
       Connector.connector.vend.cancelPaymentV400(transactionId: TransactionId, callContext) map { i =>
