@@ -68,8 +68,8 @@ trait APIMethods500 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
-            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
-            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
+            (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key, postedData.value, callContext)
           } yield {
             (JSONFactory500.createUserAuthContextJson(userAuthContext), HttpCode.`201`(callContext))
           }
@@ -195,11 +195,12 @@ trait APIMethods500 {
               json.extract[PostUserAuthContextUpdateJsonV310]
             }
             (userAuthContextUpdate, callContext) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, callContext)
             (_, callContext) <-
               userAuthContextUpdate.status match {
                 case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString =>
                   NewStyle.function.createUserAuthContext(
-                    userAuthContextUpdate.userId,
+                    user,
                     userAuthContextUpdate.key,
                     userAuthContextUpdate.value,
                     callContext).map(x => (Some(x._1), x._2))
@@ -212,7 +213,7 @@ trait APIMethods500 {
                   NewStyle.function.getOCreateUserCustomerLink(
                     bankId,
                     userAuthContextUpdate.value, // Customer number
-                    userAuthContextUpdate.userId,
+                    user.userId,
                     callContext
                   )
                 case _ =>
