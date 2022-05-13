@@ -3,7 +3,6 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
@@ -54,8 +53,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
@@ -63,8 +62,10 @@ import scala.reflect.runtime.universe.MethodSymbol
 import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
+import code.api.JsonResponseException
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v4_0_0.JSONFactory400
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}

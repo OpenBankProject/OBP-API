@@ -1,12 +1,12 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
-
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalanceV1, AccountBalances, AmountOfMoneyV1, ClosingBookedBody, ExpectedBody, TransactionJsonV1, TransactionsJsonV1, ViewAccount}
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.ExampleValue._
@@ -34,8 +34,8 @@ import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttribute
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 import net.liftweb.json
-import java.net.URLEncoder
 
+import java.net.URLEncoder
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -3509,6 +3509,8 @@ object SwaggerDefinitionsJSON {
     key = "CUSTOMER_NUMBER",
     value = "78987432"
   )
+
+  val postUserAuthContextUpdateJsonV310 = PostUserAuthContextUpdateJsonV310(answer = "123")
   
   val userAuthContextJson = UserAuthContextJson(
     user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
@@ -4594,7 +4596,7 @@ object SwaggerDefinitionsJSON {
     messages = List(customerMessageJsonV400)
   )
 
-  val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
+  val requestRootJsonClass = PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   val entitlementJsonV400 = EntitlementJsonV400(
     entitlement_id = entitlementIdExample.value,

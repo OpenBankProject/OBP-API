@@ -174,7 +174,7 @@ trait APIMethods500 {
       s"""
          |Answer Auth Context Update Challenge.
          |""",
-      PostUserAuthContextUpdateJsonV310(answer = "12345678"),
+      postUserAuthContextUpdateJsonV310,
       userAuthContextUpdateJsonV500,
       List(
         UserNotLoggedIn,

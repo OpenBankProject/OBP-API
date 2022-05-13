@@ -1,11 +1,11 @@
-package code.api.v4_0_0.dynamic.practise
+package code.api.dynamic.endpoint.helper.practise
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.requestRootJsonClass
+import code.api.dynamic.endpoint.helper.EndpointGroup
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{ResourceDoc, StringBody}
 import code.api.util.ApiTag.{apiTagDynamicResourceDoc, apiTagNewStyle}
 import code.api.util.ErrorMessages.UnknownError
-import code.api.v4_0_0.dynamic.EndpointGroup
 import com.openbankproject.commons.util.ApiVersion
 
 import scala.collection.immutable.List
@@ -31,7 +31,7 @@ object PractiseEndpointGroup extends EndpointGroup{
        |* [Dynamic resourceDoc version1](https://vimeo.com/623381607)
        |
        |The endpoint return the response from PractiseEndpoint code.
-       |Here, code.api.v4_0_0.dynamic.practise.PractiseEndpoint.process
+       |Here, code.api.DynamicEndpoints.dynamic.practise.PractiseEndpoint.process
        |You can test the method body grammar, and try the business logic, but need to restart the OBP-API code .
        |
        |""",

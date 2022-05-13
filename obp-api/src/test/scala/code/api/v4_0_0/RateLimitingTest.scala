@@ -28,7 +28,6 @@ package code.api.v4_0_0
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
-
 import code.api.util.ApiRole.{CanSetCallLimits, canCreateDynamicEndpoint}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.{APIUtil, ApiRole, ExampleValue}
@@ -41,6 +40,7 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiVersionUtils.versions
 import code.setup.PropsReset
 
 class RateLimitingTest extends V400ServerSetup with PropsReset {
@@ -235,14 +235,14 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         responseWithRole.code should equal(201)
 
         // Set Rate Limiting in case of a Dynamic Endpoint
-        val operationId = "OBPv4.0.0-dynamicEndpoint_GET_accounts_ACCOUNT_ID"
+        val operationId = "dynamicEndpoint_GET_accounts_ACCOUNT_ID"
         val apiName = "dynamicEndpoint_GET_accounts_ACCOUNT_ID"
-        val apiVersion = "v4.0.0"
+        val apiVersion = ApiVersion.`dynamic-endpoint`.toString()
         val response01 = setRateLimiting(user1, callLimitJsonHour.copy(api_name = Some(apiName), api_version = Some(apiVersion)))
         Then("We should get a 200")
         response01.code should equal(200)
 
-        val requestDynamicEndpoint = baseRequest / "obp" / "v4.0.0" / "dynamic" / "accounts" / "accountId"
+        val requestDynamicEndpoint = dynamicEndpoint_Request / "accounts" / "accountId"
         // 1st call dos NOT exceed rate limit
         When("We make the first call after update")
         Then("We should get a 200")

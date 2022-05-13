@@ -1,8 +1,10 @@
-package code.api.v4_0_0.dynamic
+package code.api.dynamic.endpoint.helper
+
+import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
 import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpoint, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}
-import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.{JNothing, JValue}

@@ -16,6 +16,9 @@ object ApiVersionUtils {
       v3_0_0 ::
       v3_1_0 ::
       v4_0_0 ::
+      v5_0_0 ::
+      `dynamic-endpoint` ::
+      `dynamic-entity` ::
       b1::
       scannedApis
 
@@ -34,6 +37,9 @@ object ApiVersionUtils {
       case v3_0_0.fullyQualifiedVersion | v3_0_0.apiShortVersion => v3_0_0
       case v3_1_0.fullyQualifiedVersion | v3_1_0.apiShortVersion => v3_1_0
       case v4_0_0.fullyQualifiedVersion | v4_0_0.apiShortVersion => v4_0_0
+      case v5_0_0.fullyQualifiedVersion | v5_0_0.apiShortVersion => v5_0_0
+      case `dynamic-endpoint`.fullyQualifiedVersion | `dynamic-endpoint`.apiShortVersion => `dynamic-endpoint`
+      case `dynamic-entity`.fullyQualifiedVersion | `dynamic-entity`.apiShortVersion => `dynamic-entity`
       case b1.fullyQualifiedVersion     |     b1.apiShortVersion => b1
       case version if(scannedApis.map(_.fullyQualifiedVersion).contains(version))
         =>scannedApis.filter(_.fullyQualifiedVersion==version).head
