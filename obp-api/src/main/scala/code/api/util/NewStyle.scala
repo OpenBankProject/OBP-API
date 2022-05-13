@@ -6,7 +6,7 @@ import java.util.UUID.randomUUID
 
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.APIFailureNewStyle
+import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -63,7 +63,6 @@ import scala.reflect.runtime.universe.MethodSymbol
 import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
-import code.api.JsonResponseException
 import code.api.v4_0_0.JSONFactory400
 import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
 import code.bankattribute.BankAttribute
@@ -74,7 +73,7 @@ import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
-import net.liftweb.mapper.{By}
+import net.liftweb.mapper.By
 
 object NewStyle extends MdcLoggable{
   lazy val endpoints: List[(String, String)] = List(
@@ -585,6 +584,24 @@ object NewStyle extends MdcLoggable{
       Future{
         APIUtil.checkViewAccessAndReturnView(firstView, bankAccountId, user).or(
           APIUtil.checkViewAccessAndReturnView(secondView, bankAccountId, user)
+        )
+      } map {
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+      }
+    }
+    def checkBalancingTransactionAccountAccessAndReturnView(doubleEntryTransaction: DoubleEntryTransaction, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
+      val debitBankAccountId = BankIdAccountId(
+        doubleEntryTransaction.debitTransactionBankId, 
+        doubleEntryTransaction.debitTransactionAccountId
+      )
+      val creditBankAccountId = BankIdAccountId(
+        doubleEntryTransaction.creditTransactionBankId, 
+        doubleEntryTransaction.creditTransactionAccountId
+      )
+      val ownerViewId = ViewId(Constant.SYSTEM_OWNER_VIEW_ID)
+      Future{
+        APIUtil.checkViewAccessAndReturnView(ownerViewId, debitBankAccountId, user).or(
+          APIUtil.checkViewAccessAndReturnView(ownerViewId, creditBankAccountId, user)
         )
       } map {
         unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
