@@ -92,6 +92,7 @@ object Migration extends MdcLoggable {
       dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier)
       dropIndexAtUserAuthContext()
       alterWebhookColumnUrlLength()
+      dropConsentAuthContextDropIndex()
     }
     
     private def dummyScript(): Boolean = {
@@ -367,6 +368,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterWebhookColumnUrlLength)
       runOnce(name) {
         MigrationOfWebhookUrlFieldLength.alterColumnUrlLength(name)
+      }
+    }
+
+    private def dropConsentAuthContextDropIndex(): Boolean = {
+      val name = nameOf(dropConsentAuthContextDropIndex)
+      runOnce(name) {
+        MigrationOfConsentAuthContextDropIndex.dropUniqueIndex(name)
       }
     }
     
