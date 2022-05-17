@@ -1,0 +1,75 @@
+name: Java CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          cache: maven
+      - name: Build with Maven
+        run: |
+          echo connector=mapped > obp-api/src/main/resources/props/test.default.props
+          echo hostname=http://localhost:8016 >> obp-api/src/main/resources/props/test.default.props
+          echo tests.port=8016 >> obp-api/src/main/resources/props/test.default.props
+          echo End of minimum settings >> obp-api/src/main/resources/props/test.default.props
+          echo payments_enabled=false >> obp-api/src/main/resources/props/test.default.props
+          echo importer_secret=change_me >> obp-api/src/main/resources/props/test.default.props
+          echo messageQueue.updateBankAccountsTransaction=false >> obp-api/src/main/resources/props/test.default.props
+          echo messageQueue.createBankAccounts=false >> obp-api/src/main/resources/props/test.default.props
+          echo allow_sandbox_account_creation=true >> obp-api/src/main/resources/props/test.default.props
+          echo allow_sandbox_data_import=true >> obp-api/src/main/resources/props/test.default.props
+          echo sandbox_data_import_secret=change_me >> obp-api/src/main/resources/props/test.default.props
+          echo allow_account_deletion=true >> obp-api/src/main/resources/props/test.default.props
+          echo allowed_internal_redirect_urls = /,/oauth/authorize >> obp-api/src/main/resources/props/test.default.props
+          echo transactionRequests_enabled=true >> obp-api/src/main/resources/props/test.default.props
+          echo transactionRequests_supported_types=SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,SIMPLE >> obp-api/src/main/resources/props/test.default.props
+          echo SIMPLE_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo openredirects.hostname.whitlelist=http://127.0.0.1,http://localhost >> obp-api/src/main/resources/props/test.default.props
+          echo remotedata.secret = foobarbaz >> obp-api/src/main/resources/props/test.default.props
+          echo allow_public_views=true >> obp-api/src/main/resources/props/test.default.props
+
+          echo SIMPLE_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo ACCOUNT_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo SEPA_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo FREE_FORM_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+          echo SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT=dummy >> obp-api/src/main/resources/props/test.default.props
+
+          echo kafka.akka.timeout = 9 >> obp-api/src/main/resources/props/test.default.props
+          echo remotedata.timeout = 10 >> obp-api/src/main/resources/props/test.default.props
+
+          echo allow_oauth2_login=true >> obp-api/src/main/resources/props/test.default.props
+          echo oauth2.jwk_set.url=https://www.googleapis.com/oauth2/v3/certs >> obp-api/src/main/resources/props/test.default.props
+
+          echo ResetPasswordUrlEnabled=true >> obp-api/src/main/resources/props/test.default.props
+
+          echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
+          MAVEN_OPTS="-Xmx3G -Xss2m" mvn package
+      - name: Build the Docker image
+        run: |
+          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
+          docker build . --file .github/Dockerfile_PreBuild --tag docker.io/${{ secrets.DOCKER_HUB_ORGANIZATION }}/${{ secrets.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA --tag docker.io/${{ secrets.DOCKER_HUB_ORGANIZATION }}/${{ secrets.DOCKER_HUB_REPOSITORY }}:latest--tag docker.io/${{ secrets.DOCKER_HUB_ORGANIZATION }}/${{ secrets.DOCKER_HUB_REPOSITORY }}:develop
+          docker push docker.io/${{ secrets.DOCKER_HUB_ORGANIZATION }}/${{ secrets.DOCKER_HUB_REPOSITORY }} --all-tags
+          echo docker done
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/${{ secrets.DOCKER_HUB_ORGANIZATION }}/${{ secrets.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}'
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+
+
