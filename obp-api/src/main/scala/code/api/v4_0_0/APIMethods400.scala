@@ -5184,6 +5184,41 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
+      getScopes,
+      implementedInApiVersion,
+      nameOf(getScopes),
+      "GET",
+      "/consumers/CONSUMER_ID/scopes",
+      "Get Scopes for Consumer",
+      s"""Get all the scopes for an consumer specified by CONSUMER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      scopeJsons,
+      List(UserNotLoggedIn, EntitlementNotFound, ConsumerNotFoundByConsumerId, UnknownError),
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
+
+    lazy val getScopes: OBPEndpoint = {
+      case "consumers" :: uuidOfConsumer :: "scopes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            consumer <- Future{callContext.get.consumer} map {
+              x => unboxFullOrFail(x , callContext, InvalidConsumerCredentials)
+            }
+            _ <- Future {NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank, callContext)} flatMap {unboxFullAndWrapIntoFuture(_)}
+            consumer <- NewStyle.function.getConsumerByConsumerId(uuidOfConsumer, callContext)
+            primaryKeyOfConsumer = consumer.id.get.toString
+            scopes <- Future { Scope.scope.vend.getScopesByConsumerId(primaryKeyOfConsumer)} map { unboxFull(_) }
+          } yield
+            (JSONFactory300.createScopeJSONs(scopes), HttpCode.`200`(callContext))
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
       addScope,
       implementedInApiVersion,
       nameOf(addScope),
