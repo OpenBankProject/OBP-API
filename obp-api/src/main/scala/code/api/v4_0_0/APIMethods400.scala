@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
+
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -42,7 +43,7 @@ import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentStatus, Consents}
+import code.consent.{ConsentRequests, ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
@@ -8371,6 +8372,38 @@ trait APIMethods400 {
           } yield {
             val counterpartyJson = JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata)
             (counterpartyJson, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      createConsentRequest,
+      implementedInApiVersion,
+      nameOf(createConsentRequest),
+      "POST",
+      "/my/consents/request",
+      "Create consent request",
+      s"""""",
+      emptyObjectJson,
+      PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
+      List(UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val createConsentRequest : OBPEndpoint = {
+      case "my" :: "consents" :: "request" :: Nil JsonPost json -> _  =>  {
+        cc =>
+          for {
+            (_, callContext) <- applicationAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
+            createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
+              callContext.flatMap(_.consumer),
+              Some("")
+            )) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (PostConsentRequestResponseJson(createdConsentRequest.consentRequestId), HttpCode.`201`(callContext))
           }
       }
     }

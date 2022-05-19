@@ -69,6 +69,8 @@ import scala.math.BigDecimal
 import scala.util.Try
 
 
+case class PostConsentRequestResponseJson(consentId: String)
+
 case class CallLimitPostJsonV400(
                                   from_date : Date,
                                   to_date : Date,
