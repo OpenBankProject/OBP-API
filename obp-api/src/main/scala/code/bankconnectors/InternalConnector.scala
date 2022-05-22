@@ -1,6 +1,9 @@
 package code.bankconnectors
 
 import code.api.util.DynamicUtil.compileScalaCode
+import net.liftweb.common.Full
+
+import scala.concurrent.Future
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Failure}
@@ -61,6 +64,13 @@ object InternalConnector {
   private val obpReturnTypeRegx2 = """^.+\)\s*:code.api.util.APIUtil.OBPReturnType\[(.+)\]$""".r
 
   private val otherTypeRegx = """^.+\)\s*:(.+)$""".r
+
+  private val callContextRegex = """^.+?(\w+)\s*:\s*Option\[code.api.util.CallContext\].+$""".r
+
+  private def getCallContextParamName(signature: String) =  signature match {
+      case callContextRegex(callContext) => callContext
+      case _ => "scala.None"
+    }
 
   private def buildDynamicMethodBody(methodName: String, methodBody: String, dynamicFunctionCreator: String): String = methodNameToSignature.get(methodName)  match {
     case Some(signature) =>
@@ -148,14 +158,10 @@ object InternalConnector {
         .replaceAll("""\((.*)\)\s*:.+$""", "$1")
         .replaceAll(""":.+?($|,)""", "$1")
 
-      val callContextRegex = """^.+?(\w+)\s*:\s*Option\[code.api.util.CallContext\].+$""".r
 
-      val cc = signature match {
-        case callContextRegex(callContext) => callContext
-        case _ => "scala.None"
-      }
       val args = s"Array($argList)"
       val body = StringEscapeUtils.escapeJava(methodBody)
+      val cc = getCallContextParamName(signature)
       s"""val convertor = $convertor
       val net.liftweb.common.Full(dynamicFunc) = $dynamicFunctionCreator("$body")
       val result = dynamicFunc($args, $cc)
@@ -200,11 +206,14 @@ object InternalConnector {
   private def createScalaFunction(methodName: String, methodBody:String): Box[AnyRef]=
     methodNameToSignature.get(methodName)  match {
       case Some(signature) =>
+        val cc = getCallContextParamName(signature)
+        val postProcessorName = s"${ReflectUtils.getType(InternalConnector).typeSymbol.fullName}.${nameOf(InternalConnector.postProcessConnectorMethodResult _)}"
         val method = s"""
                         |def $methodName $signature = {
                         |  ${DynamicUtil.importStatements}
                         |
-                        |  $methodBody
+                        |  val _$$result$$_ = {$methodBody}
+                        |   $postProcessorName(_$$result$$_ , $cc)
                         |}
                         |
                         |$methodName _
@@ -214,7 +223,16 @@ object InternalConnector {
       case None => Failure(s"method name $methodName does not exist in the Connector")
     }
 
-
+   def postProcessConnectorMethodResult[T](value: T, callContext:Option[CallContext]):T = value match {
+     case Full((v, null|None)) =>
+       Full(v -> callContext).asInstanceOf[T]
+     case (v, null|None)  =>
+       (v, callContext).asInstanceOf[T]
+     case f: Future[_] =>
+       import com.openbankproject.commons.ExecutionContext.Implicits.global
+       f.map(it => postProcessConnectorMethodResult(it, callContext)).asInstanceOf[T]
+     case _ => value
+  }
 
   private def callableMethods: Map[String, MethodSymbol] = {
     val dynamicMethods: Map[String, MethodSymbol] = ConnectorMethodProvider.provider.vend.getAll().map {

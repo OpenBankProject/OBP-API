@@ -48,6 +48,9 @@ object DynamicUtil {
   // code -> dynamic method function
   // the same code should always be compiled once, so here cache them
   private val dynamicCompileResult = new ConcurrentHashMap[String, Box[Any]]()
+
+  type DynamicFunction = (Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]
+
   /**
    * Compile scala code
    * toolBox have bug that first compile fail, second or later compile success.
@@ -398,15 +401,13 @@ object DynamicUtil {
     }
   }
 
-  type DynamicFunction = Box[(Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]]
-
   private val jsEngine = Engine.newBuilder.option("engine.WarnInterpreterOnly", "false")
     .allowExperimentalOptions(true)
     .build()
 
-  private val memoDynamicFunction = new Memo[String, DynamicFunction]
+  private val memoDynamicFunction = new Memo[String, Box[DynamicFunction]]
 
-  def createJsFunction(methodBody:String, bindingVars: Map[String, AnyRef] = Map.empty): DynamicFunction = memoDynamicFunction.memoize("Javascript:" + methodBody) {
+  def createJsFunction(methodBody:String, bindingVars: Map[String, AnyRef] = Map.empty): Box[DynamicFunction] = memoDynamicFunction.memoize("Javascript:" + methodBody) {
     Box tryo {
       val jsCode = s"""async function processor(args, callContext) {
        $methodBody
@@ -449,7 +450,7 @@ object DynamicUtil {
 
   private val javaEngine = (new ScriptEngineManager).getEngineByName("java")
 
-  def createJavaFunction(methodBody:String): DynamicFunction = memoDynamicFunction.memoize("java:" + methodBody) {
+  def createJavaFunction(methodBody:String): Box[DynamicFunction] = memoDynamicFunction.memoize("java:" + methodBody) {
     import com.openbankproject.commons.ExecutionContext.Implicits.global
     import net.liftweb.json.compactRender
 

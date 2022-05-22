@@ -3,6 +3,7 @@ package code.bankconnectors
 import code.api.APIFailureNewStyle
 import code.api.util.DynamicUtil.compileScalaCode
 import code.api.util.{CallContext, DynamicUtil}
+import code.bankconnectors.DynamicConnector.wrapperDynamicFunction
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
@@ -26,10 +27,12 @@ object DynamicConnector {
 
   def invoke(bankId: Option[String], process: String, args: Array[AnyRef], callContext: Option[CallContext]) = {
     val function =  getFunction(bankId, process)
-     function.map(f =>f(args: Array[AnyRef], callContext: Option[CallContext])).openOrThrowException(s"There is no process $process, it should not be called here")
+     function
+       .map(f =>f(args: Array[AnyRef], callContext: Option[CallContext]))
+       .openOrThrowException(s"There is no process $process, it should not be called here")
   }
   
-  private def getFunction(bankId: Option[String], process: String) = {
+  private def getFunction(bankId: Option[String], process: String):Box[DynamicFunction] = {
     DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process) map {
       case v :JsonDynamicMessageDoc =>
         createFunction(v.lang, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail")
@@ -37,20 +40,30 @@ object DynamicConnector {
   }
 
  type DynamicFunction = (Array[AnyRef], Option[CallContext]) => Future[Box[(AnyRef, Option[CallContext])]]
-
+  /**
+   * wrap DynamicFunction to avoid lost callContext value
+   */
+  val wrapperDynamicFunction = (fn: DynamicFunction) => (args: Array[AnyRef], callContext: Option[CallContext]) => {
+    import com.openbankproject.commons.ExecutionContext.Implicits.global
+    fn(args, callContext)
+      .map(box => box match {
+        case Full((v,  null|None)) => Full(v -> callContext)
+        case _ => box
+      })
+  }
   /**
    * dynamic create function
-   * @param process name of connector
+   * @param lang name of language
    * @param methodBody method body of connector method
    * @return function of connector method that is dynamic created, can be Function0, Function1, Function2...
    */
-  def createFunction(lang: String, methodBody:String): Box[DynamicFunction] = lang match {
+  def createFunction(lang: String, methodBody:String): Box[DynamicFunction] = (lang match {
     case "js" | "Js" | "javascript" | "JavaScript" => DynamicUtil.createJsFunction(methodBody)
     case "java" | "Java" => DynamicUtil.createJavaFunction(methodBody)
     case "Scala" | "scala" | "" | null => createScalaFunction(methodBody)
     // TODO refactor Exception type and message
     case _ => Failure(s"Illegal lang: $lang, current supported language: Java, Javascript and Scala")
-  }
+  })  map wrapperDynamicFunction
 
   /**
    * dynamic create scala function
