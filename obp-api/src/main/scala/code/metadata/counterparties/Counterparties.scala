@@ -32,11 +32,29 @@ trait Counterparties {
 
   def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[CounterpartyMetadata]
 
+  def deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[Boolean]
+  
   def getCounterparty(counterpartyId : String): Box[CounterpartyTrait]
+  
+  def deleteCounterparty(counterpartyId : String): Box[Boolean]
 
   def getCounterpartyByIban(iban : String): Box[CounterpartyTrait]
 
   def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId): Box[CounterpartyTrait]
+  
+  def getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  ): Box[CounterpartyTrait]
+  
+  def getCounterpartyBySecondaryRouting(    
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String
+  ): Box[CounterpartyTrait]
 
   def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]]
 
@@ -94,14 +112,32 @@ class RemotedataCounterpartiesCaseClasses {
   case class getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)
 
   case class getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)
+  
+  case class deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)
 
   case class getCounterparty(counterpartyId: String)
+  
+  case class deleteCounterparty(counterpartyId: String)
 
   case class getCounterpartyByIban(iban: String)
 
   case class getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId)
 
   case class getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId)
+
+  case class getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  )
+
+  case class getCounterpartyBySecondaryRouting(
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String
+  )
 
   case class createCounterparty(
     createdByUserId: String,

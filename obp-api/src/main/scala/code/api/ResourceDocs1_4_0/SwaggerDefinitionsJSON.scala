@@ -1,12 +1,12 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
-
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalanceV1, AccountBalances, AmountOfMoneyV1, ClosingBookedBody, ExpectedBody, TransactionJsonV1, TransactionsJsonV1, ViewAccount}
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.ExampleValue._
@@ -18,6 +18,7 @@ import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.api.v4_0_0.{AccountMinimalJson400, BankAttributeBankResponseJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
+import code.api.v5_0_0._
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
@@ -33,8 +34,8 @@ import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttribute
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 import net.liftweb.json
-import java.net.URLEncoder
 
+import java.net.URLEncoder
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -178,7 +179,10 @@ object SwaggerDefinitionsJSON {
       "can_see_bank_account_credit_limit",
       //v400
       "can_create_direct_debit",
-      "can_create_standing_order"
+      "can_create_standing_order",
+      
+      //payments
+      "can_add_transaction_request_to_any_account"
     )
   )
 
@@ -435,7 +439,7 @@ object SwaggerDefinitionsJSON {
     other_bank_routing_scheme= counterpartyOtherBankRoutingSchemeExample.value,
     other_bank_routing_address= counterpartyOtherBankRoutingAddressExample.value,
     is_beneficiary= true,
-    future_date = Some("20881230")
+    future_date = Some(futureDateExample.value)
   )
 
   val adapterImplementationJson = AdapterImplementationJson("CORE",3)
@@ -1168,7 +1172,7 @@ object SwaggerDefinitionsJSON {
     end_date = DateWithDayExampleObject,
     challenge = transactionRequestChallenge,
     charge = transactionRequestCharge,
-    charge_policy = "String",
+    charge_policy = chargePolicyExample.value,
     counterparty_id = counterpartyIdSwagger,
     name = counterpartyNameExample.value,
     this_bank_id = bankIdSwagger,
@@ -2066,23 +2070,23 @@ object SwaggerDefinitionsJSON {
     counterpartyIdJson,
     amountOfMoneyJsonV121,
     "A description for the transaction to the counterparty",
-    "SHARED",
-    Some("20881230")
+    chargePolicyExample.value,
+    Some(futureDateExample.value)
   )
 
   val transactionRequestBodySEPAJSON = TransactionRequestBodySEPAJSON(
     amountOfMoneyJsonV121,
     ibanJson,
     "This is a SEPA Transaction Request",
-    "SHARED",
-    Some("20881230")
+    chargePolicyExample.value,
+    Some(futureDateExample.value)
   )
   val transactionRequestBodySEPAJsonV400 = TransactionRequestBodySEPAJsonV400(
     amountOfMoneyJsonV121,
     ibanJson,
     description = "This is a SEPA Transaction Request",
-    charge_policy = "SHARED",
-    future_date = Some("20881230"),
+    charge_policy = chargePolicyExample.value,
+    future_date = Some(futureDateExample.value),
     reasons = Some(List(
       TransactionRequestReasonJsonV400(
         code = "410",
@@ -3505,13 +3509,15 @@ object SwaggerDefinitionsJSON {
     key = "CUSTOMER_NUMBER",
     value = "78987432"
   )
+
+  val postUserAuthContextUpdateJsonV310 = PostUserAuthContextUpdateJsonV310(answer = "123")
   
   val userAuthContextJson = UserAuthContextJson(
     user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     user_id = ExampleValue.userIdExample.value,
     key = "CUSTOMER_NUMBER",
     value = "78987432",
-    timeStamp = parseDate(timeStampExample.value).getOrElse(sys.error("timeStampExample.value is not validate date format."))
+    time_stamp = parseDate(timeStampExample.value).getOrElse(sys.error("timeStampExample.value is not validate date format."))
   )
 
   val userAuthContextUpdateJson = UserAuthContextUpdateJson(
@@ -3896,7 +3902,7 @@ object SwaggerDefinitionsJSON {
     posted = DateWithSecondsExampleString,
     completed= DateWithSecondsExampleString,
     `type`= SANDBOX_TAN.toString,
-    charge_policy= "SHARED"
+    charge_policy= chargePolicyExample.value
   )  
   val postHistoricalTransactionAtBankJson = PostHistoricalTransactionAtBankJson(
     from_account_id = "",
@@ -3906,7 +3912,7 @@ object SwaggerDefinitionsJSON {
     posted = DateWithSecondsExampleString,
     completed= DateWithSecondsExampleString,
     `type`= SANDBOX_TAN.toString,
-    charge_policy= "SHARED"
+    charge_policy = chargePolicyExample.value
   )
 
   val postHistoricalTransactionResponseJson = PostHistoricalTransactionResponseJson(
@@ -3918,7 +3924,7 @@ object SwaggerDefinitionsJSON {
     posted = DateWithMsExampleObject,
     completed= DateWithMsExampleObject,
     transaction_request_type= SANDBOX_TAN.toString,
-    charge_policy= "SHARED"
+    charge_policy = chargePolicyExample.value
   )
   
   val viewBasicCommons = ViewBasic(
@@ -4318,6 +4324,27 @@ object SwaggerDefinitionsJSON {
     challenges = List(challengeJsonV400),
     charge = transactionRequestChargeJsonV200
   )
+
+  val postSimpleCounterpartyJson400 = PostSimpleCounterpartyJson400(
+    name = counterpartyNameExample.value,
+    description = transactionDescriptionExample.value,
+    other_account_routing_scheme = counterpartyOtherAccountRoutingSchemeExample.value,
+    other_account_routing_address = counterpartyOtherAccountRoutingAddressExample.value,
+    other_account_secondary_routing_scheme = counterpartyOtherAccountSecondaryRoutingSchemeExample.value,
+    other_account_secondary_routing_address = counterpartyOtherAccountSecondaryRoutingAddressExample.value,
+    other_bank_routing_scheme = counterpartyOtherBankRoutingSchemeExample.value,
+    other_bank_routing_address = counterpartyOtherBankRoutingAddressExample.value,
+    other_branch_routing_scheme = counterpartyOtherBranchRoutingSchemeExample.value,
+    other_branch_routing_address = counterpartyOtherBranchRoutingAddressExample.value
+  )
+  
+  val transactionRequestBodySimpleJsonV400 = TransactionRequestBodySimpleJsonV400(
+    to= postSimpleCounterpartyJson400,
+    amountOfMoneyJsonV121,
+    descriptionExample.value,
+    chargePolicyExample.value,
+    Some(futureDateExample.value)
+  )
   
   val postApiCollectionJson400 = PostApiCollectionJson400(apiCollectionNameExample.value, true, Some(descriptionExample.value))
   
@@ -4570,7 +4597,7 @@ object SwaggerDefinitionsJSON {
     messages = List(customerMessageJsonV400)
   )
 
-  val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
+  val requestRootJsonClass = PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   val entitlementJsonV400 = EntitlementJsonV400(
     entitlement_id = entitlementIdExample.value,
@@ -4583,6 +4610,48 @@ object SwaggerDefinitionsJSON {
     list = List(entitlementJsonV400)
   )
   
+  val accountNotificationWebhookPostJson = AccountNotificationWebhookPostJson(
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST",
+    http_protocol = "HTTP/1.1"
+  )
+
+  val systemAccountNotificationWebhookJson =  SystemAccountNotificationWebhookJson(
+    webhook_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+    trigger_name = ApiTrigger.onCreateTransaction.toString(),
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST",
+    http_protocol = "HTTP/1.1",
+    created_by_user_id = ExampleValue.userIdExample.value
+  )
+
+  val bankAccountNotificationWebhookJson =  BankAccountNotificationWebhookJson(
+    webhook_id = "fc23a7e2-7dd2-4bdf-a0b4-ae31232a4762",
+    bank_id = bankIdExample.value,
+    trigger_name = ApiTrigger.onCreateTransaction.toString(),
+    url = "https://localhost.openbankproject.com",
+    http_method = "POST",
+    http_protocol = "HTTP/1.1",
+    created_by_user_id = ExampleValue.userIdExample.value
+  )
+
+  val userAuthContextJsonV500 = UserAuthContextJsonV500(
+    user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    user_id = ExampleValue.userIdExample.value,
+    key = "CUSTOMER_NUMBER",
+    value = "78987432",
+    time_stamp = parseDate(timeStampExample.value).getOrElse(sys.error("timeStampExample.value is not validate date format.")),
+    consumer_id = consumerIdExample.value
+  )
+
+  val userAuthContextUpdateJsonV500 = UserAuthContextUpdateJsonV500(
+    user_auth_context_update_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    user_id = ExampleValue.userIdExample.value,
+    key = "CUSTOMER_NUMBER",
+    value = "78987432",
+    status = UserAuthContextUpdateStatus.INITIATED.toString,
+    consumer_id = consumerIdExample.value
+  )
   
   //The common error or success format.
   //Just some helper format to use in Json 

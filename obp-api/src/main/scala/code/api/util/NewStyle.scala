@@ -3,13 +3,12 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.APIFailureNewStyle
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
-import code.api.util.APIUtil.{EntitlementAndScopeStatus, OBPReturnType, afterAuthenticateInterceptResult, canGrantAccessToViewCommon, canRevokeAccessToViewCommon, connectorEmptyResponse, createHttpParamsByUrl, createHttpParamsByUrlFuture, createQueriesByHttpParamsFuture, fullBoxOrException, generateUUID, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil._
 import code.api.util.ApiRole.canCreateAnyTransactionRequest
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
@@ -54,8 +53,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
@@ -64,8 +63,9 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v4_0_0.JSONFactory400
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
@@ -73,6 +73,8 @@ import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceD
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import code.util.Helper.MdcLoggable
+import code.views.system.AccountAccess
+import net.liftweb.mapper.By
 
 object NewStyle extends MdcLoggable{
   lazy val endpoints: List[(String, String)] = List(
@@ -591,15 +593,30 @@ object NewStyle extends MdcLoggable{
     
     def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future{
-        APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) match {
-          case true => Full(true)
-          case false => user.hasOwnerViewAccess(BankIdAccountId(bankAccountId.bankId,bankAccountId.accountId)) match {
-            case true => Full(true)
-            case false => Empty
-          }
+        
+        lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) 
+        
+        lazy val consumerIdFromCallContext = callContext.map(_.consumer.map(_.consumerId.get).getOrElse(""))
+        
+        lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user), consumerIdFromCallContext)
+
+        lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
+        
+        //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
+        if(hasCanCreateAnyTransactionRequestRole) {
+          Full(true) 
+        //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
+        } else if (canAddTransactionRequestToAnyAccount) {
+          Full(true)
+        } else{
+          Empty
         }
       } map {
-        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest")
+        unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest " +
+          s"Current ViewId(${viewId.value})," +
+          s"current UserId(${user.userId})"+
+          s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
+        )
       }
     }
     
@@ -884,16 +901,17 @@ object NewStyle extends MdcLoggable{
 
     def getMetadata(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): Future[CounterpartyMetadata] = {
       Future(Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyId)) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(CounterpartyMetadataNotFound, 400, callContext.map(_.toLight)))
+        x => fullBoxOrException(x ~> APIFailureNewStyle(CounterpartyNotFoundByCounterpartyId, 400, callContext.map(_.toLight)))
       } map { unboxFull(_) }
     }
 
-    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
-      Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i=>
-        (connectorEmptyResponse(i._1, callContext), i._2)
-      } 
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    {
+      Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+          i._2)
+      }
     }
-
 
     def isEnabledTransactionRequests(callContext: Option[CallContext]): Future[Box[Unit]] = Helper.booleanToFuture(failMsg = TransactionRequestsNotEnabled, cc=callContext)(APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false))
 
@@ -1032,18 +1050,14 @@ object NewStyle extends MdcLoggable{
       validateRequestPayload(callContext)(boxResult)
     }
 
-    def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
-      Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
+    def createUserAuthContext(user: User, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
+      Connector.connector.vend.createUserAuthContext(user.userId, key, value, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       } map {
         result =>
           //We will call the `refreshUserAccountAccess` after we successfully create the UserAuthContext
-          // because `createUserAuthContext` is a connector method, here is the entry point for OBP to refreshUserAccountAccess
-          if(callContext.isDefined && callContext.get.user.isDefined) {
-            AuthUser.refreshUser(callContext.get.user.head, callContext)
-          } else {
-            logger.info(s"AuthUser.refreshUserAccountAccess can not be run properly. The user is missing in the current callContext.")   
-          }
+          // because `createUserAuthContext` is a connector method, here is the entry point for OBP to refreshUser
+          AuthUser.refreshUser(user, callContext)
           result
       }
     }
@@ -1063,9 +1077,15 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+    def deleteUserAuthContextById(user: User, userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }map {
+        result =>
+          // We will call the `refreshUserAccountAccess` after we successfully delete the UserAuthContext
+          // because `deleteUserAuthContextById` is a connector method, here is the entry point for OBP to refreshUser
+          AuthUser.refreshUser(user, callContext)
+          result
       }
     }
     
@@ -1172,6 +1192,14 @@ object NewStyle extends MdcLoggable{
           i._2)
       }
     }
+    
+    def deleteCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
+    {
+      Connector.connector.vend.deleteCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$DeleteCounterpartyError Current counterpartyId($counterpartyId) ", 400),
+          i._2)
+      }
+    }
     def getBankAccountFromCounterparty(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean, callContext: Option[CallContext]) : Future[BankAccount] =
     {
       Future{BankAccountX.getBankAccountFromCounterparty(counterparty, isOutgoingAccount)} map {
@@ -1202,6 +1230,92 @@ object NewStyle extends MdcLoggable{
           s"$CounterpartyNotFoundByIban. Please check how do you create Counterparty, " +
             s"set the proper Iban value to `other_account_secondary_routing_address`. Current Iban = $iban. " +
             s"Check also the bankId and the accountId, Current BankId = ${bankId.value}, Current AccountId = ${accountId.value}",
+          404),
+          i._2)
+      }
+    }
+
+    def getOrCreateCounterparty(
+      name: String,
+      description: String,
+      currency: String,
+      createdByUserId: String,
+      thisBankId: String,
+      thisAccountId: String,
+      thisViewId: String,
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String,
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[CounterpartyTrait] =
+    {
+      Connector.connector.vend.getOrCreateCounterparty(
+        name: String,
+        description: String,
+        currency: String,
+        createdByUserId: String,
+        thisBankId: String,
+        thisAccountId: String,
+        thisViewId: String,
+        otherBankRoutingScheme: String,
+        otherBankRoutingAddress: String,
+        otherBranchRoutingScheme: String,
+        otherBranchRoutingAddress: String,
+        otherAccountRoutingScheme: String,
+        otherAccountRoutingAddress: String,
+        otherAccountSecondaryRoutingScheme: String,
+        otherAccountSecondaryRoutingAddress: String,
+        callContext: Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(
+          i._1,
+          callContext,
+          s"$CreateCounterpartyError.",
+          404),
+          i._2)
+      }
+    }
+    
+    def getCounterpartyByRoutings(
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String,
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String,
+      callContext: Option[CallContext]
+    ) : OBPReturnType[CounterpartyTrait] =
+    {
+      Connector.connector.vend.getCounterpartyByRoutings(
+        otherBankRoutingScheme: String,
+        otherBankRoutingAddress: String,
+        otherBranchRoutingScheme: String,
+        otherBranchRoutingAddress: String,
+        otherAccountRoutingScheme: String,
+        otherAccountRoutingAddress: String,
+        otherAccountSecondaryRoutingScheme: String,
+        otherAccountSecondaryRoutingAddress: String,
+        callContext: Option[CallContext]
+      ) map { i =>
+        (unboxFullOrFail(
+          i._1,
+          callContext,
+          s"$CounterpartyNotFoundByRoutings. Current routings: " +
+            s"otherBankRoutingScheme($otherBankRoutingScheme), " +
+            s"otherBankRoutingAddress($otherBankRoutingAddress)"+
+            s"otherBranchRoutingScheme($otherBranchRoutingScheme)"+
+            s"otherBranchRoutingAddress($otherBranchRoutingAddress)"+
+            s"otherAccountRoutingScheme($otherAccountRoutingScheme)"+
+            s"otherAccountRoutingAddress($otherAccountRoutingAddress)"+
+            s"otherAccountSecondaryRoutingScheme($otherAccountSecondaryRoutingScheme)"+
+            s"otherAccountSecondaryRoutingAddress($otherAccountSecondaryRoutingAddress)"+
           404),
           i._2)
       }
@@ -1382,6 +1496,10 @@ object NewStyle extends MdcLoggable{
 
     def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
       Connector.connector.vend.getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
+      }
+    def getBalancingTransaction(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.getBalancingTransaction(transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
       }
 
@@ -3215,6 +3333,18 @@ object NewStyle extends MdcLoggable{
         counterpartyId:String,
         counterpartyName:String
       ), callContext, CreateOrUpdateCounterpartyMetadataError), callContext)}
+    }
+    def deleteMetadata(
+      bankId: BankId, 
+      accountId : AccountId, 
+      counterpartyId:String, 
+      callContext: Option[CallContext]
+    )  : OBPReturnType[Boolean]= {
+      Future{(unboxFullOrFail(Counterparties.counterparties.vend.deleteMetadata(
+        bankId: BankId,
+        accountId : AccountId,
+        counterpartyId:String
+      ), callContext, DeleteCounterpartyMetadataError), callContext)}
     }
 
     def getPhysicalCardsForUser(user : User, callContext: Option[CallContext]) : OBPReturnType[List[PhysicalCard]] = {

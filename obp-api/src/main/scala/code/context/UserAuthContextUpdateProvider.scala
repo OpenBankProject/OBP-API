@@ -21,7 +21,7 @@ object UserAuthContextUpdateProvider extends SimpleInjector {
 }
 
 trait UserAuthContextUpdateProvider {
-  def createUserAuthContextUpdates(userId: String, key: String, value: String): Future[Box[UserAuthContextUpdate]]
+  def createUserAuthContextUpdates(userId: String, consumerId:String, key: String, value: String): Future[Box[UserAuthContextUpdate]]
   def getUserAuthContextUpdates(userId: String): Future[Box[List[UserAuthContextUpdate]]]
   def getUserAuthContextUpdatesBox(userId: String): Box[List[UserAuthContextUpdate]]
   def deleteUserAuthContextUpdates(userId: String): Future[Box[Boolean]]
@@ -30,7 +30,7 @@ trait UserAuthContextUpdateProvider {
 }
 
 class RemotedataUserAuthContextUpdateCaseClasses {
-  case class createUserAuthContextUpdate(userId: String, key: String, value: String)
+  case class createUserAuthContextUpdate(userId: String, consumerId:String, key: String, value: String)
   case class getUserAuthContextUpdates(userId: String)
   case class getUserAuthContextUpdatesBox(userId: String)
   case class deleteUserAuthContextUpdates(userId: String)

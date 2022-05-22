@@ -111,6 +111,14 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
     )
   }
 
+  override def deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[Boolean] = {
+    MappedCounterpartyMetadata.find(
+      By(MappedCounterpartyMetadata.thisBankId, originalPartyBankId.value),
+      By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
+      By(MappedCounterpartyMetadata.counterpartyId, counterpartyMetadataId)
+    ).map(_.delete_!)
+  }
+
   def addMetadata(bankId: BankId, accountId : AccountId): Box[CounterpartyMetadata] = {
     Full(
     MappedCounterpartyMetadata.create
@@ -123,6 +131,10 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
 
   override def getCounterparty(counterpartyId : String): Box[CounterpartyTrait] = {
     MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId))
+  }
+
+  override def deleteCounterparty(counterpartyId : String): Box[Boolean] = {
+    MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId)).map(_.delete_!)
   }
   
   //TODO, here has a problem, MappedCounterparty has no unique constrain on IBan. But we get Counterparty By Iban. For now, we do not support update Counterpary endpoint. Here we only return the latest record.
@@ -141,6 +153,36 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
     )
   }
 
+  override def getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  ): Box[CounterpartyTrait] = {
+    MappedCounterparty.find(
+      By(MappedCounterparty.mOtherBankRoutingScheme,otherBankRoutingScheme),
+      By(MappedCounterparty.mOtherBankRoutingAddress,otherBankRoutingAddress),
+      By(MappedCounterparty.mOtherBranchRoutingScheme,otherBranchRoutingScheme),
+      By(MappedCounterparty.mOtherBranchRoutingAddress,otherBranchRoutingAddress),
+      By(MappedCounterparty.mOtherAccountRoutingScheme,otherAccountRoutingScheme),
+      By(MappedCounterparty.mOtherAccountRoutingAddress,otherAccountRoutingAddress),
+    )
+  }
+
+  override def getCounterpartyBySecondaryRouting(
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String
+  ): Box[CounterpartyTrait] ={
+    MappedCounterparty.find(
+      By(MappedCounterparty.mOtherAccountSecondaryRoutingScheme, otherAccountSecondaryRoutingScheme),
+      By(MappedCounterparty.mOtherAccountSecondaryRoutingAddress, otherAccountSecondaryRoutingAddress),
+    )
+  }
+  
+  
+  
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
     Full(MappedCounterparty.findAll(By(MappedCounterparty.mThisAccountId, thisAccountId.value),
       By(MappedCounterparty.mThisBankId, thisBankId.value),
@@ -439,17 +481,21 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mThisAccountId extends AccountIdString(this)
   object mThisViewId extends MappedString(this, 36)
   object mCounterPartyId extends UUIDString(this)
-  object mOtherAccountRoutingScheme extends MappedString(this, 255)
-  object mOtherAccountRoutingAddress extends MappedString(this, 255)
+
   object mOtherBankRoutingScheme extends MappedString(this, 255)
   object mOtherBankRoutingAddress extends MappedString(this, 255)
   object mOtherBranchRoutingScheme extends MappedString(this, 255)
   object mOtherBranchRoutingAddress extends MappedString(this, 255)
+  object mOtherAccountRoutingScheme extends MappedString(this, 255)
+  object mOtherAccountRoutingAddress extends MappedString(this, 255)
+  
+  object mOtherAccountSecondaryRoutingScheme extends MappedString(this, 255)
+  object mOtherAccountSecondaryRoutingAddress extends MappedString(this, 255)
+  
   object mIsBeneficiary extends MappedBoolean(this)
   object mDescription extends MappedString(this, 36)
   object mCurrency extends MappedString(this, 255)
-  object mOtherAccountSecondaryRoutingScheme extends MappedString(this, 255)
-  object mOtherAccountSecondaryRoutingAddress extends MappedString(this, 255)
+
   object mBespoke extends MappedOneToMany(MappedCounterpartyBespoke, MappedCounterpartyBespoke.mCounterparty, OrderBy(MappedCounterpartyBespoke.id, Ascending))
 
   override def createdByUserId = mCreatedByUserId.get
@@ -458,17 +504,20 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def thisAccountId = mThisAccountId.get
   override def thisViewId = mThisViewId.get
   override def counterpartyId = mCounterPartyId.get
-  override def otherAccountRoutingScheme = mOtherAccountRoutingScheme.get
-  override def otherAccountRoutingAddress: String  = mOtherAccountRoutingAddress.get
+  
   override def otherBankRoutingScheme: String = mOtherBankRoutingScheme.get
+  override def otherBankRoutingAddress: String = mOtherBankRoutingAddress.get
   override def otherBranchRoutingScheme: String = mOtherBranchRoutingScheme.get
   override def otherBranchRoutingAddress: String = mOtherBranchRoutingAddress.get
-  override def otherBankRoutingAddress: String = mOtherBankRoutingAddress.get
+  override def otherAccountRoutingScheme = mOtherAccountRoutingScheme.get
+  override def otherAccountRoutingAddress: String  = mOtherAccountRoutingAddress.get
+  
+  override def otherAccountSecondaryRoutingScheme: String = mOtherAccountSecondaryRoutingScheme.get
+  override def otherAccountSecondaryRoutingAddress: String = mOtherAccountSecondaryRoutingAddress.get
+  
   override def isBeneficiary: Boolean = mIsBeneficiary.get
   override def description: String = mDescription.get
   override def currency: String = mCurrency.toString
-  override def otherAccountSecondaryRoutingScheme: String = mOtherAccountSecondaryRoutingScheme.get
-  override def otherAccountSecondaryRoutingAddress: String = mOtherAccountSecondaryRoutingAddress.get
   override def bespoke: List[CounterpartyBespoke] = 
     CounterpartyBespokes.counterpartyBespokers.vend
       .getCounterpartyBespokesByCounterpartyId(this.id.get)
@@ -478,5 +527,10 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
 }
 
 object MappedCounterparty extends MappedCounterparty with LongKeyedMetaMapper[MappedCounterparty] {
-  override def dbIndexes = UniqueIndex(mCounterPartyId) :: UniqueIndex(mName, mThisBankId, mThisAccountId, mThisViewId) :: super.dbIndexes
+  override def dbIndexes = 
+    UniqueIndex(mCounterPartyId) :: 
+      UniqueIndex(mName, mThisBankId, mThisAccountId, mThisViewId) :: 
+//      UniqueIndex(mOtherBankRoutingScheme,mOtherBankRoutingAddress,mOtherBranchRoutingScheme,mOtherBranchRoutingAddress,mOtherAccountRoutingScheme,mOtherAccountRoutingAddress) :: 
+//      UniqueIndex(mOtherAccountSecondaryRoutingScheme, mOtherAccountSecondaryRoutingAddress) :: 
+      super.dbIndexes
 }

@@ -48,6 +48,9 @@ trait Views {
   def revokeAllAccountAccess(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
   def revokeAccountAccessByUser(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
+  def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean]
+  def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean]
+
   def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def systemView(viewId : ViewId) : Box[View]
   def customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
@@ -168,6 +171,10 @@ class RemotedataViewsCaseClasses {
   case class removeAllViews(bankId: BankId, accountId: AccountId)
 
   case class bulkDeleteAllPermissionsAndViews()
+
+  case class revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String)
+  case class revokeAccessToCustomViewForConsumer(view : View, consumerId : String)
+
 }
 
 object RemotedataViewsCaseClasses extends RemotedataViewsCaseClasses

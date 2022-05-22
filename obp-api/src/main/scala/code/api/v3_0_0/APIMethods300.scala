@@ -1341,10 +1341,7 @@ trait APIMethods300 {
                 fullBoxOrException(Empty ?~! BranchesNotFound)
               case Full((List(), callContext)) =>
                 Full(List())
-              case Full((list, callContext)) =>
-                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
-                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! BranchesNotFoundLicense)
-                else Full(branchesWithLicense)
+              case Full((list, callContext)) => Full(list)
               case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
               case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
             } map { unboxFull(_) } map {
@@ -1465,10 +1462,7 @@ trait APIMethods300 {
                 fullBoxOrException(Empty ?~! atmsNotFound)
               case Full((List(), callContext)) =>
                 Full(List())
-              case Full((list, _)) =>
-                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
-                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
-                else Full(branchesWithLicense)
+              case Full((list, _)) => Full(list)
               case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
               case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
             } map { unboxFull(_) } map {
@@ -1812,7 +1806,7 @@ trait APIMethods300 {
                 val msg = s"$InvalidJsonFormat The Json body should be the $CreateEntitlementRequestJSON "
                 x => unboxFullOrFail(x, callContext, msg)
               }
-              _ <- Future { if (postedData.bank_id == "") Full() else NewStyle.function.getBank(BankId(postedData.bank_id), callContext)}
+              _ <- if (postedData.bank_id == "") Future.successful("") else NewStyle.function.getBank(BankId(postedData.bank_id), callContext)
               
               _ <- Helper.booleanToFuture(failMsg = IncorrectRoleName + postedData.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", "), cc=callContext) {
                 availableRoles.exists(_ == postedData.role_name)

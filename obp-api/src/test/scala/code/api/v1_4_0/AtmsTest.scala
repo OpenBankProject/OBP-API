@@ -230,7 +230,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
       val atms = responseBody.atms
 
       // Order of ATMs in the list is arbitrary
-      atms.size should equal(2)
+      atms.size should equal(3)
       val first = atms(0)
       if(first.id == fakeAtm1.atmId.value) {
         verifySameData(fakeAtm1, first)

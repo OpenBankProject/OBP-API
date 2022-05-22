@@ -12,13 +12,15 @@ class MappedUserAuthContext extends UserAuthContext with LongKeyedMapper[MappedU
   object mUserId extends UUIDString(this)
   object mKey extends MappedString(this, 255)
   object mValue extends MappedString(this, 255)
+  object mConsumerId extends MappedString(this, 255)
 
   override def userId = mUserId.get   
   override def key = mKey.get  
   override def value = mValue.get  
   override def userAuthContextId = mUserAuthContextId.get  
   override def timeStamp = createdAt.get  
-  
+  override def consumerId = mConsumerId.get
+
 }
 
 object MappedUserAuthContext extends MappedUserAuthContext with LongKeyedMetaMapper[MappedUserAuthContext] {

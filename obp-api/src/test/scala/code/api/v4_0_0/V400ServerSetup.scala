@@ -23,17 +23,21 @@ import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.util.ApiShortVersions
 import dispatch.Req
 import net.liftweb.json.Serialization.write
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 
+import java.util.concurrent.TimeUnit
 import scala.util.Random
 import scala.util.Random.nextInt
 
 trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def v4_0_0_Request: Req = baseRequest / "obp" / "v4.0.0"
+  def dynamicEndpoint_Request: Req = baseRequest / "obp" / ApiShortVersions.`dynamic-endpoint`.toString
+  def dynamicEntity_Request: Req = baseRequest / "obp" / ApiShortVersions.`dynamic-entity`.toString
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {
@@ -266,6 +270,10 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     And("We make a request v4.0.0")
     val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" ).POST <@(consumerAndToken)
     val response400 = makePostRequest(request400, write(json))
+    //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+    //it is an asynchronous process, need some time to be done.
+    TimeUnit.SECONDS.sleep(3)
+    
     Then("We should get a 201")
     response400.code should equal(201)
     val account = response400.body.extract[CreateAccountResponseJsonV310]
@@ -350,11 +358,11 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val toAccount = createAccountViaEndpoint(bank.bankId.value, addAccountJson2, user1)
     // Create a custom view
     val customViewJson = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
-    val customView = createViewViaEndpoint(bank.bankId.value, toAccount.account_id, customViewJson, user1)
+    val customView = createViewViaEndpoint(bank.bankId.value, fromAccount.account_id, customViewJson, user1)
     // Grant access to the view
     grantUserAccessToViewViaEndpoint(
       bank.bankId.value,
-      toAccount.account_id,
+      fromAccount.account_id,
       resourceUser1.userId,
       user1,
       PostViewJsonV400(view_id = customView.id, is_system = false)

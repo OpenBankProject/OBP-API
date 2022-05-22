@@ -109,9 +109,9 @@ nav .navbar-collapse.collapse {
 #small-screen-navbar #small-nav-logo{
     width: 74px;
     height: 20px;
-    background-image: url(/media/images/logo.png);
+/*    background-image: url(/media/images/logo.png);
     background-repeat:no-repeat;
-    background-size: 74px 20px;
+    background-size: 74px 20px;*/
     margin: 25px 0;
 }
 #small-screen-navbar #small-nav-logo a{

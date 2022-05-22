@@ -33,12 +33,13 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
-
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.OBP_APIBuilder
+import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
@@ -48,7 +49,8 @@ import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
+import code.api.dynamic.entity.OBPAPIDynamicEntity
 import code.api.{DirectLogin, _}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
@@ -103,8 +105,8 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
@@ -542,7 +544,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getHeadersCommonPart() = headers ::: List((ResponseHeader.`Correlation-Id`, getCorrelationId()))
 
   def getHeaders() = getHeadersCommonPart() ::: getGatewayResponseHeader()
-
   case class CustomResponseHeaders(list: List[(String, String)])
   //This is used for get the value from props `email_domain_to_space_mappings`
   case class EmailDomainToSpaceMapping(
@@ -2444,6 +2445,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
+        case ApiVersion.v5_0_0 => LiftRules.statelessDispatch.append(v5_0_0.OBPAPI5_0_0)
+        case ApiVersion.`dynamic-endpoint` => LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
+        case ApiVersion.`dynamic-entity` => LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
         case ApiVersion.`b1` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
         case version: ScannedApiVersion => LiftRules.statelessDispatch.append(ScannedApis.versionMapScannedApis(version))
         case _ => logger.info(s"There is no ${version.toString}")
@@ -3321,7 +3325,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * to the account specified by parameter bankIdAccountId over the view specified by parameter viewId
    * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
-  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User]): Box[View] = {
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], consumerId: Option[String] = None): Box[View] = {
     val customView = Views.views.vend.customView(viewId, bankIdAccountId)
     customView match { // CHECK CUSTOM VIEWS
       // 1st: View is Pubic and Public views are NOT allowed on this instance.
@@ -3329,7 +3333,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
       // 3rd: The user has account access to this custom view
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => customView
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => customView
       // The user has NO account access via custom view
       case _ =>
         val systemView = Views.views.vend.systemView(viewId)
@@ -3339,7 +3343,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           // 2nd: View is Pubic and Public views are allowed on this instance.
           case Full(v) if(isPublicView(v)) => systemView
           // 3rd: The user has account access to this system view
-          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId)) => systemView
+          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => systemView
           // 4th: The user has firehose access to this system view
           case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
           // 5th: The user has firehose access at a bank to this system view
@@ -4195,4 +4199,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       |* You can define a collection (also known as baskets or buckets) of products using Product Collections.
       |
       """.stripMargin
+
+  val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transaction_request_challenge_ttl", 600)
 }

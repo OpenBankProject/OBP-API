@@ -127,7 +127,7 @@ import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
-import code.webhook.{MappedAccountWebhook, WebhookHelperActors}
+import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
@@ -138,6 +138,7 @@ import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
 import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
+import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.Extraction
 import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc._
@@ -407,7 +408,10 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v3_0_0)
     enableVersionIfAllowed(ApiVersion.v3_1_0)
     enableVersionIfAllowed(ApiVersion.v4_0_0)
+    enableVersionIfAllowed(ApiVersion.v5_0_0)
     enableVersionIfAllowed(ApiVersion.b1)
+    enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
+    enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
     def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
@@ -584,14 +588,33 @@ class Boot extends MdcLoggable {
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
-    //set base localization to english (instead of computer default)
-    Locale.setDefault(Locale.ENGLISH)
-    logger.info("Current Project Locale is :" +Locale.getDefault)
-
-    //override locale calculated from client request with default (until we have translations)
+    val locale = I18NUtil.getLocale()
+    Locale.setDefault(locale)
+    logger.info("Default Project Locale is :" + locale)
+    
+    // Cookie name
+    val localeCookieName = "SELECTED_LOCALE"
     LiftRules.localeCalculator = {
-      case fullReq @ Full(req) => Locale.ENGLISH
-      case _ => Locale.ENGLISH
+      case fullReq @ Full(req) => {
+        // Check against a set cookie, or the locale sent in the request 
+        def currentLocale : Locale = {
+          S.findCookie(localeCookieName).flatMap {
+            cookie => cookie.value.map(I18NUtil.computeLocale)
+          } openOr locale
+        }
+
+        // Check to see if the user explicitly requests a new locale 
+        // In case it's true we use that value to set up a new cookie value
+        S.param("locale") match {
+          case Full(requestedLocale) if requestedLocale != null => {
+            val computedLocale = I18NUtil.computeLocale(requestedLocale)
+            S.addCookie(HTTPCookie(localeCookieName, requestedLocale))
+            computedLocale
+          }
+          case _ => currentLocale
+        }
+      }
+      case _ => locale
     }
 
     //for XSS vulnerability, set X-Frame-Options header as DENY
@@ -700,6 +723,7 @@ class Boot extends MdcLoggable {
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
+      val smallPaymentVerified = Views.views.vend.getOrCreateSystemView(SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -711,6 +735,7 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
+           |System view ${SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID} exists/created at the instance: ${smallPaymentVerified}
            |""".stripMargin
       logger.info(comment)
 
@@ -746,6 +771,14 @@ class Boot extends MdcLoggable {
     if(HydraUtil.mirrorConsumerInHydra) {
       createHydraClients()
     }
+    
+    Props.get("session_inactivity_timeout_in_minutes") match {
+      case Full(x) if tryo(x.toLong).isDefined =>
+        LiftRules.sessionInactivityTimeout.default.set(Full((x.toLong.minutes): Long))
+      case _ =>
+      // Do not change default value
+    }
+    
   }
 
   private def sanityCheckOPropertiesRegardingScopes() = {
@@ -835,8 +868,8 @@ class Boot extends MdcLoggable {
    */
   private def createDefaultBankAndDefaultAccountsIfNotExisting() ={
     val defaultBankId= APIUtil.defaultBankId
-    val incomingAccountId= INCOMING_ACCOUNT_ID
-    val outgoingAccountId= OUTGOING_ACCOUNT_ID
+    val incomingAccountId= INCOMING_SETTLEMENT_ACCOUNT_ID
+    val outgoingAccountId= OUTGOING_SETTLEMENT_ACCOUNT_ID
     
     MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
       case Full(b) =>
@@ -965,6 +998,8 @@ object ToSchemify {
     MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
+    SystemAccountNotificationWebhook,
+    BankAccountNotificationWebhook,
     MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,

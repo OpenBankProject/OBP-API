@@ -112,7 +112,8 @@ case class UserAuthContextCommons(
                                    userId :String,
                                    key :String,
                                    value :String,
-                                   timeStamp :Date) extends UserAuthContext
+                                   timeStamp :Date,
+                                   consumerId :String) extends UserAuthContext
 
 object UserAuthContextCommons extends Converter[UserAuthContext, UserAuthContextCommons]
 
@@ -531,6 +532,7 @@ case class ChallengeCommons(
   override val scaMethod: Option[SCA],
   override val scaStatus: Option[SCAStatus],
   override val authenticationMethodId: Option[String] ,
+  override val attemptCounter: Int  = 0 //NOTE: set the default value here, so do not break current connectors
 ) extends ChallengeTrait
 object ChallengeCommons extends Converter[ChallengeTrait, ChallengeCommons]
 
@@ -649,6 +651,17 @@ case class TransactionRequestTransferToAtm(
 //For COUNTERPATY, it need the counterparty_id to find the toCounterpaty--> toBankAccount
 case class TransactionRequestCounterpartyId (counterparty_id : String)
 
+case class TransactionRequestSimple (
+  otherBankRoutingScheme: String,
+  otherBankRoutingAddress: String,
+  otherBranchRoutingScheme: String,
+  otherBranchRoutingAddress: String,
+  otherAccountRoutingScheme: String,
+  otherAccountRoutingAddress: String,
+  otherAccountSecondaryRoutingScheme: String,
+  otherAccountSecondaryRoutingAddress: String
+)
+
 case class TransactionRequestTransferToAccount(
                                                 value: AmountOfMoneyJsonV121,
                                                 description: String,
@@ -705,6 +718,8 @@ case class TransactionRequestBodyAllTypes (
                                             to_sepa: Option[TransactionRequestIban],
                                             @optional
                                             to_counterparty: Option[TransactionRequestCounterpartyId],
+                                            @optional
+                                            to_simple: Option[TransactionRequestSimple] = None,
                                             @optional
                                             to_transfer_to_phone: Option[TransactionRequestTransferToPhone] = None, //TODO not stable
                                             @optional

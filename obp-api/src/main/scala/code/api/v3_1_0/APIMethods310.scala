@@ -1424,8 +1424,8 @@ trait APIMethods310 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
-            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
-            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(userId, postedData.key, postedData.value, callContext)
+            (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key, postedData.value, callContext)
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`201`(callContext))
           }
@@ -1538,8 +1538,8 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, canDeleteUserAuthContext, callContext)
-            (_, callContext) <- NewStyle.function.findByUserId(userId, callContext)
-            (userAuthContext, callContext) <- NewStyle.function.deleteUserAuthContextById(userAuthContextId, callContext)
+            (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.deleteUserAuthContextById(user, userAuthContextId, callContext)
           } yield {
             (Full(userAuthContext), HttpCode.`200`(callContext))
           }
@@ -3535,9 +3535,14 @@ trait APIMethods310 {
                 postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
                   json.extract[PostConsentEmailJsonV310]
                 }
-                params = PlainMailBodyType(challengeText) :: List(To(postConsentEmailJson.email))
-                _ <- Future{Mailer.sendMail(From("challenge@tesobe.com"), Subject("OBP Consent Challenge"), params :_*)}
-              } yield Future{true}
+                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                  StrongCustomerAuthentication.EMAIL, 
+                  postConsentEmailJson.email, 
+                  Some("OBP Consent Challenge"),
+                  challengeText, 
+                  callContext
+                )
+              } yield Future{status}
             case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
               for {
                 failMsg <- Future {
@@ -3547,27 +3552,15 @@ trait APIMethods310 {
                   json.extract[PostConsentPhoneJsonV310]
                 }
                 phoneNumber = postConsentPhoneJson.phone_number
-                failMsg =s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-                smsProviderApiKey <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                  APIUtil.getPropsValue("sca_phone_api_key").openOrThrowException(s"")
-                }
-                failMsg = s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-                smsProviderApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                   APIUtil.getPropsValue("sca_phone_api_secret").openOrThrowException(s"")
-                }
-                client = new NexmoClient.Builder()
-                  .apiKey(smsProviderApiKey)
-                  .apiSecret(smsProviderApiSecret)
-                  .build();
-                messageText = challengeText;
-                message = new TextMessage("OBP-API", phoneNumber, messageText);
-                response <- Future{client.getSmsClient().submitMessage(message)}
-                failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first." 
-                _ <- Helper.booleanToFuture(failMsg, cc=callContext) {
-                  response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
-                }
-              } yield Future{true}
-            case _ =>Future{true}
+                (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+                  StrongCustomerAuthentication.SMS, 
+                  phoneNumber, 
+                  None,
+                  challengeText, 
+                  callContext
+                )
+              } yield Future{status}
+            case _ =>Future{"Success"}
             }
           } yield {
             (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
@@ -3790,11 +3783,12 @@ trait APIMethods310 {
               json.extract[PostUserAuthContextUpdateJsonV310]
             }
             (userAuthContextUpdate, callContext) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, callContext)
             (_, callContext) <-
               userAuthContextUpdate.status match {
                 case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString => 
                   NewStyle.function.createUserAuthContext(
-                    userAuthContextUpdate.userId, 
+                    user, 
                     userAuthContextUpdate.key, 
                     userAuthContextUpdate.value, 
                     callContext).map(x => (Some(x._1), x._2))
@@ -3807,7 +3801,7 @@ trait APIMethods310 {
                   NewStyle.function.getOCreateUserCustomerLink(
                     bankId,
                     userAuthContextUpdate.value, // Customer number
-                    userAuthContextUpdate.userId, 
+                    user.userId, 
                     callContext
                   )
                 case _ =>
@@ -4638,7 +4632,7 @@ trait APIMethods310 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(canUpdateCustomerCreditRatingAndSource :: Nil)
+      Some(canUpdateCustomerCreditRatingAndSource :: canUpdateCustomerCreditRatingAndSourceAtAnyBank :: Nil)
     )
 
     lazy val updateCustomerCreditRatingAndSource : OBPEndpoint = {
@@ -4647,7 +4641,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canUpdateCustomerCreditRatingAndSource, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(bankId.value, u.userId, List(canUpdateCustomerCreditRatingAndSource,canUpdateCustomerCreditRatingAndSourceAtAnyBank), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutUpdateCustomerCreditRatingAndSourceJsonV310 "
             putData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutUpdateCustomerCreditRatingAndSourceJsonV310]

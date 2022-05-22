@@ -113,16 +113,19 @@ Berlin 13359, Germany
 							<a id ="navitem-logo" class="navlink " href="/" ><img src="/media/images/logo.png" alt="homepage logo"></a>
 						</li>
 						<li class="navitem">
-							<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API Explorer</a>
+							<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">
+								<span class="lift:Loc.api_explorer">API Explorer</span></a>
 						</li>
 						<li data-lift="Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true" class="navitem">
 							<a id ="get-api-key-link" class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
 						</li>
 						<li class="navitem">
-							<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">Introduction</a>
+							<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">
+								<span class="lift:Loc.introduction">Introduction</span></a>
 						</li>
 						<li class="navitem">
-							<a class="navlink" id="technical-faqs-anchor" data-lift="WebUI.technicalFaqsAnchor" href="">Support</a>
+							<a class="navlink" id="technical-faqs-anchor" data-lift="WebUI.technicalFaqsAnchor" href="">
+								<span class="lift:Loc.support">Support</span></a>
 						</li>
 					</ul>
 					<ul class="nav navbar-nav navbar-right">
@@ -130,7 +133,7 @@ Berlin 13359, Germany
 						<li data-lift="Nav.item?name=Login" class="navitem">
 							<!-- LOGGED OUT -->
 							<p>
-								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link">Register</a><a data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>
+								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link"><span class="lift:Loc.register">Register</span></a><a data-lift="Login.loggedOut" href="#" class="btn btn-danger login"><span class="lift:Loc.logon">Log on</span></a>
 							</p>
 						</li>
 						<li class="navitem" data-lift="Login.loggedIn" >
@@ -143,7 +146,9 @@ Berlin 13359, Germany
 		</nav>
 		<div id="small-screen-navbar">
 			<button tabindex="0" id="small-nav-collapse" onclick="openNav()" aria-label ="Open Navigation" aria-hidden="false"></button>
-			<div id="small-nav-logo"><a href="/" aria-label="HomePage Logo"></a></div>
+			<div id="small-nav-logo" data-lift="WebUI.headerLogoLeft">
+				<a href="/" aria-label="HomePage Logo"><img src="" class="logo-responsive-design-mobile"></a>
+			</div>
 			<div id="small-nav-log-on-button" data-lift="Nav.item?name=Login"> 
 				<a data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>
 			</div>
@@ -151,7 +156,9 @@ Berlin 13359, Germany
 		<div id="obp-sidebar" class="sidebar">
 			<div id="small-screen-navbar">
 				<button tabindex="0" id="small-nav-cross" onclick="closeNav()" aria-hidden="true" aria-label ="Close Navigation"></button>
-				<div id="small-nav-logo"><a href="/" aria-label="HomePage Logo"></a></div>
+				<div id="small-nav-logo" data-lift="WebUI.headerLogoLeft">
+					<a href="/" aria-label="HomePage Logo"><img src="" class="logo-responsive-design-mobile"></a>
+				</div>
 				<div id="small-nav-log-on-button" data-lift="Nav.item?name=Login">
 					<a data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>
 				</div>

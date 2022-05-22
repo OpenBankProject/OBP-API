@@ -366,6 +366,10 @@ trait View {
   def canAddPrivateAlias: Boolean
 
   def canAddCounterparty: Boolean
+  
+  def canGetCounterparty: Boolean
+  
+  def canDeleteCounterparty: Boolean
 
   def canDeleteCorporateLocation: Boolean
 

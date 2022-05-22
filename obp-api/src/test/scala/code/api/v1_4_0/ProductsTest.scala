@@ -128,7 +128,7 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
       val products = responseBody.products
 
       // Order of Products in the list is arbitrary
-      products.size should equal(2)
+      products.size should equal(3)
       val first = products(0)
       if (first.code == fakeProduct1.code.value) {
         verifySameData(fakeProduct1, first)

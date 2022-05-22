@@ -90,7 +90,7 @@ class MappedAccountWebhook extends AccountWebhook with LongKeyedMapper[MappedAcc
   object mBankId extends UUIDString(this)
   object mAccountId extends AccountIdString(this)
   object mTriggerName extends MappedString(this, 64)
-  object mUrl extends MappedString(this, 64)
+  object mUrl extends MappedString(this, 1024)
   object mHttpMethod extends MappedString(this, 64)
   object mHttpProtocol extends MappedString(this, 64)
   object mCreatedByUserId extends UUIDString(this)

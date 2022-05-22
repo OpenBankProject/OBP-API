@@ -637,11 +637,6 @@ trait APIMethods210 {
                 existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
               }
               
-              //Check the allowed attemps, Note: not support yet, the default value is 3
-              _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}", cc=callContext) {
-                existingTransactionRequest.challenge.allowed_attempts > 0
-              }
-
               //Check the challenge type, Note: not support yet, the default value is SANDBOX_TAN
               _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ", cc=callContext) {
                 existingTransactionRequest.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString

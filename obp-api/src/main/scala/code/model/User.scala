@@ -57,16 +57,39 @@ case class UserExtended(val user: User) extends MdcLoggable {
     * But it need the view object in the parameters.   
     * @param view the view object, need check the existence before calling the method
     * @param bankIdAccountId for the system view there is not ids in the view, so we need get it from parameters.
+    * @param consumerId the consumerId, we will check if any accountAccess contains this consumerId or not.
     * @return if has the input view access, return true, otherwise false.
-    */
-  final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId): Boolean ={
+    */ 
+  final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, consumerId:Option[String] = None): Boolean ={
     val viewDefinition = view.asInstanceOf[ViewDefinition]
-    !(AccountAccess.count(
-      By(AccountAccess.user_fk, this.userPrimaryKey.value), 
-      By(AccountAccess.view_fk, viewDefinition.id),
-      By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
-      By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-    ) == 0)
+    
+    val consumerAccountAccess = {
+      //If we find the AccountAccess by consumerId, this mean the accountAccess already assigned to some consumers
+      val explictConsumerHasAccountAccess = if(consumerId.isDefined){
+        AccountAccess.find(
+          By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
+          By(AccountAccess.account_id, bankIdAccountId.accountId.value),
+          By(AccountAccess.view_fk, viewDefinition.id),
+          By(AccountAccess.user_fk, this.userPrimaryKey.value),
+          By(AccountAccess.consumer_id, consumerId.get)).isDefined
+      } else {
+        false
+      }
+
+      if(explictConsumerHasAccountAccess) {
+        true
+      }else{
+      //If we can not find accountAccess by consumerId, then we will find AccountAccess by default "ALL_CONSUMERS" , this mean the accountAccess can be used for all consumers
+        AccountAccess.find(
+          By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
+          By(AccountAccess.account_id, bankIdAccountId.accountId.value),
+          By(AccountAccess.view_fk, viewDefinition.id),
+          By(AccountAccess.user_fk, this.userPrimaryKey.value),
+          By(AccountAccess.consumer_id, ALL_CONSUMERS)
+        ).isDefined
+      }
+    }
+    consumerAccountAccess
   }
 
   final def checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId: BankIdAccountId) = {

@@ -1,26 +1,19 @@
 package code.api.util
+
 import code.api.{APIFailureNewStyle, JsonResponseException}
-import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
-import code.api.util.NewStyle.HttpCode
-import code.api.v4_0_0.JSONFactory400
-import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicCompileEndpoint}
-import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
-import com.openbankproject.commons.ExecutionContext
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.JsonResponse
+
 import net.liftweb.json.{Extraction, JValue, prettyRender}
 import org.apache.commons.lang3.StringUtils
 import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
-
-import java.lang.reflect.ReflectPermission
-import java.net.NetPermission
 import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
-import java.util.{PropertyPermission, UUID}
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
 import java.util.regex.Pattern
@@ -28,7 +21,6 @@ import javax.script.ScriptEngineManager
 import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
-import scala.reflect.api
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
 import scala.runtime.NonLocalReturnControl
@@ -246,7 +238,7 @@ object DynamicUtil {
       |import code.api.util.ErrorMessages._
       |import code.api.util.ExampleValue._
       |import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-      |import code.api.v4_0_0.dynamic.MockResponseHolder
+      |import code.api.dynamic.endpoint.helper.MockResponseHolder
       |import code.bankconnectors._
       |import code.customer.internalMapping.MappedCustomerIdMappingProvider
       |import code.kafka.KafkaHelper
@@ -278,8 +270,8 @@ object DynamicUtil {
       |import code.api.util.NewStyle.HttpCode
       |import code.api.util._
       |import code.api.v4_0_0.JSONFactory400
-      |import code.api.v4_0_0.dynamic.{CompiledObjects, DynamicCompileEndpoint}
-      |import code.api.v4_0_0.dynamic.practise.PractiseEndpoint
+      |import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicCompileEndpoint}
+      |import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
       |import com.openbankproject.commons.ExecutionContext
       |import code.api.util.CustomJsonFormats
       |import com.openbankproject.commons.model.BankId

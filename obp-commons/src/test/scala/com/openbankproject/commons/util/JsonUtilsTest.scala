@@ -1,11 +1,16 @@
 package com.openbankproject.commons.util
 
+import net.liftweb.common.Full
 import net.liftweb.json
 
 import java.util.Date
 import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.Formats
+import net.liftweb.json._
+import net.liftweb.json.JsonAST.JValue
 import org.scalatest.{FlatSpec, Matchers, Tag}
+
+import java.text.SimpleDateFormat
+import scala.collection.immutable.{List, Nil}
 
 class JsonUtilsTest extends FlatSpec with Matchers {
   object FunctionsTag extends Tag("JsonUtils")
@@ -40,6 +45,82 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     names should contain ("boolean")
     names should contain ("nestField")
     names should not contain ("nestField1")
+  }  
+  
+  "deleteFieldRec" should "work " taggedAs FunctionsTag in {
+
+    case class NestNestClass(nestNestField: String)
+    case class NestClass(nestField: String, nestNestClass: NestNestClass)
+    case class TestObject(
+      stringField: String,
+      nestClass: NestClass,
+      date: Date,
+      boolean: Boolean
+    )
+
+    val DateWithDay = "yyyy-MM-dd"
+    val DateWithDay2 = "yyyyMMdd"
+    val DateWithDay3 = "dd/MM/yyyy"
+    val DateWithMinutes = "yyyy-MM-dd'T'HH:mm'Z'"
+    val DateWithSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+    val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+    val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ" //?? what does this `Rollback` mean ??
+
+    val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
+    val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
+    val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
+    val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
+
+    val DateWithDayExampleString: String = "2017-09-19"
+    val DateWithSecondsExampleString: String = "2017-09-19T02:31:05Z"
+    val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
+    val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
+    
+    
+    val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)
+    val DateWithSecondsExampleObject = DateWithSecondsFormat.parse(DateWithSecondsExampleString)
+    val DateWithMsExampleObject = DateWithMsFormat.parse(DateWithMsExampleString)
+    val DateWithMsRollbackExampleObject = DateWithMsRollbackFormat.parse(DateWithMsRollbackExampleString)
+    
+    
+    val testObject = TestObject(
+      "1",
+      NestClass(
+        "1", 
+        NestNestClass("2")
+      ),
+      DateWithSecondsExampleObject,
+      true
+    )
+
+    implicit def formats: Formats = net.liftweb.json.DefaultFormats
+
+    val excludedFieldValues = Full(s"""["$DateWithSecondsExampleString", "", null, [], {}]""").map[JArray](it => json.parse(it).asInstanceOf[JArray])
+
+    val jsonValue = excludedFieldValues match {
+      case Full(JArray(arr:List[JValue])) =>
+        JsonUtils.deleteFieldRec(Extraction.decompose(testObject))(v => arr.contains(v.value))
+      case _ => testObject
+    }
+    jsonValue.toString.contains(s"$DateWithSecondsExampleString") should be (false)
+    
+    
+    val jsonString = """{"metadata": {}}"""
+    
+    
+    val jsonValue2 = parse(jsonString)
+
+
+    val jsonValue2Removed = excludedFieldValues match {
+      case Full(JArray(arr:List[JValue])) =>
+        JsonUtils.deleteFieldRec(Extraction.decompose(jsonValue2))(v => arr.contains(v.value))
+      case _ => testObject
+    }
+
+    jsonValue2Removed.toString contains "{}" should be (false)
+
+
+  
   }
 
   def toCaseClass(str: String, typeNamePrefix: String = ""): String = JsonUtils.toCaseClasses(json.parse(str), typeNamePrefix)

@@ -558,6 +558,8 @@ trait Connector extends MdcLoggable {
   def getCounterpartyByCounterpartyIdLegacy(counterpartyId: CounterpartyId, callContext: Option[CallContext]): Box[(CounterpartyTrait, Option[CallContext])]= Failure(setUnimplementedError)
 
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def deleteCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
 
   /**
@@ -567,6 +569,37 @@ trait Connector extends MdcLoggable {
   def getCounterpartyByIban(iban: String, callContext: Option[CallContext]) : OBPReturnType[Box[CounterpartyTrait]] = Future {(Failure(setUnimplementedError), callContext)}
 
   def getCounterpartyByIbanAndBankAccountId(iban: String, bankId: BankId, accountId: AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[CounterpartyTrait]] = Future {(Failure(setUnimplementedError), callContext)}
+  
+  def getOrCreateCounterparty(
+    name: String,
+    description: String,
+    currency: String,
+    createdByUserId: String,
+    thisBankId: String,
+    thisAccountId: String,
+    thisViewId: String,
+    other_bank_routing_scheme: String,
+    other_bank_routing_address: String,
+    other_branch_routing_scheme: String,
+    other_branch_routing_address: String,
+    other_account_routing_scheme: String,
+    other_account_routing_address: String,
+    other_account_secondary_routing_scheme: String,
+    other_account_secondary_routing_address: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]] = Future {(Failure(setUnimplementedError), callContext)}  
+  
+  def getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String,
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[CounterpartyTrait]] = Future {(Failure(setUnimplementedError), callContext)}
 
   def getCounterpartiesLegacy(thisBankId: BankId, thisAccountId: AccountId, viewId :ViewId, callContext: Option[CallContext] = None): Box[(List[CounterpartyTrait], Option[CallContext])]= Failure(setUnimplementedError)
 
@@ -739,6 +772,8 @@ trait Connector extends MdcLoggable {
 
   def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId,
                                      callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]]= Future{(Failure(setUnimplementedError), callContext)}
+  def getBalancingTransaction(transactionId: TransactionId,
+                              callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]]= Future{(Failure(setUnimplementedError), callContext)}
 
   protected def makePaymentImpl(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(setUnimplementedError)
 
@@ -2514,4 +2549,12 @@ trait Connector extends MdcLoggable {
 
   def checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = Future{(Failure(setUnimplementedError), callContext)}
 
+  def sendCustomerNotification(
+    scaMethod: StrongCustomerAuthentication,
+    recipient: String, 
+    subject: Option[String], //Only for EMAIL, SMS do not need it, so here it is Option
+    message: String, 
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[String]] = Future{(Failure(setUnimplementedError), callContext)}
+  
 }

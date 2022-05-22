@@ -15,9 +15,9 @@ class RemotedataUserAuthContextUpdateActor extends Actor with ObpActorHelper wit
 
   def receive = {
 
-    case cc.createUserAuthContextUpdate(userId: String, key: String, value: String) =>
+    case cc.createUserAuthContextUpdate(userId: String, consumerId:String,  key: String, value: String) =>
       logger.debug("createUserAuthContext(" + userId + ", " + key + ", " + value + ")")
-      mapper.createUserAuthContextUpdates(userId, key, value) pipeTo sender
+      mapper.createUserAuthContextUpdates(userId,consumerId, key, value) pipeTo sender
 
     case cc.getUserAuthContextUpdates(userId: String) =>
       logger.debug("getUserAuthContexts(" + userId + ")")

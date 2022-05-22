@@ -1,7 +1,7 @@
 package code.api.v4_0_0
 
 import code.DynamicData.DynamicDataT
-import code.api.v4_0_0.dynamic.DynamicEndpointHelper
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Formats, JArray, prettyRender}

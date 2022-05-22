@@ -28,8 +28,16 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
     (actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[Box[CounterpartyMetadata]]
   )
 
+  override def deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[Boolean] = getValueFromFuture(
+    (actor ? cc.deleteMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[Box[Boolean]]
+  )
+
   override def getCounterparty(counterpartyId: String): Box[CounterpartyTrait] = getValueFromFuture(
     (actor ? cc.getCounterparty(counterpartyId: String)).mapTo[Box[CounterpartyTrait]]
+  )
+
+  override def deleteCounterparty(counterpartyId : String): Box[Boolean]= getValueFromFuture(
+    (actor ? cc.deleteCounterparty(counterpartyId: String)).mapTo[Box[Boolean]]
   )
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = getValueFromFuture(
@@ -42,6 +50,34 @@ object RemotedataCounterparties extends ObpActorInit with Counterparties {
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = getValueFromFuture(
     (actor ? cc.getCounterparties(thisBankId, thisAccountId, viewId)).mapTo[Box[List[CounterpartyTrait]]]
+  )
+
+  override def getCounterpartyByRoutings(
+    otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String
+  ): Box[CounterpartyTrait] = getValueFromFuture(
+    (actor ? cc.getCounterpartyByRoutings(
+      otherBankRoutingScheme: String,
+      otherBankRoutingAddress: String,
+      otherBranchRoutingScheme: String,
+      otherBranchRoutingAddress: String,
+      otherAccountRoutingScheme: String,
+      otherAccountRoutingAddress: String
+    )).mapTo[Box[CounterpartyTrait]]
+  )
+
+  override def getCounterpartyBySecondaryRouting(
+    otherAccountSecondaryRoutingScheme: String,
+    otherAccountSecondaryRoutingAddress: String
+  ): Box[CounterpartyTrait] = getValueFromFuture(
+    (actor ? cc.getCounterpartyBySecondaryRouting(
+      otherAccountSecondaryRoutingScheme: String,
+      otherAccountSecondaryRoutingAddress: String
+    )).mapTo[Box[CounterpartyTrait]]
   )
   
   override def createCounterparty(

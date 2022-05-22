@@ -9,6 +9,7 @@ import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJ
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization.write
 
+import java.util.concurrent.TimeUnit
 import scala.util.Random
 
 class AccountTest extends V220ServerSetup with DefaultUsers {
@@ -49,6 +50,9 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
       And("We should get a 200")
       responsePut.code should equal(200)
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
 
       When("We make the authenticated access request")
       val requestGetAll = (v2_2Request / "accounts").GET <@ (user1)
@@ -92,6 +96,10 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val accountPutJSON = createAccountJSONV220
       val requestPut = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
+
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
 
       And("We should get a 200")
       responsePut.code should equal(200)
@@ -155,6 +163,10 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val accountPutJSON = createAccountJSONV220
       val requestPut = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
+
+      //for create account endpoint, we need to wait for `setAccountHolderAndRefreshUserAccountAccess` method, 
+      //it is an asynchronous process, need some time to be done.
+      TimeUnit.SECONDS.sleep(2)
 
       Then("we get the account access for this account")
       val accountViewsRequest = v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1 / "views" <@(user1)

@@ -7,10 +7,10 @@ import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import code.actorsystem.ObpLookupSystem
-import code.api.util.ApiTrigger.{OnBalanceChange, OnCreditTransaction, OnDebitTransaction}
+import code.api.util.ApiTrigger.{OnBalanceChange, OnCreateTransaction, OnCreditTransaction, OnDebitTransaction}
 import code.api.util.{ApiTrigger, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
-import code.webhook.WebhookActor.{WebhookFailure, WebhookRequest, WebhookResponse}
+import code.webhook.WebhookActor.{AccountNotificationWebhookRequest, WebhookFailure, WebhookRequest, WebhookRequestTrait, WebhookResponse}
 import net.liftweb
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.By
@@ -41,8 +41,9 @@ object WebhookHttpClient extends MdcLoggable {
     *           and then send result of event to the Actor:
     *         2. requestActor ! WebhookResponse(res.status.toString(), request)
     */
-  def startEvent(request: WebhookRequest): List[Unit] = {
-
+  def startEvent(request: WebhookRequestTrait): List[Unit] = {
+    logger.debug(s"Query table MappedAccountWebhook by mIsActive, mBankId, mAccountId, mTriggerName: true, ${request.bankId}, ${request.accountId}, ${request.trigger.toString()}" )
+    logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait).request.eventId: " + request.eventId)
     MappedAccountWebhook.findAll(
       By(MappedAccountWebhook.mIsActive, true), 
       By(MappedAccountWebhook.mBankId, request.bankId), 
@@ -51,7 +52,46 @@ object WebhookHttpClient extends MdcLoggable {
     ) map {
       i =>
         logEvent(request)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) i.url: " + i.url)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) i.httpMethod: " + i.httpMethod)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) i.httpProtocol: " + i.httpProtocol)
+        val payload = getEventPayload(request)
+        logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) payload: " + payload.toString)
         makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, getEventPayload(request)), request)
+    }
+  }
+
+  def startEvent(request: AccountNotificationWebhookRequest): List[Unit] = {
+
+    val accountWebhooks = {
+      logger.debug("Finding BankAccountNotificationWebhook with Triggername = " + request.trigger.toString())
+      val bankLevelWebhooks = BankAccountNotificationWebhook.findAll(
+        By(BankAccountNotificationWebhook.BankId, request.bankId),
+        By(BankAccountNotificationWebhook.TriggerName, request.trigger.toString())
+      )
+      logger.debug(s"Found ${bankLevelWebhooks.size} BankAccountNotificationWebhook with Triggername = " + request.trigger.toString())
+      
+      logger.debug("Finding SystemAccountNotificationWebhook with Triggername = " + request.trigger.toString())
+      val systemLevelWebhooks = SystemAccountNotificationWebhook.findAll(
+        By(SystemAccountNotificationWebhook.TriggerName, request.trigger.toString())
+      )
+      logger.debug(s"Found ${systemLevelWebhooks.size} SystemAccountNotificationWebhook with Triggername = " + request.trigger.toString())
+      
+      bankLevelWebhooks ++ systemLevelWebhooks
+    }
+    
+    logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest).request.eventId: " + request.eventId)
+    logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest).accountWebhooks: " + accountWebhooks)
+    accountWebhooks map {
+      i =>{
+        logEvent(request)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) i.url: " + i.url)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) i.httpMethod: " + i.httpMethod)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) i.httpProtocol: " + i.httpProtocol)
+        val payload = getEventPayload(request)
+        logger.debug("WebhookHttpClient.startEvent(AccountNotificationWebhookRequest) payload: " + payload.toString)
+        makeRequest(getHttpRequest(i.url, i.httpMethod, i.httpProtocol, payload), request)
+      }
     }
   }
 
@@ -67,9 +107,9 @@ object WebhookHttpClient extends MdcLoggable {
     * }
     * 
     */
-  private def getEventPayload(request: WebhookRequest): RequestEntity = {
+  private def getEventPayload(request: WebhookRequestTrait): RequestEntity = {
     request.trigger match {
-      case OnBalanceChange() | OnCreditTransaction() | OnDebitTransaction() =>
+      case OnBalanceChange() | OnCreditTransaction() | OnDebitTransaction() | OnCreateTransaction() =>
         implicit val formats = CustomJsonFormats.formats
         val json = liftweb.json.compactRender(Extraction.decompose(request.toEventPayload))
         val entity: RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
@@ -120,14 +160,20 @@ object WebhookHttpClient extends MdcLoggable {
     }
   }
   
-  private def logEvent(request: WebhookRequest): Unit = {
+  private def logEvent(request: WebhookRequestTrait): Unit = {
     logger.debug("TRIGGER: " + request.trigger)
     logger.debug("EVENT_ID: " + request.eventId)
     logger.debug("BANK_ID: " + request.bankId)
     logger.debug("ACCOUNT_ID: " + request.accountId)
-    logger.debug("AMOUNT: " + request.amount)
-    logger.debug("BALANCE: " + request.balance)
-  }
+    if (request.isInstanceOf[WebhookRequest]){
+      logger.debug("AMOUNT: " + request.asInstanceOf[WebhookRequest].amount )
+      logger.debug("BALANCE: " + request.asInstanceOf[WebhookRequest].balance)
+    }else if (request.isInstanceOf[AccountNotificationWebhookRequest]) {
+      logger.debug("TRANSACTION_ID: " + request.asInstanceOf[AccountNotificationWebhookRequest].transactionId)
+      logger.debug("RELATED_ENTITIES: " + request.asInstanceOf[AccountNotificationWebhookRequest].relatedEntities)
+    }else{
+    }
+  } 
     
 
   lazy implicit val system = ObpLookupSystem.obpLookupSystem
@@ -139,7 +185,7 @@ object WebhookHttpClient extends MdcLoggable {
   // We need to respond to it after we finish an event.
   lazy val requestActor = ObpLookupSystem.getWebhookActor()
   
-  private def makeRequest(httpRequest: HttpRequest, request: WebhookRequest): Unit = {
+  private def makeRequest(httpRequest: HttpRequest, request: WebhookRequestTrait): Unit = {
     makeHttpRequest(httpRequest).onComplete {
         case Success(res@HttpResponse(status, headers, entity, protocol)) =>
           requestActor ! WebhookResponse(status.toString(), request)

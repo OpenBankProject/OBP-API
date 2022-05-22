@@ -8,11 +8,13 @@ import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
+import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
+import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper, DynamicEntityInfo}
 import code.api.util.APIUtil.{fullBoxOrException, _}
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
 import code.api.util.ApiTag._
 import code.api.util.DynamicUtil.Validation
-import code.api.util.ErrorMessages._
+import code.api.util.ErrorMessages.{BankNotFound, _}
 import code.api.util.ExampleValue._
 import code.api.util.Glossary.getGlossaryItem
 import code.api.util.NewStyle.HttpCode
@@ -32,9 +34,8 @@ import code.api.v2_1_0._
 import code.api.v3_0_0.{CreateScopeJson, JSONFactory300}
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400._
-import code.api.v4_0_0.dynamic.DynamicEndpointHelper.DynamicReq
-import code.api.v4_0_0.dynamic._
-import code.api.v4_0_0.dynamic.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
+import code.api.dynamic.endpoint.helper._
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
@@ -67,6 +68,7 @@ import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
+import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -355,6 +357,7 @@ trait APIMethods400 {
         $UserNotLoggedIn,
         $BankNotFound,
         $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -366,8 +369,43 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "double-entry-transaction" :: Nil JsonGet _ => {
         cc =>
           for {
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             (_, callContext) <- NewStyle.function.getTransaction(bankId, accountId, transactionId, cc.callContext)
             (doubleEntryTransaction, callContext) <- NewStyle.function.getDoubleEntryBookTransaction(bankId, accountId, transactionId, callContext)
+          } yield {
+            (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    staticResourceDocs += ResourceDoc(
+      getBalancingTransaction,
+      implementedInApiVersion,
+      nameOf(getBalancingTransaction),
+      "GET",
+      "/transactions/TRANSACTION_ID/balancing-transaction",
+      "Get Balancing Transaction",
+      s"""Get Balancing Transaction
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      doubleEntryTransactionJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagTransaction, apiTagNewStyle),
+      Some(List())
+    )
+
+    lazy val getBalancingTransaction : OBPEndpoint = {
+      case "transactions" :: TransactionId(transactionId) :: "balancing-transaction" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (doubleEntryTransaction, callContext) <- NewStyle.function.getBalancingTransaction(transactionId, cc.callContext)
           } yield {
             (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
           }
@@ -713,6 +751,43 @@ trait APIMethods400 {
       ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
 
+    // SIMPLE
+    staticResourceDocs += ResourceDoc(
+      createTransactionRequestSimple,
+      implementedInApiVersion,
+      nameOf(createTransactionRequestSimple),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SIMPLE/transaction-requests",
+      "Create Transaction Request (SIMPLE)",
+      s"""
+         |Special instructions for SIMPLE:
+         |
+         |You can transfer money to the Bank Account Number or Iban directly. 
+         |
+         |$transactionRequestGeneralText
+         |
+       """.stripMargin,
+      transactionRequestBodySimpleJsonV400,
+      transactionRequestWithChargeJSON400,
+      List(
+        $UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        AccountNotFound,
+        $BankAccountNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
+
 
     val lowAmount = AmountOfMoneyJsonV121("EUR", "12.50")
     val sharedChargePolicy = ChargePolicy.withName("SHARED")
@@ -840,6 +915,7 @@ trait APIMethods400 {
     lazy val createTransactionRequestCounterparty = createTransactionRequest
     lazy val createTransactionRequestRefund = createTransactionRequest
     lazy val createTransactionRequestFreeForm = createTransactionRequest
+    lazy val createTransactionRequestSimple = createTransactionRequest
 
     // This handles the above cases
     lazy val createTransactionRequest: OBPEndpoint = {
@@ -859,11 +935,12 @@ trait APIMethods400 {
             account = BankIdAccountId(bankId, accountId)
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, callContext)
 
-            _ <- if (u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId))) Future.successful(Full(Unit))
-            else NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
-
-            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'", cc=callContext) {
+            _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'. Current Sandbox does not support it. ", cc=callContext) {
               APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
+            }
+
+            transactionRequestTypeValue <- NewStyle.function.tryons(s"$InvalidTransactionRequestType: '${transactionRequestType.value}'. OBP does not support it.", 400, callContext) {
+              TransactionRequestTypes.withName(transactionRequestType.value)
             }
 
             // Check the input JSON format, here is just check the common parts of all four types
@@ -888,7 +965,7 @@ trait APIMethods400 {
               isValidCurrencyISOCode(transDetailsJson.value.currency)
             }
 
-            (createdTransactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
+            (createdTransactionRequest, callContext) <- transactionRequestTypeValue match {
               case REFUND => {
                 for {
                   transactionRequestBodyRefundJson <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $ACCOUNT json format", 400, callContext) {
@@ -1086,6 +1163,58 @@ trait APIMethods400 {
                 } yield (createdTransactionRequest, callContext)
 
               }
+              case SIMPLE => {
+                for {
+                  //For SAMPLE, we will create/get toCounterparty on site and set up the toAccount
+                  transactionRequestBodySimple <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $SIMPLE json format", 400, callContext) {
+                    json.extract[TransactionRequestBodySimpleJsonV400]
+                  }
+                  (toCounterparty, callContext) <- NewStyle.function.getOrCreateCounterparty(
+                    name = transactionRequestBodySimple.to.name,
+                    description = transactionRequestBodySimple.to.description,
+                    currency = transactionRequestBodySimple.value.currency,
+                    createdByUserId = u.userId,
+                    thisBankId = bankId.value,
+                    thisAccountId = accountId.value,
+                    thisViewId = viewId.value,
+                    otherBankRoutingScheme = transactionRequestBodySimple.to.other_bank_routing_scheme,
+                    otherBankRoutingAddress = transactionRequestBodySimple.to.other_bank_routing_address,
+                    otherBranchRoutingScheme = transactionRequestBodySimple.to.other_branch_routing_scheme,
+                    otherBranchRoutingAddress = transactionRequestBodySimple.to.other_branch_routing_address,
+                    otherAccountRoutingScheme = transactionRequestBodySimple.to.other_account_routing_scheme,
+                    otherAccountRoutingAddress = transactionRequestBodySimple.to.other_account_routing_address,
+                    otherAccountSecondaryRoutingScheme = transactionRequestBodySimple.to.other_account_secondary_routing_scheme,
+                    otherAccountSecondaryRoutingAddress = transactionRequestBodySimple.to.other_account_secondary_routing_address,
+                    callContext: Option[CallContext],
+                  )
+                  toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+                  // Check we can send money to it.
+                  _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+                    toCounterparty.isBeneficiary
+                  }
+                  chargePolicy = transactionRequestBodySimple.charge_policy
+                  _ <- Helper.booleanToFuture(s"$InvalidChargePolicy", cc=callContext) {
+                    ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))
+                  }
+                  transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                    write(transactionRequestBodySimple)(Serialization.formats(NoTypeHints))
+                  }
+                  (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+                    viewId,
+                    fromAccount,
+                    toAccount,
+                    transactionRequestType,
+                    transactionRequestBodySimple,
+                    transDetailsSerialized,
+                    chargePolicy,
+                    Some(OTP_VIA_API.toString),
+                    getScaMethodAtInstance(transactionRequestType.value).toOption,
+                    None,
+                    None,
+                    callContext)
+                } yield (createdTransactionRequest, callContext)
+
+              }
               case SEPA => {
                 for {
                   //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
@@ -1155,10 +1284,20 @@ trait APIMethods400 {
                MappedExpectedChallengeAnswer
                 .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
                 .map(mappedExpectedChallengeAnswer => 
-                  ChallengeJson(mappedExpectedChallengeAnswer.challengeId,mappedExpectedChallengeAnswer.transactionRequestId,mappedExpectedChallengeAnswer.expectedUserId) )
+                  ChallengeJson(
+                    mappedExpectedChallengeAnswer.challengeId,
+                    mappedExpectedChallengeAnswer.transactionRequestId,
+                    mappedExpectedChallengeAnswer.expectedUserId, 
+                    mappedExpectedChallengeAnswer.attemptCounter
+                  ))
             } else {
               if(!("COMPLETED").equals(createdTransactionRequest.status)) 
-                List(ChallengeJson(createdTransactionRequest.challenge.id, createdTransactionRequest.id.value, u.userId))
+                List(ChallengeJson(
+                  createdTransactionRequest.challenge.id, 
+                  createdTransactionRequest.id.value, 
+                  u.userId, 
+                  createdTransactionRequest.challenge.allowed_attempts
+                ))
               else 
                 null
             }
@@ -1238,7 +1377,7 @@ trait APIMethods400 {
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), fromAccount, callContext) <- SS.userAccount
+            (user @Full(u), _, fromAccount, callContext) <- SS.userBankAccount
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
               isValidID(accountId.value)
@@ -1269,11 +1408,6 @@ trait APIMethods400 {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
             
-            //Check the allowed attempts, Note: not supported yet, the default value is 3
-            _ <- Helper.booleanToFuture(s"${AllowedAttemptsUsedUp}", cc=callContext) {
-              existingTransactionRequest.challenge.allowed_attempts > 0
-            }
-
             //Check the challenge type, Note: not supported yet, the default value is SANDBOX_TAN
             _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ", cc=callContext) {
               List(
@@ -1346,7 +1480,7 @@ trait APIMethods400 {
 
                   (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
-                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer} ", cc=callContext) {
+                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer.replace("answer may be expired.",s"answer may be expired, current expiration time is ${transactionRequestChallengeTtl} seconds .")} ", cc=callContext) {
                     challengeAnswerIsValidated
                   }
 
@@ -2225,209 +2359,6 @@ trait APIMethods400 {
       box.openOrThrowException("impossible error")
     }
 
-    //TODO temp solution to support query by field name and value
-    private def filterDynamicObjects(resultList: JArray, req: Req): JArray = {
-      req.params match {
-        case map if map.isEmpty => resultList
-        case params =>
-          val filteredWithFieldValue = resultList.arr.filter { jValue =>
-            params.forall { kv =>
-              val (path, values) = kv
-              values.exists(JsonUtils.isFieldEquals(jValue, path, _))
-            }
-          }
-
-          JArray(filteredWithFieldValue)
-      }
-    }
-
-    lazy val genericEndpoint: OBPEndpoint = {
-      case EntityName(bankId, entityName, id) JsonGet req => { cc =>
-        val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
-        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        val isGetAll = StringUtils.isBlank(id)
-
-        val operation: DynamicEntityOperation = if(StringUtils.isBlank(id)) GET_ALL else GET_ONE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if(beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-
-          (_, callContext ) <- 
-            if(bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else { 
-              Future.successful{("", callContext)}
-            }
-          
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(cc))
-          
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {box.isDefined}
-        } yield {
-          val jValue = if(isGetAll) {
-            val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-            if (bankId.isDefined){
-              val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
-              bankIdJobject merge result
-            } else{
-              val result: JObject = (listName -> filterDynamicObjects(resultList, req))
-              result
-            }
-          }else{
-              val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-              if (bankId.isDefined) {
-                val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-                val result: JObject = (singleName -> singleObject)
-                bankIdJobject merge result
-              }else{
-                val result: JObject = (singleName -> singleObject)
-                result
-              }
-          }
-          (jValue, HttpCode.`200`(Some(cc)))
-        }
-      }
-        
-      case EntityName(bankId, entityName, _) JsonPost json -> _ => {cc =>
-        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        val operation: DynamicEntityOperation = CREATE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if(beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-          (_, callContext ) <-
-            if(bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else {
-              Future.successful{("", callContext)}
-            }
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(cc))
-          singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-        } yield {
-          val result: JObject = (singleName -> singleObject)
-          val entity = if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            bankIdJobject merge result
-          } else {
-            result
-          }  
-          (entity, HttpCode.`201`(Some(cc)))
-        }
-      }
-      case EntityName(bankId, entityName, id) JsonPut json -> _ => { cc =>
-        val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-        val operation: DynamicEntityOperation = UPDATE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if(beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-          (_, callContext ) <-
-            if(bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else {
-              Future.successful{("", callContext)}
-            }
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {
-            box.isDefined
-          }
-          (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None, Some(cc))
-          singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-        } yield {
-          val result: JObject = (singleName -> singleObject)
-          val entity = if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            bankIdJobject merge result
-          } else {
-            result
-          }
-          (entity, HttpCode.`200`(Some(cc)))
-        }
-      }
-      case EntityName(bankId, entityName, id) JsonDelete _ => { cc =>
-        val operation: DynamicEntityOperation = DELETE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
-        val operationId = resourceDoc.map(_.operationId).orNull
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-
-        // process before authentication interceptor, get intercept result
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if(beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-          (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-          (_, callContext ) <-
-            if(bankId.isDefined) { //if it is the bank level entity, we need to check the bankId
-              NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-            } else {
-              Future.successful{("", callContext)}
-            }
-          _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canDeleteRole(entityName, bankId), callContext)
-
-          // process after authentication interceptor, get intercept result
-          jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-            case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-          })
-          _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
-            jsonResponse.isEmpty
-          }
-
-          (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(cc))
-          _ <- Helper.booleanToFuture(EntityNotFoundByEntityId, 404, cc=callContext) {
-            box.isDefined
-          }
-          (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None, Some(cc))
-          deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
-        } yield {
-          (deleteResult, HttpCode.`204`(Some(cc)))
-        }
-      }
-    }
-
     staticResourceDocs += ResourceDoc(
       resetPasswordUrl,
       implementedInApiVersion,
@@ -2935,6 +2866,7 @@ trait APIMethods400 {
         $UserNotLoggedIn,
         $BankNotFound,
         $BankAccountNotFound,
+        $UserNoPermissionAccessView,
         InvalidJsonFormat,
         NoViewPermission,
         $UserNoPermissionAccessView,
@@ -2946,7 +2878,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), view, callContext) <- SS.userView
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_add_tag. Current ViewId($viewId)", cc=callContext) {
               view.canAddTag
             }
@@ -2990,7 +2922,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_delete_tag. Current ViewId($viewId)", cc=callContext) {
               view.canDeleteTag
             }
@@ -3032,7 +2964,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "metadata" :: "tags" :: Nil JsonGet req => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_see_tags. Current ViewId($viewId)", cc=callContext) {
               view.canSeeTags
             }
@@ -4012,7 +3944,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "direct-debit" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_direct_debit. Current ViewId($viewId)", cc=callContext) {
               view.canCreateDirectDebit
             }
@@ -4131,7 +4063,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "standing-order" ::  Nil JsonPost  json -> _ => {
         cc =>
           for {
-            (view, callContext) <- SS.view
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(failMsg = s"$NoViewPermission can_create_standing_order. Current ViewId($viewId)", cc=callContext) {
               view.canCreateStandingOrder
             }
@@ -4475,7 +4407,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canCreateCustomerAttributeAtOneBank)))
+      Some(List(canCreateCustomerAttributeAtOneBank, canCreateCustomerAttributeAtAnyBank)))
 
     lazy val createCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: customerId :: "attribute" :: Nil JsonPost json -> _=> {
@@ -4529,7 +4461,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canUpdateCustomerAttributeAtOneBank))
+      Some(List(canUpdateCustomerAttributeAtOneBank, canUpdateCustomerAttributeAtAnyBank))
     )
 
     lazy val updateCustomerAttribute : OBPEndpoint = {
@@ -4587,7 +4519,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomerAttributesAtOneBank))
+      Some(List(canGetCustomerAttributesAtOneBank, canGetCustomerAttributesAtAnyBank))
     )
 
     lazy val getCustomerAttributes : OBPEndpoint = {
@@ -4628,7 +4560,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canGetCustomerAttributeAtOneBank))
+      Some(List(canGetCustomerAttributeAtOneBank, canGetCustomerAttributeAtAnyBank))
     )
 
     lazy val getCustomerAttributeById : OBPEndpoint = {
@@ -5046,7 +4978,7 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: TransactionRequestId(requestId) :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
               u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
@@ -5346,7 +5278,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagNewStyle),
-      Some(List(canDeleteCustomerAttributeAtOneBank)))
+      Some(List(canDeleteCustomerAttributeAtOneBank, canDeleteCustomerAttributeAtAnyBank)))
 
     lazy val deleteCustomerAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "customers" :: "attributes" :: customerAttributeId ::  Nil JsonDelete _=> {
@@ -5782,147 +5714,6 @@ trait APIMethods400 {
           } yield {
             (deleted, HttpCode.`204`(callContext))
           }
-      }
-    }
-
-    lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse, bankId) => { cc =>
-        // process before authentication interceptor, get intercept result
-        val resourceDoc = DynamicEndpointHelper.doc.find(_.operationId == operationId)
-        val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if(beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
-            (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
-            _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, role, callContext)
-
-            // validate request json payload
-            httpRequestMethod = cc.verb
-            path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
-
-            // process after authentication interceptor, get intercept result
-            jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-              case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-            })
-            _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc=callContext) {
-              jsonResponse.isEmpty
-            }
-            (box, callContext) <- if (DynamicEndpointHelper.isDynamicEntityResponse(url)) {
-              for {
-                (endpointMapping, callContext) <- if (DynamicEndpointHelper.isDynamicEntityResponse(url)) {
-                  NewStyle.function.getEndpointMappingByOperationId(bankId, operationId, cc.callContext)
-                } else{
-                  Future.successful((EndpointMappingCommons(None,"","","", None), callContext))
-                }
-                requestMappingString = endpointMapping.requestMapping
-                requestMappingJvalue = net.liftweb.json.parse(requestMappingString)
-                responseMappingString = endpointMapping.responseMapping
-                responseMappingJvalue = net.liftweb.json.parse(responseMappingString)
-
-                responseBody <- if (method.value.equalsIgnoreCase("get")) {
-                  for{
-                    (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                      DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
-                    }
-                    dynamicData <- Future{DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)}
-                    dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
-                    //                //We only get the value, but not sure the field name of it.
-                    //                // we can get the field name from the mapping: `primary_query_key`
-                    //                //requestBodyMapping --> Convert `RequestJson` --> `DynamicEntity Model.`  
-                    //                targetRequestBody = JsonUtils.buildJson(json, requestBodySchemeJvalue)
-                    //                requestBody = targetRequestBody match {
-                    //                  case j@JObject(_) => Some(j)
-                    //                  case _ => None
-                    //                }
-                    result = if (method.value.equalsIgnoreCase("get") && entityIdValueFromUrl.isDefined) {
-                      DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
-                    } else {
-                      val newParams = DynamicEndpointHelper.convertToMappingQueryParams(responseMappingJvalue, params)
-                      DynamicEndpointHelper.getObjectsByParams(dynamicJsonData, newParams)
-                    } 
-                    responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
-                    responseBody = JsonUtils.buildJson(result, responseBodyScheme)
-                  } yield {
-                    responseBody
-                  }
-                } else if (method.value.equalsIgnoreCase("post")) { 
-                  for{
-                    (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                      DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
-                    }
-                    //build the entity body according to the request json and mapping
-                    entityBody = JsonUtils.buildJson(json,requestMappingJvalue)
-                    (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, None, None, Some(cc))
-                    singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-                    responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
-                    responseBody = JsonUtils.buildJson(singleObject, responseBodyScheme)
-                  } yield {
-                    responseBody
-                  }
-                } else if (method.value.equalsIgnoreCase("delete")) {
-                  for {
-                    (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                      DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
-                    }
-                    dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
-                    dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
-                    entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
-                    isDeleted <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                      val entityIdName = DynamicEntityHelper.createEntityId(entityName)
-                      val entityIdValue = (entityObject \ entityIdName).asInstanceOf[JString].s
-                      DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, entityIdValue).head
-                    }
-                  }yield{
-                    JBool(isDeleted)
-                  }
-                } else if (method.value.equalsIgnoreCase("put")) {
-                  for {
-                    (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                      DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
-                    }
-                    dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(entityName)
-                    dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
-                    entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
-                    _ <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                      val entityIdName = DynamicEntityHelper.createEntityId(entityName)
-                      val entityIdValue = (entityObject \ entityIdName).asInstanceOf[JString].s
-                      DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, entityIdValue).head
-                    }
-                    entityBody = JsonUtils.buildJson(json,requestMappingJvalue)
-                    (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, None, None, Some(cc))
-                    singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-                    responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
-                    responseBody = JsonUtils.buildJson(singleObject, responseBodyScheme)
-                  }yield{
-                    responseBody
-                  }
-                }else {
-                  NewStyle.function.tryons(s"$InvalidEndpointMapping `request_mapping` must  be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                    DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
-                  }
-                  throw new RuntimeException(s"$NotImplemented We only support the Http Methods GET and POST . The current method is: ${method.value}")
-                }
-              } yield{
-                (Full(("code", 200) ~ ("value", responseBody)), callContext)
-              }
-            }else{
-              MockResponseHolder.init(mockResponse) { // if target url domain is `obp_mock`, set mock response to current thread
-                NewStyle.function.dynamicEndpointProcess(url, json, method, params, pathParams, callContext)
-              }
-            }
-          } yield {
-            box match {
-              case Full(v) =>
-                val code = (v \ "code").asInstanceOf[JInt].num.toInt
-                (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
-
-              case e: Failure =>
-                val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
-                fullBoxOrException[JValue](changedMsgFailure)
-                ??? // will not execute to here, Because the failure message is thrown by upper line.
-            }
-
-        }
       }
     }
 
@@ -7743,9 +7534,12 @@ trait APIMethods400 {
       case "management" :: "cascading" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete _ => {
         cc =>
           for {
-            _ <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
+            result <- Future(DeleteAccountCascade.atomicDelete(bankId, accountId))
           } yield {
-            (Full(true), HttpCode.`200`(cc))
+            if(result.getOrElse(false))
+              (Full(true), HttpCode.`200`(cc))
+            else
+              (Full(false), HttpCode.`404`(cc))
           }
       }
     }  
@@ -7861,7 +7655,7 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      createCounterparty,
+      createExplicitCounterparty,
       implementedInApiVersion,
       "createCounterparty",
       "POST",
@@ -7967,18 +7761,20 @@ trait APIMethods400 {
       List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
 
 
-    lazy val createCounterparty: OBPEndpoint = {
+    lazy val createExplicitCounterparty: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), view, callContext) <-  SS.userView
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
             _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, callContext) {
               json.extract[PostCounterpartyJson400]
             }
 
-            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", cc=callContext) {view.canAddCounterparty}
+            _ <- Helper.booleanToFuture(s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.", 403, cc=callContext) {
+              view.canAddCounterparty
+            }
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(postJson.name, bankId.value, accountId.value, viewId.value, callContext)
 
@@ -8038,6 +7834,101 @@ trait APIMethods400 {
 
           } yield {
             (JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteExplicitCounterparty,
+      implementedInApiVersion,
+      nameOf(deleteExplicitCounterparty),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Delete Counterparty (Explicit)",
+      s"""Delete Counterparty (Explicit) for an Account.
+         |and also delete the Metadata for its counterparty.
+         |
+         |need the view permission `can_delete_counterparty`
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle)
+    )
+
+    lazy val deleteExplicitCounterparty: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
+
+            _ <- Helper.booleanToFuture(s"$NoViewPermission can_delete_counterparty. Please use a view with that permission or add the permission to this view.",403, cc=callContext) {
+              view.canDeleteCounterparty
+            }
+
+            (counterparty, callContext) <- NewStyle.function.deleteCounterpartyByCounterpartyId(counterpartyId, callContext)
+
+            (counterpartyMetadata, callContext) <- NewStyle.function.deleteMetadata(bankId, accountId, counterpartyId.value, callContext)
+
+          } yield {
+            (Full(counterparty), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteCounterpartyForAnyAccount,
+      implementedInApiVersion,
+      nameOf(deleteCounterpartyForAnyAccount),
+      "DELETE",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Delete Counterparty for any account (Explicit)",
+      s"""Delete Counterparty (Explicit) for any account 
+         |and also delete the Metadata for its counterparty.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankAccountNotFound,
+        $BankNotFound,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
+      Some(List(canDeleteCounterparty, canDeleteCounterpartyAtAnyBank)))
+
+    lazy val deleteCounterpartyForAnyAccount: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
+            
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {isValidID(accountId.value)}
+            
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {isValidID(bankId.value)}
+
+            (counterparty, callContext) <- NewStyle.function.deleteCounterpartyByCounterpartyId(counterpartyId, callContext)
+
+            (counterpartyMetadata, callContext) <- NewStyle.function.deleteMetadata(bankId, accountId, counterpartyId.value, callContext)
+
+          } yield {
+            (Full(counterparty), HttpCode.`200`(callContext))
           }
       }
     }
@@ -8138,6 +8029,7 @@ trait APIMethods400 {
         InvalidAccountIdFormat,
         InvalidBankIdFormat,
         $BankNotFound,
+        $BankAccountNotFound,
         AccountNotFound,
         InvalidJsonFormat,
         InvalidISOCurrencyCode,
@@ -8153,7 +8045,7 @@ trait APIMethods400 {
       case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400,  callContext) {
               json.extract[PostCounterpartyJson400]
             }
@@ -8235,10 +8127,10 @@ trait APIMethods400 {
       counterpartiesJson400,
       List(
         $UserNotLoggedIn,
+        $BankNotFound,
         $BankAccountNotFound,
-        ViewNotFound,
-        NoViewPermission,
         $UserNoPermissionAccessView,
+        ViewNotFound,
         UnknownError
       ),
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount, apiTagNewStyle))
@@ -8247,10 +8139,60 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
         cc =>
           for {
-            (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_add_counterparty", 403, cc=callContext) {
               view.canAddCounterparty == true
             }
+            (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
+            //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
+            //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
+            _ <- Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc=callContext) {
+              {
+                for {
+                  counterparty <- counterparties
+                } yield {
+                  Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name) match {
+                    case Full(_) => true
+                    case _ => false
+                  }
+                }
+              }.forall(_ == true)
+            }
+          } yield {
+            val counterpartiesJson = JSONFactory400.createCounterpartiesJson400(counterparties)
+            (counterpartiesJson, HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getCounterpartiesForAnyAccount,
+      implementedInApiVersion,
+      nameOf(getCounterpartiesForAnyAccount),
+      "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      "Get Counterparties for any account (Explicit)",
+      s"""Get the Counterparties (Explicit) for any account .
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      counterpartiesJson400,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        $BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount, apiTagNewStyle),
+    Some(List(canGetCounterparties, canGetCounterpartiesAtAnyBank))
+    )
+
+    lazy val getCounterpartiesForAnyAccount : OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
             (counterparties, callContext) <- NewStyle.function.getCounterparties(bankId,accountId,viewId, callContext)
             //Here we need create the metadata for all the explicit counterparties. maybe show them in json response.
             //Note: actually we need update all the counterparty metadata when they from adapter. Some counterparties may be the first time to api, there is no metadata.
@@ -8279,7 +8221,7 @@ trait APIMethods400 {
       "getExplictCounterpartyById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-      "Get Counterparty by Counterparty Id (Explicit)",
+      "Get Counterparty by Id (Explicit)",
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
          |
          |${authenticationRequiredMessage(true)}
@@ -8294,12 +8236,12 @@ trait APIMethods400 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet req => {
         cc =>
           for {
-            (view, callContext) <- SS.view
-            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}canAddCounterparty", cc=callContext) {
-              view.canAddCounterparty == true
+            (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
+            _ <- Helper.booleanToFuture(failMsg = s"${NoViewPermission}can_get_counterparty", 403, cc=callContext) {
+              view.canGetCounterparty == true
             }
+            (counterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
             counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
-            (counterparty, callContext) <- NewStyle.function.getCounterpartyTrait(bankId, accountId, counterpartyId.value, callContext)
           } yield {
             val counterpartyJson = JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata)
             (counterpartyJson, HttpCode.`200`(callContext))
@@ -8312,7 +8254,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getCounterpartyByNameForAnyAccount),
       "GET",
-      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_NAME",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparty-names/COUNTERPARTY_NAME",
       "Get Counterparty by name for any account (Explicit) ",
       s"""
          |
@@ -8335,10 +8277,10 @@ trait APIMethods400 {
       Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
 
     lazy val getCounterpartyByNameForAnyAccount: OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: counterpartyName :: Nil JsonGet _ => {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparty-names" :: counterpartyName :: Nil JsonGet _ => {
         cc =>
           for {
-            (Full(u), callContext) <- SS.user
+            (user @Full(u), bank, account, callContext) <- SS.userBankAccount
 
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(counterpartyName, bankId.value, accountId.value, viewId.value, callContext)
 
@@ -8352,6 +8294,47 @@ trait APIMethods400 {
 
           } yield {
             (JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getCounterpartyByIdForAnyAccount,
+      implementedInApiVersion,
+      nameOf(getCounterpartyByIdForAnyAccount),
+      "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      "Get Counterparty by Id for any account (Explicit) ",
+      s"""
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      counterpartyWithMetadataJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        InvalidJsonFormat,
+        ViewNotFound,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle),
+      Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)))
+
+    lazy val getCounterpartyByIdForAnyAccount: OBPEndpoint = {
+      case "management" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId):: "counterparties" :: CounterpartyId(counterpartyId) :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (user @Full(u), _, account, callContext) <- SS.userBankAccount
+            (counterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
+            counterpartyMetadata <- NewStyle.function.getMetadata(bankId, accountId, counterpartyId.value, callContext)
+          } yield {
+            val counterpartyJson = JSONFactory400.createCounterpartyWithMetadataJson400(counterparty,counterpartyMetadata)
+            (counterpartyJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -11508,10 +11491,7 @@ trait APIMethods400 {
                 fullBoxOrException(Empty ?~! atmsNotFound)
               case Full((List(), callContext)) =>
                 Full(List())
-              case Full((list, _)) =>
-                val branchesWithLicense = for { branch <- list if branch.meta.license.name.size > 3 } yield branch
-                if (branchesWithLicense.size == 0) fullBoxOrException(Empty ?~! atmsNotFoundLicense)
-                else Full(branchesWithLicense)
+              case Full((list, _)) =>Full(list)
               case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
               case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
             } map { unboxFull(_) } map {
@@ -12157,7 +12137,157 @@ trait APIMethods400 {
         }
       }
     }
-    
+
+    val generalWebHookInfo = s"""
+      |Webhooks are used to call external web services when certain events happen.
+      |
+      |For instance, a webhook can be used to notify an external service if a transaction is created on an account.
+      |
+      |"""
+
+
+    val accountNotificationWebhookInfo = s"""
+                         |When an account notification webhook fires it will POST to the URL you specify during the creation of the webhook.
+                         |
+                         |Inside the payload you will find account_id and transaction_id and also user_ids and customer_ids of the Users / Customers linked to the Account.
+                         |                     |
+                         |The webhook will POST the following structure to your service:
+                         |
+                         |{
+                         |  "event_name": "OnCreateTransaction",
+                         |  "event_id": "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "bank_id": "gh.29.uk",
+                         |  "account_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "transaction_id": "7ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |  "related_entities": [
+                         |    {
+                         |      "user_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                         |      "customer_ids": ["3ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"]
+                         |    }
+                         |  ]
+                         |}
+                         |
+                         |Thus, your service should accept the above POST body structure.
+                         |
+                         |In this way, your web service can be informed about an event on an account and act accordingly.
+                         |
+                         |Further information about the account, transaction or related entities can then be retrieved using the standard REST APIs.
+                         |"""
+
+
+
+
+    staticResourceDocs += ResourceDoc(
+      createSystemAccountNotificationWebhook,
+      implementedInApiVersion,
+      nameOf(createSystemAccountNotificationWebhook),
+      "POST",
+      "/web-hooks/account/notifications/on-create-transaction",
+      "Create system level Account Notification Webhook",
+      s"""
+         |Create a notification Webhook that will fire for all accounts on the system.
+         |
+         |$generalWebHookInfo
+         |
+         |$accountNotificationWebhookInfo
+         |
+         |""",
+      accountNotificationWebhookPostJson,
+      systemAccountNotificationWebhookJson,
+      List(UnknownError),
+      apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canCreateSystemAccountNotificationWebhook))
+    )
+
+    lazy val createSystemAccountNotificationWebhook : OBPEndpoint = {
+      case "web-hooks" ::"account" ::"notifications" ::"on-create-transaction" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountNotificationWebhookPostJson "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountNotificationWebhookPostJson]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpMethod Only Support `POST` currently. Current value is (${postJson.http_method})", cc=callContext) {
+              postJson.http_method.equals("POST")
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpProtocol Only Support `HTTP/1.1` currently. Current value is (${postJson.http_protocol})", cc=callContext) {
+              postJson.http_protocol.equals("HTTP/1.1")
+            }
+            onCreateTransaction = ApiTrigger.onCreateTransaction.toString()
+            wh <- SystemAccountNotificationWebhookTrait.systemAccountNotificationWebhook.vend.createSystemAccountNotificationWebhookFuture(
+              userId = u.userId,
+              triggerName= onCreateTransaction,
+              url = postJson.url,
+              httpMethod = postJson.http_method,
+              httpProtocol= postJson.http_protocol,
+            ) map {
+              unboxFullOrFail(_, callContext, CreateWebhookError)
+            }
+          } yield {
+            (createSystemLevelAccountWebhookJsonV400(wh), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      createBankAccountNotificationWebhook,
+      implementedInApiVersion,
+      nameOf(createBankAccountNotificationWebhook),
+      "POST",
+      "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction",
+      "Create bank level Account Notification Webhook",
+      s"""Create a notification Webhook that will fire for all accounts on the specified Bank.
+         |
+         |$generalWebHookInfo
+         |
+         |$accountNotificationWebhookInfo
+         |
+         |""",
+      accountNotificationWebhookPostJson,
+      bankAccountNotificationWebhookJson,
+      List(
+        UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      apiTagWebhook :: apiTagBank :: apiTagNewStyle :: Nil,
+      Some(List(canCreateAccountNotificationWebhookAtOneBank))
+    )
+
+    lazy val createBankAccountNotificationWebhook : OBPEndpoint = {
+      case  "banks" :: BankId(bankId) :: "web-hooks" ::"account" ::"notifications" ::"on-create-transaction" :: Nil JsonPost json -> _  => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AccountNotificationWebhookPostJson "
+            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AccountNotificationWebhookPostJson]
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpMethod Only Support `POST` currently. Current value is (${postJson.http_method})", cc=callContext) {
+              postJson.http_method.equals("POST")
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidHttpProtocol Only Support `HTTP/1.1` currently. Current value is (${postJson.http_protocol})", cc=callContext) {
+              postJson.http_protocol.equals("HTTP/1.1")
+            }
+            onCreateTransaction = ApiTrigger.onCreateTransaction.toString()
+            wh <- BankAccountNotificationWebhookTrait.bankAccountNotificationWebhook.vend.createBankAccountNotificationWebhookFuture(
+              bankId = bankId.value,
+              userId = u.userId,
+              triggerName = onCreateTransaction,
+              url = postJson.url,
+              httpMethod = postJson.http_method,
+              httpProtocol = postJson.http_protocol
+            ) map {
+              unboxFullOrFail(_, callContext, CreateWebhookError)
+            }
+          } yield {
+            (createBankLevelAccountWebhookJsonV400(wh), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
   }
 
   private def checkRoleBankIdExsiting(callContext: Option[CallContext], entitlement: CreateEntitlementJSON) = {

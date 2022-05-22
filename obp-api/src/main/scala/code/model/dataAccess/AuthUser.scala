@@ -29,10 +29,10 @@ package code.model.dataAccess
 import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v4_0_0.dynamic.DynamicEndpointHelper
 import code.api.{APIFailure, Constant, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
@@ -615,7 +615,14 @@ import net.liftweb.util.Helpers._
       grantDefaultEntitlementsToAuthUser(user)
       logUserIn(user, () => {
         S.notice(S.?("account.validated"))
-        S.redirectTo(homePage)
+        APIUtil.getPropsValue("user_account_validated_redirect_url") match {
+          case Full(redirectUrl) => 
+            logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
+            S.redirectTo(redirectUrl)
+          case _ =>
+            logger.debug(s"user_account_validated_redirect_url is NOT defined")
+            S.redirectTo(homePage)
+        }
       })
 
     case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
@@ -1263,7 +1270,7 @@ def restoreSomeSessions(): Unit = {
       (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
-      _ = logger.debug(s"-->AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
+      _ = logger.debug(s"--> for user($user): AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
     }yield {
       refreshViewsAccountAccessAndHolders(user, accountsHeld)
     }

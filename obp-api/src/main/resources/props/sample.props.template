@@ -131,7 +131,9 @@ jwt.use.ssl=false
 
 # Paths to the SSL keystore files - has to be jks    
 #keystore.path=/path/to/api.keystore.jks
+#keystore password
 #keystore.password = redf1234
+# private key password
 #keystore.passphrase = redf1234
 #keystore.alias = localhost
 #truststore.path=/path/to/api.truststore.jks
@@ -239,6 +241,9 @@ mail.smtp.port=25
 ## Oauth token timeout
 token_expiration_weeks=4
 
+## payment challenge answer timeout,default is 600 seconds/10 minutes
+transaction_request_challenge_ttl=600
+
 
 
 ### Sandbox
@@ -264,7 +269,7 @@ transactionRequests_enabled=true
 transactionRequests_connector=mapped
 
 ## Transaction Request Types that are supported on this server. Possible values might include SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM
-transactionRequests_supported_types=SANDBOX_TAN,COUNTERPARTY,SEPA,ACCOUNT_OTP,ACCOUNT
+transactionRequests_supported_types=SANDBOX_TAN,COUNTERPARTY,SEPA,ACCOUNT_OTP,ACCOUNT,SIMPLE
 
 ## Transaction request challenge threshold. Level at which challenge is created and needs to be answered.
 ## The Currency is EUR unless set with transactionRequests_challenge_currency.
@@ -538,6 +543,12 @@ webui_register_consumer_success_message_email = Thank you for registering to use
 #Log in page
 #webui_login_button_text = 
 ## End of webui_ section ########
+
+
+
+# Set Locale
+language_tag = en-GB
+
 
 
 ## API Options
@@ -859,6 +870,7 @@ database_messages_scheduler_interval=3600
 
 # -- SCA (Strong Customer Authentication) method for OTP challenge-------
 # ACCOUNT_OTP_INSTRUCTION_TRANSPORT=DUMMY
+# SIMPLE_OTP_INSTRUCTION_TRANSPORT=DUMMY
 # SEPA_OTP_INSTRUCTION_TRANSPORT=DUMMY
 # FREE_FORM_OTP_INSTRUCTION_TRANSPORT=DUMMY
 # COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT=DUMMY
@@ -920,8 +932,8 @@ stored_procedure_connector.poolFactoryName=commons-dbcp2
 # Set whether DynamicEntity display name starts with underscore, default is true
 dynamic_entities_have_prefix=true
 
-# Url prefix of dynamic endpoints, default is dynamic. e.g if set to foobar, one url can be /obp/v4.0.0/foobar/Address
-dynamic_endpoints_url_prefix=dynamic
+# Url prefix of dynamic endpoints, default is empty. e.g if set to foobar, one url can be /obp/dynamic-endpoint/foobar/Address
+dynamic_endpoints_url_prefix=
 
 # --- Locking a user due to consecutively failed login attempts ------
 # Defines consecutively failed login attempts before a user is locked 
@@ -1155,3 +1167,11 @@ dynamic_code_compile_validate_dependencies=[\
 
 ## when api response json field value in the json array, the field will be excluded
 excluded.response.field.values=["String", "", null, []]
+
+# If you want to make the Lift inactivity timeout shorter than
+# the container inactivity timeout, set the inactivity timeout here
+session_inactivity_timeout_in_minutes = 30
+
+# Defines redirect URL after user account is validated
+# In case is not defined default value is the home page of this application
+user_account_validated_redirect_url = 

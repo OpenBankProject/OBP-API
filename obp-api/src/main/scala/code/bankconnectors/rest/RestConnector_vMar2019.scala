@@ -26,7 +26,6 @@ Berlin 13359, Germany
 import java.net.{ConnectException, URLEncoder, UnknownHostException}
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.stream.StreamTcpException
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{HttpProtocol, _}
@@ -34,12 +33,12 @@ import akka.util.ByteString
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
 import code.api.cache.Caching
+import code.api.dynamic.endpoint.helper.MockResponseHolder
 import code.api.util.APIUtil.{AdapterImplementation, MessageDoc, OBPReturnType, saveConnectorMetric, _}
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.RSAUtil.{computeXSign, getPrivateKeyFromString}
 import code.api.util.{APIUtil, CallContext, OBPQueryParam}
-import code.api.v4_0_0.dynamic.MockResponseHolder
 import code.bankconnectors._
 import code.context.UserAuthContextProvider
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
@@ -4669,7 +4668,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample)))
+      timeStamp=toDate(timeStampExample),
+      consumerId=consumerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4702,7 +4702,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       key=keyExample.value,
       value=valueExample.value,
       challenge=challengeExample.value,
-      status=statusExample.value))
+      status=statusExample.value,
+      consumerId=consumerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4784,7 +4785,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample))))
+      timeStamp=toDate(timeStampExample),
+      consumerId=consumerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )

@@ -13,6 +13,7 @@ class MappedUserAuthContextUpdate extends UserAuthContextUpdate with LongKeyedMa
 
   object mUserAuthContextUpdateId extends MappedUUID(this)
   object mUserId extends UUIDString(this)
+  object mConsumerId extends MappedString(this, 255)
   object mKey extends MappedString(this, 50)
   object mValue extends MappedString(this, 50)
   object mChallenge extends MappedString(this, 10)  {
@@ -21,6 +22,7 @@ class MappedUserAuthContextUpdate extends UserAuthContextUpdate with LongKeyedMa
   object mStatus extends MappedString(this, 20)
 
   override def userId = mUserId.get   
+  override def consumerId: String = mConsumerId.get
   override def key = mKey.get  
   override def value = mValue.get  
   override def userAuthContextUpdateId = mUserAuthContextUpdateId.get
