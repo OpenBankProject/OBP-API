@@ -15,8 +15,8 @@ public class DynamicJavaConnector implements Supplier<Function<Object[], Object>
 
        Bank bank = new BankCommons(bankId, "The Royal Bank of Scotland",
                "The Royal Bank of Scotland",
-               "http://www.red-bank-shoreditch.com/logo.gif",
-               "http://www.red-bank-shoreditch.com",
+               "https://www.example.tesobe.com/logo.gif",
+               "https://www.example.tesobe.com",
                "OBP",
                "rbs",
                "Swift bic value",
