@@ -52,7 +52,7 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
       .MethodBody(entity.methodBody)
         .Lang(entity.lang)
       .saveMe()
-    }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, getLang(it)))
+    }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
 
 
   override def update(connectorMethodId: String, connectorMethodBody: String, lang: String): Box[JsonConnectorMethod] = {
