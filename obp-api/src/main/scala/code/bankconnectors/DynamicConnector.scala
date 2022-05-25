@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import code.api.APIFailureNewStyle
 import code.api.util.DynamicUtil.compileScalaCode
+import code.api.util.ErrorMessages.DynamicCodeLangNotSupport
 import code.api.util.{CallContext, DynamicUtil}
 import code.bankconnectors.DynamicConnector.wrapperDynamicFunction
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
@@ -61,8 +62,7 @@ object DynamicConnector {
     case "js" | "Js" | "javascript" | "JavaScript" => DynamicUtil.createJsFunction(methodBody)
     case "java" | "Java" => DynamicUtil.createJavaFunction(methodBody)
     case "Scala" | "scala" | "" | null => createScalaFunction(methodBody)
-    // TODO refactor Exception type and message
-    case _ => Failure(s"Illegal lang: $lang, current supported language: Java, Javascript and Scala")
+    case _ => Failure(s"$DynamicCodeLangNotSupport lang: $lang, currently supported languages: Java, Javascript and Scala")
   })  map wrapperDynamicFunction
 
   /**

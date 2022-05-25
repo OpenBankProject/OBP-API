@@ -1,6 +1,7 @@
 package code.bankconnectors
 
 import code.api.util.DynamicUtil.compileScalaCode
+import code.api.util.ErrorMessages.{DynamicCodeLangNotSupport, InvalidConnectorMethodName}
 import net.liftweb.common.Full
 
 import scala.concurrent.Future
@@ -193,8 +194,7 @@ object InternalConnector {
       createScalaFunction(methodName, javaMethodBody)
 
     case "Scala" | "scala" | "" | null => createScalaFunction(methodName, methodBody)
-    // TODO refactor Exception type and message
-    case _ => Failure(s"Illegal lang: $lang, current supported language: Java, Javascript and Scala")
+    case _ => Failure(s"$DynamicCodeLangNotSupport lang: $lang, currently supported languages: Java, Javascript and Scala")
   }
 
   /**
@@ -220,7 +220,7 @@ object InternalConnector {
                         |""".stripMargin
 
         compileScalaCode(method)
-      case None => Failure(s"method name $methodName does not exist in the Connector")
+      case None => Failure(s"$InvalidConnectorMethodName method name $methodName does not exist in the Connector")
     }
 
    def postProcessConnectorMethodResult[T](value: T, callContext:Option[CallContext]):T = value match {
