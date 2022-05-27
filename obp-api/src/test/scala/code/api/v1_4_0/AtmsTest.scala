@@ -6,6 +6,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
 import code.atms.{Atms, AtmsProvider}
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.{LicenseT, _}
+import net.liftweb.common.Box
 
 class AtmsTest extends V140ServerSetup with DefaultUsers {
 
@@ -164,6 +165,10 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
          case `bankWithoutLicense`=> Some(fakeAtm3) // In case the connector returns, the API should guard
         case _ => None
       }
+    }
+
+    override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
+      Atms.atmsProvider.vend.createOrUpdateAtm(atm)
     }
 
   }

@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -21,7 +22,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.v4_0_0.{PostSimpleCounterpartyJson400, TransactionRequestBodySimpleJsonV400}
 import code.atms.Atms.Atm
-import code.atms.MappedAtm
+import code.atms.{Atms, MappedAtm}
 import code.bankattribute.{BankAttribute, BankAttributeX}
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
@@ -2797,130 +2798,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
 
   override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
-
-    val isAccessibleString = optionBooleanToString(atm.isAccessible)
-    val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)
-    val supportedLanguagesString = atm.supportedLanguages.map(_.mkString(",")).getOrElse("")
-    val servicesString = atm.services.map(_.mkString(",")).getOrElse("")
-    val accessibilityFeaturesString = atm.accessibilityFeatures.map(_.mkString(",")).getOrElse("")
-    val supportedCurrenciesString = atm.supportedCurrencies.map(_.mkString(",")).getOrElse("")
-    val notesString = atm.notes.map(_.mkString(",")).getOrElse("")
-    val locationCategoriesString = atm.locationCategories.map(_.mkString(",")).getOrElse("")
-
-    //check the atm existence and update or insert data
-    getAtmLegacy(atm.bankId, atm.atmId) match {
-      case Full(mappedAtm: MappedAtm) =>
-        tryo {
-          mappedAtm.mName(atm.name)
-            .mLine1(atm.address.line1)
-            .mLine2(atm.address.line2)
-            .mLine3(atm.address.line3)
-            .mCity(atm.address.city)
-            .mCounty(atm.address.county.getOrElse(""))
-            .mCountryCode(atm.address.countryCode)
-            .mState(atm.address.state)
-            .mPostCode(atm.address.postCode)
-            .mlocationLatitude(atm.location.latitude)
-            .mlocationLongitude(atm.location.longitude)
-            .mLicenseId(atm.meta.license.id)
-            .mLicenseName(atm.meta.license.name)
-            .mOpeningTimeOnMonday(atm.OpeningTimeOnMonday.orNull)
-            .mClosingTimeOnMonday(atm.ClosingTimeOnMonday.orNull)
-
-            .mOpeningTimeOnTuesday(atm.OpeningTimeOnTuesday.orNull)
-            .mClosingTimeOnTuesday(atm.ClosingTimeOnTuesday.orNull)
-
-            .mOpeningTimeOnWednesday(atm.OpeningTimeOnWednesday.orNull)
-            .mClosingTimeOnWednesday(atm.ClosingTimeOnWednesday.orNull)
-
-            .mOpeningTimeOnThursday(atm.OpeningTimeOnThursday.orNull)
-            .mClosingTimeOnThursday(atm.ClosingTimeOnThursday.orNull)
-
-            .mOpeningTimeOnFriday(atm.OpeningTimeOnFriday.orNull)
-            .mClosingTimeOnFriday(atm.ClosingTimeOnFriday.orNull)
-
-            .mOpeningTimeOnSaturday(atm.OpeningTimeOnSaturday.orNull)
-            .mClosingTimeOnSaturday(atm.ClosingTimeOnSaturday.orNull)
-
-            .mOpeningTimeOnSunday(atm.OpeningTimeOnSunday.orNull)
-            .mClosingTimeOnSunday(atm.ClosingTimeOnSunday.orNull)
-            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-            .mLocatedAt(atm.locatedAt.orNull)
-            .mMoreInfo(atm.moreInfo.orNull)
-            .mHasDepositCapability(hasDepositCapabilityString)
-            .mSupportedLanguages(supportedLanguagesString)
-            .mServices(servicesString)
-            .mNotes(notesString)
-            .mAccessibilityFeatures(accessibilityFeaturesString)
-            .mSupportedCurrencies(supportedCurrenciesString)
-            .mLocationCategories(locationCategoriesString)
-            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
-            .mBranchIdentification(atm.branchIdentification.orNull)
-            .mSiteIdentification(atm.siteIdentification.orNull)
-            .mSiteName(atm.siteName.orNull)
-            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
-            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
-            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
-            .saveMe()
-        }
-      case _ =>
-        tryo {
-          MappedAtm.create
-            .mAtmId(atm.atmId.value)
-            .mBankId(atm.bankId.value)
-            .mName(atm.name)
-            .mLine1(atm.address.line1)
-            .mLine2(atm.address.line2)
-            .mLine3(atm.address.line3)
-            .mCity(atm.address.city)
-            .mCounty(atm.address.county.getOrElse(""))
-            .mCountryCode(atm.address.countryCode)
-            .mState(atm.address.state)
-            .mPostCode(atm.address.postCode)
-            .mlocationLatitude(atm.location.latitude)
-            .mlocationLongitude(atm.location.longitude)
-            .mLicenseId(atm.meta.license.id)
-            .mLicenseName(atm.meta.license.name)
-            .mOpeningTimeOnMonday(atm.OpeningTimeOnMonday.orNull)
-            .mClosingTimeOnMonday(atm.ClosingTimeOnMonday.orNull)
-
-            .mOpeningTimeOnTuesday(atm.OpeningTimeOnTuesday.orNull)
-            .mClosingTimeOnTuesday(atm.ClosingTimeOnTuesday.orNull)
-
-            .mOpeningTimeOnWednesday(atm.OpeningTimeOnWednesday.orNull)
-            .mClosingTimeOnWednesday(atm.ClosingTimeOnWednesday.orNull)
-
-            .mOpeningTimeOnThursday(atm.OpeningTimeOnThursday.orNull)
-            .mClosingTimeOnThursday(atm.ClosingTimeOnThursday.orNull)
-
-            .mOpeningTimeOnFriday(atm.OpeningTimeOnFriday.orNull)
-            .mClosingTimeOnFriday(atm.ClosingTimeOnFriday.orNull)
-
-            .mOpeningTimeOnSaturday(atm.OpeningTimeOnSaturday.orNull)
-            .mClosingTimeOnSaturday(atm.ClosingTimeOnSaturday.orNull)
-
-            .mOpeningTimeOnSunday(atm.OpeningTimeOnSunday.orNull)
-            .mClosingTimeOnSunday(atm.ClosingTimeOnSunday.orNull)
-            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-            .mLocatedAt(atm.locatedAt.orNull)
-            .mMoreInfo(atm.moreInfo.orNull)
-            .mHasDepositCapability(hasDepositCapabilityString)
-            .mSupportedLanguages(supportedLanguagesString)
-            .mServices(servicesString)
-            .mNotes(notesString)
-            .mAccessibilityFeatures(accessibilityFeaturesString)
-            .mSupportedCurrencies(supportedCurrenciesString)
-            .mLocationCategories(locationCategoriesString)
-            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
-            .mBranchIdentification(atm.branchIdentification.orNull)
-            .mSiteIdentification(atm.siteIdentification.orNull)
-            .mSiteName(atm.siteName.orNull)
-            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
-            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
-            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
-            .saveMe()
-        }
-    }
+    Atms.atmsProvider.vend.createOrUpdateAtm(atm)
   }
 
   override def createOrUpdateProductFee(
