@@ -98,8 +98,6 @@ class ConnectorMethodTest extends ServerSetupPropsWithTestData {
       val requestCreateMethodRouting = (v4_0_0_Request / "management" / "method_routings").POST <@(user1)
       val responseCreateMethodRouting = makePostRequest(requestCreateMethodRouting, write(rightEntity))
       responseCreateMethodRouting.code should equal(201)
-      val customerJson = responseCreateMethodRouting.body.extract[MethodRoutingCommons]
-
       
       val responseGetBank = makeGetRequest(requestGetBank)
       val responseBank = responseGetBank.body.extract[BankJson400]
@@ -219,6 +217,15 @@ class ConnectorMethodTest extends ServerSetupPropsWithTestData {
       connectorMethodJsonGet400.methodBody should be (postConnectorMethod.methodBody)
       connectorMethod.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
 
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
+      val rightEntity = MethodRoutingCommons("getBank", "internal", false, Some("*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
+
+      val requestCreateMethodRouting = (v4_0_0_Request / "management" / "method_routings").POST <@(user1)
+      val responseCreateMethodRouting = makePostRequest(requestCreateMethodRouting, write(rightEntity))
+      responseCreateMethodRouting.code should equal(201)
+
+      
+
       val responseGetBank = makeGetRequest(requestGetBank)
       val responseBank = responseGetBank.body.extract[BankJson400]
       responseBank.full_name equals("The Js Bank of Scotland")
@@ -283,6 +290,14 @@ class ConnectorMethodTest extends ServerSetupPropsWithTestData {
       connectorMethod.methodBody should be (postConnectorMethod.methodBody)
       connectorMethod.connectorMethodId shouldNot be (null)
 
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
+      val rightEntity = MethodRoutingCommons("getBank", "internal", false, Some("*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
+
+      val requestCreateMethodRouting = (v4_0_0_Request / "management" / "method_routings").POST <@(user1)
+      val responseCreateMethodRouting = makePostRequest(requestCreateMethodRouting, write(rightEntity))
+      responseCreateMethodRouting.code should equal(201)
+
+      
       val responseGetBank = makeGetRequest(requestGetBank)
       val responseBank = responseGetBank.body.extract[BankJson400]
       responseBank.short_name equals("The Java Bank of Scotland")
