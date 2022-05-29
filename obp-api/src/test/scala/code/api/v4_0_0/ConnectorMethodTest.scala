@@ -29,7 +29,6 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.ApiRole._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{ConnectorMethodAlreadyExists, UserHasMissingRoles}
-import code.setup.ServerSetupPropsWithTestData
 import code.api.util.{ApiRole, CallContext}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.bankconnectors.InternalConnector
@@ -52,11 +51,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 
-class ConnectorMethodTest extends ServerSetupPropsWithTestData {
+class ConnectorMethodTest extends V400ServerSetupAsync {
 
-  def v4_0_0_Request: Req = baseRequest / "obp" / "v4.0.0"
-  val requestGetBank = (v4_0_0_Request / "banks" / "123").GET
-  val rightEntity = MethodRoutingCommons("getBank", "internal", false, Some("*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
   
   /**
    * Test tags
@@ -94,12 +90,6 @@ class ConnectorMethodTest extends ServerSetupPropsWithTestData {
       connectorMethod.methodBody should be (postConnectorMethod.methodBody)
       connectorMethod.connectorMethodId shouldNot be (null)
 
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
-      
-      val requestCreateMethodRouting = (v4_0_0_Request / "management" / "method_routings").POST <@(user1)
-      val responseCreateMethodRouting = makePostRequest(requestCreateMethodRouting, write(rightEntity))
-      responseCreateMethodRouting.code should equal(201)
-
 
       Then(s"we test the $ApiEndpoint2")
       val requestGet = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).GET <@ (user1)
@@ -116,10 +106,6 @@ class ConnectorMethodTest extends ServerSetupPropsWithTestData {
       connectorMethod.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
 
 
-      val responseGetBank = makeGetRequest(requestGetBank)
-      val responseBank = responseGetBank.body.extract[BankJson400]
-      responseBank.id equals("Hello bank id")
-      
       Then(s"we test the $ApiEndpoint3")
       val requestGetAll = (v4_0_0_Request / "management" / "connector-methods").GET <@ (user1)
 
@@ -156,28 +142,6 @@ class ConnectorMethodTest extends ServerSetupPropsWithTestData {
       connectorMethodJsonGetAfterUpdated.methodBody should be (postConnectorMethodMethodBody.methodBody)
       connectorMethodJsonGetAfterUpdated.methodName should be (connectorMethodJsonGet400.methodName)
       connectorMethodJsonGetAfterUpdated.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
-      
-      //try the getBanks, now it return the js response
-      {
-        val responseGetBank = makeGetRequest(requestGetBank)
-        val responseBank = responseGetBank.body.extract[BankJson400]
-        responseBank.full_name equals("The Js Bank of Scotland")
-      }
-
-      {
-        val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonJavaConnectorMethodMethodBody
-
-        val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
-        Then("We should get a 200")
-        responseUpdate.code should equal(200)
-
-        //try the getBanks, now it return the js response
-        {
-          val responseGetBank = makeGetRequest(requestGetBank)
-          val responseBank = responseGetBank.body.extract[BankJson400]
-          responseBank.short_name equals("The Java Bank of Scotland")
-        }
-      }
       
     }
   }
