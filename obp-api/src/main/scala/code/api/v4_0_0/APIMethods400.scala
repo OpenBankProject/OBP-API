@@ -9809,8 +9809,8 @@ trait APIMethods400 {
          |
          |The method_body is URL-encoded format String
          |""",
-      jsonConnectorMethod.copy(connectorMethodId=None),
-      jsonConnectorMethod,
+      jsonScalaConnectorMethod.copy(connectorMethodId=None),
+      jsonScalaConnectorMethod,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -9856,8 +9856,8 @@ trait APIMethods400 {
          |
          |The method_body is URL-encoded format String
          |""",
-      jsonConnectorMethodMethodBody,
-      jsonConnectorMethod,
+      jsonScalaConnectorMethodMethodBody,
+      jsonScalaConnectorMethod,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -9901,7 +9901,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      jsonConnectorMethod,
+      jsonScalaConnectorMethod,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -9932,7 +9932,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      ListResult("connectors_methods", jsonConnectorMethod::Nil),
+      ListResult("connectors_methods", jsonScalaConnectorMethod::Nil),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,

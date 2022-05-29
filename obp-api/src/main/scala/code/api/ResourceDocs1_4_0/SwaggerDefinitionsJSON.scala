@@ -4356,8 +4356,14 @@ object SwaggerDefinitionsJSON {
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
 
-  val jsonConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyExample.value, "Scala")
-  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyExample.value, "Scala")
+  val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
+  val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")
+  
+  val jsonJavaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyJavaExample.value, "Java")
+  val jsonJavaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyJavaExample.value, "Java")
+  
+  val jsonJsConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyJsExample.value, "Js")
+  val jsonJsConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyJsExample.value, "Js")
   
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
     bankId = Some(bankIdExample.value),
@@ -4388,7 +4394,7 @@ object SwaggerDefinitionsJSON {
     outboundAvroSchema = outboundAvroSchemaExample.value,
     inboundAvroSchema = inboundAvroSchemaExample.value,
     adapterImplementation = adapterImplementationExample.value,
-    methodBody = connectorMethodBodyExample.value,
+    methodBody = connectorMethodBodyScalaExample.value,
     lang = connectorMethodLangExample.value
   )
 

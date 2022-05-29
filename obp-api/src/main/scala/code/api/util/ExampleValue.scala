@@ -432,14 +432,51 @@ object ExampleValue {
   
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.methodBody", dynamicResourceDocMethodBodyExample)
 
-  lazy val connectorMethodBodyExample = ConnectorField("%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%" +
+  lazy val connectorMethodBodyScalaExample = ConnectorField("%20%20%20%20%20%20Future.successful%28%0A%20%20%20%20%20%20%20%20Full%28%" +
     "28BankCommons%28%0A%20%20%20%20%20%20%20%20%20%20BankId%28%22Hello%20bank%20id%22%29%2C%0A%20%20%20%20%20%20%20%20%20" +
     "%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%2" +
     "0%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%221%22%2C%0A%20%20%2" +
     "0%20%20%20%20%20%20%20%221%22%2C%0A%20%20%20%20%20%20%20%20%20%20%228%22%0A%20%20%20%20%20%20%20%20%29%2C%20None%29%29%0A%" +
     "20%20%20%20%20%20%29",
     "the URL-encoded format String, the original code is the OBP connector method body.")
-  glossaryItems += makeGlossaryItem("DynamicConnectorMethod.methodBody", connectorMethodBodyExample)
+  glossaryItems += makeGlossaryItem("DynamicConnectorMethod.methodBody.scala", connectorMethodBodyScalaExample)
+  
+  lazy val connectorMethodBodyJavaExample = ConnectorField("package%20code.bankconnectors%3B%0A%0Aimport%20com.openbankp" +
+    "roject.commons.model.*%3B%0Aimport%20java.util.function.Function%3B%0Aimport%20java.util.function.Supplier%3B%0A%0A%" +
+    "2F**%0A%20*%20This%20is%20a%20java%20dynamic%20function%20template.%0A%20*%20Must%20copy%20the%20whole%20content%20" +
+    "of%20the%20file%20as%20%22dynamic%20method%20body%22.%0A%20*%20Currently%2C%20support%20Java%201.8%20version%20lang" +
+    "uage%20features%0A%20*%2F%0Apublic%20class%20DynamicJavaConnector%20implements%20Supplier%3CFunction%3CObject%5B%5D" +
+    "%2C%20Object%3E%3E%20%7B%0A%20%20%20%20private%20Object%20apply(Object%5B%5D%20args)%20%7B%0A%20%20%20%20%20%20%20Ba" +
+    "nkId%20bankId%20%3D%20(BankId)%20args%5B0%5D%3B%0A%0A%20%20%20%20%20%20%20Bank%20bank%20%3D%20new%20BankCommons(bank" +
+    "Id%2C%20%22The%20Java%20Bank%20of%20Scotland%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22The%20Royal%20Ba" +
+    "nk%20of%20Scotland%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22http%3A%2F%2Fwww.red-bank-shoreditch.com%2F" +
+    "logo.gif%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22http%3A%2F%2Fwww.red-bank-shoreditch.com%22%2C%0A%20%2" +
+    "0%20%20%20%20%20%20%20%20%20%20%20%20%20%22OBP%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%22rbs%22%2C%0A%20%" +
+    "20%20%20%20%20%20%20%20%20%20%20%20%20%20%22Swift%20bic%20value%22%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%" +
+    "22national-identifier-value%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20)%3B%0A%20%20%20%20%20%20%20return%20ban" +
+    "k%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20%40Override%0A%20%20%20%20public%20Function%3CObject%5B%5D%2C%20Object%3E%20ge" +
+    "t()%20%7B%0A%20%20%20%20%20%20%20%20return%20this%3A%3Aapply%3B%0A%20%20%20%20%7D%0A%7D%0A",
+    "the URL-encoded format String, the original Java code is the OBP connector method body.")
+  glossaryItems += makeGlossaryItem("DynamicConnectorMethod.methodBody.Java", connectorMethodBodyJavaExample)
+  
+  lazy val connectorMethodBodyJsExample = ConnectorField("%7B%0A%20%20%20%20const%20%5BbankId%5D%20%3D%20args%3B%0A%20%20" +
+    "%20%20%2F%2F%20call%20java%20or%20scala%20type%20in%20this%20way%0A%20%20%20%20const%20BigDecimal%20%3D%20Java.type" +
+    "(%27java.math.BigDecimal%27)%3B%0A%20%20%20%20%2F%2F%20define%20a%20class%0A%20%20%20%20class%20SwiftBic%7B%0A%20%2" +
+    "0%20%20%20%20%20%20constructor(name%2C%20value)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20this.name%20%3D%20name%" +
+    "3B%0A%20%20%20%20%20%20%20%20%20%20%20%20this.value%20%3D%20value%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%7" +
+    "D%0A%20%20%20%20%2F%2F%20define%20async%20function%0A%20%20%20%20const%20someAsyncFn%20%3D%20async%20()%20%3D%3E%20" +
+    "new%20BigDecimal(%27123.456%27)%0A%20%20%20%20%2F%2F%20call%20other%20async%20methods%0A%20%20%20%20const%20data%20" +
+    "%3D%20await%20someAsyncFn()%3B%0A%0A%20%20%20%20const%20bank%20%3D%20%7B%0A%20%20%20%20%20%20%20%20%22bankId%22%3A%" +
+    "7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%22value%22%3A%22HelloBank%3A%22%2B%20bankId%0A%20%20%20%20%20%20%20%20%7D" +
+    "%2C%0A%20%20%20%20%20%20%20%20%22shortName%22%3A%22The%20Royal%20Bank%20of%20Scotland%22%20%2B%20data.toString()%2C" +
+    "%0A%20%20%20%20%20%20%20%20%22fullName%22%3A%22The%20Royal%20Bank%20of%20Scotland%22%2C%0A%20%20%20%20%20%20%20%20%" +
+    "22logoUrl%22%3A%22http%3A%2F%2Fwww.red-bank-shoreditch.com%2Flogo.gif%22%2C%0A%20%20%20%20%20%20%20%20%22websiteUrl" +
+    "%22%3A%22http%3A%2F%2Fwww.red-bank-shoreditch.com%22%2C%0A%20%20%20%20%20%20%20%20%22bankRoutingScheme%22%3A%22OBP%" +
+    "22%2C%0A%20%20%20%20%20%20%20%20%22bankRoutingAddress%22%3A%22rbs%22%2C%0A%20%20%20%20%20%20%20%20%22swiftBic%22%3A" +
+    "%20new%20SwiftBic(%22Mock%20Swift%22%2C%2010).name%2C%0A%20%20%20%20%20%20%20%20%22nationalIdentifier%22%3A%22Strin" +
+    "g%22%2C%0A%20%20%20%20%7D%0A%0A%20%20%20%20return%20bank%3B%0A%7D",
+    "the URL-encoded format String, the original Js code is the OBP connector method body.")
+  glossaryItems += makeGlossaryItem("DynamicConnectorMethod.methodBody.Js", connectorMethodBodyJsExample)
 
   lazy val connectorMethodLangExample = ConnectorField("Scala",
     "the programming language of OBP connector method body.")

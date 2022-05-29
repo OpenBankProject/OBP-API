@@ -73,7 +73,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
 
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
 
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 201")
@@ -122,7 +122,159 @@ class ConnectorMethodTest extends V400ServerSetup {
       Then(s"we test the $ApiEndpoint4")
       val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).PUT <@ (user1)
 
-      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonConnectorMethodMethodBody
+      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonScalaConnectorMethodMethodBody
+
+      val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
+      Then("We should get a 200")
+      responseUpdate.code should equal(200)
+
+      val responseGetAfterUpdated = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGetAfterUpdated.code should equal(200)
+
+      val connectorMethodJsonGetAfterUpdated = responseGetAfterUpdated.body.extract[JsonConnectorMethod]
+
+      connectorMethodJsonGetAfterUpdated.methodBody should be (postConnectorMethodMethodBody.methodBody)
+      connectorMethodJsonGetAfterUpdated.methodName should be (connectorMethodJsonGet400.methodName)
+      connectorMethodJsonGetAfterUpdated.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
+    }
+
+    scenario("We create my ConnectorMethod - java", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0")
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetConnectorMethod.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllConnectorMethods.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canUpdateConnectorMethod.toString)
+
+      val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
+
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonJavaConnectorMethod
+
+      val response = makePostRequest(request, write(postConnectorMethod))
+      Then("We should get a 201")
+      response.code should equal(201)
+
+      val connectorMethod = response.body.extract[JsonConnectorMethod]
+
+      connectorMethod.methodName should be (postConnectorMethod.methodName)
+      connectorMethod.methodBody should be (postConnectorMethod.methodBody)
+      connectorMethod.connectorMethodId shouldNot be (null)
+
+
+      Then(s"we test the $ApiEndpoint2")
+      val requestGet = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).GET <@ (user1)
+
+
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGet.code should equal(200)
+
+      val connectorMethodJsonGet400 = responseGet.body.extract[JsonConnectorMethod]
+
+      connectorMethodJsonGet400.methodName should be (postConnectorMethod.methodName)
+      connectorMethodJsonGet400.methodBody should be (postConnectorMethod.methodBody)
+      connectorMethod.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
+
+
+      Then(s"we test the $ApiEndpoint3")
+      val requestGetAll = (v4_0_0_Request / "management" / "connector-methods").GET <@ (user1)
+
+
+      val responseGetAll = makeGetRequest(requestGetAll)
+      Then("We should get a 200")
+      responseGetAll.code should equal(200)
+
+      val connectorMethodsJsonGetAll = responseGetAll.body \ "connector_methods"
+
+      connectorMethodsJsonGetAll shouldBe a [JArray]
+
+      val connectorMethods = connectorMethodsJsonGetAll(0)
+      (connectorMethods \ "method_name").values.toString should equal (postConnectorMethod.methodName)
+      (connectorMethods \ "method_body").values.toString should equal (postConnectorMethod.methodBody)
+      (connectorMethods \ "connector_method_id").values.toString should be (connectorMethodJsonGet400.connectorMethodId.get)
+
+
+      Then(s"we test the $ApiEndpoint4")
+      val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).PUT <@ (user1)
+
+      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonScalaConnectorMethodMethodBody
+
+      val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
+      Then("We should get a 200")
+      responseUpdate.code should equal(200)
+
+      val responseGetAfterUpdated = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGetAfterUpdated.code should equal(200)
+
+      val connectorMethodJsonGetAfterUpdated = responseGetAfterUpdated.body.extract[JsonConnectorMethod]
+
+      connectorMethodJsonGetAfterUpdated.methodBody should be (postConnectorMethodMethodBody.methodBody)
+      connectorMethodJsonGetAfterUpdated.methodName should be (connectorMethodJsonGet400.methodName)
+      connectorMethodJsonGetAfterUpdated.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
+    }
+
+    scenario("We create my ConnectorMethod - js", ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0")
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetConnectorMethod.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllConnectorMethods.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canUpdateConnectorMethod.toString)
+
+      val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
+
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonJsConnectorMethod
+
+      val response = makePostRequest(request, write(postConnectorMethod))
+      Then("We should get a 201")
+      response.code should equal(201)
+
+      val connectorMethod = response.body.extract[JsonConnectorMethod]
+
+      connectorMethod.methodName should be (postConnectorMethod.methodName)
+      connectorMethod.methodBody should be (postConnectorMethod.methodBody)
+      connectorMethod.connectorMethodId shouldNot be (null)
+
+
+      Then(s"we test the $ApiEndpoint2")
+      val requestGet = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).GET <@ (user1)
+
+
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGet.code should equal(200)
+
+      val connectorMethodJsonGet400 = responseGet.body.extract[JsonConnectorMethod]
+
+      connectorMethodJsonGet400.methodName should be (postConnectorMethod.methodName)
+      connectorMethodJsonGet400.methodBody should be (postConnectorMethod.methodBody)
+      connectorMethod.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
+
+
+      Then(s"we test the $ApiEndpoint3")
+      val requestGetAll = (v4_0_0_Request / "management" / "connector-methods").GET <@ (user1)
+
+
+      val responseGetAll = makeGetRequest(requestGetAll)
+      Then("We should get a 200")
+      responseGetAll.code should equal(200)
+
+      val connectorMethodsJsonGetAll = responseGetAll.body \ "connector_methods"
+
+      connectorMethodsJsonGetAll shouldBe a [JArray]
+
+      val connectorMethods = connectorMethodsJsonGetAll(0)
+      (connectorMethods \ "method_name").values.toString should equal (postConnectorMethod.methodName)
+      (connectorMethods \ "method_body").values.toString should equal (postConnectorMethod.methodBody)
+      (connectorMethods \ "connector_method_id").values.toString should be (connectorMethodJsonGet400.connectorMethodId.get)
+
+
+      Then(s"we test the $ApiEndpoint4")
+      val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).PUT <@ (user1)
+
+      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonScalaConnectorMethodMethodBody
 
       val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
       Then("We should get a 200")
@@ -149,7 +301,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
 
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
 
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 201")
@@ -175,7 +327,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       When("We make a request v4.0.0")
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 403")
       response.code should equal(403)
@@ -200,7 +352,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
 
       Then(s"we test the $ApiEndpoint4")
-      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonConnectorMethodMethodBody
+      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonScalaConnectorMethodMethodBody
 
       val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / "xx").PUT <@ (user1)
       val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
