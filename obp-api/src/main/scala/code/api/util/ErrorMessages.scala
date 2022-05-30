@@ -565,6 +565,7 @@ object ErrorMessages {
 
   val DynamicResourceDocMethodDependency = "OBP-40046: DynamicResourceDoc method call forbidden methods. "
   val DynamicResourceDocMethodPermission = "OBP-40047: DynamicResourceDoc method have no enough permissions. "
+  val DynamicCodeLangNotSupport = "OBP-40049: This language of dynamic code is not supported. "
 
   val InvalidOperationId = "OBP-40048: Invalid operation_id, please specify valid operation_id."
   // Exceptions (OBP-50XXX)

@@ -26,14 +26,15 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
+import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{ConnectorMethodAlreadyExists, UserHasMissingRoles}
 import code.api.util.{ApiRole, CallContext}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.bankconnectors.InternalConnector
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.entitlement.Entitlement
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{Bank, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
@@ -41,14 +42,18 @@ import net.liftweb.common.Full
 import net.liftweb.json.JArray
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+import dispatch.Req
+import net.liftweb.json.JArray
 
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class ConnectorMethodTest extends V400ServerSetup {
 
+class ConnectorMethodTest extends V400ServerSetupAsync {
+
+  
   /**
    * Test tags
    * Example: To run tests with tag "getPermissions":
@@ -73,7 +78,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
 
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
 
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 201")
@@ -122,7 +127,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       Then(s"we test the $ApiEndpoint4")
       val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).PUT <@ (user1)
 
-      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonConnectorMethodMethodBody
+     val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonJsConnectorMethodMethodBody
 
       val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
       Then("We should get a 200")
@@ -137,6 +142,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       connectorMethodJsonGetAfterUpdated.methodBody should be (postConnectorMethodMethodBody.methodBody)
       connectorMethodJsonGetAfterUpdated.methodName should be (connectorMethodJsonGet400.methodName)
       connectorMethodJsonGetAfterUpdated.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
+      
     }
   }
 
@@ -149,7 +155,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
 
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
 
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 201")
@@ -175,7 +181,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       When("We make a request v4.0.0")
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 403")
       response.code should equal(403)
@@ -200,7 +206,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
 
       Then(s"we test the $ApiEndpoint4")
-      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonConnectorMethodMethodBody
+      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonScalaConnectorMethodMethodBody
 
       val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / "xx").PUT <@ (user1)
       val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))

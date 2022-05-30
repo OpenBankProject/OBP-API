@@ -2916,6 +2916,7 @@ object Glossary extends MdcLoggable  {
 			|  
 			|  The following videos are available:
 		  |* [Introduction for Connector Method] (https://vimeo.com/507795470)
+		  |* [Introduction 2 for Connector Method] (https://vimeo.com/712557419)
 		  |
 		  |""".stripMargin)
 
