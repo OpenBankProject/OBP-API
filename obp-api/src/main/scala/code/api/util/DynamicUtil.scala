@@ -1,28 +1,26 @@
 package code.api.util
-import code.api.JsonResponseException
-import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
-import code.api.util.APIUtil.ResourceDoc
+
+import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
-import code.api.util.NewStyle.HttpCode
-import code.api.v4_0_0.JSONFactory400
-import code.api.dynamic.endpoint.helper.CompiledObjects
-import com.openbankproject.commons.ExecutionContext
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.JsonResponse
-import net.liftweb.json.{JValue, prettyRender}
-import org.apache.commons.lang3.StringUtils
 
-import java.lang.reflect.ReflectPermission
-import java.net.NetPermission
+import net.liftweb.json.{Extraction, JValue, prettyRender}
+import org.apache.commons.lang3.StringUtils
+import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
 import java.security.{AccessControlContext, AccessController, CodeSource, Permission, PermissionCollection, Permissions, Policy, PrivilegedAction, ProtectionDomain}
-import java.util.PropertyPermission
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.function.Consumer
+import java.util.regex.Pattern
+import javax.script.ScriptEngineManager
 import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.{Future, Promise}
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
 import scala.runtime.NonLocalReturnControl
@@ -42,6 +40,9 @@ object DynamicUtil {
   // code -> dynamic method function
   // the same code should always be compiled once, so here cache them
   private val dynamicCompileResult = new ConcurrentHashMap[String, Box[Any]]()
+
+  type DynamicFunction = (Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]
+
   /**
    * Compile scala code
    * toolBox have bug that first compile fail, second or later compile success.
@@ -272,6 +273,7 @@ object DynamicUtil {
       |import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicCompileEndpoint}
       |import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
       |import com.openbankproject.commons.ExecutionContext
+      |import code.api.util.CustomJsonFormats
       |import com.openbankproject.commons.model.BankId
       |import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
       |import net.liftweb.common.{Box, Full}
@@ -387,6 +389,78 @@ object DynamicUtil {
         validateDependency(dependentMethods)
       } else{ // If false, nothing to do here.
         ;
+      }
+    }
+  }
+
+  private val jsEngine = Engine.newBuilder.option("engine.WarnInterpreterOnly", "false")
+    .allowExperimentalOptions(true)
+    .build()
+
+  private val memoDynamicFunction = new Memo[String, Box[DynamicFunction]]
+
+  def createJsFunction(methodBody:String, bindingVars: Map[String, AnyRef] = Map.empty): Box[DynamicFunction] = memoDynamicFunction.memoize("Javascript:" + methodBody) {
+    Box tryo {
+      val jsCode = s"""async function processor(args, callContext) {
+       $methodBody
+      }
+      // wrap function in order to convert return value to json string
+      async (args) => JSON.stringify(await processor(args));
+      """;
+      val context = Context.newBuilder("js")
+        .allowHostAccess(HostAccess.ALL)
+        .allowPolyglotAccess(PolyglotAccess.ALL)
+        .allowHostClassLookup(_ => true)
+        .option("js.ecmascript-version", "2020")
+        .engine(jsEngine).build
+
+      // bind variables
+      val bindings = context.getBindings("js")
+      bindingVars.foreach(it => bindings.putMember(it._1, it._2))
+
+      // call js
+      val jsFunc = context.eval("js", jsCode)
+
+      (args: Array[AnyRef], cc: Option[CallContext]) => {
+        val p = Promise[Box[(String, Option[CallContext])]]()
+        // to JValue: Extraction.decompose(it)(formats)
+        val resolve: Consumer[String] = (it: String) =>
+          p.success(Full(it -> cc))
+
+        // TODO refactor APIFailureNewStyle error message.
+        val reject:Consumer[Any]= e =>
+          p.success(ParamFailure(s"Js reject error message: $e", Empty, Empty, APIFailureNewStyle(e.toString, 400, cc.map(_.toLight))))
+
+        //cc.map(_.toOutboundAdapterCallContext).orNull
+        jsFunc.execute(args ++ cc)
+          .invokeMember("then", resolve, reject)
+          .invokeMember("catch", reject)
+        p.future
+      }
+    }
+  }
+
+  private val javaEngine = (new ScriptEngineManager).getEngineByName("java")
+
+  def createJavaFunction(methodBody:String): Box[DynamicFunction] = memoDynamicFunction.memoize("java:" + methodBody) {
+    import com.openbankproject.commons.ExecutionContext.Implicits.global
+    import net.liftweb.json.compactRender
+
+    Box tryo {
+      val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")
+      val packageMatcher = Pattern.compile("""(?m)^\s*package\s+\S+?\s*;""").matcher(methodBody)
+
+      val javaCode = s"""package code.api.util.dynamic.${packageExp};
+                        |${packageMatcher.replaceFirst("")}
+                        |""".stripMargin
+
+      val func = javaEngine.eval(javaCode).asInstanceOf[java.util.function.Function[Array[AnyRef], Any]]
+
+      (args: Array[AnyRef], cc: Option[CallContext]) => Future {
+        val value = func(args ++ cc)
+        val jValue = Extraction.decompose(value)(CustomJsonFormats.formats)
+        val zson = compactRender(jValue)
+        Box !! (zson-> cc)
       }
     }
   }
