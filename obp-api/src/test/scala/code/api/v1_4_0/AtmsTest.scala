@@ -170,6 +170,10 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     override def createOrUpdateAtm(atm: AtmT): Box[AtmT] = {
       Atms.atmsProvider.vend.createOrUpdateAtm(atm)
     }
+    
+    override def deleteAtm(atm: AtmT): Box[Boolean] = {
+      Atms.atmsProvider.vend.deleteAtm(atm)
+    }
 
   }
 

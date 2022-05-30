@@ -290,6 +290,11 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.createOrUpdateAtm(atm, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateAtmError", 400), i._2)
       } 
+    }    
+    def deleteAtm(atm: AtmT, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteAtm(atm, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$DeleteAtmError", 400), i._2)
+      } 
     }
 
     def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[EndpointTagT] = {

@@ -154,6 +154,10 @@ object MappedAtmsProvider extends AtmsProvider {
     }
   }
 
+  override def deleteAtm(atm: AtmT): Box[Boolean] = {
+    MappedAtm.find(By(MappedAtm.mAtmId, atm.atmId.value)).map(_.delete_!)
+  }
+
 }
 
 class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
