@@ -11517,6 +11517,35 @@ trait APIMethods400 {
     }
     
     staticResourceDocs += ResourceDoc(
+      deleteAtm,
+      implementedInApiVersion,
+      nameOf(deleteAtm),
+      "DELETE",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Delete ATM",
+      s"""Delete ATM.""",
+      atmJsonV400.copy(id= None),
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canDeleteAtmAtAnyBank, canDeleteAtm))
+    )
+    lazy val deleteAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (deleted, callContext) <- NewStyle.function.deleteAtm(atm, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
       getAtms,
       implementedInApiVersion,
       nameOf(getAtms),

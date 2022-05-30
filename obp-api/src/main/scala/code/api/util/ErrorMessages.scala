@@ -278,6 +278,7 @@ object ErrorMessages {
 
 
   val CreateAtmError = "OBP-30028: Could not insert the ATM"
+  val DeleteAtmError = "OBP-30120: Could not delete the ATM"
   val UpdateAtmError = "OBP-30029: Could not update the ATM"
 
   val CreateProductError = "OBP-30030: Could not insert the Product"
