@@ -28,7 +28,8 @@ case class JsonDynamicMessageDoc(
   outboundAvroSchema: String, 
   inboundAvroSchema: String,
   adapterImplementation: String,
-  methodBody: String
+  methodBody: String,
+  lang: String
 ) extends JsonFieldReName{
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }
