@@ -13,11 +13,11 @@ object ConnectorMethodProvider extends SimpleInjector {
   def buildOne: MappedConnectorMethodProvider.type = MappedConnectorMethodProvider
 }
 
-case class JsonConnectorMethod(connectorMethodId: Option[String], methodName: String, methodBody: String, lang: String="Scala") extends JsonFieldReName{
+case class JsonConnectorMethod(connectorMethodId: Option[String], methodName: String, methodBody: String, programmingLang: String="Scala") extends JsonFieldReName{
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }
 
-case class JsonConnectorMethodMethodBody(methodBody: String, lang: String="Scala") extends JsonFieldReName {
+case class JsonConnectorMethodMethodBody(methodBody: String, programmingLang: String="Scala") extends JsonFieldReName {
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }
 
@@ -30,7 +30,7 @@ trait ConnectorMethodProvider {
   def getAll(): List[JsonConnectorMethod]
 
   def create(entity: JsonConnectorMethod): Box[JsonConnectorMethod]
-  def update(connectorMethodId: String, connectorMethodBody: String, lang: String): Box[JsonConnectorMethod]
+  def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String): Box[JsonConnectorMethod]
   def deleteById(connectorMethodId: String): Box[Boolean]
 
 }

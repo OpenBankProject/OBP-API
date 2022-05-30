@@ -50,16 +50,16 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
       .ConnectorMethodId(APIUtil.generateUUID())
       .MethodName(entity.methodName)
       .MethodBody(entity.methodBody)
-        .Lang(entity.lang)
+      .Lang(entity.programmingLang)
       .saveMe()
     }.map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
 
 
-  override def update(connectorMethodId: String, connectorMethodBody: String, lang: String): Box[JsonConnectorMethod] = {
+  override def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String): Box[JsonConnectorMethod] = {
     ConnectorMethod.find(By(ConnectorMethod.ConnectorMethodId, connectorMethodId)) match {
       case Full(v) =>
         tryo {
-          v.MethodBody(connectorMethodBody).Lang(lang).saveMe()
+          v.MethodBody(connectorMethodBody).Lang(programmingLang).saveMe()
         }.map(it => JsonConnectorMethod(Some(connectorMethodId), it.MethodName.get, it.MethodBody.get, getLang(it)))
       case _ => Empty
     }
