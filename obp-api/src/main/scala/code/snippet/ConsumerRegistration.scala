@@ -135,8 +135,13 @@ class ConsumerRegistration extends MdcLoggable {
       if(HydraUtil.integrateWithHydra) {
         HydraUtil.createHydraClient(consumer, oAuth2Client => {
           val signingAlg = signingAlgVar.is
-
-          oAuth2Client.setTokenEndpointAuthMethod("private_key_jwt")
+          
+          // TODO Set token_endpoint_auth_method in accordance to the Consumer.AppType value
+          // Consumer.AppType = Confidential => client_secret_post
+          // Consumer.AppType = Public => private_key_jwt
+          // Consumer.AppType = Unknown => private_key_jwt
+          oAuth2Client.setTokenEndpointAuthMethod(HydraUtil.hydraTokenEndpointAuthMethod)
+          
           oAuth2Client.setTokenEndpointAuthSigningAlg(signingAlg)
           oAuth2Client.setRequestObjectSigningAlg(signingAlg)
 

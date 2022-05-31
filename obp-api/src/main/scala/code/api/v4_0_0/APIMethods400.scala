@@ -406,6 +406,7 @@ trait APIMethods400 {
         cc =>
           for {
             (doubleEntryTransaction, callContext) <- NewStyle.function.getBalancingTransaction(transactionId, cc.callContext)
+            _ <- NewStyle.function.checkBalancingTransactionAccountAccessAndReturnView(doubleEntryTransaction, cc.user, cc.callContext)
           } yield {
             (JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction), HttpCode.`200`(callContext))
           }
@@ -5182,6 +5183,41 @@ trait APIMethods400 {
     }
 
 
+    staticResourceDocs += ResourceDoc(
+      getScopes,
+      implementedInApiVersion,
+      nameOf(getScopes),
+      "GET",
+      "/consumers/CONSUMER_ID/scopes",
+      "Get Scopes for Consumer",
+      s"""Get all the scopes for an consumer specified by CONSUMER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      scopeJsons,
+      List(UserNotLoggedIn, EntitlementNotFound, ConsumerNotFoundByConsumerId, UnknownError),
+      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
+
+    lazy val getScopes: OBPEndpoint = {
+      case "consumers" :: uuidOfConsumer :: "scopes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            consumer <- Future{callContext.get.consumer} map {
+              x => unboxFullOrFail(x , callContext, InvalidConsumerCredentials)
+            }
+            _ <- Future {NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank, callContext)} flatMap {unboxFullAndWrapIntoFuture(_)}
+            consumer <- NewStyle.function.getConsumerByConsumerId(uuidOfConsumer, callContext)
+            primaryKeyOfConsumer = consumer.id.get.toString
+            scopes <- Future { Scope.scope.vend.getScopesByConsumerId(primaryKeyOfConsumer)} map { unboxFull(_) }
+          } yield
+            (JSONFactory300.createScopeJSONs(scopes), HttpCode.`200`(callContext))
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       addScope,
       implementedInApiVersion,
@@ -11443,6 +11479,35 @@ trait APIMethods400 {
             (atm, callContext) <- NewStyle.function.createOrUpdateAtm(atm, cc.callContext)
           } yield {
             (JSONFactory400.createAtmJsonV400(atm), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteAtm,
+      implementedInApiVersion,
+      nameOf(deleteAtm),
+      "DELETE",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Delete ATM",
+      s"""Delete ATM.""",
+      atmJsonV400.copy(id= None),
+      atmJsonV400,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canDeleteAtmAtAnyBank, canDeleteAtm))
+    )
+    lazy val deleteAtm : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (deleted, callContext) <- NewStyle.function.deleteAtm(atm, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
           }
       }
     }

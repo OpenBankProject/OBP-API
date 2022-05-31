@@ -987,6 +987,8 @@ outboundAdapterCallContext.generalContext
 ##oauth2.jwk_set.url=http://localhost:4444/.well-known/jwks.json,https://www.googleapis.com/oauth2/v3/certs
 ## whether create hydra client when create consumer, default is false
 #mirror_consumer_in_hydra=true
+# There are 2 ways of authenticating OAuth 2.0 Clients at the /oauth2/token we support: private_key_jwt and client_secret_post
+# hydra_token_endpoint_auth_method=private_key_jwt
 # ------------------------------ Hydra oauth2 props end ------------------------------
 
 # ------------------------------ default entitlements ------------------------------
