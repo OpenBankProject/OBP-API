@@ -3746,6 +3746,7 @@ object SwaggerDefinitionsJSON {
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
   )
+  val postConsentRequestJsonV310 = postConsentPhoneJsonV310.copy(consumer_id = None)
   
   val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
   

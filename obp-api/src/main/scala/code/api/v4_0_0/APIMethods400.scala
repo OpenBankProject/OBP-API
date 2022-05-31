@@ -8384,9 +8384,9 @@ trait APIMethods400 {
       "/my/consents/request",
       "Create consent request",
       s"""""",
-      emptyObjectJson,
+      postConsentRequestJsonV310,
       PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
-      List(UnknownError),
+      List(InvalidJsonFormat, ConsentMaxTTL, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
     )
 
@@ -8396,9 +8396,20 @@ trait APIMethods400 {
           for {
             (_, callContext) <- applicationAccess(cc)
             _ <- passesPsd2Aisp(callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
+            consentJson: PostConsentBodyCommonJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentBodyCommonJson]
+            }
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _ => true
+              }
+            }
             createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
               callContext.flatMap(_.consumer),
-              Some("")
+              Some(compactRender(json))
             )) map {
               i => connectorEmptyResponse(i, callContext)
             }
