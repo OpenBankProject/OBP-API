@@ -114,18 +114,21 @@ Berlin 13359, Germany
 						</li>
 						<li class="navitem">
 							<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">
-								<span class="lift:Loc.api_explorer">API Explorer</span></a>
+								<lift:loc locid="api_explorer">API Explorer</lift:loc>
+							</a>
 						</li>
 						<li data-lift="Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true" class="navitem">
 							<a id ="get-api-key-link" class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
 						</li>
 						<li class="navitem">
 							<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">
-								<span class="lift:Loc.introduction">Introduction</span></a>
+								<lift:loc locid="introduction">Introduction</lift:loc>
+							</a>
 						</li>
 						<li class="navitem">
 							<a class="navlink" id="technical-faqs-anchor" data-lift="WebUI.technicalFaqsAnchor" href="">
-								<span class="lift:Loc.support">Support</span></a>
+								<lift:loc locid="support">Support</lift:loc>
+							</a>
 						</li>
 					</ul>
 					<ul class="nav navbar-nav navbar-right">
@@ -133,7 +136,7 @@ Berlin 13359, Germany
 						<li data-lift="Nav.item?name=Login" class="navitem">
 							<!-- LOGGED OUT -->
 							<p>
-								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link"><span class="lift:Loc.register">Register</span></a><a data-lift="Login.loggedOut" href="#" class="btn btn-danger login"><span class="lift:Loc.logon">Log on</span></a>
+								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link"><lift:loc locid="register">Register</lift:loc></a><a data-lift="Login.loggedOut" href="#" class="btn btn-danger login"><lift:loc locid="logon">Log on</lift:loc></a>
 							</p>
 						</li>
 						<li class="navitem" data-lift="Login.loggedIn" >
