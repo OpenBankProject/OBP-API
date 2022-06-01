@@ -385,6 +385,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId).isDefined), callContext)
     } 
   
+  override def allChallengesSuccessfullyAnswered(
+    bankId: BankId,
+    accountId: AccountId,
+    transReqId: TransactionRequestId,
+    challenges: List[ChallengeTrait],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = {
+    for {
+      (accountAttributes, callContext) <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, callContext)
+      quorum = accountAttributes.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+      challengeSuccess = challenges.count(_.successful == true) match {
+        case number if number >= quorum => true
+        case _ =>
+          MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+          false
+      }
+    } yield {
+      (Full(challengeSuccess), callContext)
+    }
+  } 
+  
   
   override def getChargeLevel(bankId: BankId,
                               accountId: AccountId,
@@ -4898,19 +4919,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
               //now we support multiple challenges. We can support multiple people to answer the challenges.
               //So here we return the challengeIds. 
-              (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
-                fromAccount.bankId,
-                fromAccount.accountId,
-                users.toList.flatten.map(_.userId),
-                transactionRequestType: TransactionRequestType,
-                transactionRequest.id.value,
-                scaMethod,
-                callContext
-              ) map { i =>
+              (challenges, callContext) <- Connector.connector.vend.createChallengesC2(
+                userIds = users.toList.flatten.map(_.userId),
+                challengeType = ChallengeType.OBP_PAYMENT,//TODO, here just hard code, it is TransactionChallengeTypes.Value in createTransactionRequestv400 method
+                transactionRequestId = Some(transactionRequest.id.value),
+                scaMethod = scaMethod,
+                scaStatus = None, //Only use for BerlinGroup Now
+                consentId = None, // Note: consentId and transactionRequestId are exclusive here.
+                authenticationMethodId = None,
+                callContext = callContext
+                ) map { i =>
                 (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
               }
-              //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
-              newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+             
+              //NOTE:this is only for Backward compatibility, now we use the MappedExpectedChallengeAnswer tables instead of the single field in TransactionRequest.
+              //Here only put the dummy date.
+              newChallenge = TransactionRequestChallenge(s"challenges number:${challenges.length}", allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
               transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
             } yield {

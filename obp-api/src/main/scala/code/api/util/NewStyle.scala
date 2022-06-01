@@ -72,6 +72,7 @@ import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
+import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
 import net.liftweb.mapper.By
@@ -1154,7 +1155,7 @@ object NewStyle extends MdcLoggable{
                                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                       detailsPlain: String,
                                       chargePolicy: String,
-                                      challengeType: Option[String],
+                                      challengeType: Option[TransactionChallengeTypes.Value],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
                                       berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
@@ -1169,7 +1170,7 @@ object NewStyle extends MdcLoggable{
         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
         detailsPlain: String,
         chargePolicy: String,
-        challengeType: Option[String],
+        challengeType = challengeType.map(_.toString),
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
         berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
@@ -1334,6 +1335,23 @@ object NewStyle extends MdcLoggable{
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       }
+
+    def allChallengesSuccessfullyAnswered(
+      bankId: BankId,
+      accountId: AccountId,
+      transReqId: TransactionRequestId,
+      challenges: List[ChallengeTrait],
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = 
+     Connector.connector.vend.allChallengesSuccessfullyAnswered(
+       bankId: BankId,
+       accountId: AccountId,
+       transReqId: TransactionRequestId,
+       challenges: List[ChallengeTrait],
+       callContext: Option[CallContext]
+       ) map { i =>
+       (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse"), i._2)
+     }
     
     def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[IbanChecker] = 
      Connector.connector.vend.validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]) map { i =>
