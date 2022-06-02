@@ -13,7 +13,7 @@ class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[
 
   // Unique
   object mChallengeId extends MappedUUID(this)
-  object mChallengeType extends MappedUUID(this)
+  object mChallengeType extends MappedString(this, 100)
   object mTransactionRequestId extends MappedUUID(this)
   object mExpectedAnswer extends MappedString(this,50)
   object mExpectedUserId extends MappedUUID(this)

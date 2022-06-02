@@ -200,7 +200,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mEndDate extends MappedDate(this)
   object mChallenge_Id extends MappedString(this, 64)
   object mChallenge_AllowedAttempts extends MappedInt(this)
-  object mChallenge_ChallengeType extends MappedString(this, 32)
+  object mChallenge_ChallengeType extends MappedString(this, 100)
   object mCharge_Summary  extends MappedString(this, 64)
   object mCharge_Amount  extends MappedString(this, 32)
   object mCharge_Currency  extends MappedString(this, 3)

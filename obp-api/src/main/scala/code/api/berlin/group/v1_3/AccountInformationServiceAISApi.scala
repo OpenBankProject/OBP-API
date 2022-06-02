@@ -1078,7 +1078,7 @@ The ASPSP might make the usage of this access method unnecessary, since the rela
               }
              (challenges, callContext) <- NewStyle.function.createChallengesC2(
                List(u.userId),
-               ChallengeType.BERLINGROUP_CONSENT,
+               ChallengeType.BERLINGROUP_CONSENT_CHALLENGE,
                None,
                getSuggestedDefaultScaMethod(),
                Some(StrongCustomerAuthenticationStatus.received),
@@ -1154,7 +1154,7 @@ Maybe in a later version the access path will change.
                challenges.filter(_.challengeId == authorisationId).size == 1
              }
              (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC2(
-               ChallengeType.BERLINGROUP_CONSENT,
+               ChallengeType.BERLINGROUP_CONSENT_CHALLENGE,
                None,
                Some(consentId),
                challenges.filter(_.challengeId == authorisationId).head.challengeId,

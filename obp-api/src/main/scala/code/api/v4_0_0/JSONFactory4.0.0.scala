@@ -54,11 +54,12 @@ import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
+
 import code.userlocks.UserLocks
 import code.users.{UserAgreement, UserAttribute, UserInvitation}
 import code.views.system.AccountAccess
 import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
+import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
@@ -1229,8 +1230,8 @@ object JSONFactory400 {
             stringOrNull(tr.id.value),
             "/challenge").mkString("")
           val link = challenge.challengeType match  {
-            case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_WEB_FORM.toString => otpViaWebFormPath
-            case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_API.toString => otpViaApiPath
+            case challengeType if challengeType == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString => otpViaWebFormPath
+            case challengeType if challengeType == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString => otpViaApiPath
             case _ => ""
           } 
             ChallengeJsonV400(

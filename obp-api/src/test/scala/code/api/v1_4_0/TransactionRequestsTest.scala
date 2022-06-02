@@ -8,8 +8,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.setup.DefaultUsers
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
-import com.openbankproject.commons.model.enums.TransactionRequestStatus
+import com.openbankproject.commons.model.enums.{ChallengeType, TransactionRequestStatus}
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
@@ -202,7 +201,7 @@ class TransactionRequestsTest extends V140ServerSetup with DefaultUsers {
         //amount over 100 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJsonV121("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", TransactionChallengeTypes.OTP_VIA_API.toString)
+        val transactionRequestBody = TransactionRequestBodyJsonV140(toAccountJson, bodyValue, "Test Transaction Request description", ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
 
         //call createTransactionRequest API method
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /

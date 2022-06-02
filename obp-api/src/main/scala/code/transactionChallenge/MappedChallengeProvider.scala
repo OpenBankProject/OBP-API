@@ -25,12 +25,14 @@ object MappedChallengeProvider extends ChallengeProvider {
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
-    authenticationMethodId: Option[String], 
+    authenticationMethodId: Option[String],
+    challengeType: String, 
   ): Box[ChallengeTrait] = 
     tryo (
       MappedExpectedChallengeAnswer
         .create
         .mChallengeId(challengeId)
+        .mChallengeType(challengeType)
         .mTransactionRequestId(transactionRequestId)
         .mSalt(salt)
         .mExpectedAnswer(expectedAnswer)

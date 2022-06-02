@@ -65,7 +65,7 @@ import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
 import code.transactionRequestAttribute.TransactionRequestAttributeX
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests._
 import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
@@ -76,6 +76,7 @@ import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
+import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
@@ -211,6 +212,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       None, //there are only for new version, set the empty here.
       None,//there are only for new version, set the empty here.
       None,//there are only for new version, set the empty here.
+      challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
       callContext: Option[CallContext])
     (challenge._1.map(_.challengeId),challenge._2)
   }
@@ -240,6 +242,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         None, //there are only for new version, set the empty here.
         None,//there are only for new version, set the empty here.
         None,//there are only for new version, set the empty here.
+        challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
       challenge.map(_.challengeId).toList
@@ -267,6 +270,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         scaStatus,
         consentId,
         authenticationMethodId,
+        challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
       challengeId.toList
@@ -290,7 +294,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus], //Only use for BerlinGroup Now
     consentId: Option[String],    // Note: consentId and transactionRequestId are exclusive here.
-    authenticationMethodId: Option[String],      
+    authenticationMethodId: Option[String],
+    challengeType: String,
     callContext: Option[CallContext]
   ) = {
     def createHashedPassword(challengeAnswer: String) = {
@@ -306,7 +311,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         scaMethod,
         scaStatus,
         consentId,
-        authenticationMethodId), callContext)
+        authenticationMethodId,
+        challengeType), callContext)
     }
 
     scaMethod match {
@@ -389,11 +395,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     bankId: BankId,
     accountId: AccountId,
     transReqId: TransactionRequestId,
-    challenges: List[ChallengeTrait],
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = {
     for {
       (accountAttributes, callContext) <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, callContext)
+      (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(transReqId.value, callContext)
       quorum = accountAttributes.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
       challengeSuccess = challenges.count(_.successful == true) match {
         case number if number >= quorum => true
@@ -4559,7 +4565,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -4630,7 +4636,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -4767,7 +4773,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
 
-            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString))
             _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
           } yield {
@@ -4840,6 +4846,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
       chargeLevelAmount <- NewStyle.function.tryons(s"$InvalidNumber chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !", 400, callContext) {
         BigDecimal(chargeLevel.amount)
+      }
+      challengeTypeValue <- NewStyle.function.tryons(s"$InvalidChallengeType Current Type is $challengeType", 400, callContext) {
+        challengeType.map(ChallengeType.withName(_)).head
       }
       chargeValue <- getChargeValue(chargeLevelAmount, transactionRequestCommonBodyAmount)
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
@@ -4921,7 +4930,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               //So here we return the challengeIds. 
               (challenges, callContext) <- Connector.connector.vend.createChallengesC2(
                 userIds = users.toList.flatten.map(_.userId),
-                challengeType = ChallengeType.OBP_PAYMENT,//TODO, here just hard code, it is TransactionChallengeTypes.Value in createTransactionRequestv400 method
+                challengeType = challengeTypeValue,
                 transactionRequestId = Some(transactionRequest.id.value),
                 scaMethod = scaMethod,
                 scaStatus = None, //Only use for BerlinGroup Now
@@ -4934,7 +4943,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
              
               //NOTE:this is only for Backward compatibility, now we use the MappedExpectedChallengeAnswer tables instead of the single field in TransactionRequest.
               //Here only put the dummy date.
-              newChallenge = TransactionRequestChallenge(s"challenges number:${challenges.length}", allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+              newChallenge = TransactionRequestChallenge(s"challenges number:${challenges.length}", allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
               transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
             } yield {
@@ -5052,7 +5061,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     tr.map(_._1) match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
-          if (tr.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString) {
+          if (tr.challenge.challenge_type == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString) {
             //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
             for {
               nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"

@@ -72,7 +72,6 @@ import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
 import net.liftweb.mapper.By
@@ -1155,7 +1154,7 @@ object NewStyle extends MdcLoggable{
                                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                       detailsPlain: String,
                                       chargePolicy: String,
-                                      challengeType: Option[TransactionChallengeTypes.Value],
+                                      challengeType: Option[ChallengeType.Value],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
                                       berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
@@ -1340,14 +1339,12 @@ object NewStyle extends MdcLoggable{
       bankId: BankId,
       accountId: AccountId,
       transReqId: TransactionRequestId,
-      challenges: List[ChallengeTrait],
       callContext: Option[CallContext]
     ): OBPReturnType[Boolean] = 
      Connector.connector.vend.allChallengesSuccessfullyAnswered(
        bankId: BankId,
        accountId: AccountId,
        transReqId: TransactionRequestId,
-       challenges: List[ChallengeTrait],
        callContext: Option[CallContext]
        ) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse"), i._2)
@@ -1366,10 +1363,10 @@ object NewStyle extends MdcLoggable{
       hashOfSuppliedAnswer: String, 
       callContext: Option[CallContext]
     ): OBPReturnType[ChallengeTrait] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && transactionRequestId.isEmpty ){
-        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
-        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT_CHALLENGE challengeType: paymentId($transactionRequestId) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: consentId($consentId) ")}
       }else{
         Connector.connector.vend.validateChallengeAnswerC2(
           transactionRequestId: Option[String],
@@ -1405,9 +1402,9 @@ object NewStyle extends MdcLoggable{
       authenticationMethodId: Option[String],
       callContext: Option[CallContext]
     ) : OBPReturnType[List[ChallengeTrait]] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
       }else{
         Connector.connector.vend.createChallengesC2(

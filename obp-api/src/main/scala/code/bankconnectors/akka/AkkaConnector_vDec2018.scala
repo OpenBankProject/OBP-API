@@ -11,7 +11,7 @@ import code.api.util.ExampleValue._
 import code.api.util._
 import code.bankconnectors._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
+
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._

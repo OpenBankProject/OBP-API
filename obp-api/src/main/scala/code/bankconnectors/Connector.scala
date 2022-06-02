@@ -404,7 +404,6 @@ trait Connector extends MdcLoggable {
     bankId: BankId,
     accountId: AccountId,
     transReqId: TransactionRequestId,
-    challenges: List[ChallengeTrait],
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]]= Future{(Full(true), callContext)}
   
@@ -845,7 +844,7 @@ trait Connector extends MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -913,7 +912,7 @@ trait Connector extends MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -1043,7 +1042,7 @@ trait Connector extends MdcLoggable {
               (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
 
-            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString))
             _ <- Future (saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
           } yield {
@@ -1223,7 +1222,7 @@ trait Connector extends MdcLoggable {
     tr.map(_._1) match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
-          if (tr.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString) {
+          if (tr.challenge.challenge_type == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString) {
             //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
             for {
               nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
