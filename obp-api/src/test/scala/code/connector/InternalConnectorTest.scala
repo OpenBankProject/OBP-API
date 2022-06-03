@@ -28,7 +28,7 @@ class InternalConnectorTest extends FlatSpec with Matchers {
                      |    "8"
                      |  ), None))
                      |)""".stripMargin, 
-      lang = "Scala"
+      programmingLang = "Scala"
     )
     val resultJava: Box[AnyRef] = InternalConnector.createFunction(
       methodName = "getBank", 
@@ -65,7 +65,7 @@ class InternalConnectorTest extends FlatSpec with Matchers {
                      |    }
                      |}
                      |""".stripMargin, 
-      lang = "Java"
+      programmingLang = "Java"
     )
     val resultJs: Box[AnyRef] = InternalConnector.createFunction(
       methodName = "getBank", 
@@ -101,7 +101,7 @@ class InternalConnectorTest extends FlatSpec with Matchers {
                      |
                      |    return bank;
                      |}""".stripMargin, 
-      lang = "Js"
+      programmingLang = "Js"
     )
 
     

@@ -4395,7 +4395,7 @@ object SwaggerDefinitionsJSON {
     inboundAvroSchema = inboundAvroSchemaExample.value,
     adapterImplementation = adapterImplementationExample.value,
     methodBody = connectorMethodBodyScalaExample.value,
-    lang = connectorMethodLangExample.value
+    programmingLang = connectorMethodLangExample.value
   )
 
   val jsonResourceDocFragment = ResourceDocFragment(
