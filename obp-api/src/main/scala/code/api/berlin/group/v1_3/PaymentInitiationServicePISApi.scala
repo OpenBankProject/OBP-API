@@ -17,6 +17,7 @@ import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, TransactionRequestStatus}
 import net.liftweb.common.Full
@@ -588,7 +589,7 @@ $additionalInstructions
                      ),
                      transDetailsSerialized,
                      "",
-                     None,
+                     Some(BERLINGROUP_PAYMENT_CHALLENGE),
                      None,
                      None,
                      Some(transDetailsJson),
