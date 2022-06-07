@@ -30,13 +30,13 @@ object MigrationOfAccountAccessAddedConsumerId {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   s"""
-                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT '$ALL_CONSUMERS';
+                    |ALTER TABLE accountaccess ADD COLUMN IF NOT EXISTS "consumer_id" character varying(255) DEFAULT '$ALL_CONSUMERS';
                     |DROP INDEX IF EXISTS accountaccess_bank_id_account_id_view_fk_user_fk;
                     |""".stripMargin
               case _ =>
                 () =>
                   s"""
-                    |ALTER TABLE accountaccess ADD COLUMN "consumer_id" character varying(255) DEFAULT '$ALL_CONSUMERS';
+                    |ALTER TABLE accountaccess ADD COLUMN IF NOT EXISTS "consumer_id" character varying(255) DEFAULT '$ALL_CONSUMERS';
                     |DROP INDEX IF EXISTS accountaccess_bank_id_account_id_view_fk_user_fk;
                     |""".stripMargin
             }

@@ -59,6 +59,7 @@ import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
+import sh.ory.hydra.api.AdminApi
 
 import scala.concurrent.Future
 
@@ -510,6 +511,17 @@ import net.liftweb.util.Helpers._
     } else { 
       "This information is not allowed at this instance."
     }
+  }  
+  def getAccessTokenOfCurrentUser(): String = {
+    if(APIUtil.getPropsAsBoolValue("openid_connect.show_tokens", false)) {
+      AuthUser.currentUser match {
+        case Full(authUser) =>
+          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id.get).map(_.accessToken).getOrElse("")
+        case _ => ""
+      }
+    } else { 
+      "This information is not allowed at this instance."
+    }
   }
   
   /**
@@ -934,6 +946,8 @@ def restoreSomeSessions(): Unit = {
     *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
     */
   override def login: NodeSeq = {
+    // This query parameter is specific to Hydra ORA login request
+    val loginChallenge = S.param("login_challenge").getOrElse("")
     def redirectUri(): String = {
       loginRedirect.get match {
         case Full(url) =>
@@ -962,7 +976,19 @@ def restoreSomeSessions(): Unit = {
                 tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
                   .openOr(logger.error(s"${user} checkInternalRedirectAndLogUserIn.grantEmailDomainEntitlementsToUser throw exception! "))
             }}
-          S.redirectTo(redirect)
+          // We use Hydra as an Headless Identity Provider which implies OBP-API must provide User Management.
+          // If there is the query parameter login_challenge in a url we know it is tha Hydra request
+          // TODO Write standalone application for Login and Consent Request of Hydra as Identity Provider
+          integrateWithHydra match {
+            case true if !loginChallenge.isEmpty =>
+              val acceptLoginRequest = new AcceptLoginRequest
+              val adminApi: AdminApi = new AdminApi
+              acceptLoginRequest.setSubject(user.username.get)
+              val result = adminApi.acceptLoginRequest(loginChallenge, acceptLoginRequest)
+              S.redirectTo(result.getRedirectTo)
+            case false =>
+              S.redirectTo(redirect)
+          }
         })
       } else {
         S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))

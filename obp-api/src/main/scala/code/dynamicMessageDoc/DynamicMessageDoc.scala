@@ -42,6 +42,6 @@ object DynamicMessageDoc extends DynamicMessageDoc with LongKeyedMetaMapper[Dyna
     inboundAvroSchema = dynamicMessageDoc.InboundAvroSchema.get,
     adapterImplementation = dynamicMessageDoc.AdapterImplementation.get,
     methodBody = dynamicMessageDoc.MethodBody.get,
-    lang = dynamicMessageDoc.Lang.get
+    programmingLang = dynamicMessageDoc.Lang.get
   )
 }

@@ -36,7 +36,7 @@ object DynamicConnector {
   private def getFunction(bankId: Option[String], process: String):Box[DynamicFunction] = {
     DynamicMessageDocProvider.provider.vend.getByProcess(bankId, process) map {
       case v :JsonDynamicMessageDoc =>
-        createFunction(v.lang, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail")
+        createFunction(v.programmingLang, v.decodedMethodBody).openOrThrowException(s"InternalConnector method compile fail")
     }
   }
 
@@ -58,11 +58,11 @@ object DynamicConnector {
    * @param methodBody method body of connector method
    * @return function of connector method that is dynamic created, can be Function0, Function1, Function2...
    */
-  def createFunction(lang: String, methodBody:String): Box[DynamicFunction] = (lang match {
+  def createFunction(programmingLang: String, methodBody:String): Box[DynamicFunction] = (programmingLang match {
     case "js" | "Js" | "javascript" | "JavaScript" => DynamicUtil.createJsFunction(methodBody)
     case "java" | "Java" => DynamicUtil.createJavaFunction(methodBody)
     case "Scala" | "scala" | "" | null => createScalaFunction(methodBody)
-    case _ => Failure(s"$DynamicCodeLangNotSupport lang: $lang, currently supported languages: Java, Javascript and Scala")
+    case _ => Failure(s"$DynamicCodeLangNotSupport programmingLang $programmingLang, currently supported languages: Java, Javascript and Scala")
   })  map wrapperDynamicFunction
 
   /**
