@@ -61,7 +61,7 @@ class UserInformation extends MdcLoggable {
         "#user-info-provider" #> SHtml.text(providerVar.is, providerVar(_)) &
         "#user-info-email" #> SHtml.text(devEmailVar, devEmailVar(_)) &
         "#user-info-id-token" #> SHtml.text(idTokenVar, idTokenVar(_)) &
-        "#user-info-access-token" #> SHtml.text(idTokenVar, accessTokenVar(_))
+        "#user-info-access-token" #> SHtml.text(accessTokenVar, accessTokenVar(_))
       } & "#register-consumer-success" #> ""
     }
   }
