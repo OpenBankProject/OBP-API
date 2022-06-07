@@ -511,6 +511,17 @@ import net.liftweb.util.Helpers._
     } else { 
       "This information is not allowed at this instance."
     }
+  }  
+  def getAccessTokenOfCurrentUser(): String = {
+    if(APIUtil.getPropsAsBoolValue("openid_connect.show_tokens", false)) {
+      AuthUser.currentUser match {
+        case Full(authUser) =>
+          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id.get).map(_.accessToken).getOrElse("")
+        case _ => ""
+      }
+    } else { 
+      "This information is not allowed at this instance."
+    }
   }
   
   /**
