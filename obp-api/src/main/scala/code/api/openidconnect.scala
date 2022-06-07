@@ -179,7 +179,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
     val code = s.param("code")
     val state = s.param("state")
     val sessionState = OpenIDConnectSessionState.get
-    (code.getOrElse(""), state.getOrElse(""), sessionState.toString())
+    (code.getOrElse(""), state.getOrElse("0"), sessionState.map(_.toString).getOrElse("1"))
   }
 
   private def getOrCreateAuthUser(user: User): Box[AuthUser] = {
