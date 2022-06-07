@@ -21,10 +21,11 @@ object RemotedataChallenges extends ObpActorInit with ChallengeProvider {
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
-    authenticationMethodId: Option[String]
+    authenticationMethodId: Option[String],
+    challengeType: String,
   ): Box[ChallengeTrait] = 
     getValueFromFuture(
-      (actor ? cc.saveChallenge(challengeId, transactionRequestId, salt, expectedAnswer, expectedUserId, scaMethod, scaStatus, consentId, authenticationMethodId))
+      (actor ? cc.saveChallenge(challengeId, transactionRequestId, salt, expectedAnswer, expectedUserId, scaMethod, scaStatus, consentId, authenticationMethodId, challengeType))
         .mapTo[Box[ChallengeTrait]]
     )
   

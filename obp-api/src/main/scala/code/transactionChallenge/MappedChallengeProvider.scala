@@ -25,12 +25,14 @@ object MappedChallengeProvider extends ChallengeProvider {
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
-    authenticationMethodId: Option[String], 
+    authenticationMethodId: Option[String],
+    challengeType: String, 
   ): Box[ChallengeTrait] = 
     tryo (
       MappedExpectedChallengeAnswer
         .create
         .mChallengeId(challengeId)
+        .mChallengeType(challengeType)
         .mTransactionRequestId(transactionRequestId)
         .mSalt(salt)
         .mExpectedAnswer(expectedAnswer)
@@ -56,43 +58,42 @@ object MappedChallengeProvider extends ChallengeProvider {
     challengeAnswer: String,
     userId: Option[String]
   ): Box[ChallengeTrait] = {
-    
-    val challenge = getChallenge(challengeId).openOrThrowException(s"${ErrorMessages.InvalidChallengeAnswer}")
-    val currentAttemptCounterValue = challenge.attemptCounter 
-    //We update the counter anyway.
-    challenge.mAttemptCounter(currentAttemptCounterValue+1).saveMe()
-    
-    val createDateTime = challenge.createdAt.get
-    val challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
-    
-    val expiredDateTime: Long = createDateTime.getTime+challengeTTL
-    val currentTime: Long = Platform.currentTime
-    
-    //TODO, add column maxAttemptsAllowed (Int) to `mappedexpectedchallengeanswer`  table instead of this hardcode number 3
-    if(currentAttemptCounterValue <3){
-      if(expiredDateTime > currentTime) {
-        val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
-        val expectedHashedAnswer = challenge.expectedAnswer
-    
-        userId match {
-          case None => 
-            if(currentHashedAnswer==expectedHashedAnswer) {
-              tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-            } else {
-              Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
-            }
-          case Some(id) =>
-            if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
-              tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-            } else {
-              Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
-            }
+    for{
+       challenge <-  getChallenge(challengeId) ?~! s"${ErrorMessages.InvalidTransactionRequestChallengeId}"
+       currentAttemptCounterValue = challenge.attemptCounter
+        //We update the counter anyway.
+       _ = challenge.mAttemptCounter(currentAttemptCounterValue+1).saveMe()
+       createDateTime = challenge.createdAt.get
+       challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
+
+       expiredDateTime: Long = createDateTime.getTime+challengeTTL
+       currentTime: Long = Platform.currentTime
+       challenge <- if(currentAttemptCounterValue <3){
+        if(expiredDateTime > currentTime) {
+          val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
+          val expectedHashedAnswer = challenge.expectedAnswer
+          userId match {
+            case None =>
+              if(currentHashedAnswer==expectedHashedAnswer) {
+                tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+              } else {
+                Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+              }
+            case Some(id) =>
+              if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
+                tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+              } else {
+                Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+              }
+          }
+        }else{
+          Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $transactionRequestChallengeTtl seconds")
         }
       }else{
-        Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $transactionRequestChallengeTtl seconds")
+        Failure(s"${ErrorMessages.AllowedAttemptsUsedUp}")
       }
-  }else{
-      Failure(s"${ErrorMessages.AllowedAttemptsUsedUp}")
+    } yield{
+      challenge
     }
   }
 }

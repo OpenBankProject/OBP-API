@@ -1,7 +1,6 @@
 package code.bankconnectors.akka
 
 import java.util.Date
-
 import akka.pattern.ask
 import code.actorsystem.ObpLookupSystem
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions
@@ -12,6 +11,7 @@ import code.api.util.ExampleValue._
 import code.api.util._
 import code.bankconnectors._
 import code.bankconnectors.akka.actor.{AkkaConnectorActorInit, AkkaConnectorHelperActor}
+
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._

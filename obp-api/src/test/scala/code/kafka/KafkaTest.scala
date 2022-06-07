@@ -40,7 +40,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
   
  
   feature("Send and retrieve message") {
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getObpConnectorLoopback, if it is mapped connector", kafkaTest) {}
     } else
       scenario("1st test `getObpConnectorLoopback` method, there no need Adapter message for this method!", kafkaTest) {
@@ -79,7 +79,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 
     }
 
-//    if (PropsConnectorVersion =="mapped") {
+//    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
 //      ignore("ignore test processRequest, if it is mapped connector", kafkaTest) {}
 //    } else
 //      scenario("Send and retrieve message directly to and from kafka", kafkaTest) {
@@ -96,7 +96,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 //        result should be (Full(inBound))
 //    }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getKycStatuses, if it is mapped connector", kafkaTest) {}
     } else
       scenario("test `getKycStatuses` method",kafkaTest) {
@@ -115,7 +115,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         result._1.toString should be (expectResult.toString)
      }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getKycChecks, if it is mapped connector", kafkaTest) {}
     } else
       scenario("test `getKycChecks` method", kafkaTest) {
@@ -130,7 +130,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         result._1.toString should be (expectResult.toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getKycMedias, if it is mapped connector", kafkaTest) {}
     } else
       scenario("test `getKycMedias` method",kafkaTest) {
@@ -145,7 +145,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         result._1.toString should be (expectResult.toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getAdapterInfo, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getAdapterInfo method",kafkaTest) {
@@ -159,7 +159,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         result.map(_._1) should be (Full(inBound.data))
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getUser, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getUser method",kafkaTest) {
@@ -172,7 +172,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         box.map(_.displayName) should be (Full(inBound.data.displayName))
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBanksFuture, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBanksFuture method", kafkaTest) {
@@ -186,7 +186,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBanks, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBanks method", kafkaTest) {
@@ -198,7 +198,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         box.map(_._1.head.bankId).toString should be (Full(inBound.data.head.bankId).toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBank, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBank method", kafkaTest) {
@@ -210,7 +210,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         box.map(_._1.bankId).toString should be (Full(inBound.data.bankId).toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBankFuture, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBankFuture method",kafkaTest) {
@@ -223,7 +223,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         result.map(_._1.bankId).toString should be (Full(inBound.data.bankId).toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBankAccountsForUserFuture, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBankAccountsForUserFuture method",kafkaTest) {
@@ -236,7 +236,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         result.map(_._1.head).toString should be (Full(inBound.data.head).toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBankAccountsForUser, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBankAccountsForUser method",kafkaTest) {
@@ -247,7 +247,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         box.map(_._1.head).toString should be (Full(inBound.data.head).toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBankAccount, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBankAccount method",kafkaTest) {
@@ -259,7 +259,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         box.map(_._1.accountId).toString should be (Full(inBound.data.head.accountId).toString)
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getBankAccountFuture, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getBankAccountFuture method",kafkaTest) {
@@ -274,7 +274,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getChallengeThreshold, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getChallengeThreshold method",kafkaTest) {
@@ -289,7 +289,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test makePaymentv210, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test makePaymentv210 method",kafkaTest) {
@@ -317,7 +317,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test createChallenge, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test createChallenge method",kafkaTest) {
@@ -341,7 +341,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test createCounterparty, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test createCounterparty method",kafkaTest) {
@@ -377,7 +377,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
 
       }
 
-    if (PropsConnectorVersion =="mapped") {
+    if (PropsConnectorVersion =="mapped" || PropsConnectorVersion =="star"){
       ignore("ignore test getTransactionRequests210, if it is mapped connector", kafkaTest) {}
     } else
       scenario(s"test getTransactionRequests210 method",kafkaTest) {
