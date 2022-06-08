@@ -133,6 +133,11 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null);
       var consumer: Box[Consumer] = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
 
+      // The access token can be disabled at any time due to fact it is NOT self-encoded/self-contained.
+      if (!introspectOAuth2Token.getActive) {
+        return (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
+      }
+      
       // check access token binding with client certificate
       {
         if(consumer.isEmpty) {
@@ -165,18 +170,15 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         }
       }
 
-      if (introspectOAuth2Token.getActive) { // The access token can be disabled at any time due to fact it is NOT self-encoded/self-contained.
-        val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
-        user match {
-          case Full(u) =>
-            LoginAttempt.userIsLocked(u.name) match {
-              case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
-              case false => (Full(u), Some(cc.copy(consumer = consumer)))
-            }
-          case _ => (user, Some(cc.copy(consumer = consumer)))
-        }
-      } else {
-        (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
+      
+      val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
+      user match {
+        case Full(u) =>
+          LoginAttempt.userIsLocked(u.name) match {
+            case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
+            case false => (Full(u), Some(cc.copy(consumer = consumer)))
+          }
+        case _ => (user, Some(cc.copy(consumer = consumer)))
       }
     }
     def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {
