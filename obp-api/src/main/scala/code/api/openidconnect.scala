@@ -111,7 +111,13 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
       (401, filterMessage(chainedFailure), None)
     }
 
-    val (httpCode, message, authorizationUser) = if (state == sessionState) {
+    def checkSessionState: Boolean = {
+      if (APIUtil.getPropsAsBoolValue("openid_connect.check_session_state", true))
+        state == sessionState
+      else true
+    }
+
+    val (httpCode, message, authorizationUser) = if (checkSessionState) {
       exchangeAuthorizationCodeForTokens(code, identityProvider) match {
         case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
           JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get(identityProvider).jwks_uri) match {
