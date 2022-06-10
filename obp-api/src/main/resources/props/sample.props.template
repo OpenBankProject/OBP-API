@@ -632,6 +632,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## Note: The email address used for login must match one
 ## registered on OBP localy.
 # openid_connect.enabled=true
+# openid_connect.check_session_state=true
 # openid_connect.show_tokens=false
 # Response mode
 # possible values: query, fragment, form_post, query.jwt, fragment.jwt, form_post.jwt, jwt
