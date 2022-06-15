@@ -1,7 +1,9 @@
 package code.api.util
 
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper}
+
 import java.util.concurrent.ConcurrentHashMap
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
 import net.liftweb.json.{Formats, JsonAST}
 import net.liftweb.json.JsonDSL._
@@ -253,6 +255,12 @@ object ApiRole {
 
   case class CanCreateAtm(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAtm = CanCreateAtm()  
+  
+  case class CanDeleteAtm(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteAtm = CanDeleteAtm()
+
+  case class CanDeleteAtmAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteAtmAtAnyBank = CanDeleteAtmAtAnyBank()
   
   case class CanUpdateAtm(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAtm = CanUpdateAtm()

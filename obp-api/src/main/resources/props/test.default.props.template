@@ -23,8 +23,9 @@
 #connector=obpjvm
 ## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @optional, inbound.optional.fields props, outbound.optional.fields props
 #connector=proxy
-connector=mapped
-
+#connector=mapped
+connector=star
+starConnector_supported_types = mapped,internal
 # Connector cache time-to-live in seconds, caching disabled if not set
 #connector.cache.ttl.seconds=3
 

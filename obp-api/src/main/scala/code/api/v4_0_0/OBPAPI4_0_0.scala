@@ -36,9 +36,7 @@ import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
-import code.api.v4_0_0.dynamic.DynamicEndpoints
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
@@ -57,7 +55,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Possible Endpoints from 4.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations4_0_0) -- List(Implementations4_0_0.genericEndpoint, Implementations4_0_0.root)
-  val endpointsOf4_0_0 = getEndpoints(Implementations4_0_0) - Implementations4_0_0.genericEndpoint - Implementations4_0_0.dynamicEndpoint
+  val endpointsOf4_0_0 = getEndpoints(Implementations4_0_0) 
   
   lazy val excludeEndpoints =
     nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
@@ -77,29 +75,11 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   private val endpoints: List[OBPEndpoint] = OBPAPI3_1_0.routes ++ endpointsOf4_0_0
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] =
-      APIUtil.dynamicEndpointStub ::  // corresponding all dynamic generated endpoints's OBPEndpoint
-      Implementations4_0_0.root :: // For now we make this mandatory
+  val routes : List[OBPEndpoint] = Implementations4_0_0.root :: // For now we make this mandatory
       getAllowedEndpoints(endpoints, allResourceDocs)
 
   // register v4.0.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-  //This is the dynamic endpoints which are created by dynamic entities 
-  oauthServe(apiPrefix{Implementations4_0_0.genericEndpoint}, None)
-  //This is for the dynamic endpoints which are created by dynamic swagger files
-  oauthServe(apiPrefix{Implementations4_0_0.dynamicEndpoint}, None)
-  /**
-   * Here is the place where we register the dynamicEndpoint, all the dynamic resource docs endpoints are here.    
-   * Actually, we only register one endpoint for all the dynamic resource docs endpoints.                          
-   * For Liftweb, it just need to handle one endpoint,                                                             
-   *  all the router functionalities are in OBP code.                                                              
-   *  details: please also check code/api/v4_0_0/dynamic/DynamicEndpoints.findEndpoint method                      
-   * NOTE: this must be the last one endpoint to register into Liftweb                                             
-   * Because firstly, Liftweb should look for the static endpoints --> then the dynamic ones. 
-   * This is for the dynamic endpoints which are createdy by dynamic resourceDocs
-   */
-  oauthServe(apiPrefix{DynamicEndpoints.dynamicEndpoint}, None)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
 

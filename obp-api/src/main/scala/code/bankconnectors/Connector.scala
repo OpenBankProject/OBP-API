@@ -400,6 +400,13 @@ trait Connector extends MdcLoggable {
   // Validates an answer for a challenge and returns if the answer is correct or not
   def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Full(true), callContext)}
   
+  def allChallengesSuccessfullyAnswered(
+    bankId: BankId,
+    accountId: AccountId,
+    transReqId: TransactionRequestId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]]= Future{(Full(true), callContext)}
+  
   def validateChallengeAnswerC2(
     transactionRequestId: Option[String],
     consentId: Option[String],
@@ -772,6 +779,8 @@ trait Connector extends MdcLoggable {
 
   def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId,
                                      callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]]= Future{(Failure(setUnimplementedError), callContext)}
+  def getBalancingTransaction(transactionId: TransactionId,
+                              callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]]= Future{(Failure(setUnimplementedError), callContext)}
 
   protected def makePaymentImpl(fromAccount: BankAccount, toAccount: BankAccount, transactionRequestCommonBody: TransactionRequestCommonBodyJSON, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]= Failure(setUnimplementedError)
 
@@ -835,7 +844,7 @@ trait Connector extends MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -903,7 +912,7 @@ trait Connector extends MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -1033,7 +1042,7 @@ trait Connector extends MdcLoggable {
               (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
 
-            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString))
             _ <- Future (saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
           } yield {
@@ -1213,7 +1222,7 @@ trait Connector extends MdcLoggable {
     tr.map(_._1) match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
-          if (tr.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString) {
+          if (tr.challenge.challenge_type == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString) {
             //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
             for {
               nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
@@ -1601,6 +1610,8 @@ trait Connector extends MdcLoggable {
   def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = Failure(setUnimplementedError)
   
   def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{Failure(setUnimplementedError)}
+  
+  def deleteAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{Failure(setUnimplementedError)}
   
   def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{Failure(setUnimplementedError)}
   

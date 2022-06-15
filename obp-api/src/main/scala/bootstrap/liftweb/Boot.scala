@@ -410,6 +410,8 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.v4_0_0)
     enableVersionIfAllowed(ApiVersion.v5_0_0)
     enableVersionIfAllowed(ApiVersion.b1)
+    enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
+    enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
     def enableOpenIdConnectApis = {
       //  OpenIdConnect endpoint and validator
@@ -528,6 +530,7 @@ class Boot extends MdcLoggable {
       Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
         submenus(Consumer.menus : _*),
       Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
+      Menu("Consent Screen", Helper.i18n("consent.screen")) / "consent-screen" >> AuthUser.loginFirst,
       Menu("Dummy user tokens", "Get Dummy user tokens") / "dummy-user-tokens" >> AuthUser.loginFirst,
     
       Menu("Validate OTP", "Validate OTP") / "otp" >> AuthUser.loginFirst,

@@ -468,6 +468,39 @@
       <artifactId>macmemo</artifactId>
       <version>0.6-OBP-SNAPSHOT</version>
     </dependency>
+
+    <!-- util convert Future to js Promise
+    <dependency>
+      <groupId>org.scala-js</groupId>
+      <artifactId>scalajs-library_${scala.version}</artifactId>
+      <version>1.9.0</version>
+    </dependency>
+    -->
+    <dependency>
+      <groupId>org.graalvm.js</groupId>
+      <artifactId>js</artifactId>
+      <version>22.0.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.js</groupId>
+      <artifactId>js-scriptengine</artifactId>
+      <version>22.0.0.2</version>
+    </dependency>
+    <!--java dynamic compiler-->
+    <dependency>
+      <groupId>ch.obermuhlner</groupId>
+      <artifactId>java-scriptengine</artifactId>
+      <version>2.0.0</version>
+    </dependency>
+    <!-- 
+    Java Client for ORY Hydra
+    https://github.com/ory/hydra-client-java 
+    -->
+    <dependency>
+      <groupId>sh.ory.hydra</groupId>
+      <artifactId>hydra-client</artifactId>
+      <version>1.7.0</version>
+    </dependency>
   </dependencies>
 
   <build>

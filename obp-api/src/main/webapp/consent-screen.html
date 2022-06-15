@@ -1,0 +1,71 @@
+<!--
+Open Bank Project - API
+Copyright (C) 2011-2017, TESOBE GmbH
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+-->
+<div id="data-area" data-lift="surround?with=default;at=content" tabindex="-1">
+    <div data-lift="ConsentScreen.consentScreenForm">
+
+        <div id="data-area-input" tabindex="-1">
+            <style>
+                /* Revert CSS style of target element and its children */                       
+                .reset-style, .reset-style * {
+                    all: revert;
+                }
+            </style>
+            <div id="data-area-explanation">
+                <h1>An application requests access to your data!</h1>
+                <p>Hi <span id="username" class="reset-style"></span>, application <strong><span id="client" class="reset-style"></span></strong> wants access resources on your behalf and to:</p>
+                <ul>
+                    <li>openid</li>
+                </ul>
+            </div>
+
+            <form method="post">
+                <style>
+                    .form-control[disabled],
+                    .form-control[readonly],
+                    fieldset[disabled] .form-control {
+                        background-color: #ffffff;
+                    }
+                </style>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-12">
+                        <div class="form-group" id="consent-for-openid-div" >
+                            <input type="checkbox" class="form-check-input" id="skip_consent_screen_checkbox">
+                            <label class="sip-consent-screen-label" for="skip_consent_screen_checkbox">Do not ask me again</label>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="submit" value="Submit" class="btn btn-danger" id="allow_access_to_consent" aria-describedby="data-area-errors"/>
+                <input type="submit" value="Submit" class="btn btn-danger" id="deny_access_to_consent" aria-describedby="data-area-errors"/>
+                <div id = "data-area-errors-div" class="hide">
+                    <span data-lift="Msg?id=data-area-errors"/>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+

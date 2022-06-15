@@ -6,7 +6,7 @@ package code.atms
 
 import code.api.util.OBPQueryParam
 import com.openbankproject.commons.model._
-import net.liftweb.common.Logger
+import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List
@@ -101,7 +101,8 @@ trait AtmsProvider {
 
   protected def getAtmFromProvider(bankId: BankId, branchId : AtmId) : Option[AtmT]
   protected def getAtmsFromProvider(bank : BankId, queryParams: List[OBPQueryParam]) : Option[List[AtmT]]
-
+  def createOrUpdateAtm(atm: AtmT): Box[AtmT]
+  def deleteAtm(atm: AtmT): Box[Boolean]
 // End of Trait
 }
 

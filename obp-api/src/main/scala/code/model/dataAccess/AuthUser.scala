@@ -29,10 +29,10 @@ package code.model.dataAccess
 import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
-import code.api.v4_0_0.dynamic.DynamicEndpointHelper
 import code.api.{APIFailure, Constant, DirectLogin, GatewayLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
@@ -59,6 +59,7 @@ import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
+import sh.ory.hydra.api.AdminApi
 
 import scala.concurrent.Future
 
@@ -510,6 +511,17 @@ import net.liftweb.util.Helpers._
     } else { 
       "This information is not allowed at this instance."
     }
+  }  
+  def getAccessTokenOfCurrentUser(): String = {
+    if(APIUtil.getPropsAsBoolValue("openid_connect.show_tokens", false)) {
+      AuthUser.currentUser match {
+        case Full(authUser) =>
+          TokensOpenIDConnect.tokens.vend.getOpenIDConnectTokenByAuthUser(authUser.id.get).map(_.accessToken).getOrElse("")
+        case _ => ""
+      }
+    } else { 
+      "This information is not allowed at this instance."
+    }
   }
   
   /**
@@ -769,20 +781,20 @@ import net.liftweb.util.Helpers._
           ! LoginAttempt.userIsLocked(username) &&
           ! user.testPassword(Full(password))
         ) {
-          LoginAttempt.incrementBadLoginAttempts(username)
+          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
           Empty
         }
         // User is locked
         else if (LoginAttempt.userIsLocked(username))
         {
-          LoginAttempt.incrementBadLoginAttempts(username)
+          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
           logger.info(ErrorMessages.UsernameHasBeenLocked)
           //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode)
         }
         else {
           // Nothing worked, so just increment bad login attempts
-          LoginAttempt.incrementBadLoginAttempts(username)
+          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
           Empty
         }
       // We have a user from an external provider.
@@ -802,16 +814,16 @@ import net.liftweb.util.Helpers._
               userId match {
                 case Full(l: Long) => Full(l)
                 case _ =>
-                  LoginAttempt.incrementBadLoginAttempts(username)
+                  LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
                   Empty
               }
             case false =>
-              LoginAttempt.incrementBadLoginAttempts(username)
+              LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
               Empty
           }
       // Everything else.
       case _ =>
-        LoginAttempt.incrementBadLoginAttempts(username)
+        LoginAttempt.incrementBadLoginAttempts(username, user.foreign.map(_.provider).getOrElse(Constant.HostName))
         Empty
     }
   }
@@ -934,6 +946,8 @@ def restoreSomeSessions(): Unit = {
     *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
     */
   override def login: NodeSeq = {
+    // This query parameter is specific to Hydra ORA login request
+    val loginChallenge = S.param("login_challenge").getOrElse("")
     def redirectUri(): String = {
       loginRedirect.get match {
         case Full(url) =>
@@ -962,7 +976,19 @@ def restoreSomeSessions(): Unit = {
                 tryo{AuthUser.grantEmailDomainEntitlementsToUser(user)}
                   .openOr(logger.error(s"${user} checkInternalRedirectAndLogUserIn.grantEmailDomainEntitlementsToUser throw exception! "))
             }}
-          S.redirectTo(redirect)
+          // We use Hydra as an Headless Identity Provider which implies OBP-API must provide User Management.
+          // If there is the query parameter login_challenge in a url we know it is tha Hydra request
+          // TODO Write standalone application for Login and Consent Request of Hydra as Identity Provider
+          integrateWithHydra match {
+            case true if !loginChallenge.isEmpty =>
+              val acceptLoginRequest = new AcceptLoginRequest
+              val adminApi: AdminApi = new AdminApi
+              acceptLoginRequest.setSubject(user.username.get)
+              val result = adminApi.acceptLoginRequest(loginChallenge, acceptLoginRequest)
+              S.redirectTo(result.getRedirectTo)
+            case false =>
+              S.redirectTo(redirect)
+          }
         })
       } else {
         S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
@@ -1014,13 +1040,13 @@ def restoreSomeSessions(): Unit = {
                   val redirect = redirectUri()
                   checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                 } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
-                  LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                  LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.getProvider())
                   S.error(Helper.i18n("invalid.login.credentials"))
                 }
 
               // If user is locked, send the error to GUI
               case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
-                LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.getProvider())
                 S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
     
               // Check if user came from kafka/obpjvm/stored_procedure and
@@ -1053,7 +1079,7 @@ def restoreSomeSessions(): Unit = {
                       AfterApiAuth.innerLoginUserInitAction(Full(user))
                       checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                     case _ =>
-                      LoginAttempt.incrementBadLoginAttempts(username.get)
+                      LoginAttempt.incrementBadLoginAttempts(username.get, user.foreign.map(_.provider).getOrElse(Constant.HostName))
                       Empty
                       S.error(Helper.i18n("invalid.login.credentials"))
                 }
@@ -1062,7 +1088,7 @@ def restoreSomeSessions(): Unit = {
               case Empty => 
                 S.error(Helper.i18n("invalid.login.credentials"))
               case _ =>
-                LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+                LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.foreign.map(_.provider).getOrElse(Constant.HostName))
                 S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
             }
         }
@@ -1270,7 +1296,7 @@ def restoreSomeSessions(): Unit = {
       (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
-      _ = logger.debug(s"-->AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
+      _ = logger.debug(s"--> for user($user): AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
     }yield {
       refreshViewsAccountAccessAndHolders(user, accountsHeld)
     }

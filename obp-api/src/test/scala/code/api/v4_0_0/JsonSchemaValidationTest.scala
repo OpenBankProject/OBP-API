@@ -332,7 +332,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId /  "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId /  "FooBar").POST <@ user1
       val response= makePostRequest(request, wrongFooBar)
       Then("We should get a 400")
       response.code should equal(400)
@@ -349,7 +349,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId /  "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "banks" / bankId /  "FooBar").POST <@ user1
       val response= makePostRequest(request, correctFooBar)
       Then("We should get a 201")
       response.code should equal(201)
@@ -364,7 +364,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" / "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response= makePostRequest(request, wrongUser)
       Then("We should get a 400")
       response.code should equal(400)
@@ -383,7 +383,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
 
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "dynamic" /  "save").POST <@ user1
+      val request = (dynamicEndpoint_Request/ "save").POST <@ user1
       val response= makePostRequest(request, correctUser)
       Then("We should get a 201")
       response.code should equal(201)

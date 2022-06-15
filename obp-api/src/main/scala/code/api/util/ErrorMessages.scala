@@ -278,6 +278,7 @@ object ErrorMessages {
 
 
   val CreateAtmError = "OBP-30028: Could not insert the ATM"
+  val DeleteAtmError = "OBP-30120: Could not delete the ATM"
   val UpdateAtmError = "OBP-30029: Could not update the ATM"
 
   val CreateProductError = "OBP-30030: Could not insert the Product"
@@ -565,6 +566,7 @@ object ErrorMessages {
 
   val DynamicResourceDocMethodDependency = "OBP-40046: DynamicResourceDoc method call forbidden methods. "
   val DynamicResourceDocMethodPermission = "OBP-40047: DynamicResourceDoc method have no enough permissions. "
+  val DynamicCodeLangNotSupport = "OBP-40049: This language of dynamic code is not supported. "
 
   val InvalidOperationId = "OBP-40048: Invalid operation_id, please specify valid operation_id."
   // Exceptions (OBP-50XXX)

@@ -17,7 +17,8 @@ trait ChallengeProvider {
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
-     authenticationMethodId: Option[String], 
+    authenticationMethodId: Option[String],
+    challengeType: String,
   ): Box[ChallengeTrait]
   
   def getChallenge(challengeId: String): Box[ChallengeTrait]
@@ -45,7 +46,8 @@ class RemotedataChallengeProviderCaseClasses {
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus],
     consentId: Option[String], // Note: consentId and transactionRequestId are exclusive here.
-    authenticationMethodId: Option[String]
+    authenticationMethodId: Option[String],
+    challengeType: String,
   )
   case class getChallenge(challengeId: String)
   case class getChallengesByTransactionRequestId(transactionRequestId: String)

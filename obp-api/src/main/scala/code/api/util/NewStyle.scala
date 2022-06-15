@@ -3,10 +3,9 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
-import code.api.APIFailureNewStyle
+import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.cache.Caching
 import code.api.util.APIUtil._
@@ -54,8 +53,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.math.BigDecimal
@@ -64,8 +63,9 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v4_0_0.JSONFactory400
-import code.api.v4_0_0.dynamic.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
@@ -74,7 +74,7 @@ import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.endpointTag.EndpointTagT
 import code.util.Helper.MdcLoggable
 import code.views.system.AccountAccess
-import net.liftweb.mapper.{By}
+import net.liftweb.mapper.By
 
 object NewStyle extends MdcLoggable{
   lazy val endpoints: List[(String, String)] = List(
@@ -289,6 +289,11 @@ object NewStyle extends MdcLoggable{
     def createOrUpdateAtm(atm: AtmT, callContext: Option[CallContext]): OBPReturnType[AtmT] = {
       Connector.connector.vend.createOrUpdateAtm(atm, callContext) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateAtmError", 400), i._2)
+      } 
+    }    
+    def deleteAtm(atm: AtmT, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteAtm(atm, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$DeleteAtmError", 400), i._2)
       } 
     }
 
@@ -585,6 +590,24 @@ object NewStyle extends MdcLoggable{
       Future{
         APIUtil.checkViewAccessAndReturnView(firstView, bankAccountId, user).or(
           APIUtil.checkViewAccessAndReturnView(secondView, bankAccountId, user)
+        )
+      } map {
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
+      }
+    }
+    def checkBalancingTransactionAccountAccessAndReturnView(doubleEntryTransaction: DoubleEntryTransaction, user: Option[User], callContext: Option[CallContext]) : Future[View] = {
+      val debitBankAccountId = BankIdAccountId(
+        doubleEntryTransaction.debitTransactionBankId, 
+        doubleEntryTransaction.debitTransactionAccountId
+      )
+      val creditBankAccountId = BankIdAccountId(
+        doubleEntryTransaction.creditTransactionBankId, 
+        doubleEntryTransaction.creditTransactionAccountId
+      )
+      val ownerViewId = ViewId(Constant.SYSTEM_OWNER_VIEW_ID)
+      Future{
+        APIUtil.checkViewAccessAndReturnView(ownerViewId, debitBankAccountId, user).or(
+          APIUtil.checkViewAccessAndReturnView(ownerViewId, creditBankAccountId, user)
         )
       } map {
         unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView")
@@ -1050,18 +1073,14 @@ object NewStyle extends MdcLoggable{
       validateRequestPayload(callContext)(boxResult)
     }
 
-    def createUserAuthContext(userId: String, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
-      Connector.connector.vend.createUserAuthContext(userId, key, value, callContext) map {
+    def createUserAuthContext(user: User, key: String, value: String,  callContext: Option[CallContext]): OBPReturnType[UserAuthContext] = {
+      Connector.connector.vend.createUserAuthContext(user.userId, key, value, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       } map {
         result =>
           //We will call the `refreshUserAccountAccess` after we successfully create the UserAuthContext
-          // because `createUserAuthContext` is a connector method, here is the entry point for OBP to refreshUserAccountAccess
-          if(callContext.isDefined && callContext.get.user.isDefined) {
-            AuthUser.refreshUser(callContext.get.user.head, callContext)
-          } else {
-            logger.info(s"AuthUser.refreshUserAccountAccess can not be run properly. The user is missing in the current callContext.")   
-          }
+          // because `createUserAuthContext` is a connector method, here is the entry point for OBP to refreshUser
+          AuthUser.refreshUser(user, callContext)
           result
       }
     }
@@ -1081,9 +1100,15 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    def deleteUserAuthContextById(userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+    def deleteUserAuthContextById(user: User, userAuthContextId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteUserAuthContextById(userAuthContextId, callContext) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }map {
+        result =>
+          // We will call the `refreshUserAccountAccess` after we successfully delete the UserAuthContext
+          // because `deleteUserAuthContextById` is a connector method, here is the entry point for OBP to refreshUser
+          AuthUser.refreshUser(user, callContext)
+          result
       }
     }
     
@@ -1152,7 +1177,7 @@ object NewStyle extends MdcLoggable{
                                       transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
                                       detailsPlain: String,
                                       chargePolicy: String,
-                                      challengeType: Option[String],
+                                      challengeType: Option[ChallengeType.Value],
                                       scaMethod: Option[SCA],
                                       reasons: Option[List[TransactionRequestReason]],
                                       berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
@@ -1167,7 +1192,7 @@ object NewStyle extends MdcLoggable{
         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
         detailsPlain: String,
         chargePolicy: String,
-        challengeType: Option[String],
+        challengeType = challengeType.map(_.toString),
         scaMethod: Option[SCA],
         reasons: Option[List[TransactionRequestReason]],
         berlinGroupPayments: Option[SepaCreditTransfersBerlinGroupV13],
@@ -1332,6 +1357,21 @@ object NewStyle extends MdcLoggable{
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
        (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
       }
+
+    def allChallengesSuccessfullyAnswered(
+      bankId: BankId,
+      accountId: AccountId,
+      transReqId: TransactionRequestId,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = 
+     Connector.connector.vend.allChallengesSuccessfullyAnswered(
+       bankId: BankId,
+       accountId: AccountId,
+       transReqId: TransactionRequestId,
+       callContext: Option[CallContext]
+       ) map { i =>
+       (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse"), i._2)
+     }
     
     def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[IbanChecker] = 
      Connector.connector.vend.validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]) map { i =>
@@ -1346,10 +1386,10 @@ object NewStyle extends MdcLoggable{
       hashOfSuppliedAnswer: String, 
       callContext: Option[CallContext]
     ): OBPReturnType[ChallengeTrait] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && transactionRequestId.isEmpty ){
-        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && consentId.isEmpty ){
-        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId) ")}
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && transactionRequestId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT_CHALLENGE challengeType: paymentId($transactionRequestId) ")}
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && consentId.isEmpty ){
+        Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT_CHALLENGE challengeType: consentId($consentId) ")}
       }else{
         Connector.connector.vend.validateChallengeAnswerC2(
           transactionRequestId: Option[String],
@@ -1385,9 +1425,9 @@ object NewStyle extends MdcLoggable{
       authenticationMethodId: Option[String],
       callContext: Option[CallContext]
     ) : OBPReturnType[List[ChallengeTrait]] = {
-      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      if(challengeType == ChallengeType.BERLINGROUP_PAYMENT_CHALLENGE && (transactionRequestId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_PAYMENT challengeType: paymentId($transactionRequestId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
-      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
+      }else if(challengeType == ChallengeType.BERLINGROUP_CONSENT_CHALLENGE && (consentId.isEmpty || scaStatus.isEmpty || scaMethod.isEmpty)){
         Future{ throw new Exception(s"$UnknownError The following parameters can not be empty for BERLINGROUP_CONSENT challengeType: consentId($consentId), scaStatus($scaStatus), scaMethod($scaMethod) ")}
       }else{
         Connector.connector.vend.createChallengesC2(
@@ -1494,6 +1534,10 @@ object NewStyle extends MdcLoggable{
 
     def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
       Connector.connector.vend.getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
+      }
+    def getBalancingTransaction(transactionId: TransactionId, callContext: Option[CallContext]): OBPReturnType[DoubleEntryTransaction] =
+      Connector.connector.vend.getBalancingTransaction(transactionId: TransactionId, callContext: Option[CallContext]) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$DoubleEntryTransactionNotFound ", 404), i._2)
       }
 
@@ -3536,9 +3580,9 @@ object NewStyle extends MdcLoggable{
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
 
-    def updateJsonConnectorMethod(connectorMethodId: String, connectorMethodBody: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
+    def updateJsonConnectorMethod(connectorMethodId: String, connectorMethodBody: String, programmingLang: String, callContext: Option[CallContext]): OBPReturnType[JsonConnectorMethod] =
       Future {
-        val updatedConnectorMethod = ConnectorMethodProvider.provider.vend.update(connectorMethodId, connectorMethodBody)
+        val updatedConnectorMethod = ConnectorMethodProvider.provider.vend.update(connectorMethodId, connectorMethodBody, programmingLang)
         val errorMsg = s"$UnknownError Can not update Connector Method in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }

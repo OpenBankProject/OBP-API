@@ -26,14 +26,15 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
+import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{ConnectorMethodAlreadyExists, UserHasMissingRoles}
 import code.api.util.{ApiRole, CallContext}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.bankconnectors.InternalConnector
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.entitlement.Entitlement
+import code.methodrouting.{MethodRoutingCommons, MethodRoutingParam}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{Bank, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
@@ -41,14 +42,20 @@ import net.liftweb.common.Full
 import net.liftweb.json.JArray
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+import dispatch.Req
+import net.liftweb.json.JArray
 
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class ConnectorMethodTest extends V400ServerSetup {
 
+class ConnectorMethodTest extends V400ServerSetupAsync {
+
+  val requestGetBank = (v4_0_0_Request / "banks" / "123").GET
+  val rightEntity = MethodRoutingCommons("getBank", "internal", false, Some("*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
+  
   /**
    * Test tags
    * Example: To run tests with tag "getPermissions":
@@ -73,7 +80,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
 
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
 
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 201")
@@ -84,6 +91,12 @@ class ConnectorMethodTest extends V400ServerSetup {
       connectorMethod.methodName should be (postConnectorMethod.methodName)
       connectorMethod.methodBody should be (postConnectorMethod.methodBody)
       connectorMethod.connectorMethodId shouldNot be (null)
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
+      
+      val requestCreateMethodRouting = (v4_0_0_Request / "management" / "method_routings").POST <@(user1)
+      val responseCreateMethodRouting = makePostRequest(requestCreateMethodRouting, write(rightEntity))
+      responseCreateMethodRouting.code should equal(201)
 
 
       Then(s"we test the $ApiEndpoint2")
@@ -101,6 +114,10 @@ class ConnectorMethodTest extends V400ServerSetup {
       connectorMethod.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
 
 
+      val responseGetBank = makeGetRequest(requestGetBank)
+      val responseBank = responseGetBank.body.extract[BankJson400]
+      responseBank.id equals("Hello bank id")
+      
       Then(s"we test the $ApiEndpoint3")
       val requestGetAll = (v4_0_0_Request / "management" / "connector-methods").GET <@ (user1)
 
@@ -122,7 +139,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       Then(s"we test the $ApiEndpoint4")
       val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / {connectorMethod.connectorMethodId.getOrElse("")}).PUT <@ (user1)
 
-      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonConnectorMethodMethodBody
+     val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonJsConnectorMethodMethodBody
 
       val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
       Then("We should get a 200")
@@ -137,7 +154,32 @@ class ConnectorMethodTest extends V400ServerSetup {
       connectorMethodJsonGetAfterUpdated.methodBody should be (postConnectorMethodMethodBody.methodBody)
       connectorMethodJsonGetAfterUpdated.methodName should be (connectorMethodJsonGet400.methodName)
       connectorMethodJsonGetAfterUpdated.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
+      
+      //try the getBanks, now it return the js response
+      {
+        val responseGetBank = makeGetRequest(requestGetBank)
+        val responseBank = responseGetBank.body.extract[BankJson400]
+        responseBank.full_name equals("The Js Bank of Scotland")
+      }
+
+      {
+        val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonJavaConnectorMethodMethodBody
+
+        val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))
+        Then("We should get a 200")
+        responseUpdate.code should equal(200)
+
+        //try the getBanks, now it return the js response
+        {
+          val responseGetBank = makeGetRequest(requestGetBank)
+          val responseBank = responseGetBank.body.extract[BankJson400]
+          responseBank.short_name equals("The Java Bank of Scotland")
+        }
+        
+      }
+      connectorMethodJsonGetAfterUpdated.connectorMethodId should be (connectorMethodJsonGet400.connectorMethodId)
     }
+    
   }
 
   feature("Test the ConnectorMethod endpoints error cases") {
@@ -149,7 +191,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
 
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
 
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 201")
@@ -175,7 +217,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       When("We make a request v4.0.0")
 
       val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonConnectorMethod
+      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
       val response = makePostRequest(request, write(postConnectorMethod))
       Then("We should get a 403")
       response.code should equal(403)
@@ -200,7 +242,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
 
       Then(s"we test the $ApiEndpoint4")
-      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonConnectorMethodMethodBody
+      lazy val postConnectorMethodMethodBody = SwaggerDefinitionsJSON.jsonScalaConnectorMethodMethodBody
 
       val requestUpdate = (v4_0_0_Request / "management" / "connector-methods" / "xx").PUT <@ (user1)
       val responseUpdate = makePutRequest(requestUpdate,write(postConnectorMethodMethodBody))

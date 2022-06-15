@@ -316,6 +316,7 @@ trait ConsentAuthContext {
   def consentId : String
   def key : String
   def value : String
+  def timeStamp : Date
 }
 
 

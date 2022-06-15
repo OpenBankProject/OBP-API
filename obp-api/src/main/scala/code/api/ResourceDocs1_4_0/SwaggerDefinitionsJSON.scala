@@ -1,12 +1,12 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
-
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.berlin.group.v1.JSONFactory_BERLIN_GROUP_1.{AccountBalanceV1, AccountBalances, AmountOfMoneyV1, ClosingBookedBody, ExpectedBody, TransactionJsonV1, TransactionsJsonV1, ViewAccount}
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.ExampleValue._
@@ -25,17 +25,16 @@ import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.sandbox.SandboxData
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType}
+import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType, ChallengeType}
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 import net.liftweb.json
-import java.net.URLEncoder
 
+import java.net.URLEncoder
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -3509,6 +3508,8 @@ object SwaggerDefinitionsJSON {
     key = "CUSTOMER_NUMBER",
     value = "78987432"
   )
+
+  val postUserAuthContextUpdateJsonV310 = PostUserAuthContextUpdateJsonV310(answer = "123")
   
   val userAuthContextJson = UserAuthContextJson(
     user_auth_context_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
@@ -4307,7 +4308,7 @@ object SwaggerDefinitionsJSON {
     id = transactionIdExample.value,
     user_id = userIdExample.value,
     allowed_attempts =3,
-    challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString,
+    challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
     link = "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge"
   )
   val transactionRequestWithChargeJSON400 = TransactionRequestWithChargeJSON400(
@@ -4354,8 +4355,14 @@ object SwaggerDefinitionsJSON {
   val apiCollectionEndpointJson400 = ApiCollectionEndpointJson400(apiCollectionEndpointIdExample.value, apiCollectionIdExample.value, operationIdExample.value)
   val apiCollectionEndpointsJson400 = ApiCollectionEndpointsJson400(List(apiCollectionEndpointJson400))
 
-  val jsonConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyExample.value)
-  val jsonConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyExample.value)
+  val jsonScalaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyScalaExample.value, "Scala")
+  val jsonScalaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyScalaExample.value, "Scala")
+  
+  val jsonJavaConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyJavaExample.value, "Java")
+  val jsonJavaConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyJavaExample.value, "Java")
+  
+  val jsonJsConnectorMethod  = JsonConnectorMethod(Some(connectorMethodIdExample.value),"getBank", connectorMethodBodyJsExample.value, "Js")
+  val jsonJsConnectorMethodMethodBody  = JsonConnectorMethodMethodBody(connectorMethodBodyJsExample.value, "Js")
   
   val jsonDynamicResourceDoc = JsonDynamicResourceDoc(
     bankId = Some(bankIdExample.value),
@@ -4386,7 +4393,8 @@ object SwaggerDefinitionsJSON {
     outboundAvroSchema = outboundAvroSchemaExample.value,
     inboundAvroSchema = inboundAvroSchemaExample.value,
     adapterImplementation = adapterImplementationExample.value,
-    methodBody = connectorMethodBodyExample.value
+    methodBody = connectorMethodBodyScalaExample.value,
+    programmingLang = connectorMethodLangExample.value
   )
 
   val jsonResourceDocFragment = ResourceDocFragment(
@@ -4594,7 +4602,7 @@ object SwaggerDefinitionsJSON {
     messages = List(customerMessageJsonV400)
   )
 
-  val requestRootJsonClass = dynamic.practise.PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
+  val requestRootJsonClass = PractiseEndpoint.RequestRootJsonClass(name = nameExample.value, age=ageExample.value.toLong, Nil)
   
   val entitlementJsonV400 = EntitlementJsonV400(
     entitlement_id = entitlementIdExample.value,
