@@ -55,6 +55,12 @@ case class UserAuthContextUpdateJsonV500(
 
 case class PostConsentRequestResponseJson(consentRequestId: String)
 
+case class GetConsentRequestResponseJson(
+  consent_request_id: String, 
+  payload : String, 
+  consumer_id : String
+)
+
 object JSONFactory500 {
 
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJsonV500 = {

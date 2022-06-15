@@ -269,50 +269,43 @@ trait APIMethods500 {
           }
       }
     }  
-//  
-//    staticResourceDocs += ResourceDoc(
-//      getConsentRequest,
-//      implementedInApiVersion,
-//      nameOf(getConsentRequest),
-//      "GET",
-//      "/my/consents/requests/CONSENT_REQUEST_ID",
-//      "Get Consent Request",
-//      s"""""",
-//      EmptyBody,
-//      PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
-//      List(InvalidJsonFormat, ConsentMaxTTL, UnknownError),
-//      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
-//      )
-//  
-//    lazy val getConsentRequest : OBPEndpoint = {
-//      case "my" :: "consents" :: "request" :: Nil JsonPost json -> _  =>  {
-//        cc =>
-//          for {
-//            (_, callContext) <- applicationAccess(cc)
-//            _ <- passesPsd2Aisp(callContext)
-//            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
-//            consentJson: PostConsentBodyCommonJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-//              json.extract[PostConsentBodyCommonJson]
-//            }
-//            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
-//            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
-//              consentJson.time_to_live match {
-//                case Some(ttl) => ttl <= maxTimeToLive
-//                case _ => true
-//              }
-//            }
-//            createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
-//              callContext.flatMap(_.consumer),
-//              Some(compactRender(json))
-//              )) map {
-//              i => connectorEmptyResponse(i, callContext)
-//            }
-//          } yield {
-//            (PostConsentRequestResponseJson(createdConsentRequest.consentRequestId), HttpCode.`201`(callContext))
-//          }
-//      }
-//    }
 
+    staticResourceDocs += ResourceDoc(
+      getConsentRequest,
+      implementedInApiVersion,
+      nameOf(getConsentRequest),
+      "GET",
+      "/my/consents/requests/CONSENT_REQUEST_ID",
+      "Get Consent Request",
+      s"""""",
+      EmptyBody,
+      PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
+      List(ConsentMaxTTL, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+      )
+
+    lazy val getConsentRequest : OBPEndpoint = {
+      case "my" :: "consents" :: "request" :: consentRequestId ::  Nil  JsonGet _  =>  {
+        cc =>
+          for {
+            (_, callContext) <- applicationAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
+            createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.getConsentByConsentId(
+              consentRequestId
+              )) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (GetConsentRequestResponseJson(
+              consent_request_id = createdConsentRequest.consentRequestId,
+              payload = createdConsentRequest.payload,
+              consumer_id = createdConsentRequest.consumerId
+              ), 
+              HttpCode.`201`(callContext)
+            )
+          }
+      }
+    }
 
   }
 }
