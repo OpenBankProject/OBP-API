@@ -12,7 +12,7 @@ Thus, the OBP API abstracts away the peculiarities of each core banking system s
 
 Our tag line is: Bank as a Platform. Transparency as an Asset.
 
-The API supports OAuth 1.0a, OAuth 2, OpenID Connect and other authentication methods. See [here](https://github.com/OpenBankProject/OBP-API/wiki/Authentication) for more information.
+The API supports OAuth 1.0a, OAuth 2, OpenID Connect (OIDC) and other authentication methods. See [here](https://github.com/OpenBankProject/OBP-API/wiki/Authentication) for more information.
 
 The project roadmap is available [here.](https://github.com/OpenBankProject/OBP-API/blob/develop/roadmap.md)
 
@@ -136,7 +136,8 @@ Set DB options in props file:
     db.url=jdbc:h2:./obp_api.db;DB_CLOSE_ON_EXIT=FALSE
     
 In order to start H2 web console go to http://127.0.0.1:8080/console and you will see a login screen.
-Please use next values:
+Please use the following values:
+Note: make sure the JDBC URL used matches your Props value!
 
     Driver Class: org.h2.Driver
     JDBC URL: jdbc:h2:./obp_api.db;AUTO_SERVER=FALSE
