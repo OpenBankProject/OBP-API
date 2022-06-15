@@ -5,9 +5,10 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole.{CanCreateUserAuthContextUpdate, canCreateUserAuthContext, canGetUserAuthContext}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiRole, NewStyle}
+import code.api.util.{APIUtil, ApiRole, NewStyle}
 import code.api.util.NewStyle.HttpCode
-import code.api.v3_1_0.{PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
+import code.api.v3_1_0.{PostConsentBodyCommonJson, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
+import code.consent.ConsentRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
@@ -17,6 +18,7 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.compactRender
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -90,7 +92,7 @@ trait APIMethods500 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       userAuthContextJsonV500,
       List(
         UserNotLoggedIn,
@@ -224,6 +226,92 @@ trait APIMethods500 {
           }
       }
     }
+    
+    staticResourceDocs += ResourceDoc(
+      createConsentRequest,
+      implementedInApiVersion,
+      nameOf(createConsentRequest),
+      "POST",
+      "/my/consents/request",
+      "Create Consent Request",
+      s"""""",
+      postConsentRequestJsonV310,
+      PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
+      List(InvalidJsonFormat, ConsentMaxTTL, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+      )
+  
+    lazy val createConsentRequest : OBPEndpoint = {
+      case "my" :: "consents" :: "request" :: Nil JsonPost json -> _  =>  {
+        cc =>
+          for {
+            (_, callContext) <- applicationAccess(cc)
+            _ <- passesPsd2Aisp(callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
+            consentJson: PostConsentBodyCommonJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentBodyCommonJson]
+            }
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _ => true
+              }
+            }
+            createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
+              callContext.flatMap(_.consumer),
+              Some(compactRender(json))
+              )) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (PostConsentRequestResponseJson(createdConsentRequest.consentRequestId), HttpCode.`201`(callContext))
+          }
+      }
+    }  
+//  
+//    staticResourceDocs += ResourceDoc(
+//      getConsentRequest,
+//      implementedInApiVersion,
+//      nameOf(getConsentRequest),
+//      "GET",
+//      "/my/consents/requests/CONSENT_REQUEST_ID",
+//      "Get Consent Request",
+//      s"""""",
+//      EmptyBody,
+//      PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
+//      List(InvalidJsonFormat, ConsentMaxTTL, UnknownError),
+//      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+//      )
+//  
+//    lazy val getConsentRequest : OBPEndpoint = {
+//      case "my" :: "consents" :: "request" :: Nil JsonPost json -> _  =>  {
+//        cc =>
+//          for {
+//            (_, callContext) <- applicationAccess(cc)
+//            _ <- passesPsd2Aisp(callContext)
+//            failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
+//            consentJson: PostConsentBodyCommonJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+//              json.extract[PostConsentBodyCommonJson]
+//            }
+//            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+//            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
+//              consentJson.time_to_live match {
+//                case Some(ttl) => ttl <= maxTimeToLive
+//                case _ => true
+//              }
+//            }
+//            createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
+//              callContext.flatMap(_.consumer),
+//              Some(compactRender(json))
+//              )) map {
+//              i => connectorEmptyResponse(i, callContext)
+//            }
+//          } yield {
+//            (PostConsentRequestResponseJson(createdConsentRequest.consentRequestId), HttpCode.`201`(callContext))
+//          }
+//      }
+//    }
 
 
   }
