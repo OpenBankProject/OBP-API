@@ -170,6 +170,7 @@ write_connector_metrics=true
 
 
 ## You can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+# See the README for how to use the H2 browser / console.
 db.driver=org.h2.Driver
 db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
 
@@ -827,10 +828,13 @@ featured_apis=elasticSearchWarehouseV300
 
  
 # -- Scopes -----------------------------------------------------
-# Scopes are a way to limit the APIs a Consumer can call.
+# Scopes can be used to limit the APIs a Consumer can call.
+
 # In case isn't defined default value is "false"
 # require_scopes_for_all_roles=false
 # require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
+# Scopes can also be used as an alternative to User Entitlements
+# i.e. instead of asking every user to have a Role, you can give the Role(s) to a Consumer in the form of a Scope
 # allow_entitlements_or_scopes=false
 # ---------------------------------------------------------------
 
@@ -957,6 +961,7 @@ dynamic_endpoints_url_prefix=dynamic
 
 # Enables actions during log on a user at Sofit application
 # The actions are typically: Create bank, incoming and outgoing account, assign entitlement etc.
+# "Init Actions" are designed to make sure each User has a minimum certain state of related data.
 sofit.logon_init_action.enabled=false
 
 ## Inbound and Outbound ignore field names, case class name can be prefix.
