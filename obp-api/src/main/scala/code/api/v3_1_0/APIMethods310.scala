@@ -3,7 +3,6 @@ package code.api.v3_1_0
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
@@ -22,7 +21,7 @@ import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.{Connector, LocalMappedConnector}
-import code.consent.{ConsentStatus, Consents}
+import code.consent.{ConsentRequests, ConsentStatus, Consents}
 import code.consumer.Consumers
 import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement
@@ -3507,11 +3506,21 @@ trait APIMethods310 {
               }
               case None => Future(None, "Any application")
             }
+
+            _ <- Helper.booleanToFuture(ConsentRequestNotFound, cc=callContext){
+              consentJson.consent_request_id match {
+                case Some(id) => //If it is existing in Json, we need to check it from database.
+                  ConsentRequests.consentRequestProvider.vend.getConsentByConsentId(id).isDefined
+                case None => //If it is not, just pass
+                  true
+              }
+            }
+            
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _ => Random.nextInt(99999999).toString()
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user, challengeAnswer)) map {
+            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, consentJson.consent_request_id)) map {
               i => connectorEmptyResponse(i, callContext)
             }
             consentJWT = 
@@ -3563,7 +3572,7 @@ trait APIMethods310 {
             case _ =>Future{"Success"}
             }
           } yield {
-            (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
+            (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status, Some(createdConsent.consentRequestId)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3617,7 +3626,7 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`201`(callContext))
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status, Some(consent.consentRequestId)), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3696,7 +3705,7 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status, Some(consent.consentRequestId)), HttpCode.`200`(callContext))
           }
       }
     }

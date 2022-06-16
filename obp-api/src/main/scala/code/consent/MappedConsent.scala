@@ -55,13 +55,14 @@ object MappedConsentProvider extends ConsentProvider {
   override def getConsentsByUser(userId: String): List[MappedConsent] = {
     MappedConsent.findAll(By(MappedConsent.mUserId, userId))
   }
-  override def createConsent(user: User, challengeAnswer: String): Box[MappedConsent] = {
+  override def createObpConsent(user: User, challengeAnswer: String, consentRequestId:Option[String]): Box[MappedConsent] = {
     tryo {
       val salt = BCrypt.gensalt()
       val challengeAnswerHashed = BCrypt.hashpw(challengeAnswer, salt).substring(0, 44)
       MappedConsent
         .create
         .mUserId(user.userId)
+        .mConsentRequestId(consentRequestId.getOrElse(null))
         .mChallenge(challengeAnswerHashed)
         .mSalt(salt)
         .mStatus(ConsentStatus.INITIATED.toString)
@@ -234,6 +235,9 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   object mConsumerId extends MappedUUID(this) {
     override def defaultValue = null
   }
+  object mConsentRequestId extends MappedUUID(this) {
+    override def defaultValue = null
+  }
   
   object mApiStandard extends MappedString(this, 50)
   object mApiVersion extends MappedString(this, 50)
@@ -262,6 +266,7 @@ class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdP
   override def challenge: String = mChallenge.get
   override def jsonWebToken: String = mJsonWebToken.get
   override def consumerId: String = mConsumerId.get
+  override def consentRequestId: String = mConsentRequestId.get
   
   override def apiStandard: String = mApiStandard.get
   override def apiVersion: String = mApiVersion.get

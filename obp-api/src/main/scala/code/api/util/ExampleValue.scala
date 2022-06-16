@@ -1457,6 +1457,13 @@ object ExampleValue {
 
   lazy val consentIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("consent_id", consentIdExample)
+ 
+  lazy val consentRequestIdExample = ConnectorField (
+    "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0", 
+    s"A string that MUST uniquely identify the Consent Request on this OBP instance."
+    )
+   
+  glossaryItems += makeGlossaryItem("consent_request_id", consentRequestIdExample)
 
   lazy val line2Example = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("line2", line2Example)

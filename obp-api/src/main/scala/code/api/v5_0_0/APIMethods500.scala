@@ -280,12 +280,12 @@ trait APIMethods500 {
       s"""""",
       EmptyBody,
       PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
-      List(ConsentMaxTTL, UnknownError),
+      List(ConsentRequestNotFound,UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
       )
 
     lazy val getConsentRequest : OBPEndpoint = {
-      case "my" :: "consents" :: "request" :: consentRequestId ::  Nil  JsonGet _  =>  {
+      case "my" :: "consents" :: "requests" :: consentRequestId ::  Nil  JsonGet _  =>  {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
@@ -293,7 +293,7 @@ trait APIMethods500 {
             createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.getConsentByConsentId(
               consentRequestId
               )) map {
-              i => connectorEmptyResponse(i, callContext)
+              i => unboxFullOrFail(i,callContext, ConsentRequestNotFound)
             }
           } yield {
             (GetConsentRequestResponseJson(
