@@ -59,7 +59,6 @@ import code.scope.Scope
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionrequests.MappedTransactionRequestProvider
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes._
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _, _}
 import code.usercustomerlinks.UserCustomerLink
@@ -74,6 +73,7 @@ import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
+import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{ListResult, _}
@@ -1037,7 +1037,7 @@ trait APIMethods400 {
                     transactionRequestBodyRefundJson.copy(description = newDescription),
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
-                    Some(OTP_VIA_API.toString),
+                    Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
                     None,
@@ -1093,7 +1093,7 @@ trait APIMethods400 {
                     transactionRequestBodySandboxTan,
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
-                    Some(OTP_VIA_API.toString),
+                    Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
                     None,
@@ -1122,7 +1122,7 @@ trait APIMethods400 {
                     transactionRequestBodySandboxTan,
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
-                    Some(OTP_VIA_WEB_FORM.toString),
+                    Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
                     None,
@@ -1157,7 +1157,7 @@ trait APIMethods400 {
                     transactionRequestBodyCounterparty,
                     transDetailsSerialized,
                     chargePolicy,
-                    Some(OTP_VIA_API.toString),
+                    Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
                     None,
@@ -1209,7 +1209,7 @@ trait APIMethods400 {
                     transactionRequestBodySimple,
                     transDetailsSerialized,
                     chargePolicy,
-                    Some(OTP_VIA_API.toString),
+                    Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
                     None,
@@ -1244,7 +1244,7 @@ trait APIMethods400 {
                     transDetailsSEPAJson,
                     transDetailsSerialized,
                     chargePolicy,
-                    Some(OTP_VIA_API.toString),
+                    Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     transDetailsSEPAJson.reasons.map(_.map(_.transform)),
                     None,
@@ -1269,7 +1269,7 @@ trait APIMethods400 {
                     transactionRequestBodyFreeForm,
                     transDetailsSerialized,
                     sharedChargePolicy.toString,
-                    Some(OTP_VIA_API.toString),
+                    Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
                     getScaMethodAtInstance(transactionRequestType.value).toOption,
                     None,
                     None,
@@ -1278,31 +1278,8 @@ trait APIMethods400 {
                   (createdTransactionRequest, callContext)
               }
             }
+            (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(createdTransactionRequest.id.value, callContext)
           } yield {
-            //TODO, remove this `connector` guard logic, the challenges should come from other places.
-            // The OBP mapped V400 payment.challenges are not done yet, the we should use `createChallengesC2` instead of `createChallenges` in createTransactionRequestv400 method,
-            // and get the challenges from connector level, not prepare them here.
-            val challenges : List[ChallengeJson] = if(APIUtil.getPropsValue("connector").openOrThrowException(attemptedToOpenAnEmptyBox).toString.equalsIgnoreCase("mapped")){
-               MappedExpectedChallengeAnswer
-                .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, createdTransactionRequest.id.value))
-                .map(mappedExpectedChallengeAnswer => 
-                  ChallengeJson(
-                    mappedExpectedChallengeAnswer.challengeId,
-                    mappedExpectedChallengeAnswer.transactionRequestId,
-                    mappedExpectedChallengeAnswer.expectedUserId, 
-                    mappedExpectedChallengeAnswer.attemptCounter
-                  ))
-            } else {
-              if(!("COMPLETED").equals(createdTransactionRequest.status)) 
-                List(ChallengeJson(
-                  createdTransactionRequest.challenge.id, 
-                  createdTransactionRequest.id.value, 
-                  u.userId, 
-                  createdTransactionRequest.challenge.allowed_attempts
-                ))
-              else 
-                null
-            }
             (JSONFactory400.createTransactionRequestWithChargeJSON(createdTransactionRequest, challenges), HttpCode.`201`(callContext))
           }
       }
@@ -1409,15 +1386,16 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(s"${TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType', but current value (${transactionRequestType.value}) ", cc=callContext) {
               existingTransactionRequestType.equals(transactionRequestType.value)
             }
+
+            (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(transReqId.value, callContext)
             
             //Check the challenge type, Note: not supported yet, the default value is SANDBOX_TAN
-            _ <- Helper.booleanToFuture(s"${InvalidChallengeType} ", cc=callContext) {
-              List(
-                OTP_VIA_API.toString,
-                OTP_VIA_WEB_FORM.toString
-              ).exists(_ == existingTransactionRequest.challenge.challenge_type)
+            _ <- Helper.booleanToFuture(s"$InvalidChallengeType Current Type is ${challenges.map(_.challengeType)}" , cc=callContext) {
+              challenges.map(_.challengeType)
+                .filterNot(challengeType => challengeType.equals(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString))
+                .isEmpty
             }
-
+            
             (transactionRequest, callContext) <- challengeAnswerJson.answer match {
               // If the challenge answer is `REJECT` - Currently only to Reject a SEPA transaction request REFUND
               case "REJECT" =>
@@ -1469,47 +1447,17 @@ trait APIMethods400 {
                 } yield (transactionRequest, callContext)
               case _ =>
                 for {
-                  // Check the challengeId is valid for this existingTransactionRequest
-                  _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestChallengeId}", cc=callContext) {
-                    if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")) {
-                      MappedExpectedChallengeAnswer
-                        .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-                        .exists(_.challengeId == challengeAnswerJson.id)
-                    }else{
-                      existingTransactionRequest.challenge.id.equals(challengeAnswerJson.id)
-                    }
-                  }
-
+  
                   (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
                   _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer.replace("answer may be expired.",s"answer may be expired, current expiration time is ${transactionRequestChallengeTtl} seconds .")} ", cc=callContext) {
                     challengeAnswerIsValidated
                   }
 
-
-                  //TODO, this is a temporary solution, we only checked single challenge Id for remote connectors. here is only for the localMapped Connector logic
-                  _ <- if (APIUtil.isDataFromOBPSide("validateChallengeAnswer")){
-                    for{
-                      accountAttributes <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None)
-                      _ <- Helper.booleanToFuture(s"$NextChallengePending", cc=callContext) {
-                        val quorum = accountAttributes._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
-                        MappedExpectedChallengeAnswer
-                          .findAll(By(MappedExpectedChallengeAnswer.mTransactionRequestId, transReqId.value))
-                          .count(_.successful == true) match {
-                          case number if number >= quorum => true
-                          case _ =>
-                            MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
-                            false
-                        }
-                      }
-                    } yield {
-                      true
-                    }
-                  } else{
-                    Future{true}
+                  (challengeAnswerIsValidated, callContext) <- NewStyle.function.allChallengesSuccessfullyAnswered(bankId, accountId, transReqId, callContext)
+                  _ <- Helper.booleanToFuture(s"$NextChallengePending", cc=callContext) {
+                    challengeAnswerIsValidated
                   }
-
-                  // All Good, proceed with the Transaction creation...
                   (transactionRequest, callContext) <- TransactionRequestTypes.withName(transactionRequestType.value) match {
                     case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
                       NewStyle.function.createTransactionAfterChallengeV300(u, fromAccount, transReqId, transactionRequestType, callContext)
@@ -1520,7 +1468,7 @@ trait APIMethods400 {
             }
           } yield {
 
-            (JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest), HttpCode.`202`(callContext))
+            (JSONFactory400.createTransactionRequestWithChargeJSON(transactionRequest, challenges), HttpCode.`202`(callContext))
           }
       }
     }

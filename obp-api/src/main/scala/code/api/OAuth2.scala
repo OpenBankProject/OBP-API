@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api
 
 import java.net.URI
+import java.util
 
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, JwtUtil}
@@ -107,32 +108,21 @@ object OAuth2Login extends RestHelper with MdcLoggable {
   }
 
   
-  object Hydra {
-    def validateAccessToken(accessToken: String): Box[JWTClaimsSet] = {
-      APIUtil.getPropsValue("oauth2.jwk_set.url") match {
-        case Full(url) =>
-          val validationList = for (item <- url.toLowerCase().split(",").toList) yield {
-            JwtUtil.validateAccessToken(accessToken, item)
-          }
-          validationList.filter(_.isDefined).size > 0 match {
-            case true => validationList.filter(_.isDefined).head
-            case false => validationList.head
-          }
-        case ParamFailure(a, b, c, apiFailure : APIFailure) =>
-          ParamFailure(a, b, c, apiFailure : APIFailure)
-        case Failure(msg, t, c) =>
-          Failure(msg, t, c)
-        case _ =>
-          Failure(Oauth2ThereIsNoUrlOfJwkSet)
-      }
-    }
+  object Hydra extends OAuth2Util {
+    override def wellKnownOpenidConfiguration: URI = new URI(hydraPublicUrl)
+    override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = hydraPublicUrl)
     
-    def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+    private def applyAccessTokenRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
       // In case of Hydra issued access tokens are not self-encoded/self-contained like JWT tokens are.
       // It implies the access token can be revoked at any time.
       val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null);
       var consumer: Box[Consumer] = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
 
+      // The access token can be disabled at any time due to fact it is NOT self-encoded/self-contained.
+      if (!introspectOAuth2Token.getActive) {
+        return (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
+      }
+      
       // check access token binding with client certificate
       {
         if(consumer.isEmpty) {
@@ -165,21 +155,30 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         }
       }
 
-      if (introspectOAuth2Token.getActive) { // The access token can be disabled at any time due to fact it is NOT self-encoded/self-contained.
-        val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
-        user match {
-          case Full(u) =>
-            LoginAttempt.userIsLocked(u.name) match {
-              case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
-              case false => (Full(u), Some(cc.copy(consumer = consumer)))
-            }
-          case _ => (user, Some(cc.copy(consumer = consumer)))
-        }
-      } else {
-        (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
+      
+      val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
+      user match {
+        case Full(u) =>
+          LoginAttempt.userIsLocked(u.name) match {
+            case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
+            case false => (Full(u), Some(cc.copy(consumer = consumer)))
+          }
+        case _ => (user, Some(cc.copy(consumer = consumer)))
       }
     }
-    def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {
+    
+    private def applyIdTokenRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      super.applyRules(value, cc)
+    }
+
+    override def applyRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      isIssuer(jwtToken=value, identityProvider = hydraPublicUrl) match {
+        case true => applyIdTokenRules(value, cc)
+        case false => applyAccessTokenRules(value, cc)
+      }
+    }
+    
+    override def applyRulesFuture(value: String, cc: CallContext): Future[(Box[User], Some[CallContext])] = Future {
       applyRules(value, cc)
     }
 

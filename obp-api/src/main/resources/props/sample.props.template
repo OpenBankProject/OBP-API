@@ -12,19 +12,19 @@
 ### Base configuration
 
 ## Which data connector to use, if config `star` as connector, please also check `starConnector_supported_types` 
-connector=mapped
+#connector=mapped
 #connector=mongodb
 #connector=akka_vDec2018
 #connector=rest_vMar2019
 #connector=stored_procedure_vDec2019
-#connector=star
+connector=star
 ## proxy connector get data from LocalMappedConnector, and set the follow corresponding fields to be null: @optional, inbound.optional.fields props, outbound.optional.fields props
 ## the proxy connector only for test purpose
 #connector=proxy
 #connector=...
 
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka, kafka. If you set kafka, then you need to start the kafka server.
-#starConnector_supported_types=rest,akka,kafka 
+starConnector_supported_types=mapped,internal
 
 ## whether export LocalMappedConnector methods as endpoints, it is just for develop, default is false
 #connector.export.LocalMappedConnector=false
@@ -632,6 +632,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## Note: The email address used for login must match one
 ## registered on OBP localy.
 # openid_connect.enabled=true
+# openid_connect.check_session_state=true
 # openid_connect.show_tokens=false
 # Response mode
 # possible values: query, fragment, form_post, query.jwt, fragment.jwt, form_post.jwt, jwt

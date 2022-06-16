@@ -116,10 +116,10 @@ object StrongCustomerAuthenticationStatus extends OBPEnumeration[StrongCustomerA
 
 sealed trait ChallengeType extends EnumValue
 object ChallengeType extends OBPEnumeration[ChallengeType] {
-  object OBP_PAYMENT extends Value
-  object OBP_CONSENT extends Value
-  object BERLINGROUP_PAYMENT extends Value
-  object BERLINGROUP_CONSENT extends Value
+  object OBP_TRANSACTION_REQUEST_CHALLENGE extends Value
+  object OBP_CONSENT_CHALLENGE extends Value
+  object BERLINGROUP_PAYMENT_CHALLENGE extends Value
+  object BERLINGROUP_CONSENT_CHALLENGE extends Value
 }
 
 sealed trait PemCertificateRole extends EnumValue

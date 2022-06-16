@@ -93,6 +93,7 @@ object Migration extends MdcLoggable {
       dropIndexAtUserAuthContext()
       alterWebhookColumnUrlLength()
       dropConsentAuthContextDropIndex()
+      alterMappedExpectedChallengeAnswerChallengeTypeLength()
     }
     
     private def dummyScript(): Boolean = {
@@ -377,7 +378,14 @@ object Migration extends MdcLoggable {
         MigrationOfConsentAuthContextDropIndex.dropUniqueIndex(name)
       }
     }
-    
+  
+    private def alterMappedExpectedChallengeAnswerChallengeTypeLength(): Boolean = {
+      val name = nameOf(alterMappedExpectedChallengeAnswerChallengeTypeLength)
+      runOnce(name) {
+        MigrationOfMappedExpectedChallengeAnswerFieldLength.alterColumnLength(name)
+      }
+    }
+  
   }
 
   /**
