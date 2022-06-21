@@ -947,7 +947,7 @@ def restoreSomeSessions(): Unit = {
     */
   override def login: NodeSeq = {
     // This query parameter is specific to Hydra ORA login request
-    val loginChallenge = S.param("login_challenge").getOrElse("")
+    val loginChallenge: Box[String] = S.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
     def redirectUri(): String = {
       loginRedirect.get match {
         case Full(url) =>
@@ -980,12 +980,16 @@ def restoreSomeSessions(): Unit = {
           // If there is the query parameter login_challenge in a url we know it is tha Hydra request
           // TODO Write standalone application for Login and Consent Request of Hydra as Identity Provider
           integrateWithHydra match {
-            case true if !loginChallenge.isEmpty =>
-              val acceptLoginRequest = new AcceptLoginRequest
-              val adminApi: AdminApi = new AdminApi
-              acceptLoginRequest.setSubject(user.username.get)
-              val result = adminApi.acceptLoginRequest(loginChallenge, acceptLoginRequest)
-              S.redirectTo(result.getRedirectTo)
+            case true =>
+              if (loginChallenge.isEmpty == false) {
+                val acceptLoginRequest = new AcceptLoginRequest
+                val adminApi: AdminApi = new AdminApi
+                acceptLoginRequest.setSubject(user.username.get)
+                val result = adminApi.acceptLoginRequest(loginChallenge.getOrElse(""), acceptLoginRequest)
+                S.redirectTo(result.getRedirectTo)
+              } else {
+                S.redirectTo(redirect)
+              }
             case false =>
               S.redirectTo(redirect)
           }
