@@ -20,6 +20,13 @@ object MappedConsentProvider extends ConsentProvider {
       By(MappedConsent.mConsentId, consentId)
     )
   }
+  
+  override def getConsentByConsentRequestId(consentRequestId: String): Box[MappedConsent] ={
+    MappedConsent.find(
+      By(MappedConsent.mConsentRequestId, consentRequestId)
+      )
+  }
+  
   override def updateConsentStatus(consentId: String, status: ConsentStatus): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>

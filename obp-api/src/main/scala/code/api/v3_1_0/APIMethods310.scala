@@ -3510,7 +3510,7 @@ trait APIMethods310 {
             _ <- Helper.booleanToFuture(ConsentRequestNotFound, cc=callContext){
               consentJson.consent_request_id match {
                 case Some(id) => //If it is existing in Json, we need to check it from database.
-                  ConsentRequests.consentRequestProvider.vend.getConsentByConsentId(id).isDefined
+                  ConsentRequests.consentRequestProvider.vend.getConsentRequestById(id).isDefined
                 case None => //If it is not, just pass
                   true
               }

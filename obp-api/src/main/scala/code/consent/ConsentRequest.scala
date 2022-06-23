@@ -7,7 +7,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 object MappedConsentRequestProvider extends ConsentRequestProvider {
-  override def getConsentByConsentId(consentRequestId: String): Box[ConsentRequest] = {
+  override def getConsentRequestById(consentRequestId: String): Box[ConsentRequest] = {
     ConsentRequest.find(
       By(ConsentRequest.ConsentRequestId, consentRequestId)
     )

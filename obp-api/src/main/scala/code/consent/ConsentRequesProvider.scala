@@ -11,7 +11,7 @@ object ConsentRequests extends SimpleInjector {
 }
 
 trait ConsentRequestProvider {
-  def getConsentByConsentId(consentRequestId: String): Box[ConsentRequest]
+  def getConsentRequestById(consentRequestId: String): Box[ConsentRequest]
   def createConsentRequest(consumer: Option[Consumer], payload: Option[String]): Box[ConsentRequest]
 }
 
