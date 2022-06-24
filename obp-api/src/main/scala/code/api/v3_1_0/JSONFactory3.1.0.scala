@@ -554,7 +554,7 @@ case class PostConsentPhoneJsonV310(
                                      time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
-case class ConsentJsonV310(consent_id: String, jwt: String, status: String, consent_request_id: Option[String])
+case class ConsentJsonV310(consent_id: String, jwt: String, status: String)
 case class ConsentsJsonV310(consents: List[ConsentJsonV310])
 
 case class PostConsentChallengeJsonV310(answer: String)
@@ -1284,7 +1284,7 @@ object JSONFactory310{
   }
   
   def createConsentsJsonV310(consents: List[MappedConsent]): ConsentsJsonV310= {
-    ConsentsJsonV310(consents.map(c => ConsentJsonV310(c.consentId, c.jsonWebToken, c.status, Some(c.consentRequestId))))
+    ConsentsJsonV310(consents.map(c => ConsentJsonV310(c.consentId, c.jsonWebToken, c.status)))
   }
   
   def getOAuth2ServerJwksUrisJson(): OAuth2ServerJwksUrisJson = {

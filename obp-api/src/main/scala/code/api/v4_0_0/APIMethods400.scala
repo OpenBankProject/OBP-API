@@ -8378,7 +8378,7 @@ trait APIMethods400 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status, Some(consent.consentRequestId)), HttpCode.`200`(callContext))
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
           }
       }
     }
@@ -8437,7 +8437,7 @@ trait APIMethods400 {
                 } map ((_, HttpCode.`200`(callContext)))
             }
           } yield {
-            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status, Some(consent.consentRequestId)), code)
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), code)
           }
       }
     }

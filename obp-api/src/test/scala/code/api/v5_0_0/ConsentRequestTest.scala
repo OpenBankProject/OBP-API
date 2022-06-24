@@ -26,18 +26,16 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{postUserAuthContextJson, postUserAuthContextUpdateJsonV310}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.Consent
 import code.api.util.ErrorMessages._
-import code.api.v3_1_0.{ConsentJsonV310, CustomerJsonV310, PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
+import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
 import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
 import code.consent.ConsentStatus
 import code.entitlement.Entitlement
-import code.transactionRequestAttribute.TransactionRequestAttribute.BankId
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, ErrorMessage}
+import com.openbankproject.commons.model.{ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
@@ -102,7 +100,7 @@ class ConsentRequestTest extends V500ServerSetupAsync {
       val createConsentByRequestResponse = makePostRequest(createConsentByRequestIdUrl(consentRequestId), write(""))
       Then("We should get a 200")
       createConsentByRequestResponse.code should equal(201)
-      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV310].consent_id
+      val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
   
       val answerConsentChallengeRequest = (v5_0_0_Request / "banks" / testBankId1.value / "consents" / consentId / "challenge").POST <@ (user1)
       val challenge = Consent.challengeAnswerAtTestEnvironment
@@ -115,7 +113,7 @@ class ConsentRequestTest extends V500ServerSetupAsync {
       val getConsentByRequestResponse = makeGetRequest(getConsentByRequestIdUrl(consentRequestId))
       Then("We should get a 200")
       getConsentByRequestResponse.code should equal(200)
-      val getConsentByRequestResponseJson = getConsentByRequestResponse.body.extract[ConsentJsonV310]
+      val getConsentByRequestResponseJson = getConsentByRequestResponse.body.extract[ConsentJsonV500]
       getConsentByRequestResponseJson.consent_request_id.head should be(consentRequestId)
       getConsentByRequestResponseJson.status should be(ConsentStatus.ACCEPTED.toString)
       

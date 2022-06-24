@@ -61,7 +61,7 @@ case class ConsentRequestResponseJson(
   payload : JValue, 
   consumer_id : String
 )
-
+case class ConsentJsonV500(consent_id: String, jwt: String, status: String, consent_request_id: Option[String])
 object JSONFactory500 {
 
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJsonV500 = {

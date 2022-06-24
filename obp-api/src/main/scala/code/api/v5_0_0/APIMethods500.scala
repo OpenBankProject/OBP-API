@@ -7,7 +7,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiRole, Consent, NewStyle}
 import code.api.util.NewStyle.HttpCode
-import code.api.v3_1_0.{ConsentJsonV310, PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentPhoneJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
+import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentPhoneJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -344,7 +344,7 @@ trait APIMethods500 {
          |
       """.stripMargin,
       EmptyBody,
-      consentJsonV310,
+      consentJsonV500,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -361,7 +361,7 @@ trait APIMethods500 {
             }
           } yield {
             (
-              ConsentJsonV310(
+              ConsentJsonV500(
               consent.consentId, 
               consent.jsonWebToken, 
               consent.status, 
@@ -386,7 +386,7 @@ trait APIMethods500 {
          |
          |""",
       EmptyBody,
-      consentJsonV310,
+      consentJsonV500,
       List(
         UserNotLoggedIn,
         BankNotFound,
@@ -413,7 +413,7 @@ trait APIMethods500 {
          |
          |""",
       EmptyBody,
-      consentJsonV310,
+      consentJsonV500,
       List(
         UserNotLoggedIn,
         $BankNotFound,
@@ -553,7 +553,7 @@ trait APIMethods500 {
               case _ =>Future{"Success"}
             }
           } yield {
-            (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status, Some(createdConsent.consentRequestId)), HttpCode.`201`(callContext))
+            (ConsentJsonV500(createdConsent.consentId, consentJWT, createdConsent.status, Some(createdConsent.consentRequestId)), HttpCode.`201`(callContext))
           }
       }
     }

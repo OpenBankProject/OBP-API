@@ -3564,7 +3564,7 @@ trait APIMethods310 {
             case _ =>Future{"Success"}
             }
           } yield {
-            (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status, Some(createdConsent.consentRequestId)), HttpCode.`201`(callContext))
+            (ConsentJsonV310(createdConsent.consentId, consentJWT, createdConsent.status), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3618,7 +3618,7 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status, Some(consent.consentRequestId)), HttpCode.`201`(callContext))
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`201`(callContext))
           }
       }
     }
@@ -3697,7 +3697,7 @@ trait APIMethods310 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status, Some(consent.consentRequestId)), HttpCode.`200`(callContext))
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
           }
       }
     }
