@@ -27,6 +27,7 @@
 package code.api.v5_0_0
 
 import com.openbankproject.commons.model.{UserAuthContext, UserAuthContextUpdate}
+import net.liftweb.json.JsonAST.{JValue}
 
 import java.util.Date
 
@@ -55,9 +56,9 @@ case class UserAuthContextUpdateJsonV500(
 
 case class PostConsentRequestResponseJson(consentRequestId: String)
 
-case class GetConsentRequestResponseJson(
+case class ConsentRequestResponseJson(
   consent_request_id: String, 
-  payload : String, 
+  payload : JValue, 
   consumer_id : String
 )
 

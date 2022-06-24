@@ -4662,6 +4662,12 @@ object SwaggerDefinitionsJSON {
     consumer_id = consumerIdExample.value
   )
   
+  val consentRequestResponseJson = ConsentRequestResponseJson(
+    consent_request_id = consentRequestIdExample.value,
+    payload = json.parse(consentRequestPayloadExample.value), 
+    consumer_id = consumerIdExample.value
+    )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

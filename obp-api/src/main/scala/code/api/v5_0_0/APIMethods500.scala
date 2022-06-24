@@ -140,6 +140,7 @@ trait APIMethods500 {
       userAuthContextUpdateJsonV500,
       List(
         UserNotLoggedIn,
+        $BankNotFound,
         InvalidJsonFormat,
         CreateUserAuthContextError,
         UnknownError
@@ -156,7 +157,6 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate, cc=callContext) {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
             }
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
@@ -186,7 +186,7 @@ trait APIMethods500 {
       userAuthContextUpdateJsonV500,
       List(
         UserNotLoggedIn,
-        BankNotFound,
+        $BankNotFound,
         InvalidJsonFormat,
         InvalidConnectorResponse,
         UnknownError
@@ -238,17 +238,22 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(createConsentRequest),
       "POST",
-      "/my/consents/request",
+      "/banks/BANK_ID/consent-requests",
       "Create Consent Request",
       s"""""",
       postConsentRequestJsonV310,
-      PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
-      List(InvalidJsonFormat, ConsentMaxTTL, UnknownError),
+      consentRequestResponseJson,
+      List(
+        $BankNotFound,
+        InvalidJsonFormat,
+        ConsentMaxTTL,
+        UnknownError
+        ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
       )
   
     lazy val createConsentRequest : OBPEndpoint = {
-      case "my" :: "consents" :: "request" :: Nil JsonPost json -> _  =>  {
+      case  "banks" :: BankId(bankId) :: "consent-requests" :: Nil JsonPost json -> _  =>  {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
@@ -271,7 +276,14 @@ trait APIMethods500 {
               i => connectorEmptyResponse(i, callContext)
             }
           } yield {
-            (PostConsentRequestResponseJson(createdConsentRequest.consentRequestId), HttpCode.`201`(callContext))
+            (
+              ConsentRequestResponseJson(
+                createdConsentRequest.consentRequestId,
+                net.liftweb.json.parse(createdConsentRequest.payload),
+                createdConsentRequest.consumerId,
+                ), 
+              HttpCode.`201`(callContext)
+            )
           }
       }
     }  
@@ -281,17 +293,21 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(getConsentRequest),
       "GET",
-      "/my/consents/requests/CONSENT_REQUEST_ID",
+      "/banks/BANK_ID/consent-requests/CONSENT_REQUEST_ID",
       "Get Consent Request",
       s"""""",
       EmptyBody,
-      PostConsentRequestResponseJson("9d429899-24f5-42c8-8565-943ffa6a7945"),
-      List(ConsentRequestNotFound,UnknownError),
+      consentRequestResponseJson,
+      List(
+        $BankNotFound,
+        ConsentRequestNotFound,
+        UnknownError
+        ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
       )
 
     lazy val getConsentRequest : OBPEndpoint = {
-      case "my" :: "consents" :: "requests" :: consentRequestId ::  Nil  JsonGet _  =>  {
+      case "banks" :: BankId(bankId) ::"consent-requests" :: consentRequestId ::  Nil  JsonGet _  =>  {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
@@ -302,12 +318,12 @@ trait APIMethods500 {
               i => unboxFullOrFail(i,callContext, ConsentRequestNotFound)
             }
           } yield {
-            (GetConsentRequestResponseJson(
+            (ConsentRequestResponseJson(
               consent_request_id = createdConsentRequest.consentRequestId,
-              payload = createdConsentRequest.payload,
+              payload = json.parse(createdConsentRequest.payload),
               consumer_id = createdConsentRequest.consumerId
               ), 
-              HttpCode.`201`(callContext)
+              HttpCode.`200`(callContext)
             )
           }
       }
@@ -335,12 +351,14 @@ trait APIMethods500 {
         UnknownError
         ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
-  
     lazy val getConsentByConsentRequestId: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "consents" :: "consent-requests" :: consentRequestId :: Nil JsonGet _ => {
         cc =>
           for {
-            consent<- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId).head}
+            (_, callContext) <- applicationAccess(cc)
+            consent<- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId)} map {
+              unboxFullOrFail(_, callContext, ConsentRequestNotFound)
+            }
           } yield {
             (
               ConsentJsonV310(
@@ -355,7 +373,7 @@ trait APIMethods500 {
       }
     }
   
-    resourceDocs += ResourceDoc(
+    staticResourceDocs += ResourceDoc(
       createConsentByConsentRequestIdEmail,
       implementedInApiVersion,
       nameOf(createConsentByConsentRequestIdEmail),
@@ -382,8 +400,7 @@ trait APIMethods500 {
         UnknownError
         ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
-  
-    resourceDocs += ResourceDoc(
+    staticResourceDocs += ResourceDoc(
       createConsentByConsentRequestIdSms,
       implementedInApiVersion,
       nameOf(createConsentByConsentRequestIdSms),
@@ -399,7 +416,7 @@ trait APIMethods500 {
       consentJsonV310,
       List(
         UserNotLoggedIn,
-        BankNotFound,
+        $BankNotFound,
         InvalidJsonFormat,
         ConsentAllowedScaMethods,
         RolesAllowedInConsent,
@@ -412,20 +429,22 @@ trait APIMethods500 {
         UnknownError
         ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 ::apiTagNewStyle :: Nil)
-  
+    
     lazy val createConsentByConsentRequestIdEmail = createConsentByConsentRequestId
     lazy val createConsentByConsentRequestIdSms = createConsentByConsentRequestId
-  
+    
     lazy val createConsentByConsentRequestId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "consents" :: "consent-requests":: consentRequestId :: scaMethod :: Nil JsonPost _ -> _  => {
         cc =>
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
-            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.getConsentRequestById(
               consentRequestId
               )) map {
               i => unboxFullOrFail(i,callContext, ConsentRequestNotFound)
+            }
+            _ <- Helper.booleanToFuture(ConsentRequestAlreadyUsed, cc=callContext){
+              Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId).isEmpty
             }
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
