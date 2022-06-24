@@ -549,7 +549,6 @@ case class PostConsentPhoneJsonV310(
                                      views:  List[PostConsentViewJsonV310],
                                      entitlements: List[PostConsentEntitlementJsonV310],
                                      consumer_id: Option[String],
-                                     consent_request_id: Option[String],
                                      phone_number: String,
                                      valid_from: Option[Date],
                                      time_to_live: Option[Long]

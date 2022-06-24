@@ -3507,20 +3507,12 @@ trait APIMethods310 {
               case None => Future(None, "Any application")
             }
 
-            _ <- Helper.booleanToFuture(ConsentRequestNotFound, cc=callContext){
-              consentJson.consent_request_id match {
-                case Some(id) => //If it is existing in Json, we need to check it from database.
-                  ConsentRequests.consentRequestProvider.vend.getConsentRequestById(id).isDefined
-                case None => //If it is not, just pass
-                  true
-              }
-            }
             
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _ => Random.nextInt(99999999).toString()
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, consentJson.consent_request_id)) map {
+            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, None)) map {
               i => connectorEmptyResponse(i, callContext)
             }
             consentJWT = 

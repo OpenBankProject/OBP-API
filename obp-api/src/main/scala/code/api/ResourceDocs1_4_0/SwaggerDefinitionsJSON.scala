@@ -3743,7 +3743,6 @@ object SwaggerDefinitionsJSON {
     views = List(PostConsentViewJsonV310(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
     entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer")),
     consumer_id = Some(consumerIdExample.value),
-    consent_request_id = Some(consentRequestIdExample.value),
     phone_number = mobileNumberExample.value,
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
