@@ -71,8 +71,8 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     BankAccountRouting.create
       .BankId(bankId.value)
       .AccountId(accountId.value)
-      .AccountRoutingScheme(randomString(4))
-      .AccountRoutingAddress(randomString(4))
+      .AccountRoutingScheme("AccountId")
+      .AccountRoutingAddress(accountId.value)
       .saveMe
     MappedBankAccount.create
       .bank(bankId.value)

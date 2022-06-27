@@ -4672,6 +4672,20 @@ object SwaggerDefinitionsJSON {
     consent_request_id = Some(consentRequestIdExample.value)
     )
   
+  val postConsentRequestJsonV500 = PostConsentRequestJsonV500(
+    everything = false,
+    account_access = List(AccountAccessV500(
+      account_routing = accountRoutingJsonV121,
+      view_id = viewIdExample.value
+      )),
+    entitlements = Some(List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer"))),
+    consumer_id = Some(consumerIdExample.value),
+    phone_number = Some(mobileNumberExample.value),
+    email =  Some(emailExample.value),
+    valid_from = Some(new Date()),
+    time_to_live = Some(3600)
+    )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

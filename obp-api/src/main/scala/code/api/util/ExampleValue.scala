@@ -1459,9 +1459,15 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("consent_id", consentIdExample) 
   
   lazy val consentRequestPayloadExample = ConnectorField(
-    """{"everything":false,"views":[{"bank_id":"gh.29.uk",
-      |"account_id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0","view_id":"owner"}],
-      |"entitlements":[{"bank_id":"gh.29.uk","role_name":"CanGetCustomer"}],
+    """{
+      |"everything":false,
+      |  "account_routing": {
+      |    "scheme": "AccountNumber",
+      |    "address": "4930396"
+      |  },
+      |  "view_id": "owner"
+      |}],
+      |"entitlements":[],
       |"phone_number":"+44 07972 444 876",
       |"valid_from":"2022-06-14T12:42:00Z",
       |"time_to_live":3600

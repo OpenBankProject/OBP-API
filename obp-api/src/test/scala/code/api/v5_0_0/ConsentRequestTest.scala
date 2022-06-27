@@ -35,7 +35,7 @@ import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
 import code.consent.ConsentStatus
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{ErrorMessage}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
@@ -53,22 +53,25 @@ class ConsentRequestTest extends V500ServerSetupAsync {
     */
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.createConsentRequest))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getConsentRequest))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.createConsentByConsentRequestId))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
-  lazy val views = List(PostConsentViewJsonV310(testBankId1.value,testAccountId1.value, "owner"))
-  lazy val postConsentRequestJsonV310 = SwaggerDefinitionsJSON.postConsentEmailJsonV310
-    .copy(entitlements=entitlements)
+  lazy val accountAccess = List(AccountAccessV500(
+    account_routing = AccountRoutingJsonV121(
+      scheme = "AccountId",
+      address = testAccountId1.value), "owner"))
+  lazy val postConsentRequestJsonV310 = SwaggerDefinitionsJSON.postConsentRequestJsonV500
+    .copy(entitlements=Some(entitlements))
     .copy(consumer_id=None)
-    .copy(views=views)
+    .copy(account_access=accountAccess)
   
-  val createConsentRequestWithoutLoginUrl = (v5_0_0_Request / "banks" / testBankId1.value / "consent-requests")
-  val createConsentRequestUrl = (v5_0_0_Request / "banks" / testBankId1.value / "consent-requests").POST<@(user1)
-  def getConsentRequestUrl(requestId:String) = (v5_0_0_Request / "banks" / testBankId1.value / "consent-requests"/requestId).GET<@(user1)
-  def createConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "banks" / testBankId1.value /"consents"/ "consent-requests"/requestId/"EMAIL").POST<@(user1)
-  def getConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "banks" / testBankId1.value /"consents"/ "consent-requests"/requestId).GET<@(user1)
+  val createConsentRequestWithoutLoginUrl = (v5_0_0_Request / "consumer" / "consent-requests")
+  val createConsentRequestUrl = (v5_0_0_Request / "consumer"/ "consent-requests").POST<@(user1)
+  def getConsentRequestUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
+  def createConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
+  def getConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
   feature("Create/Get Consent Request v5.0.0") {
     scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {

@@ -7,7 +7,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiRole, Consent, NewStyle}
 import code.api.util.NewStyle.HttpCode
-import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentPhoneJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
+import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentEntitlementJsonV310, PostConsentPhoneJsonV310, PostConsentViewJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -238,10 +238,10 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(createConsentRequest),
       "POST",
-      "/banks/BANK_ID/consent-requests",
+      "/consumer/consent-requests",
       "Create Consent Request",
       s"""""",
-      postConsentRequestJsonV310,
+      postConsentRequestJsonV500,
       consentRequestResponseJson,
       List(
         $BankNotFound,
@@ -253,14 +253,14 @@ trait APIMethods500 {
       )
   
     lazy val createConsentRequest : OBPEndpoint = {
-      case  "banks" :: BankId(bankId) :: "consent-requests" :: Nil JsonPost json -> _  =>  {
+      case  "consumer" :: "consent-requests" :: Nil JsonPost json -> _  =>  {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
             _ <- passesPsd2Aisp(callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
-            consentJson: PostConsentBodyCommonJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[PostConsentBodyCommonJson]
+            consentJson: PostConsentRequestJsonV500 <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostConsentRequestJsonV500]
             }
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
@@ -293,7 +293,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(getConsentRequest),
       "GET",
-      "/banks/BANK_ID/consent-requests/CONSENT_REQUEST_ID",
+      "/consumer/consent-requests/CONSENT_REQUEST_ID",
       "Get Consent Request",
       s"""""",
       EmptyBody,
@@ -307,7 +307,7 @@ trait APIMethods500 {
       )
 
     lazy val getConsentRequest : OBPEndpoint = {
-      case "banks" :: BankId(bankId) ::"consent-requests" :: consentRequestId ::  Nil  JsonGet _  =>  {
+      case "consumer" :: "consent-requests" :: consentRequestId ::  Nil  JsonGet _  =>  {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
@@ -334,7 +334,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(getConsentByConsentRequestId),
       "GET",
-      "/banks/BANK_ID/consents/consent-requests/CONSENT_REQUEST_ID",
+      "/consumer/consent-requests/CONSENT_REQUEST_ID/consents",
       "Get Consent By Consent Request Id",
       s"""
          |
@@ -347,12 +347,11 @@ trait APIMethods500 {
       consentJsonV500,
       List(
         $UserNotLoggedIn,
-        $BankNotFound,
         UnknownError
         ),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
     lazy val getConsentByConsentRequestId: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "consents" :: "consent-requests" :: consentRequestId :: Nil JsonGet _ => {
+      case "consumer" :: "consent-requests" :: consentRequestId :: "consents" :: Nil  JsonGet _  => {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
@@ -378,7 +377,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(createConsentByConsentRequestIdEmail),
       "POST",
-      "/banks/BANK_ID/consents/consent-requests/CONSENT_REQUEST_ID/EMAIL",
+      "/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents",
       "Create Consent By Request Id(EMAIL)",
       s"""
          |
@@ -405,7 +404,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(createConsentByConsentRequestIdSms),
       "POST",
-      "/banks/BANK_ID/consents/consent-requests/CONSENT_REQUEST_ID/SMS",
+      "/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents",
       "Create Consent By Request Id (SMS)",
       s"""
          |
@@ -434,7 +433,7 @@ trait APIMethods500 {
     lazy val createConsentByConsentRequestIdSms = createConsentByConsentRequestId
     
     lazy val createConsentByConsentRequestId : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "consents" :: "consent-requests":: consentRequestId :: scaMethod :: Nil JsonPost _ -> _  => {
+      case "consumer" :: "consent-requests":: consentRequestId :: scaMethod :: "consents" :: Nil JsonPost _ -> _  => {
         cc =>
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
@@ -450,17 +449,17 @@ trait APIMethods500 {
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
-            consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.parse(createdConsentRequest.payload).extract[PostConsentBodyCommonJson].copy(consent_request_id = Some(createdConsentRequest.consentRequestId))
+            consentRequestJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.parse(createdConsentRequest.payload).extract[PostConsentRequestJsonV500]
             }
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc=callContext){
-              consentJson.time_to_live match {
+              consentRequestJson.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive
                 case _ => true
               }
             }
-            requestedEntitlements = consentJson.entitlements
+            requestedEntitlements = consentRequestJson.entitlements.getOrElse(Nil)
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc=callContext){
               requestedEntitlements.forall(
@@ -469,10 +468,22 @@ trait APIMethods500 {
                   )
                 )
             }
-            requestedViews = consentJson.views
+
+            postConsentViewJsons <- Future.sequence(
+              consentRequestJson.account_access.map(
+                access => 
+                  NewStyle.function.getBankAccountByRouting(None,access.account_routing.scheme, access.account_routing.address, cc.callContext)
+                    .map(result =>PostConsentViewJsonV310(
+                      result._1.bankId.value,
+                      result._1.accountId.value,
+                      access.view_id
+                    ))
+                )
+              )
+  
             (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
             _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc=callContext){
-              requestedViews.forall(
+              postConsentViewJsons.forall(
                 rv => assignedViews.exists{
                   e =>
                     e.view_id == rv.view_id &&
@@ -481,38 +492,39 @@ trait APIMethods500 {
                 }
                 )
             }
-            (consumerId, applicationText) <- consentJson.consumer_id match {
+            (consumerId, applicationText) <- consentRequestJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
                 c => (Some(c.consumerId.get), c.description)
               }
               case None => Future(None, "Any application")
             }
-          
-            _ <- Helper.booleanToFuture(ConsentRequestNotFound, cc=callContext){
-              consentJson.consent_request_id match {
-                case Some(id) => //If it is existing in Json, we need to check it from database.
-                  ConsentRequests.consentRequestProvider.vend.getConsentRequestById(id).isDefined
-                case None => //If it is not, just pass
-                  true
-              }
-            }
-          
+  
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _ => Random.nextInt(99999999).toString()
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, consentJson.consent_request_id)) map {
+            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, Some(consentRequestId))) map {
               i => connectorEmptyResponse(i, callContext)
             }
-            consentJWT =
-            Consent.createConsentJWT(
+
+            postConsentBodyCommonJson = PostConsentBodyCommonJson(
+              everything = consentRequestJson.everything,
+              views = postConsentViewJsons,
+              entitlements = consentRequestJson.entitlements.getOrElse(Nil),
+              consumer_id = consentRequestJson.consumer_id,
+              consent_request_id = Some(consentRequestId),
+              valid_from = consentRequestJson.valid_from,
+              time_to_live = consentRequestJson.time_to_live,
+            ) 
+            
+            consentJWT = Consent.createConsentJWT(
               user,
-              consentJson,
+              postConsentBodyCommonJson,
               createdConsent.secret,
               createdConsent.consentId,
               consumerId,
-              consentJson.valid_from,
-              consentJson.time_to_live.getOrElse(3600)
+              postConsentBodyCommonJson.valid_from,
+              postConsentBodyCommonJson.time_to_live.getOrElse(3600)
               )
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)) map {
               i => connectorEmptyResponse(i, callContext)
@@ -522,12 +534,12 @@ trait APIMethods500 {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
                 for{
                   failMsg <- Future {s"$InvalidJsonFormat The Json body should be the $PostConsentEmailJsonV310"}
-                  postConsentEmailJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                    json.parse(createdConsentRequest.payload).extract[PostConsentEmailJsonV310]
+                  consentScaEmail <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                    consentRequestJson.email.head
                   }
                   (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
                     StrongCustomerAuthentication.EMAIL,
-                    postConsentEmailJson.email,
+                    consentScaEmail,
                     Some("OBP Consent Challenge"),
                     challengeText,
                     callContext
@@ -538,13 +550,12 @@ trait APIMethods500 {
                   failMsg <- Future {
                     s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310"
                   }
-                  postConsentPhoneJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                    json.parse(createdConsentRequest.payload).extract[PostConsentPhoneJsonV310]
+                  consentScaPhoneNumber <- NewStyle.function.tryons(failMsg, 400, callContext) {
+                    consentRequestJson.phone_number.head
                   }
-                  phoneNumber = postConsentPhoneJson.phone_number
                   (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
                     StrongCustomerAuthentication.SMS,
-                    phoneNumber,
+                    consentScaPhoneNumber,
                     None,
                     challengeText,
                     callContext
