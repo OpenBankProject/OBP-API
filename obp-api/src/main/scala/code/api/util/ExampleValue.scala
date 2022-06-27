@@ -1460,17 +1460,21 @@ object ExampleValue {
   
   lazy val consentRequestPayloadExample = ConnectorField(
     """{
-      |"everything":false,
-      |  "account_routing": {
-      |    "scheme": "AccountNumber",
-      |    "address": "4930396"
-      |  },
-      |  "view_id": "owner"
-      |}],
-      |"entitlements":[],
-      |"phone_number":"+44 07972 444 876",
-      |"valid_from":"2022-06-14T12:42:00Z",
-      |"time_to_live":3600
+      |  "everything": false,
+      |  "account_access": [
+      |    {
+      |      "account_routing": {
+      |        "scheme": "AccountNumber",
+      |        "address": "4930396"
+      |      },
+      |      "view_id": "owner"
+      |    }
+      |  ],
+      |  "entitlements": [],
+      |  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+      |  "phone_number": "+44 07972 444 876",
+      |  "valid_from": "2022-06-14T12:42:00Z",
+      |  "time_to_live": 3600
       |}""".stripMargin,
     "The whole create consent request json body."
     )
