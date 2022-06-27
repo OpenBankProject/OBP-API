@@ -1470,8 +1470,6 @@ object ExampleValue {
       |      "view_id": "owner"
       |    }
       |  ],
-      |  "entitlements": [],
-      |  "consumer_id":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
       |  "phone_number": "+44 07972 444 876",
       |  "valid_from": "2022-06-14T12:42:00Z",
       |  "time_to_live": 3600
