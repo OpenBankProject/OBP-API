@@ -25,12 +25,11 @@ import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.sandbox.SandboxData
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
-import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType}
+import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType, ChallengeType}
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 import net.liftweb.json
@@ -4309,7 +4308,7 @@ object SwaggerDefinitionsJSON {
     id = transactionIdExample.value,
     user_id = userIdExample.value,
     allowed_attempts =3,
-    challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString,
+    challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
     link = "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge"
   )
   val transactionRequestWithChargeJSON400 = TransactionRequestWithChargeJSON400(
@@ -4395,7 +4394,7 @@ object SwaggerDefinitionsJSON {
     inboundAvroSchema = inboundAvroSchemaExample.value,
     adapterImplementation = adapterImplementationExample.value,
     methodBody = connectorMethodBodyScalaExample.value,
-    lang = connectorMethodLangExample.value
+    programmingLang = connectorMethodLangExample.value
   )
 
   val jsonResourceDocFragment = ResourceDocFragment(

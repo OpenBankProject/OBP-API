@@ -32,6 +32,7 @@ class AtmsTest extends V400ServerSetup {
   object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.updateAtm))
   object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.getAtm))
   object ApiEndpoint10 extends Tag(nameOf(Implementations4_0_0.getAtms))
+  object ApiEndpoint11 extends Tag(nameOf(Implementations4_0_0.deleteAtm))
 
   val bankId = testBankId1;
   val postAtmJson = SwaggerDefinitionsJSON.atmJsonV400.copy(bank_id= testBankId1.value)
@@ -105,6 +106,16 @@ class AtmsTest extends V400ServerSetup {
       val responseGetAll  = makeGetRequest(getAll)
       responseGetAll.code should equal(200)
       responseGetAll.body.extract[AtmsJsonV400].atms.head should be (postAtmJsonUpdate)
+      
+      Then("We test the Delete Atm")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteAtmAtAnyBank.toString)
+      val deleteOne = (v4_0_0_Request / "banks" / bankId.value / "atms" / atmId ).DELETE <@ (user1)
+      val responseDeleteOne = makeDeleteRequest(deleteOne)
+      responseDeleteOne.code should equal(204)
+
+      Then("We test the Get Atm")
+      val responseGetOneSecondTime  = makeGetRequest(getOne)
+      responseGetOneSecondTime.code should equal(404)
     }
   }
 

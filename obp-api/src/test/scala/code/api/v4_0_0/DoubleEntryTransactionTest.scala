@@ -2,7 +2,7 @@ package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNoPermissionAccessView, UserNotLoggedIn}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -27,6 +27,7 @@ class DoubleEntryTransactionTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString())
 
   object GetDoubleEntryTransactionEndpoint extends Tag(nameOf(Implementations4_0_0.getDoubleEntryTransaction))
+  object GetBalancingTransactionEndpoint extends Tag(nameOf(Implementations4_0_0.getBalancingTransaction))
 
   feature(s"test $GetDoubleEntryTransactionEndpoint - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", GetDoubleEntryTransactionEndpoint, VersionOfApi) {
@@ -92,4 +93,57 @@ class DoubleEntryTransactionTest extends V400ServerSetup {
       doubleEntryTransaction2.credit_transaction.transaction_id should not be empty
     }
   }
+
+
+  feature(s"test $GetBalancingTransactionEndpoint - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", GetBalancingTransactionEndpoint, VersionOfApi) {
+      Given("a random transaction")
+      lazy val transaction = randomTransactionViaEndpoint(testBankId.value, testAccountId.value, view)
+
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "transactions" / transaction.id / "balancing-transaction").GET
+      val response400 = makeGetRequest(request400)
+      Then("We should get a 401")
+      response400.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+  }
+  feature(s"test $GetBalancingTransactionEndpoint - Authorized access") {
+    scenario("We will call the endpoint with user credentials", GetBalancingTransactionEndpoint, VersionOfApi) {
+      Given("a created transaction ")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateHistoricalTransaction.toString)
+      val transaction = saveHistoricalTransactionViaEndpoint(testBankId, testAccountId, testBankId2, testAccountId0, BigDecimal(156.96), "a transaction", user1)
+
+      When("We make a request v4.0.0")
+      val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanGetDoubleEntryTransactionAtOneBank.toString)
+      val response400 = try {
+        val request400 = (v4_0_0_Request / "transactions" / transaction.transaction_id / "balancing-transaction").GET <@ (user1)
+        makeGetRequest(request400)
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
+
+      Then("We should get a 200")
+      response400.code should equal(200)
+      val doubleEntryTransaction = response400.body.extract[DoubleEntryTransactionJson]
+      doubleEntryTransaction.transaction_request should be(null)
+      doubleEntryTransaction.debit_transaction.bank_id should be(testBankId.value)
+      doubleEntryTransaction.debit_transaction.account_id should be(testAccountId.value)
+      doubleEntryTransaction.debit_transaction.transaction_id should be(transaction.transaction_id)
+      doubleEntryTransaction.credit_transaction.bank_id should be(testBankId2.value)
+      doubleEntryTransaction.credit_transaction.account_id should be(testAccountId0.value)
+      doubleEntryTransaction.credit_transaction.transaction_id should not be empty
+
+
+      Then("We make a request v4.0.0 but with other user")
+      val requestWithNewUser = (v4_0_0_Request / "transactions" / transaction.transaction_id / "balancing-transaction").GET <@ (user2)
+      val responseWithNoAccess = makeGetRequest(requestWithNewUser)
+      Then("We should get a 403 and some error message")
+      responseWithNoAccess.code should equal(403)
+      responseWithNoAccess.body.toString contains (s"$UserNoPermissionAccessView") should be(true)
+    }
+  }
+  
 }

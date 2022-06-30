@@ -39,6 +39,7 @@ import scala.xml.NodeSeq
 class UserInformation extends MdcLoggable {
   
   private object idTokenVar extends RequestVar("")
+  private object accessTokenVar extends RequestVar("")
   private object providerVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
   private object usernameVar extends RequestVar("")
@@ -54,11 +55,13 @@ class UserInformation extends MdcLoggable {
       devEmailVar.set(user.emailAddress)
       providerVar.set(user.provider)
       idTokenVar.set(AuthUser.getIDTokenOfCurrentUser)
+      accessTokenVar.set(AuthUser.getAccessTokenOfCurrentUser)
       "form" #> {
         "#user-info-username" #> SHtml.text(usernameVar, usernameVar(_)) &
         "#user-info-provider" #> SHtml.text(providerVar.is, providerVar(_)) &
         "#user-info-email" #> SHtml.text(devEmailVar, devEmailVar(_)) &
-        "#user-info-id-token" #> SHtml.text(idTokenVar, idTokenVar(_))
+        "#user-info-id-token" #> SHtml.text(idTokenVar, idTokenVar(_)) &
+        "#user-info-access-token" #> SHtml.text(accessTokenVar, accessTokenVar(_))
       } & "#register-consumer-success" #> ""
     }
   }

@@ -54,11 +54,12 @@ import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
 import code.standingorders.StandingOrderTrait
-import code.transactionrequests.TransactionRequests.TransactionChallengeTypes
+
 import code.userlocks.UserLocks
 import code.users.{UserAgreement, UserAttribute, UserInvitation}
 import code.views.system.AccountAccess
 import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
+import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.model.{DirectDebitTrait, ProductFeeTrait, _}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
@@ -1186,7 +1187,7 @@ object JSONFactory400 {
       account_attributes = accountAttributes.map(createAccountAttributeJson)
     )
 
-  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[ChallengeJson]) : TransactionRequestWithChargeJSON400 = {
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest, challenges: List[ChallengeTrait]) : TransactionRequestWithChargeJSON400 = {
     new TransactionRequestWithChargeJSON400(
       id = stringOrNull(tr.id.value),
       `type` = stringOrNull(tr.`type`),
@@ -1202,6 +1203,7 @@ object JSONFactory400 {
       // Some (mapped) data might not have the challenge. TODO Make this nicer
       challenges = {
         try {
+          challenges.map(challenge =>{
           val otpViaWebFormPath = Constant.HostName + List(
             "/otp?flow=transaction_request&bankId=",
             stringOrNull(tr.from.bank_id),
@@ -1213,7 +1215,7 @@ object JSONFactory400 {
             "&transactionRequestId=",
             stringOrNull(tr.id.value),
             "&id=",
-            stringOrNull(tr.challenge.id)
+            stringOrNull(challenge.challengeId)
           ).mkString("")
           
           val otpViaApiPath = Constant.HostName + List(
@@ -1227,14 +1229,20 @@ object JSONFactory400 {
             "/transaction-requests/",
             stringOrNull(tr.id.value),
             "/challenge").mkString("")
-          val link = tr.challenge.challenge_type match  {
-            case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_WEB_FORM.toString => otpViaWebFormPath
-            case challengeType if challengeType == TransactionChallengeTypes.OTP_VIA_API.toString => otpViaApiPath
+          val link = challenge.challengeType match  {
+            case challengeType if challengeType == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString => otpViaWebFormPath
+            case challengeType if challengeType == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString => otpViaApiPath
             case _ => ""
-          }
-          challenges.map(
-            e => ChallengeJsonV400(id = stringOrNull(e.challenge_id), user_id = e.expected_user_id, allowed_attempts = e.allowed_attempts, challenge_type = stringOrNull(tr.challenge.challenge_type), link = link)
-          )
+          } 
+            ChallengeJsonV400(
+              id = stringOrNull(challenge.challengeId), 
+              user_id = challenge.expectedUserId, 
+              allowed_attempts = 3, //TODO, this should be fixed later, need to add a field in the MappedExpectedChallengeAnswer table 
+              challenge_type = stringOrNull(challenge.challengeType), 
+              link = link
+              )
+          })
+            
         }
         // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
         catch { case _ : Throwable => null}

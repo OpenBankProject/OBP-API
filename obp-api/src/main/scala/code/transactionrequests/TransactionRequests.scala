@@ -15,11 +15,6 @@ object TransactionRequests extends SimpleInjector {
     val payments, bulk_payments, periodic_payments = Value
   }
   
-  object TransactionChallengeTypes extends Enumeration {
-    type TransactionChallengeTypes = Value
-    val OTP_VIA_API, OTP_VIA_WEB_FORM = Value
-  }
-  
   object TransactionRequestTypes extends Enumeration {
     type TransactionRequestTypes = Value
     val SANDBOX_TAN, ACCOUNT, ACCOUNT_OTP, COUNTERPARTY, SEPA, FREE_FORM, SIMPLE,

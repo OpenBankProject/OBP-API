@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -21,7 +22,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.v4_0_0.{PostSimpleCounterpartyJson400, TransactionRequestBodySimpleJsonV400}
 import code.atms.Atms.Atm
-import code.atms.MappedAtm
+import code.atms.{Atms, MappedAtm}
 import code.bankattribute.{BankAttribute, BankAttributeX}
 import code.branches.Branches.Branch
 import code.branches.MappedBranch
@@ -65,7 +66,7 @@ import code.transactionChallenge.{Challenges, MappedExpectedChallengeAnswer}
 import code.transactionRequestAttribute.TransactionRequestAttributeX
 import code.transactionattribute.TransactionAttributeX
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes._
-import code.transactionrequests.TransactionRequests.{TransactionChallengeTypes, TransactionRequestTypes}
+import code.transactionrequests.TransactionRequests.TransactionRequestTypes
 import code.transactionrequests._
 import code.users.{UserAttribute, UserAttributeProvider, Users}
 import code.util.Helper
@@ -76,6 +77,7 @@ import com.nexmo.client.NexmoClient
 import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
+import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
@@ -211,6 +213,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       None, //there are only for new version, set the empty here.
       None,//there are only for new version, set the empty here.
       None,//there are only for new version, set the empty here.
+      challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
       callContext: Option[CallContext])
     (challenge._1.map(_.challengeId),challenge._2)
   }
@@ -240,6 +243,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         None, //there are only for new version, set the empty here.
         None,//there are only for new version, set the empty here.
         None,//there are only for new version, set the empty here.
+        challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
       challenge.map(_.challengeId).toList
@@ -267,6 +271,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         scaStatus,
         consentId,
         authenticationMethodId,
+        challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
       challengeId.toList
@@ -290,7 +295,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     scaMethod: Option[SCA],
     scaStatus: Option[SCAStatus], //Only use for BerlinGroup Now
     consentId: Option[String],    // Note: consentId and transactionRequestId are exclusive here.
-    authenticationMethodId: Option[String],      
+    authenticationMethodId: Option[String],
+    challengeType: String,
     callContext: Option[CallContext]
   ) = {
     def createHashedPassword(challengeAnswer: String) = {
@@ -306,7 +312,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         scaMethod,
         scaStatus,
         consentId,
-        authenticationMethodId), callContext)
+        authenticationMethodId,
+        challengeType), callContext)
     }
 
     scaMethod match {
@@ -384,6 +391,27 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       val userId = callContext.map(_.user.map(_.userId).openOrThrowException(s"$UserNotLoggedIn Can not find the userId here."))
       (Full(Challenges.ChallengeProvider.vend.validateChallenge(challengeId, hashOfSuppliedAnswer, userId).isDefined), callContext)
     } 
+  
+  override def allChallengesSuccessfullyAnswered(
+    bankId: BankId,
+    accountId: AccountId,
+    transReqId: TransactionRequestId,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = {
+    for {
+      (accountAttributes, callContext) <- Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, callContext)
+      (challenges, callContext) <-  NewStyle.function.getChallengesByTransactionRequestId(transReqId.value, callContext)
+      quorum = accountAttributes.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+      challengeSuccess = challenges.count(_.successful == true) match {
+        case number if number >= quorum => true
+        case _ =>
+          MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(transReqId, TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString)
+          false
+      }
+    } yield {
+      (Full(challengeSuccess), callContext)
+    }
+  } 
   
   
   override def getChargeLevel(bankId: BankId,
@@ -2690,6 +2718,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{
     (createOrUpdateAtmLegacy(atm), callContext)
   }
+  
+  override def deleteAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future {
+    (Atms.atmsProvider.vend.deleteAtm(atm), callContext)
+  }
 
   override def getEndpointTagById(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(
     (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)), callContext)
@@ -2797,130 +2829,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
 
   override def createOrUpdateAtmLegacy(atm: AtmT): Box[AtmT] = {
-
-    val isAccessibleString = optionBooleanToString(atm.isAccessible)
-    val hasDepositCapabilityString = optionBooleanToString(atm.hasDepositCapability)
-    val supportedLanguagesString = atm.supportedLanguages.map(_.mkString(",")).getOrElse("")
-    val servicesString = atm.services.map(_.mkString(",")).getOrElse("")
-    val accessibilityFeaturesString = atm.accessibilityFeatures.map(_.mkString(",")).getOrElse("")
-    val supportedCurrenciesString = atm.supportedCurrencies.map(_.mkString(",")).getOrElse("")
-    val notesString = atm.notes.map(_.mkString(",")).getOrElse("")
-    val locationCategoriesString = atm.locationCategories.map(_.mkString(",")).getOrElse("")
-
-    //check the atm existence and update or insert data
-    getAtmLegacy(atm.bankId, atm.atmId) match {
-      case Full(mappedAtm: MappedAtm) =>
-        tryo {
-          mappedAtm.mName(atm.name)
-            .mLine1(atm.address.line1)
-            .mLine2(atm.address.line2)
-            .mLine3(atm.address.line3)
-            .mCity(atm.address.city)
-            .mCounty(atm.address.county.getOrElse(""))
-            .mCountryCode(atm.address.countryCode)
-            .mState(atm.address.state)
-            .mPostCode(atm.address.postCode)
-            .mlocationLatitude(atm.location.latitude)
-            .mlocationLongitude(atm.location.longitude)
-            .mLicenseId(atm.meta.license.id)
-            .mLicenseName(atm.meta.license.name)
-            .mOpeningTimeOnMonday(atm.OpeningTimeOnMonday.orNull)
-            .mClosingTimeOnMonday(atm.ClosingTimeOnMonday.orNull)
-
-            .mOpeningTimeOnTuesday(atm.OpeningTimeOnTuesday.orNull)
-            .mClosingTimeOnTuesday(atm.ClosingTimeOnTuesday.orNull)
-
-            .mOpeningTimeOnWednesday(atm.OpeningTimeOnWednesday.orNull)
-            .mClosingTimeOnWednesday(atm.ClosingTimeOnWednesday.orNull)
-
-            .mOpeningTimeOnThursday(atm.OpeningTimeOnThursday.orNull)
-            .mClosingTimeOnThursday(atm.ClosingTimeOnThursday.orNull)
-
-            .mOpeningTimeOnFriday(atm.OpeningTimeOnFriday.orNull)
-            .mClosingTimeOnFriday(atm.ClosingTimeOnFriday.orNull)
-
-            .mOpeningTimeOnSaturday(atm.OpeningTimeOnSaturday.orNull)
-            .mClosingTimeOnSaturday(atm.ClosingTimeOnSaturday.orNull)
-
-            .mOpeningTimeOnSunday(atm.OpeningTimeOnSunday.orNull)
-            .mClosingTimeOnSunday(atm.ClosingTimeOnSunday.orNull)
-            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-            .mLocatedAt(atm.locatedAt.orNull)
-            .mMoreInfo(atm.moreInfo.orNull)
-            .mHasDepositCapability(hasDepositCapabilityString)
-            .mSupportedLanguages(supportedLanguagesString)
-            .mServices(servicesString)
-            .mNotes(notesString)
-            .mAccessibilityFeatures(accessibilityFeaturesString)
-            .mSupportedCurrencies(supportedCurrenciesString)
-            .mLocationCategories(locationCategoriesString)
-            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
-            .mBranchIdentification(atm.branchIdentification.orNull)
-            .mSiteIdentification(atm.siteIdentification.orNull)
-            .mSiteName(atm.siteName.orNull)
-            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
-            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
-            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
-            .saveMe()
-        }
-      case _ =>
-        tryo {
-          MappedAtm.create
-            .mAtmId(atm.atmId.value)
-            .mBankId(atm.bankId.value)
-            .mName(atm.name)
-            .mLine1(atm.address.line1)
-            .mLine2(atm.address.line2)
-            .mLine3(atm.address.line3)
-            .mCity(atm.address.city)
-            .mCounty(atm.address.county.getOrElse(""))
-            .mCountryCode(atm.address.countryCode)
-            .mState(atm.address.state)
-            .mPostCode(atm.address.postCode)
-            .mlocationLatitude(atm.location.latitude)
-            .mlocationLongitude(atm.location.longitude)
-            .mLicenseId(atm.meta.license.id)
-            .mLicenseName(atm.meta.license.name)
-            .mOpeningTimeOnMonday(atm.OpeningTimeOnMonday.orNull)
-            .mClosingTimeOnMonday(atm.ClosingTimeOnMonday.orNull)
-
-            .mOpeningTimeOnTuesday(atm.OpeningTimeOnTuesday.orNull)
-            .mClosingTimeOnTuesday(atm.ClosingTimeOnTuesday.orNull)
-
-            .mOpeningTimeOnWednesday(atm.OpeningTimeOnWednesday.orNull)
-            .mClosingTimeOnWednesday(atm.ClosingTimeOnWednesday.orNull)
-
-            .mOpeningTimeOnThursday(atm.OpeningTimeOnThursday.orNull)
-            .mClosingTimeOnThursday(atm.ClosingTimeOnThursday.orNull)
-
-            .mOpeningTimeOnFriday(atm.OpeningTimeOnFriday.orNull)
-            .mClosingTimeOnFriday(atm.ClosingTimeOnFriday.orNull)
-
-            .mOpeningTimeOnSaturday(atm.OpeningTimeOnSaturday.orNull)
-            .mClosingTimeOnSaturday(atm.ClosingTimeOnSaturday.orNull)
-
-            .mOpeningTimeOnSunday(atm.OpeningTimeOnSunday.orNull)
-            .mClosingTimeOnSunday(atm.ClosingTimeOnSunday.orNull)
-            .mIsAccessible(isAccessibleString) // Easy access for people who use wheelchairs etc. Tristate boolean "Y"=true "N"=false ""=Unknown
-            .mLocatedAt(atm.locatedAt.orNull)
-            .mMoreInfo(atm.moreInfo.orNull)
-            .mHasDepositCapability(hasDepositCapabilityString)
-            .mSupportedLanguages(supportedLanguagesString)
-            .mServices(servicesString)
-            .mNotes(notesString)
-            .mAccessibilityFeatures(accessibilityFeaturesString)
-            .mSupportedCurrencies(supportedCurrenciesString)
-            .mLocationCategories(locationCategoriesString)
-            .mMinimumWithdrawal(atm.minimumWithdrawal.orNull)
-            .mBranchIdentification(atm.branchIdentification.orNull)
-            .mSiteIdentification(atm.siteIdentification.orNull)
-            .mSiteName(atm.siteName.orNull)
-            .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
-            .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
-            .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
-            .saveMe()
-        }
-    }
+    Atms.atmsProvider.vend.createOrUpdateAtm(atm)
   }
 
   override def createOrUpdateProductFee(
@@ -4538,7 +4447,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -4609,7 +4518,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
     } else {
       //if challenge necessary, create a new one
-      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = TransactionChallengeTypes.OTP_VIA_API.toString)
+      val challenge = TransactionRequestChallenge(id = generateUUID(), allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
       saveTransactionRequestChallenge(result.id, challenge)
       result = result.copy(challenge = challenge)
     }
@@ -4746,7 +4655,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
             }
 
-            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+            newChallenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = challengeType.getOrElse(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString))
             _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
             transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
           } yield {
@@ -4819,6 +4728,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
       chargeLevelAmount <- NewStyle.function.tryons(s"$InvalidNumber chargeLevel.amount: ${chargeLevel.amount} can not be transferred to decimal !", 400, callContext) {
         BigDecimal(chargeLevel.amount)
+      }
+      challengeTypeValue <- NewStyle.function.tryons(s"$InvalidChallengeType Current Type is $challengeType", 400, callContext) {
+        challengeType.map(ChallengeType.withName(_)).head
       }
       chargeValue <- getChargeValue(chargeLevelAmount, transactionRequestCommonBodyAmount)
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue))
@@ -4898,19 +4810,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
               //now we support multiple challenges. We can support multiple people to answer the challenges.
               //So here we return the challengeIds. 
-              (challengeIds, callContext) <- Connector.connector.vend.createChallenges(
-                fromAccount.bankId,
-                fromAccount.accountId,
-                users.toList.flatten.map(_.userId),
-                transactionRequestType: TransactionRequestType,
-                transactionRequest.id.value,
-                scaMethod,
-                callContext
-              ) map { i =>
+              (challenges, callContext) <- Connector.connector.vend.createChallengesC2(
+                userIds = users.toList.flatten.map(_.userId),
+                challengeType = challengeTypeValue,
+                transactionRequestId = Some(transactionRequest.id.value),
+                scaMethod = scaMethod,
+                scaStatus = None, //Only use for BerlinGroup Now
+                consentId = None, // Note: consentId and transactionRequestId are exclusive here.
+                authenticationMethodId = None,
+                callContext = callContext
+                ) map { i =>
                 (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
               }
-              //TODO, this challengeIds are only for mapped connector now. we only return the first challengeId in the request yet.
-              newChallenge = TransactionRequestChallenge(challengeIds.headOption.getOrElse(""), allowed_attempts = 3, challenge_type = challengeType.getOrElse(TransactionChallengeTypes.OTP_VIA_API.toString))
+             
+              //NOTE:this is only for Backward compatibility, now we use the MappedExpectedChallengeAnswer tables instead of the single field in TransactionRequest.
+              //Here only put the dummy date.
+              newChallenge = TransactionRequestChallenge(s"challenges number:${challenges.length}", allowed_attempts = 3, challenge_type = ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)
               _ <- Future(saveTransactionRequestChallenge(transactionRequest.id, newChallenge))
               transactionRequest <- Future(transactionRequest.copy(challenge = newChallenge))
             } yield {
@@ -5028,7 +4943,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     tr.map(_._1) match {
       case Full(tr: TransactionRequest) =>
         if (tr.challenge.allowed_attempts > 0) {
-          if (tr.challenge.challenge_type == TransactionChallengeTypes.OTP_VIA_API.toString) {
+          if (tr.challenge.challenge_type == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString) {
             //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
             for {
               nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"

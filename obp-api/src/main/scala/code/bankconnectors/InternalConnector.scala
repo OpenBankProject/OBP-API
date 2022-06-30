@@ -50,7 +50,7 @@ object InternalConnector {
   private def getFunction(methodName: String) = {
     ConnectorMethodProvider.provider.vend.getByMethodNameWithCache(methodName) map {
       case v :JsonConnectorMethod =>
-        createFunction(methodName, v.decodedMethodBody, v.lang).openOrThrowException(s"InternalConnector method compile fail, method name $methodName")
+        createFunction(methodName, v.decodedMethodBody, v.programmingLang).openOrThrowException(s"InternalConnector method compile fail, method name $methodName")
     }
   }
 
@@ -180,7 +180,7 @@ object InternalConnector {
    * @param lang methodBody programming language
    * @return function of connector method that is dynamic created, can be Function0, Function1, Function2...
    */
-  def createFunction(methodName: String, methodBody:String, lang: String): Box[AnyRef] = lang match {
+  def createFunction(methodName: String, methodBody:String, programmingLang: String): Box[AnyRef] = programmingLang match {
     case "js" | "Js" | "javascript" | "JavaScript" =>
       // just the value: "code.api.util.DynamicUtil.createJsFunction"
       val jsFunctionCreator = s"${ReflectUtils.getType(DynamicUtil).typeSymbol.fullName}.${nameOf(DynamicUtil.createJsFunction _)}"
@@ -194,7 +194,7 @@ object InternalConnector {
       createScalaFunction(methodName, javaMethodBody)
 
     case "Scala" | "scala" | "" | null => createScalaFunction(methodName, methodBody)
-    case _ => Failure(s"$DynamicCodeLangNotSupport lang: $lang, currently supported languages: Java, Javascript and Scala")
+    case _ => Failure(s"$DynamicCodeLangNotSupport programmingLang $programmingLang, currently supported languages: Java, Javascript and Scala")
   }
 
   /**
