@@ -490,14 +490,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
         urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }
 
-      val resourceDocDescription = I18NUtil.translateResourceDocDescription(
+      val resourceDocDescription = I18NUtil.ResourceDocTranslation.description(
         resourceDocUpdatedTags.operationId, 
         languageParam, 
         resourceDocUpdatedTags.description.stripMargin.trim
       )
       val description = resourceDocDescription ++ fieldsDescription
       val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
-      val translatedSummary = I18NUtil.translateResourceDocSummary(resourceDocUpdatedTags.operationId, languageParam, summary)
+      val translatedSummary = I18NUtil.ResourceDocTranslation.summary(resourceDocUpdatedTags.operationId, languageParam, summary)
       
       ResourceDocJson(
         operation_id = resourceDocUpdatedTags.operationId,
