@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
+
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
@@ -42,7 +43,7 @@ import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.authtypevalidation.JsonAuthTypeValidation
 import code.bankconnectors.{Connector, DynamicConnector, InternalConnector}
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
-import code.consent.{ConsentStatus, Consents}
+import code.consent.{ConsentRequests, ConsentStatus, Consents}
 import code.dynamicEntity.{DynamicEntityCommons, ReferenceType}
 import code.dynamicMessageDoc.JsonDynamicMessageDoc
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
@@ -8322,7 +8323,7 @@ trait APIMethods400 {
           }
       }
     }
-
+    
     staticResourceDocs += ResourceDoc(
       addConsentUser,
       implementedInApiVersion,

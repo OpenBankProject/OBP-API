@@ -17,10 +17,11 @@ object Consents extends SimpleInjector {
 
 trait ConsentProvider {
   def getConsentByConsentId(consentId: String): Box[MappedConsent]
+  def getConsentByConsentRequestId(consentRequestId: String): Box[MappedConsent]
   def updateConsentStatus(consentId: String, status: ConsentStatus): Box[MappedConsent]
   def updateConsentUser(consentId: String, user: User): Box[MappedConsent]
   def getConsentsByUser(userId: String): List[MappedConsent]
-  def createConsent(user: User, challenge: String): Box[MappedConsent]
+  def createObpConsent(user: User, challengeAnswer: String, consentRequestId:Option[String]): Box[MappedConsent]
   def setJsonWebToken(consentId: String, jwt: String): Box[MappedConsent]
   def revoke(consentId: String): Box[MappedConsent]
   def checkAnswer(consentId: String, challenge: String): Box[MappedConsent]
@@ -86,6 +87,8 @@ trait Consent {
    * @return Consumer ID
    */
   def consumerId: String
+  
+  def consentRequestId: String
 
   /**
    * This field identifies the standard of API of a related consent
