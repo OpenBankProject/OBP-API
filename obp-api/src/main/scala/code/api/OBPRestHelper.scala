@@ -31,7 +31,7 @@ import java.net.URLDecoder
 import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
-import code.api.util.APIUtil._
+import code.api.util.APIUtil.{getClass, _}
 import code.api.util.ErrorMessages.{InvalidDAuthHeaderToken, UserIsDeleted, UsernameHasBeenLocked, attemptedToOpenAnEmptyBox}
 import code.api.util._
 import code.api.v3_0_0.APIMethods300
@@ -72,7 +72,37 @@ object APIFailure {
 case class APIFailureNewStyle(failMsg: String,
                               failCode: Int = 400,
                               ccl: Option[CallContextLight] = None
-                             )
+                             ){
+  def translatedErrorMessage = {
+  
+    //1st,read the whole file into a map during the boot.
+    val language: Map[String, Map[String, String]] = Map(
+      "EN" -> Map("OBP-30001" -> "OBP-30001", "OBP-30002" -> "OBP-30002", "OBP-30003" -> "OBP-30002"),
+      "DE" -> Map("OBP-30001" -> "OBP-30001-DE", "OBP-30002" -> "OBP-30002-DE", "OBP-30003" -> "OBP-30002-DE"),
+      "CN" -> Map("OBP-30001" -> "OBP-30001-CN", "OBP-30002" -> "OBP-30002-CN", "OBP-30003" -> "OBP-30002-CN"),
+      )
+    
+    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"Locale")
+    
+    val abc88: Map[String, String] = language.get(localeUrlParameter).head
+    val errorMessage =  abc88.find(value => failMsg.contains(value._1)).head._2
+    
+    
+    //2rd, get the error cor from "OBP-20005" the 
+    val stream = getClass().getClassLoader().getResourceAsStream("i18n/errors/error-messages-_es_ES.properties")
+    val chineseVersion = try {
+      val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
+      bufferedSource.mkString
+    } finally {
+      stream.close()
+    }
+    
+    
+    //3rd, 
+    
+    failMsg +"xxxxxxxxxx!" +errorMessage
+  }
+}
 
 //if you change this, think about backwards compatibility! All existing
 //versions of the API return this failure message, so if you change it, make sure

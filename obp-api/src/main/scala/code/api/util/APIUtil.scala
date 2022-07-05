@@ -3038,8 +3038,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         throw new Exception("Empty Box not allowed")
       case obj1@ParamFailure(m,e,c,af: APIFailureNewStyle) =>
         val obj = (m,e, c) match {
-          case ("", Empty, Empty) => Empty ?~! af.failMsg
-          case _ => Failure (m, e, c) ?~! af.failMsg
+          case ("", Empty, Empty) => 
+            Empty ?~! af.translatedErrorMessage
+          case _ => 
+            Failure (m, e, c) ?~! af.translatedErrorMessage
         }
         val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
