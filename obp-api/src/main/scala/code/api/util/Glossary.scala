@@ -993,7 +993,7 @@ object Glossary extends MdcLoggable  {
 			|
 			|Body:
 			|
-			|	{  "legal_name":"Eveline Tripman",  "mobile_phone_number":"+44 07972 444 876",  "email":"eveline@example.com",  "face_image":{    "url":"www.openbankproject",    "date":"2017-09-19T00:00:00Z"  },  "date_of_birth":"2017-09-19T00:00:00Z",  "relationship_status":"single",  "dependants":10,  "dob_of_dependants":["2017-09-19T00:00:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Master",  "employment_status":"worker",  "kyc_status":true,  "last_ok_date":"2017-09-19T00:00:00Z",  "title":"Dr.",  "branch_id":"DERBY6",  "name_suffix":"Sr"}
+			|	{  "legal_name":"Eveline Tripman",  "mobile_phone_number":"+44 07972 444 876",  "email":"eveline@example.com",  "face_image":{    "url":"www.openbankproject",    "date":"1100-01-01T00:00:00Z"  },  "date_of_birth":"1100-01-01T00:00:00Z",  "relationship_status":"single",  "dependants":10,  "dob_of_dependants":["1100-01-01T00:00:00Z"],  "credit_rating":{    "rating":"OBP",    "source":"OBP"  },  "credit_limit":{    "currency":"EUR",    "amount":"10"  },  "highest_education_attained":"Master",  "employment_status":"worker",  "kyc_status":true,  "last_ok_date":"1100-01-01T00:00:00Z",  "title":"Dr.",  "branch_id":"DERBY6",  "name_suffix":"Sr"}
 			|
 			|Headers:
 			|

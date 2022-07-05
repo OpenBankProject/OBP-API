@@ -15,7 +15,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{BankId, UserAuthContextUpdateStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.Full
+import net.liftweb.common.{Full}
+import net.liftweb.http.{Req}
 import net.liftweb.http.rest.RestHelper
 
 import scala.collection.immutable.{List, Nil}
@@ -27,6 +28,20 @@ trait APIMethods500 {
 
   val Implementations5_0_0 = new Implementations500()
 
+  protected trait TestHead {
+    /**
+     * Test to see if the request is a GET and expecting JSON in the response.
+     * The path and the Req instance are extracted.
+     */
+    def unapply(r: Req): Option[(List[String], Req)] =
+      if (r.requestType.head_? && testResponse_?(r))
+        Some(r.path.partPath -> r) else None
+
+    def testResponse_?(r: Req): Boolean
+  }
+
+  lazy val JsonHead = new TestHead with JsonTest
+  
   class Implementations500 {
 
     val implementedInApiVersion = ApiVersion.v5_0_0
@@ -225,6 +240,36 @@ trait APIMethods500 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      headAtms,
+      implementedInApiVersion,
+      nameOf(headAtms),
+      "HEAD",
+      "/banks/BANK_ID/atms",
+      "Head Bank ATMS",
+      s"""Head Bank ATMS.""",
+      EmptyBody,
+      atmsJsonV400,
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    lazy val headAtms : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonHead _ => {
+        cc =>
+          for {
+            (_, callContext) <- getAtmsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+          } yield {
+            ("", HttpCode.`200`(callContext))
+          }
+      }
+    }
 
   }
 }

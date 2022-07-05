@@ -11471,8 +11471,7 @@ trait APIMethods400 {
       EmptyBody,
       atmsJsonV400,
       List(
-        $UserNotLoggedIn,
-        InvalidJsonFormat,
+        $BankNotFound,
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle)
