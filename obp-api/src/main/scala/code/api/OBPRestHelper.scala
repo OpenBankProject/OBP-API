@@ -45,15 +45,18 @@ import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils, ScannedApiVersion}
 import net.liftweb.common.{Box, Full, _}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, LiftResponse, Req, S}
+import net.liftweb.http.{JsonResponse, LiftResponse, LiftRules, Req, S, TransientRequestMemoize}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers
+import net.liftweb.util.{Helpers, NamedPF, Props, ThreadGlobal}
+import net.liftweb.util.Helpers.tryo
 
+import java.util.{Locale, ResourceBundle}
 import scala.collection.immutable.List
 import scala.collection.mutable.ArrayBuffer
 import scala.math.Ordering
 import scala.util.control.NoStackTrace
+import scala.xml.{Node, NodeSeq}
 
 trait APIFailure{
   val msg : String
@@ -75,32 +78,69 @@ case class APIFailureNewStyle(failMsg: String,
                              ){
   def translatedErrorMessage = {
   
-    //1st,read the whole file into a map during the boot.
-    val language: Map[String, Map[String, String]] = Map(
-      "EN" -> Map("OBP-30001" -> "OBP-30001", "OBP-30002" -> "OBP-30002", "OBP-30003" -> "OBP-30002"),
-      "DE" -> Map("OBP-30001" -> "OBP-30001-DE", "OBP-30002" -> "OBP-30002-DE", "OBP-30003" -> "OBP-30002-DE"),
-      "CN" -> Map("OBP-30001" -> "OBP-30001-CN", "OBP-30002" -> "OBP-30002-CN", "OBP-30003" -> "OBP-30002-CN"),
-      )
+    val errorCode = failMsg.split(":").head
+    val errorBody = failMsg.split(":").drop(1).reduceLeft(_ + _)
     
     val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"Locale")
+    val _resBundle = new ThreadGlobal[List[ResourceBundle]]
+    object resourceValueCache extends TransientRequestMemoize[(String, Locale), String]
     
-    val abc88: Map[String, String] = language.get(localeUrlParameter).head
-    val errorMessage =  abc88.find(value => failMsg.contains(value._1)).head._2
-    
-    
-    //2rd, get the error cor from "OBP-20005" the 
-    val stream = getClass().getClassLoader().getResourceAsStream("i18n/errors/error-messages-_es_ES.properties")
-    val chineseVersion = try {
-      val bufferedSource = scala.io.Source.fromInputStream(stream, "utf-8")
-      bufferedSource.mkString
-    } finally {
-      stream.close()
+    def resourceBundles(loc: Locale): List[ResourceBundle] = {
+      _resBundle.box match {
+        case Full(bundles) => bundles
+        case _ => {
+          _resBundle.set(
+            LiftRules.resourceForCurrentLoc.vend() :::
+              LiftRules.resourceNames.flatMap(name => tryo{
+                if (Props.devMode) {
+                  tryo{
+                    val clz = this.getClass.getClassLoader.loadClass("java.util.ResourceBundle")
+                    val meth = clz.getDeclaredMethods.
+                      filter{m => m.getName == "clearCache" && m.getParameterTypes.length == 0}.
+                      toList.head
+                    meth.invoke(null)
+                  }
+                }
+                List(ResourceBundle.getBundle(name, loc))
+              }.openOr(
+                NamedPF.applyBox((name, loc), LiftRules.resourceBundleFactories.toList).map(List(_)) openOr Nil
+                )))
+          _resBundle.value
+        }
+      }
     }
     
+    val locale = I18NUtil.computeLocale(localeUrlParameter)
+    val liftCoreResourceBundle = tryo(ResourceBundle.getBundle(LiftRules.liftCoreResourceName, locale)).toList
+  
+    def resourceBundleList: List[ResourceBundle] = resourceBundles(locale) ++ liftCoreResourceBundle
+  
+    def ?!(str: String, resBundle: List[ResourceBundle]): String =
+      resBundle.flatMap(
+        r => tryo(
+          r.getObject(str) match {
+            case s: String => Full(s)
+            case n: Node => Full(n.text)
+            case ns: NodeSeq => Full(ns.text)
+            case _ => Empty
+          })
+          .flatMap(s => s)).find(s => true) getOrElse {
+        LiftRules.localizationLookupFailureNotice.foreach(_ (str, locale));
+        str
+      }
+  
+    def ?(str: String): String = resourceValueCache.get(
+      str -> 
+        locale, 
+      if(?!(str, resourceBundleList)==str) //If can not find the value from props, then return the default error body.
+        errorBody 
+      else 
+        ?!(str, resourceBundleList)
+      
+      )
     
-    //3rd, 
-    
-    failMsg +"xxxxxxxxxx!" +errorMessage
+    val translatedErrorBody = ?(errorCode)
+    s"$errorCode : $translatedErrorBody"
   }
 }
 
