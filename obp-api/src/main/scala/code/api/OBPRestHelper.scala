@@ -82,9 +82,13 @@ case class APIFailureNewStyle(failMsg: String,
     val errorBody = failMsg.split(":").drop(1).reduceLeft(_ + _)
     
     val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"Locale")
+    val locale = I18NUtil.computeLocale(localeUrlParameter)
+    
+    val liftCoreResourceBundle = tryo(ResourceBundle.getBundle(LiftRules.liftCoreResourceName, locale)).toList
+    
     val _resBundle = new ThreadGlobal[List[ResourceBundle]]
     object resourceValueCache extends TransientRequestMemoize[(String, Locale), String]
-    
+  
     def resourceBundles(loc: Locale): List[ResourceBundle] = {
       _resBundle.box match {
         case Full(bundles) => bundles
@@ -109,9 +113,7 @@ case class APIFailureNewStyle(failMsg: String,
         }
       }
     }
-    
-    val locale = I18NUtil.computeLocale(localeUrlParameter)
-    val liftCoreResourceBundle = tryo(ResourceBundle.getBundle(LiftRules.liftCoreResourceName, locale)).toList
+   
   
     def resourceBundleList: List[ResourceBundle] = resourceBundles(locale) ++ liftCoreResourceBundle
   
@@ -129,7 +131,7 @@ case class APIFailureNewStyle(failMsg: String,
         str
       }
   
-    def ?(str: String): String = resourceValueCache.get(
+    def ?(str: String, locale: Locale): String = resourceValueCache.get(
       str -> 
         locale, 
       if(?!(str, resourceBundleList)==str) //If can not find the value from props, then return the default error body.
@@ -139,8 +141,8 @@ case class APIFailureNewStyle(failMsg: String,
       
       )
     
-    val translatedErrorBody = ?(errorCode)
-    s"$errorCode : $translatedErrorBody"
+    val translatedErrorBody = ?(errorCode, locale)
+    s"$errorCode:$translatedErrorBody"
   }
 }
 
