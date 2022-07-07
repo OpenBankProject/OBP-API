@@ -4204,20 +4204,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transaction_request_challenge_ttl", 600)
   
+  val obpErrorMessageCodeRegex = "^(OBP-\\d+):"
   
   //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
   //  errorCode = "OBP-20006:"
   // So far we support the i180n, we need to separate the errorCode and errorBody 
   def extractErrorMessageCode (errorMessage: String) = {
-    val regex = "(OBP-\\d+):".r
+    val regex = obpErrorMessageCodeRegex.r
     regex.findFirstIn(errorMessage).mkString
   }
-  
   //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
   //  errorBody = " User is missing one or more roles:"
   // So far we support the i180n, we need to separate the errorCode and errorBody 
   def extractErrorMessageBody(errorMessage: String) = {
-    val regex = "(OBP-\\d+):"
-    errorMessage.replaceFirst(regex,"")
+    
+    errorMessage.replaceFirst(obpErrorMessageCodeRegex,"")
   }
 }
