@@ -611,14 +611,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400, callContextLight: Option[CallContextLight] = None)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     def check403(message: String): Boolean = {
-      message.contains(UserHasMissingRoles) ||
-        message.contains(UserNoPermissionAccessView) ||
-        message.contains(UserHasMissingRoles) ||
-        message.contains(UserNotSuperAdminOrMissRole) ||
-        message.contains(ConsumerHasMissingRoles)
+      message.contains(UserHasMissingRoles.split(": ").head) ||
+        message.contains(UserNoPermissionAccessView.split(": ").head) ||
+        message.contains(UserHasMissingRoles.split(": ").head) ||
+        message.contains(UserNotSuperAdminOrMissRole.split(": ").head) ||
+        message.contains(ConsumerHasMissingRoles.split(": ").head)
     }
     def check401(message: String): Boolean = {
-      message.contains(UserNotLoggedIn)
+      message.contains(UserNotLoggedIn.split(": ").head)
     }
     val (code, responseHeaders) =
       message match {
