@@ -78,7 +78,7 @@ case class APIFailureNewStyle(failMsg: String,
                              ){
   def translatedErrorMessage = {
   
-    val errorCode = failMsg.split(": ").head
+    val errorCode = extractErrorMessageCode(failMsg)
     val errorBody = failMsg.split(": ").drop(1).reduceLeft(_ + _)
     
     val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"Locale")

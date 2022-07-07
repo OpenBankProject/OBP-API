@@ -611,14 +611,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400, callContextLight: Option[CallContextLight] = None)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     def check403(message: String): Boolean = {
-      message.contains(UserHasMissingRoles.split(": ").head) ||
-        message.contains(UserNoPermissionAccessView.split(": ").head) ||
-        message.contains(UserHasMissingRoles.split(": ").head) ||
-        message.contains(UserNotSuperAdminOrMissRole.split(": ").head) ||
-        message.contains(ConsumerHasMissingRoles.split(": ").head)
+      message.contains(extractErrorMessageCode(UserHasMissingRoles)) ||
+        message.contains(extractErrorMessageCode(UserNoPermissionAccessView)) ||
+        message.contains(extractErrorMessageCode(UserHasMissingRoles)) ||
+        message.contains(extractErrorMessageCode(UserNotSuperAdminOrMissRole)) ||
+        message.contains(extractErrorMessageCode(ConsumerHasMissingRoles))
     }
     def check401(message: String): Boolean = {
-      message.contains(UserNotLoggedIn.split(": ").head)
+      message.contains(extractErrorMessageCode(UserNotLoggedIn))
     }
     val (code, responseHeaders) =
       message match {
@@ -4203,4 +4203,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       """.stripMargin
 
   val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transaction_request_challenge_ttl", 600)
+  
+  
+  //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
+  //  errorCode = "OBP-20006"
+  // So far we support the i180n, we need to separate the errorCode and errorBody 
+  def extractErrorMessageCode (errorMessage: String) = errorMessage.split(": ").head
 }
