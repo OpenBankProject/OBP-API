@@ -69,7 +69,6 @@ import scala.collection.immutable.List
 import scala.math.BigDecimal
 import scala.util.Try
 
-
 case class CallLimitPostJsonV400(
                                   from_date : Date,
                                   to_date : Date,
