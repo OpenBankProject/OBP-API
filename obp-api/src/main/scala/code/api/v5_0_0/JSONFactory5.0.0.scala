@@ -26,9 +26,12 @@
   */
 package code.api.v5_0_0
 
-import com.openbankproject.commons.model.{UserAuthContext, UserAuthContextUpdate}
+import code.api.v3_1_0.{PostConsentEntitlementJsonV310}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, UserAuthContext, UserAuthContextUpdate}
+import net.liftweb.json.JsonAST.JValue
 
 import java.util.Date
+import scala.collection.immutable.List
 
 case class UserAuthContextJsonV500(
   user_auth_context_id: String,
@@ -52,6 +55,33 @@ case class UserAuthContextUpdateJsonV500(
   consumer_id: String,
 )
 
+
+case class PostConsentRequestResponseJson(consentRequestId: String)
+
+case class ConsentRequestResponseJson(
+  consent_request_id: String, 
+  payload : JValue, 
+  consumer_id : String
+)
+case class AccountAccessV500(
+//  bank_routing: Option[BankRoutingJsonV121],
+//  branch_routing: Option[BranchRoutingJsonV141],
+  account_routing: AccountRoutingJsonV121,
+  view_id: String
+)
+
+case class PostConsentRequestJsonV500(
+  everything: Boolean,
+  account_access: List[AccountAccessV500],
+  entitlements: Option[List[PostConsentEntitlementJsonV310]],
+  consumer_id: Option[String],
+  email: Option[String],
+  phone_number: Option[String],
+  valid_from: Option[Date],
+  time_to_live: Option[Long]
+)
+
+case class ConsentJsonV500(consent_id: String, jwt: String, status: String, consent_request_id: Option[String])
 object JSONFactory500 {
 
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJsonV500 = {

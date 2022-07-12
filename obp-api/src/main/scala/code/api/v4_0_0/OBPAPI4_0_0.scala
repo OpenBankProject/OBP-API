@@ -51,7 +51,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v4_0_0
 
-  val versionStatus = "BLEEDING-EDGE" // TODO this should be a property of ApiVersion.
+  val versionStatus = "DRAFT" // TODO this should be a property of ApiVersion.
 
   // Possible Endpoints from 4.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations4_0_0) -- List(Implementations4_0_0.genericEndpoint, Implementations4_0_0.root)

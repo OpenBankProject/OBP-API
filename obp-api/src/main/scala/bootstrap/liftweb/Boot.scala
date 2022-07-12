@@ -55,7 +55,7 @@ import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
-import code.consent.MappedConsent
+import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
@@ -1004,6 +1004,7 @@ object ToSchemify {
     MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
+    ConsentRequest,
     MigrationScriptLog,
     MethodRouting,
     EndpointMapping,
