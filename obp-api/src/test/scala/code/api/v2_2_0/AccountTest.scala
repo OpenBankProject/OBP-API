@@ -1,6 +1,7 @@
 package code.api.v2_2_0
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.entitlement.Entitlement
@@ -129,7 +130,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       val responseWithNoRole = makePutRequest(requestPutNewAccountId, write(accountPutJSON2))
 
       responseWithNoRole.code should equal(403)
-      responseWithNoRole.body.toString contains(s"$UserHasMissingRoles") should be (true)
+      responseWithNoRole.body.toString contains(extractErrorMessageCode(UserHasMissingRoles)) should be (true)
 
 
       Then("We grant the roles and test it again")
