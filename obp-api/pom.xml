@@ -356,10 +356,11 @@
       <version>0.5.7</version>
     </dependency>
     <!-- embeded kafka for unit test start -->
+    <!-- https://mvnrepository.com/artifact/io.github.embeddedkafka/embedded-kafka -->
     <dependency>
-      <groupId>net.manub</groupId>
-      <artifactId>scalatest-embedded-kafka_2.12</artifactId>
-      <version>2.0.0</version>
+      <groupId>io.github.embeddedkafka</groupId>
+      <artifactId>embedded-kafka_2.12</artifactId>
+      <version>2.4.1.1</version>
       <scope>test</scope>
     </dependency>
     <!-- embeded kafka for unit test end -->
