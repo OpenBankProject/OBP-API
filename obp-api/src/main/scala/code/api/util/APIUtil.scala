@@ -611,14 +611,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400, callContextLight: Option[CallContextLight] = None)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     def check403(message: String): Boolean = {
-      message.contains(UserHasMissingRoles) ||
-        message.contains(UserNoPermissionAccessView) ||
-        message.contains(UserHasMissingRoles) ||
-        message.contains(UserNotSuperAdminOrMissRole) ||
-        message.contains(ConsumerHasMissingRoles)
+      message.contains(extractErrorMessageCode(UserHasMissingRoles)) ||
+        message.contains(extractErrorMessageCode(UserNoPermissionAccessView)) ||
+        message.contains(extractErrorMessageCode(UserHasMissingRoles)) ||
+        message.contains(extractErrorMessageCode(UserNotSuperAdminOrMissRole)) ||
+        message.contains(extractErrorMessageCode(ConsumerHasMissingRoles))
     }
     def check401(message: String): Boolean = {
-      message.contains(UserNotLoggedIn)
+      message.contains(extractErrorMessageCode(UserNotLoggedIn))
     }
     val (code, responseHeaders) =
       message match {
@@ -3038,8 +3038,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         throw new Exception("Empty Box not allowed")
       case obj1@ParamFailure(m,e,c,af: APIFailureNewStyle) =>
         val obj = (m,e, c) match {
-          case ("", Empty, Empty) => Empty ?~! af.failMsg
-          case _ => Failure (m, e, c) ?~! af.failMsg
+          case ("", Empty, Empty) => 
+            Empty ?~! af.translatedErrorMessage
+          case _ => 
+            Failure (m, e, c) ?~! af.translatedErrorMessage
         }
         val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
@@ -4201,4 +4203,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       """.stripMargin
 
   val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transaction_request_challenge_ttl", 600)
+  
+  val obpErrorMessageCodeRegex = "^(OBP-\\d+):"
+  
+  //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
+  //  errorCode = "OBP-20006:"
+  // So far we support the i180n, we need to separate the errorCode and errorBody 
+  def extractErrorMessageCode (errorMessage: String) = {
+    val regex = obpErrorMessageCodeRegex.r
+    regex.findFirstIn(errorMessage).mkString
+  }
+  //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
+  //  errorBody = " User is missing one or more roles:"
+  // So far we support the i180n, we need to separate the errorCode and errorBody 
+  def extractErrorMessageBody(errorMessage: String) = {
+    
+    errorMessage.replaceFirst(obpErrorMessageCodeRegex,"")
+  }
 }

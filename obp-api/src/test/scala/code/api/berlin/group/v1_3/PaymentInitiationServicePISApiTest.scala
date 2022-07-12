@@ -4,6 +4,7 @@ import code.api.BerlinGroup.ScaStatus
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancellationJsonV13, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ErrorMessages.{AuthorisationNotFound, InvalidJsonFormat, NotPositiveAmount, _}
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
@@ -80,7 +81,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.code should equal(400)
       val error = s"${NotPositiveAmount} Current input is: '-1234'"
       And("error should be " + error)
-      response.body.extract[ErrorMessage].message should equal (error)
+      response.body.extract[ErrorMessage].message contains extractErrorMessageCode(NotPositiveAmount) should be (true)
     }
     scenario("Successful case - small amount -- change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
       val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))

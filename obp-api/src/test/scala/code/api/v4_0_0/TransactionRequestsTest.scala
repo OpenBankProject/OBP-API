@@ -5,6 +5,7 @@ import code.api.ChargePolicy
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages}
@@ -1172,7 +1173,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.setAnswerTransactionRequest(challengeId = challengeOfUser1.map(_.id).getOrElse(""))
         And("we call the endpoint")
         val ansReqResponseUser1 = helper.makeAnswerRequest
-        ansReqResponseUser1.body.extract[ErrorMessage].message should equal(NextChallengePending)
+        ansReqResponseUser1.body.extract[ErrorMessage].message contains extractErrorMessageCode(NextChallengePending) should be (true)
 
         Then("We call 'Answer Transaction Request Challenge - V400' to finish the request")
         And("we prepare the parameters for it")
@@ -1420,7 +1421,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.setAnswerTransactionRequest(challengeId = challengeOfUser1.map(_.id).getOrElse(""))
         And("we call the endpoint")
         val ansReqResponseUser1 = helper.makeAnswerRequest
-        ansReqResponseUser1.body.extract[ErrorMessage].message should equal(NextChallengePending)
+        ansReqResponseUser1.body.extract[ErrorMessage].message contains extractErrorMessageCode(NextChallengePending) should be (true)
         
         Then("We call 'Answer Transaction Request Challenge - V400' to finish the request")
         And("we prepare the parameters for it")
