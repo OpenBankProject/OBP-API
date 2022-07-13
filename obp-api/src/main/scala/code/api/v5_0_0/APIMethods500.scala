@@ -193,9 +193,9 @@ trait APIMethods500 {
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
       "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
-      "Answer Auth Context Update Challenge",
+      "Answer User Auth Context Update Challenge",
       s"""
-         |Answer Auth Context Update Challenge.
+         |Answer User Auth Context Update Challenge.
          |""",
       postUserAuthContextUpdateJsonV310,
       userAuthContextUpdateJsonV500,
