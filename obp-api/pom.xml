@@ -217,25 +217,11 @@
       <artifactId>elasticsearch</artifactId>
       <version>6.8.17</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
     <dependency>
       <groupId>com.sksamuel.elastic4s</groupId>
-      <artifactId>elastic4s-http_${scala.version}</artifactId>
-      <version>6.1.1</version>
-      <!-- TODO try to switch to slf4j from log4j
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.logging.log4j</groupId>
-          <artifactId>log4j-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.logging.log4j</groupId>
-          <artifactId>log4j-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.logging.log4j</groupId>
-          <artifactId>log4j-1.2-api</artifactId>
-        </exclusion>
-      </exclusions> -->
+      <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
+      <version>8.2.1</version>
     </dependency>
     <!-- for LiftConsole -->
     <dependency>
