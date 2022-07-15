@@ -716,7 +716,7 @@ object MappedNonceProvider extends NoncesProvider {
         case None =>
       }
       value match {
-        case Some(v) => n.value(v)
+        case Some(v) => n.`value`(v)
         case None =>
       }
       val nonce = n.saveMe()
@@ -733,7 +733,7 @@ object MappedNonceProvider extends NoncesProvider {
                            timestamp: Date,
                            value: String): Long = {
     Nonce.count(
-      By(Nonce.value, value),
+      By(Nonce.`value`, value),
       By(Nonce.tokenKey, tokenKey),
       By(Nonce.consumerkey, consumerKey),
       By(Nonce.timestamp, timestamp)
@@ -763,7 +763,7 @@ class Nonce extends LongKeyedMapper[Nonce] {
       timestamp.get.getTime().toString()
     }
   }
-  object value extends MappedString(this,250)
+  object `value` extends MappedString(this,250)
 
 }
 object Nonce extends Nonce with LongKeyedMetaMapper[Nonce]{}

@@ -8,6 +8,8 @@ import com.openbankproject.commons.util.ApiStandards
 // Note: Import this with: import code.api.Constant._
 object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
+  
+  final val h2DatabaseDefaultUrlValue = "jdbc:h2:mem:OBPTest_H2_v2.1.214;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=10"
 
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
   def localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)

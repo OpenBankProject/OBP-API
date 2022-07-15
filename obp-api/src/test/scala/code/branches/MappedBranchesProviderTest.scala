@@ -104,7 +104,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       branches.size should equal(3)
 
       And("they should be the licensed ones")
-      branches should equal (expectedBranches)
+      branches.sortBy(_.branchId.value) should equal (expectedBranches.sortBy(_.branchId.value))
     }
 
     scenario("We try to get branches for a bank that doesn't have any") {

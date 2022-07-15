@@ -39,7 +39,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
               .UserId(userId)
               .Name(name)
               .Type(attributeType.toString)
-              .Value(value)
+              .`Value`(value)
               .saveMe()
           }
           case _ => Empty
@@ -51,7 +51,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
             .UserId(userId)
             .Name(name)
             .Type(attributeType.toString())
-            .Value(value)
+            .`Value`(value)
             .saveMe()
         }
       }
@@ -67,13 +67,13 @@ class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribut
   object UserId extends MappedUUID(this)
   object Name extends MappedString(this, 50)
   object Type extends MappedString(this, 50)
-  object Value extends MappedString(this, 255)
+  object `Value` extends MappedString(this, 255)
 
   override def userAttributeId: String = UserAttributeId.get
   override def userId: String = UserId.get
   override def name: String = Name.get
   override def attributeType: UserAttributeType.Value = UserAttributeType.withName(Type.get)
-  override def value: String = Value.get
+  override def value: String = `Value`.get
   override def insertDate: Date = createdAt.get
 }
 
