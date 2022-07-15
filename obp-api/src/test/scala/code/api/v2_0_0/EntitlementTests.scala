@@ -3,6 +3,7 @@ package code.api.v2_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ApiRole.CanGetEntitlementsForAnyUserAtAnyBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, _}
 import code.api.util.{ApiRole, ErrorMessages}
@@ -74,7 +75,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
       Then("We should get a 403")
       responsePost.code should equal(403)
-      responsePost.body.toString contains (UserHasMissingRoles) should be (true)
+      responsePost.body.toString contains (extractErrorMessageCode(UserHasMissingRoles)) should be (true)
 
       Then("We grant the canCreateEntitlementAtOneBank role")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateEntitlementAtOneBank.toString)
@@ -101,7 +102,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
       Then("We should get a 403")
       responsePost.code should equal(403)
-      responsePost.body.toString contains (UserHasMissingRoles) should be (true)
+      responsePost.body.toString contains (extractErrorMessageCode(UserHasMissingRoles)) should be (true)
 
       Then("We grant the canCreateEntitlementAtOneBank role")
       Entitlement.entitlement.vend.addEntitlement("wrongbankId", resourceUser1.userId, ApiRole.canCreateEntitlementAtOneBank.toString)

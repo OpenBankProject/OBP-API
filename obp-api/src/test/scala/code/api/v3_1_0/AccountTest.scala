@@ -5,6 +5,7 @@ import com.openbankproject.commons.model.{AccountRouting, AccountRoutingJsonV121
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.updateAccountRequestJsonV310
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.util.ApiRole
 import code.api.v2_0_0.BasicAccountJSON
@@ -251,7 +252,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val responseWithNoRole = makePutRequest(request310WithNewAccountId, write(putCreateAccountOtherUserJsonV310))
       Then("We should get a 403 and some error message")
       responseWithNoRole.code should equal(403)
-      responseWithNoRole.body.toString contains(s"$UserHasMissingRoles") should be (true)
+      responseWithNoRole.body.toString contains(extractErrorMessageCode(UserHasMissingRoles)) should be (true)
 
 
       Then("We grant the roles and test it again")
