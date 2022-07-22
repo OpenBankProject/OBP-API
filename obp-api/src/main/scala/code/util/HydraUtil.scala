@@ -25,6 +25,8 @@ object HydraUtil extends MdcLoggable{
 
   val mirrorConsumerInHydra = APIUtil.getPropsAsBoolValue("mirror_consumer_in_hydra", false)
 
+  val clientSecretPost = "client_secret_post"
+  
   val hydraTokenEndpointAuthMethod =
     APIUtil.getPropsValue("hydra_token_endpoint_auth_method", "private_key_jwt")
 
