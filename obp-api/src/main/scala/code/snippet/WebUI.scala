@@ -65,9 +65,9 @@ class WebUI extends MdcLoggable{
   }
 
   def homePage = {
-    val host = Props.get("base_url").getOrElse("unknown")
-    "#uk a [href]" #> scala.xml.Unparsed(s"$host/?locale=es_ES") &
-      "#it a [href]" #> scala.xml.Unparsed(s"$host/?locale=en_EN")
+    val host = Constant.HostName
+    "#es a [href]" #> scala.xml.Unparsed(s"$host/?locale=es_ES") &
+     "#en a [href]" #> scala.xml.Unparsed(s"$host/?locale=en_EN")
   }
 
 
