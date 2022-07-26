@@ -1424,7 +1424,7 @@ trait APIMethods310 {
               json.extract[PostUserAuthContextJson]
             }
             (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
-            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key, postedData.value, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key.trim, postedData.value.trim, callContext)
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`201`(callContext))
           }
