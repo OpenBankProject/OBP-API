@@ -1,12 +1,12 @@
 package code.api.v1_4_0
 
 import code.api.berlin.group.v1_3.JvalueCaseClass
-
 import java.util.Date
+
 import code.api.util.APIUtil.{EmptyBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ApiTag.ResourceDocTag
 import code.api.util.Glossary.glossaryItems
-import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, PegdownOptions}
+import code.api.util.{APIUtil, ApiRole, ConnectorField, CustomJsonFormats, ExampleValue, I18NUtil, PegdownOptions}
 import code.bankconnectors.LocalMappedConnector.getAllEndpointTagsBox
 import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
@@ -21,9 +21,10 @@ import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
 import org.apache.commons.lang3.StringUtils
-
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
+
+import com.openbankproject.commons.model.enums.LanguageParam
 
 object JSONFactory1_4_0 extends MdcLoggable{
   implicit def formats: Formats = CustomJsonFormats.formats
@@ -452,7 +453,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
 
-  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean) : ResourceDocJson = {
+  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, languageParam: Option[LanguageParam]) : ResourceDocJson = {
     // if this calculate conversion already happened before, just return that value
     // if not calculated before, just do conversion
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
@@ -489,13 +490,20 @@ object JSONFactory1_4_0 extends MdcLoggable{
         urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }
 
-      val description = resourceDocUpdatedTags.description.stripMargin.trim ++ fieldsDescription
+      val resourceDocDescription = I18NUtil.ResourceDocTranslation.description(
+        resourceDocUpdatedTags.operationId, 
+        languageParam, 
+        resourceDocUpdatedTags.description.stripMargin.trim
+      )
+      val description = resourceDocDescription ++ fieldsDescription
+      val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
+      val translatedSummary = I18NUtil.ResourceDocTranslation.summary(resourceDocUpdatedTags.operationId, languageParam, summary)
       
       ResourceDocJson(
         operation_id = resourceDocUpdatedTags.operationId,
         request_verb = resourceDocUpdatedTags.requestVerb,
         request_url = resourceDocUpdatedTags.requestUrl,
-        summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1"), // remove the ending dot in summary
+        summary = translatedSummary,
         // Strip the margin character (|) and line breaks and convert from markdown to html
         description = PegdownOptions.convertPegdownToHtmlTweaked(description), //.replaceAll("\n", ""),
         description_markdown = description,
@@ -516,14 +524,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }) 
   }
 
-  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean) : ResourceDocsJson = {
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, languageParam: Option[LanguageParam]) : ResourceDocsJson = {
     if(isVersion4OrHigher){
       ResourceDocsJson(
-        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher)),
+        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher, languageParam)),
         meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
       )
     } else {
-      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false)))
+      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false, languageParam)))
     }
   }
   

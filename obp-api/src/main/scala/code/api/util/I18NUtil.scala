@@ -2,6 +2,8 @@ package code.api.util
 
 import java.util.{Date, Locale}
 
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import com.openbankproject.commons.model.enums.LanguageParam
 import net.liftweb.http.S
 import net.liftweb.util.Props
 
@@ -31,5 +33,27 @@ object I18NUtil {
     case Array(lang, country) => new Locale(lang, country)
     case Array(lang, country, variant) => new Locale(lang, country, variant)
   }
+  
+  object ResourceDocTranslation {
+    def summary(operationId: String, language: Option[LanguageParam], default: String): String = {
+      language match {
+        case Some(value) =>
+          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_summary_${value}"
+          getWebUiPropsValue(webUiKey, default)
+        case None =>
+          default
+      }
+    }
+    def description(operationId: String, language: Option[LanguageParam], default: String): String = {
+      language match {
+        case Some(value) =>
+          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_description_${value}"
+          getWebUiPropsValue(webUiKey, default)
+        case None =>
+          default
+      }
+    }
+  }
+  
 
 }

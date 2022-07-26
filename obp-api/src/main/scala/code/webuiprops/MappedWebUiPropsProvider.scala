@@ -23,7 +23,7 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
   override def createOrUpdate(webUiProps: WebUiPropsT): Box[WebUiPropsT] = {
       WebUiProps.find(By(WebUiProps.Name, webUiProps.name))
       .or(Full(WebUiProps.create))
-      .map(_.Name(webUiProps.name).Value(webUiProps.value).saveMe())
+      .map(_.Name(webUiProps.name).Value1(webUiProps.value).saveMe())
   }
 
   override def delete(webUiPropsId: String):Box[Boolean] = WebUiProps.find(By(WebUiProps.WebUiPropsId, webUiPropsId)) match {
@@ -60,11 +60,11 @@ class WebUiProps extends WebUiPropsT with LongKeyedMapper[WebUiProps] with IdPK 
 
   object WebUiPropsId extends MappedUUID(this)
   object Name extends MappedString(this, 255)
-  object Value extends MappedText(this)
+  object Value1 extends MappedText(this)
 
   override def webUiPropsId: Option[String] = Option(WebUiPropsId.get)
   override def name: String = Name.get
-  override def value: String = Value.get
+  override def value: String = Value1.get
 }
 
 object WebUiProps extends WebUiProps with LongKeyedMetaMapper[WebUiProps] {

@@ -192,6 +192,7 @@ object DynamicEntityOperation extends OBPEnumeration[DynamicEntityOperation] {
 sealed trait LanguageParam extends EnumValue
 object LanguageParam extends OBPEnumeration[LanguageParam] {
   object EN extends Value
+  object ES extends Value
   object ZH extends Value
 }
 

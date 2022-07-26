@@ -14,12 +14,12 @@ trait NewAttributeQueryTrait {
   // TODO Should we rename this column to attributeName
   private lazy val nameColumn = Name.dbColumnName
   // TODO Should we rename this column to attributeValue
-  private lazy val valueColumn = Value.dbColumnName
+  private lazy val valueColumn = `Value`.dbColumnName
   private lazy val parentIdColumn = ParentId.dbColumnName
   private lazy val bankIdColumn = BankId.dbColumnName
   val BankId: BaseMappedField
   val Name: BaseMappedField
-  val Value: BaseMappedField
+  val `Value`: BaseMappedField
   /**
    * Attribute entity's parent id, for example: CustomerAttribute.customerId,
    * need implemented in companion object

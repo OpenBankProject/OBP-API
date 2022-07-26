@@ -10,6 +10,7 @@ import code.accountapplication.AccountApplicationX
 import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
+import code.api.Constant
 import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
@@ -840,7 +841,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   private lazy val getDbConnectionParameters: (String, String, String) = {
-    val dbUrl = APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1"
+    val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
     val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
     val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
     val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
