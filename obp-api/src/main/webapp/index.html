@@ -31,7 +31,7 @@ Berlin 13359, Germany
     <div id="main-about" data-lift="WebUI.aboutBackground">
         <div id="main-about-row" class="row">
             <div id="main-about-box">
-                <h1 id="main-about-text" data-lift="WebUI.aboutText">Welcome to the Open Bank Project API Sandbox test instance!</h1>
+                <h1 id="main-about-text" data-lift="WebUI.aboutText"><lift:loc locid="welcome.to">Welcome to the Open Bank Project API Sandbox test instance!</lift:loc></h1>
                 <div id="main-about-buttons">
                     <a class="api-explorer-link btn btn-danger" data-lift="WebUI.apiExplorerLink" href="">
                         <lift:loc locid="view_api_explorer">View API Explorer</lift:loc></a>
@@ -48,7 +48,7 @@ Berlin 13359, Germany
 
 
     <div id="main-get-started">
-        <h2 id="get-started-part">Get started</h2>
+        <h2 id="get-started-part"><lift:loc locid="Get_started">Get started</lift:loc></h2>
         <div class="row">
             <div class="col-md-5 main-get-started-icon">
                 <img class="create-account" src="/media/images/create_account.png" width="237" height="237" alt="create account"/>
@@ -57,10 +57,9 @@ Berlin 13359, Germany
                 <img class="item-1" src="/media/images/icons/item-1.png" alt="item-1"/>
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
-                <h3>Create an account</h3>
-                <p>First, create a free developer account on this sandbox and request a developer key. You will be asked
-                    to submit basic information about your app at this stage. <a href="/user_mgt/sign_up">Register for
-                        an account</a>.</p>
+                <h3><lift:loc locid="Create_an_account">Create an account</lift:loc></h3>
+                <p><lift:loc locid="Description_Create_an_account">First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage.</lift:loc><a href="/user_mgt/sign_up"><lift:loc locid="register_for_an_account">Register for an account</lift:loc>
+                        </a>.</p>
             </div>
         </div>
         <div class="row">
@@ -71,10 +70,10 @@ Berlin 13359, Germany
                 <img class="item-2" src="/media/images/icons/item-2.png" alt="item-2"/>
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
-                <h3>Connect your app</h3>
-                <p>Use our SDKs to connect your app to the Open Bank Project APIs. You’ll need your developer key, which
+                <h3><lift:loc locid="Connect_your_app">Connect your app</lift:loc></h3>
+                <p><lift:loc locid="Connect_your_app_description">Use our SDKs to connect your app to the Open Bank Project APIs. You’ll need your developer key, which
                     you should have from when you created your account. Check out all the available APIs on the API
-                    Explorer, but make sure that you’re using the correct base URL.</p>
+                    Explorer, but make sure that you’re using the correct base URL.</lift:loc></p>
             </div>
         </div>
         <div class="row">
@@ -85,16 +84,17 @@ Berlin 13359, Germany
                 <img class="item-3" src="/media/images/icons/item-3.png" alt="item-3"/>
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
-                <h3>Test your app using customer data</h3>
+                <h3><lift:loc locid="Test_your_app">Test your app using customer data</lift:loc></h3>
                 <p>
-                    Once your app is connected, you can test it using test customer credentials.
+                    <lift:loc locid="Test_your_app_description">Once your app is connected, you can test it using test customer credentials.</lift:loc>
+
                     <a class="example_sandbox_credentials_link" data-lift="WebUI.exampleSandboxCredentialsLink"
                        href="https://github.com/OpenBankProject/OBP-API/wiki/">View sandbox customer log ons.</a>
                 </p>
             </div>
         </div>
         <div class="btn btn-primary">
-            <a href="/consumer-registration">Get API key</a>
+            <a href="/consumer-registration"><lift:loc locid="get_api_key">Get API key</lift:loc></a>
         </div>
 
         <hr style="color: #D7D8D6; margin-top: 56px;margin-bottom: 72px;">
