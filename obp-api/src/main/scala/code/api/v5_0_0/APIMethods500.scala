@@ -92,7 +92,7 @@ trait APIMethods500 {
               json.extract[PostUserAuthContextJson]
             }
             (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
-            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key, postedData.value, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key.trim, postedData.value.trim, callContext)
           } yield {
             (JSONFactory500.createUserAuthContextJson(userAuthContext), HttpCode.`201`(callContext))
           }
@@ -179,7 +179,7 @@ trait APIMethods500 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostUserAuthContextJson]
             }
-            (userAuthContextUpdate, callContext) <- NewStyle.function.validateUserAuthContextUpdateRequest(bankId.value, user.userId, postedData.key, postedData.value, scaMethod, callContext)
+            (userAuthContextUpdate, callContext) <- NewStyle.function.validateUserAuthContextUpdateRequest(bankId.value, user.userId, postedData.key.trim, postedData.value.trim, scaMethod, callContext)
           } yield {
 
             (JSONFactory500.createUserAuthContextUpdateJson(userAuthContextUpdate), HttpCode.`201`(callContext))
@@ -193,9 +193,9 @@ trait APIMethods500 {
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
       "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
-      "Answer Auth Context Update Challenge",
+      "Answer User Auth Context Update Challenge",
       s"""
-         |Answer Auth Context Update Challenge.
+         |Answer User Auth Context Update Challenge.
          |""",
       postUserAuthContextUpdateJsonV310,
       userAuthContextUpdateJsonV500,
@@ -224,8 +224,8 @@ trait APIMethods500 {
                 case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString =>
                   NewStyle.function.createUserAuthContext(
                     user,
-                    userAuthContextUpdate.key,
-                    userAuthContextUpdate.value,
+                    userAuthContextUpdate.key.trim,
+                    userAuthContextUpdate.value.trim,
                     callContext).map(x => (Some(x._1), x._2))
                 case _ =>
                   Future((None, callContext))
