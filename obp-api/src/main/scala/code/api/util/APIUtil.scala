@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
+
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -65,7 +66,7 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.util.{Helper, JsonSchemaUtil}
-import code.views.Views
+import code.views.{MapperViews, Views}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
@@ -105,8 +106,8 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.security.AccessControlException
+
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
@@ -3328,7 +3329,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
   final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], consumerId: Option[String] = None): Box[View] = {
-    val customView = Views.views.vend.customView(viewId, bankIdAccountId)
+    val customView = MapperViews.customView(viewId, bankIdAccountId)
     customView match { // CHECK CUSTOM VIEWS
       // 1st: View is Pubic and Public views are NOT allowed on this instance.
       case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
@@ -3338,7 +3339,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => customView
       // The user has NO account access via custom view
       case _ =>
-        val systemView = Views.views.vend.systemView(viewId)
+        val systemView = MapperViews.systemView(viewId)
         systemView match  { // CHECK SYSTEM VIEWS
           // 1st: View is Pubic and Public views are NOT allowed on this instance.
           case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
