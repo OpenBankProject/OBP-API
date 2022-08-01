@@ -282,6 +282,9 @@ transactionRequests_challenge_threshold_SEPA=1000
 # To set a currency for the above value:
 #transactionRequests_challenge_currency=KRW
 
+# the allowed attempts to answer the same transactionRequest Challenge, default is 3 times
+#answer_transactionRequest_challenge_allowed_attempts=3
+
 
 ## For video conference meetings (createMeeting)
 meeting.tokbox_enabled=false
