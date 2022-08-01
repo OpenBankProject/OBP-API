@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+01/08/2022    d94687d6      added new props `answer_transactionRequest_challenge_allowed_attempts`, default is 3 .  
 03/05/2022    5fe70270      added new props `transaction_request_challenge_ttl`, default is 600 seconds.  
 31/03/2022    a0262c3f      added new value SIMPLE to props `transactionRequests_supported_types`  
                             added new props `SIMPLE_OTP_INSTRUCTION_TRANSPORT`, default value is `DUMMY`

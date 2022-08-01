@@ -244,6 +244,10 @@ token_expiration_weeks=4
 ## payment challenge answer timeout,default is 600 seconds/10 minutes
 transaction_request_challenge_ttl=600
 
+# the allowed attempts to answer the same transactionRequest Challenge, default is 3 times
+#answer_transactionRequest_challenge_allowed_attempts=3
+
+
 
 
 ### Sandbox
@@ -281,9 +285,6 @@ transactionRequests_challenge_threshold_SEPA=1000
 
 # To set a currency for the above value:
 #transactionRequests_challenge_currency=KRW
-
-# the allowed attempts to answer the same transactionRequest Challenge, default is 3 times
-#answer_transactionRequest_challenge_allowed_attempts=3
 
 
 ## For video conference meetings (createMeeting)
