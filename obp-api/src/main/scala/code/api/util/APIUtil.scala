@@ -4202,7 +4202,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       |
       """.stripMargin
 
-  val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transaction_request_challenge_ttl", 600)
+  val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transactionRequest.challenge.ttl.seconds", 600)
   
   val obpErrorMessageCodeRegex = "^(OBP-\\d+):"
   

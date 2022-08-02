@@ -4,7 +4,7 @@
 ```
 Date          Commit        Action
 01/08/2022    d94687d6      added new props `answer_transactionRequest_challenge_allowed_attempts`, default is 3 .  
-03/05/2022    5fe70270      added new props `transaction_request_challenge_ttl`, default is 600 seconds.  
+03/05/2022    5fe70270      added new props `transactionRequest.challenge.ttl.seconds`, default is 600 seconds.  
 31/03/2022    a0262c3f      added new value SIMPLE to props `transactionRequests_supported_types`  
                             added new props `SIMPLE_OTP_INSTRUCTION_TRANSPORT`, default value is `DUMMY`
 24/02/2022    2882805c      removed `kafka`,`kafka_vJune2017` and `kafka_vMar2017` connectors
