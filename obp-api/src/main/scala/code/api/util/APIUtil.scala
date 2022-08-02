@@ -4220,4 +4220,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     
     errorMessage.replaceFirst(obpErrorMessageCodeRegex,"")
   }
+  
+  val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
 }
