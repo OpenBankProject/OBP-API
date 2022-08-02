@@ -58,7 +58,7 @@ Berlin 13359, Germany
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
                 <h3><lift:loc locid="Create_an_account">Create an account</lift:loc></h3>
-                <p><lift:loc locid="Description_Create_an_account">First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage.</lift:loc><a href="/user_mgt/sign_up"><lift:loc locid="register_for_an_account">Register for an account</lift:loc>
+                <p><lift:loc locid="Description_Create_an_account">First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage.</lift:loc><a href="/user_mgt/sign_up"> <lift:loc locid="register_for_an_account">Register for an account</lift:loc>
                         </a>.</p>
             </div>
         </div>
@@ -270,13 +270,13 @@ Berlin 13359, Germany
 
 
     <div id="main-support">
-        <h2 id="technical-support">Support</h2>
+        <h2 id="technical-support"><lift:loc locid="support">Support</lift:loc></h2>
         <div class="row">
             <div class="col-xs-1" type="hidden"></div>
             <div class="col-xs-2" type="hidden" id ="main-support_place_holder"></div>
             <div class="main-support-item col-xs-3">
                 <img class="support-mail" src="/media/images/icons/support/email.svg" width="48" height="48" alt="mail"/>
-                <h3>Email</h3>
+                <h3><lift:loc locid="email.address">Email</lift:loc></h3>
                 <a id="webui-support-email" data-lift="WebUI.supportEmail" href="mailto:contact@openbankproject.com">contact@openbankproject.com</a>
             </div>
                 
@@ -313,7 +313,7 @@ Berlin 13359, Germany
     <div id="main-start">
         <div id="main-start-row"  class="row">
             <div id="main-start_building" class="col-xs-12 col-sm-6">
-                <h2 name="get-started" data-lift="WebUI.getStartedText">Get started building your application</h2>
+                <h2 name="get-started" data-lift="WebUI.getStartedText"><lift:loc locid="get_started_building_your_application">Get started building your application</lift:loc></h2>
                 <div class="btn btn-default pull-left">
                     <a href="/consumer-registration">
                         <lift:loc locid="get_api_key">Get API key</lift:loc></a>
@@ -321,7 +321,7 @@ Berlin 13359, Germany
             </div>
     
             <div id="for-banks" name="for-banks" data-lift="WebUI.forBanks" class="col-xs-12 col-sm-6">
-                <h2>For banks</h2>
+                <h2><lift:loc locid="for_banks">For Banks</lift:loc></h2></h2>
                 <a class="api-manager-link btn btn-default pull-left"
                    data-lift="WebUI.apiManagerLink" href="">
                     <lift:loc locid="api_manager">API Manager</lift:loc></a>
