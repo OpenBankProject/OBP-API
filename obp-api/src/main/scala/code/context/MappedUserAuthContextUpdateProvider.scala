@@ -53,7 +53,7 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
     MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, consentId)) match {
       case Full(consent) =>
         val createDateTime = consent.createdAt.get
-        val challengeTTL : Long = Helpers.seconds(APIUtil.authContextUpdateRequestChallengeTtl)
+        val challengeTTL : Long = Helpers.seconds(APIUtil.userAuthContextUpdateRequestChallengeTtl)
         val expiredDateTime: Long = createDateTime.getTime+challengeTTL
         val currentTime: Long = Platform.currentTime
         
@@ -66,7 +66,7 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
               Full(consent)
           } 
         else{
-          Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is ${APIUtil.authContextUpdateRequestChallengeTtl} seconds")
+          Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is ${APIUtil.userAuthContextUpdateRequestChallengeTtl} seconds")
         }
       case Empty =>
         Empty ?~! ErrorMessages.UserAuthContextUpdateNotFound
