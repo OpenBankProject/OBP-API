@@ -910,12 +910,7 @@ trait APIMethods400 {
       Some(List(canCreateAnyTransactionRequest)))
 
 
-    private def createTransactionRequest(
-      bankId: BankId, 
-      accountId: AccountId, 
-      viewId: ViewId, 
-      transactionRequestType: TransactionRequestType,
-      json: JValue) = {
+    def createTransactionRequest(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType, json: JValue): Future[(TransactionRequestWithChargeJSON400, Option[CallContext])] = {
         for {
           (Full(u), fromAccount, callContext) <- SS.userAccount
           _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
