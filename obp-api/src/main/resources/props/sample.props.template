@@ -242,7 +242,10 @@ mail.smtp.port=25
 token_expiration_weeks=4
 
 ## payment challenge answer timeout,default is 600 seconds/10 minutes
-transaction_request_challenge_ttl=600
+transactionRequest.challenge.ttl.seconds=600
+
+## auth context update request challenge answer timeout,default is 600 seconds/10 minutes
+userAuthContextUpdateRequest.challenge.ttl.seconds=600
 
 # the allowed attempts to answer the same transactionRequest Challenge, default is 3 times
 #answer_transactionRequest_challenge_allowed_attempts=3
