@@ -92,6 +92,17 @@ class RemotedataCounterpartiesActor extends Actor with ObpActorHelper with MdcLo
     case cc.getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId) =>
       logger.debug(s"getCounterparties($thisBankId)")
       sender ! (mapper.getCounterparties(thisBankId, thisAccountId, viewId))
+      
+    case cc.getCounterpartyByRoutings(otherBankRoutingScheme: String,
+    otherBankRoutingAddress: String,
+    otherBranchRoutingScheme: String,
+    otherBranchRoutingAddress: String,
+    otherAccountRoutingScheme: String,
+    otherAccountRoutingAddress: String) =>
+      logger.debug(s"getCounterpartyByRoutings($otherBankRoutingScheme,$otherBankRoutingAddress,$otherBranchRoutingScheme,$otherBranchRoutingAddress,$otherAccountRoutingScheme,$otherAccountRoutingAddress)")
+      sender ! (mapper.getCounterpartyByRoutings(otherBankRoutingScheme, 
+        otherBankRoutingAddress, otherBranchRoutingScheme, 
+        otherBranchRoutingAddress, otherAccountRoutingScheme, otherAccountRoutingAddress))
 
     case cc.getCounterpartyByIban(iban: String) =>
       logger.debug(s"getOrCreateMetadata($iban)")
