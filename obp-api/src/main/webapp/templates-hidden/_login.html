@@ -1,19 +1,19 @@
 <div id="authorise" tabindex="-1">
 	<div class="login-error"><span data-lift="Msg?id=login&errorClass=error"/></div>
 	<div data-lift="Login.customiseLogin">
-		<h1  id="login-instruction-title">Log on to the Open Bank Project API</h1>
+		<h1  id="login-instruction-title"><lift:loc locid="logontext">Log on to the Open Bank Project API</lift:loc></h1>
 		<div id="login-special-instructions">Special Instructions</div>
 
 		<form class="login" action="/user_mgt/login" method="post">
 			<div class="form-group">
-				<p id="login-form-username">Username </p> 
+				<p id="login-form-username"><lift:loc locid="username">Username</lift:loc></p>
 				<input class="form-control" id="username" type="text" name="username" tabindex="0" autofocus autocomplete="off" aria-label="Username" aria-describedby="login-form-username-error"/>
 				<div id = "login-username-error" class="hide">
 					<span data-lift="Msg?id=login-form-username-error"/>
 				</div>
 			</div>
 			<div class="form-group">
-				<p id="login-form-password">Password</p> 
+				<p id="login-form-password"><lift:loc locid="passwordlog">Password</lift:loc></p>
 				<input class="form-control" id="password" type="password" name="password" tabindex="0" autocomplete="off" aria-label="Password" aria-describedby="login-form-password-error"/>
 				<div id = "login-password-error" class="hide">
 					<span data-lift="Msg?id=login-form-password-error"/>
@@ -28,7 +28,7 @@
 <!--			</div>-->
 
 			<div id="authorise-recover-password">
-				<a href="/user_mgt/lost_password"  tabindex="0">Forgotten password?</a>
+				<a href="/user_mgt/lost_password"  tabindex="0"><lift:loc locid="Forgotten_password">Forgotten password?</lift:loc></a>
 			</div>
 			
 			<div class="row">
@@ -38,14 +38,14 @@
 				</div>
 			</div>
 
-			<div class ="login-or"> or </div>
+			<div class ="login-or"> <lift:loc locid="or">or</lift:loc></div>
 			<hr>
 			<div class="row">
-				<span id="login-Register-text">Don't have an account? </span>
-				<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default pull-right authorise-button" tabindex="0">Register</a>
+				<span id="login-Register-text"><lift:loc locid="don't_have_account">Don't have an account?</lift:loc> </span>
+				<a href="/user_mgt/sign_up" id="authorise-signup" class="btn btn-default pull-right authorise-button" tabindex="0"><lift:loc locid="register">Register</lift:loc></a>
 			</div>
 
-			<div class ="login-or"> or Login with OpenID : </div>
+			<div class ="login-or">><lift:loc locid="or_login_with_openid">or Login with OpenID :</lift:loc> </div>
 			<hr>
 			<div data-lift="OpenIDConnectSnippet.showFirstButton">
 				<div data-lift="OpenidConnectInvoke.linkButtonFirstProvider">
