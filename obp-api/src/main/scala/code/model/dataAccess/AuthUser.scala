@@ -30,7 +30,7 @@ import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
-import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
+import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{APIFailure, Constant, DirectLogin, GatewayLogin, OAuthHandshake}
@@ -43,7 +43,7 @@ import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model.{User, _}
+import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -274,7 +274,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
             invalidMsg = Helper.i18n("please.enter.your.password")
             S.error("authuser_password_repeat", Text(Helper.i18n("please.re-enter.your.password")))
           case false =>
-            if (validatePasswordOnCreation(passwordValue))
+            if (fullPasswordValidation(passwordValue))
               invalidPw = false
             else {
               invalidPw = true

@@ -1,6 +1,6 @@
 package code.sandbox
 
-import code.api.util.APIUtil.validatePasswordOnCreation
+import code.api.util.APIUtil.fullPasswordValidation
 import code.api.util.ErrorMessages
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users.Users
@@ -38,7 +38,7 @@ trait CreateAuthUsers {
         .validated(true)
 
       val validationErrors = authUser.validate
-      if (!validatePasswordOnCreation(u.password)) Failure(ErrorMessages.InvalidStrongPasswordFormat)
+      if (!fullPasswordValidation(u.password)) Failure(ErrorMessages.InvalidStrongPasswordFormat)
       else if(!validationErrors.isEmpty) Failure(s"Errors: ${validationErrors.map(_.msg)}")
       else Full(asSaveable(authUser))
     }
