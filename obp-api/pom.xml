@@ -201,17 +201,17 @@
       <artifactId>amqp_3.1_${scala.version}</artifactId>
       <version>1.5.0</version>
     </dependency>
-    <dependency>
-      <groupId>com.tokbox</groupId>
-      <artifactId>opentok-server-sdk</artifactId>
-      <version>3.0.0-beta.2</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-databind</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>com.tokbox</groupId>-->
+<!--      <artifactId>opentok-server-sdk</artifactId>-->
+<!--      <version>3.0.0-beta.2</version>-->
+<!--      <exclusions>-->
+<!--        <exclusion>-->
+<!--          <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--          <artifactId>jackson-databind</artifactId>-->
+<!--        </exclusion>-->
+<!--      </exclusions>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
