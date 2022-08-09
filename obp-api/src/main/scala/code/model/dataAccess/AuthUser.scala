@@ -59,7 +59,9 @@ import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
+import net.liftweb.sitemap.Loc.{If, LocParam, Template}
 import sh.ory.hydra.api.AdminApi
+import net.liftweb.sitemap.Loc.strToFailMsg
 
 import scala.concurrent.Future
 
@@ -930,6 +932,19 @@ def restoreSomeSessions(): Unit = {
 }
 
   override protected def capturePreLoginState(): () => Unit = () => {restoreSomeSessions}
+
+
+  /**
+    * The LocParams for the menu item for login.
+    * Overridden in order to add custom error message. Attention: Not calling super will change the default behavior!
+    */
+  override protected def loginMenuLocParams: List[LocParam[Unit]] = {
+    lazy val errorMessage = " " + S.?("already.logged.in") + s" ${Constant.HostName}${AuthUser.logoutPath.foldLeft("")(_ + "/" + _)}"
+    If(notLoggedIn_? _, () => RedirectResponse("/already-logged-in")) ::
+      Template(() => wrapIt(login)) ::
+      Nil
+  }
+
 
   //overridden to allow a redirection if login fails
   /**
