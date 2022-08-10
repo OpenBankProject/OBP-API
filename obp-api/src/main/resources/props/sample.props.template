@@ -289,14 +289,6 @@ transactionRequests_challenge_threshold_SEPA=1000
 # To set a currency for the above value:
 #transactionRequests_challenge_currency=KRW
 
-
-## For video conference meetings (createMeeting)
-meeting.tokbox_enabled=false
-meeting.tokbox_api_key=changeme
-meeting.tokbox_api_secret=changeme
-
-
-
 ### Management modules
 
 ## RabbitMQ settings (used to communicate with HBCI project)
