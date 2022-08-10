@@ -151,7 +151,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.getPrivateAccountsAtOneBank ::
                           //now in V220
                           //Implementations2_0_0.createAccount ::
-                          Implementations2_0_0.createMeeting ::
+//                          Implementations2_0_0.createMeeting ::
                           Implementations2_0_0.createUser ::
                           Implementations2_0_0.createUserCustomerLinks ::
                           Implementations2_0_0.deleteEntitlement ::
@@ -166,8 +166,8 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_0_0.getKycDocuments ::
                           Implementations2_0_0.getKycMedia ::
                           Implementations2_0_0.getKycStatuses ::
-                          Implementations2_0_0.getMeeting ::
-                          Implementations2_0_0.getMeetings ::
+//                          Implementations2_0_0.getMeeting ::
+//                          Implementations2_0_0.getMeetings ::
                           Implementations2_0_0.getPermissionsForBankAccount ::
                           Implementations2_0_0.getSocialMediaHandles ::
                           Implementations2_0_0.getTransactionTypes ::

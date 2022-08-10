@@ -62,7 +62,12 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>log4j-over-slf4j</artifactId>
-      <version>1.7.25</version>
+      <version>1.7.26</version>
+    </dependency>
+    <dependency>
+      <artifactId>slf4j-ext</artifactId>
+      <groupId>org.slf4j</groupId>
+      <version>1.7.26</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -201,17 +206,17 @@
       <artifactId>amqp_3.1_${scala.version}</artifactId>
       <version>1.5.0</version>
     </dependency>
-    <dependency>
-      <groupId>com.tokbox</groupId>
-      <artifactId>opentok-server-sdk</artifactId>
-      <version>3.0.0-beta.2</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-databind</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>com.tokbox</groupId>-->
+<!--      <artifactId>opentok-server-sdk</artifactId>-->
+<!--      <version>3.0.0-beta.2</version>-->
+<!--      <exclusions>-->
+<!--        <exclusion>-->
+<!--          <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--          <artifactId>jackson-databind</artifactId>-->
+<!--        </exclusion>-->
+<!--      </exclusions>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
