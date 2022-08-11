@@ -73,6 +73,30 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>7.1.1</version>
+                <configuration>
+                    <name>notifier-dependency-check</name>
+                    <format>HTML</format>
+                    <failBuildOnCVSS>10</failBuildOnCVSS>
+                    <failOnError>false</failOnError>
+                    <skipProvidedScope>true</skipProvidedScope>
+                    <!--skip artifacts not bundled in distribution (Provided and Runtime scope).-->
+                    <skipRuntimeScope>true</skipRuntimeScope>
+                    <skipTestScope>true</skipTestScope>
+                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                    <skipArtifactType>pom</skipArtifactType>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${scala.version}</version>

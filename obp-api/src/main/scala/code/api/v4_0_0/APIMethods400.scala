@@ -2,6 +2,7 @@ package code.api.v4_0_0
 
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
+import java.util
 import java.util.{Calendar, Date}
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
@@ -71,6 +72,7 @@ import code.views.Views
 import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
+import com.networknt.schema.ValidationMessage
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
@@ -90,7 +92,6 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
-import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.{List, Nil}
@@ -9417,9 +9418,9 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <- SS.user
 
-            schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
+            schemaErrors: util.Set[ValidationMessage] = JsonSchemaUtil.validateSchema(httpBody)
             _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}", cc=callContext) {
-              CollectionUtils.isEmpty(schemaErrors)
+              CommonUtil.Collections.isEmpty(schemaErrors)
             }
 
             (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
@@ -9465,7 +9466,7 @@ trait APIMethods400 {
 
             schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
             _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}", cc=callContext) {
-              CollectionUtils.isEmpty(schemaErrors)
+              CommonUtil.Collections.isEmpty(schemaErrors)
             }
 
             (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
