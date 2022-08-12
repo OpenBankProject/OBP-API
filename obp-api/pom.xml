@@ -326,11 +326,21 @@
       <artifactId>oauth2-oidc-sdk</artifactId>
       <version>9.27</version>
     </dependency>
+    <!-- ********** flexmark START ********** -->
+    <!-- Library flexmark-all v0.40.8 is replaced with used modules -->
+    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-profile-pegdown -->
     <dependency>
       <groupId>com.vladsch.flexmark</groupId>
-      <artifactId>flexmark-all</artifactId>
+      <artifactId>flexmark-profile-pegdown</artifactId>
       <version>0.40.8</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-util-options -->
+    <dependency>
+      <groupId>com.vladsch.flexmark</groupId>
+      <artifactId>flexmark-util-options</artifactId>
+      <version>0.64.0</version>
+    </dependency>
+    <!-- ********** flexmark END ********** -->
     <!--scala utils, for type scan-->
     <dependency>
       <groupId>org.clapper</groupId>
