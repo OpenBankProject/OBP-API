@@ -12,8 +12,8 @@ import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 
 import java.lang.reflect.Method
 import code.api.util.{CallContext, DynamicUtil}
-import com.auth0.jwt.internal.org.apache.commons.lang3.StringEscapeUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.text.StringEscapeUtils
 import com.github.dwickern.macros.NameOf.{nameOf, qualifiedNameOfType}
 import com.openbankproject.commons.util.ReflectUtils
 
