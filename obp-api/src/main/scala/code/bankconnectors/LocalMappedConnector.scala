@@ -74,8 +74,6 @@ import code.util.Helper
 import code.util.Helper.{MdcLoggable, _}
 import code.views.Views
 import com.google.common.cache.CacheBuilder
-import com.nexmo.client.NexmoClient
-import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
@@ -86,6 +84,10 @@ import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
+import com.twilio.Twilio
+import com.twilio.rest.api.v2010.account.Message
+import com.twilio.`type`.PhoneNumber
+
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JField
@@ -340,19 +342,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             for {
               smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
               smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-              client = new NexmoClient.Builder()
-                .apiKey(smsProviderApiKey)
-                .apiSecret(smsProviderApiSecret)
-                .build();
+              client = Twilio.init(smsProviderApiKey, smsProviderApiSecret)
               phoneNumber = tuple._2
               messageText = s"Your consent challenge : ${challengeAnswer}";
-              message = new TextMessage("OBP-API", phoneNumber, messageText);
-              response <- tryo(client.getSmsClient().submitMessage(message))
-              failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
-              _ <- Helper.booleanToBox(
-                response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK,
-                failMsg
-              )
+              message: Box[Message] = tryo(Message.creator(new PhoneNumber(phoneNumber), new PhoneNumber(phoneNumber), messageText).create())
+              failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first. ${message.map(_.getErrorMessage).getOrElse("")}"
+              _ <- Helper.booleanToBox(message.forall(_.getErrorMessage.isEmpty), failMsg)
             } yield true
         }
         val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
@@ -5467,15 +5462,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         smsProviderApiSecret <- NewStyle.function.tryons(failMsg, 400, callContext) {
           APIUtil.getPropsValue("sca_phone_api_secret").openOrThrowException(s"")
         }
-        client = new NexmoClient.Builder()
-          .apiKey(smsProviderApiKey)
-          .apiSecret(smsProviderApiSecret)
-          .build();
-        messageSent = new TextMessage("OBP-API", phoneNumber, message);
-        response <- Future{client.getSmsClient().submitMessage(messageSent)}
+        client = Twilio.init(smsProviderApiKey, smsProviderApiSecret)
         failMsg = s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
+        messageSent: Message <- NewStyle.function.tryons(failMsg,400, callContext) {
+          Message.creator(new PhoneNumber(phoneNumber), new PhoneNumber(phoneNumber), message).create()
+        }
+        failMsg = messageSent.getErrorMessage
         _ <- Helper.booleanToFuture(failMsg, cc=callContext) {
-          response.getMessages.get(0).getStatus == com.nexmo.client.sms.MessageStatus.OK
+          messageSent.getErrorMessage.isEmpty
         }
       }yield Future{(Full("Success"), callContext)}
     } else

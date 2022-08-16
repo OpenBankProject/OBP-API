@@ -369,11 +369,11 @@
       <scope>test</scope>
     </dependency>
     <!-- embeded kafka for unit test end -->
-    <!-- https://mvnrepository.com/artifact/com.nexmo/client -->
+    <!-- https://mvnrepository.com/artifact/com.twilio.sdk/twilio -->
     <dependency>
-      <groupId>com.nexmo</groupId>
-      <artifactId>client</artifactId>
-      <version>4.0.1</version>
+      <groupId>com.twilio.sdk</groupId>
+      <artifactId>twilio</artifactId>
+      <version>8.34.1</version>
     </dependency>
     <dependency>
       <groupId>io.swagger.parser.v3</groupId>
