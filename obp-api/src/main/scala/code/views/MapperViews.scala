@@ -983,9 +983,10 @@ object MapperViews extends Views with MdcLoggable {
       .canAddTransactionRequestToAnyAccount_(true)
     
     name match {
-      case SYSTEM_ACCOUNT_HOLDER_VIEW_ID =>
+      case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)
+          .canAddTransactionRequestToAnyAccount_(false)
       case SYSTEM_FIREHOSE_VIEW_ID =>
         entity
           .isFirehose_(true)
