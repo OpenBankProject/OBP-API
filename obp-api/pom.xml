@@ -411,10 +411,11 @@
       <artifactId>scalapb-runtime-grpc_${scala.version}</artifactId>
       <version>0.8.4</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/io.grpc/grpc-all -->
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-all</artifactId>
-      <version>1.25.0</version>
+      <version>1.48.1</version>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
