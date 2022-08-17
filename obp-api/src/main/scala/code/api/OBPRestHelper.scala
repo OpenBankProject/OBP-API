@@ -659,11 +659,11 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                                autoValidateAll: Boolean = false): Unit = {
 
     def isAutoValidate(doc: ResourceDoc): Boolean =
-      doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && doc.implementedInApiVersion == version)
+      doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled)
 
     for(route <- routes) {
       // one endpoint can have multiple ResourceDocs, so here use filter instead of find, e.g APIMethods400.Implementations400.createTransactionRequest
-      val resourceDocs = allResourceDocs.filter(_.partialFunction == route)
+      val resourceDocs = allResourceDocs.find(_.partialFunction == route)
 
       if(resourceDocs.isEmpty) {
         oauthServe(apiPrefix(route), None)
