@@ -665,7 +665,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
 
     for(route <- routes) {
       // one endpoint can have multiple ResourceDocs, so here use filter instead of find, e.g APIMethods400.Implementations400.createTransactionRequest
-      val resourceDocs = allResourceDocs.find(_.partialFunction == route)
+      val resourceDocs = allResourceDocs.filter(_.partialFunction == route)
 
       if(resourceDocs.isEmpty) {
         oauthServe(apiPrefix(route), None)
