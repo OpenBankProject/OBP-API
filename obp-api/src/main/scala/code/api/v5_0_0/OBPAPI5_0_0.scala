@@ -87,7 +87,7 @@ object OBPAPI5_0_0 extends OBPRestHelper
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
 
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
 
   // specified response for OPTIONS request.
   private val corsResponse: Box[LiftResponse] = Full{
