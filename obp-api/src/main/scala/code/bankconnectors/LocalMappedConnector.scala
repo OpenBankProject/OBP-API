@@ -862,44 +862,97 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
   }
   
+  private def findFirehoseAccounts(bankId: BankId, ordering: SQLSyntax, limit: Int, offset: Int)(implicit session: DBSession = AutoSession) = {
+    val sqlResult = sql"""
+       |select
+       |    mappedbankaccount.theaccountid as account_id,
+       |    mappedbankaccount.bank as bank_id,
+       |    mappedbankaccount.accountlabel as account_label,
+       |    mappedbankaccount.accountnumber as account_number,
+       |    (select
+       |        string_agg(
+       |            'user_id:'
+       |            || resourceuser.userid_
+       |            ||',provider:'
+       |            ||resourceuser.provider_
+       |            ||',user_name:'
+       |            ||resourceuser.name_,
+       |         ',') as owners
+       |     from resourceuser
+       |     where
+       |        resourceuser.id = mapperaccountholders.user_c
+       |    ),
+       |    mappedbankaccount.kind as kind,
+       |    mappedbankaccount.accountcurrency as account_currency ,
+       |    mappedbankaccount.accountbalance as account_balance,
+       |    (select 
+       |        string_agg(
+       |            'bank_id:'
+       |            ||bankaccountrouting.bankid 
+       |            ||',account_id:' 
+       |            ||bankaccountrouting.accountid,
+       |            ','
+       |            ) as account_routings
+       |        from bankaccountrouting
+       |        where 
+       |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
+       |     ),                                                          
+       |    (select 
+       |        string_agg(
+       |                'type:'
+       |                || mappedaccountattribute.mtype
+       |                ||',code:'
+       |                ||mappedaccountattribute.mcode
+       |                ||',value:'
+       |                ||mappedaccountattribute.mvalue,
+       |            ',') as account_attributes
+       |    from mappedaccountattribute
+       |    where
+       |         mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
+       |     )
+       |from mappedbankaccount
+       |         LEFT JOIN mapperaccountholders
+       |                   ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink)
+       |WHERE mappedbankaccount.bank = ${bankId.value}
+       |ORDER BY mappedbankaccount.theaccountid $ordering
+       |LIMIT $limit
+       |OFFSET $offset ;
+       |
+       |
+       |""".stripMargin
+      .map(
+        rs => // Map result to case class
+          FastFirehoseAccount(
+            id = rs.stringOpt(1).map(_.toString).getOrElse(null),
+            bankId= rs.stringOpt(2).map(_.toString).getOrElse(null),
+            label= rs.stringOpt(3).map(_.toString).getOrElse(null),
+            number = rs.stringOpt(4).map(_.toString).getOrElse(null),
+            owners = rs.stringOpt(5).map(_.toString).getOrElse(null),
+            productCode =  rs.stringOpt(6).map(_.toString).getOrElse(null),
+            balance = AmountOfMoney(
+              currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
+              amount = rs.stringOpt(8).map(_.toString).getOrElse(null)
+            ),
+            accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
+            accountAttributes = rs.stringOpt(10).map(_.toString).getOrElse(null)
+          )
+      ).list().apply()
+    sqlResult
+  }
   
   override def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[FastFirehoseAccount]]] =
     Future{
-      val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+      val limit: Int = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
       val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
       val orderBy = queryParams.collect { 
         case OBPOrdering(_, OBPDescending) => "DESC"
       }.headOption.getOrElse("ASC")
 
-      val ordering = if (orderBy =="DESC" ) sqls"DESC" else sqls"ASC"
+      val ordering: SQLSyntax = if (orderBy =="DESC" ) sqls"DESC" else sqls"ASC"
       
       val firehoseAccounts = {
         scalikeDB readOnly { implicit session =>
-        val sqlResult = sql"""
-            select * from mv_fast_firehose_accounts
-               WHERE mv_fast_firehose_accounts.bank_id = ${bankId.value}
-               ORDER BY mv_fast_firehose_accounts.account_id $ordering
-               LIMIT $limit
-               OFFSET $offset
-               """.stripMargin
-            .map(
-              rs => // Map result to case class
-                FastFirehoseAccount(
-                  id = rs.stringOpt(1).map(_.toString).getOrElse(null),
-                  bankId= rs.stringOpt(2).map(_.toString).getOrElse(null),
-                  label= rs.stringOpt(3).map(_.toString).getOrElse(null),
-                  number = rs.stringOpt(4).map(_.toString).getOrElse(null),
-                  owners = rs.stringOpt(5).map(_.toString).getOrElse(null),
-                  productCode =  rs.stringOpt(6).map(_.toString).getOrElse(null),
-                  balance = AmountOfMoney(
-                    currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
-                    amount = rs.stringOpt(8).map(_.toString).getOrElse(null)
-                  ),
-                  accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
-                  accountAttributes = rs.stringOpt(10).map(_.toString).getOrElse(null)
-                )
-            ).list().apply()
-        sqlResult
+          findFirehoseAccounts(bankId, ordering, limit, offset)
         }
       }
       (Full(firehoseAccounts), callContext)
