@@ -362,8 +362,9 @@ class OAuthTest extends ServerSetup {
 
       Then("we set the valid username, valid  password and try to login")
       val verifier = getVerifier(requestToken.value, user2.username.get, user2Password)
-
+      org.scalameta.logger.elem(verifier)
       Then("we should get a message: " + accountValidationError)
+      println(verifier)
       verifier.contains(accountValidationError) should equal (true)
     }
   }

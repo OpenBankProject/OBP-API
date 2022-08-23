@@ -4,6 +4,7 @@ import java.sql.{PreparedStatement, Timestamp}
 import java.util.Date
 import java.util.UUID.randomUUID
 
+import code.api.Constant
 import code.api.cache.Caching
 import code.api.util._
 import code.model.MappedConsumersProvider
@@ -65,7 +66,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   private lazy val getDbConnectionParameters: (String, String, String) = {
-    val dbUrl = APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1"
+    val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
     val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
     val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
     val dbUser = APIUtil.getPropsValue("db.user").orElse(username)

@@ -154,6 +154,7 @@ class UserAuthContextTest extends V500ServerSetupAsync {
 
       When("We need to prepare the bankId first.")
       val requestCreateCustomer = (v5_0_0_Request / "banks" / testBankId1.value / "customers").POST <@(user1)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCustomerAtAnyBank.toString)
       val responseCustomer = makePostRequest(requestCreateCustomer, write(SwaggerDefinitionsJSON.postCustomerJsonV310))
       Then("We should get a 201")
       responseCustomer.code should equal(201)

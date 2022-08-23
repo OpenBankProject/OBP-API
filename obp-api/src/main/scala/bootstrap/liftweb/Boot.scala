@@ -55,7 +55,7 @@ import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
-import code.consent.MappedConsent
+import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
@@ -246,14 +246,14 @@ class Boot extends MdcLoggable {
           case Props.RunModes.Test =>
             new StandardDBVendor(
               driver,
-              APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1",
+              APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue,
               APIUtil.getPropsValue("db.user").orElse(Empty), 
               APIUtil.getPropsValue("db.password").orElse(Empty)
             )
           case _ =>
             new StandardDBVendor(
               driver,
-              "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1",
+              h2DatabaseDefaultUrlValue,
               Empty, Empty)
         }
 
@@ -1004,6 +1004,7 @@ object ToSchemify {
     MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
+    ConsentRequest,
     MigrationScriptLog,
     MethodRouting,
     EndpointMapping,

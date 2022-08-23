@@ -31,10 +31,12 @@ Berlin 13359, Germany
     <div id="main-about" data-lift="WebUI.aboutBackground">
         <div id="main-about-row" class="row">
             <div id="main-about-box">
-                <h1 id="main-about-text" data-lift="WebUI.aboutText">Welcome to the Open Bank Project API Sandbox test instance!</h1>
+                <h1 id="main-about-text" data-lift="WebUI.aboutText"><lift:loc locid="welcome.to">Welcome to the Open Bank Project API Sandbox test instance!</lift:loc></h1>
                 <div id="main-about-buttons">
-                    <a class="api-explorer-link btn btn-danger" data-lift="WebUI.apiExplorerLink" href="">View API Explorer</a>
-                    <a id="sandbox-introduction-link" class="btn btn-default" data-lift="WebUI.sandboxIntroductionLink" href="">Introduction</a>
+                    <a class="api-explorer-link btn btn-danger" data-lift="WebUI.apiExplorerLink" href="">
+                        <lift:loc locid="view_api_explorer">View API Explorer</lift:loc></a>
+                    <a id="sandbox-introduction-link" class="btn btn-default" data-lift="WebUI.sandboxIntroductionLink" href="">
+                        <lift:loc locid="introduction">Introduction</lift:loc></a>
 <!--                    <a href="/consumer-registration" class="btn btn-default">Get API key</a>-->
                     <!--						<a class="sofi-link btn btn-default" data-lift="WebUI.sofiLink" href="">SOFIT</a>-->
                     <!--						<a id="sandbox-introduction-link" class="btn btn-default" data-lift="WebUI.sandboxIntroductionLink" href="">INTRODUCTION</a>-->
@@ -46,7 +48,7 @@ Berlin 13359, Germany
 
 
     <div id="main-get-started">
-        <h2 id="get-started-part">Get started</h2>
+        <h2 id="get-started-part"><lift:loc locid="get_started_title">Get started</lift:loc></h2>
         <div class="row">
             <div class="col-md-5 main-get-started-icon">
                 <img class="create-account" src="/media/images/create_account.png" width="237" height="237" alt="create account"/>
@@ -55,10 +57,9 @@ Berlin 13359, Germany
                 <img class="item-1" src="/media/images/icons/item-1.png" alt="item-1"/>
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
-                <h3>Create an account</h3>
-                <p>First, create a free developer account on this sandbox and request a developer key. You will be asked
-                    to submit basic information about your app at this stage. <a href="/user_mgt/sign_up">Register for
-                        an account</a>.</p>
+                <h3><lift:loc locid="get_started_create_account_title">Create an account</lift:loc></h3>
+                <p><lift:loc locid="get_started_create_account">First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage.</lift:loc><a href="/user_mgt/sign_up"><lift:loc locid="register_for_an_account">Register for an account</lift:loc>
+                        </a>.</p>
             </div>
         </div>
         <div class="row">
@@ -69,10 +70,10 @@ Berlin 13359, Germany
                 <img class="item-2" src="/media/images/icons/item-2.png" alt="item-2"/>
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
-                <h3>Connect your app</h3>
-                <p>Use our SDKs to connect your app to the Open Bank Project APIs. You’ll need your developer key, which
+                <h3><lift:loc locid="get_started_connect_your_app_title">Connect your app</lift:loc></h3>
+                <p><lift:loc locid="get_started_connect_your_app">Use our SDKs to connect your app to the Open Bank Project APIs. You’ll need your developer key, which
                     you should have from when you created your account. Check out all the available APIs on the API
-                    Explorer, but make sure that you’re using the correct base URL.</p>
+                    Explorer, but make sure that you’re using the correct base URL.</lift:loc></p>
             </div>
         </div>
         <div class="row">
@@ -83,16 +84,17 @@ Berlin 13359, Germany
                 <img class="item-3" src="/media/images/icons/item-3.png" alt="item-3"/>
             </div>
             <div class="col-xs-12 col-md-5 main-get-started-text">
-                <h3>Test your app using customer data</h3>
+                <h3><lift:loc locid="get_started_test_your_app_title">Test your app using customer data</lift:loc></h3>
                 <p>
-                    Once your app is connected, you can test it using test customer credentials.
+                    <lift:loc locid="Test_your_app_description">Once your app is connected, you can test it using test customer credentials.</lift:loc>
+
                     <a class="example_sandbox_credentials_link" data-lift="WebUI.exampleSandboxCredentialsLink"
-                       href="https://github.com/OpenBankProject/OBP-API/wiki/">View sandbox customer log ons.</a>
+                       href="https://github.com/OpenBankProject/OBP-API/wiki/"><lift:loc locid="get_started_test_your_app_sandbox_date">View sandbox customer log ons.</lift:loc></a>
                 </p>
             </div>
         </div>
         <div class="btn btn-primary">
-            <a href="/consumer-registration">Get API key</a>
+            <a href="/consumer-registration"><lift:loc locid="get_api_key">Get API key</lift:loc></a>
         </div>
 
         <hr style="color: #D7D8D6; margin-top: 56px;margin-bottom: 72px;">
@@ -110,15 +112,15 @@ Berlin 13359, Germany
     
 
     <div id="main-apis">
-        <h2 id="explorer-apis">Explore APIs</h2>
+        <h2 id="explorer-apis"><lift:loc locid="explore_api_title">Explore APIs</lift:loc></h2>
         <div class="row">
             <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Account,Card" href="">
                 <div class="col-xs-12 col-sm-1 col-lg-1 main-apis-icon">
                     <img class="icon-accounts" src="/media/images/icons/apis/icon-accounts.png" alt="accounts"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Accounts<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="accounts chevron"/></h3>
-                    <p>Access to accounts (XS21) and cards. Provide fine-grained access to guests (auditor, accountant or public).</p>
+                    <h3><lift:loc locid="explore_api_accounts_title">Accounts</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="accounts chevron"/></h3>
+                    <p><lift:loc locid="explore_api_accounts">Access to accounts (XS21) and cards. Provide fine-grained access to guests (auditor, accountant or public).</lift:loc></p>
                 </div>
 
             </a>
@@ -130,8 +132,8 @@ Berlin 13359, Germany
                          src="/media/images/icons/apis/icon-branches.png" alt="branches"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Branches, ATMs and Products<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Branches chevron"/></h3>
-                    <p>Access open data related to banks including branches and ATMs including geolocation and opening hours.</p>
+                    <h3><lift:loc locid="explore_api_branches_title">Branches, ATMs and Products</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Branches chevron"/></h3>
+                    <p><lift:loc locid="explore_api_branches">Access open data related to banks including branches and ATMs including geolocation and opening hours.</lift:loc></p>
                 </div>
 
             </a>
@@ -146,8 +148,8 @@ Berlin 13359, Germany
                          height="100" alt="transactions icon"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Transactions<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Transactions chevron"/></h3>
-                    <p>Access the transaction history and transaction metadata.</p>
+                    <h3><lift:loc locid="explore_api_transactions_title">Transactions</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Transactions chevron"/></h3>
+                    <p><lift:loc locid="explore_api_transactions">Access the transaction history and transaction metadata.</lift:loc></p>
                 </div>
             </a>
 
@@ -159,9 +161,9 @@ Berlin 13359, Germany
                          height="100" alt="metadata"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Metadata<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Metadata chevron"/></h3>
-                    <p>Enrich transactions and counterparties with metadata including geolocations, comments, pictures
-                        and tags (e.g. category of spending).</p>
+                    <h3><lift:loc locid="explore_api_metadata_title">Metadata</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Metadata chevron"/></h3>
+                    <p><lift:loc locid="explore_api_metadata">Enrich transactions and counterparties with metadata including geolocations, comments, pictures
+                        and tags (e.g. category of spending).</lift:loc></p>
                 </div>
             </a>
 
@@ -178,9 +180,9 @@ Berlin 13359, Germany
                           alt="counterparties"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Counterparties<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Counterparties chevron"/></h3>
-                    <p>Access the payers and payees of an account including metadata such as their aliases, labels,
-                        logos and home pages.</p>
+                    <h3><lift:loc locid="explore_api_counterparties_title">Metadata</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Counterparties chevron"/></h3>
+                    <p><lift:loc locid="explore_api_counterparties">Access the payers and payees of an account including metadata such as their aliases, labels,
+                        logos and home pages.</lift:loc></p>
                 </div>
             </a>
 
@@ -190,8 +192,8 @@ Berlin 13359, Germany
                          src="/media/images/icons/apis/icon-entitlements.png" alt="entitlements"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Webhooks<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Webhooks chevron"/></h3>
-                    <p>Call external web services based on Account events.</p>
+                    <h3><lift:loc locid="explore_api_webhooks_title">Webhooks</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Webhooks chevron"/></h3>
+                    <p><lift:loc locid="explore_api_webhooks">Call external web services based on Account events.</lift:loc></p>
                 </div>
             </a>
         </div>
@@ -203,8 +205,8 @@ Berlin 13359, Germany
                          src="/media/images/icons/apis/icon-messages.png" alt="messages"/>
                 </div>
                 <div id ="customer-onboarding-and-kyc-div" class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Customer onboarding and KYC<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Customer onboarding and KYC chevron"/></h3>
-                    <p>Perform user, customer and account creation. Manage Know Your Customer (KYC) documents, media and status. Create customer meetings and messages.</p>
+                    <h3><lift:loc locid="explore_api_customer_title">Customer onboarding and KYC</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Customer onboarding and KYC chevron"/></h3>
+                    <p><lift:loc locid="explore_api_customer">Perform user, customer and account creation. Manage Know Your Customer (KYC) documents, media and status. Create customer meetings and messages.</lift:loc></p>
                 </div>
             </a>
 
@@ -215,8 +217,8 @@ Berlin 13359, Germany
                          src="/media/images/icons/apis/icon-security.png" alt="security"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text" id="api-roles-metrics-documentation">
-                    <h3>API Roles, Metrics and Documentation<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="API Roles, Metrics and Documentation chevron"/></h3>
-                    <p>Control access to endpoints, get API metrics and documentation.</p>
+                    <h3><lift:loc locid="explore_api_roles_title">API Roles, Metrics and Documentation</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="API Roles, Metrics and Documentation chevron"/></h3>
+                    <p><lift:loc locid="explore_api_roles">Control access to endpoints, get API metrics and documentation.</lift:loc></p>
                 </div>
             </a>
 
@@ -229,8 +231,8 @@ Berlin 13359, Germany
                          src="/media/images/icons/apis/icon-requests.png" alt="requests"/>
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Payments & Transfers<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Payments & Transfers chevron"/></h3>
-                    <p>Initiate Transaction Requests (transfers and payments). View and confirm charges (as per PSD2). Answer strong customer authentication (SCA) challenges.</p>
+                    <h3><lift:loc locid="explore_api_payments_title">Payments & Transfers</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="Payments & Transfers chevron"/></h3>
+                    <p><lift:loc locid="explore_api_payments">Initiate Transaction Requests (transfers and payments). View and confirm charges (as per PSD2). Answer strong customer authentication (SCA) challenges.</lift:loc></p>
                 </div>
             </a>
 
@@ -239,8 +241,8 @@ Berlin 13359, Germany
                     <img class="icon-kyc" src="/media/images/icons/apis/icon-kyc.png" alt="kyc" />
                 </div>
                 <div class="col-xs-12 col-sm-5 col-lg-5 main-apis-text">
-                    <h3>Search warehouse<img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="kyc chevron"/></h3>
-                    <p>Perform advanced searches and statistics queries on the data warehouse.</p>
+                    <h3><lift:loc locid="explore_api_warehouse_title">Search warehouse</lift:loc><img src="media/images/icons/chevron_right_thick_DB0011.svg" height="14" width="9.21" alt="kyc chevron"/></h3>
+                    <p><lift:loc locid="explore_api_warehouse">Perform advanced searches and statistics queries on the data warehouse.</lift:loc></p>
                 </div>
             </a>
         </div>
@@ -268,13 +270,13 @@ Berlin 13359, Germany
 
 
     <div id="main-support">
-        <h2 id="technical-support">Support</h2>
+        <h2 id="technical-support"><lift:loc locid="support">Support</lift:loc></h2>
         <div class="row">
             <div class="col-xs-1" type="hidden"></div>
             <div class="col-xs-2" type="hidden" id ="main-support_place_holder"></div>
             <div class="main-support-item col-xs-3">
                 <img class="support-mail" src="/media/images/icons/support/email.svg" width="48" height="48" alt="mail"/>
-                <h3>Email</h3>
+                <h3><lift:loc locid="email.address">Email</lift:loc></h3>
                 <a id="webui-support-email" data-lift="WebUI.supportEmail" href="mailto:contact@openbankproject.com">contact@openbankproject.com</a>
             </div>
                 
@@ -311,20 +313,23 @@ Berlin 13359, Germany
     <div id="main-start">
         <div id="main-start-row"  class="row">
             <div id="main-start_building" class="col-xs-12 col-sm-6">
-                <h2 name="get-started" data-lift="WebUI.getStartedText">Get started building your application</h2>
+                <h2 name="get-started" data-lift="WebUI.getStartedText"><lift:loc locid="get_started_building_your_application">Get started building your application</lift:loc></h2>
                 <div class="btn btn-default pull-left">
-                    <a href="/consumer-registration">Get API key</a>
+                    <a href="/consumer-registration">
+                        <lift:loc locid="get_api_key">Get API key</lift:loc></a>
                 </div>
             </div>
     
             <div id="for-banks" name="for-banks" data-lift="WebUI.forBanks" class="col-xs-12 col-sm-6">
-                <h2>For banks</h2>
+                <h2><lift:loc locid="for_banks">For Banks</lift:loc></h2></h2>
                 <a class="api-manager-link btn btn-default pull-left"
-                   data-lift="WebUI.apiManagerLink" href="">API Manager</a>
+                   data-lift="WebUI.apiManagerLink" href="">
+                    <lift:loc locid="api_manager">API Manager</lift:loc></a>
                 <a class="obp-cli-link btn btn-default pull-left" data-lift="WebUI.obpCliLink"
                    href="">OBP CLI</a>
                 <a class="api-tester-link btn btn-default pull-left"
-                   data-lift="WebUI.apiTesterLink" href="">API Tester</a>
+                   data-lift="WebUI.apiTesterLink" href="">
+                    <lift:loc locid="api_tester">API Tester</lift:loc></a>
                 <a class="api-hola-link btn btn-default pull-left"
                    data-lift="WebUI.apiHolaLink" href="">Hola</a>
             </div>

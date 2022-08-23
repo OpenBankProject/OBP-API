@@ -33,6 +33,7 @@ import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Calendar, Date, UUID}
+
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
@@ -65,7 +66,7 @@ import code.scope.Scope
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import code.util.{Helper, JsonSchemaUtil}
-import code.views.Views
+import code.views.{MapperViews, Views}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.alibaba.ttl.internal.javassist.CannotCompileException
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
@@ -105,8 +106,8 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.security.AccessControlException
+
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
@@ -130,10 +131,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
 
-  val DateWithDayExampleString: String = "2017-09-19"
-  val DateWithSecondsExampleString: String = "2017-09-19T02:31:05Z"
-  val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
-  val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
+  val DateWithDayExampleString: String = "1100-01-01"
+  val DateWithSecondsExampleString: String = "1100-01-01T01:01:01Z"
+  val DateWithMsExampleString: String = "1100-01-01T01:01:01.000Z"
+  val DateWithMsRollbackExampleString: String = "1100-01-01T01:01:01.000+0000"
 
   // Use a fixed date far into the future (rather than current date/time so that cache keys are more static)
   // (Else caching is invalidated by constantly changing date)
@@ -611,14 +612,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400, callContextLight: Option[CallContextLight] = None)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     def check403(message: String): Boolean = {
-      message.contains(UserHasMissingRoles) ||
-        message.contains(UserNoPermissionAccessView) ||
-        message.contains(UserHasMissingRoles) ||
-        message.contains(UserNotSuperAdminOrMissRole) ||
-        message.contains(ConsumerHasMissingRoles)
+      message.contains(extractErrorMessageCode(UserHasMissingRoles)) ||
+        message.contains(extractErrorMessageCode(UserNoPermissionAccessView)) ||
+        message.contains(extractErrorMessageCode(UserHasMissingRoles)) ||
+        message.contains(extractErrorMessageCode(UserNotSuperAdminOrMissRole)) ||
+        message.contains(extractErrorMessageCode(ConsumerHasMissingRoles))
     }
     def check401(message: String): Boolean = {
-      message.contains(UserNotLoggedIn)
+      message.contains(extractErrorMessageCode(UserNotLoggedIn))
     }
     val (code, responseHeaders) =
       message match {
@@ -677,7 +678,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * 1) length is >16 characters without validations but max length <= 512
    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character.
    * */
-  def validatePasswordOnCreation(password: String): Boolean = {
+  def fullPasswordValidation(password: String): Boolean = {
     /**
      * (?=.*\d)                    //should contain at least one digit
      * (?=.*[a-z])                 //should contain at least one lower case
@@ -688,9 +689,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val regex =
       """^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~])([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]{10,16})$""".r
     password match {
-      case password if(validatePasswordOnUsage(password) ==SILENCE_IS_GOLDEN) => true
-      case password if(password.length > 16 && password.length <= 512) => true
-      case regex(password) => true
+      case password if(password.length > 16 && password.length <= 512 && basicPasswordValidation(password) ==SILENCE_IS_GOLDEN) => true
+      case regex(password) if(basicPasswordValidation(password) ==SILENCE_IS_GOLDEN) => true
       case _ => false
     }
   }
@@ -725,7 +725,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
   /** also support space now  */
-  def validatePasswordOnUsage(value:String): String ={
+  def basicPasswordValidation(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~ ]+)$""".r
     value match {
@@ -3038,8 +3038,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         throw new Exception("Empty Box not allowed")
       case obj1@ParamFailure(m,e,c,af: APIFailureNewStyle) =>
         val obj = (m,e, c) match {
-          case ("", Empty, Empty) => Empty ?~! af.failMsg
-          case _ => Failure (m, e, c) ?~! af.failMsg
+          case ("", Empty, Empty) => 
+            Empty ?~! af.translatedErrorMessage
+          case _ => 
+            Failure (m, e, c) ?~! af.translatedErrorMessage
         }
         val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
@@ -3326,7 +3328,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
   final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], consumerId: Option[String] = None): Box[View] = {
-    val customView = Views.views.vend.customView(viewId, bankIdAccountId)
+    val customView = MapperViews.customView(viewId, bankIdAccountId)
     customView match { // CHECK CUSTOM VIEWS
       // 1st: View is Pubic and Public views are NOT allowed on this instance.
       case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
@@ -3336,7 +3338,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => customView
       // The user has NO account access via custom view
       case _ =>
-        val systemView = Views.views.vend.systemView(viewId)
+        val systemView = MapperViews.systemView(viewId)
         systemView match  { // CHECK SYSTEM VIEWS
           // 1st: View is Pubic and Public views are NOT allowed on this instance.
           case Full(v) if(v.isPublic && !allowPublicViews) => Failure(PublicViewsNotAllowedOnThisInstance)
@@ -4200,5 +4202,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       |
       """.stripMargin
 
-  val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transaction_request_challenge_ttl", 600)
+  val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transactionRequest.challenge.ttl.seconds", 600)
+  val userAuthContextUpdateRequestChallengeTtl = APIUtil.getPropsAsLongValue("userAuthContextUpdateRequest.challenge.ttl.seconds", 600)
+  
+  val obpErrorMessageCodeRegex = "^(OBP-\\d+):"
+  
+  //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
+  //  errorCode = "OBP-20006:"
+  // So far we support the i180n, we need to separate the errorCode and errorBody 
+  def extractErrorMessageCode (errorMessage: String) = {
+    val regex = obpErrorMessageCodeRegex.r
+    regex.findFirstIn(errorMessage).mkString
+  }
+  //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
+  //  errorBody = " User is missing one or more roles:"
+  // So far we support the i180n, we need to separate the errorCode and errorBody 
+  def extractErrorMessageBody(errorMessage: String) = {
+    
+    errorMessage.replaceFirst(obpErrorMessageCodeRegex,"")
+  }
+  
+  val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
 }

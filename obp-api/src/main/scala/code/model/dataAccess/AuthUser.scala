@@ -30,7 +30,7 @@ import code.api.util.CommonFunctions.validUri
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
-import code.api.util.APIUtil.{hasAnOAuthHeader, logger, validatePasswordOnCreation, _}
+import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{APIFailure, Constant, DirectLogin, GatewayLogin, OAuthHandshake}
@@ -43,7 +43,7 @@ import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model.{User, _}
+import com.openbankproject.commons.model._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -274,7 +274,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
             invalidMsg = Helper.i18n("please.enter.your.password")
             S.error("authuser_password_repeat", Text(Helper.i18n("please.re-enter.your.password")))
           case false =>
-            if (validatePasswordOnCreation(passwordValue))
+            if (fullPasswordValidation(passwordValue))
               invalidPw = false
             else {
               invalidPw = true
@@ -947,7 +947,7 @@ def restoreSomeSessions(): Unit = {
     */
   override def login: NodeSeq = {
     // This query parameter is specific to Hydra ORA login request
-    val loginChallenge = S.param("login_challenge").getOrElse("")
+    val loginChallenge: Box[String] = S.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
     def redirectUri(): String = {
       loginRedirect.get match {
         case Full(url) =>
@@ -980,12 +980,16 @@ def restoreSomeSessions(): Unit = {
           // If there is the query parameter login_challenge in a url we know it is tha Hydra request
           // TODO Write standalone application for Login and Consent Request of Hydra as Identity Provider
           integrateWithHydra match {
-            case true if !loginChallenge.isEmpty =>
-              val acceptLoginRequest = new AcceptLoginRequest
-              val adminApi: AdminApi = new AdminApi
-              acceptLoginRequest.setSubject(user.username.get)
-              val result = adminApi.acceptLoginRequest(loginChallenge, acceptLoginRequest)
-              S.redirectTo(result.getRedirectTo)
+            case true =>
+              if (loginChallenge.isEmpty == false) {
+                val acceptLoginRequest = new AcceptLoginRequest
+                val adminApi: AdminApi = new AdminApi
+                acceptLoginRequest.setSubject(user.username.get)
+                val result = adminApi.acceptLoginRequest(loginChallenge.getOrElse(""), acceptLoginRequest)
+                S.redirectTo(result.getRedirectTo)
+              } else {
+                S.redirectTo(redirect)
+              }
             case false =>
               S.redirectTo(redirect)
           }

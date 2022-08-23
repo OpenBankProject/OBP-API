@@ -44,6 +44,7 @@ import net.liftweb.util.PassThru
 import scala.xml.{NodeSeq, XML}
 import scala.io.Source
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import net.liftweb.common.{Box, Full}
 
 
 class WebUI extends MdcLoggable{
@@ -64,6 +65,27 @@ class WebUI extends MdcLoggable{
     }
   }
 
+  def currentPage = {
+    def removeLocale(s: Box[String]) = {
+      s.map(_.replaceAll("&locale=es_ES", "")
+        .replaceAll("&locale=en_EN", "")
+        .replaceAll("\\?locale=es_ES", "")
+        .replaceAll("\\?locale=en_EN", ""))
+    }
+    val page = Constant.HostName + removeLocale(S.uriAndQueryString).getOrElse("")
+    S.queryString.map(_.replaceAll("locale=es_ES", "").replaceAll("locale=en_EN", "")) match {
+      case Full(queryString) if queryString.isEmpty =>
+        "#es a [href]" #> scala.xml.Unparsed(s"${page}?locale=es_ES") &
+        "#en a [href]" #> scala.xml.Unparsed(s"${page}?locale=en_EN")
+      case Full(queryString) =>
+        "#es a [href]" #> scala.xml.Unparsed(s"${page}&locale=es_ES") &
+        "#en a [href]" #> scala.xml.Unparsed(s"${page}&locale=en_EN")
+      case _ =>
+        "#es a [href]" #> scala.xml.Unparsed(s"${page}?locale=es_ES") &
+        "#en a [href]" #> scala.xml.Unparsed(s"${page}?locale=en_EN")
+    }
+    
+  }
 
 
   // Cookie Consent button.

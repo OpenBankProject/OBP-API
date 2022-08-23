@@ -3745,6 +3745,7 @@ object SwaggerDefinitionsJSON {
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
   )
+  val postConsentRequestJsonV310 = postConsentPhoneJsonV310.copy(consumer_id = None)
   
   val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
   
@@ -4657,6 +4658,33 @@ object SwaggerDefinitionsJSON {
     status = UserAuthContextUpdateStatus.INITIATED.toString,
     consumer_id = consumerIdExample.value
   )
+  
+  val consentRequestResponseJson = ConsentRequestResponseJson(
+    consent_request_id = consentRequestIdExample.value,
+    payload = json.parse(consentRequestPayloadExample.value), 
+    consumer_id = consumerIdExample.value
+    )
+  
+  val consentJsonV500 = ConsentJsonV500(
+    consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+    jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+    status = ConsentStatus.INITIATED.toString,
+    consent_request_id = Some(consentRequestIdExample.value)
+    )
+  
+  val postConsentRequestJsonV500 = PostConsentRequestJsonV500(
+    everything = false,
+    account_access = List(AccountAccessV500(
+      account_routing = accountRoutingJsonV121,
+      view_id = viewIdExample.value
+      )),
+    entitlements = Some(List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer"))),
+    consumer_id = Some(consumerIdExample.value),
+    phone_number = Some(mobileNumberExample.value),
+    email =  Some(emailExample.value),
+    valid_from = Some(new Date()),
+    time_to_live = Some(3600)
+    )
   
   //The common error or success format.
   //Just some helper format to use in Json 

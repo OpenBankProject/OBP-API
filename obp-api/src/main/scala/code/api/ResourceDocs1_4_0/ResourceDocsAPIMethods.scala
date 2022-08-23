@@ -248,7 +248,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
           logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersion")
 
-          val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames, isVersion4OrHigher)
+          val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames, isVersion4OrHigher, languageParam)
           resourceDocJson.map(resourceDocsJsonToJsonResponse)
         }
       }
@@ -309,7 +309,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           
           val allDocs = staticDocs.map( _ ++ filteredDocs)
           
-          val resourceDocJson = resourceDocsToResourceDocJson(allDocs, resourceDocTags, partialFunctionNames, isVersion4OrHigher)
+          val resourceDocJson = resourceDocsToResourceDocJson(allDocs, resourceDocTags, partialFunctionNames, isVersion4OrHigher, languageParam)
           resourceDocJson.map(resourceDocsJsonToJsonResponse)
         }
       }
@@ -353,25 +353,27 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case None => dynamicDocs
           }
     
-          val resourceDocJson = resourceDocsToResourceDocJson(Some(filteredDocs), resourceDocTags, partialFunctionNames, isVersion4OrHigher)
+          val resourceDocJson = resourceDocsToResourceDocJson(Some(filteredDocs), resourceDocTags, partialFunctionNames, isVersion4OrHigher, languageParam)
           resourceDocJson.map(resourceDocsJsonToJsonResponse)
     }}}
 
 
 
     private def resourceDocsToResourceDocJson(rd: Option[List[ResourceDoc]],
-                                     resourceDocTags: Option[List[ResourceDocTag]],
-                                     partialFunctionNames: Option[List[String]],
-                                     isVersion4OrHigher:Boolean): Option[ResourceDocsJson] =
+                                              resourceDocTags: Option[List[ResourceDocTag]],
+                                              partialFunctionNames: Option[List[String]],
+                                              isVersion4OrHigher:Boolean, 
+                                              languageParam: Option[LanguageParam]): Option[ResourceDocsJson] = {
       for {
         resourceDocs <- rd
       } yield {
         // Filter
         val rdFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs, resourceDocTags, partialFunctionNames)
         // Format the data as json
-        JSONFactory1_4_0.createResourceDocsJson(rdFiltered, isVersion4OrHigher)
+        JSONFactory1_4_0.createResourceDocsJson(rdFiltered, isVersion4OrHigher, languageParam)
       }
-
+    }
+    
     private val getChineseVersionResourceDocs : Box[JsonResponse] = {
       val stream = getClass().getClassLoader().getResourceAsStream("ResourceDocs/ResourceDocs-Chinese.json")
       val chineseVersion = try {
@@ -402,9 +404,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       List(apiTagDocumentation))
 
 
-    val exampleResourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc), false)
+    val exampleResourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc), false, None)
     
-    val exampleResourceDocsJsonV400 = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc), true)
+    val exampleResourceDocsJsonV400 = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc), true, None)
 
 
 
@@ -578,7 +580,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
             case _ if (apiCollectionIdParam.isDefined) =>
               val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
               val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-              val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher)
+              val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, languageParam)
               val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
               Future(resourceDocsJsonJValue.map(successJsonResponse(_)))
             case _ =>
@@ -918,6 +920,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
   def stringToLanguageParam (x: String) : Option[LanguageParam] = x.toLowerCase match {
     case "en"  => Some(EN)
     case "zh"  => Some(ZH)
+    case "es" | "es_ES"  => Some(ES)
     case _ => Empty
   }
 

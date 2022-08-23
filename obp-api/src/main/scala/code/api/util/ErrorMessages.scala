@@ -69,7 +69,7 @@ object ErrorMessages {
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
   val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
   val InvalidCurrency = "OBP-10006: Invalid Currency Value."
-  val IncorrectRoleName = "OBP-10007: Incorrect Role name: "
+  val IncorrectRoleName = "OBP-10007: Incorrect Role name:"
   val CouldNotTransformJsonToInternalModel = "OBP-10008: Could not transform Json to internal model."
   val CountNotSaveOrUpdateResource = "OBP-10009: Could not save or update resource."
   val NotImplemented = "OBP-10010: Not Implemented "
@@ -77,7 +77,7 @@ object ErrorMessages {
   val maximumLimitExceeded = "OBP-10012: Invalid value. Maximum number is 10000."
   val attemptedToOpenAnEmptyBox = "OBP-10013: Attempted to open an empty Box."
   val cannotDecryptValueOfProperty = "OBP-10014: Could not decrypt value of property "
-  val AllowedValuesAre = "OBP-10015: Allowed values are: "
+  val AllowedValuesAre = "OBP-10015: Allowed values are:"
   val InvalidFilterParameterFormat = "OBP-10016: Incorrect filter Parameters in URL. "
   val InvalidUrl = "OBP-10017: Incorrect URL Format. "
   val TooManyRequests = "OBP-10018: Too Many Requests."
@@ -106,7 +106,7 @@ object ErrorMessages {
   val FilterIsDeletedFormatError = s"OBP-10036: is_deleted parameter can only take two values: TRUE or FALSE!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
-  val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name: "
+  val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name:"
 
   val ScaMethodNotDefined = "OBP-10030: Strong customer authentication method is not defined at this instance."
 
@@ -114,11 +114,11 @@ object ErrorMessages {
 
   // Authentication / Authorisation / User messages (OBP-20XXX)
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
-  val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing: "
-  val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired: "
+  val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing:"
+  val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired:"
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
   val UserNotFoundById = "OBP-20005: User not found. Please specify a valid value for USER_ID."
-  val UserHasMissingRoles = "OBP-20006: User is missing one or more roles: "
+  val UserHasMissingRoles = "OBP-20006: User is missing one or more roles:"
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
@@ -146,13 +146,13 @@ object ErrorMessages {
   val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
   val ViewDoesNotPermitAccess = "OBP-20022: View does not permit the access."
 
-  val ConsumerHasMissingRoles = "OBP-20023: Consumer is missing one or more roles: "
+  val ConsumerHasMissingRoles = "OBP-20023: Consumer is missing one or more roles:"
   val ConsumerNotFoundById = "OBP-20024: Consumer not found. Please specify a valid value for CONSUMER_ID."
   val ScopeNotFound = "OBP-20025: Scope not found. Please specify a valid value for SCOPE_ID."
   val ConsumerDoesNotHaveScope = "OBP-20026: CONSUMER_ID does not have the SCOPE_ID "
 
   val UserNotFoundByUsername = "OBP-20027: User not found by username."
-  val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing: "
+  val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing:"
   val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
   val GatewayLoginHostPropertyMissing = "OBP-20030: Property gateway.host is not defined."
   val GatewayLoginWhiteListAddresses = "OBP-20031: Gateway login can be done only from allowed addresses."
@@ -172,7 +172,7 @@ object ErrorMessages {
   val NotEnoughtSearchStatisticsResults = "OBP-20052: Result set too small. Will not be displayed for reasons of privacy."
   val ElasticSearchEmptyQueryBody = "OBP-20053: The Elasticsearch query body cannot be empty"
   val InvalidAmount = "OBP-20054: Invalid amount. Please specify a valid value for amount."
-  val MissingQueryParams = "OBP-20055: These query parameters are missing: "
+  val MissingQueryParams = "OBP-20055: These query parameters are missing:"
   val ElasticSearchDisabled  = "OBP-20056: Elasticsearch is disabled for this API instance."
   val UserNotFoundByUserId = "OBP-20057: User not found by userId."
   val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
@@ -185,7 +185,7 @@ object ErrorMessages {
   val UserIsDeleted = "OBP-20064: The user is deleted!"
 
   val DAuthCannotGetOrCreateUser = "OBP-20065: Cannot get or create user during DAuth process."
-  val DAuthMissingParameters = "OBP-20066: These DAuth parameters are missing: "
+  val DAuthMissingParameters = "OBP-20066: These DAuth parameters are missing:"
   val DAuthUnknownError = "OBP-20067: Unknown DAuth login error."
   val DAuthHostPropertyMissing = "OBP-20068: Property dauth.host is not defined."
   val DAuthWhiteListAddresses = "OBP-20069: DAuth login can be done only from allowed addresses."
@@ -198,7 +198,7 @@ object ErrorMessages {
   val UserAttributeNotFound = "OBP-20081: User Attribute not found by USER_ATTRIBUTE_ID."
   
 
-  val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements: "
+  val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements:"
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
   val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
 
@@ -267,7 +267,7 @@ object ErrorMessages {
 
   val CreateBankError = "OBP-30020: Could not create the Bank"
   val UpdateBankError = "OBP-30021: Could not update the Bank"
-  val NoViewPermission = "OBP-30022: The current view does not have the permission: "
+  val NoViewPermission = "OBP-30022: The current view does not have the permission:"
   val UpdateConsumerError = "OBP-30023: Cannot update Consumer "
   val CreateConsumerError = "OBP-30024: Could not create Consumer "
   val CreateOAuth2ConsumerError = "OBP-30077: Could not create OAuth2 Consumer."
@@ -467,7 +467,7 @@ object ErrorMessages {
   val ConsentDisabled = "OBP-35007: Consents are not allowed at this instance. "
   val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
   val ConsentAllowedScaMethods = "OBP-35009: Only SMS and EMAIL are supported as SCA methods. "
-  val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number: "
+  val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number:"
   val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
   val RolesAllowedInConsent = "OBP-35013: Consents can only contain Roles that you already have access to."
@@ -485,6 +485,8 @@ object ErrorMessages {
   val ConsentUpdateStatusError = "OBP-35025: The Consent's status cannot be updated."
   val ConsentUserCannotBeAdded = "OBP-35026: The Consent's User cannot be added."
   val ConsentUserAuthContextCannotBeAdded = "OBP-35027: The Consent's User Auth Context cannot be added."
+  val ConsentRequestNotFound = "OBP-35028: Consent Request not found by CONSENT_REQUEST_ID. "
+  val ConsentRequestAlreadyUsed = "OBP-35029: The CONSENT_REQUEST_ID is used to create Consent. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

@@ -1,6 +1,5 @@
 package code.users
 
-import cats.Now
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper.By

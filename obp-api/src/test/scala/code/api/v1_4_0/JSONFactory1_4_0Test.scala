@@ -79,12 +79,12 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
     
     scenario("createResourceDocJson should work well,  no exception is good enough") {
       val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)
-      val result: ResourceDocJson = JSONFactory1_4_0.createResourceDocJson(resourceDoc,false)
+      val result: ResourceDocJson = JSONFactory1_4_0.createResourceDocJson(resourceDoc,false, None)
     }
 
     scenario("createResourceDocsJson should work well, no exception is good enough") {
       val resourceDoc: mutable.Seq[ResourceDoc] = OBPAPI3_0_0.allResourceDocs
-      val result = JSONFactory1_4_0.createResourceDocsJson(resourceDoc.toList, false)
+      val result = JSONFactory1_4_0.createResourceDocsJson(resourceDoc.toList, false, None)
     }
 
     scenario("createTypedBody should work well, no exception is good enough") {
@@ -97,7 +97,7 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
 
     scenario("validate all the resouceDocs json schema, no exception is good enough") {
       val resourceDocsRaw= OBPAPI3_0_0.allResourceDocs
-      val resourceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList,false)
+      val resourceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList,false, None)
 
       for{
         resouceDoc <- resourceDocs.resource_docs

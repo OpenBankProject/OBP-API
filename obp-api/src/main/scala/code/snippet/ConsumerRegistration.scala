@@ -60,6 +60,7 @@ class ConsumerRegistration extends MdcLoggable {
   private object appType extends RequestVar("Unknown")
   private object clientCertificateVar extends RequestVar("")
   private object signingAlgVar extends RequestVar("")
+  private object oidcCheckboxVar extends RequestVar(false)
   private object jwksUriVar extends RequestVar("")
   private object jwksVar extends RequestVar("")
   private object submitButtonDefenseFlag extends RequestVar("")
@@ -113,6 +114,7 @@ class ConsumerRegistration extends MdcLoggable {
             if(HydraUtil.integrateWithHydra) {
               "#app-client_certificate" #> SHtml.textarea(clientCertificateVar, clientCertificateVar (_))&
               "#app-request_uri" #> SHtml.text(requestUriVar, requestUriVar(_)) &
+              "#oidc_checkbox" #> SHtml.checkbox(oidcCheckboxVar, oidcCheckboxVar(_)) &
               "#app-signing_alg" #> SHtml.select(signingAlgs, Box!! signingAlgVar.is, signingAlgVar(_)) &
               "#app-jwks_uri" #> SHtml.text(jwksUriVar, jwksUriVar(_)) &
               "#app-jwks" #> SHtml.textarea(jwksVar, jwksVar(_))
@@ -135,12 +137,17 @@ class ConsumerRegistration extends MdcLoggable {
       if(HydraUtil.integrateWithHydra) {
         HydraUtil.createHydraClient(consumer, oAuth2Client => {
           val signingAlg = signingAlgVar.is
+
+          if(oidcCheckboxVar.is == false) {
+            // TODO Set token_endpoint_auth_method in accordance to the Consumer.AppType value
+            // Consumer.AppType = Confidential => client_secret_post
+            // Consumer.AppType = Public => private_key_jwt
+            // Consumer.AppType = Unknown => private_key_jwt
+            oAuth2Client.setTokenEndpointAuthMethod(HydraUtil.hydraTokenEndpointAuthMethod)
+          } else {
+            oAuth2Client.setTokenEndpointAuthMethod(HydraUtil.clientSecretPost)
+          }
           
-          // TODO Set token_endpoint_auth_method in accordance to the Consumer.AppType value
-          // Consumer.AppType = Confidential => client_secret_post
-          // Consumer.AppType = Public => private_key_jwt
-          // Consumer.AppType = Unknown => private_key_jwt
-          oAuth2Client.setTokenEndpointAuthMethod(HydraUtil.hydraTokenEndpointAuthMethod)
           
           oAuth2Client.setTokenEndpointAuthSigningAlg(signingAlg)
           oAuth2Client.setRequestObjectSigningAlg(signingAlg)

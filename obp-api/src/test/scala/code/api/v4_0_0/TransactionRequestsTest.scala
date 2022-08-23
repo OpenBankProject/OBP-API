@@ -5,6 +5,7 @@ import code.api.ChargePolicy
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
+import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ErrorMessages}
@@ -36,10 +37,15 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createTransactionRequest))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.answerTransactionRequestChallenge))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestAccount))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestAccountOtp))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getTransactionRequest))
- 
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestSepa))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestCounterparty))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestRefund))
+  object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestFreeForm))
+  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.answerTransactionRequestChallenge))
+  object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestSimple))
 
   def transactionCount(accounts: BankAccount*): Int = {
     accounts.foldLeft(0)((accumulator, account) => {
@@ -606,13 +612,14 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- FREE_FORM") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", ApiEndpoint1) {}
+      ignore("No challenge, No FX ", ApiEndpoint7) {}
     } else {
-      scenario("No challenge, No FX ", ApiEndpoint1) {
+      scenario("No challenge, No FX ", ApiEndpoint7) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
-
+        addEntitlement(helper.bankId.value, resourceUser1.userId, CanCreateAnyTransactionRequest.toString)
+        
         Then("we call the 'V400 Create Transaction Request' endpoint")
         val createTransactionRequestResponse = helper.makeCreateTransReqRequest
 
@@ -636,12 +643,13 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", ApiEndpoint1) {}
+      ignore("No challenge, With FX ", ApiEndpoint7) {}
     } else {
-      scenario("No challenge, With FX ", ApiEndpoint1) {
+      scenario("No challenge, With FX ", ApiEndpoint7) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
+        addEntitlement(helper.bankId.value, resourceUser1.userId, CanCreateAnyTransactionRequest.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
@@ -676,11 +684,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX", ApiEndpoint1, ApiEndpoint2) {}
+      ignore("With challenge, No FX", ApiEndpoint7, ApiEndpoint2) {}
     } else {
-      scenario("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {
+      scenario("With challenge, No FX ", ApiEndpoint7, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
+        addEntitlement(helper.bankId.value, resourceUser1.userId, CanCreateAnyTransactionRequest.toString)
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
@@ -722,11 +731,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {}
+      ignore("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {}
     } else {
-      scenario("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {
+      scenario("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
+        addEntitlement(helper.bankId.value, resourceUser1.userId, CanCreateAnyTransactionRequest.toString)
 
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
@@ -1172,7 +1182,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.setAnswerTransactionRequest(challengeId = challengeOfUser1.map(_.id).getOrElse(""))
         And("we call the endpoint")
         val ansReqResponseUser1 = helper.makeAnswerRequest
-        ansReqResponseUser1.body.extract[ErrorMessage].message should equal(NextChallengePending)
+        ansReqResponseUser1.body.extract[ErrorMessage].message contains extractErrorMessageCode(NextChallengePending) should be (true)
 
         Then("We call 'Answer Transaction Request Challenge - V400' to finish the request")
         And("we prepare the parameters for it")
@@ -1420,7 +1430,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.setAnswerTransactionRequest(challengeId = challengeOfUser1.map(_.id).getOrElse(""))
         And("we call the endpoint")
         val ansReqResponseUser1 = helper.makeAnswerRequest
-        ansReqResponseUser1.body.extract[ErrorMessage].message should equal(NextChallengePending)
+        ansReqResponseUser1.body.extract[ErrorMessage].message contains extractErrorMessageCode(NextChallengePending) should be (true)
         
         Then("We call 'Answer Transaction Request Challenge - V400' to finish the request")
         And("we prepare the parameters for it")

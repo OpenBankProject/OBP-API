@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ApiRole.CanCreateStandingOrderAtOneBank
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages.{NoViewPermission, UserHasMissingRoles, UserNotLoggedIn}
@@ -45,7 +46,7 @@ class StandingOrderTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, write(postStandingOrderJsonV400))
       Then("We should get a 400")
       response400.code should equal(400)
-      response400.body.extract[ErrorMessage].message should startWith(NoViewPermission)
+      response400.body.extract[ErrorMessage].message  contains extractErrorMessageCode(NoViewPermission) should be (true)
     }
   }
   

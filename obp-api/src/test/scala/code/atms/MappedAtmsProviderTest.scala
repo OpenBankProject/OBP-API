@@ -105,7 +105,7 @@ class MappedAtmsProviderTest extends ServerSetup {
       atms.size should equal(3)
 
       And("they should be the licensed ones")
-      atms should equal (expectedAtms)
+      atms.sortBy(_.atmId.value) should equal (expectedAtms.sortBy(_.atmId.value))
     }
 
     scenario("We try to get atms for a bank that doesn't have any") {
