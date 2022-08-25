@@ -99,18 +99,22 @@
       <artifactId>bcpkix-jdk15on</artifactId>
       <version>1.70</version>
     </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-collections4</artifactId>
-    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
+      <version>3.12.0</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.9</version>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.8</version>
+      <version>42.4.1</version>
     </dependency>
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
@@ -220,7 +224,7 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>6.8.17</version>
+      <version>7.17.1</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
     <dependency>
@@ -330,11 +334,21 @@
       <artifactId>oauth2-oidc-sdk</artifactId>
       <version>9.27</version>
     </dependency>
+    <!-- ********** flexmark START ********** -->
+    <!-- Library flexmark-all v0.40.8 is replaced with used modules -->
+    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-profile-pegdown -->
     <dependency>
       <groupId>com.vladsch.flexmark</groupId>
-      <artifactId>flexmark-all</artifactId>
+      <artifactId>flexmark-profile-pegdown</artifactId>
       <version>0.40.8</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-util-options -->
+    <dependency>
+      <groupId>com.vladsch.flexmark</groupId>
+      <artifactId>flexmark-util-options</artifactId>
+      <version>0.64.0</version>
+    </dependency>
+    <!-- ********** flexmark END ********** -->
     <!--scala utils, for type scan-->
     <dependency>
       <groupId>org.clapper</groupId>
@@ -355,11 +369,11 @@
       <scope>test</scope>
     </dependency>
     <!-- embeded kafka for unit test end -->
-    <!-- https://mvnrepository.com/artifact/com.nexmo/client -->
+    <!-- https://mvnrepository.com/artifact/com.twilio.sdk/twilio -->
     <dependency>
-      <groupId>com.nexmo</groupId>
-      <artifactId>client</artifactId>
-      <version>4.0.1</version>
+      <groupId>com.twilio.sdk</groupId>
+      <artifactId>twilio</artifactId>
+      <version>8.34.1</version>
     </dependency>
     <dependency>
       <groupId>io.swagger.parser.v3</groupId>
@@ -397,10 +411,11 @@
       <artifactId>scalapb-runtime-grpc_${scala.version}</artifactId>
       <version>0.8.4</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/io.grpc/grpc-all -->
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-all</artifactId>
-      <version>1.25.0</version>
+      <version>1.48.1</version>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>

@@ -39,8 +39,6 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.nexmo.client.NexmoClient
-import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{CreditLimit, Product, _}
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
