@@ -182,6 +182,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID)) 
       .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
       .filterNot(_.id.contains(SYSTEM_ACCOUNTANT_VIEW_ID))
+      .filterNot(_.id.contains(SYSTEM_FIREHOSE_VIEW_ID))
     val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
     possibleViewsPermalinksWithoutOwner(randomPosition).id
   }

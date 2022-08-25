@@ -29,6 +29,7 @@ object Constant extends MdcLoggable {
   final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
   final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"
   final val SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID = "SmallPaymentVerified"
+  final val SYSTEM_STAGE_ONE_VIEW_ID = "StageOne"
   final val SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID = "ReadAccountsBasic"
   final val SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID = "ReadAccountsDetail"
   final val SYSTEM_READ_BALANCES_VIEW_ID = "ReadBalances"

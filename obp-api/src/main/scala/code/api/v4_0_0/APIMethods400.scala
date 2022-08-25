@@ -4199,11 +4199,12 @@ trait APIMethods400 {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
+            (Full(u), callContext) <- SS.user
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
-            (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
+            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, u, callContext)
+            (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
             view <- getView(bankId, accountId, postJson.view, callContext)
             addedView <- grantAccountAccessToUser(bankId, accountId, user, view, callContext)
           } yield {
