@@ -939,7 +939,7 @@ def restoreSomeSessions(): Unit = {
     * Overridden in order to add custom error message. Attention: Not calling super will change the default behavior!
     */
   override protected def loginMenuLocParams: List[LocParam[Unit]] = {
-    lazy val errorMessage = " " + S.?("already.logged.in") + s" ${Constant.HostName}${AuthUser.logoutPath.foldLeft("")(_ + "/" + _)}"
+    org.scalameta.logger.elem(S.queryString)
     If(notLoggedIn_? _, () => RedirectResponse("/already-logged-in")) ::
       Template(() => wrapIt(login)) ::
       Nil

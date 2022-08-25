@@ -425,7 +425,8 @@ class WebUI extends MdcLoggable{
 
   def alreadyLoggedIn: CssSel = {
     lazy val logoutLink = s" ${Constant.HostName}${AuthUser.logoutPath.foldLeft("")(_ + "/" + _)}"
-    "#logout_link [href]" #> scala.xml.Unparsed(logoutLink)
+    lazy val loginLink = s" ${Constant.HostName}${AuthUser.loginPath.foldLeft("")(_ + "/" + _)}"
+    "#logout_link [href]" #> scala.xml.Unparsed(s"$logoutLink?redirect=$loginLink")
   }
 
   def getStartedContentLoader: NodeSeq = {
