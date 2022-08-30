@@ -38,8 +38,9 @@ import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
+import code.snippet.WebUI
 import code.token.TokensOpenIDConnect
-import code.users.Users
+import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -645,6 +646,13 @@ import net.liftweb.util.Helpers._
   override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
     theUser.setValidated(skipEmailValidation).resetUniqueId()
     theUser.save
+    val privacyConditionsValue: String = getWebUiPropsValue("webui_privacy_policy", "")
+    val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
+    // User Agreement table
+    UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+      theUser.user.foreign.map(_.userId).getOrElse(""), "privacy_conditions", privacyConditionsValue)
+    UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+      theUser.user.foreign.map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
     if (!skipEmailValidation) {
       sendValidationEmail(theUser)
       S.notice(S.?("sign.up.message"))
@@ -666,11 +674,13 @@ import net.liftweb.util.Helpers._
 
 
   def agreeTermsDiv = {
-    val agreeTermsHtml = """<hr>
+    val webUi = new WebUI
+    val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
+    val agreeTermsHtml = s"""<hr>
                 |                        <div class="form-group" id="terms-and-conditions-div" onclick="enableDisableButton()">
                 |                            <details open style="cursor:s-resize;">
                 |                                <summary style="display:list-item;"><a class="api_group_name">Terms and Conditions</a></summary>
-                |                                <div id="terms-and-conditions-page" data-lift="WebUI.termsAndConditionsText"></div>
+                |                                <div id="terms-and-conditions-page">${webUi.makeHtml(webUiPropsValue)}</div>
                 |                            </details>
                 |                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
                 |                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">I agree to the above Developer Terms and Conditions</label>
@@ -690,11 +700,13 @@ import net.liftweb.util.Helpers._
   }
   
   def agreePrivacyPolicy = {
-    val agreePrivacyPolicy = """<hr>
+    val webUi = new WebUI
+    val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
+    val agreePrivacyPolicy = s"""<hr>
                            |                        <div class="form-group" id="privacy-conditions-div" onclick="enableDisableButton()">
                            |                            <details open style="cursor:s-resize;">
                            |                                <summary style="display:list-item;"><a class="api_group_name">Privacy Policy</a></summary>
-                           |                                <div id="privacy-policy-page" data-lift="WebUI.privacyPolicyText"></div>
+                           |                                <div id="privacy-policy-page">${webUi.makeHtml(webUiPropsValue)}</div>
                            |                            </details>
                            |                            <input id="privacy_checkbox" type="checkbox" class="form-check-input">
                            |                            <label class="form-check-label" for="privacy_checkbox">I agree to the above privacy conditions</label>
