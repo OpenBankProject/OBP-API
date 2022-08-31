@@ -646,11 +646,11 @@ import net.liftweb.util.Helpers._
   override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
     theUser.setValidated(skipEmailValidation).resetUniqueId()
     theUser.save
-    val privacyConditionsValue: String = getWebUiPropsValue("webui_privacy_policy", "")
+    val privacyPolicyValue: String = getWebUiPropsValue("webui_privacy_policy", "")
     val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
     // User Agreement table
     UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
-      theUser.user.foreign.map(_.userId).getOrElse(""), "privacy_conditions", privacyConditionsValue)
+      theUser.user.foreign.map(_.userId).getOrElse(""), "privacy_conditions", privacyPolicyValue)
     UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
       theUser.user.foreign.map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
     if (!skipEmailValidation) {
