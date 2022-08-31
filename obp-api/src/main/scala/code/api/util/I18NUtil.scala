@@ -37,8 +37,8 @@ object I18NUtil {
   object ResourceDocTranslation {
     def summary(operationId: String, language: Option[LanguageParam], default: String): String = {
       language match {
-        case Some(value) =>
-          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_summary_${value}"
+        case Some(locale) =>
+          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_summary_${locale}"
           getWebUiPropsValue(webUiKey, default)
         case None =>
           default
@@ -46,8 +46,8 @@ object I18NUtil {
     }
     def description(operationId: String, language: Option[LanguageParam], default: String): String = {
       language match {
-        case Some(value) =>
-          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_description_${value}"
+        case Some(locale) =>
+          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_description_${locale}"
           getWebUiPropsValue(webUiKey, default)
         case None =>
           default

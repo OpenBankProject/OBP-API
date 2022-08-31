@@ -3,12 +3,11 @@ package code.util
 import java.nio.charset.Charset
 import java.util.{Set => JSet}
 
-import code.api.util.CallContext
-import code.validation.{JsonValidation, JsonSchemaValidationProvider}
+import code.api.util.{CallContext, CommonUtil}
+import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.google.common.hash.Hashing
 import com.networknt.schema.{JsonSchema, JsonSchemaFactory, SpecVersionDetector, ValidationMessage}
-import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 
 object JsonSchemaUtil {
@@ -47,7 +46,7 @@ object JsonSchemaUtil {
       requestBody <- callContext.flatMap(_.httpBody)
       JsonValidation(_, jsonSchema) <- JsonSchemaValidationProvider.validationProvider.vend.getByOperationId(operationIdBuilder)
       errorSet = JsonSchemaUtil.validateJson(jsonSchema, requestBody)
-      if CollectionUtils.isNotEmpty(errorSet)
+      if CommonUtil.Collections.isNotEmpty(errorSet)
       errorInfo = StringUtils.join(errorSet, "; ")
     } yield errorInfo
   }

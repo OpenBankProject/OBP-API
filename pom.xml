@@ -12,7 +12,7 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.10</scala.compiler>
-    <akka.version>2.5.31</akka.version>
+    <akka.version>2.5.32</akka.version>
     <akka-streams-kafka.version>2.0.5</akka-streams-kafka.version>
     <kafka.version>1.1.0</kafka.version>
     <avro.version>1.8.2</avro.version>
@@ -96,15 +96,17 @@
         <artifactId>lift-mapper_${scala.version}</artifactId>
         <version>${lift.version}</version>
       </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-collections4</artifactId>
-        <version>4.4</version>
-      </dependency>
+      <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.10</version>
+        <version>3.12.0</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>1.9</version>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>

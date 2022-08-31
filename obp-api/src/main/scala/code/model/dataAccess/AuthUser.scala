@@ -38,8 +38,9 @@ import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
+import code.snippet.WebUI
 import code.token.TokensOpenIDConnect
-import code.users.Users
+import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -59,7 +60,9 @@ import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf.nameOf
 import sh.ory.hydra.model.AcceptLoginRequest
 import net.liftweb.http.S.fmapFunc
+import net.liftweb.sitemap.Loc.{If, LocParam, Template}
 import sh.ory.hydra.api.AdminApi
+import net.liftweb.sitemap.Loc.strToFailMsg
 
 import scala.concurrent.Future
 
@@ -643,6 +646,13 @@ import net.liftweb.util.Helpers._
   override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
     theUser.setValidated(skipEmailValidation).resetUniqueId()
     theUser.save
+    val privacyPolicyValue: String = getWebUiPropsValue("webui_privacy_policy", "")
+    val termsAndConditionsValue: String = getWebUiPropsValue("webui_terms_and_conditions", "")
+    // User Agreement table
+    UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+      theUser.user.foreign.map(_.userId).getOrElse(""), "privacy_conditions", privacyPolicyValue)
+    UserAgreementProvider.userAgreementProvider.vend.createOrUpdateUserAgreement(
+      theUser.user.foreign.map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
     if (!skipEmailValidation) {
       sendValidationEmail(theUser)
       S.notice(S.?("sign.up.message"))
@@ -664,17 +674,20 @@ import net.liftweb.util.Helpers._
 
 
   def agreeTermsDiv = {
-    val agreeTermsHtml = getWebUiPropsValue("webui_agree_terms_html", "")
-    if(agreeTermsHtml.isEmpty){
-      val url = getWebUiPropsValue("webui_agree_terms_url", "")
-      if (url.isEmpty) {
-        s""
-      } else {
-        scala.xml.Unparsed(s"""<div id="signup-agree-terms" class="checkbox"><label><input type="checkbox" />I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></label></div>""")
-      }
-    } else{
-      scala.xml.Unparsed(s"""$agreeTermsHtml""")
-    }
+    val webUi = new WebUI
+    val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
+    val agreeTermsHtml = s"""<hr>
+                |                        <div class="form-group" id="terms-and-conditions-div" onclick="enableDisableButton()">
+                |                            <details open style="cursor:s-resize;">
+                |                                <summary style="display:list-item;"><a class="api_group_name">Terms and Conditions</a></summary>
+                |                                <div id="terms-and-conditions-page">${webUi.makeHtml(webUiPropsValue)}</div>
+                |                            </details>
+                |                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
+                |                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">I agree to the above Developer Terms and Conditions</label>
+                |                        </div>
+                |                        """.stripMargin
+
+    scala.xml.Unparsed(agreeTermsHtml)
   }
 
   def legalNoticeDiv = {
@@ -687,13 +700,36 @@ import net.liftweb.util.Helpers._
   }
   
   def agreePrivacyPolicy = {
-    val url = getWebUiPropsValue("webui_agree_privacy_policy_url", "")
-    val text = getWebUiPropsValue("webui_agree_privacy_policy_html_text", s"""<div id="signup-agree-privacy-policy"><label>By submitting this information you consent to processing your data by TESOBE GmbH according to our <a href="$url" title="Privacy Policy">Privacy Policy</a>. TESOBE shall use this information to send you emails and provide customer support.</label></div>""")
-    if (url.isEmpty) {
-      s""
-    } else {
-      scala.xml.Unparsed(s"""$text""")
-    }
+    val webUi = new WebUI
+    val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
+    val agreePrivacyPolicy = s"""<hr>
+                           |                        <div class="form-group" id="privacy-conditions-div" onclick="enableDisableButton()">
+                           |                            <details open style="cursor:s-resize;">
+                           |                                <summary style="display:list-item;"><a class="api_group_name">Privacy Policy</a></summary>
+                           |                                <div id="privacy-policy-page">${webUi.makeHtml(webUiPropsValue)}</div>
+                           |                            </details>
+                           |                            <input id="privacy_checkbox" type="checkbox" class="form-check-input">
+                           |                            <label class="form-check-label" for="privacy_checkbox">I agree to the above privacy conditions</label>
+                           |                        </div>
+                           |                        <hr>""".stripMargin
+
+    scala.xml.Unparsed(agreePrivacyPolicy)
+  }  
+  def enableDisableSignUpButton = {
+    val javaScriptCode = """<script>
+                               |                function enableDisableButton() {
+                               |                  var checkBox = document.getElementById("terms-and-conditions-div").querySelector("input[type=checkbox]");
+                               |                  var checkBox2 = document.getElementById("privacy-conditions-div").querySelector("input[type=checkbox]");
+                               |                  var button = document.getElementById("submit-button");
+                               |                  if (checkBox.checked == true && checkBox2.checked == true){
+                               |                    button.disabled = false;
+                               |                  } else {
+                               |                     button.disabled = true;
+                               |                  }
+                               |                }
+                               |                </script>""".stripMargin
+
+    scala.xml.Unparsed(javaScriptCode)
   }
 
   def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
@@ -708,8 +744,9 @@ import net.liftweb.util.Helpers._
           {agreeTermsDiv}
           {agreePrivacyPolicy}
           <div id="signup-submit">
-            <input type="submit" />
+            <input onmouseover="enableDisableButton()" onfocus="enableDisableButton()" disabled="true" id="submit-button" type="submit" class="btn btn-danger"/>
           </div>
+          {enableDisableSignUpButton}
       </form>
     </div>
   }
@@ -930,6 +967,19 @@ def restoreSomeSessions(): Unit = {
 }
 
   override protected def capturePreLoginState(): () => Unit = () => {restoreSomeSessions}
+
+
+  /**
+    * The LocParams for the menu item for login.
+    * Overridden in order to add custom error message. Attention: Not calling super will change the default behavior!
+    */
+  override protected def loginMenuLocParams: List[LocParam[Unit]] = {
+    org.scalameta.logger.elem(S.queryString)
+    If(notLoggedIn_? _, () => RedirectResponse("/already-logged-in")) ::
+      Template(() => wrapIt(login)) ::
+      Nil
+  }
+
 
   //overridden to allow a redirection if login fails
   /**

@@ -1,9 +1,8 @@
 package code.setup
 
 import java.util.{Calendar, Date}
-
 import code.accountholders.AccountHolders
-import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
+import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.model._
@@ -72,11 +71,13 @@ trait TestConnectorSetup {
     val systemOwnerView = getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
     val systemAuditorView = getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
     val systemAccountantView = getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
+    val systemFirehoseView = getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID)
     
     accounts.foreach(account => {
       Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemOwnerView, user)
       Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemAuditorView, user)
       Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemAccountantView, user)
+      Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, systemFirehoseView, user)
       
       val customPublicView = createPublicView(account.bankId, account.accountId) 
       Views.views.vend.grantAccessToCustomView(customPublicView.uid, user)
