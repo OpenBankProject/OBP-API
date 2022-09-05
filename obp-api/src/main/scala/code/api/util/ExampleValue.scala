@@ -887,7 +887,7 @@ object ExampleValue {
   lazy val relatesToKycCheckIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("relates_to_kyc_check_id", relatesToKycCheckIdExample)
 
-  lazy val productCodeExample = ConnectorField("1234", NoDescriptionProvided)
+  lazy val productCodeExample = ConnectorField("1234BW", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("product_code", productCodeExample)
 
   lazy val imageUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1287,7 +1287,7 @@ object ExampleValue {
   lazy val canSeeTagsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_tags", canSeeTagsExample)
 
-  lazy val moreInfoUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val moreInfoUrlExample = ConnectorField("www.example.com/abc",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("more_info_url", moreInfoUrlExample)
 
   lazy val kycMediaIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1302,7 +1302,7 @@ object ExampleValue {
   lazy val roleNameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("role_name", roleNameExample)
 
-  lazy val termsAndConditionsUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val termsAndConditionsUrlExample = ConnectorField("www.example.com/xyz",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("terms_and_conditions_url_example", termsAndConditionsUrlExample)
 
   lazy val canAddUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1443,10 +1443,10 @@ object ExampleValue {
   lazy val publicAliasExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("public_alias", publicAliasExample)
 
-  lazy val parentProductCodeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val parentProductCodeExample = ConnectorField("787LOW",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("parent_product_code", parentProductCodeExample)
 
-  lazy val productNameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val productNameExample = ConnectorField("Deposit Account 1",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("product_name", productNameExample)
 
   lazy val numberOfCheckbooksExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)

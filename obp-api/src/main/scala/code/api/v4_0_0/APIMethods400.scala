@@ -11954,7 +11954,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,
-      productJsonV400.copy(attributes = None, fees = None),
+      productsJsonV400,
       List(
         UserNotLoggedIn,
         BankNotFound,
