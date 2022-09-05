@@ -578,13 +578,13 @@ object ExampleValue {
   lazy val canAddCommentExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_add_comment", canAddCommentExample)
 
-  lazy val frequencyExample = ConnectorField("5",NoDescriptionProvided)
+  lazy val frequencyExample = ConnectorField("DAILY",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("frequency", frequencyExample)
 
   lazy val ordersExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("orders", ordersExample)
 
-  lazy val typeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val typeExample = ConnectorField("",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("type", typeExample)
 
   lazy val imageIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1347,8 +1347,8 @@ object ExampleValue {
   lazy val cardDescriptionExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("card_description", cardDescriptionExample)
 
-  lazy val moreInfoExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("ATM.more_info", moreInfoExample)
+  lazy val moreInfoExample = ConnectorField("More information about this fee",NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("more_info", moreInfoExample)
 
   lazy val fieldExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("field", fieldExample)
@@ -1714,7 +1714,7 @@ object ExampleValue {
   lazy val ageExample = ConnectorField("18", "The user age.")
   glossaryItems += makeGlossaryItem("age", nameExample)
 
-  lazy val productFeeIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val productFeeIdExample = ConnectorField("696hlAHLFKUHE37469287634",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("product_fee_id", nameExample)
 
   lazy val emailAddressExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
