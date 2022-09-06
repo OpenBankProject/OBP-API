@@ -138,8 +138,7 @@ case class APIFailureNewStyle(failMsg: String,
       if(?!(str, resourceBundleList)==str) //If can not find the value from props, then return the default error body.
         errorBody 
       else 
-        ?!(str, resourceBundleList)
-      
+        s": ${?!(str, resourceBundleList)}"
       )
     
     val translatedErrorBody = ?(errorCode, locale)
