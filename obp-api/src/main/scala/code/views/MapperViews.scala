@@ -898,7 +898,7 @@ object MapperViews extends Views with MdcLoggable {
   def unsavedSystemView(name: String) : ViewDefinition = {
     val entity = create
       .isSystem_(true)
-      .isFirehose_(true) // TODO This should be set to false. i.e. Firehose views should be separate
+      .isFirehose_(false)
       .bank_id(null)
       .account_id(null)
       .name_(StringHelpers.capify(name))
@@ -937,8 +937,6 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherAccountSWIFT_BIC_(true)
       .canSeeOtherAccountIBAN_(true)
       .canSeeOtherAccountBankName_(true)
-
-    entity
       .canSeeOtherAccountNumber_(true)
       .canSeeOtherAccountMetadata_(true)
       .canSeeOtherAccountKind_(true)
@@ -983,6 +981,18 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherAccountRoutingAddress_(true)
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
+    
+    name match {
+      case SYSTEM_STAGE_ONE_VIEW_ID =>
+        entity
+          .canSeeTransactionDescription_(false)
+          .canAddTransactionRequestToAnyAccount_(false)
+      case SYSTEM_FIREHOSE_VIEW_ID =>
+        entity
+          .isFirehose_(true)
+      case _ =>
+        entity
+    }
   }
   
   def unsavedFirehoseView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {

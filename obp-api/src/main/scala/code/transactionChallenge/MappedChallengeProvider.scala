@@ -68,7 +68,7 @@ object MappedChallengeProvider extends ChallengeProvider {
 
        expiredDateTime: Long = createDateTime.getTime+challengeTTL
        currentTime: Long = Platform.currentTime
-       challenge <- if(currentAttemptCounterValue <3){
+       challenge <- if(currentAttemptCounterValue < APIUtil.allowedAnswerTransactionRequestChallengeAttempts){
         if(expiredDateTime > currentTime) {
           val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
           val expectedHashedAnswer = challenge.expectedAnswer

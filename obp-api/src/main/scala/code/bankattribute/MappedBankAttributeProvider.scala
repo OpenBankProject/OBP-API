@@ -37,7 +37,7 @@ object BankAttributeProvider extends BankAttributeProviderTrait {
               attribute.BankId_(bankId.value)
                 .Name(name)
                 .Type(attributType.toString)
-                .Value(value)
+                .`Value`(value)
                 .IsActive(isActive.getOrElse(true))
                 .saveMe()
             }
@@ -50,7 +50,7 @@ object BankAttributeProvider extends BankAttributeProviderTrait {
             .BankId_(bankId.value)
             .Name(name)
             .Type(attributType.toString())
-            .Value(value)
+            .`Value`(value)
             .IsActive(isActive.getOrElse(true))
             .saveMe()
         }
@@ -73,7 +73,7 @@ class BankAttribute extends BankAttributeTrait with LongKeyedMapper[BankAttribut
   object BankAttributeId extends MappedUUID(this)
   object Name extends MappedString(this, 50)
   object Type extends MappedString(this, 50)
-  object Value extends MappedString(this, 255)
+  object `Value` extends MappedString(this, 255)
   object IsActive extends MappedBoolean(this) {
     override def defaultValue = true
   }
@@ -83,7 +83,7 @@ class BankAttribute extends BankAttributeTrait with LongKeyedMapper[BankAttribut
   override def bankAttributeId: String = BankAttributeId.get
   override def name: String = Name.get
   override def attributeType: BankAttributeType.Value = BankAttributeType.withName(Type.get)
-  override def value: String = Value.get
+  override def value: String = `Value`.get
   override def isActive: Option[Boolean] = if (IsActive.jdbcFriendly(IsActive.calcFieldName) == null) { None } else Some(IsActive.get)
   
 }

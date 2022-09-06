@@ -8,6 +8,8 @@ import com.openbankproject.commons.util.ApiStandards
 // Note: Import this with: import code.api.Constant._
 object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
+  
+  final val h2DatabaseDefaultUrlValue = "jdbc:h2:mem:OBPTest_H2_v2.1.214;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=10"
 
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)
   def localIdentityProvider = APIUtil.getPropsValue("local_identity_provider", HostName)
@@ -27,6 +29,7 @@ object Constant extends MdcLoggable {
   final val SYSTEM_ACCOUNTANT_VIEW_ID = "accountant"
   final val SYSTEM_FIREHOSE_VIEW_ID = "firehose"
   final val SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID = "SmallPaymentVerified"
+  final val SYSTEM_STAGE_ONE_VIEW_ID = "StageOne"
   final val SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID = "ReadAccountsBasic"
   final val SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID = "ReadAccountsDetail"
   final val SYSTEM_READ_BALANCES_VIEW_ID = "ReadBalances"

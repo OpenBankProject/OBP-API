@@ -81,14 +81,13 @@ object OBPAPI5_0_0 extends OBPRestHelper
   private val endpoints: List[OBPEndpoint] = OBPAPI4_0_0.routes ++ endpointsOf5_0_0
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = Implementations4_0_0.root :: // For now we make this mandatory
-   getAllowedEndpoints(endpoints, allResourceDocs)
+  val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
   // register v5.0.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
 
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
 
   // specified response for OPTIONS request.
   private val corsResponse: Box[LiftResponse] = Full{

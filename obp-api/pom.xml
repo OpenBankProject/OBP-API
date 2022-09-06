@@ -62,7 +62,12 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>log4j-over-slf4j</artifactId>
-      <version>1.7.25</version>
+      <version>1.7.26</version>
+    </dependency>
+    <dependency>
+      <artifactId>slf4j-ext</artifactId>
+      <groupId>org.slf4j</groupId>
+      <version>1.7.26</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -94,28 +99,32 @@
       <artifactId>bcpkix-jdk15on</artifactId>
       <version>1.70</version>
     </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-collections4</artifactId>
-    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
+      <version>3.12.0</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.9</version>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.8</version>
+      <version>42.4.1</version>
     </dependency>
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
       <artifactId>ojdbc8</artifactId>
-      <version>21.4.0.0</version>
+      <version>21.5.0.0</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>1.4.191</version>
+      <version>2.1.214</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -138,7 +147,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.1</version>
+      <version>4.13.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -201,41 +210,27 @@
       <artifactId>amqp_3.1_${scala.version}</artifactId>
       <version>1.5.0</version>
     </dependency>
-    <dependency>
-      <groupId>com.tokbox</groupId>
-      <artifactId>opentok-server-sdk</artifactId>
-      <version>3.0.0-beta.2</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-databind</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>com.tokbox</groupId>-->
+<!--      <artifactId>opentok-server-sdk</artifactId>-->
+<!--      <version>3.0.0-beta.2</version>-->
+<!--      <exclusions>-->
+<!--        <exclusion>-->
+<!--          <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--          <artifactId>jackson-databind</artifactId>-->
+<!--        </exclusion>-->
+<!--      </exclusions>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>6.8.17</version>
+      <version>7.17.1</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
     <dependency>
       <groupId>com.sksamuel.elastic4s</groupId>
-      <artifactId>elastic4s-http_${scala.version}</artifactId>
-      <version>6.1.1</version>
-      <!-- TODO try to switch to slf4j from log4j
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.logging.log4j</groupId>
-          <artifactId>log4j-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.logging.log4j</groupId>
-          <artifactId>log4j-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.logging.log4j</groupId>
-          <artifactId>log4j-1.2-api</artifactId>
-        </exclusion>
-      </exclusions> -->
+      <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
+      <version>8.2.1</version>
     </dependency>
     <!-- for LiftConsole -->
     <dependency>
@@ -339,11 +334,21 @@
       <artifactId>oauth2-oidc-sdk</artifactId>
       <version>9.27</version>
     </dependency>
+    <!-- ********** flexmark START ********** -->
+    <!-- Library flexmark-all v0.40.8 is replaced with used modules -->
+    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-profile-pegdown -->
     <dependency>
       <groupId>com.vladsch.flexmark</groupId>
-      <artifactId>flexmark-all</artifactId>
+      <artifactId>flexmark-profile-pegdown</artifactId>
       <version>0.40.8</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-util-options -->
+    <dependency>
+      <groupId>com.vladsch.flexmark</groupId>
+      <artifactId>flexmark-util-options</artifactId>
+      <version>0.64.0</version>
+    </dependency>
+    <!-- ********** flexmark END ********** -->
     <!--scala utils, for type scan-->
     <dependency>
       <groupId>org.clapper</groupId>
@@ -356,18 +361,19 @@
       <version>0.5.7</version>
     </dependency>
     <!-- embeded kafka for unit test start -->
+    <!-- https://mvnrepository.com/artifact/io.github.embeddedkafka/embedded-kafka -->
     <dependency>
-      <groupId>net.manub</groupId>
-      <artifactId>scalatest-embedded-kafka_2.12</artifactId>
-      <version>2.0.0</version>
+      <groupId>io.github.embeddedkafka</groupId>
+      <artifactId>embedded-kafka_2.12</artifactId>
+      <version>2.4.1.1</version>
       <scope>test</scope>
     </dependency>
     <!-- embeded kafka for unit test end -->
-    <!-- https://mvnrepository.com/artifact/com.nexmo/client -->
+    <!-- https://mvnrepository.com/artifact/com.twilio.sdk/twilio -->
     <dependency>
-      <groupId>com.nexmo</groupId>
-      <artifactId>client</artifactId>
-      <version>4.0.1</version>
+      <groupId>com.twilio.sdk</groupId>
+      <artifactId>twilio</artifactId>
+      <version>8.34.1</version>
     </dependency>
     <dependency>
       <groupId>io.swagger.parser.v3</groupId>
@@ -405,10 +411,11 @@
       <artifactId>scalapb-runtime-grpc_${scala.version}</artifactId>
       <version>0.8.4</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/io.grpc/grpc-all -->
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-all</artifactId>
-      <version>1.25.0</version>
+      <version>1.48.1</version>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
@@ -444,7 +451,7 @@
     <dependency>
       <groupId>sh.ory.hydra</groupId>
       <artifactId>hydra-client</artifactId>
-      <version>1.7.0</version>
+      <version>1.11.8</version>
     </dependency>
 
     <!--json schema validation start-->

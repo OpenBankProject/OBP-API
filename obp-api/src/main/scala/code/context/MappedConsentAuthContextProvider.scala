@@ -19,7 +19,7 @@ object MappedConsentAuthContextProvider extends ConsentAuthContextProvider with 
     }
   def createConsentAuthContextAkka(consentId: String, key: String, value: String): Box[MappedConsentAuthContext] =
     tryo {
-      MappedConsentAuthContext.create.ConsentId(consentId).Key(key).Value(value).saveMe()
+      MappedConsentAuthContext.create.ConsentId(consentId).Key(key).`Value`(value).saveMe()
     }
 
   override def getConsentAuthContexts(consentId: String): Future[Box[List[MappedConsentAuthContext]]] = Future {
@@ -50,11 +50,11 @@ object MappedConsentAuthContextProvider extends ConsentAuthContextProvider with 
         By(MappedConsentAuthContext.ConsentId, consentId),
         By(MappedConsentAuthContext.Key, authContext.key)
       ).map( authContext =>
-        authContext.Key(authContext.key).Value(authContext.value).saveMe()
+        authContext.Key(authContext.key).`Value`(authContext.value).saveMe()
       )
     )
     val created = create.map( authContext =>
-      MappedConsentAuthContext.create.ConsentId(consentId).Key(authContext.key).Value(authContext.value).saveMe()
+      MappedConsentAuthContext.create.ConsentId(consentId).Key(authContext.key).`Value`(authContext.value).saveMe()
     )
     tryo {
       updated ::: created

@@ -71,10 +71,10 @@ class JsonUtilsTest extends FlatSpec with Matchers {
     val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
     val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
 
-    val DateWithDayExampleString: String = "2017-09-19"
-    val DateWithSecondsExampleString: String = "2017-09-19T02:31:05Z"
-    val DateWithMsExampleString: String = "2017-09-19T02:31:05.000Z"
-    val DateWithMsRollbackExampleString: String = "2017-09-19T02:31:05.000+0000"
+    val DateWithDayExampleString: String = "1100-01-01"
+    val DateWithSecondsExampleString: String = "1100-01-01T01:01:01Z"
+    val DateWithMsExampleString: String = "1100-01-01T01:01:01.000Z"
+    val DateWithMsRollbackExampleString: String = "1100-01-01T01:01:01.000+0000"
     
     
     val DateWithDayExampleObject = DateWithDayFormat.parse(DateWithDayExampleString)

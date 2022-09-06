@@ -99,7 +99,7 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
               .TransactionRequestId(transactionRequestId.value)
               .Name(name)
               .Type(attributeType.toString)
-              .Value(value)
+              .`Value`(value)
               .saveMe()
           }
           case _ => Empty
@@ -112,7 +112,7 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
             .TransactionRequestId(transactionRequestId.value)
             .Name(name)
             .Type(attributeType.toString())
-            .Value(value)
+            .`Value`(value)
             .saveMe()
         }
       }
@@ -131,7 +131,7 @@ object MappedTransactionRequestAttributeProvider extends TransactionRequestAttri
             .BankId(bankId.value)
             .Name(transactionRequestAttribute.name)
             .Type(transactionRequestAttribute.attributeType.toString())
-            .Value(transactionRequestAttribute.value)
+            .`Value`(transactionRequestAttribute.value)
             .saveMe()
         }
       }

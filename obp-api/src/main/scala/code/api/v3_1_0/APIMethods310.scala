@@ -3,7 +3,6 @@ package code.api.v3_1_0
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
@@ -22,7 +21,7 @@ import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.{Connector, LocalMappedConnector}
-import code.consent.{ConsentStatus, Consents}
+import code.consent.{ConsentRequests, ConsentStatus, Consents}
 import code.consumer.Consumers
 import code.context.UserAuthContextUpdateProvider
 import code.entitlement.Entitlement
@@ -40,8 +39,6 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.nexmo.client.NexmoClient
-import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{CreditLimit, Product, _}
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
@@ -1425,7 +1422,7 @@ trait APIMethods310 {
               json.extract[PostUserAuthContextJson]
             }
             (user, callContext) <- NewStyle.function.findByUserId(userId, callContext)
-            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key, postedData.value, callContext)
+            (userAuthContext, callContext) <- NewStyle.function.createUserAuthContext(user, postedData.key.trim, postedData.value.trim, callContext)
           } yield {
             (JSONFactory310.createUserAuthContextJson(userAuthContext), HttpCode.`201`(callContext))
           }
@@ -3507,11 +3504,13 @@ trait APIMethods310 {
               }
               case None => Future(None, "Any application")
             }
+
+            
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _ => Random.nextInt(99999999).toString()
             }
-            createdConsent <- Future(Consents.consentProvider.vend.createConsent(user, challengeAnswer)) map {
+            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, None)) map {
               i => connectorEmptyResponse(i, callContext)
             }
             consentJWT = 

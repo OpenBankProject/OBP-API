@@ -1,6 +1,5 @@
 package code.api.util
 
-import com.vladsch.flexmark.convert.html.FlexmarkHtmlParser
 import com.vladsch.flexmark.html.HtmlRenderer
 import com.vladsch.flexmark.parser.Parser
 import com.vladsch.flexmark.profiles.pegdown.Extensions
@@ -41,10 +40,5 @@ object PegdownOptions {
     val renderer = HtmlRenderer.builder(options).build
     val document = parser.parse(description.stripMargin)
     renderer.render(document)
-  }
-  
-  def convertHtmlMarkdown(html: String): String = {
-    //TODO, this is a simple version, may add more options later.
-    FlexmarkHtmlParser.parse(html)
   }
 }

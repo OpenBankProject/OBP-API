@@ -66,10 +66,11 @@ tests.port=8016
 End of minimum settings
 ####################################
 
-#if connector is mapped, set a database backend. If not set, this will be set to an in-memory h2 database by default
-#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+# if connector is mapped, set a database backend. If not set, this will be set to an in-memory h2 database by default
+# you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+# Please note that since update o version 2.1.214 we use NON_KEYWORDS=VALUE to bypass reserved word issue in SQL statements
 #db.driver=org.h2.Driver
-#db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
+#db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 
 #set this to false if you don't want the api payments call to work
 payments_enabled=false

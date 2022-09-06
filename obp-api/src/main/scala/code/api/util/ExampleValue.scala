@@ -1456,7 +1456,35 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("direct_debit_id", directDebitIdExample)
 
   lazy val consentIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("consent_id", consentIdExample)
+  glossaryItems += makeGlossaryItem("consent_id", consentIdExample) 
+  
+  lazy val consentRequestPayloadExample = ConnectorField(
+    """{
+      |  "everything": false,
+      |  "account_access": [
+      |    {
+      |      "account_routing": {
+      |        "scheme": "AccountNumber",
+      |        "address": "4930396"
+      |      },
+      |      "view_id": "owner"
+      |    }
+      |  ],
+      |  "phone_number": "+44 07972 444 876",
+      |  "valid_from": "2022-06-14T12:42:00Z",
+      |  "time_to_live": 3600
+      |}""".stripMargin,
+    "The whole create consent request json body."
+    )
+  
+  glossaryItems += makeGlossaryItem("payload", consentRequestPayloadExample)
+ 
+  lazy val consentRequestIdExample = ConnectorField (
+    "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0", 
+    s"A string that MUST uniquely identify the Consent Request on this OBP instance."
+    )
+   
+  glossaryItems += makeGlossaryItem("consent_request_id", consentRequestIdExample)
 
   lazy val line2Example = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("line2", line2Example)

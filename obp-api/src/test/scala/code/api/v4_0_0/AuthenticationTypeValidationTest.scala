@@ -464,7 +464,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       |    "to_currency_code": "USD",
       |    "conversion_value": 1.136305,
       |    "inverse_conversion_value": 0.8800454103431737,
-      |    "effective_date": "2017-09-19T00:00:00Z"
+      |    "effective_date": "1100-01-01T00:00:00Z"
       |}
       |""".stripMargin
 

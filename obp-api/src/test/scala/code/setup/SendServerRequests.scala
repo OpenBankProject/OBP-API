@@ -258,6 +258,16 @@ trait SendServerRequests {
     val jsonReq = createRequest(reqData)
     getAPIResponse(jsonReq)
   }
+  
+  /**
+   * this method does a HEAD request given a URL
+   */
+  def makeHeadRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
+    val extra_headers = Map.empty ++ params
+    val reqData = extractParamsAndHeaders(req.HEAD, "", "UTF-8", extra_headers)
+    val jsonReq = createRequest(reqData)
+    getAPIResponse(jsonReq)
+  }
   /**
    * this method does a GET request given a URL
    */

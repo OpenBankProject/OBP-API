@@ -36,7 +36,8 @@ import code.api.util.ErrorMessages.{InvalidDAuthHeaderToken, UserIsDeleted, User
 import code.api.util._
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.APIMethods310
-import code.api.v4_0_0.APIMethods400
+import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
+import code.api.v5_0_0.OBPAPI5_0_0
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
@@ -658,8 +659,9 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                                apiPrefix:OBPEndpoint => OBPEndpoint,
                                autoValidateAll: Boolean = false): Unit = {
 
-    def isAutoValidate(doc: ResourceDoc): Boolean =
-      doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && doc.implementedInApiVersion == version)
+    def isAutoValidate(doc: ResourceDoc): Boolean = {                         //note: only support v5.0.0 and v4.0.0 at the moment.
+      doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && List(OBPAPI5_0_0.version,OBPAPI4_0_0.version).contains(doc.implementedInApiVersion))
+    }
 
     for(route <- routes) {
       // one endpoint can have multiple ResourceDocs, so here use filter instead of find, e.g APIMethods400.Implementations400.createTransactionRequest

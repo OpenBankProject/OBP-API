@@ -1477,7 +1477,7 @@ trait APIMethods200 {
         cc =>
           for {
             postedData <- tryo {json.extract[CreateUserJson]} ?~! ErrorMessages.InvalidJsonFormat
-            _ <- tryo(assert(validatePasswordOnCreation(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
+            _ <- tryo(assert(fullPasswordValidation(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
           } yield {
             if (AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty) {
               val userCreated = AuthUser.create
@@ -1511,180 +1511,180 @@ trait APIMethods200 {
 
 
 
-    resourceDocs += ResourceDoc(
-      createMeeting,
-      apiVersion,
-      "createMeeting",
-      "POST",
-      "/banks/BANK_ID/meetings",
-      "Create Meeting (video conference/call)",
-      """Create Meeting: Initiate a video conference/call with the bank.
-        |
-        |The Meetings resource contains meta data about video/other conference sessions, not the video/audio/chat itself.
-        |
-        |The actual conferencing is handled by external providers. Currently OBP supports tokbox video conferences (WIP).
-        |
-        |This is not a recomendation of tokbox per se.
-        |
-        |provider_id determines the provider of the meeting / video chat service. MUST be url friendly (no spaces).
-        |
-        |purpose_id explains the purpose of the chat. onboarding | mortgage | complaint etc. MUST be url friendly (no spaces).
-        |
-        |Login is required.
-        |
-        |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
-      """.stripMargin,
-      CreateMeetingJson("tokbox", "onboarding"),
-      meetingJson,
-      List(
-        UserNotLoggedIn,
-        MeetingApiKeyNotConfigured,
-        MeetingApiSecretNotConfigured,
-        InvalidBankIdFormat,
-        BankNotFound,
-        InvalidJsonFormat,
-        MeetingsNotSupported,
-        UnknownError
-      ),
-      List(apiTagMeeting, apiTagCustomer, apiTagExperimental))
-
-
-    lazy val createMeeting: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
-        cc =>
-          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
-            for {
-              // TODO use these keys to get session and tokens from tokbox
-              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
-              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
-              u <- cc.user ?~! UserNotLoggedIn
-              _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
-              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-              postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
-              now = Calendar.getInstance().getTime()
-              sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
-              customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
-              staffToken <- tryo{code.opentok.OpenTokUtil.generateTokenForModerator(60)}
-              meeting <- Meetings.meetingProvider.vend.createMeeting(bank.bankId, u, u, postedData.provider_id, postedData.purpose_id, now, sessionId, customerToken, staffToken
-                                                                    ,null,null)//These two are used from V310
-            } yield {
-              // Format the data as V2.0.0 json
-              val json = JSONFactory200.createMeetingJSON(meeting)
-              successJsonResponse(Extraction.decompose(json), 201)
-            }
-          } else {
-            Full(errorJsonResponse(MeetingsNotSupported))
-          }
-      }
-    }
-
-
-    resourceDocs += ResourceDoc(
-      getMeetings,
-      apiVersion,
-      "getMeetings",
-      "GET",
-      "/banks/BANK_ID/meetings",
-      "Get Meetings",
-      """Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
-        |
-        |The actual conference/chats are handled by external services.
-        |
-        |Login is required.
-        |
-        |This call is **experimental** and will require further authorisation in the future.
-      """.stripMargin,
-      emptyObjectJson,
-      meetingsJson,
-      List(
-        UserNotLoggedIn,
-        MeetingApiKeyNotConfigured,
-        MeetingApiSecretNotConfigured,
-        BankNotFound,
-        MeetingsNotSupported,
-        UnknownError),
-      List(apiTagMeeting, apiTagCustomer, apiTagExperimental))
-
-
-    lazy val getMeetings: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
-        cc =>
-          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
-            for {
-              _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-              (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
-              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-              u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
-              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-              // now = Calendar.getInstance().getTime()
-              meetings <- Meetings.meetingProvider.vend.getMeetings(bank.bankId, u)
-            }
-              yield {
-                // Format the data as V2.0.0 json
-                val json = JSONFactory200.createMeetingJSONs(meetings)
-                successJsonResponse(Extraction.decompose(json))
-              }
-          } else {
-            Full(errorJsonResponse(MeetingsNotSupported))
-          }
-      }
-    }
-
-
-
-    resourceDocs += ResourceDoc(
-      getMeeting,
-      apiVersion,
-      "getMeeting",
-      "GET",
-      "/banks/BANK_ID/meetings/MEETING_ID",
-      "Get Meeting",
-      """Get Meeting specified by BANK_ID / MEETING_ID
-        |Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
-        |
-        |The actual conference/chats are handled by external services.
-        |
-        |Login is required.
-        |
-        |This call is **experimental** and will require further authorisation in the future.
-      """.stripMargin,
-      emptyObjectJson,
-      meetingJson,
-      List(
-        UserNotLoggedIn, 
-        BankNotFound, 
-        MeetingApiKeyNotConfigured,
-        MeetingApiSecretNotConfigured, 
-        MeetingNotFound, 
-        MeetingsNotSupported,
-        UnknownError
-      ),
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagExperimental))
-
-
-    lazy val getMeeting: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
-        cc =>
-          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
-            for {
-              u <- cc.user ?~! UserNotLoggedIn
-              (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
-              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
-              meeting <- Meetings.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
-            }
-              yield {
-                // Format the data as V2.0.0 json
-                val json = JSONFactory200.createMeetingJSON(meeting)
-                successJsonResponse(Extraction.decompose(json))
-              }
-          } else {
-            Full(errorJsonResponse(ErrorMessages.MeetingsNotSupported))
-          }
-      }
-    }
+//    resourceDocs += ResourceDoc(
+//      createMeeting,
+//      apiVersion,
+//      "createMeeting",
+//      "POST",
+//      "/banks/BANK_ID/meetings",
+//      "Create Meeting (video conference/call)",
+//      """Create Meeting: Initiate a video conference/call with the bank.
+//        |
+//        |The Meetings resource contains meta data about video/other conference sessions, not the video/audio/chat itself.
+//        |
+//        |The actual conferencing is handled by external providers. Currently OBP supports tokbox video conferences (WIP).
+//        |
+//        |This is not a recomendation of tokbox per se.
+//        |
+//        |provider_id determines the provider of the meeting / video chat service. MUST be url friendly (no spaces).
+//        |
+//        |purpose_id explains the purpose of the chat. onboarding | mortgage | complaint etc. MUST be url friendly (no spaces).
+//        |
+//        |Login is required.
+//        |
+//        |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
+//      """.stripMargin,
+//      CreateMeetingJson("tokbox", "onboarding"),
+//      meetingJson,
+//      List(
+//        UserNotLoggedIn,
+//        MeetingApiKeyNotConfigured,
+//        MeetingApiSecretNotConfigured,
+//        InvalidBankIdFormat,
+//        BankNotFound,
+//        InvalidJsonFormat,
+//        MeetingsNotSupported,
+//        UnknownError
+//      ),
+//      List(apiTagMeeting, apiTagCustomer, apiTagExperimental))
+//
+//
+//    lazy val createMeeting: OBPEndpoint = {
+//      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
+//        cc =>
+//          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
+//            for {
+//              // TODO use these keys to get session and tokens from tokbox
+//              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(MeetingApiKeyNotConfigured, 403)
+//              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(MeetingApiSecretNotConfigured, 403)
+//              u <- cc.user ?~! UserNotLoggedIn
+//              _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
+//              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
+//              postedData <- tryo {json.extract[CreateMeetingJson]} ?~! InvalidJsonFormat
+//              now = Calendar.getInstance().getTime()
+//              sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
+//              customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
+//              staffToken <- tryo{code.opentok.OpenTokUtil.generateTokenForModerator(60)}
+//              meeting <- Meetings.meetingProvider.vend.createMeeting(bank.bankId, u, u, postedData.provider_id, postedData.purpose_id, now, sessionId, customerToken, staffToken
+//                                                                    ,null,null)//These two are used from V310
+//            } yield {
+//              // Format the data as V2.0.0 json
+//              val json = JSONFactory200.createMeetingJSON(meeting)
+//              successJsonResponse(Extraction.decompose(json), 201)
+//            }
+//          } else {
+//            Full(errorJsonResponse(MeetingsNotSupported))
+//          }
+//      }
+//    }
+//
+//
+//    resourceDocs += ResourceDoc(
+//      getMeetings,
+//      apiVersion,
+//      "getMeetings",
+//      "GET",
+//      "/banks/BANK_ID/meetings",
+//      "Get Meetings",
+//      """Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
+//        |
+//        |The actual conference/chats are handled by external services.
+//        |
+//        |Login is required.
+//        |
+//        |This call is **experimental** and will require further authorisation in the future.
+//      """.stripMargin,
+//      emptyObjectJson,
+//      meetingsJson,
+//      List(
+//        UserNotLoggedIn,
+//        MeetingApiKeyNotConfigured,
+//        MeetingApiSecretNotConfigured,
+//        BankNotFound,
+//        MeetingsNotSupported,
+//        UnknownError),
+//      List(apiTagMeeting, apiTagCustomer, apiTagExperimental))
+//
+//
+//    lazy val getMeetings: OBPEndpoint = {
+//      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
+//        cc =>
+//          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
+//            for {
+//              _ <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+//              (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
+//              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
+//              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
+//              u <- cc.user ?~! ErrorMessages.UserNotLoggedIn
+//              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
+//              // now = Calendar.getInstance().getTime()
+//              meetings <- Meetings.meetingProvider.vend.getMeetings(bank.bankId, u)
+//            }
+//              yield {
+//                // Format the data as V2.0.0 json
+//                val json = JSONFactory200.createMeetingJSONs(meetings)
+//                successJsonResponse(Extraction.decompose(json))
+//              }
+//          } else {
+//            Full(errorJsonResponse(MeetingsNotSupported))
+//          }
+//      }
+//    }
+//
+//
+//
+//    resourceDocs += ResourceDoc(
+//      getMeeting,
+//      apiVersion,
+//      "getMeeting",
+//      "GET",
+//      "/banks/BANK_ID/meetings/MEETING_ID",
+//      "Get Meeting",
+//      """Get Meeting specified by BANK_ID / MEETING_ID
+//        |Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
+//        |
+//        |The actual conference/chats are handled by external services.
+//        |
+//        |Login is required.
+//        |
+//        |This call is **experimental** and will require further authorisation in the future.
+//      """.stripMargin,
+//      emptyObjectJson,
+//      meetingJson,
+//      List(
+//        UserNotLoggedIn, 
+//        BankNotFound, 
+//        MeetingApiKeyNotConfigured,
+//        MeetingApiSecretNotConfigured, 
+//        MeetingNotFound, 
+//        MeetingsNotSupported,
+//        UnknownError
+//      ),
+//      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagExperimental))
+//
+//
+//    lazy val getMeeting: OBPEndpoint = {
+//      case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
+//        cc =>
+//          if (APIUtil.getPropsAsBoolValue("meeting.tokbox_enabled", false)) {
+//            for {
+//              u <- cc.user ?~! UserNotLoggedIn
+//              (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
+//              _ <- APIUtil.getPropsValue("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
+//              _ <- APIUtil.getPropsValue("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
+//              (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound
+//              meeting <- Meetings.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
+//            }
+//              yield {
+//                // Format the data as V2.0.0 json
+//                val json = JSONFactory200.createMeetingJSON(meeting)
+//                successJsonResponse(Extraction.decompose(json))
+//              }
+//          } else {
+//            Full(errorJsonResponse(ErrorMessages.MeetingsNotSupported))
+//          }
+//      }
+//    }
 
 
     resourceDocs += ResourceDoc(

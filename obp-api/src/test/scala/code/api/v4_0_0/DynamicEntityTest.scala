@@ -415,9 +415,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
       dynamicEntitiesGetJson.values should have size 2
 
-      val head= dynamicEntitiesGetJson.arr.head
-
-      head should equal(expectUpdatedResponseJson)
+      dynamicEntitiesGetJson.arr should contain(expectUpdatedResponseJson)
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteDynamicEntity.toString)
       When("We make a request v4.0.0 with the Role " + canDeleteDynamicEntity)
@@ -537,9 +535,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
       dynamicEntitiesGetJson.values should have size 2
 
-      val head = dynamicEntitiesGetJson.arr.head
-
-      head should equal(expectUpdatedResponseJson)
+      dynamicEntitiesGetJson.arr should contain(expectUpdatedResponseJson)
 
       {
         // get a DynamicEntity with wrong user

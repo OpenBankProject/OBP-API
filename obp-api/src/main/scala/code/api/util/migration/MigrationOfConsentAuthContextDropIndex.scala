@@ -8,9 +8,10 @@ import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 import scalikejdbc.DB.CPContext
 import scalikejdbc._
-
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
+
+import code.api.Constant
 
 object MigrationOfConsentAuthContextDropIndex {
 
@@ -19,7 +20,7 @@ object MigrationOfConsentAuthContextDropIndex {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   private lazy val getDbConnectionParameters: (String, String, String) = {
-    val dbUrl = APIUtil.getPropsValue("db.url") openOr "jdbc:h2:mem:OBPTest;DB_CLOSE_DELAY=-1"
+    val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
     val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
     val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
     val dbUser = APIUtil.getPropsValue("db.user").orElse(username)

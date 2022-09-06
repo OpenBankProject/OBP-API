@@ -242,7 +242,14 @@ mail.smtp.port=25
 token_expiration_weeks=4
 
 ## payment challenge answer timeout,default is 600 seconds/10 minutes
-transaction_request_challenge_ttl=600
+transactionRequest.challenge.ttl.seconds=600
+
+## auth context update request challenge answer timeout,default is 600 seconds/10 minutes
+userAuthContextUpdateRequest.challenge.ttl.seconds=600
+
+# the allowed attempts to answer the same transactionRequest Challenge, default is 3 times
+#answer_transactionRequest_challenge_allowed_attempts=3
+
 
 
 
@@ -281,14 +288,6 @@ transactionRequests_challenge_threshold_SEPA=1000
 
 # To set a currency for the above value:
 #transactionRequests_challenge_currency=KRW
-
-
-## For video conference meetings (createMeeting)
-meeting.tokbox_enabled=false
-meeting.tokbox_api_key=changeme
-meeting.tokbox_api_secret=changeme
-
-
 
 ### Management modules
 
@@ -851,7 +850,7 @@ database_messages_scheduler_interval=3600
 # ---------------------------------------------------------
 
 # -- SCA (Strong Customer Authentication) -------
-# For now, OBP-API use `nexmo` server as the SMS provider. Please check `nexmo` website, and get the api key and value there.
+# For now, OBP-API use `Twilio` server as the SMS provider. Please check `Twilio` website, and get the api key and value there.
 # sca_phone_api_key = oXAjqAJ6rvCunpzN
 # sca_phone_api_secret =oXAjqAJ6rvCunpzN123sdf
 # 

@@ -44,6 +44,7 @@ import net.liftweb.util.PassThru
 import scala.xml.{NodeSeq, XML}
 import scala.io.Source
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import net.liftweb.common.{Box, Full}
 
 
 class WebUI extends MdcLoggable{
@@ -64,6 +65,27 @@ class WebUI extends MdcLoggable{
     }
   }
 
+  def currentPage = {
+    def removeLocale(s: Box[String]) = {
+      s.map(_.replaceAll("&locale=es_ES", "")
+        .replaceAll("&locale=en_EN", "")
+        .replaceAll("\\?locale=es_ES", "")
+        .replaceAll("\\?locale=en_EN", ""))
+    }
+    val page = Constant.HostName + removeLocale(S.uriAndQueryString).getOrElse("")
+    S.queryString.map(_.replaceAll("locale=es_ES", "").replaceAll("locale=en_EN", "")) match {
+      case Full(queryString) if queryString.isEmpty =>
+        "#es a [href]" #> scala.xml.Unparsed(s"${page}?locale=es_ES") &
+        "#en a [href]" #> scala.xml.Unparsed(s"${page}?locale=en_EN")
+      case Full(queryString) =>
+        "#es a [href]" #> scala.xml.Unparsed(s"${page}&locale=es_ES") &
+        "#en a [href]" #> scala.xml.Unparsed(s"${page}&locale=en_EN")
+      case _ =>
+        "#es a [href]" #> scala.xml.Unparsed(s"${page}?locale=es_ES") &
+        "#en a [href]" #> scala.xml.Unparsed(s"${page}?locale=en_EN")
+    }
+    
+  }
 
 
   // Cookie Consent button.
@@ -241,6 +263,22 @@ class WebUI extends MdcLoggable{
     "#webui-support-email a *" #> scala.xml.Unparsed(webUiPropsValue) &
       "#webui-support-email a [href]" #> scala.xml.Unparsed(s"mailto:$webUiPropsValue")
   }
+  def socialLink = {
+    val webUiPropsValueForLink = getWebUiPropsValue("webui_social_url", "https://twitter.com/openbankproject")
+    val webUiPropsValueForHandle = getWebUiPropsValue("webui_social_handle", "Twitter")
+    val webUiPropsValueForTitle = getWebUiPropsValue("webui_social_title", "@OpenBankProject")
+    val webUiPropsValueForLogoUrl = getWebUiPropsValue("webui_social_logo_url", "/media/images/icons/support/twitter.svg")
+    "#footer-social-logo-url img [src]" #> scala.xml.Unparsed(webUiPropsValueForLogoUrl) &
+    "#footer-social-handle *" #> scala.xml.Unparsed(webUiPropsValueForHandle) &
+    "#footer-social-link a *" #> scala.xml.Unparsed(webUiPropsValueForTitle) &
+      "#footer-social-link a [href]" #> scala.xml.Unparsed(webUiPropsValueForLink)
+  }
+  def footerSocialLink = {
+    val webUiPropsValueForLink = getWebUiPropsValue("webui_social_url", "https://twitter.com/openbankproject")
+    val webUiPropsValueForTitle = getWebUiPropsValue("webui_social_title", "Twitter")
+    "#footer-div-social a *" #> scala.xml.Unparsed(webUiPropsValueForTitle) &
+      "#footer-div-social a [href]" #> scala.xml.Unparsed(webUiPropsValueForLink)
+  }
   
   def sandboxIntroductionLink: CssSel = {
     val webUiApiDocumentation = getWebUiPropsValue("webui_api_documentation_url",s"${getServerUrl}/introduction")
@@ -385,7 +423,11 @@ class WebUI extends MdcLoggable{
     "@for-banks [style]" #> s"display: $displayForBanks"
   }
 
-
+  def alreadyLoggedIn: CssSel = {
+    lazy val logoutLink = s" ${Constant.HostName}${AuthUser.logoutPath.foldLeft("")(_ + "/" + _)}"
+    lazy val loginLink = s" ${Constant.HostName}${AuthUser.loginPath.foldLeft("")(_ + "/" + _)}"
+    "#logout_link [href]" #> scala.xml.Unparsed(s"$logoutLink?redirect=$loginLink")
+  }
 
   def getStartedContentLoader: NodeSeq = {
     contentLoader("webui_get_started_content_url", "main-get-started")

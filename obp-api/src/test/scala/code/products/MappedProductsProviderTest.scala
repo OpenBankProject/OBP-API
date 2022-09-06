@@ -93,7 +93,7 @@ class MappedProductsProviderTest extends ServerSetup {
       products.size should equal(3)
 
       And("they should be the licensed ones")
-      products should equal (expectedProducts)
+      products.sortBy(_.code.value) should equal (expectedProducts.sortBy(_.code.value))
     }
 
     scenario("We try to get Products for a bank that doesn't have any") {

@@ -3,6 +3,11 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+08/08/2022    1ff7bf0a      removed props `meeting.tokbox_enabled`, `meeting.tokbox_api_key` and `meeting.tokbox_api_secret`. 
+                            removed three endpoints: getMeetings, getMeeting and createMeeting in V200.
+05/08/2022    ba690c1f      renamed props `transaction_request_challenge_ttl` to `transactionRequest.challenge.ttl.seconds`. 
+02/08/2022    7b06563f      added new props `userAuthContextUpdateRequest.challenge.ttl.seconds`, default is 600 seconds. 
+01/08/2022    d94687d6      added new props `answer_transactionRequest_challenge_allowed_attempts`, default is 3 .  
 03/05/2022    5fe70270      added new props `transaction_request_challenge_ttl`, default is 600 seconds.  
 31/03/2022    a0262c3f      added new value SIMPLE to props `transactionRequests_supported_types`  
                             added new props `SIMPLE_OTP_INSTRUCTION_TRANSPORT`, default value is `DUMMY`
