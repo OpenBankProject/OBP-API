@@ -454,11 +454,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
   private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
 
   def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, languageParam: Option[LanguageParam]) : ResourceDocJson = {
-    // if this calculate conversion already happened before, just return that value
-    // if not calculated before, just do conversion
+    // We MUST recompute all resource doc values due to translation via Web UI props
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
-    val resourceDocUpdatedTags = rd.copy(tags = endpointTags++ rd.tags)
-    createResourceDocJsonMemo.computeIfAbsent(resourceDocUpdatedTags, _=>{
+    val resourceDocUpdatedTags: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
+    createResourceDocJsonMemo.compute(resourceDocUpdatedTags, (k, v) => {
       // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
       // But we don't want to have to escape underscores (\_) in our documentation
       // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)

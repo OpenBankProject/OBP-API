@@ -981,7 +981,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
     val languageParam = for {
-      x <- S.param("language")
+      x <- S.param("language").or(S.param("locale"))
       y <- stringToLanguageParam(x)
     } yield y
     logger.info(s"languageParam is $languageParam")
