@@ -81,7 +81,7 @@ case class APIFailureNewStyle(failMsg: String,
     val errorCode = extractErrorMessageCode(failMsg)
     val errorBody = extractErrorMessageBody(failMsg)
     
-    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"Locale")
+    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"locale")
     val locale = I18NUtil.computeLocale(localeUrlParameter)
     
     val liftCoreResourceBundle = tryo(ResourceBundle.getBundle(LiftRules.liftCoreResourceName, locale)).toList
