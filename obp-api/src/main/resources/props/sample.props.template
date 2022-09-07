@@ -546,7 +546,7 @@ webui_register_consumer_success_message_email = Thank you for registering to use
 
 
 # Set Locale
-language_tag = en-GB
+default_locale = en_GB
 
 
 
