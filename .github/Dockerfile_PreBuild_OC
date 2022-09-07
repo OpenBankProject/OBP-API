@@ -1,0 +1,9 @@
+FROM jetty:9.4-jre11-slim
+
+# Copy build artifact (.war file) into jetty from 'maven' stage.
+COPY /obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war
+USER root
+RUN chgrp -R 0 /tmp/jetty && chmod -R g+rwX /tmp/jetty
+RUN chgrp -R 0 /var/lib/jetty && chmod -R g+rwX /var/lib/jetty
+RUN chgrp -R 0 /usr/local/jetty && chmod -R g+rwX /usr/local/jetty
+USER jetty
