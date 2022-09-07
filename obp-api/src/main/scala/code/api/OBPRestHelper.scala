@@ -83,8 +83,15 @@ case class APIFailureNewStyle(failMsg: String,
     val errorBody = extractErrorMessageBody(failMsg)
     
     val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"locale")
-    val locale = I18NUtil.computeLocale(localeUrlParameter)
+    val localeFromUrl = I18NUtil.computeLocale(localeUrlParameter)
     
+    
+    val locale: Locale = 
+      if(localeFromUrl.toString.equals("")) //if the url local parameter is invalid, then we use the default Locale.
+        I18NUtil.getLocale() 
+      else 
+        localeFromUrl
+
     val liftCoreResourceBundle = tryo(ResourceBundle.getBundle(LiftRules.liftCoreResourceName, locale)).toList
     
     val _resBundle = new ThreadGlobal[List[ResourceBundle]]
@@ -134,8 +141,8 @@ case class APIFailureNewStyle(failMsg: String,
   
     def ?(str: String, locale: Locale): String = resourceValueCache.get(
       str -> 
-        locale, 
-      if(?!(str, resourceBundleList)==str) //If can not find the value from props, then return the default error body.
+        locale,
+      if(locale.toString.startsWith("en") || ?!(str, resourceBundleList)==str) //If can not find the value from props or the local is `en`, then return 
         errorBody 
       else 
         s": ${?!(str, resourceBundleList)}"
