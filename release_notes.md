@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+07/09/2022    53564924      renamed props `language_tag` to `default_locale`, default is en_GB.
 08/08/2022    1ff7bf0a      removed props `meeting.tokbox_enabled`, `meeting.tokbox_api_key` and `meeting.tokbox_api_secret`. 
                             removed three endpoints: getMeetings, getMeeting and createMeeting in V200.
 05/08/2022    ba690c1f      renamed props `transaction_request_challenge_ttl` to `transactionRequest.challenge.ttl.seconds`. 
