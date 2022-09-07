@@ -2,6 +2,7 @@ package code.api.v4_0_0
 
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
+import java.util
 import java.util.{Calendar, Date}
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
@@ -71,6 +72,7 @@ import code.views.Views
 import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
+import com.networknt.schema.ValidationMessage
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.GetProductsParam
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
@@ -90,7 +92,6 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To, XHTMLMailBodyType}
 import net.liftweb.util.{Helpers, Mailer, StringHelpers}
-import org.apache.commons.collections4.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.{List, Nil}
@@ -4199,11 +4200,12 @@ trait APIMethods400 {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV400 "
           for {
+            (Full(u), callContext) <- SS.user
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostAccountAccessJsonV400]
             }
-            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
-            (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, cc.callContext)
+            _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, u, callContext)
+            (user, callContext) <- NewStyle.function.findByUserId(postJson.user_id, callContext)
             view <- getView(bankId, accountId, postJson.view, callContext)
             addedView <- grantAccountAccessToUser(bankId, accountId, user, view, callContext)
           } yield {
@@ -6043,7 +6045,9 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductAttribute))
+    )
 
     lazy val updateProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
@@ -6100,7 +6104,9 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductAttribute))
+      )
 
     lazy val getProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
@@ -9417,9 +9423,9 @@ trait APIMethods400 {
           for {
             (Full(u), callContext) <- SS.user
 
-            schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
+            schemaErrors: util.Set[ValidationMessage] = JsonSchemaUtil.validateSchema(httpBody)
             _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}", cc=callContext) {
-              CollectionUtils.isEmpty(schemaErrors)
+              CommonUtil.Collections.isEmpty(schemaErrors)
             }
 
             (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
@@ -9465,7 +9471,7 @@ trait APIMethods400 {
 
             schemaErrors = JsonSchemaUtil.validateSchema(httpBody)
             _ <- Helper.booleanToFuture(failMsg = s"$JsonSchemaIllegal${StringUtils.join(schemaErrors, "; ")}", cc=callContext) {
-              CollectionUtils.isEmpty(schemaErrors)
+              CommonUtil.Collections.isEmpty(schemaErrors)
             }
 
             (isExists, callContext) <- NewStyle.function.isJsonSchemaValidationExists(operationId, callContext)
@@ -11952,7 +11958,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,
-      productJsonV400.copy(attributes = None, fees = None),
+      productsJsonV400,
       List(
         UserNotLoggedIn,
         BankNotFound,

@@ -539,6 +539,7 @@ class Boot extends MdcLoggable {
       Menu("User Invitation Info", "User Invitation Info") / "user-invitation-info",
       Menu("User Invitation Invalid", "User Invitation Invalid") / "user-invitation-invalid",
       Menu("User Invitation Warning", "User Invitation Warning") / "user-invitation-warning",
+      Menu("Already Logged In", "Already Logged In") / "already-logged-in",
       Menu("Terms and Conditions", "Terms and Conditions") / "terms-and-conditions",
       Menu("Privacy Policy", "Privacy Policy") / "privacy-policy",
       // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
@@ -725,6 +726,7 @@ class Boot extends MdcLoggable {
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
       val smallPaymentVerified = Views.views.vend.getOrCreateSystemView(SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID).isDefined
+      val accountHolder = Views.views.vend.getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -737,6 +739,7 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
            |System view ${SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID} exists/created at the instance: ${smallPaymentVerified}
+           |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${accountHolder}
            |""".stripMargin
       logger.info(comment)
 

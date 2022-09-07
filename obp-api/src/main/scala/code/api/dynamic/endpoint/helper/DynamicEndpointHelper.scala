@@ -6,7 +6,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.util.APIUtil.{BigDecimalBody, BigIntBody, BooleanBody, DoubleBody, EmptyBody, FloatBody, IntBody, JArrayBody, LongBody, PrimaryDataBody, ResourceDoc, StringBody}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{DynamicDataNotFound, InvalidUrlParameters, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
-import code.api.util.{APIUtil, ApiRole, ApiTag, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, ApiRole, ApiTag, CommonUtil, CustomJsonFormats, NewStyle}
 import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards, ApiVersion}
 import com.openbankproject.commons.util.Functions.Memo
 import io.swagger.v3.oas.models.PathItem.HttpMethod
@@ -25,7 +25,6 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonParser.ParseException
 import org.apache.commons.lang3.{StringUtils, Validate}
 import net.liftweb.util.{StringHelpers, ThreadGlobal}
-import org.apache.commons.collections4.{ListUtils, MapUtils}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 
@@ -765,10 +764,10 @@ object DynamicEndpointHelper extends RestHelper {
         //   "title": "accountTransactibility",
         //   "type": "object"
         // }
-        case v if v.isInstanceOf[ObjectSchema] && MapUtils.isEmpty(v.getProperties()) =>
+        case v if v.isInstanceOf[ObjectSchema] && CommonUtil.Map.isEmpty(v.getProperties()) =>
           EmptyBody
 
-        case v if v.isInstanceOf[ObjectSchema] || MapUtils.isNotEmpty(v.getProperties()) =>
+        case v if v.isInstanceOf[ObjectSchema] || CommonUtil.Map.isNotEmpty(v.getProperties()) =>
           val properties: util.Map[String, Schema[_]] = v.getProperties
 
           val jFields: mutable.Iterable[JField] = properties.asScala.map { kv =>

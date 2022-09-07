@@ -41,4 +41,17 @@ class OpenIDConnectSnippet extends MdcLoggable{
     else 
       PassThru
   
+  def showText = {
+    val oidc1 = APIUtil.getPropsValue("openid_connect_1.client_id").isEmpty
+    val oidc2 = APIUtil.getPropsValue("openid_connect_2.client_id").isEmpty
+    if (oidc1 && oidc2)
+      "*" #> NodeSeq.Empty
+    // In case of a url ends with something like this: user_mgt/login?login_challenge=f587e7ac91044fe5aa138d6a1ab46250
+    // we know that we just Hydra OIDC button and Hydra ORA is using OBP-API for login request so hide the OIDC buttons
+    else if(S.param("login_challenge").isDefined)
+      "*" #> NodeSeq.Empty
+    else
+      PassThru
+  }
+  
 }

@@ -39,8 +39,6 @@ import code.views.Views
 import code.webhook.AccountWebhook
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.nexmo.client.NexmoClient
-import com.nexmo.client.sms.messages.TextMessage
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 import com.openbankproject.commons.model.{CreditLimit, Product, _}
 import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
@@ -2087,7 +2085,9 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canGetProductAttribute))
+    )
 
     lazy val getProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
@@ -2127,7 +2127,9 @@ trait APIMethods310 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductAttribute))
+    )
 
     lazy val updateProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
@@ -2185,7 +2187,8 @@ trait APIMethods310 {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductAttribute)))
 
     lazy val deleteProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId ::  Nil JsonDelete _=> {
