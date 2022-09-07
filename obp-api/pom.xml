@@ -127,17 +127,18 @@
       <version>2.1.214</version>
       <scope>runtime</scope>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
     <dependency>
       <groupId>mysql</groupId>
       <artifactId>mysql-connector-java</artifactId>
-      <version>8.0.16</version>
+      <version>8.0.30</version>
     </dependency>
-<!--    <dependency>
-      <groupId>com.microsoft.sqlserver</groupId>
-      <artifactId>mssql-jdbc</artifactId>
-      <version>6.2.0.jre8</version>
-      <scope>test</scope>
-    </dependency>-->
+    <!--    <dependency>
+          <groupId>com.microsoft.sqlserver</groupId>
+          <artifactId>mssql-jdbc</artifactId>
+          <version>6.2.0.jre8</version>
+          <scope>test</scope>
+        </dependency>-->
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
