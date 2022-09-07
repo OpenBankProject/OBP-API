@@ -4572,7 +4572,7 @@ object SwaggerDefinitionsJSON {
     fees = Some(List(productFeeJsonV400))
   )
 
-  val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400))
+  val productsJsonV400 = ProductsJsonV400(products = List(productJsonV400.copy(attributes = None, fees = None)))
 
   val putProductJsonV400 = PutProductJsonV400(
     parent_product_code = parentProductCodeExample.value,
