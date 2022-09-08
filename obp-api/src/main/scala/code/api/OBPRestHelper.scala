@@ -88,7 +88,7 @@ case class APIFailureNewStyle(failMsg: String,
     
     val locale: Locale = 
       if(localeFromUrl.toString.equals("")) //if the url local parameter is invalid, then we use the default Locale.
-        I18NUtil.getLocale() 
+        I18NUtil.getDefaultLocale() 
       else 
         localeFromUrl
 

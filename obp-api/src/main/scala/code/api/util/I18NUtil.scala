@@ -16,8 +16,9 @@ object I18NUtil {
     formattedDate
   }
 
-  def getLocale(): Locale = Locale.getAvailableLocales().toList.filter { l =>
-    l.toString == APIUtil.getPropsValue("default_locale", "en_GB")
+  def getDefaultLocale(): Locale = Locale.getAvailableLocales().toList.filter { l =>
+    l.toString == APIUtil.getPropsValue("default_locale", "en_GB").trim || // this will support underscore
+      l.toLanguageTag == APIUtil.getPropsValue("default_locale", "en-GB").trim// this will support hyphen
   }.headOption.getOrElse(Locale.ENGLISH)
   
   def currentLocale() : Locale = {
@@ -25,7 +26,7 @@ object I18NUtil {
     val localeCookieName = "SELECTED_LOCALE"
     S.findCookie(localeCookieName).flatMap {
       cookie => cookie.value.map(computeLocale)
-    } openOr getLocale()
+    } openOr getDefaultLocale()
   }
   // Properly convert a language tag to a Locale
   def computeLocale(tag : String) = tag.split(Array('-', '_')) match {
