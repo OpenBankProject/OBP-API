@@ -3,7 +3,7 @@ package code.webuiprops
 import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
-import code.api.util.{APIUtil, ErrorMessages}
+import code.api.util.{APIUtil, ErrorMessages, I18NUtil}
 import code.api.util.APIUtil.{activeBrand, saveConnectorMetric}
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
@@ -43,7 +43,15 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
           case _ => nameOfProperty
         }
         
-        WebUiProps.find(By(WebUiProps.Name, brandSpecificPropertyName)).map(_.value)
+        // In case there is a translation we must use it
+        val language = I18NUtil.currentLocale().getLanguage().toLowerCase()
+        val webUiPropsPropertyName = s"${brandSpecificPropertyName}_${language}"
+        val translationPropertyName = WebUiProps.find(By(WebUiProps.Name, webUiPropsPropertyName)).isDefined match {
+          case true => webUiPropsPropertyName
+          case false => brandSpecificPropertyName
+        }
+        
+        WebUiProps.find(By(WebUiProps.Name, translationPropertyName)).map(_.value)
           .or(WebUiProps.find(By(WebUiProps.Name, nameOfProperty)).map(_.value))
             .openOr {
               APIUtil.getPropsValue(nameOfProperty, defaultValue)
