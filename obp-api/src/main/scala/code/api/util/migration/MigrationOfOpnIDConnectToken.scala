@@ -28,6 +28,8 @@ object MigrationOfOpnIDConnectToken {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE openidconnecttoken ALTER COLUMN accesstoken text;"
+                case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") =>
+                  () => "ALTER TABLE openidconnecttoken MODIFY COLUMN accesstoken text;"
                 case _ =>
                   () => "ALTER TABLE openidconnecttoken ALTER COLUMN accesstoken type text;"
               }
@@ -65,6 +67,8 @@ object MigrationOfOpnIDConnectToken {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () => "ALTER TABLE openidconnecttoken ALTER COLUMN refreshtoken text;"
+              case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                () => "ALTER TABLE openidconnecttoken MODIFY COLUMN refreshtoken text;"
               case _ =>
                 () => "ALTER TABLE openidconnecttoken ALTER COLUMN refreshtoken type text;"
             }
