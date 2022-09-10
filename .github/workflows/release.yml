@@ -3,7 +3,7 @@ name: Cut Release
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 jobs:
