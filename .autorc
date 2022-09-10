@@ -1,0 +1,12 @@
+{
+  "plugins": [
+    "git-tag",
+    "all-contributors",
+    "first-time-contributor",
+    "released"
+  ],
+  "owner": "openbankproject",
+  "repo": "OBP-API",
+  "name": "openbankproject",
+  "email": "oss@karmacomputing.co.uk"
+}
