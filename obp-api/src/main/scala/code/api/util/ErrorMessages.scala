@@ -106,7 +106,7 @@ object ErrorMessages {
   val FilterIsDeletedFormatError = s"OBP-10036: is_deleted parameter can only take two values: TRUE or FALSE!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
-  val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name:"
+  val IncorrectTriggerName = "OBP-10039: Incorrect Trigger name:"
 
   val ScaMethodNotDefined = "OBP-10030: Strong customer authentication method is not defined at this instance."
 
