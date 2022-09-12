@@ -5144,7 +5144,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getCustomersMinimalAtAnyBank),
       "GET",
-      "/customers/minimal",
+      "/customers-minimal",
       "Get Customers Minimal at Any Bank",
       s"""Get Customers Minimal at Any Bank.
          |
@@ -5163,7 +5163,7 @@ trait APIMethods400 {
       Some(List(canGetCustomersMinimalAtAnyBank))
     )
     lazy val getCustomersMinimalAtAnyBank : OBPEndpoint = {
-      case "customers" :: "minimal" :: Nil JsonGet _ => {
+      case "customers-minimal" :: Nil JsonGet _ => {
         cc => {
           for {
             requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)

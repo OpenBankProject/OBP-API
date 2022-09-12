@@ -2,12 +2,16 @@ package code.api.v5_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{CanCreateUserAuthContextUpdate, canCreateUserAuthContext, canGetUserAuthContext}
+import code.api.util.ApiRole.{CanCreateUserAuthContextUpdate, canCreateUserAuthContext, canGetCustomers, canGetCustomersMinimal, canGetUserAuthContext}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiRole, Consent, NewStyle}
 import code.api.util.NewStyle.HttpCode
+import code.api.util.NewStyle.function.extractQueryParams
+import code.api.v2_1_0.JSONFactory210
+import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentEntitlementJsonV310, PostConsentPhoneJsonV310, PostConsentViewJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
+import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -19,11 +23,11 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{BankId, UserAuthContextUpdateStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Full}
-import net.liftweb.http.{Req}
+import net.liftweb.common.Full
+import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
-import net.liftweb.json.compactRender
+import net.liftweb.json.{compactRender}
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil}
@@ -612,6 +616,153 @@ trait APIMethods500 {
           } yield {
             ("", HttpCode.`200`(callContext))
           }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyCustomersAtAnyBank,
+      implementedInApiVersion,
+      nameOf(getMyCustomersAtAnyBank),
+      "GET",
+      "/my/customers",
+      "Get My Customers",
+      """Gets all Customers that are linked to me.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      customerJsonV210,
+      List(
+        $UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser))
+
+    lazy val getMyCustomersAtAnyBank : OBPEndpoint = {
+      case "my" :: "customers" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- SS.user
+            (customers, callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
+              connectorEmptyResponse(_, callContext)
+            }
+          } yield {
+            (JSONFactory210.createCustomersJson(customers), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMyCustomersAtBank,
+      implementedInApiVersion,
+      nameOf(getMyCustomersAtBank),
+      "GET",
+      "/banks/BANK_ID/my/customers",
+      "Get My Customers at Bank",
+      s"""Returns a list of Customers at the Bank that are linked to the currently authenticated User.
+         |
+         |
+         |${authenticationRequiredMessage(true)}""".stripMargin,
+      emptyObjectJson,
+      customerJSONs,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle)
+    )
+
+    lazy val getMyCustomersAtBank : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "my" :: "customers" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- SS.user
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (customers, callContext) <- Connector.connector.vend.getCustomersByUserId(u.userId, callContext) map {
+              connectorEmptyResponse(_, callContext)
+            }
+          } yield {
+            // Filter so we only see the ones for the bank in question
+            val bankCustomers = customers.filter(_.bankId==bankId.value)
+            val json = JSONFactory210.createCustomersJson(bankCustomers)
+            (json, HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomersAtOneBank,
+      implementedInApiVersion,
+      nameOf(getCustomersAtOneBank),
+      "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customers at Bank",
+      s"""Get Customers at Bank.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      emptyObjectJson,
+      customersJsonV300,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      Some(List(canGetCustomers))
+    )
+
+    lazy val getCustomersAtOneBank : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            customers <- NewStyle.function.getCustomers(bankId, cc.callContext, requestParams)
+          } yield {
+            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomersMinimalAtOneBank,
+      implementedInApiVersion,
+      nameOf(getCustomersMinimalAtOneBank),
+      "GET",
+      "/banks/BANK_ID/customers-minimal",
+      "Get Customers Minimal at Bank",
+      s"""Get Customers Minimal at Bank.
+         |
+         |
+         |
+         |""",
+      emptyObjectJson,
+      customersMinimalJsonV300,
+      List(
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      Some(List(canGetCustomersMinimal))
+    )
+    lazy val getCustomersMinimalAtOneBank : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers-minimal" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            customers <- NewStyle.function.getCustomers(bankId, cc.callContext, requestParams)
+          } yield {
+            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+          }
+        }
       }
     }
 
