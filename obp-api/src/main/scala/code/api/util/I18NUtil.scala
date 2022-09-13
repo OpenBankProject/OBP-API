@@ -17,9 +17,8 @@ object I18NUtil {
   }
 
   def getDefaultLocale(): Locale = Locale.getAvailableLocales().toList.filter { l =>
-    l.toString == APIUtil.getPropsValue("default_locale", "en_GB").trim || // this will support underscore
-      l.toLanguageTag == APIUtil.getPropsValue("default_locale", "en-GB").trim// this will support hyphen
-  }.headOption.getOrElse(Locale.ENGLISH)
+    l.toLanguageTag == ApiPropsWithAlias.defaultLocale
+  }.headOption.getOrElse(new Locale(ApiPropsWithAlias.defaultLocale))
   
   def currentLocale() : Locale = {
     // Cookie name
