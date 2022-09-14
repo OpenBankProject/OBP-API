@@ -84,7 +84,7 @@ class WebUI extends MdcLoggable{
       }
     }.getOrElse("")
 
-    val supportedLocales = APIUtil.getPropsValue("supported_locales","").split(",")
+    val supportedLocales = APIUtil.getPropsValue("supported_locales","en_GB,es_ES").split(",")
     def displayLanguage(locale: String) = {
       val hyphenLocale = locale.replace("_", "-")
       if (supportedLocales.contains(locale) || supportedLocales.contains(hyphenLocale) ) {""} else {"none"}
