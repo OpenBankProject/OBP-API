@@ -168,7 +168,7 @@ object APIMethods_AtmsApi extends RestHelper {
        s"""${mockedDataText(false)}
             Gets a list of all ATM objects.
             """,
-       emptyObjectJson,
+       EmptyBody,
        getMxAtmsResponseJson,
        List(UserNotLoggedIn, UnknownError),
        ApiTag("ATM") :: apiTagMXOpenFinance :: Nil
@@ -197,8 +197,8 @@ object APIMethods_AtmsApi extends RestHelper {
        s"""${mockedDataText(false)}
             Gets header information on the current set of ATM data
             """,
-       emptyObjectJson,
-       emptyObjectJson,
+       EmptyBody,
+       EmptyBody,
        List(
          UserNotLoggedIn, 
          ConsentNotFound,
