@@ -401,7 +401,8 @@ case class OutBoundCreateOrUpdateAccountAttribute(outboundAdapterCallContext: Ou
                                                   productAttributeId: Option[String],
                                                   name: String,
                                                   accountAttributeType: enums.AccountAttributeType.Value,
-                                                  value: String) extends TopicTrait
+                                                  value: String,
+                                                  productInstanceCode: Option[String] = None) extends TopicTrait
 case class InBoundCreateOrUpdateAccountAttribute(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: AccountAttributeCommons) extends InBoundTrait[AccountAttributeCommons]
 
 
@@ -585,7 +586,8 @@ case class OutBoundCreateAccountAttributes(outboundAdapterCallContext: OutboundA
                                            bankId: BankId,
                                            accountId: AccountId,
                                            productCode: ProductCode,
-                                           accountAttributes: List[ProductAttribute]
+                                           accountAttributes: List[ProductAttribute],
+                                           productInstanceCode: Option[String] = None,
                                          ) extends TopicTrait
 case class InBoundCreateAccountAttributes(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: List[AccountAttributeCommons]) extends InBoundTrait[List[AccountAttributeCommons]]
 
