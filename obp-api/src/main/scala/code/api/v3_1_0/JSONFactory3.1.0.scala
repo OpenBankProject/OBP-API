@@ -410,6 +410,7 @@ case class AccountAttributeJson(
   name: String,
   `type`: String,
   value: String,
+  product_instance_code: Option[String],
 )
 
 case class CardAttributeJson(
@@ -423,7 +424,8 @@ case class AccountAttributeResponseJson(
   account_attribute_id: String,
   name: String,
   `type`: String,
-  value: String
+  value: String,
+  product_instance_code: Option[String],
 )
 case class AccountAttributesResponseJson(list: List[AccountAttributeResponseJson])
 
@@ -1245,7 +1247,8 @@ object JSONFactory310{
       account_attribute_id = accountAttribute.accountAttributeId,
       name = accountAttribute.name,
       `type` = accountAttribute.attributeType.toString,
-      value = accountAttribute.value
+      value = accountAttribute.value,
+      product_instance_code = accountAttribute.productInstanceCode
     )
   }
   def createAccountAttributesJson(productsList: List[AccountAttribute]) : AccountAttributesResponseJson = {

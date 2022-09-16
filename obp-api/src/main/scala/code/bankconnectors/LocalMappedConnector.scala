@@ -3731,6 +3731,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                                name: String,
                                                attributeType: AccountAttributeType.Value,
                                                value: String,
+                                               productInstanceCode: Option[String],
                                                callContext: Option[CallContext]
                                              ): OBPReturnType[Box[AccountAttribute]] = {
     AccountAttributeX.accountAttributeProvider.vend.createOrUpdateAccountAttribute(bankId: BankId,
@@ -3739,7 +3740,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       accountAttributeId: Option[String],
       name: String,
       attributeType: AccountAttributeType.Value,
-      value: String) map {
+      value: String,
+      productInstanceCode: Option[String]) map {
       (_, callContext)
     }
   }
@@ -3748,13 +3750,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                        accountId: AccountId,
                                        productCode: ProductCode,
                                        accountAttributes: List[ProductAttribute],
+                                       productInstanceCode: Option[String],
                                        callContext: Option[CallContext]
                                       ): OBPReturnType[Box[List[AccountAttribute]]] = {
     AccountAttributeX.accountAttributeProvider.vend.createAccountAttributes(
       bankId: BankId,
       accountId: AccountId,
       productCode: ProductCode,
-      accountAttributes: List[ProductAttribute]) map {
+      accountAttributes: List[ProductAttribute],
+      productInstanceCode: Option[String]) map {
       (_, callContext)
     }
   }

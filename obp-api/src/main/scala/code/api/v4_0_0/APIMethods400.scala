@@ -523,6 +523,7 @@ trait APIMethods400 {
               accountId,
               ProductCode("SETTLEMENT"),
               productAttributes,
+              None,
               callContext: Option[CallContext]
             )
           } yield {
@@ -2484,6 +2485,7 @@ trait APIMethods400 {
               accountId,
               ProductCode(accountType),
               productAttributes,
+              None,
               callContext: Option[CallContext]
             )
           } yield {

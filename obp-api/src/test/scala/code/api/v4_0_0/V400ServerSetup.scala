@@ -151,7 +151,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     product
   }
 
-  def createAccountAttributeViaEndpoint(bankId: String, accountId: String, name: String, value: String, `type`: String): AccountAttributeResponseJson = {
+  def createAccountAttributeViaEndpoint(bankId: String, accountId: String, name: String, value: String, `type`: String, productInstanceCode: Option[String]): AccountAttributeResponseJson = {
     val putProductJsonV400 = PutProductJsonV400(
       name = "product name",
       parent_product_code = "",
@@ -169,7 +169,8 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val accountAttributeJson = AccountAttributeJson(
       name = name,
       `type` = `type`,
-      value = value
+      value = value,
+      productInstanceCode
     )
     val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
     val requestCreate310 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId /

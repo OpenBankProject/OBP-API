@@ -3590,14 +3590,16 @@ object SwaggerDefinitionsJSON {
   val accountAttributeJson = AccountAttributeJson(
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
-    value = "2012-04-23"
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
   )  
   val accountAttributeResponseJson = AccountAttributeResponseJson(
     product_code = productCodeExample.value,
     account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
-    value = "2012-04-23"
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
   )
 
   val moderatedAccountJSON310 = ModeratedAccountJSON310(

@@ -4999,7 +4999,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String, callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
+  override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String,
+    productInstanceCode: Option[String],callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
         import com.openbankproject.commons.dto.{InBoundCreateOrUpdateAccountAttribute => InBound, OutBoundCreateOrUpdateAccountAttribute => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_or_update_account_attribute", req, callContext)
@@ -5112,7 +5113,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
+  override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute],
+    productInstanceCode: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
         import com.openbankproject.commons.dto.{InBoundCreateAccountAttributes => InBound, OutBoundCreateAccountAttributes => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, accountAttributes)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_account_attributes", req, callContext)

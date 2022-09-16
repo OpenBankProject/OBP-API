@@ -55,12 +55,14 @@ trait AccountAttributeProvider {
                                      accountAttributeId: Option[String],
                                      name: String,
                                      attributeType: AccountAttributeType.Value,
-                                     value: String): Future[Box[AccountAttribute]]
+                                     value: String,
+                                     productInstanceCode: Option[String]): Future[Box[AccountAttribute]]
 
   def createAccountAttributes(bankId: BankId,
                               accountId: AccountId,
                               productCode: ProductCode,
-                              accountAttributes: List[ProductAttribute]): Future[Box[List[AccountAttribute]]]
+                              accountAttributes: List[ProductAttribute],
+                              productInstanceCode: Option[String]): Future[Box[List[AccountAttribute]]]
   
   def deleteAccountAttribute(accountAttributeId: String): Future[Box[Boolean]]
 
@@ -87,12 +89,14 @@ class RemotedataAccountAttributeCaseClasses {
                                             accountAttributeId: Option[String],
                                             name: String,
                                             attributeType: AccountAttributeType.Value,
-                                            value: String)
+                                            value: String,
+                                            productInstanceCode: Option[String])
   
   case class createAccountAttributes(bankId: BankId,
                                      accountId: AccountId,
                                      productCode: ProductCode,
-                                     accountAttributes: List[ProductAttribute])
+                                     accountAttributes: List[ProductAttribute],
+                                     productInstanceCode: Option[String])
 
   case class deleteAccountAttribute(accountAttributeId: String)
 
