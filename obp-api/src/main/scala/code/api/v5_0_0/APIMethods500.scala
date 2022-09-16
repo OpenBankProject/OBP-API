@@ -2,15 +2,16 @@ package code.api.v5_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{CanCreateUserAuthContextUpdate, canCreateUserAuthContext, canGetCustomers, canGetCustomersMinimal, canGetUserAuthContext}
+import code.api.util.ApiRole.{CanCreateEntitlementAtOneBank, CanCreateUserAuthContextUpdate, CanReadDynamicResourceDocsAtOneBank, canCreateBank, canCreateUserAuthContext, canGetCustomers, canGetCustomersMinimal, canGetUserAuthContext}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiRole, Consent, NewStyle}
+import code.api.util.{APIUtil, ApiRole, Consent, ErrorMessages, NewStyle}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.NewStyle.function.extractQueryParams
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentEntitlementJsonV310, PostConsentPhoneJsonV310, PostConsentViewJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
+import code.api.v4_0_0.{BankJson400, JSONFactory400}
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
@@ -27,7 +28,7 @@ import net.liftweb.common.Full
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
-import net.liftweb.json.{compactRender}
+import net.liftweb.json.compactRender
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil}
@@ -63,6 +64,90 @@ trait APIMethods500 {
 
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
+
+
+    staticResourceDocs += ResourceDoc(
+      createBank,
+      implementedInApiVersion,
+      "createBank",
+      "POST",
+      "/banks",
+      "Create Bank",
+      s"""Create a new bank (Authenticated access).
+         |
+         |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
+         |Thus the User can manage the bank they create and assign Roles to other Users.
+         |
+         |Only SANDBOX mode
+         |The settlement accounts are created specified by the bank in the POST body.
+         |Name and account id are created in accordance to the next rules:
+         |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
+         |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
+         |
+         |""",
+      postBankJson500,
+      bankJson500,
+      List(
+        InvalidJsonFormat,
+        $UserNotLoggedIn,
+        InsufficientAuthorisationToCreateBank,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canCreateBank))
+    )
+
+    lazy val createBank: OBPEndpoint = {
+      case "banks" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $BankJson400 "
+          for {
+            bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostBankJson500]
+            }
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials, cc=cc.callContext) {
+              cc.callContext.map(_.consumer.isDefined == true).isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be greater than 3 characters.", cc=cc.callContext) {
+              bank.id.forall(_.length > 3)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters", cc=cc.callContext) {
+              !bank.id.contains(" ")
+            }
+            (success, callContext) <- NewStyle.function.createOrUpdateBank(
+              bank.id.getOrElse(APIUtil.generateUUID()),
+              bank.full_name.getOrElse(""),
+              bank.bank_code,
+              bank.logo.getOrElse(""),
+              bank.website.getOrElse(""),
+              bank.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
+              "",
+              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
+              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
+              cc.callContext
+            )
+            entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, callContext)
+            entitlementsByBank = entitlements.filter(_.bankId==bank.id.getOrElse(""))
+            _ <- entitlementsByBank.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Future()
+              case false =>
+                Future(Entitlement.entitlement.vend.addEntitlement(bank.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString()))
+            }
+            _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
+              case true =>
+                // Already has entitlement
+                Future()
+              case false =>
+                Future(Entitlement.entitlement.vend.addEntitlement(bank.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+            }
+          } yield {
+            (JSONFactory500.createBankJSON500(success), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       createUserAuthContext,
