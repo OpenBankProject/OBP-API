@@ -17,7 +17,8 @@ object I18NUtil {
   }
 
   def getDefaultLocale(): Locale = Locale.getAvailableLocales().toList.filter { l =>
-    l.toLanguageTag == ApiPropsWithAlias.defaultLocale
+    l.toString == ApiPropsWithAlias.defaultLocale || // this will support underscore
+      l.toLanguageTag == ApiPropsWithAlias.defaultLocale // this will support hyphen
   }.headOption.getOrElse(new Locale(ApiPropsWithAlias.defaultLocale))
   
   def currentLocale() : Locale = {
