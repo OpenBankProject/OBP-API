@@ -2,16 +2,15 @@ package code.api.v5_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
-import code.api.util.ApiRole.{CanCreateEntitlementAtOneBank, CanCreateUserAuthContextUpdate, CanReadDynamicResourceDocsAtOneBank, canCreateBank, canCreateUserAuthContext, canGetCustomers, canGetCustomersMinimal, canGetUserAuthContext}
+import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ApiRole, Consent, ErrorMessages, NewStyle}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.NewStyle.function.extractQueryParams
+import code.api.util._
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentEntitlementJsonV310, PostConsentPhoneJsonV310, PostConsentViewJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
-import code.api.v4_0_0.{BankJson400, JSONFactory400}
+import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
@@ -21,8 +20,8 @@ import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{BankId, UserAuthContextUpdateStatus}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
+import com.openbankproject.commons.model.{BankId, UserAuthContextUpdateStatus}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Full
 import net.liftweb.http.Req
@@ -67,6 +66,36 @@ trait APIMethods500 {
 
 
     staticResourceDocs += ResourceDoc(
+      getBank,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
+      "/banks/BANK_ID",
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |* Bank code and full name of bank
+        |* Logo URL
+        |* Website""",
+      EmptyBody,
+      bankJson500,
+      List(UnknownError, BankNotFound),
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+    )
+
+    lazy val getBank : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (bank, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(bankId, callContext)
+          } yield
+            (JSONFactory500.createBankJSON500(bank, attributes), HttpCode.`200`(callContext))
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
       createBank,
       implementedInApiVersion,
       "createBank",
@@ -100,7 +129,7 @@ trait APIMethods500 {
     lazy val createBank: OBPEndpoint = {
       case "banks" :: Nil JsonPost json -> _ => {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $BankJson400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostBankJson500 "
           for {
             bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostBankJson500]

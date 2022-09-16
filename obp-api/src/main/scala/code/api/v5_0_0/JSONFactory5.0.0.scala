@@ -26,15 +26,15 @@
   */
 package code.api.v5_0_0
 
-import code.api.v3_1_0.PostConsentEntitlementJsonV310
-import com.openbankproject.commons.model.{AccountRoutingJsonV121, Bank, UserAuthContext, UserAuthContextUpdate}
-import net.liftweb.json.JsonAST.JValue
 import java.util.Date
 
 import code.api.util.APIUtil.stringOrNull
 import code.api.v1_2_1.BankRoutingJsonV121
-import code.api.v4_0_0.{BankAttributeBankResponseJsonV400, BankJson400}
+import code.api.v3_1_0.PostConsentEntitlementJsonV310
+import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.bankattribute.BankAttribute
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, Bank, UserAuthContext, UserAuthContextUpdate}
+import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.List
 

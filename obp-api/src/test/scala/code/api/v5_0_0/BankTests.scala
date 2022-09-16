@@ -34,6 +34,7 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
     */
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.createBank))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getBank))
 
   feature(s"Assuring that endpoint createBank works as expected - $VersionOfApi") {
 
@@ -61,33 +62,38 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
       }
     }
 
-    scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
       And("We make the request")
-      val requestGet = (v5_0_0_Request / "banks").POST <@ (user1)
+      val bankId = postBankJson500.id.getOrElse("some_bank_id")
+      val request = (v5_0_0_Request / "banks").POST <@ (user1)
       val response = for {
         before <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
-          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == postBankJson500.id.getOrElse(""))
+          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankId)
         }
-        response: APIResponse <- makePostRequestAsync(requestGet, write(postBankJson500))
+        response: APIResponse <- makePostRequestAsync(request, write(postBankJson500))
         after <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
-          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == postBankJson500.id.getOrElse(""))
+          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankId)
         }
-      } yield (before, after, response)
+        requestGet = (v5_0_0_Request / "banks" / bankId).GET <@ (user1)
+        responseGet <- makeGetRequestAsync(requestGet)
+      } yield (before, after, response, responseGet)
       Then("We should get a 201")
       response flatMap  { r =>
-          r._1 should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
-          r._2 should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
-          r._3.code should equal(201)
-          Then("Default settlement accounts should be created")
-          val defaultOutgoingAccount = NewStyle.function.checkBankAccountExists(BankId(postBankJson500.id.getOrElse("")), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None)
-          val defaultIncomingAccount = NewStyle.function.checkBankAccountExists(BankId(postBankJson500.id.getOrElse("")), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None)
-          defaultOutgoingAccount.map(account => account._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID))
-          defaultIncomingAccount.map(account => account._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID))
+        r._1 should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
+        r._2 should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
+        r._3.code should equal(201)
+        Then("Default settlement accounts should be created")
+        val defaultOutgoingAccount = NewStyle.function.checkBankAccountExists(BankId(postBankJson500.id.getOrElse("")), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None)
+        val defaultIncomingAccount = NewStyle.function.checkBankAccountExists(BankId(postBankJson500.id.getOrElse("")), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None)
+        defaultOutgoingAccount.map(account => account._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID))
+        defaultIncomingAccount.map(account => account._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID))
+        Then("We should get a 200")
+        r._4.code should equal(200)
+        r._4.body.extract[BankJson500].bank_code should equal(postBankJson500.bank_code)
       }
     }
   }
-
 
  }
