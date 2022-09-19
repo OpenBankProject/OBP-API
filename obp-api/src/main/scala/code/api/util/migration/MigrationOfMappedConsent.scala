@@ -29,7 +29,7 @@ object MigrationOfMappedConsent {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken text;"
                 case _ =>
-                  () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken type text;"
+                  () => "ALTER TABLE mappedconsent MODIFY COLUMN mjsonwebtoken TEXT;"
               }
           }
         
@@ -67,6 +67,10 @@ object MigrationOfMappedConsent {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """ALTER TABLE mappedconsent ALTER COLUMN mchallenge varchar(50);
+                    |""".stripMargin
+              case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                () =>
+                  """ALTER TABLE mappedconsent MODIFY COLUMN mchallenge varchar(50);
                     |""".stripMargin
               case _ =>
                 () =>

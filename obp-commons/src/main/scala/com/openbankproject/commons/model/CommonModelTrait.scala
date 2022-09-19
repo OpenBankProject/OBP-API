@@ -112,6 +112,7 @@ trait AccountAttribute {
   def name: String
   def attributeType: AccountAttributeType.Value
   def value: String
+  def productInstanceCode: Option[String]
 }
 
 trait CardAttribute {

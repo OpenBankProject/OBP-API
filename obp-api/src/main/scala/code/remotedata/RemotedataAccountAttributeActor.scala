@@ -44,22 +44,26 @@ class RemotedataAccountAttributeActor extends Actor with ObpActorHelper with Mdc
             accountAttributeId: Option[String],
             name: String,
             attributeType: AccountAttributeType.Value,
-            value: String) =>
+            value: String,
+            productInstanceCode: Option[String]) =>
       logger.debug(s"createOrUpdateAccountAttribute(${bankId}, ${accountId}, ${productCode}, ${accountAttributeId}, ${name}, ${attributeType}, ${value})")
       mapper.createOrUpdateAccountAttribute(bankId, accountId,
         productCode,
         accountAttributeId,
         name,
         attributeType,
-        value) pipeTo sender
+        value,
+        productInstanceCode: Option[String]) pipeTo sender
       
     case cc.createAccountAttributes(bankId: BankId,
             accountId: AccountId,
             productCode: ProductCode,
-            accountAttributes: List[ProductAttribute]) =>
+            accountAttributes: List[ProductAttribute],
+            productInstanceCode: Option[String]) =>
       mapper.createAccountAttributes(bankId, accountId,
         productCode,
-        accountAttributes) pipeTo sender
+        accountAttributes,
+        productInstanceCode: Option[String]) pipeTo sender
 
     case cc.deleteAccountAttribute(accountAttributeId: String) =>
       logger.debug(s"deleteAccountAttribute(${accountAttributeId})")

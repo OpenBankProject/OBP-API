@@ -40,14 +40,16 @@ object RemotedataAccountAttribute extends ObpActorInit with AccountAttributeProv
                                               productAttributeId: Option[String],
                                               name: String,
                                               attributeType: AccountAttributeType.Value,
-                                              value: String): Future[Box[AccountAttribute]] = 
-    (actor ? cc.createOrUpdateAccountAttribute(bankId, accountId, productCode, productAttributeId , name , attributeType , value )).mapTo[Box[AccountAttribute]]
+                                              value: String,
+                                              productInstanceCode: Option[String]): Future[Box[AccountAttribute]] = 
+    (actor ? cc.createOrUpdateAccountAttribute(bankId, accountId, productCode, productAttributeId , name , attributeType , value, productInstanceCode )).mapTo[Box[AccountAttribute]]
 
   override def createAccountAttributes(bankId: BankId,
                                               accountId: AccountId,
                                               productCode: ProductCode,
-                                              productAttributes: List[ProductAttribute]): Future[Box[List[AccountAttribute]]] = 
-    (actor ? cc.createAccountAttributes(bankId, accountId, productCode, productAttributes)).mapTo[Box[List[AccountAttribute]]]
+                                              productAttributes: List[ProductAttribute],
+                                              productInstanceCode: Option[String]): Future[Box[List[AccountAttribute]]] = 
+    (actor ? cc.createAccountAttributes(bankId, accountId, productCode, productAttributes, productInstanceCode)).mapTo[Box[List[AccountAttribute]]]
 
   override def deleteAccountAttribute(accountAttributeId: String): Future[Box[Boolean]] = 
     (actor ? cc.deleteAccountAttribute(accountAttributeId)).mapTo[Box[Boolean]]

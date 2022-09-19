@@ -28,6 +28,8 @@ object MigrationOfMappedUserAuthContextUpdate {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "DROP INDEX IF EXISTS mappeduserauthcontextupdate_muserid_mkey ON mappeduserauthcontextupdate;"
+                case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                  () => "DROP INDEX mappeduserauthcontextupdate_muserid_mkey ON mappeduserauthcontextupdate;"
                 case _ =>
                   () => "DROP INDEX IF EXISTS mappeduserauthcontextupdate_muserid_mkey;"
               }

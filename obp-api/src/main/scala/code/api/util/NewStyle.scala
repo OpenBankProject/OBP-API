@@ -1748,6 +1748,7 @@ object NewStyle extends MdcLoggable{
                                         name: String,
                                         attributeType: AccountAttributeType.Value,
                                         value: String,
+                                        productInstanceCode: Option[String],
                                         callContext: Option[CallContext]
                                       ): OBPReturnType[AccountAttribute] = {
       Connector.connector.vend.createOrUpdateAccountAttribute(
@@ -1758,6 +1759,7 @@ object NewStyle extends MdcLoggable{
         name: String,
         attributeType: AccountAttributeType.Value,
         value: String,
+        productInstanceCode: Option[String],
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
@@ -1847,12 +1849,14 @@ object NewStyle extends MdcLoggable{
                                 accountId: AccountId,
                                 productCode: ProductCode,
                                 accountAttributes: List[ProductAttribute],
+                                productInstanceCode: Option[String],
                                 callContext: Option[CallContext]): OBPReturnType[List[AccountAttribute]] = {
       Connector.connector.vend.createAccountAttributes(
         bankId: BankId,
         accountId: AccountId,
         productCode: ProductCode,
         accountAttributes,
+        productInstanceCode: Option[String],
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

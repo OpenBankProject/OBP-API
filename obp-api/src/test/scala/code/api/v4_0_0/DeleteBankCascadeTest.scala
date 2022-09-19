@@ -84,7 +84,8 @@ class DeleteBankCascadeTest extends V400ServerSetup {
         account.account_id,
         "REQUIRED_CHALLENGE_ANSWERS",
         "2",
-        "INTEGER"
+        "INTEGER",
+        Some("LKJL98769F")
       )
 
       grantUserAccessToViewViaEndpoint(

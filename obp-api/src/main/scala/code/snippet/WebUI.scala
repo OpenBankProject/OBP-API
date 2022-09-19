@@ -66,24 +66,35 @@ class WebUI extends MdcLoggable{
   }
 
   def currentPage = {
-    def removeLocale(s: Box[String]) = {
-      s.map(_.replaceAll("&locale=es_ES", "")
-        .replaceAll("&locale=en_EN", "")
-        .replaceAll("\\?locale=es_ES", "")
-        .replaceAll("\\?locale=en_EN", ""))
+    def replaceLocale(replacement: String) = {
+      S.queryString.isDefined match {
+        case true =>
+          S.queryString.exists(_.contains("locale=")) match {
+            case true =>
+              val queryString = S.queryString
+              queryString.map(
+                _.replaceAll("locale=en_GB", replacement)
+                  .replaceAll("locale=es_ES", replacement)
+              )
+            case false =>
+              S.queryString.map(i => i + s"&$replacement")
+          }
+        case false =>
+          Full(s"$replacement")
+      }
+    }.getOrElse("")
+
+    val supportedLocales = APIUtil.getPropsValue("supported_locales","en_GB,es_ES").split(",")
+    def displayLanguage(locale: String) = {
+      val hyphenLocale = locale.replace("_", "-")
+      if (supportedLocales.contains(locale) || supportedLocales.contains(hyphenLocale) ) {""} else {"none"}
     }
-    val page = Constant.HostName + removeLocale(S.uriAndQueryString).getOrElse("")
-    S.queryString.map(_.replaceAll("locale=es_ES", "").replaceAll("locale=en_EN", "")) match {
-      case Full(queryString) if queryString.isEmpty =>
-        "#es a [href]" #> scala.xml.Unparsed(s"${page}?locale=es_ES") &
-        "#en a [href]" #> scala.xml.Unparsed(s"${page}?locale=en_EN")
-      case Full(queryString) =>
-        "#es a [href]" #> scala.xml.Unparsed(s"${page}&locale=es_ES") &
-        "#en a [href]" #> scala.xml.Unparsed(s"${page}&locale=en_EN")
-      case _ =>
-        "#es a [href]" #> scala.xml.Unparsed(s"${page}?locale=es_ES") &
-        "#en a [href]" #> scala.xml.Unparsed(s"${page}?locale=en_EN")
-    }
+    val page = Constant.HostName + S.uri
+    "#es a [href]" #> scala.xml.Unparsed(s"${page}?${replaceLocale("locale=es_ES")}") &
+      "#en a [href]" #> scala.xml.Unparsed(s"${page}?${replaceLocale("locale=en_GB")}") &
+      "#es a [style]"  #> s"display: ${displayLanguage("es_ES")}" &
+      "#locale_separator [style]"  #> {if(supportedLocales.size == 1) "display: none" else ""} &
+      "#en a [style]"  #> s"display: ${displayLanguage("en_GB")}"
     
   }
 
