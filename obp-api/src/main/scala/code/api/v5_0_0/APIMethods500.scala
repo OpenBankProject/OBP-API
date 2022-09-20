@@ -144,8 +144,8 @@ trait APIMethods500 {
               !bank.id.contains(" ")
             }
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankCodeAlreadyExists, cc=cc.callContext) {
-              banks.filter(_.bankId.value == bank.bank_code).isEmpty == false
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, cc=cc.callContext) {
+              !banks.exists { b => Some(b.bankId.value) == bank.id }
             }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id.getOrElse(APIUtil.generateUUID()),

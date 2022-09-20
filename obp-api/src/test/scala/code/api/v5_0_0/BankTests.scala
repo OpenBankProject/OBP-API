@@ -4,7 +4,7 @@ import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_AC
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postBankJson500
 import code.api.util.ApiRole.CanCreateBank
 import code.api.util.ErrorMessages.UserHasMissingRoles
-import code.api.util.{ApiRole, ErrorMessages, NewStyle}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages, NewStyle}
 import code.api.util.APIUtil.OAuth._
 import code.api.v5_0_0.APIMethods500.Implementations5_0_0
 import code.entitlement.Entitlement
@@ -66,19 +66,20 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
       And("We make the request")
-      val bankId = postBankJson500.id.getOrElse("some_bank_id")
+      val postBank = postBankJson500.copy(id = Some(APIUtil.generateUUID()))
+      val bankId = postBank.id.getOrElse("some_bank_id")
       val request = (v5_0_0_Request / "banks").POST <@ (user1)
       val response = for {
         before <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
           _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankId)
         }
-        response: APIResponse <- makePostRequestAsync(request, write(postBankJson500))
+        response: APIResponse <- makePostRequestAsync(request, write(postBank))
         after <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
           _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankId)
         }
         requestGet = (v5_0_0_Request / "banks" / bankId).GET <@ (user1)
         responseGet <- makeGetRequestAsync(requestGet)
-        secondResponse: APIResponse <- makePostRequestAsync(request, write(postBankJson500))
+        secondResponse: APIResponse <- makePostRequestAsync(request, write(postBank))
       } yield (before, after, response, responseGet, secondResponse)
       Then("We should get a 201")
       response flatMap  { r =>
@@ -86,15 +87,15 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
         r._2 should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
         r._3.code should equal(201)
         Then("Default settlement accounts should be created")
-        val defaultOutgoingAccount = NewStyle.function.checkBankAccountExists(BankId(postBankJson500.id.getOrElse("")), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None)
-        val defaultIncomingAccount = NewStyle.function.checkBankAccountExists(BankId(postBankJson500.id.getOrElse("")), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None)
+        val defaultOutgoingAccount = NewStyle.function.checkBankAccountExists(BankId(postBank.id.getOrElse("")), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None)
+        val defaultIncomingAccount = NewStyle.function.checkBankAccountExists(BankId(postBank.id.getOrElse("")), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None)
         defaultOutgoingAccount.map(account => account._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID))
         defaultIncomingAccount.map(account => account._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID))
         Then("We should get a 200")
         r._4.code should equal(200)
-        r._4.body.extract[BankJson500].bank_code should equal(postBankJson500.bank_code)
+        r._4.body.extract[BankJson500].bank_code should equal(postBank.bank_code)
         r._5.code should equal(400)
-        r._5.body.extract[ErrorMessage].message should equal(ErrorMessages.bankCodeAlreadyExists)
+        r._5.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
       }
     }
   }

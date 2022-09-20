@@ -458,7 +458,7 @@ object ErrorMessages {
   val atmsNotFound = "OBP-33002: No ATMs available."
   
   // Bank related messages
-  val bankCodeAlreadyExists = "OBP-34000: Bank code already exists. Please specify a different value."
+  val bankIdAlreadyExists = "OBP-34000: Bank Id already exists. Please specify a different value."
   
   // Consents
   val ConsentNotFound = "OBP-35001: Consent not found by CONSENT_ID. "
