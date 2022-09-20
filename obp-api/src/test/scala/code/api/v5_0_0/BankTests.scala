@@ -35,6 +35,7 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.createBank))
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getBank))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.updateBank))
 
   feature(s"Assuring that endpoint createBank works as expected - $VersionOfApi") {
 
@@ -62,13 +63,16 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
       }
     }
 
-    scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
       And("We make the request")
+      val firstFullName = "A new full name"
+      val secondFullName = "A second new full name"
       val postBank = postBankJson500.copy(id = Some(APIUtil.generateUUID()))
       val bankId = postBank.id.getOrElse("some_bank_id")
       val request = (v5_0_0_Request / "banks").POST <@ (user1)
+      val requestPut = (v5_0_0_Request / "banks").PUT <@ (user1)
       val response = for {
         before <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
           _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankId)
@@ -80,7 +84,9 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
         requestGet = (v5_0_0_Request / "banks" / bankId).GET <@ (user1)
         responseGet <- makeGetRequestAsync(requestGet)
         secondResponse: APIResponse <- makePostRequestAsync(request, write(postBank))
-      } yield (before, after, response, responseGet, secondResponse)
+        putResponse: APIResponse <- makePutRequestAsync(requestPut, write(postBank.copy(full_name = Some(firstFullName))))
+        secondPutResponse: APIResponse <- makePutRequestAsync(requestPut, write(postBank.copy(full_name = Some(secondFullName))))
+      } yield (before, after, response, responseGet, secondResponse, putResponse, secondPutResponse)
       Then("We should get a 201")
       response flatMap  { r =>
         r._1 should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
@@ -96,6 +102,10 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
         r._4.body.extract[BankJson500].bank_code should equal(postBank.bank_code)
         r._5.code should equal(400)
         r._5.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
+        r._6.code should equal(200)
+        r._6.body.extract[BankJson500].full_name should equal(firstFullName)
+        r._7.code should equal(200)
+        r._7.body.extract[BankJson500].full_name should equal(secondFullName)
       }
     }
   }

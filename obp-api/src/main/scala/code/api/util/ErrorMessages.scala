@@ -459,6 +459,7 @@ object ErrorMessages {
   
   // Bank related messages
   val bankIdAlreadyExists = "OBP-34000: Bank Id already exists. Please specify a different value."
+  val updateBankError = "OBP-34001: Could not update the Bank"
   
   // Consents
   val ConsentNotFound = "OBP-35001: Consent not found by CONSENT_ID. "

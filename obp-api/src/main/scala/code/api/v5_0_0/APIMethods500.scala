@@ -28,6 +28,7 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.compactRender
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil}
@@ -177,6 +178,67 @@ trait APIMethods500 {
             }
           } yield {
             (JSONFactory500.createBankJSON500(success), HttpCode.`201`(callContext))
+          }
+      }
+    }    
+    staticResourceDocs += ResourceDoc(
+      updateBank,
+      implementedInApiVersion,
+      "updateBank",
+      "PUT",
+      "/banks",
+      "Update Bank",
+      s"""Update an existing bank (Authenticated access).
+         |
+         |""",
+      postBankJson500,
+      bankJson500,
+      List(
+        InvalidJsonFormat,
+        $UserNotLoggedIn,
+        BankNotFound,
+        updateBankError,
+        UnknownError
+      ),
+      List(apiTagBank, apiTagNewStyle),
+      Some(List(canCreateBank))
+    )
+
+    lazy val updateBank: OBPEndpoint = {
+      case "banks" :: Nil JsonPut json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $PostBankJson500 "
+          for {
+            bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              json.extract[PostBankJson500]
+            }
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials, cc=cc.callContext) {
+              cc.callContext.map(_.consumer.isDefined == true).isDefined
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be greater than 3 characters.", cc=cc.callContext) {
+              bank.id.forall(_.length > 3)
+            }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters", cc=cc.callContext) {
+              !bank.id.contains(" ")
+            }
+            bankId <- NewStyle.function.tryons(ErrorMessages.updateBankError, 400,  cc.callContext) {
+              bank.id.get
+            }
+            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), cc.callContext)
+            (success, callContext) <- NewStyle.function.createOrUpdateBank(
+              bankId,
+              bank.full_name.getOrElse(""),
+              bank.bank_code,
+              bank.logo.getOrElse(""),
+              bank.website.getOrElse(""),
+              bank.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
+              "",
+              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
+              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
+              callContext
+            )
+          } yield {
+            (JSONFactory500.createBankJSON500(success), HttpCode.`200`(callContext))
           }
       }
     }
