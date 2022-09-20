@@ -78,7 +78,8 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
         }
         requestGet = (v5_0_0_Request / "banks" / bankId).GET <@ (user1)
         responseGet <- makeGetRequestAsync(requestGet)
-      } yield (before, after, response, responseGet)
+        secondResponse: APIResponse <- makePostRequestAsync(request, write(postBankJson500))
+      } yield (before, after, response, responseGet, secondResponse)
       Then("We should get a 201")
       response flatMap  { r =>
         r._1 should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
@@ -92,6 +93,8 @@ class BankTests extends V500ServerSetupAsync with DefaultUsers {
         Then("We should get a 200")
         r._4.code should equal(200)
         r._4.body.extract[BankJson500].bank_code should equal(postBankJson500.bank_code)
+        r._5.code should equal(400)
+        r._5.body.extract[ErrorMessage].message should equal(ErrorMessages.bankCodeAlreadyExists)
       }
     }
   }

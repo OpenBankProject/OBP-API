@@ -143,6 +143,10 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters", cc=cc.callContext) {
               !bank.id.contains(" ")
             }
+            (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankCodeAlreadyExists, cc=cc.callContext) {
+              banks.filter(_.bankId.value == bank.bank_code).isEmpty == false
+            }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id.getOrElse(APIUtil.generateUUID()),
               bank.full_name.getOrElse(""),
@@ -153,7 +157,7 @@ trait APIMethods500 {
               "",
               bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
               bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              cc.callContext
+              callContext
             )
             entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, callContext)
             entitlementsByBank = entitlements.filter(_.bankId==bank.id.getOrElse(""))
