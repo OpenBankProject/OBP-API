@@ -2231,6 +2231,26 @@ object SwaggerDefinitionsJSON {
       title  = ExampleValue.titleExample.value,
       branch_id = ExampleValue.branchIdExample.value,
       name_suffix = ExampleValue.nameSuffixExample.value
+    )  
+  val postCustomerJsonV500 =
+    PostCustomerJsonV500(
+      legal_name = ExampleValue.legalNameExample.value,
+      mobile_phone_number = ExampleValue.mobileNumberExample.value,
+      email = Some(ExampleValue.emailExample.value),
+      face_image = Some(customerFaceImageJson),
+      date_of_birth = Some(DateWithDayExampleObject),
+      relationship_status = Some(ExampleValue.relationshipStatusExample.value),
+      dependants = Some(ExampleValue.dependentsExample.value.toInt),
+      dob_of_dependants = Some(List(DateWithDayExampleObject)),
+      credit_rating = Some(customerCreditRatingJSON),
+      credit_limit = Some(amountOfMoneyJsonV121),
+      highest_education_attained = Some(ExampleValue.highestEducationAttainedExample.value),
+      employment_status = Some(ExampleValue.employmentStatusExample.value),
+      kyc_status = Some(ExampleValue.kycStatusExample.value.toBoolean),
+      last_ok_date = Some(DateWithDayExampleObject),
+      title  = Some(ExampleValue.titleExample.value),
+      branch_id = Some(ExampleValue.branchIdExample.value),
+      name_suffix = Some(ExampleValue.nameSuffixExample.value)
     )
   
   val customerJsonV310 = CustomerJsonV310(
