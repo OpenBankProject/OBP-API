@@ -457,6 +457,10 @@ object ErrorMessages {
   val atmsNotFoundLicense = "OBP-33001: No ATMs available. License may not be set."
   val atmsNotFound = "OBP-33002: No ATMs available."
   
+  // Bank related messages
+  val bankIdAlreadyExists = "OBP-34000: Bank Id already exists. Please specify a different value."
+  val updateBankError = "OBP-34001: Could not update the Bank"
+  
   // Consents
   val ConsentNotFound = "OBP-35001: Consent not found by CONSENT_ID. "
   val ConsentNotBeforeIssue = "OBP-35002: The time Consent-ID token was issued is set in the future. "

@@ -26,12 +26,37 @@
   */
 package code.api.v5_0_0
 
-import code.api.v3_1_0.{PostConsentEntitlementJsonV310}
-import com.openbankproject.commons.model.{AccountRoutingJsonV121, UserAuthContext, UserAuthContextUpdate}
+import java.util.Date
+
+import code.api.util.APIUtil.stringOrNull
+import code.api.v1_2_1.BankRoutingJsonV121
+import code.api.v3_1_0.PostConsentEntitlementJsonV310
+import code.api.v4_0_0.BankAttributeBankResponseJsonV400
+import code.bankattribute.BankAttribute
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, Bank, UserAuthContext, UserAuthContextUpdate}
 import net.liftweb.json.JsonAST.JValue
 
-import java.util.Date
 import scala.collection.immutable.List
+
+case class PostBankJson500(
+    id: Option[String],
+    bank_code: String,
+    full_name: Option[String],
+    logo: Option[String],
+    website: Option[String],
+    bank_routings: Option[List[BankRoutingJsonV121]],
+    attributes: Option[List[BankAttributeBankResponseJsonV400]]
+)
+
+case class BankJson500(
+    id: String,
+    bank_code: String,
+    full_name: String,
+    logo: String,
+    website: String,
+    bank_routings: List[BankRoutingJsonV121],
+    attributes: Option[List[BankAttributeBankResponseJsonV400]]
+)
 
 case class UserAuthContextJsonV500(
   user_auth_context_id: String,
@@ -109,5 +134,30 @@ object JSONFactory500 {
       consumer_id = userAuthContextUpdate.consumerId
     )
   }
+
+  def createBankJSON500(bank: Bank, attributes: List[BankAttribute] = Nil): BankJson500 = {
+    val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
+    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
+    val routings = bank.bankRoutingScheme match {
+      case "OBP" => bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+      case "BIC" => obp :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+      case _ => obp :: bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
+    }
+    new BankJson500(
+      stringOrNull(bank.bankId.value),
+      stringOrNull(bank.shortName),
+      stringOrNull(bank.fullName),
+      stringOrNull(bank.logoUrl),
+      stringOrNull(bank.websiteUrl),
+      routings.filter(a => stringOrNull(a.address) != null),
+      Option(
+        attributes.filter(_.isActive == Some(true)).map(a => BankAttributeBankResponseJsonV400(
+          name = a.name,
+          value = a.value)
+        )
+      )
+    )
+  }
+  
 }
 

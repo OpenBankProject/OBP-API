@@ -866,6 +866,25 @@ object SwaggerDefinitionsJSON {
     website = "www.openbankproject.com",
     bank_routings = List(bankRoutingJsonV121),
     attributes = Some(List(bankAttributeBankResponseJsonV400))
+  )  
+  val bankJson500 = BankJson500(
+    id = "gh.29.uk",
+    bank_code = "bank_code ",
+    full_name = "full_name",
+    logo = "logo",
+    website = "www.openbankproject.com",
+    bank_routings = List(bankRoutingJsonV121),
+    attributes = Some(List(bankAttributeBankResponseJsonV400))
+  ) 
+  
+  val postBankJson500 = PostBankJson500(
+    id = Some("gh.29.uk"),
+    bank_code = "bank_code",
+    full_name = Some("full_name"),
+    logo = Some("logo"),
+    website = Some("www.openbankproject.com"),
+    bank_routings = Some(List(bankRoutingJsonV121)),
+    attributes = Some(List(bankAttributeBankResponseJsonV400))
   )
 
   val banksJSON400 = BanksJson400(
