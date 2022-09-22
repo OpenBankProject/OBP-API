@@ -676,14 +676,16 @@ import net.liftweb.util.Helpers._
   def agreeTermsDiv = {
     val webUi = new WebUI
     val webUiPropsValue = getWebUiPropsValue("webui_terms_and_conditions", "")
+    val termsAndConditionsCheckboxTitle = Helper.i18n("terms_and_conditions_checkbox_text", Some("I agree to the above Terms and Conditions"))
+    val termsAndConditionsCheckboxLabel = Helper.i18n("terms_and_conditions_checkbox_label", Some("Terms and Conditions"))
     val agreeTermsHtml = s"""<hr>
                 |                        <div class="form-group" id="terms-and-conditions-div" onclick="enableDisableButton()">
                 |                            <details open style="cursor:s-resize;">
-                |                                <summary style="display:list-item;"><a class="api_group_name">Terms and Conditions</a></summary>
+                |                                <summary style="display:list-item;"><a class="api_group_name">$termsAndConditionsCheckboxLabel</a></summary>
                 |                                <div id="terms-and-conditions-page">${webUi.makeHtml(webUiPropsValue)}</div>
                 |                            </details>
                 |                            <input type="checkbox" class="form-check-input" id="terms_checkbox" >
-                |                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">I agree to the above Developer Terms and Conditions</label>
+                |                            <label id="terms_checkbox_value" class="form-check-label" for="terms_checkbox">$termsAndConditionsCheckboxTitle</label>
                 |                        </div>
                 |                        """.stripMargin
 
@@ -701,15 +703,17 @@ import net.liftweb.util.Helpers._
   
   def agreePrivacyPolicy = {
     val webUi = new WebUI
+    val privacyPolicyCheckboxText = Helper.i18n("privacy_policy_checkbox_text", Some("I agree to the above Privacy Policy"))
+    val privacyPolicyCheckboxLabel = Helper.i18n("privacy_policy_checkbox_label", Some("Privacy Policy"))
     val webUiPropsValue = getWebUiPropsValue("webui_privacy_policy", "")
     val agreePrivacyPolicy = s"""<hr>
                            |                        <div class="form-group" id="privacy-conditions-div" onclick="enableDisableButton()">
                            |                            <details open style="cursor:s-resize;">
-                           |                                <summary style="display:list-item;"><a class="api_group_name">Privacy Policy</a></summary>
+                           |                                <summary style="display:list-item;"><a class="api_group_name">$privacyPolicyCheckboxLabel</a></summary>
                            |                                <div id="privacy-policy-page">${webUi.makeHtml(webUiPropsValue)}</div>
                            |                            </details>
                            |                            <input id="privacy_checkbox" type="checkbox" class="form-check-input">
-                           |                            <label class="form-check-label" for="privacy_checkbox">I agree to the above privacy conditions</label>
+                           |                            <label class="form-check-label" for="privacy_checkbox">$privacyPolicyCheckboxText</label>
                            |                        </div>
                            |                        <hr>""".stripMargin
 
@@ -1469,7 +1473,7 @@ def restoreSomeSessions(): Unit = {
     val usernames: List[String] = this.getResourceUsersByEmail(email).map(_.user.name)
     findAll(ByList(this.username, usernames))
   }
-  lazy val signupSubmitButtonValue = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
+  def signupSubmitButtonValue() = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
 
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
   // loginFirst menu items to work if the user doesn't have an account. Without this,
@@ -1521,7 +1525,7 @@ def restoreSomeSessions(): Unit = {
     }
 
     def innerSignup = {
-      val bind = "type=submit" #> signupSubmitButton(signupSubmitButtonValue, testSignup _)
+      val bind = "type=submit" #> signupSubmitButton(signupSubmitButtonValue(), testSignup _)
       bind(signupXhtml(theUser))
     }
     

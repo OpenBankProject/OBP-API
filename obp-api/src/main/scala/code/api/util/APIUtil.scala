@@ -4205,7 +4205,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val transactionRequestChallengeTtl = APIUtil.getPropsAsLongValue("transactionRequest.challenge.ttl.seconds", 600)
   val userAuthContextUpdateRequestChallengeTtl = APIUtil.getPropsAsLongValue("userAuthContextUpdateRequest.challenge.ttl.seconds", 600)
   
-  val obpErrorMessageCodeRegex = "^(OBP-\\d+):"
+  val obpErrorMessageCodeRegex = "^(OBP-\\d+)"
   
   //eg: UserHasMissingRoles = "OBP-20006: User is missing one or more roles:" -->
   //  errorCode = "OBP-20006:"

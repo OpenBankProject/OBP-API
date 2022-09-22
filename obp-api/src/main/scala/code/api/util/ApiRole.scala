@@ -88,6 +88,12 @@ object ApiRole {
   case class CanGetCustomersMinimalAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetCustomersMinimalAtAnyBank = CanGetCustomersMinimalAtAnyBank()
   
+  case class CanGetCustomers(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomers = CanGetCustomers()
+  
+  case class CanGetCustomersMinimal(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomersMinimal = CanGetCustomersMinimal()
+  
   case class CanGetCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomer = CanGetCustomer()
 

@@ -523,6 +523,7 @@ trait APIMethods400 {
               accountId,
               ProductCode("SETTLEMENT"),
               productAttributes,
+              None,
               callContext: Option[CallContext]
             )
           } yield {
@@ -2484,6 +2485,7 @@ trait APIMethods400 {
               accountId,
               ProductCode(accountType),
               productAttributes,
+              None,
               callContext: Option[CallContext]
             )
           } yield {
@@ -5144,7 +5146,7 @@ trait APIMethods400 {
       implementedInApiVersion,
       nameOf(getCustomersMinimalAtAnyBank),
       "GET",
-      "/customers/minimal",
+      "/customers-minimal",
       "Get Customers Minimal at Any Bank",
       s"""Get Customers Minimal at Any Bank.
          |
@@ -5163,7 +5165,7 @@ trait APIMethods400 {
       Some(List(canGetCustomersMinimalAtAnyBank))
     )
     lazy val getCustomersMinimalAtAnyBank : OBPEndpoint = {
-      case "customers" :: "minimal" :: Nil JsonGet _ => {
+      case "customers-minimal" :: Nil JsonGet _ => {
         cc => {
           for {
             requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
@@ -6045,7 +6047,9 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductAttribute))
+    )
 
     lazy val updateProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonPut json -> _ =>{
@@ -6102,7 +6106,9 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle))
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canUpdateProductAttribute))
+      )
 
     lazy val getProductAttribute : OBPEndpoint = {
       case "banks" :: bankId :: "products" :: productCode:: "attributes" :: productAttributeId :: Nil JsonGet _ => {
@@ -11954,7 +11960,7 @@ trait APIMethods400 {
          |
          |${authenticationRequiredMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,
-      productJsonV400.copy(attributes = None, fees = None),
+      productsJsonV400,
       List(
         UserNotLoggedIn,
         BankNotFound,

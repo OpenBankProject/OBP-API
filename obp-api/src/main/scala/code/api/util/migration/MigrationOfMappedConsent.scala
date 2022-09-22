@@ -28,6 +28,8 @@ object MigrationOfMappedConsent {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken text;"
+                case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                  () => "ALTER TABLE mappedconsent MODIFY COLUMN mjsonwebtoken TEXT;"
                 case _ =>
                   () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken type text;"
               }
@@ -67,6 +69,10 @@ object MigrationOfMappedConsent {
               case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """ALTER TABLE mappedconsent ALTER COLUMN mchallenge varchar(50);
+                    |""".stripMargin
+              case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                () =>
+                  """ALTER TABLE mappedconsent MODIFY COLUMN mchallenge varchar(50);
                     |""".stripMargin
               case _ =>
                 () =>

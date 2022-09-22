@@ -2129,6 +2129,7 @@ trait Connector extends MdcLoggable {
                                       name: String,
                                       accountAttributeType: AccountAttributeType.Value,
                                       value: String,
+                                      productInstanceCode: Option[String],
                                       callContext: Option[CallContext]
                                     ): OBPReturnType[Box[AccountAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
 
@@ -2200,6 +2201,7 @@ trait Connector extends MdcLoggable {
                               accountId: AccountId,
                               productCode: ProductCode,
                               accountAttributes: List[ProductAttribute],
+                              productInstanceCode: Option[String],
                               callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = 
     Future{(Failure(setUnimplementedError), callContext)} 
   

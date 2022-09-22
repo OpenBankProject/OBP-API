@@ -1141,7 +1141,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           helper.accountId1.value, 
           "REQUIRED_CHALLENGE_ANSWERS", 
           "2", 
-          "INTEGER"
+          "INTEGER",
+          Some("LKJL98769F")
         )
 
         val grantedView = grantUserAccessToViewViaEndpoint(
@@ -1389,7 +1390,8 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           helper.accountId1.value, 
           "REQUIRED_CHALLENGE_ANSWERS", 
           "2", 
-          "INTEGER"
+          "INTEGER",
+          Some("LKJL98769F")
         )
 
         val grantedView = grantUserAccessToViewViaEndpoint(
