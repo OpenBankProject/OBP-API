@@ -169,7 +169,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       activePlusLocalResourceDocs ++= activeResourceDocs
       requestedApiVersion match
       {
-        // only `obp` standard show the `localResouceDocs`
+        // only `obp` standard show the `localResourceDocs`
         case version: ScannedApiVersion 
           if(version.apiStandard == obp.toString && version==ApiVersion.v4_0_0) =>  
             activePlusLocalResourceDocs ++= localResourceDocs.filterNot(_.partialFunctionName == nameOf(getResourceDocsObp))
@@ -229,7 +229,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      * @param contentParam if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
      * @return
      */
-    private def getStaticResourceDocsObpCached(requestedApiVersion : ApiVersion,
+    private def getStaticResourceDocsObpCached(requestedApiVersionString : String,
                                          resourceDocTags: Option[List[ResourceDocTag]],
                                          partialFunctionNames: Option[List[String]],
                                          languageParam: Option[LanguageParam],
@@ -246,7 +246,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
-          logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersion")
+          logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersionString")
+          val requestedApiVersion  = ApiVersionUtils.valueOf(requestedApiVersionString)
 
           val resourceDocJson = resourceDocsToResourceDocJson(getResourceDocsList(requestedApiVersion), resourceDocTags, partialFunctionNames, isVersion4OrHigher, languageParam)
           resourceDocJson.map(resourceDocsJsonToJsonResponse)
@@ -262,7 +263,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
      * @param contentParam if this is Some(`true`), only show dynamic endpoints, if Some(`false`), only show static. If it is None,  we will show all.  default is None
      * @return
      */
-    private def getAllResourceDocsObpCached(requestedApiVersion : ApiVersion,
+    private def getAllResourceDocsObpCached(requestedApiVersionString :  String,
       resourceDocTags: Option[List[ResourceDocTag]],
       partialFunctionNames: Option[List[String]],
       languageParam: Option[LanguageParam],
@@ -279,6 +280,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getStaticResourceDocsTTL second) {
+          logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersionString")
+          val requestedApiVersion  = ApiVersionUtils.valueOf(requestedApiVersionString)
+          
           val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
             .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
             .map(it => it.specifiedUrl match {
@@ -589,10 +593,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
                   val dynamicDocs: Box[JValue] = getResourceDocsObpDynamicCached(tags, partialFunctions, languageParam, contentParam, cacheModifierParam, None, isVersion4OrHigher)
                   Future(dynamicDocs.map(successJsonResponse(_)))
                 case Some(STATIC) =>
-                  val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, isVersion4OrHigher)
+                  val staticDocs: Box[JValue] = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, isVersion4OrHigher)
                   Future(staticDocs.map(successJsonResponse(_)))
                 case _ =>
-                  val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersion, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, isVersion4OrHigher)
+                  val docs: Box[JValue] = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, languageParam, contentParam, cacheModifierParam, isVersion4OrHigher)
                   Future(docs.map(successJsonResponse(_)))
               }
           }
