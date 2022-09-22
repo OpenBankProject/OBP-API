@@ -38,7 +38,7 @@ object APIMethods_AtmsApi extends RestHelper {
   lazy val JsonHead = new TestHead with JsonTest
   
   
-    val apiVersion =  OBP_MXOF_1_0_0.apiVersion
+    val apiVersion =  CNBV9_1_0_0.apiVersion
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)

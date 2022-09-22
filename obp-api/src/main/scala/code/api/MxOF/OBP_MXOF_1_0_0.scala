@@ -49,8 +49,10 @@ object OBP_MXOF_1_0_0 extends OBPRestHelper with MdcLoggable with ScannedApis {
   val versionStatus = "DRAFT"
 
   private[this] val endpoints = APIMethods_AtmsApi.endpoints 
-  override val allResourceDocs: ArrayBuffer[ResourceDoc]  = APIMethods_AtmsApi.resourceDocs
-  
+  override val allResourceDocs: ArrayBuffer[ResourceDoc]  = APIMethods_AtmsApi.resourceDocs.map(
+    resourceDoc => resourceDoc.copy(implementedInApiVersion = apiVersion)
+  )
+
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
