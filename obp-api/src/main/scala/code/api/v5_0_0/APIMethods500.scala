@@ -12,6 +12,7 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
+import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -21,9 +22,9 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{BankId, UserAuthContextUpdateStatus}
+import com.openbankproject.commons.model.{BankId, CreditLimit, CreditRating, CustomerFaceImage, ProductCode, UserAuthContextUpdateStatus}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -799,6 +800,79 @@ trait APIMethods500 {
       }
     }
 
+
+
+    staticResourceDocs += ResourceDoc(
+      createCustomer,
+      implementedInApiVersion,
+      nameOf(createCustomer),
+      "POST",
+      "/banks/BANK_ID/customers",
+      "Create Customer",
+      s"""
+         |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+         |Dates need to be in the format 2013-01-21T23:08:00Z
+         |
+         |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""",
+      postCustomerJsonV500,
+      customerJsonV310,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        CustomerAlreadyExistsForUser,
+        CreateConsumerError,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
+      Some(List(canCreateCustomer,canCreateCustomerAtAnyBank))
+    )
+    lazy val createCustomer : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV310 ", 400, cc.callContext) {
+              json.extract[PostCustomerJsonV500]
+            }
+            _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants.getOrElse(0)}) not equal the length(${postedData.dob_of_dependants.getOrElse(Nil).length }) of dob_of_dependants array", 400, cc.callContext) {
+              postedData.dependants.getOrElse(0) == postedData.dob_of_dependants.getOrElse(Nil).length
+            }
+            (customer, callContext) <- NewStyle.function.createCustomer(
+              bankId,
+              postedData.legal_name,
+              postedData.mobile_phone_number,
+              postedData.email.getOrElse(""),
+              CustomerFaceImage(
+                postedData.face_image.map(_.date).getOrElse(null), 
+                postedData.face_image.map(_.url).getOrElse("")
+              ),
+              postedData.date_of_birth.getOrElse(null),
+              postedData.relationship_status.getOrElse(""),
+              postedData.dependants.getOrElse(0),
+              postedData.dob_of_dependants.getOrElse(Nil),
+              postedData.highest_education_attained.getOrElse(""),
+              postedData.employment_status.getOrElse(""),
+              postedData.kyc_status.getOrElse(false),
+              postedData.last_ok_date.getOrElse(null),
+              postedData.credit_rating.map(i => CreditRating(i.rating, i.source)),
+              postedData.credit_limit.map(i => CreditLimit(i.currency, i.amount)),
+              postedData.title.getOrElse(""),
+              postedData.branch_id.getOrElse(""),
+              postedData.name_suffix.getOrElse(""),
+              cc.callContext,
+            )
+          } yield {
+            (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
     staticResourceDocs += ResourceDoc(
       getMyCustomersAtAnyBank,
       implementedInApiVersion,
@@ -945,6 +1019,86 @@ trait APIMethods500 {
         }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      createProduct,
+      implementedInApiVersion,
+      nameOf(createProduct),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Create Product",
+      s"""Create or Update Product for the Bank.
+         |
+         |
+         |Typical Super Family values / Asset classes are:
+         |
+         |Debt
+         |Equity
+         |FX
+         |Commodity
+         |Derivative
+         |
+         |$productHiearchyAndCollectionNote
+         |
+         |
+         |${authenticationRequiredMessage(true) }
+         |
+         |
+         |""",
+      putProductJsonV500,
+      productJsonV400.copy(attributes = None, fees = None),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProduct, canCreateProductAtAnyBank))
+    )
+    lazy val createProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductJsonV400 "
+            product <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutProductJsonV500]
+            }
+            parentProductCode <- product.parent_product_code.trim.nonEmpty match {
+              case false =>
+                Future(Empty)
+              case true =>
+                Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
+                  getFullBoxOrFail(_, callContext, ParentProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                }
+            }
+            success <- Future(Connector.connector.vend.createOrUpdateProduct(
+              bankId = bankId.value,
+              code = productCode.value,
+              parentProductCode = parentProductCode.map(_.code.value).toOption,
+              name = product.name,
+              category = null,
+              family = null,
+              superFamily = null,
+              moreInfoUrl = product.more_info_url.getOrElse(""),
+              termsAndConditionsUrl = product.terms_and_conditions_url.getOrElse(""),
+              details = null,
+              description = product.description.getOrElse(""),
+              metaLicenceId = product.meta.map(_.license.id).getOrElse(""),
+              metaLicenceName = product.meta.map(_.license.name).getOrElse("")
+            )) map {
+              connectorEmptyResponse(_, callContext)
+            }
+          } yield {
+            (JSONFactory400.createProductJson(success), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
 
   }
 }

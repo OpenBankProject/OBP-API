@@ -71,6 +71,7 @@ class CustomerTest extends V500ServerSetupAsync {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getMyCustomersAtBank))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.getCustomersAtOneBank))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getCustomersMinimalAtOneBank))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations5_0_0.createCustomer))
 
   lazy val bankId = testBankId1.value
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310.copy(last_ok_date= new Date())
@@ -209,7 +210,74 @@ class CustomerTest extends V500ServerSetupAsync {
       responseApiEndpoint4.body.extract[ErrorMessage].message contains (UserHasMissingRoles ) should be (true)
       responseApiEndpoint4.body.extract[ErrorMessage].message contains (CanGetCustomersMinimal.toString()) should be (true)
     }
+  }
 
+
+  feature(s"Create Customer $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v5_0_0_Request / "banks" / bankId / "customers").POST
+      val response = makePostRequest(request, write(postCustomerJson))
+      Then("We should get a 401")
+      response.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+    }
+  }
+
+  feature(s"Create Customer $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+      When(s"We make a request $VersionOfApi")
+      val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response = makePostRequest(request, write(postCustomerJson))
+      Then("We should get a 403")
+      response.code should equal(403)
+      val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
+      And("error should be " + errorMsg)
+      val errorMessage = response.body.extract[ErrorMessage].message
+      errorMessage contains (UserHasMissingRoles) should be (true)
+      errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
+    }
+    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint5, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When(s"We make a request $VersionOfApi")
+      val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response = makePostRequest(request, write(postCustomerJson))
+      Then("We should get a 201")
+      response.code should equal(201)
+      val infoPost = response.body.extract[CustomerJsonV310]
+
+      When("We make the request: Get Customer specified by CUSTOMER_ID")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      val requestGet = (v5_0_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGet.code should equal(200)
+      And("We should get the right information back")
+      val infoGet = responseGet.body.extract[CustomerJsonV310]
+      And("POST feedback and GET feedback must be the same")
+      infoGet should equal(infoPost)
+    }
+    scenario("We will call the endpoint with a user credentials and a proper role and minimal POST JSON", ApiEndpoint5, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      When(s"We make a request $VersionOfApi")
+      val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val response = makePostRequest(request, write(PostCustomerJsonV500(legal_name = "Legal Name",mobile_phone_number = "+44 07972 444 876")))
+      Then("We should get a 201")
+      response.code should equal(201)
+      val infoPost = response.body.extract[CustomerJsonV310]
+
+      When("We make the request: Get Customer specified by CUSTOMER_ID")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomer.toString)
+      val requestGet = (v5_0_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGet.code should equal(200)
+      And("We should get the right information back")
+      val infoGet = responseGet.body.extract[CustomerJsonV310]
+      And("POST feedback and GET feedback must be the same")
+      infoGet should equal(infoPost)
+    }
   }
 
   
