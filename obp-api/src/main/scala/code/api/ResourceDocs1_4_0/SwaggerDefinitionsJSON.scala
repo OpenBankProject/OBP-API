@@ -4623,6 +4623,14 @@ object SwaggerDefinitionsJSON {
     description = descriptionExample.value,
     meta = metaJson,
   )
+  val putProductJsonV500 = PutProductJsonV500(
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
+    more_info_url = Some(moreInfoUrlExample.value),
+    terms_and_conditions_url = Some(termsAndConditionsUrlExample.value),
+    description = Some(descriptionExample.value),
+    meta = Some(metaJson)
+  )
 
   val createMessageJsonV400 = CreateMessageJsonV400(
     message = messageExample.value,

@@ -30,7 +30,7 @@ import java.util.Date
 
 import code.api.util.APIUtil.stringOrNull
 import code.api.v1_2_1.BankRoutingJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_1_0.PostConsentEntitlementJsonV310
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
@@ -78,6 +78,15 @@ case class PostCustomerJsonV500(
    title: Option[String] = None,
    branch_id: Option[String] = None,
    name_suffix: Option[String] = None
+)
+
+case class PutProductJsonV500(
+   parent_product_code: String, 
+   name: String, 
+   more_info_url: Option[String] = None, 
+   terms_and_conditions_url: Option[String] = None, 
+   description: Option[String] = None, 
+   meta: Option[MetaJsonV140] = None,
 )
 
 case class UserAuthContextJsonV500(
