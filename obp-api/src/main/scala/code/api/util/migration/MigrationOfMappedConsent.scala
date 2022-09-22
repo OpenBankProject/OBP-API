@@ -31,7 +31,7 @@ object MigrationOfMappedConsent {
                 case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
                   () => "ALTER TABLE mappedconsent MODIFY COLUMN mjsonwebtoken TEXT;"
                 case _ =>
-                  () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken TEXT;"
+                  () => "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken type text;"
               }
           }
         
