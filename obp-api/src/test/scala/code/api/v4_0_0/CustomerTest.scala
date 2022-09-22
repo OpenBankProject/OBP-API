@@ -109,7 +109,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
-      val request = (v4_0_0_Request / "customers" / "minimal").GET
+      val request = (v4_0_0_Request / "customers-minimal").GET
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
@@ -120,7 +120,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   feature(s"Get Customers Minimal at Any Bank $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
-      val request = (v4_0_0_Request / "customers" / "minimal").GET<@(user1)
+      val request = (v4_0_0_Request / "customers-minimal").GET<@(user1)
       val response = makeGetRequest(request)
       Then("We should get a 403")
       response.code should equal(403)
@@ -133,7 +133,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
     scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAnyBank.toString)
       When(s"We make a request $VersionOfApi")
-      val request = (v4_0_0_Request / "customers" / "minimal").GET <@(user1)
+      val request = (v4_0_0_Request / "customers-minimal").GET <@(user1)
       val response = makeGetRequest(request)
       Then("We should get a 200")
       response.code should equal(200)

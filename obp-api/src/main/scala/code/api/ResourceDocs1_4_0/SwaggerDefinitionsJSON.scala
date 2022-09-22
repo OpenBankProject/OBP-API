@@ -866,6 +866,25 @@ object SwaggerDefinitionsJSON {
     website = "www.openbankproject.com",
     bank_routings = List(bankRoutingJsonV121),
     attributes = Some(List(bankAttributeBankResponseJsonV400))
+  )  
+  val bankJson500 = BankJson500(
+    id = "gh.29.uk",
+    bank_code = "bank_code ",
+    full_name = "full_name",
+    logo = "logo",
+    website = "www.openbankproject.com",
+    bank_routings = List(bankRoutingJsonV121),
+    attributes = Some(List(bankAttributeBankResponseJsonV400))
+  ) 
+  
+  val postBankJson500 = PostBankJson500(
+    id = Some("gh.29.uk"),
+    bank_code = "bank_code",
+    full_name = Some("full_name"),
+    logo = Some("logo"),
+    website = Some("www.openbankproject.com"),
+    bank_routings = Some(List(bankRoutingJsonV121)),
+    attributes = Some(List(bankAttributeBankResponseJsonV400))
   )
 
   val banksJSON400 = BanksJson400(
@@ -2212,6 +2231,26 @@ object SwaggerDefinitionsJSON {
       title  = ExampleValue.titleExample.value,
       branch_id = ExampleValue.branchIdExample.value,
       name_suffix = ExampleValue.nameSuffixExample.value
+    )  
+  val postCustomerJsonV500 =
+    PostCustomerJsonV500(
+      legal_name = ExampleValue.legalNameExample.value,
+      mobile_phone_number = ExampleValue.mobileNumberExample.value,
+      email = Some(ExampleValue.emailExample.value),
+      face_image = Some(customerFaceImageJson),
+      date_of_birth = Some(DateWithDayExampleObject),
+      relationship_status = Some(ExampleValue.relationshipStatusExample.value),
+      dependants = Some(ExampleValue.dependentsExample.value.toInt),
+      dob_of_dependants = Some(List(DateWithDayExampleObject)),
+      credit_rating = Some(customerCreditRatingJSON),
+      credit_limit = Some(amountOfMoneyJsonV121),
+      highest_education_attained = Some(ExampleValue.highestEducationAttainedExample.value),
+      employment_status = Some(ExampleValue.employmentStatusExample.value),
+      kyc_status = Some(ExampleValue.kycStatusExample.value.toBoolean),
+      last_ok_date = Some(DateWithDayExampleObject),
+      title  = Some(ExampleValue.titleExample.value),
+      branch_id = Some(ExampleValue.branchIdExample.value),
+      name_suffix = Some(ExampleValue.nameSuffixExample.value)
     )
   
   val customerJsonV310 = CustomerJsonV310(
@@ -3590,14 +3629,16 @@ object SwaggerDefinitionsJSON {
   val accountAttributeJson = AccountAttributeJson(
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
-    value = "2012-04-23"
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
   )  
   val accountAttributeResponseJson = AccountAttributeResponseJson(
     product_code = productCodeExample.value,
     account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
-    value = "2012-04-23"
+    value = "2012-04-23",
+    product_instance_code = Some("LKJL98769F"),
   )
 
   val moderatedAccountJSON310 = ModeratedAccountJSON310(
@@ -4581,6 +4622,14 @@ object SwaggerDefinitionsJSON {
     terms_and_conditions_url = termsAndConditionsUrlExample.value,
     description = descriptionExample.value,
     meta = metaJson,
+  )
+  val putProductJsonV500 = PutProductJsonV500(
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
+    more_info_url = Some(moreInfoUrlExample.value),
+    terms_and_conditions_url = Some(termsAndConditionsUrlExample.value),
+    description = Some(descriptionExample.value),
+    meta = Some(metaJson)
   )
 
   val createMessageJsonV400 = CreateMessageJsonV400(

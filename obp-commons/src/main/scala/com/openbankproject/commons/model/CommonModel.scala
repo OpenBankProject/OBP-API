@@ -91,7 +91,8 @@ case class AccountAttributeCommons(
                                     accountAttributeId :String,
                                     name :String,
                                     attributeType : AccountAttributeType.Value,
-                                    value :String) extends AccountAttribute
+                                    value :String,
+                                    productInstanceCode: Option[String] = None) extends AccountAttribute
 
 object AccountAttributeCommons extends Converter[AccountAttribute, AccountAttributeCommons]
 

@@ -590,7 +590,7 @@ class Boot extends MdcLoggable {
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
-    val locale = I18NUtil.getLocale()
+    val locale = I18NUtil.getDefaultLocale()
     Locale.setDefault(locale)
     logger.info("Default Project Locale is :" + locale)
     

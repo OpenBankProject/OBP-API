@@ -106,7 +106,7 @@ object ErrorMessages {
   val FilterIsDeletedFormatError = s"OBP-10036: is_deleted parameter can only take two values: TRUE or FALSE!"
 
   val InvalidApiVersionString = "OBP-00027: Invalid API Version string. We could not find the version specified."
-  val IncorrectTriggerName = "OBP-10028: Incorrect Trigger name:"
+  val IncorrectTriggerName = "OBP-10039: Incorrect Trigger name:"
 
   val ScaMethodNotDefined = "OBP-10030: Strong customer authentication method is not defined at this instance."
 
@@ -456,6 +456,10 @@ object ErrorMessages {
   // ATM related messages
   val atmsNotFoundLicense = "OBP-33001: No ATMs available. License may not be set."
   val atmsNotFound = "OBP-33002: No ATMs available."
+  
+  // Bank related messages
+  val bankIdAlreadyExists = "OBP-34000: Bank Id already exists. Please specify a different value."
+  val updateBankError = "OBP-34001: Could not update the Bank"
   
   // Consents
   val ConsentNotFound = "OBP-35001: Consent not found by CONSENT_ID. "

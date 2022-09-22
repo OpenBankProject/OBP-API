@@ -33,6 +33,10 @@ object ApiPropsWithAlias {
     name="jwt.token_secret",
     alias="gateway.token_secret",
     defaultValue="Cannot get your at least 256 bit secret")
+  def defaultLocale = getValueByNameOrAlias(
+    name="default_locale",
+    alias="language_tag",
+    defaultValue="en_GB")
 }
 
 object HelperFunctions extends MdcLoggable {

@@ -6,14 +6,14 @@
             <hr/>
             <h3>
                 <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    What is the correct base URL for this sandbox?
+                    <lift:loc locid="what.is.the.correct.base.URL.for.this.instance">What is the correct base URL for this sandbox5?</lift:loc>
                 </button>
             </h3>
             <p id="main-faq-item0" class="collapse">
-                The base URL is<br/>
+                <lift:loc locid="The.base.URL.is">The base URL is</lift:loc><br/>
                 <a class="api-link" data-lift="WebUI.apiLink"
                    href="">http://apisandbox.openbankproject.com</a><br/>
-                Please make sure you are using this in all your API calls
+                <lift:loc locid="Please.make.sure.you.are.using.this.in.all.your.API.calls">Please make sure you are using this in all your API calls</lift:loc><br/>
             </p>
             <img src="/media/images/icons/chevron_down_thick.svg" alt="">
         </div>

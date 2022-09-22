@@ -4,8 +4,9 @@ import java.util.{Date, Locale}
 
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.enums.LanguageParam
+import net.liftweb.common.Full
 import net.liftweb.http.S
-import net.liftweb.util.Props
+import net.liftweb.http.provider.HTTPCookie
 
 object I18NUtil {
   // Copied from Sofit
@@ -16,16 +17,27 @@ object I18NUtil {
     formattedDate
   }
 
-  def getLocale(): Locale = Locale.getAvailableLocales().toList.filter { l =>
-    l.toLanguageTag == Props.get("language_tag", "en-GB")
-  }.headOption.getOrElse(Locale.ENGLISH)
+  def getDefaultLocale(): Locale = Locale.getAvailableLocales().toList.filter { l =>
+    l.toString == ApiPropsWithAlias.defaultLocale || // this will support underscore
+      l.toLanguageTag == ApiPropsWithAlias.defaultLocale // this will support hyphen
+  }.headOption.getOrElse(new Locale(ApiPropsWithAlias.defaultLocale))
   
   def currentLocale() : Locale = {
     // Cookie name
     val localeCookieName = "SELECTED_LOCALE"
-    S.findCookie(localeCookieName).flatMap {
-      cookie => cookie.value.map(computeLocale)
-    } openOr getLocale()
+    S.param("locale") match {
+      // 1st choice: Use query parameter as a source of truth if any
+      case Full(requestedLocale) if requestedLocale != null => {
+        val computedLocale = I18NUtil.computeLocale(requestedLocale)
+        S.addCookie(HTTPCookie(localeCookieName, requestedLocale))
+        computedLocale
+      }
+      // 2nd choice: Otherwise use the cookie  
+      case _ =>
+        S.findCookie(localeCookieName).flatMap {
+          cookie => cookie.value.map(computeLocale)
+        } openOr getDefaultLocale()
+    }
   }
   // Properly convert a language tag to a Locale
   def computeLocale(tag : String) = tag.split(Array('-', '_')) match {
