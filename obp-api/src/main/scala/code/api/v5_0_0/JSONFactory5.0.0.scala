@@ -60,6 +60,15 @@ case class BankJson500(
     attributes: Option[List[BankAttributeBankResponseJsonV400]]
 )
 
+case class CreateAccountRequestJsonV500(
+    user_id : Option[String],
+    label   : String,
+    product_code : String,
+    balance : Option[AmountOfMoneyJsonV121],
+    branch_id : Option[String],
+    account_routings: Option[List[AccountRoutingJsonV121]]
+)
+
 case class PostCustomerJsonV500(
    legal_name: String,
    mobile_phone_number: String,
