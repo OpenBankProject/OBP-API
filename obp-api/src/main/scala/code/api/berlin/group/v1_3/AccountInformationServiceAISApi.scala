@@ -22,6 +22,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -33,7 +34,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 object APIMethods_AccountInformationServiceAISApi extends RestHelper {
-    val apiVersion =  OBP_BERLIN_GROUP_1_3.apiVersion
+    val apiVersion = ApiVersion.berlinGroupV13
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)

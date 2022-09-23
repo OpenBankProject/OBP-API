@@ -20,10 +20,12 @@ import com.github.dwickern.macros.NameOf.nameOf
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
+
 import scala.concurrent.Future
 
 object APIMethods_SigningBasketsApi extends RestHelper {
-    val apiVersion = OBP_BERLIN_GROUP_1_3.apiVersion
+    val apiVersion = ApiVersion.berlinGroupV13
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
