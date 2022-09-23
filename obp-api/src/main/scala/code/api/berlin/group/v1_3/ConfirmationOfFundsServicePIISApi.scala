@@ -10,6 +10,7 @@ import code.fx.fx
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -19,7 +20,7 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 
 object APIMethods_ConfirmationOfFundsServicePIISApi extends RestHelper {
-    val apiVersion =  OBP_BERLIN_GROUP_1_3.apiVersion
+    val apiVersion =  ApiVersion.berlinGroupV13
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)

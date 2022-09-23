@@ -5,6 +5,7 @@ import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInform
 import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
 import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 import code.api.util.APIUtil._
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 
@@ -13,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 
 //TODO maybe we can remove this common services, it just show other apis in this tag. no new ones.
 object APIMethods_CommonServicesApi extends RestHelper {
-    val apiVersion =  OBP_BERLIN_GROUP_1_3.apiVersion
+    val apiVersion =  ApiVersion.berlinGroupV13
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     val codeContext = CodeContext(resourceDocs, apiRelations)

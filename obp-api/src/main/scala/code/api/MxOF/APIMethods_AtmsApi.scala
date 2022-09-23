@@ -11,7 +11,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.ScannedApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import dispatch.Future
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.Req
@@ -39,7 +39,7 @@ object APIMethods_AtmsApi extends RestHelper {
   lazy val JsonHead = new TestHead with JsonTest
   
   
-    val apiVersion = ScannedApiVersion("CNBV9", "CNBV9", "v1.0.0")
+    val apiVersion = ApiVersion.cnbv9
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
     protected implicit def JvalueToSuper(what: JValue): JvalueCaseClass = JvalueCaseClass(what)
