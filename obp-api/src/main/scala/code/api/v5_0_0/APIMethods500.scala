@@ -12,6 +12,7 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
+import code.api.v4_0_0.OBPAPI4_0_0.transactionRequestGeneralText
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -21,7 +22,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{BankId, CreditLimit, CreditRating, CustomerFaceImage, UserAuthContextUpdateStatus}
+import com.openbankproject.commons.model.{AccountId, BankId, CreditLimit, CreditRating, CustomerFaceImage, TransactionRequestType, UserAuthContextUpdateStatus, ViewId}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Full
 import net.liftweb.http.Req

@@ -2681,6 +2681,12 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, CardNotFound), i._2)
       }
 
+    def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : OBPReturnType[PhysicalCardTrait] = {
+      Connector.connector.vend.getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, InvalidCardNumber), i._2)
+      }
+    }
+
     def getPhysicalCardForBank(bankId: BankId, cardId:String ,callContext:Option[CallContext]) : OBPReturnType[PhysicalCardTrait] =
       Connector.connector.vend.getPhysicalCardForBank(bankId: BankId, cardId: String, callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CardNotFound Current CardId($cardId)"), i._2)

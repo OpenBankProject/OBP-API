@@ -231,6 +231,12 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     }
     cards
   }
+  
+  override def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : Box[PhysicalCardTrait] = {
+    MappedPhysicalCard.find(
+      By(MappedPhysicalCard.mBankCardNumber, bankCardNumber),
+    )
+  }
 
   def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam]) = {
     val customerId: Option[Cmp[MappedPhysicalCard, String]] = queryParams.collect { case OBPCustomerId(value) => 

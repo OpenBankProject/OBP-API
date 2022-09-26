@@ -628,6 +628,9 @@ trait Connector extends MdcLoggable {
   def getPhysicalCardsForUser(user : User, callContext: Option[CallContext] = None) : OBPReturnType[Box[List[PhysicalCard]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def deletePhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getPhysicalCardsForBankLegacy(bank: Bank, user : User, queryParams: List[OBPQueryParam]) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)

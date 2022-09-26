@@ -76,6 +76,8 @@ trait PhysicalCardProvider {
   def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : Box[PhysicalCardTrait]
   
   def deletePhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : Box[Boolean]
+  
+  def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : Box[PhysicalCardTrait]
 
 
 }

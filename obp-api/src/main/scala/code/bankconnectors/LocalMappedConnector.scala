@@ -1216,6 +1216,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     )
   }
 
+  override def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future {
+    (
+      code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardByCardNumber(bankCardNumber: String, callContext: Option[CallContext]),
+      callContext
+    )
+  }
+
   override def getPhysicalCardsForBankLegacy(bank: Bank, user: User, queryParams: List[OBPQueryParam]): Box[List[PhysicalCard]] = {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user, queryParams)
     val cardList = for (l <- list) yield
