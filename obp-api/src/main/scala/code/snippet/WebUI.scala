@@ -178,20 +178,27 @@ class WebUI extends MdcLoggable{
 
   val mainFaqHtmlLink = getWebUiPropsValue("webui_main_faq_external_link","")
   
-  val mainFaqHtmlContent = try{
-    if (mainFaqHtmlLink.isEmpty)//If the webui_featured_sdks_external_link is not set, we will read the internal sdks.html file instead.
-      LiftRules.getResource("/main-faq.html").map{ url =>
-        Source.fromURL(url, "UTF-8").mkString
-      }.openOrThrowException("Please check the content of this file: src/main/webapp/main-faq.html")
-    else
-      Source.fromURL(mainFaqHtmlLink, "UTF-8").mkString
-  }catch {
+  val mainFaqExternalHtmlContent = try {
+    Source.fromURL(mainFaqHtmlLink, "UTF-8").mkString
+  } catch {
     case _ : Throwable => "<h1>FAQs is wrong, please check the props `webui_main_faq_external_link` </h1>"
   }
 
   // webui_featured_sdks_external_link props, we can set the sdks here. check the `SDK Showcases` in Homepage, and you can see all the sdks.
-  def mainFaqHtml: CssSel = {
-    "#main-faq *" #> scala.xml.Unparsed(mainFaqHtmlContent)
+  def mainFaqExternalHtml: CssSel = {
+    if (mainFaqHtmlLink.isEmpty) {
+      "#main-faq-external [style]" #> "display:none"
+    } else {
+      "#main-faq-external [style]" #> "display:block" &
+      "#main-faq-external *" #> scala.xml.Unparsed(mainFaqExternalHtmlContent)
+    }
+  }
+  def mainFaqInternalHtml: CssSel = {
+    if (mainFaqHtmlLink.isEmpty) {
+      "#main-faq-internal [style]" #> "display:block"
+    } else {
+      "#main-faq-internal [style]" #> "display:none"
+    }
   }
 
   val brandString = activeBrand match {

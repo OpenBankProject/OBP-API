@@ -1,160 +1,164 @@
-<h2 id="technical-faqs">FAQs</h2>
+<div id="main-faq-internal" data-lift="WebUI.mainFaqInternalHtml">
+    <h2 id="technical-faqs">FAQs</h2>
 
-<div class="row">
-    <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item0" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    <lift:loc locid="what.is.the.correct.base.URL.for.this.instance">What is the correct base URL for this sandbox5?</lift:loc>
-                </button>
-            </h3>
-            <p id="main-faq-item0" class="collapse">
-                <lift:loc locid="The.base.URL.is">The base URL is</lift:loc><br/>
-                <a class="api-link" data-lift="WebUI.apiLink"
-                   href="">http://apisandbox.openbankproject.com</a><br/>
-                <lift:loc locid="Please.make.sure.you.are.using.this.in.all.your.API.calls">Please make sure you are using this in all your API calls</lift:loc><br/>
-            </p>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item0" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        <lift:loc locid="what.is.the.correct.base.URL.for.this.instance">What is the correct base URL for this sandbox5?</lift:loc>
+                    </button>
+                </h3>
+                <p id="main-faq-item0" class="collapse">
+                    <lift:loc locid="The.base.URL.is">The base URL is</lift:loc><br/>
+                    <a class="api-link" data-lift="WebUI.apiLink"
+                       href="">http://apisandbox.openbankproject.com</a><br/>
+                    <lift:loc locid="Please.make.sure.you.are.using.this.in.all.your.API.calls">Please make sure you are using this in all your API calls</lift:loc><br/>
+                </p>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item1" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        I got a 404 error, what am I doing wrong
+                    </button>
+                </h3>
+                <ol id="main-faq-item1" class="collapse">
+                    <li>
+                        Avoid using trailing slashes, else, you would get a 404 error. Example:<br/>
+                        .../obp/v1.4.0 200 OK<br/>
+                        .../obp/v1.4.0/ 404 Not Found<br/>
+                    </li>
+                    <li>Double check parameters are spelt correctly (including http vs https etc.)</li>
+                    <li>Check your encoding (use UTF8)</li>
+                </ol>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
         </div>
     </div>
-    <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item1" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    I got a 404 error, what am I doing wrong
-                </button>
-            </h3>
-            <ol id="main-faq-item1" class="collapse">
-                <li>
-                    Avoid using trailing slashes, else, you would get a 404 error. Example:<br/>
-                    .../obp/v1.4.0 200 OK<br/>
-                    .../obp/v1.4.0/ 404 Not Found<br/>
-                </li>
-                <li>Double check parameters are spelt correctly (including http vs https etc.)</li>
-                <li>Check your encoding (use UTF8)</li>
-            </ol>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item2" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        How should I login?
+                    </button>
+                </h3>
+                <p id="main-faq-item2" class="collapse">
+                    There are two ways to authenticate a user: <a
+                        href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS">OAuth</a> and <a
+                        href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">Direct Login</a>. If you
+                    are using this sandbox for a hackathon, we recommend you use Direct Login to authenticate as it
+                    is easier than the OAuth workflow.
+                </p>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
+        </div>
+
+        <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item3" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        How can I use OAuth or Direct Login?
+                    </button>
+                </h3>
+                <p id="main-faq-item3" class="collapse">
+                    If you want to use OBP with OAuth, we recommend you use (and fork) one of our <a
+                        href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS">OAuth Starter
+                    SDKs</a>.
+                    If you are using this sandbox for a hackathon, we recommend you use <a
+                        class="direct-login-documentation-url" data-lift="WebUI.directLoginDocumentationUrl"
+                        href="">Direct Login</a>.
+                    For an OAuth walkthrough example with sample code, please see <a
+                        href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Python">here</a>.
+                    We use OAuth 1.0a. For deepish technical details of the flow <a
+                        class="oauth-1-documentation-url" data-lift="WebUI.oauth1DocumentationUrl" href="">see
+                    here.</a><br/>
+                    We also support OAuth 2.0. For the technical details of using OBP API with OAuth 2.0, please <a
+                        class="oauth-2-documentation-url" data-lift="WebUI.oauth2DocumentationUrl" href="">see
+                    here.</a><br/>
+                </p>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item4" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        Where can I read the API documentation?
+                    </button>
+                </h3>
+                <p id="main-faq-item4" class="collapse">
+                    Please use the <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API
+                    Explorer</a>
+                </p>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item5" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        How can I use the example customer data?
+                    </button>
+                </h3>
+                <p id="main-faq-item5" class="collapse">
+                    You will need to login to the API as a sandbox customer. You can do this using the API Explorer,
+                    or any REST client. You can find some example credentials <a
+                        class="example_sandbox_credentials_link" data-lift="WebUI.exampleSandboxCredentialsLink"
+                        href="https://github.com/OpenBankProject/OBP-API/wiki/">here</a>.</p>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item6" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        Where does the data come from?
+                    </button>
+                </h3>
+                <p id="main-faq-item6" class="collapse faq-data-text" data-lift="WebUI.faqDataText">Text is
+                    replaced</p>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
+            <div data-toggle="collapse" data-target="#main-faq-item7" class="collapsed main-faq-button">
+                <hr/>
+                <h3>
+                    <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
+                        Where can i get more information and support?
+                    </button>
+                </h3>
+                <p id="main-faq-item7" class="collapse">
+                    Please refer to our <a class="faq-link" data-lift="WebUI.faqLink" href=""
+                                           target="_blank">FAQ</a>, <a class="glossary-link"
+                                                                       data-lift="WebUI.glossaryLink" href=""
+                                                                       target="_blank">Glossary</a>, join our <a
+                        class="support-platform-link" data-lift="WebUI.supportPlatformLink" href="" target="_blank">Rocket-Chat
+                    channels</a> or email us at <a class="faq-email" data-lift="WebUI.faqEmail" href="">contact@openbankproject.com</a>
+                </p>
+                <img src="/media/images/icons/chevron_down_thick.svg" alt="">
+            </div>
+        </div>
+    </div>
+    <hr>
+    
 </div>
 
-<div class="row">
-    <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item2" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    How should I login?
-                </button>
-            </h3>
-            <p id="main-faq-item2" class="collapse">
-                There are two ways to authenticate a user: <a
-                    href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS">OAuth</a> and <a
-                    href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">Direct Login</a>. If you
-                are using this sandbox for a hackathon, we recommend you use Direct Login to authenticate as it
-                is easier than the OAuth workflow.
-            </p>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
-        </div>
-    </div>
-
-    <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item3" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    How can I use OAuth or Direct Login?
-                </button>
-            </h3>
-            <p id="main-faq-item3" class="collapse">
-                If you want to use OBP with OAuth, we recommend you use (and fork) one of our <a
-                    href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS">OAuth Starter
-                SDKs</a>.
-                If you are using this sandbox for a hackathon, we recommend you use <a
-                    class="direct-login-documentation-url" data-lift="WebUI.directLoginDocumentationUrl"
-                    href="">Direct Login</a>.
-                For an OAuth walkthrough example with sample code, please see <a
-                    href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Python">here</a>.
-                We use OAuth 1.0a. For deepish technical details of the flow <a
-                    class="oauth-1-documentation-url" data-lift="WebUI.oauth1DocumentationUrl" href="">see
-                here.</a><br/>
-                We also support OAuth 2.0. For the technical details of using OBP API with OAuth 2.0, please <a
-                    class="oauth-2-documentation-url" data-lift="WebUI.oauth2DocumentationUrl" href="">see
-                here.</a><br/>
-            </p>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item4" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    Where can I read the API documentation?
-                </button>
-            </h3>
-            <p id="main-faq-item4" class="collapse">
-                Please use the <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API
-                Explorer</a>
-            </p>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
-        </div>
-    </div>
-    <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item5" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    How can I use the example customer data?
-                </button>
-            </h3>
-            <p id="main-faq-item5" class="collapse">
-                You will need to login to the API as a sandbox customer. You can do this using the API Explorer,
-                or any REST client. You can find some example credentials <a
-                    class="example_sandbox_credentials_link" data-lift="WebUI.exampleSandboxCredentialsLink"
-                    href="https://github.com/OpenBankProject/OBP-API/wiki/">here</a>.</p>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-xs-12 col-sm-6 main-faq-left" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item6" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    Where does the data come from?
-                </button>
-            </h3>
-            <p id="main-faq-item6" class="collapse faq-data-text" data-lift="WebUI.faqDataText">Text is
-                replaced</p>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
-        </div>
-    </div>
-    <div class="col-xs-12 col-sm-6 main-faq-right" onclick="mouseClickMainMaq(this)">
-        <div data-toggle="collapse" data-target="#main-faq-item7" class="collapsed main-faq-button">
-            <hr/>
-            <h3>
-                <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                    Where can i get more information and support?
-                </button>
-            </h3>
-            <p id="main-faq-item7" class="collapse">
-                Please refer to our <a class="faq-link" data-lift="WebUI.faqLink" href=""
-                                       target="_blank">FAQ</a>, <a class="glossary-link"
-                                                                   data-lift="WebUI.glossaryLink" href=""
-                                                                   target="_blank">Glossary</a>, join our <a
-                    class="support-platform-link" data-lift="WebUI.supportPlatformLink" href="" target="_blank">Rocket-Chat
-                channels</a> or email us at <a class="faq-email" data-lift="WebUI.faqEmail" href="">contact@openbankproject.com</a>
-            </p>
-            <img src="/media/images/icons/chevron_down_thick.svg" alt="">
-        </div>
-    </div>
-</div>
-<hr>
