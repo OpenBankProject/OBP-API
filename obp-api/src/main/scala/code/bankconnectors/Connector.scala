@@ -1418,7 +1418,7 @@ trait Connector extends MdcLoggable {
         }yield{
           (createdTransactionId,callContext)
         }
-        case transactionRequestType => Future((throw new Exception(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")), callContext)
+        case _ => Future((throw new Exception(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not completed in this version.")), callContext)
       }
 
       didSaveTransId <- Future{saveTransactionRequestTransaction(transactionRequestId, transactionId).openOrThrowException(attemptedToOpenAnEmptyBox)}

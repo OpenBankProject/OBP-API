@@ -12,7 +12,6 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
-import code.api.v4_0_0.OBPAPI4_0_0.transactionRequestGeneralText
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement

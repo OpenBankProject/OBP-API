@@ -5095,7 +5095,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           } yield {
             (transactionId, callContext)
           }
-        case COUNTERPARTY =>
+        case COUNTERPARTY | CARD =>
           for {
             bodyToCounterparty <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
               body.to_counterparty.get
