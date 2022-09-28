@@ -735,7 +735,9 @@ case class OutBoundCreatePhysicalCard(outboundAdapterCallContext: OutboundAdapte
                                       pinResets: List[PinResetInfo],
                                       collected: Option[CardCollectionInfo],
                                       posted: Option[CardPostedInfo],
-                                      customerId: String
+                                      customerId: String,
+                                      cvv: String,
+                                      brand: String
                                       ) extends TopicTrait
 case class InBoundCreatePhysicalCard(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard) extends InBoundTrait[PhysicalCard]
 
@@ -948,7 +950,9 @@ case class OutBoundCreatePhysicalCardLegacy (outboundAdapterCallContext: Outboun
                                              pinResets: List[PinResetInfo],
                                              collected: Option[CardCollectionInfo],
                                              posted: Option[CardPostedInfo],
-                                             customerId: String) extends TopicTrait
+                                             customerId: String,
+                                             cvv: String = "",
+                                             brand: String = "") extends TopicTrait
 case class InBoundCreatePhysicalCardLegacy (inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: PhysicalCard) extends InBoundTrait[PhysicalCard]
 
 
