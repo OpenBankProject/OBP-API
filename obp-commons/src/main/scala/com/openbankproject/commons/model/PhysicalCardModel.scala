@@ -61,8 +61,8 @@ trait PhysicalCardTrait {
   def collected: Option[CardCollectionInfo]
   def posted: Option[CardPostedInfo]
   def customerId: String
-  def cvv: String
-  def brand: String
+  def cvv: Option[String] = None //added from V500
+  def brand: Option[String] = None //added from V500
 }
 
 case class PhysicalCard  (
@@ -87,8 +87,8 @@ case class PhysicalCard  (
   val collected : Option[CardCollectionInfo],
   val posted : Option[CardPostedInfo],
   val customerId: String,
-  val cvv: String,
-  val brand: String
+  override val cvv: Option[String] = None,
+  override val brand: Option[String] = None
 ) extends PhysicalCardTrait
 
 

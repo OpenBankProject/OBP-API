@@ -710,8 +710,6 @@ trait Connector extends MdcLoggable {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
-    cvv: String,
-    brand: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure{setUnimplementedError}, callContext)}
 

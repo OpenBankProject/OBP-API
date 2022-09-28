@@ -4736,8 +4736,8 @@ object SwaggerDefinitionsJSON {
     valid_from_date = DateWithDayExampleObject,
     expires_date = DateWithDayExampleObject,
     enabled = true,
-    technology = "technology1",
-    networks = List("network1", "network2"),
+    technology = technologyExample.value,
+    networks = networksExample.value.split("[,;]").toList,
     allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
     account_id =accountIdExample.value,
     replacement = Some(replacementJSON),
@@ -4745,7 +4745,6 @@ object SwaggerDefinitionsJSON {
     collected = Some(DateWithDayExampleObject),
     posted = Some(DateWithDayExampleObject),
     customer_id = customerIdExample.value,
-    cvv = cvvExample.value,
     brand = brandExample.value
   )
 
@@ -4798,28 +4797,6 @@ object SwaggerDefinitionsJSON {
     posted = DateWithDayExampleObject,
     customer_id = customerIdExample.value,
     card_attributes = List(cardAttributeCommons),
-    cvv = cvvExample.value,
-    brand = brandExample.value
-  )
-
-  val updatePhysicalCardJsonV500 = UpdatePhysicalCardJsonV500(
-    card_type = cardTypeExample.value,
-    name_on_card = nameOnCardExample.value,
-    issue_number = issueNumberExample.value,
-    serial_number = serialNumberExample.value,
-    valid_from_date = DateWithDayExampleObject,
-    expires_date = DateWithDayExampleObject,
-    enabled = true,
-    technology = technologyExample.value,
-    networks = networksExample.value.split("[,;]").toList,
-    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
-    account_id = accountIdExample.value,
-    replacement = replacementJSON,
-    pin_reset = List(pinResetJSON, pinResetJSON1),
-    collected = DateWithDayExampleObject,
-    posted = DateWithDayExampleObject,
-    customer_id = customerIdExample.value,
-    cvv = cvvExample.value,
     brand = brandExample.value
   )
   //The common error or success format.

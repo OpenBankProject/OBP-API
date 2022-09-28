@@ -413,6 +413,7 @@ case class TransactionRequestBodySimpleJsonV400(
 case class CardJsonV400(
   card_type: String,
   brand: String,
+  cvv: String,
   card_number: String,
   name_on_card: String,
   expiry_year: Int,

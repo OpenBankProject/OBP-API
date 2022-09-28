@@ -10,9 +10,9 @@ import code.api.util.NewStyle.function.extractQueryParams
 import code.api.util._
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
-import code.api.v3_1_0.JSONFactory310.createPhysicalCardJson
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
+import code.api.v5_0_0.JSONFactory500.createPhysicalCardJson
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -32,6 +32,7 @@ import net.liftweb.json.compactRender
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
+import java.util.concurrent.ThreadLocalRandom
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -1083,7 +1084,9 @@ trait APIMethods500 {
               case Some(posted) => Option(CardPostedInfo(posted))
               case None => None
             }
-
+            
+            cvv = ThreadLocalRandom.current().nextLong(100, 999)
+            
             (card, callContext) <- NewStyle.function.createPhysicalCard(
               bankCardNumber=postJson.card_number,
               nameOnCard=postJson.name_on_card,
@@ -1105,131 +1108,16 @@ trait APIMethods500 {
               collected = collected,
               posted = posted,
               customerId = postJson.customer_id,
-              cvv = postJson.cvv,
+              cvv = cvv.toString,
               brand = postJson.brand,
               callContext
             )
-          } yield {
-            (createPhysicalCardJson(card, u), HttpCode.`201`(callContext))
+          } yield { 
+            //NOTE: OBP do not store the 3 digits cvv, only the hash, so we copy it here.
+            (createPhysicalCardJson(card, u).copy(cvv=cvv.toString), HttpCode.`201`(callContext))
           }
       }
     }
-
-    staticResourceDocs += ResourceDoc(
-      getCardForBank,
-      implementedInApiVersion,
-      nameOf(getCardForBank),
-      "GET",
-      "/management/banks/BANK_ID/cards/CARD_ID",
-      "Get Card By Id",
-      s"""
-         |This will the details of the card.
-         |It shows the account information which linked the the card.
-         |Also shows the card attributes of the card. 
-         |
-       """.stripMargin,
-      emptyObjectJson,
-      physicalCardWithAttributesJsonV500,
-      List($UserNotLoggedIn,$BankNotFound, UnknownError),
-      List(apiTagCard, apiTagNewStyle),
-      Some(List(canGetCardsForBank))
-    )
-    lazy val getCardForBank : OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId ::  Nil JsonGet _ => {
-        cc => {
-          for {
-            (Full(u), _,callContext) <- SS.userBank
-            (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
-            (cardAttributes, callContext) <- NewStyle.function.getCardAttributesFromProvider(cardId, callContext)
-          } yield {
-            val views: List[View] = Views.views.vend.assignedViewsForAccount(BankIdAccountId(card.account.bankId, card.account.accountId))
-            val commonsData: List[CardAttributeCommons]= cardAttributes
-            (JSONFactory500.createPhysicalCardWithAttributesJson(card, commonsData, u, views), HttpCode.`200`(callContext))
-          }
-        }
-      }
-    }
-
-    staticResourceDocs += ResourceDoc(
-      updatedCardForBank,
-      implementedInApiVersion,
-      nameOf(updatedCardForBank),
-      "PUT",
-      "/management/banks/BANK_ID/cards/CARD_ID",
-      "Update Card",
-      s"""Update Card at bank specified by CARD_ID .
-         |${authenticationRequiredMessage(true)}
-         |""",
-      updatePhysicalCardJsonV500,
-      physicalCardJsonV500,
-      List(
-        $UserNotLoggedIn,
-        $BankNotFound,
-        UserHasMissingRoles,
-        AllowedValuesAre,
-        UnknownError
-      ),
-      List(apiTagCard, apiTagNewStyle),
-      Some(List(canUpdateCardsForBank)))
-    lazy val updatedCardForBank: OBPEndpoint = {
-      case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonPut json -> _ => {
-        cc =>
-          for {
-            (Full(u), _,callContext) <- SS.userBank
-            failMsg = s"$InvalidJsonFormat The Json body should be the $UpdatePhysicalCardJsonV310 "
-            postJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[UpdatePhysicalCardJsonV500]
-            }
-            _ <- postJson.allows match {
-              case List() => Future {1}
-              case _ => Helper.booleanToFuture(AllowedValuesAre + CardAction.availableValues.mkString(", "), cc=callContext)(postJson.allows.forall(a => CardAction.availableValues.contains(a)))
-            }
-
-            failMsg = AllowedValuesAre + CardReplacementReason.availableValues.mkString(", ")
-            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              CardReplacementReason.valueOf(postJson.replacement.reason_requested)
-            }
-
-            _<-Helper.booleanToFuture(s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}", cc=callContext)(postJson.issue_number.length<= 10)
-
-            (_, callContext)<- NewStyle.function.getBankAccount(bankId, AccountId(postJson.account_id), callContext)
-
-            (card, callContext) <- NewStyle.function.getPhysicalCardForBank(bankId, cardId, callContext)
-
-            (_, callContext)<- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, callContext)
-
-            (card, callContext) <- NewStyle.function.updatePhysicalCard(
-              cardId = cardId,
-              bankCardNumber=card.bankCardNumber,
-              cardType = postJson.card_type,
-              nameOnCard=postJson.name_on_card,
-              issueNumber=postJson.issue_number,
-              serialNumber=postJson.serial_number,
-              validFrom=postJson.valid_from_date,
-              expires=postJson.expires_date,
-              enabled=postJson.enabled,
-              cancelled=false,
-              onHotList=false,
-              technology=postJson.technology,
-              networks= postJson.networks,
-              allows= postJson.allows,
-              accountId= postJson.account_id,
-              bankId=bankId.value,
-              replacement= Some(CardReplacementInfo(requestedDate = postJson.replacement.requested_date, CardReplacementReason.valueOf(postJson.replacement.reason_requested))),
-              pinResets= postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
-              collected= Option(CardCollectionInfo(postJson.collected)),
-              posted = Option(CardPostedInfo(postJson.posted)),
-              customerId = postJson.customer_id,
-              cvv = postJson.cvv,
-              brand = postJson.brand,
-              callContext = callContext
-            )
-          } yield {
-            (createPhysicalCardJson(card, u), HttpCode.`200`(callContext))
-          }
-      }
-    }
-
 
   }
 }

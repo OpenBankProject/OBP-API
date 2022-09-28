@@ -1417,8 +1417,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    collected: Option[CardCollectionInfo],
                                    posted: Option[CardPostedInfo],
                                    customerId: String,
-                                   cvv: String,
-                                   brand: String,
                                    callContext: Option[CallContext]
                                  ): OBPReturnType[Box[PhysicalCardTrait]] = Future {
     (
@@ -1444,8 +1442,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         collected: Option[CardCollectionInfo],
         posted: Option[CardPostedInfo],
         customerId: String,
-        cvv: String,
-        brand: String,
         callContext: Option[CallContext]),
       callContext)
   }

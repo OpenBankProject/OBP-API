@@ -4895,8 +4895,6 @@ trait APIMethods310 {
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted = Option(CardPostedInfo(postJson.posted)),
               customerId = postJson.customer_id,
-              cvv = "", //added from  v500
-              brand = "",//added from v500
               callContext = callContext
             )
           } yield {

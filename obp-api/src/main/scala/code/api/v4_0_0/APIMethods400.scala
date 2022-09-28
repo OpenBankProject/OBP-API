@@ -923,32 +923,38 @@ trait APIMethods400 {
         (fromAccount, callContext) <- transactionRequestTypeValue match {
           case CARD =>
             for{
-              //1st: get fromAccount from card
-              //          "card": {
-                //          "brand": "visa",  -->mcardtype --> mallows?? this is not in OBP yet.
-                //          "card_number": "4242 4242 4242 4242", --> mbankcardnumber
-                //          "name_on_card": "James Brown", --> mnameoncard
-                //          "expiry_month": 8, --> mexpires
-                //          "expiry_year": 2023, --> mexpires
-                //          "card_type": "credit" --> mcardtype  
-                //          "cvv": "123" --> CVV  
-                //        },
-//              step1:  
-              
               transactionRequestBodyCard <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $CARD json format", 400, callContext) {
                 json.extract[TransactionRequestBodyCardJsonV400]
               }
-              //          1.1 get Card from card_number
+              //   1.1 get Card from card_number
               (card,callContext) <- NewStyle.function.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
 
-              //          1.2 check card name/expire month. year.
+              // 1.2 check card name/expire month. year.
               calendar = Calendar.getInstance
               _ = calendar.setTime(card.expires)
-              year = calendar.get(Calendar.YEAR)
-              month = calendar.get(Calendar.MONTH)
-              nameOnCard= card.nameOnCard
-              cvv= card.cvv
-              brand= card.brand
+              yearFromBackend = calendar.get(Calendar.YEAR)
+              monthFromBackend = calendar.get(Calendar.MONTH)
+              nameOnCardFromBackend= card.nameOnCard
+              cvvFromBackend= card.cvv.getOrElse("")
+              brandFromBackend= card.brand.getOrElse("")
+
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue brand is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.brand.equals(brandFromBackend)
+              }
+              
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_year is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.expiry_year.equals(yearFromBackend)
+              }
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_month is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.expiry_month.equals(monthFromBackend)
+              }
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue name_on_card is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.name_on_card.equals(nameOnCardFromBackend)
+              }
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue cvv is not matched", cc=callContext) {
+                HashUtil.Sha256Hash(transactionRequestBodyCard.card.cvv).equals(cvvFromBackend)
+              }
+              
             } yield{
               (card.account, callContext)
             }

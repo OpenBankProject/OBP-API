@@ -27,7 +27,7 @@
 package code.api.v5_0_0
 
 import java.util.Date
-import code.api.util.APIUtil.stringOrNull
+import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_3_0.JSONFactory1_3_0.{cardActionsToString, createAccountJson, createPinResetJson, createReplacementJson}
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
@@ -149,7 +149,6 @@ case class CreatePhysicalCardJsonV500(
   collected: Option[Date],
   posted: Option[Date],
   customer_id: String,
-  cvv: String,
   brand: String
 )
 
@@ -179,6 +178,31 @@ case class PhysicalCardJsonV500(
   brand: String
 )
 
+case class UpdatedPhysicalCardJsonV500(
+  card_id: String,
+  bank_id: String,
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  cancelled: Boolean,
+  on_hot_list: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account: code.api.v1_2_1.AccountJSON,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String,
+  brand: String
+)
+
 case class PhysicalCardWithAttributesJsonV500(
   card_id: String,
   bank_id: String,
@@ -202,7 +226,6 @@ case class PhysicalCardWithAttributesJsonV500(
   posted: Date,
   customer_id: String,
   card_attributes: List[CardAttribute],
-  cvv: String,
   brand: String
 )
 
@@ -223,7 +246,6 @@ case class UpdatePhysicalCardJsonV500(
   collected: Date,
   posted: Date,
   customer_id: String,
-  cvv: String,
   brand: String
 )
 
@@ -307,8 +329,7 @@ object JSONFactory500 {
       posted = card.posted.map(_.date).getOrElse(null),
       customer_id = stringOrNull(card.customerId),
       card_attributes = cardAttributes,
-      cvv = stringOrNull(card.cvv),
-      brand = stringOrNull(card.brand),
+      brand = stringOptionOrNull(card.brand),
     )
   }
   def createPhysicalCardJson(card: PhysicalCardTrait, user : User): PhysicalCardJsonV500 = {
@@ -334,10 +355,9 @@ object JSONFactory500 {
       collected = card.collected.map(_.date).getOrElse(null),
       posted = card.posted.map(_.date).getOrElse(null),
       customer_id = stringOrNull(card.customerId),
-      cvv = stringOrNull(card.cvv),
-      brand = stringOrNull(card.brand)
+      cvv = stringOptionOrNull(card.cvv),
+      brand = stringOptionOrNull(card.brand)
     )
   }
-
 }
 

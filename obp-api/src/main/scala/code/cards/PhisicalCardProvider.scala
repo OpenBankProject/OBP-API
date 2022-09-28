@@ -68,8 +68,6 @@ trait PhysicalCardProvider {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
-    cvv: String,
-    brand: String,
     callContext: Option[CallContext]
   ): Box[PhysicalCardTrait]
   
