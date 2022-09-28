@@ -416,8 +416,8 @@ case class CardJsonV400(
   cvv: String,
   card_number: String,
   name_on_card: String,
-  expiry_year: Int,
-  expiry_month: Int,
+  expiry_year: String,
+  expiry_month: String,
 )
 
 case class TransactionRequestBodyCardJsonV400(

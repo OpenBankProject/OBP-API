@@ -379,6 +379,12 @@ object ExampleValue {
   
   lazy val brandExample = ConnectorField("Visa", s"The brand of the card, eg: Visa, Mastercard")
   glossaryItems += makeGlossaryItem("Adapter.brand", nameOnCardExample)
+  
+  lazy val expiryYearExample = ConnectorField("2023", s"The expiry year of the card")
+  glossaryItems += makeGlossaryItem("Adapter.expiry_year", expiryYearExample)  
+  
+  lazy val expiryMonthExample = ConnectorField("01", s"The expiry month of the card")
+  glossaryItems += makeGlossaryItem("Adapter.expiry_month", expiryMonthExample)
 
   lazy val issueNumberExample = ConnectorField("1", s"The issue number of the physical card, eg 1,2,3,4 ....")
   glossaryItems += makeGlossaryItem("Adapter.issue_number", issueNumberExample)

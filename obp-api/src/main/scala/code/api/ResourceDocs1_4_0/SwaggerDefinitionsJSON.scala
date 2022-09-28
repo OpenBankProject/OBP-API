@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{AccountMinimalJson400, BankAttributeBankResponseJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
+import code.api.v4_0_0.{AccountMinimalJson400, BankAttributeBankResponseJsonV400, CardJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.api.v5_0_0._
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
@@ -4187,6 +4187,22 @@ object SwaggerDefinitionsJSON {
     refund = RefundJson(transactionIdExample.value, transactionRequestRefundReasonCodeExample.value)
   )
 
+  val cardJsonV400 = CardJsonV400(
+    card_type = cardTypeExample.value,
+    brand = brandExample.value,
+    cvv = cvvExample.value,
+    card_number = cardNumberExample.value,
+    name_on_card = nameOnCardExample.value,
+    expiry_year = expiryYearExample.value,
+    expiry_month = expiryMonthExample.value,
+  )
+  
+  val transactionRequestBodyCardJsonV400 = TransactionRequestBodyCardJsonV400(
+    card = cardJsonV400,
+    to = counterpartyIdJson,
+    value = amountOfMoneyJsonV121,
+    description = "A card payment description. "
+  )
   val customerAttributesResponseJson = CustomerAttributesResponseJson (
     customer_attributes = List(customerAttributeResponseJson)
   )

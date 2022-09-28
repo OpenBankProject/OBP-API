@@ -927,36 +927,46 @@ trait APIMethods400 {
                 json.extract[TransactionRequestBodyCardJsonV400]
               }
               //   1.1 get Card from card_number
-              (card,callContext) <- NewStyle.function.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
+              (cardFromCbs,callContext) <- NewStyle.function.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
 
               // 1.2 check card name/expire month. year.
               calendar = Calendar.getInstance
-              _ = calendar.setTime(card.expires)
-              yearFromBackend = calendar.get(Calendar.YEAR)
-              monthFromBackend = calendar.get(Calendar.MONTH)
-              nameOnCardFromBackend= card.nameOnCard
-              cvvFromBackend= card.cvv.getOrElse("")
-              brandFromBackend= card.brand.getOrElse("")
+              _ = calendar.setTime(cardFromCbs.expires)
+              yearFromCbs = calendar.get(Calendar.YEAR).toString
+              monthFromCbs = calendar.get(Calendar.MONTH).toString
+              nameOnCardFromCbs= cardFromCbs.nameOnCard
+              cvvFromCbs= cardFromCbs.cvv.getOrElse("")
+              brandFromCbs= cardFromCbs.brand.getOrElse("")
 
               _ <- Helper.booleanToFuture(s"$InvalidJsonValue brand is not matched", cc=callContext) {
-                transactionRequestBodyCard.card.brand.equals(brandFromBackend)
+                transactionRequestBodyCard.card.brand.equalsIgnoreCase(brandFromCbs)
+              }
+              
+              dateFromJsonBody <- NewStyle.function.tryons(s"$InvalidDateFormat year should be 'yyyy', " +
+                s"eg: 2023, but current expiry_year(${transactionRequestBodyCard.card.expiry_year}), " +
+                s"month should be 'xx', eg: 02, but current expiry_month(${transactionRequestBodyCard.card.expiry_month})", 400, callContext) {
+                DateWithMonthFormat.parse(s"${transactionRequestBodyCard.card.expiry_year}-${transactionRequestBodyCard.card.expiry_month}")
+              }
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue your credit card is expired.", cc=callContext) {
+                org.apache.commons.lang3.time.DateUtils.addMonths(new Date(), 1).before(dateFromJsonBody)
               }
               
               _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_year is not matched", cc=callContext) {
-                transactionRequestBodyCard.card.expiry_year.equals(yearFromBackend)
+                transactionRequestBodyCard.card.expiry_year.equalsIgnoreCase(yearFromCbs)
               }
               _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_month is not matched", cc=callContext) {
-                transactionRequestBodyCard.card.expiry_month.equals(monthFromBackend)
+                transactionRequestBodyCard.card.expiry_month.toInt.equals(monthFromCbs.toInt+1)
               }
+              
               _ <- Helper.booleanToFuture(s"$InvalidJsonValue name_on_card is not matched", cc=callContext) {
-                transactionRequestBodyCard.card.name_on_card.equals(nameOnCardFromBackend)
+                transactionRequestBodyCard.card.name_on_card.equalsIgnoreCase(nameOnCardFromCbs)
               }
               _ <- Helper.booleanToFuture(s"$InvalidJsonValue cvv is not matched", cc=callContext) {
-                HashUtil.Sha256Hash(transactionRequestBodyCard.card.cvv).equals(cvvFromBackend)
+                HashUtil.Sha256Hash(transactionRequestBodyCard.card.cvv).equals(cvvFromCbs)
               }
               
             } yield{
-              (card.account, callContext)
+              (cardFromCbs.account, callContext)
             }
 
           case _ => NewStyle.function.getBankAccount(bankId,accountId, callContext)
@@ -1419,7 +1429,7 @@ trait APIMethods400 {
          |$transactionRequestGeneralText
          |
        """.stripMargin,
-      transactionRequestBodyRefundJsonV400,
+      transactionRequestBodyCardJsonV400,
       transactionRequestWithChargeJSON400,
       List(
         $UserNotLoggedIn,
