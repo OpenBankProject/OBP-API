@@ -4814,6 +4814,8 @@ trait APIMethods310 {
               collected = collected,
               posted = posted,
               customerId = postJson.customer_id,
+              cvv = "",//added from  v500
+              brand = "",//added from  v500
               callContext
             )
           } yield {
@@ -4841,7 +4843,7 @@ trait APIMethods310 {
         UnknownError
       ),
       List(apiTagCard, apiTagNewStyle),
-      Some(List(canCreateCardsForBank)))
+      Some(List(canUpdateCardsForBank)))
     lazy val updatedCardForBank: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId :: Nil JsonPut json -> _ => {
         cc =>
@@ -4893,6 +4895,8 @@ trait APIMethods310 {
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted = Option(CardPostedInfo(postJson.posted)),
               customerId = postJson.customer_id,
+              cvv = "", //added from  v500
+              brand = "",//added from v500
               callContext = callContext
             )
           } yield {
@@ -4957,7 +4961,8 @@ trait APIMethods310 {
       emptyObjectJson,
       physicalCardWithAttributesJsonV310,
       List(UserNotLoggedIn,BankNotFound, UnknownError),
-      List(apiTagCard, apiTagNewStyle))
+      List(apiTagCard, apiTagNewStyle),
+      Some(List(canGetCardsForBank)))
     lazy val getCardForBank : OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: cardId ::  Nil JsonGet _ => {
         cc => {

@@ -38,6 +38,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
+    cvv: String, 
+    brand: String,
     callContext: Option[CallContext]
   ): Box[MappedPhysicalCard] = {
 
@@ -139,6 +141,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
+    cvv: String,
+    brand: String,
     callContext: Option[CallContext]
   ): Box[MappedPhysicalCard] = {
 
@@ -196,6 +200,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mPosted(p.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .mCustomerId(customerId)
+            .mBrand(brand)
+            .mCVV(cvv)
             .saveMe()
         } ?~! ErrorMessages.CreateCardError
     }
@@ -318,6 +324,9 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   //Maybe this will be first uesd for the initialization. and then we can add more `allows` for this card. 
   object mCardType extends MappedString(this, 255)
   object mCustomerId extends MappedString(this, 255)
+  
+  object mBrand extends MappedString(this, 255)
+  object mCVV extends MappedString(this, 255)
 
   def bankId: String = mBankId.get
   def bankCardNumber: String = mBankCardNumber.get
@@ -359,6 +368,8 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   def cardType: String = mCardType.get
   def cardId: String = mCardId.get
   def customerId: String = mCustomerId.get
+  def cvv: String = mCVV.get
+  def brand: String = mBrand.get
 }
 
 object MappedPhysicalCard extends MappedPhysicalCard with LongKeyedMetaMapper[MappedPhysicalCard] {

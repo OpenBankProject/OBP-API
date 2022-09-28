@@ -4726,7 +4726,102 @@ object SwaggerDefinitionsJSON {
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
     )
-  
+
+  val createPhysicalCardJsonV500 = CreatePhysicalCardJsonV500(
+    card_number = bankCardNumberExample.value,
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    technology = "technology1",
+    networks = List("network1", "network2"),
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account_id =accountIdExample.value,
+    replacement = Some(replacementJSON),
+    pin_reset = List(pinResetJSON, pinResetJSON1),
+    collected = Some(DateWithDayExampleObject),
+    posted = Some(DateWithDayExampleObject),
+    customer_id = customerIdExample.value,
+    cvv = cvvExample.value,
+    brand = brandExample.value
+  )
+
+  val physicalCardJsonV500 = PhysicalCardJsonV500(
+    card_id = cardIdExample.value,
+    bank_id = bankIdExample.value,
+    card_number = bankCardNumberExample.value,
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    cancelled = true,
+    on_hot_list = true,
+    technology = technologyExample.value,
+    networks = networksExample.value.split("[,;]").toList,
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account = accountJSON,
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject,
+    customer_id = customerIdExample.value,
+    cvv = cvvExample.value,
+    brand = brandExample.value
+  )
+
+  val physicalCardWithAttributesJsonV500 = PhysicalCardWithAttributesJsonV500(
+    card_id = cardIdExample.value,
+    bank_id = bankIdExample.value,
+    card_number = bankCardNumberExample.value,
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    cancelled = true,
+    on_hot_list = true,
+    technology = technologyExample.value,
+    networks = networksExample.value.split("[,;]").toList,
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account = accountBasicV310,
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject,
+    customer_id = customerIdExample.value,
+    card_attributes = List(cardAttributeCommons),
+    cvv = cvvExample.value,
+    brand = brandExample.value
+  )
+
+  val updatePhysicalCardJsonV500 = UpdatePhysicalCardJsonV500(
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    technology = technologyExample.value,
+    networks = networksExample.value.split("[,;]").toList,
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account_id = accountIdExample.value,
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON, pinResetJSON1),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject,
+    customer_id = customerIdExample.value,
+    cvv = cvvExample.value,
+    brand = brandExample.value
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

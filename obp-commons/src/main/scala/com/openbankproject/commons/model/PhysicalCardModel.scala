@@ -61,6 +61,8 @@ trait PhysicalCardTrait {
   def collected: Option[CardCollectionInfo]
   def posted: Option[CardPostedInfo]
   def customerId: String
+  def cvv: String
+  def brand: String
 }
 
 case class PhysicalCard  (
@@ -84,7 +86,9 @@ case class PhysicalCard  (
   val pinResets : List[PinResetInfo],
   val collected : Option[CardCollectionInfo],
   val posted : Option[CardPostedInfo],
-  val customerId: String
+  val customerId: String,
+  val cvv: String,
+  val brand: String
 ) extends PhysicalCardTrait
 
 

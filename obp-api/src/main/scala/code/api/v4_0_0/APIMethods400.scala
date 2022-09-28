@@ -942,14 +942,13 @@ trait APIMethods400 {
               (card,callContext) <- NewStyle.function.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
 
               //          1.2 check card name/expire month. year.
-
               calendar = Calendar.getInstance
               _ = calendar.setTime(card.expires)
               year = calendar.get(Calendar.YEAR)
               month = calendar.get(Calendar.MONTH)
               nameOnCard= card.nameOnCard
-              //          1.3 not sure the brand and card_type
-
+              cvv= card.cvv
+              brand= card.brand
             } yield{
               (card.account, callContext)
             }

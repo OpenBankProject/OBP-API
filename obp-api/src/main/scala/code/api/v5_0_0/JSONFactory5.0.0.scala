@@ -27,15 +27,16 @@
 package code.api.v5_0_0
 
 import java.util.Date
-
 import code.api.util.APIUtil.stringOrNull
 import code.api.v1_2_1.BankRoutingJsonV121
+import code.api.v1_3_0.JSONFactory1_3_0.{cardActionsToString, createAccountJson, createPinResetJson, createReplacementJson}
+import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.api.v2_1_0.CustomerCreditRatingJSON
-import code.api.v3_1_0.PostConsentEntitlementJsonV310
+import code.api.v3_1_0.{AccountBasicV310, PhysicalCardWithAttributesJsonV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.bankattribute.BankAttribute
-import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, UserAuthContext, UserAuthContextUpdate}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, CardAttribute, PhysicalCardTrait, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
 import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.List
@@ -129,6 +130,103 @@ case class PostConsentRequestJsonV500(
 )
 
 case class ConsentJsonV500(consent_id: String, jwt: String, status: String, consent_request_id: Option[String])
+
+case class CreatePhysicalCardJsonV500(
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account_id: String,
+  replacement: Option[ReplacementJSON],
+  pin_reset: List[PinResetJSON],
+  collected: Option[Date],
+  posted: Option[Date],
+  customer_id: String,
+  cvv: String,
+  brand: String
+)
+
+case class PhysicalCardJsonV500(
+  card_id: String,
+  bank_id: String,
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  cancelled: Boolean,
+  on_hot_list: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account: code.api.v1_2_1.AccountJSON,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String,
+  cvv: String,
+  brand: String
+)
+
+case class PhysicalCardWithAttributesJsonV500(
+  card_id: String,
+  bank_id: String,
+  card_number: String,
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  cancelled: Boolean,
+  on_hot_list: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account: AccountBasicV310,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String,
+  card_attributes: List[CardAttribute],
+  cvv: String,
+  brand: String
+)
+
+case class UpdatePhysicalCardJsonV500(
+  card_type: String,
+  name_on_card: String,
+  issue_number: String,
+  serial_number: String,
+  valid_from_date: Date,
+  expires_date: Date,
+  enabled: Boolean,
+  technology: String,
+  networks: List[String],
+  allows: List[String],
+  account_id: String,
+  replacement: ReplacementJSON,
+  pin_reset: List[PinResetJSON],
+  collected: Date,
+  posted: Date,
+  customer_id: String,
+  cvv: String,
+  brand: String
+)
+
 object JSONFactory500 {
 
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJsonV500 = {
@@ -180,6 +278,66 @@ object JSONFactory500 {
       )
     )
   }
-  
+
+  def createPhysicalCardWithAttributesJson(card: PhysicalCardTrait, cardAttributes: List[CardAttribute],user : User, views: List[View]): PhysicalCardWithAttributesJsonV500 = {
+    PhysicalCardWithAttributesJsonV500(
+      card_id = stringOrNull(card.cardId),
+      bank_id = stringOrNull(card.bankId),
+      card_number = stringOrNull(card.bankCardNumber),
+      card_type = stringOrNull(card.cardType),
+      name_on_card = stringOrNull(card.nameOnCard),
+      issue_number = stringOrNull(card.issueNumber),
+      serial_number = stringOrNull(card.serialNumber),
+      valid_from_date = card.validFrom,
+      expires_date = card.expires,
+      enabled = card.enabled,
+      cancelled = card.cancelled,
+      on_hot_list = card.onHotList,
+      technology = stringOrNull(card.technology),
+      networks = card.networks,
+      allows = card.allows.map(cardActionsToString).toList,
+      account = AccountBasicV310(
+        card.account.accountId.value,
+        card.account.label,
+        views.map(view => ViewBasic(view.viewId.value, view.name, view.description)),
+        card.account.bankId.value),
+      replacement = card.replacement.map(createReplacementJson).getOrElse(null),
+      pin_reset = card.pinResets.map(createPinResetJson),
+      collected = card.collected.map(_.date).getOrElse(null),
+      posted = card.posted.map(_.date).getOrElse(null),
+      customer_id = stringOrNull(card.customerId),
+      card_attributes = cardAttributes,
+      cvv = stringOrNull(card.cvv),
+      brand = stringOrNull(card.brand),
+    )
+  }
+  def createPhysicalCardJson(card: PhysicalCardTrait, user : User): PhysicalCardJsonV500 = {
+    PhysicalCardJsonV500(
+      card_id = stringOrNull(card.cardId),
+      bank_id = stringOrNull(card.bankId),
+      card_number = stringOrNull(card.bankCardNumber),
+      card_type = stringOrNull(card.cardType),
+      name_on_card = stringOrNull(card.nameOnCard),
+      issue_number = stringOrNull(card.issueNumber),
+      serial_number = stringOrNull(card.serialNumber),
+      valid_from_date = card.validFrom,
+      expires_date = card.expires,
+      enabled = card.enabled,
+      cancelled = card.cancelled,
+      on_hot_list = card.onHotList,
+      technology = stringOrNull(card.technology),
+      networks = card.networks,
+      allows = card.allows.map(cardActionsToString).toList,
+      account = createAccountJson(card.account, user),
+      replacement = card.replacement.map(createReplacementJson).getOrElse(null),
+      pin_reset = card.pinResets.map(createPinResetJson),
+      collected = card.collected.map(_.date).getOrElse(null),
+      posted = card.posted.map(_.date).getOrElse(null),
+      customer_id = stringOrNull(card.customerId),
+      cvv = stringOrNull(card.cvv),
+      brand = stringOrNull(card.brand)
+    )
+  }
+
 }
 

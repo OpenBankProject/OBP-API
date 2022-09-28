@@ -2591,6 +2591,8 @@ object NewStyle extends MdcLoggable{
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
       customerId: String,
+      cvv: String,
+      brand: String,
       callContext: Option[CallContext]
     ): OBPReturnType[PhysicalCard] = {
       validateBankId(bankId, callContext)
@@ -2616,6 +2618,8 @@ object NewStyle extends MdcLoggable{
         collected: Option[CardCollectionInfo],
         posted: Option[CardPostedInfo],
         customerId: String,
+        cvv: String,
+        brand: String,
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateCardError"), i._2)
@@ -2644,6 +2648,8 @@ object NewStyle extends MdcLoggable{
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
       customerId: String,
+      cvv: String,
+      brand: String,
       callContext: Option[CallContext]
     ): OBPReturnType[PhysicalCardTrait] = {
       validateBankId(bankId, callContext)
@@ -2670,6 +2676,8 @@ object NewStyle extends MdcLoggable{
         collected: Option[CardCollectionInfo],
         posted: Option[CardPostedInfo],
         customerId: String,
+        cvv: String, 
+        brand: String,
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$UpdateCardError"), i._2)
