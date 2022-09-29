@@ -23,21 +23,21 @@ object EntityName {
     //no bank:
     //eg: /FooBar21
     case entityName ::  Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId.isEmpty)
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
         .map(_ => (None, entityName, ""))
     //eg: /FooBar21/FOO_BAR21_ID
     case entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId.isEmpty)
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
         .map(_ => (None, entityName, id))
       
     //contains Bank:
     //eg: /Banks/BANK_ID/FooBar21
     case "banks" :: bankId :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId == Some(bankId))
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
         .map(_ => (Some(bankId), entityName, ""))
     //eg: /Banks/BANK_ID/FooBar21/FOO_BAR21_ID
     case "banks" :: bankId :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1 == entityName && definitionMap._2.bankId == Some(bankId))
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
         .map(_ => (Some(bankId),entityName, id))
       
     case _ => None
@@ -46,8 +46,9 @@ object EntityName {
 
 object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
-
-  def definitionsMap: Map[String, DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None).map(it => (it.entityName, DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
+  
+  //                       (Some(BankId), EntityName, DynamicEntityInfo)
+  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None).flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
@@ -136,11 +137,11 @@ object DynamicEntityHelper {
     resourceDocs += (DynamicEntityOperation.GET_ALL, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildGetAllFunctionName(entityName),
+      buildGetAllFunctionName(bankId, entityName),
       "GET",
       s"$resourceDocUrl",
-      s"Get $splitName List",
-      s"""Get $splitName List.
+      s"Get $splitName List - ${bankId.getOrElse("")}",
+      s"""Get $splitName List - ${bankId.getOrElse("")}.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -167,7 +168,7 @@ object DynamicEntityHelper {
     resourceDocs += (DynamicEntityOperation.GET_ONE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildGetOneFunctionName(entityName),
+      buildGetOneFunctionName(bankId, entityName),
       "GET",
       s"$resourceDocUrl/$idNameInUrl",
       s"Get $splitName by id",
@@ -195,7 +196,7 @@ object DynamicEntityHelper {
     resourceDocs += (DynamicEntityOperation.CREATE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildCreateFunctionName(entityName),
+      buildCreateFunctionName(bankId, entityName),
       "POST",
       s"$resourceDocUrl",
       s"Create new $splitName",
@@ -225,7 +226,7 @@ object DynamicEntityHelper {
     resourceDocs += (DynamicEntityOperation.UPDATE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildUpdateFunctionName(entityName),
+      buildUpdateFunctionName(bankId, entityName),
       "PUT",
       s"$resourceDocUrl/$idNameInUrl",
       s"Update $splitName",
@@ -255,7 +256,7 @@ object DynamicEntityHelper {
     resourceDocs += (DynamicEntityOperation.DELETE, entityName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
-      buildDeleteFunctionName(entityName),
+      buildDeleteFunctionName(bankId, entityName),
       "DELETE",
       s"$resourceDocUrl/$idNameInUrl",
       s"Delete $splitName by id",
@@ -282,22 +283,22 @@ object DynamicEntityHelper {
     resourceDocs
   }
 
-  private def buildCreateFunctionName(entityName: String) = s"dynamicEntity_create$entityName"
-  private def buildUpdateFunctionName(entityName: String) = s"dynamicEntity_update$entityName"
-  private def buildDeleteFunctionName(entityName: String) = s"dynamicEntity_delete$entityName"
-  private def buildGetOneFunctionName(entityName: String) = s"dynamicEntity_getSingle$entityName"
-  private def buildGetAllFunctionName(entityName: String) = s"dynamicEntity_get${entityName}List"
+  private def buildCreateFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_create${entityName}_${bankId.getOrElse("")}"
+  private def buildUpdateFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_update${entityName}_${bankId.getOrElse("")}"
+  private def buildDeleteFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_delete${entityName}_${bankId.getOrElse("")}"
+  private def buildGetOneFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_getSingle${entityName}_${bankId.getOrElse("")}"
+  private def buildGetAllFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_get${entityName}List_${bankId.getOrElse("")}"
 
   @inline
-  private def buildOperationId(entityName: String, fun: String => String): String = {
-    APIUtil.buildOperationId(implementedInApiVersion, fun(entityName))
+  private def buildOperationId(bankId:Option[String], entityName: String, fun: (Option[String], String) => String): String = {
+    APIUtil.buildOperationId(implementedInApiVersion, fun(bankId, entityName))
   }
 
-  def buildCreateOperationId(entityName: String) = buildOperationId(entityName, buildCreateFunctionName)
-  def buildUpdateOperationId(entityName: String) = buildOperationId(entityName, buildUpdateFunctionName)
-  def buildDeleteOperationId(entityName: String) = buildOperationId(entityName, buildDeleteFunctionName)
-  def buildGetOneOperationId(entityName: String) = buildOperationId(entityName, buildGetOneFunctionName)
-  def buildGetAllOperationId(entityName: String) = buildOperationId(entityName, buildGetAllFunctionName)
+  def buildCreateOperationId(bankId:Option[String], entityName: String) = buildOperationId(bankId, entityName, buildCreateFunctionName)
+  def buildUpdateOperationId(bankId:Option[String], entityName: String) = buildOperationId(bankId, entityName, buildUpdateFunctionName)
+  def buildDeleteOperationId(bankId:Option[String], entityName: String) = buildOperationId(bankId, entityName, buildDeleteFunctionName)
+  def buildGetOneOperationId(bankId:Option[String], entityName: String) = buildOperationId(bankId, entityName, buildGetOneFunctionName)
+  def buildGetAllOperationId(bankId:Option[String], entityName: String) = buildOperationId(bankId, entityName, buildGetAllFunctionName)
 
   private def methodRoutingExample(entityName: String) =
     s"""
