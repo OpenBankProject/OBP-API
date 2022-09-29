@@ -1172,8 +1172,27 @@ dynamic_code_compile_validate_dependencies=[\
       PractiseEndpoint.getClass.getTypeName + "*" -> "*"\
 ]
 
-## when api response json field value in the json array, the field will be excluded
-excluded.response.field.values=["String", "", null, []]
+###################################################
+## "Optional" / "Placeholder" JSON field behaviour
+# Sometimes our connectors or data imports might populate fields with default, null or placeholder values such as empty strings, default dates and empty lists
+# The following props allow us to hide the json fields if their values match certain values.
+# The following props also allow us to hide fields when values are Empty Scala Options.
+# During the parsing of the API responses, we check the values and conditionally exclude the json fields from the response.
+
+# Setting the following props to true will activate the props excluded.response.field.values globally which is defined below
+# Default is false
+# excluded.response.behaviour=false
+# To activate, use: excluded.response.behaviour=true
+
+# The following props is the pattern that will be used to remove json fields based on their value if activtivated by above props or by the query param below.
+# excluded.response.field.values=""
+# Default value: excluded.response.field.values=""
+# Example value 1: excluded.response.field.values=["String", "", null, []]
+# Example value 2: excluded.response.field.values=["String", "", null, [], "0", {},"1100-01-01T010101Z"]
+
+# Note the above pattern can be activated on a per call basis, even if excluded.response.behaviour=false by appending the query parameter ?exclude-optional-fields=true to the endpoint URL.
+####################################################
+
 
 # If you want to make the Lift inactivity timeout shorter than
 # the container inactivity timeout, set the inactivity timeout here
