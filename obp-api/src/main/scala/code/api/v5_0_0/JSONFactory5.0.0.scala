@@ -29,6 +29,7 @@ package code.api.v5_0_0
 import java.util.Date
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.BankRoutingJsonV121
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v1_3_0.JSONFactory1_3_0.{cardActionsToString, createAccountJson, createPinResetJson, createReplacementJson}
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
@@ -61,6 +62,15 @@ case class BankJson500(
     attributes: Option[List[BankAttributeBankResponseJsonV400]]
 )
 
+case class CreateAccountRequestJsonV500(
+    user_id : Option[String],
+    label   : String,
+    product_code : String,
+    balance : Option[AmountOfMoneyJsonV121],
+    branch_id : Option[String],
+    account_routings: Option[List[AccountRoutingJsonV121]]
+)
+
 case class PostCustomerJsonV500(
    legal_name: String,
    mobile_phone_number: String,
@@ -79,6 +89,15 @@ case class PostCustomerJsonV500(
    title: Option[String] = None,
    branch_id: Option[String] = None,
    name_suffix: Option[String] = None
+)
+
+case class PutProductJsonV500(
+   parent_product_code: String, 
+   name: String, 
+   more_info_url: Option[String] = None, 
+   terms_and_conditions_url: Option[String] = None, 
+   description: Option[String] = None, 
+   meta: Option[MetaJsonV140] = None,
 )
 
 case class UserAuthContextJsonV500(

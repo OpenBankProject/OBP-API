@@ -4102,6 +4102,14 @@ object SwaggerDefinitionsJSON {
     branch_id  = branchIdExample.value,
     account_routings = List(accountRoutingJsonV121)
   )
+  val createAccountRequestJsonV500 = CreateAccountRequestJsonV500(
+    user_id = Some(userIdExample.value),
+    label   = labelExample.value,
+    product_code = productCodeExample.value,
+    balance =  Some(amountOfMoneyJsonV121),
+    branch_id  = Some(branchIdExample.value),
+    account_routings = Some(List(accountRoutingJsonV121))
+  )
 
   val settlementAccountRequestJson = SettlementAccountRequestJson(
     user_id = userIdExample.value,
@@ -4638,6 +4646,14 @@ object SwaggerDefinitionsJSON {
     terms_and_conditions_url = termsAndConditionsUrlExample.value,
     description = descriptionExample.value,
     meta = metaJson,
+  )
+  val putProductJsonV500 = PutProductJsonV500(
+    parent_product_code = parentProductCodeExample.value,
+    name = productNameExample.value,
+    more_info_url = Some(moreInfoUrlExample.value),
+    terms_and_conditions_url = Some(termsAndConditionsUrlExample.value),
+    description = Some(descriptionExample.value),
+    meta = Some(metaJson)
   )
 
   val createMessageJsonV400 = CreateMessageJsonV400(

@@ -12,23 +12,25 @@ import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
+import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
 import code.api.v5_0_0.JSONFactory500.createPhysicalCardJson
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
+import code.model.dataAccess.BankAccountCreation
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.util.Helper
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, PinResetInfo, PinResetReason, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
-import net.liftweb.json.compactRender
+import net.liftweb.json.{Extraction, compactRender, prettyRender}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
@@ -242,6 +244,144 @@ trait APIMethods500 {
           } yield {
             (JSONFactory500.createBankJSON500(success), HttpCode.`200`(callContext))
           }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      createAccount,
+      implementedInApiVersion,
+      "createAccount",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Create Account",
+      """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
+        |
+        |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
+        |
+        |If the PUT body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+        |
+        |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.
+        |
+        |The 'product_code' field SHOULD be a product_code from Product.
+        |If the 'product_code' matches a product_code from Product, account attributes will be created that match the Product Attributes.
+        |
+        |Note: The Amount MUST be zero.""".stripMargin,
+      createAccountRequestJsonV500,
+      createAccountResponseJsonV310,
+      List(
+        InvalidJsonFormat,
+        BankNotFound,
+        UserNotLoggedIn,
+        InvalidUserId,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        UserNotFoundById,
+        UserHasMissingRoles,
+        InvalidAccountBalanceAmount,
+        InvalidAccountInitialBalance,
+        InitialBalanceMustBeZero,
+        InvalidAccountBalanceCurrency,
+        AccountIdAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
+      Some(List(canCreateAccount))
+    )
+
+
+    lazy val createAccount : OBPEndpoint = {
+      // Create a new account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
+        cc =>{
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (account, callContext) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext)
+            _ <- Helper.booleanToFuture(AccountIdAlreadyExists, cc=callContext){
+              account.isEmpty
+            }
+            failMsg = s"$InvalidJsonFormat The Json body should be the ${prettyRender(Extraction.decompose(createAccountRequestJsonV310))} "
+            createAccountJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[CreateAccountRequestJsonV500]
+            }
+            loggedInUserId = u.userId
+            userIdAccountOwner = createAccountJson.user_id match {
+              case Some(userId) => userId
+              case _ => loggedInUserId
+            }
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext){
+              isValidID(accountId.value)
+            }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext){
+              isValidID(accountId.value)
+            }
+            (postedOrLoggedInUser,callContext) <- NewStyle.function.findByUserId(userIdAccountOwner, callContext)
+            // User can create account for self or an account for another user if they have CanCreateAccount role
+            _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext){
+              isValidID(accountId.value)
+            }
+            _ <- {userIdAccountOwner == loggedInUserId} match {
+              case true => Future.successful(Full(Unit))
+              case false =>
+                NewStyle.function.hasEntitlement(
+                  bankId.value, 
+                  loggedInUserId,
+                  canCreateAccount, 
+                  callContext, 
+                  s"${UserHasMissingRoles} $canCreateAccount or create account for self"
+                )
+            }
+            initialBalanceAsString = createAccountJson.balance.map(_.amount).getOrElse("0")
+            accountType = createAccountJson.product_code
+            accountLabel = createAccountJson.label
+            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, callContext) {
+              BigDecimal(initialBalanceAsString)
+            }
+            _ <-  Helper.booleanToFuture(InitialBalanceMustBeZero, cc=callContext){0 == initialBalanceAsNumber}
+            _ <-  Helper.booleanToFuture(InvalidISOCurrencyCode, cc=callContext){isValidCurrencyISOCode(createAccountJson.balance.map(_.currency).getOrElse("EUR"))}
+            currency = createAccountJson.balance.map(_.currency).getOrElse("EUR")
+            (_, callContext ) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- Helper.booleanToFuture(s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme", 400, cc=callContext){
+              createAccountJson.account_routings.getOrElse(Nil).map(_.scheme).distinct.size == createAccountJson.account_routings.getOrElse(Nil).size
+            }
+            alreadyExistAccountRoutings <- Future.sequence(createAccountJson.account_routings.getOrElse(Nil).map(accountRouting =>
+              NewStyle.function.getAccountRouting(Some(bankId), accountRouting.scheme, accountRouting.address, callContext).map(_ => Some(accountRouting)).fallbackTo(Future.successful(None))
+            ))
+            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              case Some(accountRouting) => s"bankId: $bankId, scheme: ${accountRouting.scheme}, address: ${accountRouting.address}"
+            }
+            _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})", cc=callContext) {
+              alreadyExistingAccountRouting.isEmpty
+            }
+            (bankAccount,callContext) <- NewStyle.function.createBankAccount(
+              bankId,
+              accountId,
+              accountType,
+              accountLabel,
+              currency,
+              initialBalanceAsNumber,
+              postedOrLoggedInUser.name,
+              createAccountJson.branch_id.getOrElse(""),
+              createAccountJson.account_routings.getOrElse(Nil).map(r => AccountRouting(r.scheme, r.address)),
+              callContext
+            )
+            (productAttributes, callContext) <- NewStyle.function.getProductAttributesByBankAndCode(bankId, ProductCode(accountType), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.createAccountAttributes(
+              bankId,
+              accountId,
+              ProductCode(accountType),
+              productAttributes,
+              None,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            //1 Create or Update the `Owner` for the new account
+            //2 Add permission to the user
+            //3 Set the user as the account holder
+            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            (JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes), HttpCode.`201`(callContext))
+          }
+        }
       }
     }
     
@@ -1020,6 +1160,86 @@ trait APIMethods500 {
         }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      createProduct,
+      implementedInApiVersion,
+      nameOf(createProduct),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Create Product",
+      s"""Create or Update Product for the Bank.
+         |
+         |
+         |Typical Super Family values / Asset classes are:
+         |
+         |Debt
+         |Equity
+         |FX
+         |Commodity
+         |Derivative
+         |
+         |$productHiearchyAndCollectionNote
+         |
+         |
+         |${authenticationRequiredMessage(true) }
+         |
+         |
+         |""",
+      putProductJsonV500,
+      productJsonV400.copy(attributes = None, fees = None),
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagProduct, apiTagNewStyle),
+      Some(List(canCreateProduct, canCreateProductAtAnyBank))
+    )
+    lazy val createProduct: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductJsonV400 "
+            product <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PutProductJsonV500]
+            }
+            parentProductCode <- product.parent_product_code.trim.nonEmpty match {
+              case false =>
+                Future(Empty)
+              case true =>
+                Future(Connector.connector.vend.getProduct(bankId, ProductCode(product.parent_product_code))) map {
+                  getFullBoxOrFail(_, callContext, ParentProductNotFoundByProductCode + " {" + product.parent_product_code + "}", 400)
+                }
+            }
+            success <- Future(Connector.connector.vend.createOrUpdateProduct(
+              bankId = bankId.value,
+              code = productCode.value,
+              parentProductCode = parentProductCode.map(_.code.value).toOption,
+              name = product.name,
+              category = null,
+              family = null,
+              superFamily = null,
+              moreInfoUrl = product.more_info_url.getOrElse(""),
+              termsAndConditionsUrl = product.terms_and_conditions_url.getOrElse(""),
+              details = null,
+              description = product.description.getOrElse(""),
+              metaLicenceId = product.meta.map(_.license.id).getOrElse(""),
+              metaLicenceName = product.meta.map(_.license.name).getOrElse("")
+            )) map {
+              connectorEmptyResponse(_, callContext)
+            }
+          } yield {
+            (JSONFactory400.createProductJson(success), HttpCode.`201`(callContext))
+          }
+      }
+    }
+    
+    
 
     staticResourceDocs += ResourceDoc(
       addCardForBank,
