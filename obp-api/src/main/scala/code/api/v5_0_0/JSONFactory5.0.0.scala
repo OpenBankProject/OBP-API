@@ -94,7 +94,7 @@ case class PostCustomerJsonV500(
    name_suffix: Option[String] = None
 )
 
-case class PostCustomerOverviewJsonV500(bank_code: String, customer_number: String)
+case class PostCustomerOverviewJsonV500(customer_number: String)
 
 case class CustomerWithAttributesJsonV500(
    bank_id: String,
@@ -118,7 +118,7 @@ case class CustomerWithAttributesJsonV500(
    branch_id: String,
    name_suffix: String,
    customer_attributes: List[CustomerAttributeResponseJsonV300],
-   account_attributes: List[AccountAttributeResponseJson500])
+   accounts: List[AccountResponseJson500])
 
 case class AccountAttributeResponseJson500(
    contract_code: Option[String],
@@ -128,6 +128,8 @@ case class AccountAttributeResponseJson500(
    `type`: String,
    value: String
  )
+
+case class AccountResponseJson500(account_id: String, account_attributes: List[AccountAttributeResponseJson500])
 
 case class PutProductJsonV500(
    parent_product_code: String, 
@@ -361,7 +363,7 @@ object JSONFactory500 {
   def createCustomerWithAttributesJson(
                                         cInfo : Customer, 
                                         customerAttributes: List[CustomerAttribute], 
-                                        accountAttributes: List[AccountAttribute]) : CustomerWithAttributesJsonV500 = {
+                                        accounts: List[(String, List[AccountAttribute])]) : CustomerWithAttributesJsonV500 = {
     CustomerWithAttributesJsonV500(
       bank_id = cInfo.bankId.toString,
       customer_id = cInfo.customerId,
@@ -385,8 +387,26 @@ object JSONFactory500 {
       branch_id = cInfo.branchId,
       name_suffix = cInfo.nameSuffix,
       customer_attributes = customerAttributes.map(JSONFactory300.createCustomerAttributeJson),
-      account_attributes = accountAttributes.map(i => AccountAttributeResponseJson500(i.productInstanceCode, i.productCode.value, i.accountAttributeId, i.name, i.attributeType.toString, i.value))
+      accounts = createAccounts(accounts)
     )
+  }
+  
+  def createAccounts(accounts: List[(String, List[AccountAttribute])]): List[AccountResponseJson500] = {
+    accounts.map{ account =>
+      AccountResponseJson500(
+        account._1,
+        account._2.map{ attribute => 
+          AccountAttributeResponseJson500(
+            contract_code = attribute.productInstanceCode,
+            product_code = attribute.productCode.value,
+            account_attribute_id = attribute.accountAttributeId,
+            name = attribute.name,
+            `type` = attribute.attributeType.toString,
+            value = attribute.value
+          )
+        }
+      )
+    }
   }
 
   def createPhysicalCardWithAttributesJson(card: PhysicalCardTrait, cardAttributes: List[CardAttribute],user : User, views: List[View]): PhysicalCardWithAttributesJsonV500 = {

@@ -1022,7 +1022,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(getCustomerOverview),
       "POST",
-      "/banks/BANK_ID/customers/customer-number/overview",
+      "/banks/BANK_ID/customers/customer-number-query/overview",
       "Get Customer Overview",
       s"""Gets the Customer Overview specified by customer_number and bank_code.
          |
@@ -1042,7 +1042,7 @@ trait APIMethods500 {
     )
 
     lazy val getCustomerOverview : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" :: "overview" ::  Nil JsonPost  json -> req => {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number-query" :: "overview" ::  Nil JsonPost  json -> req => {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1052,18 +1052,14 @@ trait APIMethods500 {
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PostCustomerOverviewJsonV500]
             }
-            failMsg = s"Invalid Bank Code ${postedData.bank_code}"
-            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              bank.shortName == postedData.bank_code
-            }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
               CustomerId(customer.customerId),
               callContext: Option[CallContext])
             accounts <- AccountAttributeX.accountAttributeProvider.vend
-              .getAccountIdsByParams(bankId, req.params)
-            (accountAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getAccountAttributesByAccounts(
+              .getAccountIdsByParams(bankId, List("customer_number" -> List(postedData.customer_number)).toMap)
+            (accountAttributes: List[(String, List[AccountAttribute])], callContext) <- NewStyle.function.getAccountAttributesByAccounts(
               bankId,
               accounts.getOrElse(Nil),
               callContext: Option[CallContext])
