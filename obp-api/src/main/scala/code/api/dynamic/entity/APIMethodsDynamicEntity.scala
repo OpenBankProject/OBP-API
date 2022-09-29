@@ -143,7 +143,14 @@ trait APIMethodsDynamicEntity {
       case EntityName(bankId, entityName, _) JsonPost json -> _ => { cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         val operation: DynamicEntityOperation = CREATE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
+        // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
+        val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
+        val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
+        val splitNameWithBankId = if (bankId.isDefined)
+          s"""$splitName(${bankId.getOrElse("")})"""
+        else
+          s"""$splitName"""
+        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
         val operationId = resourceDoc.map(_.operationId).orNull
         val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
 
@@ -186,7 +193,14 @@ trait APIMethodsDynamicEntity {
       case EntityName(bankId, entityName, id) JsonPut json -> _ => { cc =>
         val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
         val operation: DynamicEntityOperation = UPDATE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
+        // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
+        val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
+        val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
+        val splitNameWithBankId = if (bankId.isDefined)
+          s"""$splitName(${bankId.getOrElse("")})"""
+        else
+          s"""$splitName"""
+        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
         val operationId = resourceDoc.map(_.operationId).orNull
         val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
 
@@ -232,7 +246,14 @@ trait APIMethodsDynamicEntity {
       }
       case EntityName(bankId, entityName, id) JsonDelete _ => { cc =>
         val operation: DynamicEntityOperation = DELETE
-        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> entityName)
+        // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
+        val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
+        val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
+        val splitNameWithBankId = if (bankId.isDefined)
+          s"""$splitName(${bankId.getOrElse("")})"""
+        else
+          s"""$splitName"""
+        val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
         val operationId = resourceDoc.map(_.operationId).orNull
         val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
 
