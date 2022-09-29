@@ -24,9 +24,9 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{AccountId, AccountRouting, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRouting, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -34,6 +34,8 @@ import net.liftweb.json.{Extraction, compactRender, prettyRender}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import java.util.concurrent.ThreadLocalRandom
+
+import code.accountattribute.AccountAttributeX
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1039,7 +1041,7 @@ trait APIMethods500 {
     )
 
     lazy val getCustomerOverviewByCustomerNumber : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> req => {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1058,8 +1060,14 @@ trait APIMethods500 {
               bankId,
               CustomerId(customer.customerId),
               callContext: Option[CallContext])
+            accounts <- AccountAttributeX.accountAttributeProvider.vend
+              .getAccountIdsByParams(bankId, req.params)
+            (accountAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getAccountAttributesByAccount(
+              bankId,
+              AccountId(accounts.getOrElse(Nil).headOption.getOrElse("")),
+              callContext: Option[CallContext])
           } yield {
-            (JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
+            (JSONFactory500.createCustomerWithAttributesJson(customer, customerAttributes, accountAttributes), HttpCode.`200`(callContext))
           }
       }
     }

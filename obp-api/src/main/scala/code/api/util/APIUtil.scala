@@ -108,6 +108,8 @@ import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 
+import code.users.Users
+
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.Future
@@ -3663,6 +3665,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
+  /**
+   * This function finds accounts of a Customer
+   * @param customerId The CUSTOMER_ID
+   * @return The list of Accounts
+   */
+  def getAccountsByCustomer(customerId: CustomerId): List[BankIdAccountId] = {
+    for {
+      userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByCustomerId(customerId.value)
+      user <- Users.users.vend.getUserByUserId(userCustomerLink.userId).toList
+      availablePrivateAccounts <- Views.views.vend.getPrivateBankAccounts(user)
+    } yield {
+      availablePrivateAccounts
+    }
+  }
   /**
    * This function finds a phone number of an Customer in accordance to next rule:
    * - account -> holders -> User -> User Customer Links -> Customer.phone_number
