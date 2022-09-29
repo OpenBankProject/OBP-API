@@ -3,6 +3,7 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
@@ -53,9 +54,9 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{JField, JInt, JNothing, JNull, JObject, JString, JValue, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-
 import java.security.AccessControlException
-import scala.collection.immutable.List
+
+import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 import scala.math.BigDecimal
 import scala.reflect.runtime.universe.MethodSymbol
@@ -1873,6 +1874,17 @@ object NewStyle extends MdcLoggable{
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+
+    def getAccountAttributesByAccounts(bankId: BankId,
+                                       accountIds: List[String],
+                                       callContext: Option[CallContext]): OBPReturnType[List[AccountAttribute]] = {
+      Future.sequence(accountIds.map( accountId =>
+        Connector.connector.vend.getAccountAttributesByAccount(bankId, AccountId(accountId), callContext: Option[CallContext]) map { i =>
+          (connectorEmptyResponse(i._1, callContext), i._2)
+        }
+      )).map(t => (t.map(_._1).flatten, callContext))
+    }
+    
     def getModeratedAccountAttributesByAccount(bankId: BankId, 
                                                accountId: AccountId, 
                                                viewId: ViewId, 

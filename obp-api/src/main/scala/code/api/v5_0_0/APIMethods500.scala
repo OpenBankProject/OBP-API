@@ -39,6 +39,7 @@ import code.accountattribute.AccountAttributeX
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -1017,13 +1018,13 @@ trait APIMethods500 {
 
 
     staticResourceDocs += ResourceDoc(
-      getCustomerOverviewByCustomerNumber,
+      getCustomerOverview,
       implementedInApiVersion,
-      nameOf(getCustomerOverviewByCustomerNumber),
+      nameOf(getCustomerOverview),
       "POST",
-      "/banks/BANK_ID/customers/customer-number",
+      "/banks/BANK_ID/customers/customer-number/overview",
       "Get Customer Overview",
-      s"""Gets the Customer Overview specified by CUSTOMER_NUMBER and BANK_CODE.
+      s"""Gets the Customer Overview specified by customer_number and bank_code.
          |
          |
          |${authenticationRequiredMessage(true)}
@@ -1040,8 +1041,8 @@ trait APIMethods500 {
       Some(List(canGetCustomer))
     )
 
-    lazy val getCustomerOverviewByCustomerNumber : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> req => {
+    lazy val getCustomerOverview : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" :: "overview" ::  Nil JsonPost  json -> req => {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
@@ -1062,9 +1063,9 @@ trait APIMethods500 {
               callContext: Option[CallContext])
             accounts <- AccountAttributeX.accountAttributeProvider.vend
               .getAccountIdsByParams(bankId, req.params)
-            (accountAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getAccountAttributesByAccount(
+            (accountAttributes: List[AccountAttribute], callContext) <- NewStyle.function.getAccountAttributesByAccounts(
               bankId,
-              AccountId(accounts.getOrElse(Nil).headOption.getOrElse("")),
+              accounts.getOrElse(Nil),
               callContext: Option[CallContext])
           } yield {
             (JSONFactory500.createCustomerWithAttributesJson(customer, customerAttributes, accountAttributes), HttpCode.`200`(callContext))
