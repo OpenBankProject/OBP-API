@@ -121,27 +121,27 @@ object DynamicEntityHelper {
     val entityName = dynamicEntityInfo.entityName
     // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
     val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
-    val splitName = capitalizedNameParts.mkString(" ")
+    val splitName = s"""${capitalizedNameParts.mkString(" ")}(${dynamicEntityInfo.bankId.getOrElse("")})"""
 
     val idNameInUrl = StringHelpers.snakify(dynamicEntityInfo.idName).toUpperCase()
     val listName = dynamicEntityInfo.listName
     val bankId = dynamicEntityInfo.bankId
-    val resourceDocUrl = if(bankId.isDefined)  s"/banks/BANK_ID/$entityName" else  s"/$entityName"
+    val resourceDocUrl = if(bankId.isDefined)  s"/banks/${bankId.getOrElse("")}/$entityName" else  s"/$entityName"
 
     val endPoint = APIUtil.dynamicEndpointStub
 
     // (operationType, entityName) -> ResourceDoc
     val resourceDocs = scala.collection.mutable.Map[(DynamicEntityOperation, String),ResourceDoc]()
-    val apiTag: ResourceDocTag = fun(splitName, entityName)
+    val apiTag: ResourceDocTag = fun(entityName,splitName)
 
-    resourceDocs += (DynamicEntityOperation.GET_ALL, entityName) -> ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.GET_ALL, splitName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
       buildGetAllFunctionName(bankId, entityName),
       "GET",
       s"$resourceDocUrl",
-      s"Get $splitName List - ${bankId.getOrElse("")}",
-      s"""Get $splitName List - ${bankId.getOrElse("")}.
+      s"Get $splitName List",
+      s"""Get $splitName List.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -165,7 +165,7 @@ object DynamicEntityHelper {
       Some(List(dynamicEntityInfo.canGetRole)),
       createdByBankId= dynamicEntityInfo.bankId
     )
-    resourceDocs += (DynamicEntityOperation.GET_ONE, entityName) -> ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.GET_ONE, splitName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
       buildGetOneFunctionName(bankId, entityName),
@@ -193,7 +193,7 @@ object DynamicEntityHelper {
       createdByBankId= dynamicEntityInfo.bankId
     )
 
-    resourceDocs += (DynamicEntityOperation.CREATE, entityName) -> ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.CREATE, splitName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
       buildCreateFunctionName(bankId, entityName),
@@ -223,7 +223,7 @@ object DynamicEntityHelper {
       createdByBankId= dynamicEntityInfo.bankId
       )
 
-    resourceDocs += (DynamicEntityOperation.UPDATE, entityName) -> ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.UPDATE, splitName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
       buildUpdateFunctionName(bankId, entityName),
@@ -253,7 +253,7 @@ object DynamicEntityHelper {
       createdByBankId= dynamicEntityInfo.bankId
     )
 
-    resourceDocs += (DynamicEntityOperation.DELETE, entityName) -> ResourceDoc(
+    resourceDocs += (DynamicEntityOperation.DELETE, splitName) -> ResourceDoc(
       endPoint,
       implementedInApiVersion,
       buildDeleteFunctionName(bankId, entityName),
