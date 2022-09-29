@@ -89,6 +89,8 @@ case class PostCustomerJsonV500(
    name_suffix: Option[String] = None
 )
 
+case class PostCustomerOverviewJsonV500(bank_code: String, customer_number: String)
+
 case class PutProductJsonV500(
    parent_product_code: String, 
    name: String, 

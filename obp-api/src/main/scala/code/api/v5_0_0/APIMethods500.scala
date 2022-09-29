@@ -23,7 +23,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{AccountId, AccountRouting, BankId, CreditLimit, CreditRating, CustomerFaceImage, ProductCode, UserAuthContextUpdateStatus}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, BankId, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, ProductCode, UserAuthContextUpdateStatus}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.Req
@@ -1007,6 +1007,57 @@ trait APIMethods500 {
             )
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerOverviewByCustomerNumber,
+      implementedInApiVersion,
+      nameOf(getCustomerOverviewByCustomerNumber),
+      "POST",
+      "/banks/BANK_ID/customers/customer-number",
+      "Get Customer by CUSTOMER_NUMBER and BANK_CODE",
+      s"""Gets the Customer specified by CUSTOMER_NUMBER and BANK_CODE.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postCustomerOverviewJsonV500,
+      customerWithAttributesJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
+      Some(List(canGetCustomer))
+    )
+
+    lazy val getCustomerOverviewByCustomerNumber : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number" ::  Nil JsonPost  json -> _ => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerOverviewJsonV500]
+            }
+            failMsg = s"Invalid Bank Code ${postedData.bank_code}"
+            _ <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              bank.shortName == postedData.bank_code
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customer.customerId),
+              callContext: Option[CallContext])
+          } yield {
+            (JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes), HttpCode.`200`(callContext))
           }
       }
     }
