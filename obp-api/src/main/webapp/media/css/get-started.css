@@ -42,17 +42,19 @@
 }
 #main-get-started .btn-primary{
     border: 0;
-    margin: auto;
     background-color: #000000;
     border-radius: 0;
-    height: 44px;
-    padding-top: 9px;
+    padding-top: 11px;
     padding-bottom: 11px;
     padding-left: 20px;
     padding-right: 20px;
     margin-top: 48px;
-    display: block;
-    width: 129px;
+}
+
+#main-get-started-button{
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #main-get-started .btn-primary:hover{

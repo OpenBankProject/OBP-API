@@ -151,7 +151,7 @@ class MappedCustomerAttribute extends CustomerAttribute with LongKeyedMapper[Map
 
   object mType extends MappedString(this, 50)
 
-  object mValue extends MappedString(this, 255)
+  object mValue extends MappedString(this, 2000)
 
 
   override def bankId: BankId = BankId(mBankId.get)
