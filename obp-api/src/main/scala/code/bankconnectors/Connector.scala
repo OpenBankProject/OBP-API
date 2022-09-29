@@ -628,6 +628,9 @@ trait Connector extends MdcLoggable {
   def getPhysicalCardsForUser(user : User, callContext: Option[CallContext] = None) : OBPReturnType[Box[List[PhysicalCard]]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def deletePhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def getPhysicalCardsForBankLegacy(bank: Bank, user : User, queryParams: List[OBPQueryParam]) : Box[List[PhysicalCard]] = Failure(setUnimplementedError)
@@ -654,6 +657,8 @@ trait Connector extends MdcLoggable {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
+    cvv: String,
+    brand: String,
     callContext: Option[CallContext]
   ): Box[PhysicalCard] = Failure(setUnimplementedError)
 
@@ -678,6 +683,8 @@ trait Connector extends MdcLoggable {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
+    cvv: String,
+    brand: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[PhysicalCard]] = Future{(Failure{setUnimplementedError}, callContext)}
 
@@ -1415,7 +1422,7 @@ trait Connector extends MdcLoggable {
         }yield{
           (createdTransactionId,callContext)
         }
-        case transactionRequestType => Future((throw new Exception(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not supported in this version.")), callContext)
+        case _ => Future((throw new Exception(s"${InvalidTransactionRequestType}: '${transactionRequestType}'. Not completed in this version.")), callContext)
       }
 
       didSaveTransId <- Future{saveTransactionRequestTransaction(transactionRequestId, transactionId).openOrThrowException(attemptedToOpenAnEmptyBox)}

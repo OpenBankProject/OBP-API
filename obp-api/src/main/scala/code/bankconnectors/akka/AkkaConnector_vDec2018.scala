@@ -1430,7 +1430,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value)))
+      customerId=customerIdExample.value
+      )))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1496,7 +1497,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value))
+      customerId=customerIdExample.value
+      ))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1652,7 +1654,9 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value)
+      customerId=customerIdExample.value,
+      cvv = cvvExample.value,
+      brand = brandExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreatePhysicalCard(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -1701,9 +1705,14 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
+  override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, 
+    serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, 
+    technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, 
+    replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], 
+    posted: Option[CardPostedInfo], customerId: String, cvv: String, brand: String,
+    callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
         import com.openbankproject.commons.dto.{InBoundCreatePhysicalCard => InBound, OutBoundCreatePhysicalCard => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId, cvv, brand)
         val response: Future[Box[InBound]] = (southSideActor ? req).mapTo[InBound].recoverWith(recoverFunction).map(Box !! _) 
         response.map(convertToTuple[PhysicalCard](callContext))        
   }
