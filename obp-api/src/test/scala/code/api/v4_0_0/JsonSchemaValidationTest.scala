@@ -327,7 +327,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
   feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneValidation(jsonSchemaFooBar, "OBPv4.0.0-dynamicEntity_createFooBar")
+      addOneValidation(jsonSchemaFooBar, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
       addDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
@@ -344,7 +344,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneValidation(jsonSchemaFooBar, "OBPv4.0.0-dynamicEntity_createFooBar")
+      addOneValidation(jsonSchemaFooBar, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
       addDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
 
