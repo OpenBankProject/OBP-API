@@ -2591,6 +2591,8 @@ object NewStyle extends MdcLoggable{
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
       customerId: String,
+      cvv: String,
+      brand: String,
       callContext: Option[CallContext]
     ): OBPReturnType[PhysicalCard] = {
       validateBankId(bankId, callContext)
@@ -2616,6 +2618,8 @@ object NewStyle extends MdcLoggable{
         collected: Option[CardCollectionInfo],
         posted: Option[CardPostedInfo],
         customerId: String,
+        cvv: String,
+        brand: String,
         callContext: Option[CallContext]
       ) map {
         i => (unboxFullOrFail(i._1, callContext, s"$CreateCardError"), i._2)
@@ -2680,6 +2684,12 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.getPhysicalCardsForBank(bank: Bank, user : User, queryParams: List[OBPQueryParam], callContext:Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, CardNotFound), i._2)
       }
+
+    def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : OBPReturnType[PhysicalCardTrait] = {
+      Connector.connector.vend.getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, InvalidCardNumber), i._2)
+      }
+    }
 
     def getPhysicalCardForBank(bankId: BankId, cardId:String ,callContext:Option[CallContext]) : OBPReturnType[PhysicalCardTrait] =
       Connector.connector.vend.getPhysicalCardForBank(bankId: BankId, cardId: String, callContext:Option[CallContext]) map {

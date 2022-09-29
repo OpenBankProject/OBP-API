@@ -1001,6 +1001,8 @@ trait APIMethods210 {
               collected= Option(CardCollectionInfo(postJson.collected)),
               posted= Option(CardPostedInfo(postJson.posted)),
               customerId = "",// this field is introduced from V310
+              cvv = "",// this field is introduced from V500
+              brand = "",// this field is introduced from V500
               callContext
             )
             

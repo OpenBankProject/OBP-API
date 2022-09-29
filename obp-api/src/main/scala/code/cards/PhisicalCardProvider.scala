@@ -41,6 +41,8 @@ trait PhysicalCardProvider {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
+    cvv: String,
+    brand: String,
     callContext: Option[CallContext]
   ): Box[MappedPhysicalCard]
 
@@ -76,6 +78,8 @@ trait PhysicalCardProvider {
   def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : Box[PhysicalCardTrait]
   
   def deletePhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) : Box[Boolean]
+  
+  def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : Box[PhysicalCardTrait]
 
 
 }

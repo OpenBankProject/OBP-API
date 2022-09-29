@@ -139,6 +139,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     collected: Option[CardCollectionInfo],
     posted: Option[CardPostedInfo],
     customerId: String,
+    cvv: String,
+    brand: String,
     callContext: Option[CallContext]
   ): Box[MappedPhysicalCard] = {
 
@@ -196,6 +198,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
             .mPosted(p.date)
             .mAccount(mappedBankAccountPrimaryKey) // Card <-MappedLongForeignKey-> BankAccount, so need the primary key here.
             .mCustomerId(customerId)
+            .mBrand(brand)
+            .mCVV(HashUtil.Sha256Hash(cvv))
             .saveMe()
         } ?~! ErrorMessages.CreateCardError
     }
@@ -230,6 +234,12 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
       card
     }
     cards
+  }
+  
+  override def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : Box[PhysicalCardTrait] = {
+    MappedPhysicalCard.find(
+      By(MappedPhysicalCard.mBankCardNumber, bankCardNumber),
+    )
   }
 
   def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam]) = {
@@ -312,6 +322,9 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   //Maybe this will be first uesd for the initialization. and then we can add more `allows` for this card. 
   object mCardType extends MappedString(this, 255)
   object mCustomerId extends MappedString(this, 255)
+  
+  object mBrand extends MappedString(this, 255)
+  object mCVV extends MappedString(this, 255)
 
   def bankId: String = mBankId.get
   def bankCardNumber: String = mBankCardNumber.get
@@ -353,6 +366,8 @@ class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPh
   def cardType: String = mCardType.get
   def cardId: String = mCardId.get
   def customerId: String = mCustomerId.get
+  override def cvv: Option[String] = Some(mCVV.get)
+  override def brand: Option[String] = Some(mBrand.get)
 }
 
 object MappedPhysicalCard extends MappedPhysicalCard with LongKeyedMetaMapper[MappedPhysicalCard] {

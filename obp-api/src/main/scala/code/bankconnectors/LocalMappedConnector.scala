@@ -1204,7 +1204,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         pinResets = l.pinResets,
         collected = l.collected,
         posted = l.posted,
-        customerId = l.customerId
+        customerId = l.customerId,
+        cvv = l.cvv,
+        brand = l.brand
       )
     (Full(cardList), callContext)
   }
@@ -1212,6 +1214,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[PhysicalCard]]] = Future {
     (
       getPhysicalCardsForBankLegacy(bank: Bank, user: User, queryParams),
+      callContext
+    )
+  }
+
+  override def getPhysicalCardByCardNumber(bankCardNumber: String,  callContext:Option[CallContext]) : OBPReturnType[Box[PhysicalCardTrait]] = Future {
+    (
+      code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardByCardNumber(bankCardNumber: String, callContext: Option[CallContext]),
       callContext
     )
   }
@@ -1240,7 +1249,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         pinResets = l.pinResets,
         collected = l.collected,
         posted = l.posted,
-        customerId = l.customerId
+        customerId = l.customerId,
+        cvv = l.cvv,
+        brand = l.brand
       )
     Full(cardList)
   }
@@ -1276,6 +1287,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    collected: Option[CardCollectionInfo],
                                    posted: Option[CardPostedInfo],
                                    customerId: String,
+                                   cvv: String,
+                                   brand: String,
                                    callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = Future {
     (createPhysicalCardLegacy(
       bankCardNumber: String,
@@ -1298,6 +1311,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
       customerId: String,
+      cvv: String,
+      brand: String,
       callContext: Option[CallContext]),
       callContext)
   }
@@ -1324,6 +1339,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                          collected: Option[CardCollectionInfo],
                                          posted: Option[CardPostedInfo],
                                          customerId: String,
+                                         cvv: String,
+                                         brand: String,
                                          callContext: Option[CallContext]): Box[PhysicalCard] = {
     val physicalCardBox: Box[MappedPhysicalCard] = code.cards.PhysicalCard.physicalCardProvider.vend.createPhysicalCard(
       bankCardNumber: String,
@@ -1346,6 +1363,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       collected: Option[CardCollectionInfo],
       posted: Option[CardPostedInfo],
       customerId: String,
+      cvv: String,
+      brand: String,
       callContext: Option[CallContext])
 
     for (l <- physicalCardBox) yield
@@ -1370,7 +1389,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         pinResets = l.pinResets,
         collected = l.collected,
         posted = l.posted,
-        customerId = l.customerId
+        customerId = l.customerId,
+        cvv = l.cvv,
+        brand = l.brand,
       )
   }
 
@@ -5088,7 +5109,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           } yield {
             (transactionId, callContext)
           }
-        case COUNTERPARTY =>
+        case COUNTERPARTY | CARD =>
           for {
             bodyToCounterparty <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
               body.to_counterparty.get
