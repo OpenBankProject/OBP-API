@@ -538,7 +538,7 @@ trait DynamicEntityProvider {
 
   //Note, we use entity name to create the roles, and bank level and system level can not be mixed, 
   // so --> here can not use bankId as parameters: 
-  def getByEntityName(entityName: String): Box[DynamicEntityT]
+  def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT]
 
   def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT]
   
