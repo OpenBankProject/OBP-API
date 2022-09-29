@@ -5,46 +5,41 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
+import code.customerattribute.MappedCustomerAttribute
 import code.model.{AppType, Consumer}
-import net.liftweb.mapper.DB
+import net.liftweb.common.Full
+import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.{DefaultConnectionIdentifier, Helpers}
 
-object MigrationOfConsumer {
+object MigrationOfCustomerAttributes {
   
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
-  def populateNamAndAppType(name: String): Boolean = {
-    DbFunction.tableExists(Consumer, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
+  def alterColumnValue(name: String): Boolean = {
+    DbFunction.tableExists(MappedCustomerAttribute, (DB.use(DefaultConnectionIdentifier){ conn => conn})) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
-        val emptyNameConsumers = 
-          for {
-            consumer <- Consumer.findAll() if consumer.name.get.isEmpty()
-          } yield {
-            consumer
-              .name(Helpers.randomString(10).toLowerCase())
-              .saveMe()
+        val executedSql =
+          DbFunction.maybeWrite(true, Schemifier.infoF _, DB.use(DefaultConnectionIdentifier){ conn => conn}) {
+            APIUtil.getPropsValue("db.driver") match    {
+              case Full(value) if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue varchar(2000);"
+              case Full(value) if value.contains("com.mysql.cj.jdbc.Driver") => // MySQL
+                () => "ALTER TABLE mappedcustomerattribute MODIFY COLUMN mvalue varchar(2000);"
+              case _ =>
+                () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue type varchar(2000);"
+            }
           }
 
-        val emptyAppTypeConsumers =
-          for {
-            consumer <- Consumer.findAll() if consumer.appType.get.isEmpty()
-          } yield {
-            consumer
-              .appType(AppType.Confidential.toString())
-              .saveMe()
-          }
-        
-        val consumersAll = (emptyNameConsumers++emptyAppTypeConsumers).distinct
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""Updated number of rows: 
-             |${consumersAll.size}
+          s"""Executed SQL: 
+             |$executedSql
              |""".stripMargin
         isSuccessful = true
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
@@ -56,7 +51,7 @@ object MigrationOfConsumer {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${Consumer._dbTableNameLC} table does not exist""".stripMargin
+          s"""${MappedCustomerAttribute._dbTableNameLC} table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

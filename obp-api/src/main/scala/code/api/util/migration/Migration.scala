@@ -95,6 +95,7 @@ object Migration extends MdcLoggable {
       dropConsentAuthContextDropIndex()
       alterMappedExpectedChallengeAnswerChallengeTypeLength()
       alterTransactionRequestChallengeChallengeTypeLength()
+      alterMappedCustomerAttribute(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -413,8 +414,19 @@ object Migration extends MdcLoggable {
       runOnce(name) {
         MigrationOfTransactionRequestChallengeChallengeTypeLength.alterColumnChallengeChallengeTypeLength(name)
       }
+    }  
+    private def alterMappedCustomerAttribute(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.alterMappedCustomerAttribute(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(alterMappedCustomerAttribute(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfCustomerAttributes.alterColumnValue(name)
+        }
+      }
     }
-  
+    
   }
 
   /**
