@@ -1022,8 +1022,8 @@ trait APIMethods500 {
       nameOf(getCustomerOverviewByCustomerNumber),
       "POST",
       "/banks/BANK_ID/customers/customer-number",
-      "Get Customer by CUSTOMER_NUMBER and BANK_CODE",
-      s"""Gets the Customer specified by CUSTOMER_NUMBER and BANK_CODE.
+      "Get Customer Overview",
+      s"""Gets the Customer Overview specified by CUSTOMER_NUMBER and BANK_CODE.
          |
          |
          |${authenticationRequiredMessage(true)}
