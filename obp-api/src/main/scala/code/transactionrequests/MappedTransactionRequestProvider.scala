@@ -273,7 +273,8 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     else
       None
     
-    val t_to_counterparty = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.COUNTERPARTY){
+    val t_to_counterparty = if (TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.COUNTERPARTY ||
+      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.CARD){
       val counterpartyIdList: List[String] = for {
         JObject(child) <- parsedDetails
         JField("counterparty_id", JString(counterpartyId)) <- child

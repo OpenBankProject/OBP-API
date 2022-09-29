@@ -118,6 +118,8 @@ import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
 
+  val DateWithYear = "yyyy"
+  val DateWithMonth = "yyyy-MM"
   val DateWithDay = "yyyy-MM-dd"
   val DateWithDay2 = "yyyyMMdd"
   val DateWithDay3 = "dd/MM/yyyy"
@@ -126,11 +128,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DateWithMsRollback = "yyyy-MM-dd'T'HH:mm:ss.SSSZ" //?? what does this `Rollback` mean ??
 
+  val DateWithYearFormat = new SimpleDateFormat(DateWithYear)
+  val DateWithMonthFormat = new SimpleDateFormat(DateWithMonth)
   val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
   val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
   val DateWithMsFormat = new SimpleDateFormat(DateWithMs)
   val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsRollback)
 
+  val DateWithYearExampleString: String = "1100"
+  val DateWithMonthExampleString: String = "1100-01"
   val DateWithDayExampleString: String = "1100-01-01"
   val DateWithSecondsExampleString: String = "1100-01-01T01:01:01Z"
   val DateWithMsExampleString: String = "1100-01-01T01:01:01.000Z"

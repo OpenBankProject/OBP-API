@@ -914,24 +914,75 @@ trait APIMethods400 {
 
     def createTransactionRequest(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType, json: JValue): Future[(TransactionRequestWithChargeJSON400, Option[CallContext])] = {
         for {
-          (Full(u), fromAccount, callContext) <- SS.userAccount
-          _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-          _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
-            isValidID(accountId.value)
-          }
-          _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {
-            isValidID(bankId.value)
-          }
+      (Full(u), callContext) <- SS.user
 
-          account = BankIdAccountId(bankId, accountId)
-          _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, u, callContext)
+        transactionRequestTypeValue <- NewStyle.function.tryons(s"$InvalidTransactionRequestType: '${transactionRequestType.value}'. OBP does not support it.", 400, callContext) {
+          TransactionRequestTypes.withName(transactionRequestType.value)
+        }
+
+        (fromAccount, callContext) <- transactionRequestTypeValue match {
+          case CARD =>
+            for{
+              transactionRequestBodyCard <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $CARD json format", 400, callContext) {
+                json.extract[TransactionRequestBodyCardJsonV400]
+              }
+              //   1.1 get Card from card_number
+              (cardFromCbs,callContext) <- NewStyle.function.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
+
+              // 1.2 check card name/expire month. year.
+              calendar = Calendar.getInstance
+              _ = calendar.setTime(cardFromCbs.expires)
+              yearFromCbs = calendar.get(Calendar.YEAR).toString
+              monthFromCbs = calendar.get(Calendar.MONTH).toString
+              nameOnCardFromCbs= cardFromCbs.nameOnCard
+              cvvFromCbs= cardFromCbs.cvv.getOrElse("")
+              brandFromCbs= cardFromCbs.brand.getOrElse("")
+
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue brand is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.brand.equalsIgnoreCase(brandFromCbs)
+              }
+              
+              dateFromJsonBody <- NewStyle.function.tryons(s"$InvalidDateFormat year should be 'yyyy', " +
+                s"eg: 2023, but current expiry_year(${transactionRequestBodyCard.card.expiry_year}), " +
+                s"month should be 'xx', eg: 02, but current expiry_month(${transactionRequestBodyCard.card.expiry_month})", 400, callContext) {
+                DateWithMonthFormat.parse(s"${transactionRequestBodyCard.card.expiry_year}-${transactionRequestBodyCard.card.expiry_month}")
+              }
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue your credit card is expired.", cc=callContext) {
+                org.apache.commons.lang3.time.DateUtils.addMonths(new Date(), 1).before(dateFromJsonBody)
+              }
+              
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_year is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.expiry_year.equalsIgnoreCase(yearFromCbs)
+              }
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue expiry_month is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.expiry_month.toInt.equals(monthFromCbs.toInt+1)
+              }
+              
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue name_on_card is not matched", cc=callContext) {
+                transactionRequestBodyCard.card.name_on_card.equalsIgnoreCase(nameOnCardFromCbs)
+              }
+              _ <- Helper.booleanToFuture(s"$InvalidJsonValue cvv is not matched", cc=callContext) {
+                HashUtil.Sha256Hash(transactionRequestBodyCard.card.cvv).equals(cvvFromCbs)
+              }
+              
+            } yield{
+              (cardFromCbs.account, callContext)
+            }
+
+          case _ => NewStyle.function.getBankAccount(bankId,accountId, callContext)
+        }
+        _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
+        _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc=callContext) {
+          isValidID(fromAccount.accountId.value)
+        }
+        _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc=callContext) {
+          isValidID(fromAccount.bankId.value)
+        }
+
+        _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), u, callContext)
 
           _ <- Helper.booleanToFuture(s"${InvalidTransactionRequestType}: '${transactionRequestType.value}'. Current Sandbox does not support it. ", cc=callContext) {
             APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value)
-          }
-
-          transactionRequestTypeValue <- NewStyle.function.tryons(s"$InvalidTransactionRequestType: '${transactionRequestType.value}'. OBP does not support it.", 400, callContext) {
-            TransactionRequestTypes.withName(transactionRequestType.value)
           }
 
           // Check the input JSON format, here is just check the common parts of all four types
@@ -1152,6 +1203,38 @@ trait APIMethods400 {
                   None,
                   callContext)
               } yield (createdTransactionRequest, callContext)
+            }
+            case CARD => {
+              for {
+                //2rd: get toAccount from counterpartyId
+                transactionRequestBodyCard <- NewStyle.function.tryons(s"${InvalidJsonFormat}, it should be $CARD json format", 400, callContext) {
+                  json.extract[TransactionRequestBodyCardJsonV400]
+                }
+                toCounterpartyId = transactionRequestBodyCard.to.counterparty_id
+                (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId), callContext)
+                toAccount <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+                // Check we can send money to it.
+                _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc=callContext) {
+                  toCounterparty.isBeneficiary
+                }
+                chargePolicy = ChargePolicy.RECEIVER.toString
+                transDetailsSerialized <- NewStyle.function.tryons(UnknownError, 400, callContext) {
+                  write(transactionRequestBodyCard)(Serialization.formats(NoTypeHints))
+                }
+                (createdTransactionRequest, callContext) <- NewStyle.function.createTransactionRequestv400(u,
+                  viewId,
+                  fromAccount,
+                  toAccount,
+                  transactionRequestType,
+                  transactionRequestBodyCard,
+                  transDetailsSerialized,
+                  chargePolicy,
+                  Some(OBP_TRANSACTION_REQUEST_CHALLENGE),
+                  getScaMethodAtInstance(transactionRequestType.value).toOption,
+                  None,
+                  None,
+                  callContext)
+              } yield (createdTransactionRequest, callContext)
 
             }
             case SIMPLE => {
@@ -1328,6 +1411,53 @@ trait APIMethods400 {
           val transactionRequestType = TransactionRequestType("SIMPLE")
           createTransactionRequest(bankId, accountId, viewId , transactionRequestType, json)
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      createTransactionRequestCard,
+      implementedInApiVersion,
+      nameOf(createTransactionRequestCard),
+      "POST",
+      "/transaction-request-types/CARD/transaction-requests",
+      "Create Transaction Request (CARD)",
+      s"""
+         |
+         |When using CARD, the payee is set in the request body .
+         |
+         |Money goes into the Counterparty in the request body.
+         |
+         |$transactionRequestGeneralText
+         |
+       """.stripMargin,
+      transactionRequestBodyCardJsonV400,
+      transactionRequestWithChargeJSON400,
+      List(
+        $UserNotLoggedIn,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        AccountNotFound,
+        $BankAccountNotFound,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle)
+    )
+    
+    lazy val createTransactionRequestCard: OBPEndpoint = {
+      case "transaction-request-types" :: "CARD" :: "transaction-requests" :: Nil JsonPost json -> _ =>
+        cc =>
+          val transactionRequestType = TransactionRequestType("CARD")
+          createTransactionRequest(BankId(""), AccountId(""), ViewId("owner"), transactionRequestType, json)
+    }
+
 
 
     staticResourceDocs += ResourceDoc(

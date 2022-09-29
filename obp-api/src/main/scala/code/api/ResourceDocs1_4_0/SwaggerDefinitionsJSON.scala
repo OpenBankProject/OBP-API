@@ -16,7 +16,7 @@ import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
 import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v4_0_0.{AccountMinimalJson400, BankAttributeBankResponseJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
+import code.api.v4_0_0.{AccountMinimalJson400, BankAttributeBankResponseJsonV400, CardJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.api.v5_0_0._
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
@@ -4195,6 +4195,22 @@ object SwaggerDefinitionsJSON {
     refund = RefundJson(transactionIdExample.value, transactionRequestRefundReasonCodeExample.value)
   )
 
+  val cardJsonV400 = CardJsonV400(
+    card_type = cardTypeExample.value,
+    brand = brandExample.value,
+    cvv = cvvExample.value,
+    card_number = cardNumberExample.value,
+    name_on_card = nameOnCardExample.value,
+    expiry_year = expiryYearExample.value,
+    expiry_month = expiryMonthExample.value,
+  )
+  
+  val transactionRequestBodyCardJsonV400 = TransactionRequestBodyCardJsonV400(
+    card = cardJsonV400,
+    to = counterpartyIdJson,
+    value = amountOfMoneyJsonV121,
+    description = "A card payment description. "
+  )
   val customerAttributesResponseJson = CustomerAttributesResponseJson (
     customer_attributes = List(customerAttributeResponseJson)
   )
@@ -4742,7 +4758,79 @@ object SwaggerDefinitionsJSON {
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
     )
-  
+
+  val createPhysicalCardJsonV500 = CreatePhysicalCardJsonV500(
+    card_number = bankCardNumberExample.value,
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    technology = technologyExample.value,
+    networks = networksExample.value.split("[,;]").toList,
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account_id =accountIdExample.value,
+    replacement = Some(replacementJSON),
+    pin_reset = List(pinResetJSON, pinResetJSON1),
+    collected = Some(DateWithDayExampleObject),
+    posted = Some(DateWithDayExampleObject),
+    customer_id = customerIdExample.value,
+    brand = brandExample.value
+  )
+
+  val physicalCardJsonV500 = PhysicalCardJsonV500(
+    card_id = cardIdExample.value,
+    bank_id = bankIdExample.value,
+    card_number = bankCardNumberExample.value,
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    cancelled = true,
+    on_hot_list = true,
+    technology = technologyExample.value,
+    networks = networksExample.value.split("[,;]").toList,
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account = accountJSON,
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject,
+    customer_id = customerIdExample.value,
+    cvv = cvvExample.value,
+    brand = brandExample.value
+  )
+
+  val physicalCardWithAttributesJsonV500 = PhysicalCardWithAttributesJsonV500(
+    card_id = cardIdExample.value,
+    bank_id = bankIdExample.value,
+    card_number = bankCardNumberExample.value,
+    card_type = cardTypeExample.value,
+    name_on_card = nameOnCardExample.value,
+    issue_number = issueNumberExample.value,
+    serial_number = serialNumberExample.value,
+    valid_from_date = DateWithDayExampleObject,
+    expires_date = DateWithDayExampleObject,
+    enabled = true,
+    cancelled = true,
+    on_hot_list = true,
+    technology = technologyExample.value,
+    networks = networksExample.value.split("[,;]").toList,
+    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    account = accountBasicV310,
+    replacement = replacementJSON,
+    pin_reset = List(pinResetJSON),
+    collected = DateWithDayExampleObject,
+    posted = DateWithDayExampleObject,
+    customer_id = customerIdExample.value,
+    card_attributes = List(cardAttributeCommons),
+    brand = brandExample.value
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()
