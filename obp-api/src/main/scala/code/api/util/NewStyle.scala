@@ -1875,9 +1875,9 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    def getAccountAttributesByAccounts(bankId: BankId,
-                                       accounts: List[BankAccount],
-                                       callContext: Option[CallContext]): OBPReturnType[ List[ (BankAccount, List[AccountAttribute]) ]] = {
+    def getAccountAttributesForAccounts(bankId: BankId,
+                                        accounts: List[BankAccount],
+                                        callContext: Option[CallContext]): OBPReturnType[ List[ (BankAccount, List[AccountAttribute]) ]] = {
       Future.sequence(accounts.map( account =>
         Connector.connector.vend.getAccountAttributesByAccount(bankId, AccountId(account.accountId.value), callContext: Option[CallContext]) map { i =>
           (connectorEmptyResponse(i._1.map(x => (account,x)), callContext), i._2)
