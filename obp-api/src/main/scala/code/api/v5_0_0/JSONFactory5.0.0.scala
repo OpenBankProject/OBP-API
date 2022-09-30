@@ -40,7 +40,7 @@ import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, JSONFactory300}
 import code.api.v3_1_0.{AccountAttributeResponseJson, AccountBasicV310, CustomerWithAttributesJsonV310, PhysicalCardWithAttributesJsonV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.bankattribute.BankAttribute
-import com.openbankproject.commons.model.{AccountAttribute, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, CardAttribute, Customer, CustomerAttribute, PhysicalCardTrait, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
+import com.openbankproject.commons.model.{AccountAttribute, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, Customer, CustomerAttribute, PhysicalCardTrait, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
 import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.List
@@ -129,7 +129,13 @@ case class AccountAttributeResponseJson500(
    value: String
  )
 
-case class AccountResponseJson500(account_id: String, account_attributes: List[AccountAttributeResponseJson500])
+case class AccountResponseJson500(account_id: String,
+                                  label: String,
+                                  balance : AmountOfMoneyJsonV121,
+                                  branch_id: String,
+                                  account_routings: List[AccountRouting],
+                                  account_attributes: List[AccountAttributeResponseJson500]
+                                 )
 
 case class PutProductJsonV500(
    parent_product_code: String, 
@@ -360,10 +366,9 @@ object JSONFactory500 {
     )
   }
 
-  def createCustomerWithAttributesJson(
-                                        cInfo : Customer, 
-                                        customerAttributes: List[CustomerAttribute], 
-                                        accounts: List[(String, List[AccountAttribute])]) : CustomerWithAttributesJsonV500 = {
+  def createCustomerWithAttributesJson(cInfo : Customer, 
+                                       customerAttributes: List[CustomerAttribute], 
+                                       accounts: List[(BankAccount, List[AccountAttribute])]) : CustomerWithAttributesJsonV500 = {
     CustomerWithAttributesJsonV500(
       bank_id = cInfo.bankId.toString,
       customer_id = cInfo.customerId,
@@ -391,11 +396,15 @@ object JSONFactory500 {
     )
   }
   
-  def createAccounts(accounts: List[(String, List[AccountAttribute])]): List[AccountResponseJson500] = {
+  def createAccounts(accounts: List[(BankAccount, List[AccountAttribute])]): List[AccountResponseJson500] = {
     accounts.map{ account =>
       AccountResponseJson500(
-        account._1,
-        account._2.map{ attribute => 
+        account_id = account._1.accountId.value,
+        label = account._1.label,
+        balance = AmountOfMoneyJsonV121(account._1.balance.toString(), account._1.currency),
+        branch_id = account._1.branchId,
+        account_routings = account._1.accountRoutings,
+        account_attributes = account._2.map{ attribute => 
           AccountAttributeResponseJson500(
             contract_code = attribute.productInstanceCode,
             product_code = attribute.productCode.value,

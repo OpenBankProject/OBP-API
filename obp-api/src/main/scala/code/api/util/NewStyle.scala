@@ -1876,11 +1876,11 @@ object NewStyle extends MdcLoggable{
     }
 
     def getAccountAttributesByAccounts(bankId: BankId,
-                                       accountIds: List[String],
-                                       callContext: Option[CallContext]): OBPReturnType[ List[ (String, List[AccountAttribute]) ]] = {
-      Future.sequence(accountIds.map( accountId =>
-        Connector.connector.vend.getAccountAttributesByAccount(bankId, AccountId(accountId), callContext: Option[CallContext]) map { i =>
-          (connectorEmptyResponse(i._1.map(x => (accountId,x)), callContext), i._2)
+                                       accounts: List[BankAccount],
+                                       callContext: Option[CallContext]): OBPReturnType[ List[ (BankAccount, List[AccountAttribute]) ]] = {
+      Future.sequence(accounts.map( account =>
+        Connector.connector.vend.getAccountAttributesByAccount(bankId, AccountId(account.accountId.value), callContext: Option[CallContext]) map { i =>
+          (connectorEmptyResponse(i._1.map(x => (account,x)), callContext), i._2)
         }
       )).map(t => (t.map(_._1), callContext))
     }

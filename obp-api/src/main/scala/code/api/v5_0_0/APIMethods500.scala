@@ -24,7 +24,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRouting, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.Req
@@ -1057,11 +1057,12 @@ trait APIMethods500 {
               bankId,
               CustomerId(customer.customerId),
               callContext: Option[CallContext])
-            accounts <- AccountAttributeX.accountAttributeProvider.vend
+            accountIds <- AccountAttributeX.accountAttributeProvider.vend
               .getAccountIdsByParams(bankId, List("customer_number" -> List(postedData.customer_number)).toMap)
-            (accountAttributes: List[(String, List[AccountAttribute])], callContext) <- NewStyle.function.getAccountAttributesByAccounts(
+            (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(accountIds.toList.flatten.map(i => BankIdAccountId(bankId, AccountId(i))), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccounts(
               bankId,
-              accounts.getOrElse(Nil),
+              accounts,
               callContext: Option[CallContext])
           } yield {
             (JSONFactory500.createCustomerWithAttributesJson(customer, customerAttributes, accountAttributes), HttpCode.`200`(callContext))
