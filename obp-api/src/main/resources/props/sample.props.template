@@ -1200,4 +1200,8 @@ session_inactivity_timeout_in_minutes = 30
 
 # Defines redirect URL after user account is validated
 # In case is not defined default value is the home page of this application
-user_account_validated_redirect_url = 
+user_account_validated_redirect_url =
+
+# Defines is it user is automatically validated, without SCA flow, after user account created
+# In case is not defined default value is false
+user_account_is_validated = false
