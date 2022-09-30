@@ -14,7 +14,7 @@ import com.openbankproject.commons.model.{AccountId, BankId}
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, ByList}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import scala.collection.immutable.List
@@ -24,6 +24,7 @@ object DeleteAccountCascade {
   def delete(bankId: BankId, accountId: AccountId): Boolean = {
     val doneTasks =
       deleteTransactions(bankId, accountId) ::
+        deleteEntitlements(bankId, accountId) ::
         deleteAccountAccess(bankId, accountId) ::
         deleteCustomViews(bankId, accountId) ::
         deleteAccountAttributes(bankId, accountId) ::
@@ -32,7 +33,6 @@ object DeleteAccountCascade {
         deleteCards(accountId) ::
         deleteAccountRoutings(bankId, accountId) ::
         deleteAccount(bankId, accountId) ::
-        deleteEntitlements(bankId) ::
         Nil
     doneTasks.forall(_ == true)
   }
@@ -53,9 +53,11 @@ object DeleteAccountCascade {
       By(MappedBankAccount.theAccountId, accountId.value)
     )
   }
-  private def deleteEntitlements(bankId: BankId): Boolean = {
+  private def deleteEntitlements(bankId: BankId, accountId: AccountId): Boolean = {
+    val userIds = AccountAccess.findAll(By(AccountAccess.account_id, accountId.value)).map(_.user_fk.foreign.map(_.userId).getOrElse(""))
     MappedEntitlement.bulkDelete_!!(
-      By(MappedEntitlement.mBankId, bankId.value)
+      By(MappedEntitlement.mBankId, bankId.value),
+      ByList(MappedEntitlement.mUserId, userIds)
     )
   }
   
