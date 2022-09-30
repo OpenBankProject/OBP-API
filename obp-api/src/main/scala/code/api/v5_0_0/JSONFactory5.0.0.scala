@@ -131,6 +131,7 @@ case class AccountAttributeResponseJson500(
 
 case class AccountResponseJson500(account_id: String,
                                   label: String,
+                                  product_code: String,
                                   balance : AmountOfMoneyJsonV121,
                                   branch_id: String,
                                   account_routings: List[AccountRouting],
@@ -401,6 +402,7 @@ object JSONFactory500 {
       AccountResponseJson500(
         account_id = account._1.accountId.value,
         label = account._1.label,
+        product_code = account._1.accountType,
         balance = AmountOfMoneyJsonV121(account._1.balance.toString(), account._1.currency),
         branch_id = account._1.branchId,
         account_routings = account._1.accountRoutings,

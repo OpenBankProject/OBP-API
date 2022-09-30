@@ -6,6 +6,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
 import code.cards.MappedPhysicalCard
+import code.entitlement.MappedEntitlement
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount, MappedBankAccountData}
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
@@ -31,6 +32,7 @@ object DeleteAccountCascade {
         deleteCards(accountId) ::
         deleteAccountRoutings(bankId, accountId) ::
         deleteAccount(bankId, accountId) ::
+        deleteEntitlements(bankId) ::
         Nil
     doneTasks.forall(_ == true)
   }
@@ -49,6 +51,11 @@ object DeleteAccountCascade {
     MappedBankAccount.bulkDelete_!!(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value)
+    )
+  }
+  private def deleteEntitlements(bankId: BankId): Boolean = {
+    MappedEntitlement.bulkDelete_!!(
+      By(MappedEntitlement.mBankId, bankId.value)
     )
   }
   
