@@ -1060,7 +1060,7 @@ trait APIMethods500 {
             accountIds <- AccountAttributeX.accountAttributeProvider.vend
               .getAccountIdsByParams(bankId, List("customer_number" -> List(postedData.customer_number)).toMap)
             (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(accountIds.toList.flatten.map(i => BankIdAccountId(bankId, AccountId(i))), callContext)
-            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccounts(
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesForAccounts(
               bankId,
               accounts,
               callContext: Option[CallContext])
