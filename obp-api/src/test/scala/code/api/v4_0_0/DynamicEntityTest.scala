@@ -319,11 +319,11 @@ class DynamicEntityTest extends V400ServerSetup {
         response.code should equal(400)
       }
 
-      {// create duplicated entityName FooBar with bank level, cause 400. (we already create the system Foobar
+      { //now bank level and system level can have same entity name
         val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
         val response = makePostRequest(request, write(rightEntity))
-        Then("We should get a 400")
-        response.code should equal(400)
+        Then("We should get a 201")
+        response.code should equal(201)
       }
       
       { // create duplicated entityName FooBar, cause 400
@@ -413,7 +413,7 @@ class DynamicEntityTest extends V400ServerSetup {
       val json = responseGet.body \ "dynamic_entities"
       val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
 
-      dynamicEntitiesGetJson.values should have size 2
+      dynamicEntitiesGetJson.values should have size 3
 
       dynamicEntitiesGetJson.arr should contain(expectUpdatedResponseJson)
 
