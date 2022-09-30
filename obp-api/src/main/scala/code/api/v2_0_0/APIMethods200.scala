@@ -1486,7 +1486,7 @@ trait APIMethods200 {
                 .username(postedData.username)
                 .email(postedData.email)
                 .password(postedData.password)
-                .validated(false) // TODO Get this from Props
+                .validated(APIUtil.getPropsAsBoolValue("user_account_validated", false))
               if(userCreated.validate.size > 0){
                 Full(errorJsonResponse(userCreated.validate.map(_.msg).mkString(";")))
               }

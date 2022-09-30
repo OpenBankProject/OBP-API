@@ -24,19 +24,22 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{AccountId, AccountRouting, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, prettyRender}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-
 import java.util.concurrent.ThreadLocalRandom
+
+import code.accountattribute.AccountAttributeX
+
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -1009,6 +1012,60 @@ trait APIMethods500 {
             )
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerOverview,
+      implementedInApiVersion,
+      nameOf(getCustomerOverview),
+      "POST",
+      "/banks/BANK_ID/customers/customer-number-query/overview",
+      "Get Customer Overview",
+      s"""Gets the Customer Overview specified by customer_number and bank_code.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postCustomerOverviewJsonV500,
+      customerWithAttributesJsonV310,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
+      Some(List(canGetCustomer))
+    )
+
+    lazy val getCustomerOverview : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number-query" :: "overview" ::  Nil JsonPost  json -> req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerOverviewJsonV500]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customer.customerId),
+              callContext: Option[CallContext])
+            accountIds <- AccountAttributeX.accountAttributeProvider.vend
+              .getAccountIdsByParams(bankId, List("customer_number" -> List(postedData.customer_number)).toMap)
+            (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(accountIds.toList.flatten.map(i => BankIdAccountId(bankId, AccountId(i))), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesByAccounts(
+              bankId,
+              accounts,
+              callContext: Option[CallContext])
+          } yield {
+            (JSONFactory500.createCustomerWithAttributesJson(customer, customerAttributes, accountAttributes), HttpCode.`200`(callContext))
           }
       }
     }

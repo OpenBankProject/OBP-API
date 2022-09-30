@@ -17,6 +17,16 @@ import scala.concurrent.duration.Duration
 
 class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
+  override def beforeEach() = {
+    super.beforeEach()
+    setPropsValues("user_account_validated" -> "true")
+  }
+
+  override def afterEach() = {
+    super.afterEach()
+    setPropsValues("user_account_validated" -> "false")
+  }
+
   object CreateUser extends Tag("createUser")
 
   val FIRSTNAME = randomString(8).toLowerCase
