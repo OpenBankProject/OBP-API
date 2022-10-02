@@ -27,5 +27,6 @@ RUN chown -R  obp /jetty
 # Switch to the obp user (non root)
 USER obp
 
-# Starts jetty
-ENTRYPOINT ["java", "-jar", "start.jar"]
+ADD entrypoint.sh /
+# Start jetty
+CMD ["/bin/bash", "/entrypoint.sh"]
