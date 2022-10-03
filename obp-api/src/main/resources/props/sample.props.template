@@ -172,7 +172,7 @@ write_connector_metrics=true
 ## You can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 # See the README for how to use the H2 browser / console.
 db.driver=org.h2.Driver
-db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
+db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 
 
 #If you want to use the postgres , be sure to create your database and update the line below!
