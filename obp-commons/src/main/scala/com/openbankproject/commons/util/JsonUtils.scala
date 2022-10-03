@@ -688,9 +688,6 @@ object JsonUtils {
     transformField(jValue){
       case (jField, path) =>
         buffer += (jField.name -> jField.value.toString)
-        if(jField.name == "face_image") {
-          1
-        }
         jField
     }
 
