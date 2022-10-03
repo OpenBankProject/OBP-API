@@ -1,5 +1,7 @@
 package code.api.v5_0_0
 
+import java.util.Date
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -1002,7 +1004,7 @@ trait APIMethods500 {
               postedData.highest_education_attained.getOrElse(""),
               postedData.employment_status.getOrElse(""),
               postedData.kyc_status.getOrElse(false),
-              postedData.last_ok_date.getOrElse(null),
+              postedData.last_ok_date.getOrElse(new Date()), // TODO Consider use of this field in Get Customers Endpoints
               postedData.credit_rating.map(i => CreditRating(i.rating, i.source)),
               postedData.credit_limit.map(i => CreditLimit(i.currency, i.amount)),
               postedData.title.getOrElse(""),
