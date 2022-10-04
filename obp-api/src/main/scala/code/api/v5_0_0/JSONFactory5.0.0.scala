@@ -43,6 +43,7 @@ import code.bankattribute.BankAttribute
 import com.openbankproject.commons.model.{AccountAttribute, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, Customer, CustomerAttribute, PhysicalCardTrait, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
 import net.liftweb.json.JsonAST.JValue
 
+import scala.collection.immutable
 import scala.collection.immutable.List
 
 case class PostBankJson500(
@@ -120,6 +121,20 @@ case class CustomerWithAttributesJsonV500(
    customer_attributes: List[CustomerAttributeResponseJsonV300],
    accounts: List[AccountResponseJson500])
 
+case class CustomerOverviewFlatJsonV500(
+   bank_id: String,
+   customer_id: String,
+   customer_number : String,
+   legal_name : String,
+   mobile_phone_number : String,
+   email : String,
+   date_of_birth: Date,
+   title: String,
+   branch_id: String,
+   name_suffix: String,
+   customer_attributes: List[CustomerAttributeResponseJsonV300],
+   accounts: List[AccountResponseJson500])
+
 case class AccountAttributeResponseJson500(
    contract_code: Option[String],
    product_code: String,
@@ -129,11 +144,30 @@ case class AccountAttributeResponseJson500(
    value: String
  )
 
+case class ContractJsonV500(product_code: String,
+                            contract_code: String,
+                            product_description: Option[String],
+                            issuance_amount: Option[String],
+                            interest_rate: Option[String],
+                            term: Option[String],
+                            form_of_payment: Option[String],
+                            interest_amount: Option[String],
+                            branch_code: Option[String],
+                            payment_method: Option[String],
+                            opening_date: Option[String],
+                            maturity_date: Option[String],
+                            renewal_date: Option[String],
+                            cancellation_date: Option[String],
+                            instrument_status_code: Option[String],
+                            instrument_status_definition: Option[String],
+                            is_substituted: Option[String]
+                           )
 case class AccountResponseJson500(account_id: String,
                                   label: String,
                                   product_code: String,
                                   balance : AmountOfMoneyJsonV121,
                                   branch_id: String,
+                                  contracts: Option[List[ContractJsonV500]] = None,
                                   account_routings: List[AccountRouting],
                                   account_attributes: List[AccountAttributeResponseJson500]
                                  )
@@ -396,6 +430,53 @@ object JSONFactory500 {
       accounts = createAccounts(accounts)
     )
   }
+  def createCustomerOverviewFlatJson(cInfo : Customer, 
+                                     customerAttributes: List[CustomerAttribute], 
+                                     accounts: List[(BankAccount, List[AccountAttribute])]) : CustomerOverviewFlatJsonV500 = {
+    CustomerOverviewFlatJsonV500(
+      bank_id = cInfo.bankId,
+      customer_id = cInfo.customerId,
+      customer_number = cInfo.number,
+      legal_name = cInfo.legalName,
+      mobile_phone_number = cInfo.mobileNumber,
+      email = cInfo.email,
+      date_of_birth = cInfo.dateOfBirth,
+      title = cInfo.title,
+      branch_id = cInfo.branchId,
+      name_suffix = cInfo.nameSuffix,
+      customer_attributes = customerAttributes.map(JSONFactory300.createCustomerAttributeJson),
+      accounts = createAccounts(accounts)
+    )
+  }
+  
+  def createContracts(list: List[AccountAttribute]) : Option[List[ContractJsonV500]] = {
+    def getOptionalValue(key: String): Option[String] = {
+      list.filter(_.name == key).map(_.value).headOption
+    }
+    val grouped: Map[String, List[AccountAttribute]] = list.filter(_.productInstanceCode.isDefined).groupBy(_.productInstanceCode.getOrElse("None"))
+    val result = grouped.map(x => 
+      ContractJsonV500(
+        contract_code = x._1, 
+        product_code = x._2.map(_.productCode.value).distinct.headOption.getOrElse(""),
+        product_description = getOptionalValue("product_description"),
+        issuance_amount = getOptionalValue("issuance_amount"),
+        interest_rate = getOptionalValue("interest_rate"),
+        term = getOptionalValue("term"),
+        form_of_payment = getOptionalValue("form_of_payment"),
+        interest_amount = getOptionalValue("interest_amount"),
+        branch_code = getOptionalValue("branch_code"),
+        payment_method = getOptionalValue("payment_method"),
+        opening_date = getOptionalValue("opening_date"),
+        maturity_date = getOptionalValue("maturity_date"),
+        renewal_date = getOptionalValue("renewal_date"),
+        cancellation_date = getOptionalValue("cancellation_date"),
+        instrument_status_code = getOptionalValue("instrument_status_code"),
+        instrument_status_definition = getOptionalValue("instrument_status_definition"),
+        is_substituted = getOptionalValue("is_substituted")
+      )
+    ).toList
+    Some(result)
+  }
   
   def createAccounts(accounts: List[(BankAccount, List[AccountAttribute])]): List[AccountResponseJson500] = {
     accounts.map{ account =>
@@ -405,6 +486,7 @@ object JSONFactory500 {
         product_code = account._1.accountType,
         balance = AmountOfMoneyJsonV121(account._1.balance.toString(), account._1.currency),
         branch_id = account._1.branchId,
+        contracts = createContracts(account._2),
         account_routings = account._1.accountRoutings,
         account_attributes = account._2.map{ attribute => 
           AccountAttributeResponseJson500(
