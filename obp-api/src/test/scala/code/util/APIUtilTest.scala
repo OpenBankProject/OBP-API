@@ -30,7 +30,7 @@ package code.util
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
-import code.api.util.APIUtil.{DateWithMsFormat, DefaultFromDate, DefaultToDate, _}
+import code.api.util.APIUtil.{DateWithMsFormat, oneYearAgoFromDate, DefaultToDate, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.setup.PropsReset
@@ -45,11 +45,10 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
   val endDateString = DefaultToDateString
   val endDateStringWrongFormat = "Wrong Date Format"
   val inputStringDateFormat = DateWithMsFormat
-  val DefaultFromDateString = APIUtil.DefaultFromDateString
+  val DefaultFromDateString = APIUtil.oneYearAgoFromDateString
   val DefaultToDateString = APIUtil.DefaultToDateString
   val startDateObject: Date = DateWithMsFormat.parse(DefaultFromDateString)
   val endDateObject: Date = DateWithMsFormat.parse(DefaultToDateString)
-  val epochTime = new Date(0) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
   ZonedDateTime.now(ZoneId.of("UTC"))
 
   feature("test APIUtil.dateRangesOverlap method") {
@@ -240,7 +239,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val returnValue = getFromDate(httpParams)
       returnValue shouldBe a[Full[OBPFromDate]]
 
-      val currentTime = OBPFromDate(DefaultFromDate)
+      val currentTime = OBPFromDate(oneYearAgoFromDate)
       val beWithinTolerance = be  >= startTime and be <= currentTime
       returnValue.orNull should beWithinTolerance
     }
@@ -252,7 +251,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val returnValue = getFromDate(httpParams)
       returnValue shouldBe a[Full[OBPFromDate]]
 
-      val currentTime = OBPFromDate(DefaultFromDate)
+      val currentTime = OBPFromDate(oneYearAgoFromDate)
       val beWithinTolerance = be  >= startTime and be <= currentTime
       returnValue.orNull should beWithinTolerance
     }
