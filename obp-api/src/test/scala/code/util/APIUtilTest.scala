@@ -49,6 +49,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
   val DefaultToDateString = APIUtil.DefaultToDateString
   val startDateObject: Date = DateWithMsFormat.parse(DefaultFromDateString)
   val endDateObject: Date = DateWithMsFormat.parse(DefaultToDateString)
+  val epochTime = new Date(0) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
   ZonedDateTime.now(ZoneId.of("UTC"))
 
   feature("test APIUtil.dateRangesOverlap method") {
@@ -235,7 +236,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario("test the wrong case: wrong name (wrongName) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
-      val startTime = OBPFromDate(DefaultFromDate)
+      val startTime = OBPFromDate(epochTime)
       val returnValue = getFromDate(httpParams)
       returnValue shouldBe a[Full[OBPFromDate]]
 
@@ -247,7 +248,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario("test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
-      val startTime = OBPFromDate(DefaultFromDate)
+      val startTime = OBPFromDate(epochTime)
       val returnValue = getFromDate(httpParams)
       returnValue shouldBe a[Full[OBPFromDate]]
 

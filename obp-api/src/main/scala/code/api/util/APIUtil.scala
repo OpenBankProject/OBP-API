@@ -159,13 +159,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     oneYearAgo.getTime()
   }
   def DefaultToDate = new Date()
-  def DefaultFromDate = oneYearAgo(DefaultToDate)
+  def oneYearAgoFromDate = oneYearAgo(DefaultToDate)
 
   def formatDate(date : Date) : String = {
     CustomJsonFormats.losslessFormats.dateFormat.format(date)
   }
-  def DefaultFromDateString = formatDate(DefaultFromDate)
+  def oneYearAgoFromDateString = formatDate(oneYearAgoFromDate)
   def DefaultToDateString = formatDate(DefaultToDate)
+  
+  val epochTime = new Date(0) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
@@ -867,7 +869,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case (_, Full(right)) =>
         parseObpStandardDate(right.head)
       case _ =>
-        Full(new Date(0)) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
+        Full(epochTime) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
     }
     date.map(OBPFromDate(_))
   }
@@ -1920,7 +1922,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val dateParameter = if(containsDate){
       s"""
          |
-         |* from_date=DATE => example value: $DefaultFromDateString. NOTE! The default value is one year ago ($DefaultFromDateString).
+         |* from_date=DATE => example value: $oneYearAgoFromDateString. NOTE! The default value is one year ago ($oneYearAgoFromDateString).
          |* to_date=DATE => example value: $DefaultToDateString. NOTE! The default value is now ($DefaultToDateString).
          |
          |Date format parameter: $DateWithMs($DateWithMsExampleString) ==> time zone is UTC.
