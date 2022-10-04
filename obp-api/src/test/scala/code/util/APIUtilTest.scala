@@ -30,7 +30,7 @@ package code.util
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
-import code.api.util.APIUtil.{DateWithMsFormat, oneYearAgoFromDate, DefaultToDate, _}
+import code.api.util.APIUtil.{DateWithMsFormat, theEpochTime, DefaultToDate, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.setup.PropsReset
@@ -45,7 +45,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
   val endDateString = DefaultToDateString
   val endDateStringWrongFormat = "Wrong Date Format"
   val inputStringDateFormat = DateWithMsFormat
-  val DefaultFromDateString = APIUtil.oneYearAgoFromDateString
+  val DefaultFromDateString = APIUtil.epochTimeString
   val DefaultToDateString = APIUtil.DefaultToDateString
   val startDateObject: Date = DateWithMsFormat.parse(DefaultFromDateString)
   val endDateObject: Date = DateWithMsFormat.parse(DefaultToDateString)
@@ -235,11 +235,11 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario("test the wrong case: wrong name (wrongName) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List(s"$DateWithMsExampleString")))
-      val startTime = OBPFromDate(epochTime)
+      val startTime = OBPFromDate(theEpochTime)
       val returnValue = getFromDate(httpParams)
       returnValue shouldBe a[Full[OBPFromDate]]
 
-      val currentTime = OBPFromDate(oneYearAgoFromDate)
+      val currentTime = OBPFromDate(theEpochTime)
       val beWithinTolerance = be  >= startTime and be <= currentTime
       returnValue.orNull should beWithinTolerance
     }
@@ -247,11 +247,11 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario("test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam")
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
-      val startTime = OBPFromDate(epochTime)
+      val startTime = OBPFromDate(theEpochTime)
       val returnValue = getFromDate(httpParams)
       returnValue shouldBe a[Full[OBPFromDate]]
 
-      val currentTime = OBPFromDate(oneYearAgoFromDate)
+      val currentTime = OBPFromDate(theEpochTime)
       val beWithinTolerance = be  >= startTime and be <= currentTime
       returnValue.orNull should beWithinTolerance
     }

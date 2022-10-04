@@ -258,13 +258,13 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields
         |
-        |eg: /management/metrics/top-apis?from_date=$oneYearAgoFromDateString&to_date=$DefaultToDateString&consumer_id=5
+        |eg: /management/metrics/top-apis?from_date=$epochTimeString&to_date=$DefaultToDateString&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |
-        |1 from_date (defaults to the one year ago): eg:from_date=$oneYearAgoFromDateString
+        |1 from_date (defaults to the one year ago): eg:from_date=$epochTimeString
         |
         |2 to_date (defaults to the current date) eg:to_date=$DefaultToDateString
         |
@@ -344,14 +344,14 @@ trait APIMethods310 {
         |
         |Should be able to filter on the following fields
         |
-        |e.g.: /management/metrics/top-consumers?from_date=$oneYearAgoFromDateString&to_date=$DefaultToDateString&consumer_id=5
+        |e.g.: /management/metrics/top-consumers?from_date=$epochTimeString&to_date=$DefaultToDateString&consumer_id=5
         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
         |&verb=GET&anon=false&app_name=MapperPostman
         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
         |&limit=100
         |
-        |1 from_date (defaults to the one year ago): eg:from_date=$oneYearAgoFromDateString
+        |1 from_date (defaults to the one year ago): eg:from_date=$epochTimeString
         |
         |2 to_date (defaults to the current date) eg:to_date=$DefaultToDateString
         |

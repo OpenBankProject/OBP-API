@@ -268,7 +268,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
   override def getTransactions(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): OBPReturnType[Box[List[Transaction]]] = {
     val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(100)
     val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
-    val fromDate = queryParams.collect { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.oneYearAgoFromDate.toString)
+    val fromDate = queryParams.collect { case OBPFromDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.theEpochTime.toString)
     val toDate = queryParams.collect { case OBPToDate(date) => APIUtil.DateWithMsFormat.format(date) }.headOption.getOrElse(APIUtil.DefaultToDate.toString)
 
     val req = OutBoundGetTransactions(callContext.map(_.toOutboundAdapterCallContext).get, bankId, accountId, limit, offset, fromDate, toDate)
