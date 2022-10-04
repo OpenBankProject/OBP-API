@@ -84,7 +84,7 @@ class DeleteProductCascadeTest extends V400ServerSetup {
       makeDeleteRequest(request400).code should equal(200)
 
       When("We try to delete one more time")
-      makeDeleteRequest(request400).code should equal(404)
+      makeDeleteRequest(request400).code should equal(403)
     }
   }
 

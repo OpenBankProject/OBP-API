@@ -53,7 +53,7 @@ object OBPQueryParam {
   val FROM_DATE = "fromDate"
   val TO_DATE = "toDate"
 
-  private val defaultFromDate = APIUtil.DateWithMsFormat.format(APIUtil.DefaultFromDate)
+  private val defaultFromDate = APIUtil.DateWithMsFormat.format(APIUtil.theEpochTime)
   private val defaultToDate = APIUtil.DateWithMsFormat.format(APIUtil.DefaultToDate)
 
   def getLimit(queryParams: List[OBPQueryParam]) : Int = {

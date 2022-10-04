@@ -35,8 +35,8 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
   private def getOptionalParams(queryParams: List[OBPQueryParam]) = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedCustomer](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedCustomer](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedCustomer.mLastOkDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedCustomer.mLastOkDate, date) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedCustomer.updatedAt, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedCustomer.updatedAt, date) }.headOption
     val ordering = queryParams.collect {
       case OBPOrdering(_, direction) =>
         direction match {
