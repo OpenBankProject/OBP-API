@@ -159,6 +159,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     oneYearAgo.getTime()
   }
   def DefaultToDate = new Date()
+  def oneYearAgoDate = oneYearAgo(DefaultToDate)
   val theEpochTime: Date = new Date(0) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
 
   def formatDate(date : Date) : String = {
