@@ -867,9 +867,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case (_, Full(right)) =>
         parseObpStandardDate(right.head)
       case _ =>
-        Full(DefaultFromDate)
+        Full(new Date(0)) // Set epoch time. The Unix epoch is 00:00:00 UTC on 1 January 1970.
     }
-
     date.map(OBPFromDate(_))
   }
 
@@ -911,7 +910,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Full(OBPLimit(right))
       case (_, Failure(m, e, c)) =>
         Failure(m, e, c)
-      case _ => Full(OBPLimit(50))
+      case _ => Full(OBPLimit(500))
     }
   }
 
