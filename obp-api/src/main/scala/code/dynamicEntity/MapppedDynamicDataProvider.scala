@@ -41,7 +41,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       DynamicData.find(
         By(DynamicData.DynamicDataId, id), 
         By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, bankId.getOrElse(""))
+        By(DynamicData.BankId, bankId.get)
       ) match {
         case Full(dynamicData) => Full(dynamicData)
         case _ => Failure(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynameicDataId=$id")
@@ -59,7 +59,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     } else {
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, bankId.getOrElse(""))
+        By(DynamicData.BankId, bankId.get)
       ).map(it => json.parse(it.dataJson)).map(_.asInstanceOf[JObject])
     }
   }
@@ -73,7 +73,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     }else{
       DynamicData.findAll(
         By(DynamicData.DynamicEntityName, entityName),
-        By(DynamicData.BankId, bankId.getOrElse(""))
+        By(DynamicData.BankId, bankId.get)
       )
     }
   }
@@ -96,7 +96,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     } else {
       DynamicData.find(
         By(DynamicData.DynamicEntityName, dynamicEntityName),
-        By(DynamicData.BankId, bankId.getOrElse(""))
+        By(DynamicData.BankId, bankId.get)
       ).nonEmpty
     }
   }
@@ -107,9 +107,9 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     val dataStr = json.compactRender(requestBody)
     tryo {
       if(bankId.isDefined){
-        data.DataJson(dataStr).DynamicEntityName(entityName).BankId(bankId.getOrElse("")).saveMe()
+        data.DataJson(dataStr).DynamicEntityName(entityName).BankId(bankId.get).saveMe()
       } else{
-        data.DataJson(dataStr).DynamicEntityName(entityName).saveMe()
+        data.DataJson(dataStr).DynamicEntityName(entityName).BankId(null).saveMe()
       }
     }
   }
