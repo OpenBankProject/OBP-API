@@ -1285,7 +1285,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate
+    last_ok_date = oneYearAgoDate
   )
 
   val customerJsonV140 = CustomerJsonV140(
@@ -1302,7 +1302,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate
+    last_ok_date = oneYearAgoDate
   )
 
   val customersJsonV140 = CustomersJsonV140(
@@ -2006,7 +2006,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate
+    last_ok_date = oneYearAgoDate
   )
 
   val transactionRequestJsonV200 = TransactionRequestJsonV200(
@@ -2142,7 +2142,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate
+    last_ok_date = oneYearAgoDate
   )
   
   val customerJSONs = CustomerJSONs(customers = List(customerJsonV210))
@@ -2178,7 +2178,7 @@ object SwaggerDefinitionsJSON {
       highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
       employment_status = ExampleValue.employmentStatusExample.value,
       kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-      last_ok_date = DefaultFromDate
+      last_ok_date = oneYearAgoDate
     )
 
   val customerJsonV300 = CustomerJsonV300(
@@ -2198,7 +2198,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate,
+    last_ok_date = oneYearAgoDate,
     title  = ExampleValue.titleExample.value,
     branch_id = ExampleValue.branchIdExample.value,
     name_suffix = ExampleValue.nameSuffixExample.value
@@ -2227,7 +2227,7 @@ object SwaggerDefinitionsJSON {
       highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
       employment_status = ExampleValue.employmentStatusExample.value,
       kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-      last_ok_date = DefaultFromDate,
+      last_ok_date = oneYearAgoDate,
       title  = ExampleValue.titleExample.value,
       branch_id = ExampleValue.branchIdExample.value,
       name_suffix = ExampleValue.nameSuffixExample.value
@@ -2247,7 +2247,7 @@ object SwaggerDefinitionsJSON {
       highest_education_attained = Some(ExampleValue.highestEducationAttainedExample.value),
       employment_status = Some(ExampleValue.employmentStatusExample.value),
       kyc_status = Some(ExampleValue.kycStatusExample.value.toBoolean),
-      last_ok_date = Some(DefaultFromDate),
+      last_ok_date = Some(oneYearAgoDate),
       title  = Some(ExampleValue.titleExample.value),
       branch_id = Some(ExampleValue.branchIdExample.value),
       name_suffix = Some(ExampleValue.nameSuffixExample.value)
@@ -2270,7 +2270,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate,
+    last_ok_date = oneYearAgoDate,
     title  = ExampleValue.titleExample.value,
     branch_id = ExampleValue.branchIdExample.value,
     name_suffix = ExampleValue.nameSuffixExample.value
@@ -2300,7 +2300,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate,
+    last_ok_date = oneYearAgoDate,
     title  = ExampleValue.titleExample.value,
     branch_id = ExampleValue.branchIdExample.value,
     name_suffix = ExampleValue.nameSuffixExample.value,
@@ -2324,7 +2324,7 @@ object SwaggerDefinitionsJSON {
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
     kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
-    last_ok_date = DefaultFromDate,
+    last_ok_date = oneYearAgoDate,
     title  = ExampleValue.titleExample.value,
     branch_id = ExampleValue.branchIdExample.value,
     name_suffix = ExampleValue.nameSuffixExample.value,
