@@ -1,5 +1,7 @@
 package code.api.v5_0_0
 
+import java.util.Date
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
