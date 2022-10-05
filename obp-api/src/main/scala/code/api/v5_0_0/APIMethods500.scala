@@ -927,6 +927,7 @@ trait APIMethods500 {
       EmptyBody,
       atmsJsonV400,
       List(
+        $BankNotFound,
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle)
