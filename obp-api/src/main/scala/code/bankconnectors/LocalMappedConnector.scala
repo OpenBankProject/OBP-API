@@ -4283,30 +4283,30 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     Future {
       val processResult: Box[JValue] = operation.asInstanceOf[Any] match {
         case GET_ALL => Full {
-          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJson(entityName)
+          val dataList = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJson(bankId, entityName)
           JArray(dataList)
         }
         case GET_ONE => {
           val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend
-            .get(entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required.")))
+            .get(bankId, entityName, entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required.")))
             .map(it => json.parse(it.dataJson))
           boxedEntity
         }
         case CREATE => {
           val body = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
-          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.save(entityName, body)
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.save(bankId, entityName, body)
             .map(it => json.parse(it.dataJson))
           boxedEntity
         }
         case UPDATE => {
           val body = requestBody.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument please supply the requestBody."))
-          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.update(entityName, body, entityId.get)
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.update(bankId, entityName, body, entityId.get)
             .map(it => json.parse(it.dataJson))
           boxedEntity
         }
         case DELETE => {
           val id = entityId.getOrElse(throw new RuntimeException(s"$DynamicEntityMissArgument the entityId is required. "))
-          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.delete(entityName, id)
+          val boxedEntity: Box[JValue] = DynamicDataProvider.connectorMethodProvider.vend.delete(bankId, entityName, id)
               .map(it => JBool(it))
           boxedEntity
         }
