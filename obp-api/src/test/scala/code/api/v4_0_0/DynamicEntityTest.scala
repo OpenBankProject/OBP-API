@@ -183,492 +183,492 @@ class DynamicEntityTest extends V400ServerSetup {
       |}
       |""".stripMargin)
 
-//  feature("Add a DynamicEntity v4.0.4- Unauthorized access") {
-//    scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint9, VersionOfApi) {
-//      When("We make a request v4.0.0")
-//      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").POST
-//      val response400 = makePostRequest(request400, write(rightEntity))
-//      Then("We should get a 401")
-//      response400.code should equal(401)
-//      And("error should be " + UserNotLoggedIn)
-//      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//      
-//      Then("Test the bank level")
-//      
-//      {
-//        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST
-//        val response400 = makePostRequest(request400, write(rightEntity))
-//        Then("We should get a 401")
-//        response400.code should equal(401)
-//        And("error should be " + UserNotLoggedIn)
-//        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//      }
-//    }
-//  }
-//  feature("Update a DynamicEntity v4.0.4- Unauthorized access") {
-//    scenario("We will call the endpoint without user credentials", ApiEndpoint2, ApiEndpoint12, VersionOfApi) {
-//      When("We make a request v4.0.0")
-//      val request400 = (v4_0_0_Request / "management" / "dynamic-entities"/ "some-method-routing-id").PUT
-//      val response400 = makePutRequest(request400, write(rightEntity))
-//      Then("We should get a 401")
-//      response400.code should equal(401)
-//      And("error should be " + UserNotLoggedIn)
-//      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//
-//      Then("Test the bank level")
-//      
-//      {
-//        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities"/ "some-method-routing-id").PUT
-//        val response400 = makePutRequest(request400, write(rightEntity))
-//        Then("We should get a 401")
-//        response400.code should equal(401)
-//        And("error should be " + UserNotLoggedIn)
-//        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//
-//      }
-//      
-//    }
-//  }
-//  feature("Get DynamicEntities v4.0.4- Unauthorized access") {
-//    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
-//      When("We make a request v4.0.0")
-//      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").GET
-//      val response400 = makeGetRequest(request400)
-//      Then("We should get a 401")
-//      response400.code should equal(401)
-//      And("error should be " + UserNotLoggedIn)
-//      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//
-//      Then("Test the bank level")
-//
-//      {
-//        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").GET
-//        val response400 = makeGetRequest(request400)
-//        Then("We should get a 401")
-//        response400.code should equal(401)
-//        And("error should be " + UserNotLoggedIn)
-//        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//      }
-//    }
-//  }
-//  feature("Delete the DynamicEntity specified by METHOD_ROUTING_ID v4.0.4- Unauthorized access") {
-//    scenario("We will call the endpoint without user credentials", ApiEndpoint4, ApiEndpoint11, VersionOfApi) {
-//      When("We make a request v4.0.0")
-//      val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / "METHOD_ROUTING_ID").DELETE
-//      val response400 = makeDeleteRequest(request400)
-//      Then("We should get a 401")
-//      response400.code should equal(401)
-//      And("error should be " + UserNotLoggedIn)
-//      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//
-//      Then("Test the bank level")
-//
-//      {
-//        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities" / "METHOD_ROUTING_ID").DELETE
-//        val response400 = makeDeleteRequest(request400)
-//        Then("We should get a 401")
-//        response400.code should equal(401)
-//        And("error should be " + UserNotLoggedIn)
-//        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-//      }
-//      
-//    }
-//  }
-//
-//  feature("Add a DynamicEntity v4.0.4- Unauthorized access - Authorized access") {
-//    scenario("We will call the endpoint without the proper Role " + canCreateDynamicEntity, ApiEndpoint1, VersionOfApi) {
-//      When("We make a request v4.0.0 without a Role " + canCreateDynamicEntity)
-//      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
-//      val response400 = makePostRequest(request400, write(rightEntity))
-//      Then("We should get a 403")
-//      response400.code should equal(403)
-//      And("error should be " + UserHasMissingRoles + CanCreateDynamicEntity)
-//      response400.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateDynamicEntity)
-//
-//      Then("Test the bank level")
-//
-//      {
-//        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST <@(user1)
-//        val response400 = makePostRequest(request400, write(rightEntity))
-//        Then("We should get a 403")
-//        response400.code should equal(403)
-//        response400.body.extract[ErrorMessage].message contains UserHasMissingRoles should be (true)
-//      }
-//      
-//    }
-//
-//    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint8,ApiEndpoint9, VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
-//      val response = makePostRequest(request, write(rightEntity))
-//      Then("We should get a 201")
-//      response.code should equal(201)
-//      
-//      {//Test the bank level create entity
-//        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
-//        val response = makePostRequest(request, write(rightEntityBankLevel))
-//        Then("We should get a 201")
-//        response.code should equal(201)
-//      }
-//
-//      {// create duplicated entityName FooBar, cause 400
-//        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
-//        val response = makePostRequest(request, write(rightEntityBankLevel))
-//        Then("We should get a 400")
-//        response.code should equal(400)
-//      }
-//
-//      { //now bank level and system level can have same entity name
-//        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
-//        val response = makePostRequest(request, write(rightEntity))
-//        Then("We should get a 201")
-//        response.code should equal(201)
-//      }
-//      
-//      { // create duplicated entityName FooBar, cause 400
-//        val response400 = makePostRequest(request, write(rightEntity))
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityNameAlreadyExists)
-//      }
-//
-//      val responseJson = response.body
-//      val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
-//      val dynamicEntityUserIdJObject: JObject = "userId" -> resourceUser1.userId
-//      val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
-//
-//      val expectCreateResponseJson: JValue = rightEntity merge dynamicEntityUserIdJObject merge dynamicEntityIdJObject
-//
-//      val newNameValue: JObject =
-//        "FooBar" -> (
-//          "properties" ->
-//            ("name" -> (
-//              "example" -> "hello")
-//              )
-//          )
-//
-//      val updateRequest: JValue = rightEntity merge newNameValue
-//      val expectUpdatedResponseJson: JValue = expectCreateResponseJson merge newNameValue
-//
-//      responseJson shouldEqual expectCreateResponseJson
-//
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateDynamicEntity.toString)
-//      When("We make a request v4.0.0 with the Role " + canUpdateDynamicEntity)
-//
-//      {
-//        // update success
-//        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(updateRequest))
-//        Then("We should get a 200")
-//        response400.code should equal(200)
-//        val updateResponseJson = response400.body
-//        updateResponseJson shouldEqual expectUpdatedResponseJson
-//      }
-//
-//      {
-//        // update a not exists DynamicEntity
-//        val request404 = (v4_0_0_Request / "management" / "dynamic-entities" / "not-exists-id" ).PUT <@(user1)
-//        val response404 = makePutRequest(request404, compactRender(updateRequest))
-//        Then("We should get a 404")
-//        response404.code should equal(404)
-//        response404.body.extract[ErrorMessage].message should startWith (DynamicEntityNotFoundByDynamicEntityId)
-//      }
-//
-//      {
-//        // update a DynamicEntity with wrong required field name
-//        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(wrongRequiredEntity))
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
-//      }
-//
-//      {
-//        // update a DynamicEntity with wrong type of description
-//        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(wrongDescriptionEntity))
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
-//      }
-//
-//      {
-//        // update a DynamicEntity with wrong type of property description
-//        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(wrongPropertyDescriptionEntity))
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
-//      }
-//
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDynamicEntities.toString)
-//      When("We make a request v4.0.0 with the Role " + canGetDynamicEntities)
-//      val requestGet = (v4_0_0_Request / "management" / "dynamic-entities").GET <@(user1)
-//      val responseGet = makeGetRequest(requestGet)
-//      Then("We should get a 200")
-//      responseGet.code should equal(200)
-//      val json = responseGet.body \ "dynamic_entities"
-//      val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
-//
-//      dynamicEntitiesGetJson.values should have size 3
-//
-//      dynamicEntitiesGetJson.arr should contain(expectUpdatedResponseJson)
-//
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteDynamicEntity.toString)
-//      When("We make a request v4.0.0 with the Role " + canDeleteDynamicEntity)
-//      val requestDelete400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
-//      val responseDelete400 = makeDeleteRequest(requestDelete400)
-//      Then("We should get a 204")
-//      responseDelete400.code should equal(204)
-//
-//    }
-//  }
-//
-//  feature("Add a DynamicEntity v4.0.4- and test all the myDynamicEntity endpoints") {
-//    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
-//      val response = makePostRequest(request, write(rightEntity))
-//      Then("We should get a 201")
-//      response.code should equal(201)
-//      
-//      {//Test the bank level create entity
-//        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
-//        val response = makePostRequest(request, write(rightEntityBankLevel))
-//        Then("We should get a 201")
-//        response.code should equal(201)
-//      }
-//
-//      val responseJson = response.body
-//      val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
-//
-//      val dynamicEntityUserIdJObject: JObject = "userId" -> resourceUser1.userId
-//      val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
-//
-//      val expectCreateResponseJson: JValue = rightEntity merge dynamicEntityUserIdJObject merge dynamicEntityIdJObject
-//
-//      val newNameValue: JObject =
-//        "FooBar" -> (
-//          "properties" ->
-//            ("name" -> (
-//              "example" -> "hello")
-//              )
-//          )
-//
-//      val updateRequest: JValue = rightEntity merge newNameValue
-//      val expectUpdatedResponseJson: JValue = expectCreateResponseJson merge newNameValue
-//
-//      responseJson shouldEqual expectCreateResponseJson
-//
-//      When(s"We make a $ApiEndpoint6" )
-//
-//      {
-//        // update success
-//        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(updateRequest))
-//        Then("We should get a 200")
-//        response400.code should equal(200)
-//        val updateResponseJson = response400.body
-//        updateResponseJson shouldEqual expectUpdatedResponseJson
-//      }
-//
-//      {
-//        // update a not exists DynamicEntity
-//        val request404 = (v4_0_0_Request / "my" / "dynamic-entities" / "not-exists-id" ).PUT <@(user1)
-//        val response404 = makePutRequest(request404, compactRender(updateRequest))
-//        Then("We should get a 404")
-//        response404.code should equal(404)
-//        response404.body.extract[ErrorMessage].message should startWith (DynamicEntityNotFoundByDynamicEntityId)
-//      }
-//
-//      {
-//        // update a DynamicEntity with wrong required field name
-//        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(wrongRequiredEntity))
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
-//      }
-//
-//      {
-//        // update a DynamicEntity with wrong type of description
-//        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(wrongDescriptionEntity))
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
-//      }
-//
-//      {
-//        // update a DynamicEntity with wrong type of property description
-//        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
-//        val response400 = makePutRequest(request400, compactRender(wrongPropertyDescriptionEntity))
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
-//      }
-//
-//      {
-//        // update a DynamicEntity with wrong user
-//        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user2)
-//        val response400 = makePutRequest(request400, compactRender(updateRequest))
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (InvalidMyDynamicEntityUser)
-//      }
-//
-//      When(s"We make a $ApiEndpoint5 request" )
-//      val requestGet = (v4_0_0_Request / "my" / "dynamic-entities").GET <@(user1)
-//      val responseGet = makeGetRequest(requestGet)
-//      Then("We should get a 200")
-//      responseGet.code should equal(200)
-//      val json = responseGet.body \ "dynamic_entities"
-//      val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
-//
-//      dynamicEntitiesGetJson.values should have size 2
-//
-//      dynamicEntitiesGetJson.arr should contain(expectUpdatedResponseJson)
-//
-//      {
-//        // get a DynamicEntity with wrong user
-//        val request400 = (v4_0_0_Request / "my" / "dynamic-entities"  ).GET <@(user2)
-//        val response400 = makeGetRequest(request400)
-//        Then("We should get a 200")
-//
-//        val json = response400.body \ "dynamic_entities"
-//        val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
-//
-//        dynamicEntitiesGetJson.values should have size 0
-//      }
-//
-//      When(s"We make a $ApiEndpoint7 request" )
-//
-//      {
-//        // delete a MyDynamicEntity with wrong user
-//        val request400 = (v4_0_0_Request / "my" / "dynamic-entities"/ dynamicEntityId ).DELETE <@(user2)
-//        val response400 = makeDeleteRequest(request400)
-//        Then("We should get a 400")
-//
-//        response400.code should equal(400)
-//        response400.body.extract[ErrorMessage].message should startWith (InvalidMyDynamicEntityUser)
-//      }
-//      {
-//        // delete a MyDynamicEntity 
-//        val requestDelete400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
-//        val responseDelete400 = makeDeleteRequest(requestDelete400)
-//        Then("We should get a 200")
-//        responseDelete400.code should equal(200)
-//      }
-//
-//    }
-//  }
-//
-//  feature("Add a DynamicEntity v4.0.4- and test all the getBankLevelDynamicEntities endpoints") {
-//    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
-//      val entityWithBankId = parse(
-//        s"""
-//          |{
-//          |    "bankId": "${testBankId1.value}",
-//          |    "FooBar": {
-//          |       "description": "description of this entity, can be markdown text.",
-//          |        "required": [
-//          |            "name"
-//          |        ],
-//          |        "properties": {
-//          |            "name": {
-//          |                "type": "string",
-//          |                "maxLength": 20,
-//          |                "minLength": 3,
-//          |                "example": "James Brown",
-//          |                "description":"description of **name** field, can be markdown text."
-//          |            },
-//          |            "number": {
-//          |                "type": "integer",
-//          |                "example": 69876172
-//          |            }
-//          |        }
-//          |    }
-//          |}
-//          |""".stripMargin)
-//
-//      val response = makePostRequest(request, write(entityWithBankId))
-//      Then("We should get a 201")
-//      response.code should equal(201)
-//
-//      val responseJson = response.body
-//      val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
-//      val dynamicBankId = (responseJson \ "bankId").asInstanceOf[JString].s
-//
-//      val dynamicEntityUserIdJObject: JObject = "userId" -> resourceUser1.userId
-//      val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
-//
-//      val expectCreateResponseJson: JValue = entityWithBankId merge dynamicEntityUserIdJObject merge dynamicEntityIdJObject
-//
-//
-//      responseJson shouldEqual expectCreateResponseJson
-//
-//      When(s"We make a $ApiEndpoint8 request without the role" )
-//      val requestGet = (v4_0_0_Request /"management" / "banks" /testBankId1.value/ "dynamic-entities").GET <@(user1)
-//      val responseGet = makeGetRequest(requestGet)
-//      Then("We should get a 403")
-//      responseGet.code should equal(403)
-//      And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
-//      val errorMessage = responseGet.body.extract[ErrorMessage].message
-//      errorMessage contains UserHasMissingRoles should be (true)
-//      errorMessage contains CanGetBankLevelDynamicEntities.toString() should be (true)
-//      errorMessage contains CanGetDynamicEntities.toString() should be (true)
-//
-//      {
-//        Then("We grant the role and call it again")
-//        Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)
-//        val requestGet = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").GET <@ (user1)
-//        val responseGet = makeGetRequest(requestGet)
-//        responseGet.code should equal(200)
-//        val json = responseGet.body \ "dynamic_entities"
-//        val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
-//
-//        dynamicEntitiesGetJson.values should have size 1
-//      }
-//
-//      {
-//        // we try the different bank id.
-//
-//        val requestGet = (v4_0_0_Request /"management" / "banks" /testBankId2.value/ "dynamic-entities").GET <@(user1)
-//        val responseGet = makeGetRequest(requestGet)
-//        Then("We should get a 403")
-//        responseGet.code should equal(403)
-//        And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
-//        val errorMessage = responseGet.body.extract[ErrorMessage].message
-//        errorMessage contains UserHasMissingRoles should be (true)
-//        errorMessage contains CanGetBankLevelDynamicEntities.toString() should be (true)
-//        errorMessage contains CanGetDynamicEntities.toString() should be (true)
-//
-//        {
-//          Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)
-//          val responseGet = makeGetRequest(requestGet)
-//          Then("We should get a 200")
-//          responseGet.code should equal(200)
-//          val json = responseGet.body \ "dynamic_entities"
-//          val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
-//
-//          dynamicEntitiesGetJson.values should have size 0
-//        }
-//
-//      }
-//
-//    }
-//  }
+  feature("Add a DynamicEntity v4.0.4- Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint9, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").POST
+      val response400 = makePostRequest(request400, write(rightEntity))
+      Then("We should get a 401")
+      response400.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST
+        val response400 = makePostRequest(request400, write(rightEntity))
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      }
+    }
+  }
+  feature("Update a DynamicEntity v4.0.4- Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint2, ApiEndpoint12, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities"/ "some-method-routing-id").PUT
+      val response400 = makePutRequest(request400, write(rightEntity))
+      Then("We should get a 401")
+      response400.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities"/ "some-method-routing-id").PUT
+        val response400 = makePutRequest(request400, write(rightEntity))
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      }
+
+    }
+  }
+  feature("Get DynamicEntities v4.0.4- Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").GET
+      val response400 = makeGetRequest(request400)
+      Then("We should get a 401")
+      response400.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").GET
+        val response400 = makeGetRequest(request400)
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      }
+    }
+  }
+  feature("Delete the DynamicEntity specified by METHOD_ROUTING_ID v4.0.4- Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint4, ApiEndpoint11, VersionOfApi) {
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / "METHOD_ROUTING_ID").DELETE
+      val response400 = makeDeleteRequest(request400)
+      Then("We should get a 401")
+      response400.code should equal(401)
+      And("error should be " + UserNotLoggedIn)
+      response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities" / "METHOD_ROUTING_ID").DELETE
+        val response400 = makeDeleteRequest(request400)
+        Then("We should get a 401")
+        response400.code should equal(401)
+        And("error should be " + UserNotLoggedIn)
+        response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
+      }
+
+    }
+  }
+
+  feature("Add a DynamicEntity v4.0.4- Unauthorized access - Authorized access") {
+    scenario("We will call the endpoint without the proper Role " + canCreateDynamicEntity, ApiEndpoint1, VersionOfApi) {
+      When("We make a request v4.0.0 without a Role " + canCreateDynamicEntity)
+      val request400 = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
+      val response400 = makePostRequest(request400, write(rightEntity))
+      Then("We should get a 403")
+      response400.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanCreateDynamicEntity)
+      response400.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateDynamicEntity)
+
+      Then("Test the bank level")
+
+      {
+        val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST <@(user1)
+        val response400 = makePostRequest(request400, write(rightEntity))
+        Then("We should get a 403")
+        response400.code should equal(403)
+        response400.body.extract[ErrorMessage].message contains UserHasMissingRoles should be (true)
+      }
+
+    }
+
+    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint8,ApiEndpoint9, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
+      val response = makePostRequest(request, write(rightEntity))
+      Then("We should get a 201")
+      response.code should equal(201)
+
+      {//Test the bank level create entity
+        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
+        val response = makePostRequest(request, write(rightEntityBankLevel))
+        Then("We should get a 201")
+        response.code should equal(201)
+      }
+
+      {// create duplicated entityName FooBar, cause 400
+        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
+        val response = makePostRequest(request, write(rightEntityBankLevel))
+        Then("We should get a 400")
+        response.code should equal(400)
+      }
+
+      { //now bank level and system level can have same entity name
+        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
+        val response = makePostRequest(request, write(rightEntity))
+        Then("We should get a 201")
+        response.code should equal(201)
+      }
+
+      { // create duplicated entityName FooBar, cause 400
+        val response400 = makePostRequest(request, write(rightEntity))
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityNameAlreadyExists)
+      }
+
+      val responseJson = response.body
+      val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
+      val dynamicEntityUserIdJObject: JObject = "userId" -> resourceUser1.userId
+      val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
+
+      val expectCreateResponseJson: JValue = rightEntity merge dynamicEntityUserIdJObject merge dynamicEntityIdJObject
+
+      val newNameValue: JObject =
+        "FooBar" -> (
+          "properties" ->
+            ("name" -> (
+              "example" -> "hello")
+              )
+          )
+
+      val updateRequest: JValue = rightEntity merge newNameValue
+      val expectUpdatedResponseJson: JValue = expectCreateResponseJson merge newNameValue
+
+      responseJson shouldEqual expectCreateResponseJson
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateDynamicEntity.toString)
+      When("We make a request v4.0.0 with the Role " + canUpdateDynamicEntity)
+
+      {
+        // update success
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(updateRequest))
+        Then("We should get a 200")
+        response400.code should equal(200)
+        val updateResponseJson = response400.body
+        updateResponseJson shouldEqual expectUpdatedResponseJson
+      }
+
+      {
+        // update a not exists DynamicEntity
+        val request404 = (v4_0_0_Request / "management" / "dynamic-entities" / "not-exists-id" ).PUT <@(user1)
+        val response404 = makePutRequest(request404, compactRender(updateRequest))
+        Then("We should get a 404")
+        response404.code should equal(404)
+        response404.body.extract[ErrorMessage].message should startWith (DynamicEntityNotFoundByDynamicEntityId)
+      }
+
+      {
+        // update a DynamicEntity with wrong required field name
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongRequiredEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
+      }
+
+      {
+        // update a DynamicEntity with wrong type of description
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongDescriptionEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
+      }
+
+      {
+        // update a DynamicEntity with wrong type of property description
+        val request400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongPropertyDescriptionEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
+      }
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetDynamicEntities.toString)
+      When("We make a request v4.0.0 with the Role " + canGetDynamicEntities)
+      val requestGet = (v4_0_0_Request / "management" / "dynamic-entities").GET <@(user1)
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGet.code should equal(200)
+      val json = responseGet.body \ "dynamic_entities"
+      val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+
+      dynamicEntitiesGetJson.values should have size 3
+
+      dynamicEntitiesGetJson.arr should contain(expectUpdatedResponseJson)
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteDynamicEntity.toString)
+      When("We make a request v4.0.0 with the Role " + canDeleteDynamicEntity)
+      val requestDelete400 = (v4_0_0_Request / "management" / "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+      val responseDelete400 = makeDeleteRequest(requestDelete400)
+      Then("We should get a 204")
+      responseDelete400.code should equal(204)
+
+    }
+  }
+
+  feature("Add a DynamicEntity v4.0.4- and test all the myDynamicEntity endpoints") {
+    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
+      val response = makePostRequest(request, write(rightEntity))
+      Then("We should get a 201")
+      response.code should equal(201)
+
+      {//Test the bank level create entity
+        val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
+        val response = makePostRequest(request, write(rightEntityBankLevel))
+        Then("We should get a 201")
+        response.code should equal(201)
+      }
+
+      val responseJson = response.body
+      val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
+
+      val dynamicEntityUserIdJObject: JObject = "userId" -> resourceUser1.userId
+      val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
+
+      val expectCreateResponseJson: JValue = rightEntity merge dynamicEntityUserIdJObject merge dynamicEntityIdJObject
+
+      val newNameValue: JObject =
+        "FooBar" -> (
+          "properties" ->
+            ("name" -> (
+              "example" -> "hello")
+              )
+          )
+
+      val updateRequest: JValue = rightEntity merge newNameValue
+      val expectUpdatedResponseJson: JValue = expectCreateResponseJson merge newNameValue
+
+      responseJson shouldEqual expectCreateResponseJson
+
+      When(s"We make a $ApiEndpoint6" )
+
+      {
+        // update success
+        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(updateRequest))
+        Then("We should get a 200")
+        response400.code should equal(200)
+        val updateResponseJson = response400.body
+        updateResponseJson shouldEqual expectUpdatedResponseJson
+      }
+
+      {
+        // update a not exists DynamicEntity
+        val request404 = (v4_0_0_Request / "my" / "dynamic-entities" / "not-exists-id" ).PUT <@(user1)
+        val response404 = makePutRequest(request404, compactRender(updateRequest))
+        Then("We should get a 404")
+        response404.code should equal(404)
+        response404.body.extract[ErrorMessage].message should startWith (DynamicEntityNotFoundByDynamicEntityId)
+      }
+
+      {
+        // update a DynamicEntity with wrong required field name
+        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongRequiredEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
+      }
+
+      {
+        // update a DynamicEntity with wrong type of description
+        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongDescriptionEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
+      }
+
+      {
+        // update a DynamicEntity with wrong type of property description
+        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user1)
+        val response400 = makePutRequest(request400, compactRender(wrongPropertyDescriptionEntity))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (DynamicEntityInstanceValidateFail)
+      }
+
+      {
+        // update a DynamicEntity with wrong user
+        val request400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId ).PUT <@(user2)
+        val response400 = makePutRequest(request400, compactRender(updateRequest))
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (InvalidMyDynamicEntityUser)
+      }
+
+      When(s"We make a $ApiEndpoint5 request" )
+      val requestGet = (v4_0_0_Request / "my" / "dynamic-entities").GET <@(user1)
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 200")
+      responseGet.code should equal(200)
+      val json = responseGet.body \ "dynamic_entities"
+      val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+
+      dynamicEntitiesGetJson.values should have size 2
+
+      dynamicEntitiesGetJson.arr should contain(expectUpdatedResponseJson)
+
+      {
+        // get a DynamicEntity with wrong user
+        val request400 = (v4_0_0_Request / "my" / "dynamic-entities"  ).GET <@(user2)
+        val response400 = makeGetRequest(request400)
+        Then("We should get a 200")
+
+        val json = response400.body \ "dynamic_entities"
+        val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+
+        dynamicEntitiesGetJson.values should have size 0
+      }
+
+      When(s"We make a $ApiEndpoint7 request" )
+
+      {
+        // delete a MyDynamicEntity with wrong user
+        val request400 = (v4_0_0_Request / "my" / "dynamic-entities"/ dynamicEntityId ).DELETE <@(user2)
+        val response400 = makeDeleteRequest(request400)
+        Then("We should get a 400")
+
+        response400.code should equal(400)
+        response400.body.extract[ErrorMessage].message should startWith (InvalidMyDynamicEntityUser)
+      }
+      {
+        // delete a MyDynamicEntity 
+        val requestDelete400 = (v4_0_0_Request / "my" / "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+        val responseDelete400 = makeDeleteRequest(requestDelete400)
+        Then("We should get a 200")
+        responseDelete400.code should equal(200)
+      }
+
+    }
+  }
+
+  feature("Add a DynamicEntity v4.0.4- and test all the getBankLevelDynamicEntities endpoints") {
+    scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@(user1)
+      val entityWithBankId = parse(
+        s"""
+          |{
+          |    "bankId": "${testBankId1.value}",
+          |    "FooBar": {
+          |       "description": "description of this entity, can be markdown text.",
+          |        "required": [
+          |            "name"
+          |        ],
+          |        "properties": {
+          |            "name": {
+          |                "type": "string",
+          |                "maxLength": 20,
+          |                "minLength": 3,
+          |                "example": "James Brown",
+          |                "description":"description of **name** field, can be markdown text."
+          |            },
+          |            "number": {
+          |                "type": "integer",
+          |                "example": 69876172
+          |            }
+          |        }
+          |    }
+          |}
+          |""".stripMargin)
+
+      val response = makePostRequest(request, write(entityWithBankId))
+      Then("We should get a 201")
+      response.code should equal(201)
+
+      val responseJson = response.body
+      val dynamicEntityId = (responseJson \ "dynamicEntityId").asInstanceOf[JString].s
+      val dynamicBankId = (responseJson \ "bankId").asInstanceOf[JString].s
+
+      val dynamicEntityUserIdJObject: JObject = "userId" -> resourceUser1.userId
+      val dynamicEntityIdJObject: JObject = "dynamicEntityId" -> dynamicEntityId
+
+      val expectCreateResponseJson: JValue = entityWithBankId merge dynamicEntityUserIdJObject merge dynamicEntityIdJObject
+
+
+      responseJson shouldEqual expectCreateResponseJson
+
+      When(s"We make a $ApiEndpoint8 request without the role" )
+      val requestGet = (v4_0_0_Request /"management" / "banks" /testBankId1.value/ "dynamic-entities").GET <@(user1)
+      val responseGet = makeGetRequest(requestGet)
+      Then("We should get a 403")
+      responseGet.code should equal(403)
+      And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+      val errorMessage = responseGet.body.extract[ErrorMessage].message
+      errorMessage contains UserHasMissingRoles should be (true)
+      errorMessage contains CanGetBankLevelDynamicEntities.toString() should be (true)
+      errorMessage contains CanGetDynamicEntities.toString() should be (true)
+
+      {
+        Then("We grant the role and call it again")
+        Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)
+        val requestGet = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").GET <@ (user1)
+        val responseGet = makeGetRequest(requestGet)
+        responseGet.code should equal(200)
+        val json = responseGet.body \ "dynamic_entities"
+        val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+
+        dynamicEntitiesGetJson.values should have size 1
+      }
+
+      {
+        // we try the different bank id.
+
+        val requestGet = (v4_0_0_Request /"management" / "banks" /testBankId2.value/ "dynamic-entities").GET <@(user1)
+        val responseGet = makeGetRequest(requestGet)
+        Then("We should get a 403")
+        responseGet.code should equal(403)
+        And("error should be " + UserHasMissingRoles + CanGetBankLevelDynamicEntities)
+        val errorMessage = responseGet.body.extract[ErrorMessage].message
+        errorMessage contains UserHasMissingRoles should be (true)
+        errorMessage contains CanGetBankLevelDynamicEntities.toString() should be (true)
+        errorMessage contains CanGetDynamicEntities.toString() should be (true)
+
+        {
+          Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, CanGetBankLevelDynamicEntities.toString)
+          val responseGet = makeGetRequest(requestGet)
+          Then("We should get a 200")
+          responseGet.code should equal(200)
+          val json = responseGet.body \ "dynamic_entities"
+          val dynamicEntitiesGetJson = json.asInstanceOf[JArray]
+
+          dynamicEntitiesGetJson.values should have size 0
+        }
+
+      }
+
+    }
+  }
 
   feature("Add a DynamicEntity v4.0.4- and test all the Foobar endpoints and Foobar Roles") {
     scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
