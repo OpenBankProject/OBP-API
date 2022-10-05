@@ -50,7 +50,9 @@ case class CallContext(
                        rateLimiting: Option[CallLimit] = None,
                        `X-Rate-Limit-Limit` : Long = -1,
                        `X-Rate-Limit-Remaining` : Long = -1,
-                       `X-Rate-Limit-Reset` : Long = -1
+                       `X-Rate-Limit-Reset` : Long = -1,
+                       `Pagination-Offset` : Option[String] = None,
+                       `Pagination-Limit` : Option[String] = None
                       ) extends MdcLoggable {
   
   //This is only used to connect the back adapter. not useful for sandbox mode.
@@ -126,7 +128,9 @@ case class CallContext(
       oAuthToken = this.oAuthParams.get(TokenName).getOrElse(""),
       `X-Rate-Limit-Limit` = this.`X-Rate-Limit-Limit`,
       `X-Rate-Limit-Remaining` = this.`X-Rate-Limit-Remaining`,
-      `X-Rate-Limit-Reset` = this.`X-Rate-Limit-Reset`
+      `X-Rate-Limit-Reset` = this.`X-Rate-Limit-Reset`,
+      `Pagination-Offset` = this.`Pagination-Offset`,
+      `Pagination-Limit` = this.`Pagination-Limit`
     )
   }
 
@@ -196,7 +200,9 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             oAuthToken: String,
                             `X-Rate-Limit-Limit` : Long = -1,
                             `X-Rate-Limit-Remaining` : Long = -1,
-                            `X-Rate-Limit-Reset` : Long = -1
+                            `X-Rate-Limit-Reset` : Long = -1,
+                            `Pagination-Offset` : Option[String] = None,
+                            `Pagination-Limit` : Option[String] = None
                            )
 
 trait LoginParam

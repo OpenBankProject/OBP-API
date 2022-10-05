@@ -447,6 +447,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     CustomResponseHeaders(
       getGatewayLoginHeader(cc).list ::: 
         getRateLimitHeadersNewStyle(cc).list ::: 
+        getPaginationHeadersNewStyle(cc).list ::: 
         getRequestHeadersToMirror(cc).list
     )
   }
@@ -463,6 +464,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         )
       case _ =>
         CustomResponseHeaders((Nil))
+    }
+  }
+  private def getPaginationHeadersNewStyle(cc: Option[CallContextLight]) = {
+    cc match {
+      case Some(x) if x.`Pagination-Limit`.isDefined && x.`Pagination-Offset`.isDefined =>
+        CustomResponseHeaders(
+          List(("Range", s"items=${x.`Pagination-Offset`.getOrElse("")}-${x.`Pagination-Limit`.getOrElse("")}"))
+        )
+      case _ =>
+        CustomResponseHeaders(Nil)
     }
   }
   private def getSignRequestHeadersNewStyle(cc: Option[CallContext], httpBody: Box[String]): CustomResponseHeaders = {
@@ -902,7 +913,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def getLimit(httpParams: List[HTTPParam]): Box[OBPLimit] = {
-    (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(50), 1, FilterLimitError)) match {
+    (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(500), 1, FilterLimitError)) match {
       case (Full(left), _) =>
         Full(OBPLimit(left))
       case (Failure(m, e, c), _) =>
@@ -1039,8 +1050,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def createQueriesByHttpParamsFuture(httpParams: List[HTTPParam]) = Future {
-    createQueriesByHttpParams(httpParams: List[HTTPParam])
+  def createQueriesByHttpParamsFuture(httpParams: List[HTTPParam], callContext: Option[CallContext]): OBPReturnType[List[OBPQueryParam]] = {
+    Future(createQueriesByHttpParams(httpParams: List[HTTPParam])) map { i =>
+      (i, callContext) 
+    } map { x => 
+      fullBoxOrException(x._1 ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
+    } map { unboxFull(_) } map { i => 
+      val limit: Option[String] = i.collectFirst { case OBPLimit(value) => value.toString }
+      val offset: Option[String] = i.collectFirst { case OBPOffset(value) => value.toString }
+      (i, callContext.map(_.copy(`Pagination-Offset` = offset, `Pagination-Limit` = limit))) 
+    }
   }
 
   /**

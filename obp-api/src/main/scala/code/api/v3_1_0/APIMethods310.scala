@@ -320,10 +320,8 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
             
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-              
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
-            }
+
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             
             toApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(obpQueryParams) map {
                 unboxFullOrFail(_, callContext, GetTopApisError)
@@ -409,10 +407,8 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
             
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-              
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-                unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
-            }
+
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             
             topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersFuture(obpQueryParams) map {
               unboxFullOrFail(_, callContext, GetMetricsTopConsumersError)
@@ -469,7 +465,7 @@ trait APIMethods310 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (obpQueryParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             customers <- NewStyle.function.getCustomers(bankId, callContext, obpQueryParams)
             reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
             (customersFiltered, callContext) <- if(reqParams.isEmpty) {
@@ -1001,7 +997,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetWebhooks, callContext)
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
             allowedParams = List("limit", "offset", "account_id", "user_id")
-            obpParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (obpParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             additionalParam = OBPBankId(bankId.value)
             webhooks <- NewStyle.function.getAccountWebhooks(additionalParam :: obpParams, callContext)
           } yield {
@@ -4930,9 +4926,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
-            }
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetCardsForBank, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (cards,callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, u, obpQueryParams, callContext)

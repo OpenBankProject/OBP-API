@@ -1230,10 +1230,10 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
-            customers <- NewStyle.function.getCustomers(bankId, cc.callContext, requestParams)
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            customers <- NewStyle.function.getCustomers(bankId, callContext, requestParams)
           } yield {
-            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1264,10 +1264,10 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "customers-minimal" :: Nil JsonGet _ => {
         cc => {
           for {
-            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
-            customers <- NewStyle.function.getCustomers(bankId, cc.callContext, requestParams)
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            customers <- NewStyle.function.getCustomers(bankId, callContext, requestParams)
           } yield {
-            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
         }
       }
