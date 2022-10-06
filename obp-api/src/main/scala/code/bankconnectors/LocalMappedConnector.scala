@@ -931,7 +931,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             productCode =  rs.stringOpt(6).map(_.toString).getOrElse(null),
             balance = AmountOfMoney(
               currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
-              amount = rs.bigIntOpt(8).map(a => (a.longValue()/100).toString).getOrElse(null)
+              amount = rs.bigIntOpt(8).map( a => 
+                Helper.smallestCurrencyUnitToBigDecimal(
+                  a.longValue(),
+                  rs.stringOpt(7).getOrElse("EUR")
+                ).toString()
+              ).getOrElse(null)
             ),
             accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
             accountAttributes = rs.stringOpt(10).map(_.toString).getOrElse(null)
