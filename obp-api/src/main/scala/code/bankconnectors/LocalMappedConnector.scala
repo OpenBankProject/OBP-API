@@ -942,8 +942,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[FastFirehoseAccount]]] =
     Future{
-      val limit: Int = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(500)
-      val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
+      val limit: Int = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(Constant.Pagination.limit)
+      val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(Constant.Pagination.offset)
       val orderBy = queryParams.collect { 
         case OBPOrdering(_, OBPDescending) => "DESC"
       }.headOption.getOrElse("ASC")

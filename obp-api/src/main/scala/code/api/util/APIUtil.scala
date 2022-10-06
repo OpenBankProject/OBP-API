@@ -899,7 +899,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def getOffset(httpParams: List[HTTPParam]): Box[OBPOffset] = {
-    (getPaginationParam(httpParams, "offset", None, 0, FilterOffersetError), getPaginationParam(httpParams, "obp_offset", Some(0), 0, FilterOffersetError)) match {
+    (getPaginationParam(httpParams, "offset", None, 0, FilterOffersetError), getPaginationParam(httpParams, "obp_offset", Some(Constant.Pagination.offset), 0, FilterOffersetError)) match {
       case (Full(left), _) =>
         Full(OBPOffset(left))
       case (Failure(m, e, c), _) =>
@@ -908,12 +908,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Full(OBPOffset(right))
       case (_, Failure(m, e, c)) =>
         Failure(m, e, c)
-      case _ => Full(OBPOffset(0))
+      case _ => Full(OBPOffset(Constant.Pagination.offset))
     }
   }
 
   def getLimit(httpParams: List[HTTPParam]): Box[OBPLimit] = {
-    (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(500), 1, FilterLimitError)) match {
+    (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(Constant.Pagination.limit), 1, FilterLimitError)) match {
       case (Full(left), _) =>
         Full(OBPLimit(left))
       case (Failure(m, e, c), _) =>
@@ -922,7 +922,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Full(OBPLimit(right))
       case (_, Failure(m, e, c)) =>
         Failure(m, e, c)
-      case _ => Full(OBPLimit(500))
+      case _ => Full(OBPLimit(Constant.Pagination.limit))
     }
   }
 
