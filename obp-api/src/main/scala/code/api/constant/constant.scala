@@ -9,6 +9,11 @@ import com.openbankproject.commons.util.ApiStandards
 object Constant extends MdcLoggable {
   logger.info("Instantiating Constants")
   
+  object Pagination {
+    final val offset = 0
+    final val limit = 500
+  }
+  
   final val h2DatabaseDefaultUrlValue = "jdbc:h2:mem:OBPTest_H2_v2.1.214;NON_KEYWORDS=VALUE;DB_CLOSE_DELAY=10"
 
   final val HostName = APIUtil.getPropsValue("hostname").openOrThrowException(ErrorMessages.HostnameNotSpecified)

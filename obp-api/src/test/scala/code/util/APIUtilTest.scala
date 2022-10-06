@@ -30,7 +30,9 @@ package code.util
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
-import code.api.util.APIUtil.{DateWithMsFormat, theEpochTime, DefaultToDate, _}
+
+import code.api.Constant
+import code.api.util.APIUtil.{DateWithMsFormat, DefaultToDate, theEpochTime, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.setup.PropsReset
@@ -374,14 +376,14 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("100")))
       val returnValue = getLimit(httpParams)
-      returnValue should be (OBPLimit(50))
+      returnValue should be (OBPLimit(Constant.Pagination.limit))
     }
     
     scenario(s"test the wrong case: wrong name (wrongName) and wrong values (wrongValue) in HTTPParam") 
     {
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
       val returnValue = getLimit(httpParams)
-      returnValue should be (OBPLimit(50))
+      returnValue should be (OBPLimit(Constant.Pagination.limit))
     }
   }
   
@@ -436,7 +438,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
   
   feature("test APIUtil.getHttpParams method") 
   {
-    val RetrunDefaultParams = Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
+    val RetrunDefaultParams = Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
     
     scenario(s"test the correct case1: with default parameters") 
     {
@@ -453,7 +455,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario(s"test the correct case2: contains the `anon` ") 
     {
       val ExpectResult = 
-        Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending)
+        Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(Constant.Pagination.offset),OBPOrdering(None,OBPDescending)
                   ,OBPFromDate(startDateObject),OBPToDate(endDateObject),
                   OBPAnon(true)))
       val httpParams: List[HTTPParam] = List(
@@ -468,7 +470,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario(s"test the correct case3: contains the `anon` and `consumer_id` ") 
     {
       val ExpectResult = 
-        Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending),
+        Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(Constant.Pagination.offset),OBPOrdering(None,OBPDescending),
              OBPFromDate(startDateObject),OBPToDate(endDateObject),
              OBPAnon(true),OBPConsumerId("1")))
       val httpParams: List[HTTPParam] = List(
@@ -484,7 +486,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     scenario(s"test the correct case4: contains all the fields") 
     {
       val ExpectResult = 
-        Full(List(OBPLimit(50), OBPOffset(0), OBPOrdering(None,OBPDescending),
+        Full(List(OBPLimit(Constant.Pagination.limit), OBPOffset(Constant.Pagination.offset), OBPOrdering(None,OBPDescending),
                   OBPFromDate(startDateObject), OBPToDate(endDateObject),
                   OBPAnon(true), OBPConsumerId("1"), OBPUserId("2"), OBPUrl("obp/v1.2.1/getBanks"),
                   OBPAppName("PlaneApp"), OBPImplementedByPartialFunction("getBanks"),
@@ -573,7 +575,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
   
   feature("test APIUtil.createHttpParamsByUrl method") 
   {
-    val RetrunDefaultParams = Full(List(OBPLimit(50),OBPOffset(0),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
+    val RetrunDefaultParams = Full(List(OBPLimit(Constant.Pagination.limit),OBPOffset(Constant.Pagination.offset),OBPOrdering(None,OBPDescending), OBPFromDate(startDateObject),OBPToDate(endDateObject)))
     
     scenario(s"test the correct case1: all the params are in the `URL` ") 
     {

@@ -24,33 +24,35 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.immutable.List
 
 case class CallContext(
-                       gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
-                       gatewayLoginResponseHeader: Option[String] = None,
-                       dauthRequestPayload: Option[JSONFactoryDAuth.PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
-                       dauthResponseHeader: Option[String] = None,
-                       spelling: Option[String] = None,
-                       user: Box[User] = Empty,
-                       consumer: Box[Consumer] = Empty,
-                       ipAddress: String = "",
-                       resourceDocument: Option[ResourceDoc] = None,
-                       startTime: Option[Date] = Some(Helpers.now),
-                       endTime: Option[Date] = None,
-                       correlationId: String = "",
-                       sessionId: Option[String] = None, //Only this value must be used for cache key !!!
-                       url: String = "",
-                       verb: String = "",
-                       implementedInVersion: String = "",
-                       operationId: Option[String] = None, // Dynamic Endpoint Unique Identifier. Important for Rate Limiting.
-                       authReqHeaderField: Box[String] = Empty,
-                       directLoginParams: Map[String, String] = Map(),
-                       oAuthParams: Map[String, String] = Map(),
-                       httpCode: Option[Int] = None,
-                       httpBody: Option[String] = None,
-                       requestHeaders: List[HTTPParam] = Nil,
-                       rateLimiting: Option[CallLimit] = None,
-                       `X-Rate-Limit-Limit` : Long = -1,
-                       `X-Rate-Limit-Remaining` : Long = -1,
-                       `X-Rate-Limit-Reset` : Long = -1
+                        gatewayLoginRequestPayload: Option[PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
+                        gatewayLoginResponseHeader: Option[String] = None,
+                        dauthRequestPayload: Option[JSONFactoryDAuth.PayloadOfJwtJSON] = None, //Never update these values inside the case class !!!
+                        dauthResponseHeader: Option[String] = None,
+                        spelling: Option[String] = None,
+                        user: Box[User] = Empty,
+                        consumer: Box[Consumer] = Empty,
+                        ipAddress: String = "",
+                        resourceDocument: Option[ResourceDoc] = None,
+                        startTime: Option[Date] = Some(Helpers.now),
+                        endTime: Option[Date] = None,
+                        correlationId: String = "",
+                        sessionId: Option[String] = None, //Only this value must be used for cache key !!!
+                        url: String = "",
+                        verb: String = "",
+                        implementedInVersion: String = "",
+                        operationId: Option[String] = None, // Dynamic Endpoint Unique Identifier. Important for Rate Limiting.
+                        authReqHeaderField: Box[String] = Empty,
+                        directLoginParams: Map[String, String] = Map(),
+                        oAuthParams: Map[String, String] = Map(),
+                        httpCode: Option[Int] = None,
+                        httpBody: Option[String] = None,
+                        requestHeaders: List[HTTPParam] = Nil,
+                        rateLimiting: Option[CallLimit] = None,
+                        xRateLimitLimit : Long = -1,
+                        xRateLimitRemaining : Long = -1,
+                        xRateLimitReset : Long = -1,
+                        paginationOffset : Option[String] = None,
+                        paginationLimit : Option[String] = None
                       ) extends MdcLoggable {
   
   //This is only used to connect the back adapter. not useful for sandbox mode.
@@ -124,9 +126,11 @@ case class CallContext(
       partialFunctionName = this.resourceDocument.map(_.partialFunctionName).getOrElse(""),
       directLoginToken = this.directLoginParams.get("token").getOrElse(""),
       oAuthToken = this.oAuthParams.get(TokenName).getOrElse(""),
-      `X-Rate-Limit-Limit` = this.`X-Rate-Limit-Limit`,
-      `X-Rate-Limit-Remaining` = this.`X-Rate-Limit-Remaining`,
-      `X-Rate-Limit-Reset` = this.`X-Rate-Limit-Reset`
+      xRateLimitLimit = this.xRateLimitLimit,
+      xRateLimitRemaining = this.xRateLimitRemaining,
+      xRateLimitReset = this.xRateLimitReset,
+      paginationOffset = this.paginationOffset,
+      paginationLimit = this.paginationLimit
     )
   }
 
@@ -194,9 +198,11 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             partialFunctionName: String,
                             directLoginToken: String,
                             oAuthToken: String,
-                            `X-Rate-Limit-Limit` : Long = -1,
-                            `X-Rate-Limit-Remaining` : Long = -1,
-                            `X-Rate-Limit-Reset` : Long = -1
+                            xRateLimitLimit : Long = -1,
+                            xRateLimitRemaining : Long = -1,
+                            xRateLimitReset : Long = -1,
+                            paginationOffset : Option[String] = None,
+                            paginationLimit : Option[String] = None
                            )
 
 trait LoginParam

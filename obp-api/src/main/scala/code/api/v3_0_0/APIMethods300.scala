@@ -588,7 +588,7 @@ trait APIMethods300 {
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
             allowedParams = List("sort_direction", "limit", "offset", "from_date", "to_date")
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (obpQueryParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
             reqParams = req.params.filterNot(param => allowedParams.contains(param._1))
             (transactionIds, callContext) <- if(reqParams.nonEmpty) {
                NewStyle.function.getTransactionIdsByAttributeNameValues(bankId, reqParams, callContext)
@@ -654,9 +654,7 @@ trait APIMethods300 {
             // Assume owner view was requested
             view <- NewStyle.function.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), callContext)
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            params <- createQueriesByHttpParamsFuture(httpParams)map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
-            }
+            (params, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             (transactionsCore, callContext) <- bankAccount.getModeratedTransactionsCore(bank, Some(user), view, BankIdAccountId(bankId, accountId), params, callContext) map {
               i => (unboxFullOrFail(i._1, callContext, UnknownError), i._2)
             }
@@ -712,9 +710,7 @@ trait APIMethods300 {
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, callContext)
-            params <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders)map {
-              unboxFullOrFail(_, callContext, InvalidFilterParameterFormat)
-            }
+            (params, callContext) <- createQueriesByHttpParamsFuture(callContext.get.requestHeaders, callContext)
             //Note: error handling and messages for getTransactionParams are in the sub method
             (transactions, callContext) <- bankAccount.getModeratedTransactionsFuture(bank, user, view, callContext, params) map {
               connectorEmptyResponse(_, callContext)
@@ -1516,9 +1512,7 @@ trait APIMethods300 {
             
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
-            }
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             
             users <- Users.users.vend.getAllUsersF(obpQueryParams)
           } yield {
@@ -2162,9 +2156,7 @@ trait APIMethods300 {
               (Full(u), callContext) <- authenticatedAccess(cc)
               _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics, callContext)
               httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-              obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-                x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
-              }
+              (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
               aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams) map {
                 x => unboxFullOrFail(x, callContext, GetAggregateMetricsError)
               }

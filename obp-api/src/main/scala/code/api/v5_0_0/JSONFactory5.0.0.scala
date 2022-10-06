@@ -454,7 +454,7 @@ object JSONFactory500 {
       list.filter(_.name == key).map(_.value).headOption
     }
     val grouped: Map[String, List[AccountAttribute]] = list.filter(_.productInstanceCode.isDefined).groupBy(_.productInstanceCode.getOrElse("None"))
-    val result = grouped.map(x => 
+    val result = grouped.filter(i => i._1.trim().isEmpty == false).map(x => 
       ContractJsonV500(
         contract_code = x._1, 
         product_code = x._2.map(_.productCode.value).distinct.headOption.getOrElse(""),

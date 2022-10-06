@@ -3519,8 +3519,8 @@ trait APIMethods400 {
             }
             allowedParams = List("limit", "offset", "sort_direction")
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            obpQueryParams <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
-            (firehoseAccounts, callContext) <- NewStyle.function.getBankAccountsWithAttributes(bankId, obpQueryParams, cc.callContext)
+            (obpQueryParams, callContext) <- NewStyle.function.createObpParams(httpParams, allowedParams, callContext)
+            (firehoseAccounts, callContext) <- NewStyle.function.getBankAccountsWithAttributes(bankId, obpQueryParams, callContext)
           } yield {
             (JSONFactory400.createFirehoseBankAccountJSON(firehoseAccounts), HttpCode.`200`(callContext))
           }
@@ -3734,12 +3734,10 @@ trait APIMethods400 {
         cc =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => unboxFullOrFail(x, cc.callContext, InvalidFilterParameterFormat)
-            }
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
             users <- Users.users.vend.getUsers(obpQueryParams)
           } yield {
-            (JSONFactory400.createUsersJson(users), HttpCode.`200`(cc.callContext))
+            (JSONFactory400.createUsersJson(users), HttpCode.`200`(callContext))
           }
       }
     }
@@ -5262,8 +5260,8 @@ trait APIMethods400 {
       case "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
-            (customers, callContext) <- getCustomersAtAllBanks(cc.callContext, requestParams)
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            (customers, callContext) <- getCustomersAtAllBanks(callContext, requestParams)
           } yield {
             (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
@@ -5298,8 +5296,8 @@ trait APIMethods400 {
       case "customers-minimal" :: Nil JsonGet _ => {
         cc => {
           for {
-            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
-            (customers, callContext) <- getCustomersAtAllBanks(cc.callContext, requestParams)
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            (customers, callContext) <- getCustomersAtAllBanks(callContext, requestParams)
           } yield {
             (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
