@@ -457,9 +457,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case (Some(x), true) =>
         CustomResponseHeaders(
           List(
-            ("X-Rate-Limit-Reset", x.`X-Rate-Limit-Reset`.toString),
-            ("X-Rate-Limit-Remaining", x.`X-Rate-Limit-Remaining`.toString),
-            ("X-Rate-Limit-Limit", x.`X-Rate-Limit-Limit`.toString)
+            ("X-Rate-Limit-Reset", x.xRateLimitReset.toString),
+            ("X-Rate-Limit-Remaining", x.xRateLimitRemaining.toString),
+            ("X-Rate-Limit-Limit", x.xRateLimitLimit.toString)
           )
         )
       case _ =>
@@ -468,9 +468,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
   private def getPaginationHeadersNewStyle(cc: Option[CallContextLight]) = {
     cc match {
-      case Some(x) if x.`Pagination-Limit`.isDefined && x.`Pagination-Offset`.isDefined =>
+      case Some(x) if x.paginationLimit.isDefined && x.paginationOffset.isDefined =>
         CustomResponseHeaders(
-          List(("Range", s"items=${x.`Pagination-Offset`.getOrElse("")}-${x.`Pagination-Limit`.getOrElse("")}"))
+          List(("Range", s"items=${x.paginationOffset.getOrElse("")}-${x.paginationLimit.getOrElse("")}"))
         )
       case _ =>
         CustomResponseHeaders(Nil)
@@ -1058,7 +1058,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     } map { unboxFull(_) } map { i => 
       val limit: Option[String] = i.collectFirst { case OBPLimit(value) => value.toString }
       val offset: Option[String] = i.collectFirst { case OBPOffset(value) => value.toString }
-      (i, callContext.map(_.copy(`Pagination-Offset` = offset, `Pagination-Limit` = limit))) 
+      (i, callContext.map(_.copy(paginationOffset = offset, paginationLimit = limit))) 
     }
   }
 
