@@ -931,7 +931,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             productCode =  rs.stringOpt(6).map(_.toString).getOrElse(null),
             balance = AmountOfMoney(
               currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
-              amount = rs.stringOpt(8).map(_.toString).getOrElse(null)
+              amount = rs.bigIntOpt(8).map(a => (a.longValue()/100).toString).getOrElse(null)
             ),
             accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
             accountAttributes = rs.stringOpt(10).map(_.toString).getOrElse(null)
@@ -942,7 +942,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
   override def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[FastFirehoseAccount]]] =
     Future{
-      val limit: Int = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
+      val limit: Int = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(500)
       val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
       val orderBy = queryParams.collect { 
         case OBPOrdering(_, OBPDescending) => "DESC"
