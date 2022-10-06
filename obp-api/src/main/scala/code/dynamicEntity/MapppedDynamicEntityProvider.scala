@@ -16,7 +16,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     else
       DynamicEntity.find(
         By(DynamicEntity.DynamicEntityId, dynamicEntityId),
-        By(DynamicEntity.BankId, bankId.getOrElse("")
+        By(DynamicEntity.BankId, bankId.get
         ))
   }
 
@@ -28,7 +28,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       )
     else
       DynamicEntity.find(
-        By(DynamicEntity.BankId, bankId.getOrElse("")),
+        By(DynamicEntity.BankId, bankId.get),
         By(DynamicEntity.EntityName, entityName)
       )
       
@@ -37,7 +37,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     if (bankId.isEmpty)
       DynamicEntity.findAll()
     else
-      DynamicEntity.findAll(By(DynamicEntity.BankId, bankId.getOrElse("")))
+      DynamicEntity.findAll(By(DynamicEntity.BankId, bankId.get))
   }
 
   override def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity] = {

@@ -53,7 +53,11 @@ trait DynamicEntityT {
   //---------util methods
 
   lazy val userIdJobject: JObject = ("userId" -> userId)
-  private lazy val definition: JObject = parse(metadataJson).asInstanceOf[JObject] merge userIdJobject
+  lazy val bankIdJobject: JObject = ("bankId" -> bankId.getOrElse(""))
+  private lazy val definition: JObject = if(bankId.isDefined)
+    parse(metadataJson).asInstanceOf[JObject] merge userIdJobject merge bankIdJobject
+  else
+    parse(metadataJson).asInstanceOf[JObject] merge userIdJobject
   //convert metadataJson to JValue, so the final json field metadataJson have no escaped " to \", have good readable
   lazy val jValue = dynamicEntityId match {
     case Some(id) => {

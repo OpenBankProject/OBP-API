@@ -192,9 +192,9 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.code should equal(401)
       And("error should be " + UserNotLoggedIn)
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
-      
+
       Then("Test the bank level")
-      
+
       {
         val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST
         val response400 = makePostRequest(request400, write(rightEntity))
@@ -216,7 +216,7 @@ class DynamicEntityTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
 
       Then("Test the bank level")
-      
+
       {
         val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities"/ "some-method-routing-id").PUT
         val response400 = makePutRequest(request400, write(rightEntity))
@@ -226,7 +226,7 @@ class DynamicEntityTest extends V400ServerSetup {
         response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
 
       }
-      
+
     }
   }
   feature("Get DynamicEntities v4.0.4- Unauthorized access") {
@@ -271,7 +271,7 @@ class DynamicEntityTest extends V400ServerSetup {
         And("error should be " + UserNotLoggedIn)
         response400.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
       }
-      
+
     }
   }
 
@@ -294,7 +294,7 @@ class DynamicEntityTest extends V400ServerSetup {
         response400.code should equal(403)
         response400.body.extract[ErrorMessage].message contains UserHasMissingRoles should be (true)
       }
-      
+
     }
 
     scenario("We will call the endpoint with the proper Role " + canCreateDynamicEntity , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint8,ApiEndpoint9, VersionOfApi) {
@@ -304,7 +304,7 @@ class DynamicEntityTest extends V400ServerSetup {
       val response = makePostRequest(request, write(rightEntity))
       Then("We should get a 201")
       response.code should equal(201)
-      
+
       {//Test the bank level create entity
         val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
         val response = makePostRequest(request, write(rightEntityBankLevel))
@@ -325,7 +325,7 @@ class DynamicEntityTest extends V400ServerSetup {
         Then("We should get a 201")
         response.code should equal(201)
       }
-      
+
       { // create duplicated entityName FooBar, cause 400
         val response400 = makePostRequest(request, write(rightEntity))
         response400.code should equal(400)
@@ -435,7 +435,7 @@ class DynamicEntityTest extends V400ServerSetup {
       val response = makePostRequest(request, write(rightEntity))
       Then("We should get a 201")
       response.code should equal(201)
-      
+
       {//Test the bank level create entity
         val request = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST<@(user1)
         val response = makePostRequest(request, write(rightEntityBankLevel))
@@ -781,6 +781,7 @@ class DynamicEntityTest extends V400ServerSetup {
         Then("we can insert the new FooBar data - BankLevel")
         val requestCreateFoobar = (dynamicEntity_Request / "FooBar1").POST <@(user1)
         val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
         responseCreateFoobar.code should equal(201)
         val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar1" \ "foo_bar1_id").asInstanceOf[JString].s
 

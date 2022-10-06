@@ -171,7 +171,7 @@ object APIMethods_AtmsApi extends RestHelper {
             """,
        EmptyBody,
        getMxAtmsResponseJson,
-       List(UserNotLoggedIn, UnknownError),
+       List(UnknownError),
        ApiTag("ATM") :: apiTagMXOpenFinance :: Nil
      )
     
@@ -201,10 +201,6 @@ object APIMethods_AtmsApi extends RestHelper {
        EmptyBody,
        EmptyBody,
        List(
-         UserNotLoggedIn, 
-         ConsentNotFound,
-         ConsentNotBeforeIssue,
-         ConsentExpiredIssue, 
          UnknownError
        ),
        ApiTag("ATM") :: apiTagMXOpenFinance :: Nil
