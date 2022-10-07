@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
+
 import code.api.Constant._
 import code.api.Constant
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
@@ -18,7 +19,7 @@ import code.api.v3_0_0.{LobbyJsonV330, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, CustomerWithAttributesJsonV310, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
 import code.api.v4_0_0.{AccountMinimalJson400, BankAttributeBankResponseJsonV400, CardJsonV400, CustomerMinimalJsonV400, FastFirehoseAccountsJsonV400, PostHistoricalTransactionAtBankJson, _}
 import code.api.v3_1_0.{AccountBalanceV310, AccountsBalancesV310Json, BadLoginStatusJson, ContactDetailsJson, InviteeJson, ObpApiLoopbackJson, PhysicalCardWithAttributesJsonV310, PutUpdateCustomerEmailJsonV310, _}
-import code.api.v5_0_0._
+import code.api.v5_0_0.{AccountResponseJson500, CustomerOverviewFlatJsonV500, _}
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.consent.ConsentStatus
 import code.connectormethod.{JsonConnectorMethod, JsonConnectorMethodMethodBody}
@@ -33,8 +34,8 @@ import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttribute
 import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 import net.liftweb.json
-
 import java.net.URLEncoder
+
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -2282,6 +2283,78 @@ object SwaggerDefinitionsJSON {
     `type` = customerAttributeTypeExample.value,
     value = customerAttributeValueExample.value
   )
+
+  val accountAttributeResponseJson500 = AccountAttributeResponseJson500(
+    product_code = productCodeExample.value,
+    account_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    contract_code = Some("LKJL98769F"),
+  )
+
+  val customerOverviewFlatJsonV500 = CustomerOverviewFlatJsonV500(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    date_of_birth = DateWithDayExampleObject,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_attributes = List(customerAttributeResponseJson),
+    accounts = List(
+      AccountResponseJson500(
+        account_id = accountIdExample.value,
+        label = labelExample.value,
+        product_code = parentProductCodeExample.value,
+        balance = amountOfMoneyJsonV121,
+        branch_id = branchIdExample.value,
+        contracts = Some(List(
+          ContractJsonV500(product_code = parentProductCodeExample.value, contract_code = "LKJL98769F", payment_method = Some("cache")))
+        ),
+        account_routings = List(accountRoutingJsonV121),
+        account_attributes = List(accountAttributeResponseJson500)
+      )
+    )
+  )
+  
+  val accountResponseJson500 = AccountResponseJson500(
+    account_id = accountIdExample.value,
+    label = labelExample.value,
+    product_code = parentProductCodeExample.value,
+    balance = amountOfMoneyJsonV121,
+    branch_id = branchIdExample.value,
+    contracts = None,
+    account_routings = List(accountRoutingJsonV121),
+    account_attributes = List(accountAttributeResponseJson500)
+  )
+  val customerWithAttributesJsonV500 = CustomerWithAttributesJsonV500(
+    bank_id = bankIdExample.value,
+    customer_id = ExampleValue.customerIdExample.value,
+    customer_number = ExampleValue.customerNumberExample.value,
+    legal_name = ExampleValue.legalNameExample.value,
+    mobile_phone_number = ExampleValue.mobileNumberExample.value,
+    email = ExampleValue.emailExample.value,
+    face_image = customerFaceImageJson,
+    date_of_birth = DateWithDayExampleObject,
+    relationship_status = ExampleValue.relationshipStatusExample.value,
+    dependants = ExampleValue.dependentsExample.value.toInt,
+    dob_of_dependants = List(DateWithDayExampleObject),
+    credit_rating = Option(customerCreditRatingJSON),
+    credit_limit = Option(amountOfMoneyJsonV121),
+    highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
+    employment_status = ExampleValue.employmentStatusExample.value,
+    kyc_status = ExampleValue.kycStatusExample.value.toBoolean,
+    last_ok_date = oneYearAgoDate,
+    title  = ExampleValue.titleExample.value,
+    branch_id = ExampleValue.branchIdExample.value,
+    name_suffix = ExampleValue.nameSuffixExample.value,
+    customer_attributes = List(customerAttributeResponseJson),
+    accounts = List(accountResponseJson500)
+  )  
   
   val customerWithAttributesJsonV310 = CustomerWithAttributesJsonV310(
     bank_id = bankIdExample.value,
