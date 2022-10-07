@@ -1033,7 +1033,7 @@ trait APIMethods500 {
          |
          |""",
       postCustomerOverviewJsonV500,
-      customerWithAttributesJsonV310,
+      customerOverviewJsonV500,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1086,7 +1086,7 @@ trait APIMethods500 {
          |
          |""",
       postCustomerOverviewJsonV500,
-      customerWithAttributesJsonV310,
+      customerOverviewFlatJsonV500,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,

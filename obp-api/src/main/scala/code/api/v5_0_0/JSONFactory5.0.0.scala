@@ -97,7 +97,7 @@ case class PostCustomerJsonV500(
 
 case class PostCustomerOverviewJsonV500(customer_number: String)
 
-case class CustomerWithAttributesJsonV500(
+case class CustomerOverviewJsonV500(
    bank_id: String,
    customer_id: String,
    customer_number : String,
@@ -146,21 +146,21 @@ case class AccountAttributeResponseJson500(
 
 case class ContractJsonV500(product_code: String,
                             contract_code: String,
-                            product_description: Option[String],
-                            issuance_amount: Option[String],
-                            interest_rate: Option[String],
-                            term: Option[String],
-                            form_of_payment: Option[String],
-                            interest_amount: Option[String],
-                            branch_code: Option[String],
-                            payment_method: Option[String],
-                            opening_date: Option[String],
-                            maturity_date: Option[String],
-                            renewal_date: Option[String],
-                            cancellation_date: Option[String],
-                            instrument_status_code: Option[String],
-                            instrument_status_definition: Option[String],
-                            is_substituted: Option[String]
+                            product_description: Option[String] = None,
+                            issuance_amount: Option[String] = None,
+                            interest_rate: Option[String] = None,
+                            term: Option[String] = None,
+                            form_of_payment: Option[String] = None,
+                            interest_amount: Option[String] = None,
+                            branch_code: Option[String] = None,
+                            payment_method: Option[String] = None,
+                            opening_date: Option[String] = None,
+                            maturity_date: Option[String] = None,
+                            renewal_date: Option[String] = None,
+                            cancellation_date: Option[String] = None,
+                            instrument_status_code: Option[String] = None,
+                            instrument_status_definition: Option[String] = None,
+                            is_substituted: Option[String] = None
                            )
 case class AccountResponseJson500(account_id: String,
                                   label: String,
@@ -168,7 +168,7 @@ case class AccountResponseJson500(account_id: String,
                                   balance : AmountOfMoneyJsonV121,
                                   branch_id: String,
                                   contracts: Option[List[ContractJsonV500]] = None,
-                                  account_routings: List[AccountRouting],
+                                  account_routings: List[AccountRoutingJsonV121],
                                   account_attributes: List[AccountAttributeResponseJson500]
                                  )
 
@@ -403,8 +403,8 @@ object JSONFactory500 {
 
   def createCustomerWithAttributesJson(cInfo : Customer, 
                                        customerAttributes: List[CustomerAttribute], 
-                                       accounts: List[(BankAccount, List[AccountAttribute])]) : CustomerWithAttributesJsonV500 = {
-    CustomerWithAttributesJsonV500(
+                                       accounts: List[(BankAccount, List[AccountAttribute])]) : CustomerOverviewJsonV500 = {
+    CustomerOverviewJsonV500(
       bank_id = cInfo.bankId.toString,
       customer_id = cInfo.customerId,
       customer_number = cInfo.number,
@@ -487,7 +487,7 @@ object JSONFactory500 {
         balance = AmountOfMoneyJsonV121(account._1.balance.toString(), account._1.currency),
         branch_id = account._1.branchId,
         contracts = createContracts(account._2),
-        account_routings = account._1.accountRoutings,
+        account_routings = account._1.accountRoutings.map(i => AccountRoutingJsonV121(scheme = i.scheme, address = i.address)),
         account_attributes = account._2.map{ attribute => 
           AccountAttributeResponseJson500(
             contract_code = attribute.productInstanceCode,
