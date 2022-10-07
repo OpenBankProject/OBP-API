@@ -366,7 +366,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
    * @return Bank.bank_id
    */
   def getGlossaryItemTitle(parameter: String): String = {
-    glossaryItems.find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}")).map(_.title).getOrElse("")
+    glossaryItems.find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}")).map(_.title).getOrElse("").replaceAll(" ","-")
   }
   
   /**
