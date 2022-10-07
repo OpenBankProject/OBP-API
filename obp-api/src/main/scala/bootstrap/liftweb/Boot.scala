@@ -102,6 +102,7 @@ import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apicollection.ApiCollection
 import code.bankattribute.BankAttribute
 import code.connectormethod.ConnectorMethod
+import code.customeraccountlinks.CustomerAccountLink
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
@@ -967,7 +968,8 @@ object ToSchemify {
     BankAttribute,
     RateLimiting,
     MappedCustomerDependant,
-    AttributeDefinition
+    AttributeDefinition,
+    CustomerAccountLink
   )
 
   // The following tables are accessed directly via Mapper / JDBC
