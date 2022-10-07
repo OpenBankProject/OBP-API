@@ -217,19 +217,32 @@ class WebUI extends MdcLoggable{
 
   def apiExplorerLink: CssSel = {
     val tags = S.attr("tags") openOr ""
+    val locale = S.locale.toString
     // Note the Props value might contain a query parameter e.g. ?psd2=true
     val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
     // hack (we should use url operators instead) so we can add further query parameters if one is already included in the the baseUrl
     val baseUrlWithQ =  baseUrl.contains("?") match {
-      case true => baseUrl +  s"&tags=$tags${brandString}" // ? found so add & instead
-      case false => baseUrl + s"?tags=$tags${brandString}" // ? not found so add it.
+      case true => baseUrl +  s"&tags=$tags${brandString}&locale=${locale}" // ? found so add & instead
+      case false => baseUrl + s"?tags=$tags${brandString}&locale=${locale}" // ? not found so add it.
     }
     ".api-explorer-link a [href]" #> scala.xml.Unparsed(baseUrlWithQ)
+  }
+  
+  def wrapPropsUrlLocaleParameter (propsKey: String) = {
+    val localeString = S.locale.toString
+    // Note the Props value might contain a query parameter e.g. ?psd2=true
+    val baseUrl = getWebUiPropsValue(propsKey, "")
+    // hack (we should use url operators instead) so we can add further query parameters if one is already included in the the baseUrl
+    val baseUrlWithQ = baseUrl.contains("?") match {
+      case true => baseUrl +  s"&${brandString}&locale=$localeString" // ? found so add & instead
+      case false => baseUrl + s"?${brandString}&locale=$localeString" // ? not found so add it.
+    }
+    scala.xml.Unparsed(baseUrlWithQ)
   }
 
   // Link to API Manager
   def apiManagerLink: CssSel = {
-    ".api-manager-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_manager_url", ""))
+    ".api-manager-link a [href]" #> wrapPropsUrlLocaleParameter("webui_api_manager_url")
   }
   
   // Link to OBP-CLI
@@ -239,11 +252,11 @@ class WebUI extends MdcLoggable{
 
   // Link to API Tester
   def apiTesterLink: CssSel = {
-    ".api-tester-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_tester_url", ""))
+    ".api-tester-link a [href]" #> wrapPropsUrlLocaleParameter("webui_api_tester_url")
   }
   // Link to Hola app
   def apiHolaLink: CssSel = {
-    ".api-hola-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_api_hola_url", "#"))
+    ".api-hola-link a [href]" #> wrapPropsUrlLocaleParameter("webui_api_hola_url") 
   }
 
   // Link to API
@@ -263,7 +276,7 @@ class WebUI extends MdcLoggable{
 
   // Social Finance (Sofi)
   def sofiLink: CssSel = {
-    ".sofi-link a [href]" #> scala.xml.Unparsed(getWebUiPropsValue("webui_sofi_url", ""))
+    ".sofi-link a [href]" #> wrapPropsUrlLocaleParameter("webui_sofi_url")
   }
   
   // Terms&Conditions
