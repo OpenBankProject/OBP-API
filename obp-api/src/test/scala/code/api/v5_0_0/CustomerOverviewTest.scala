@@ -112,7 +112,7 @@ class CustomerOverviewTest extends V500ServerSetup {
       val response = makePostRequest(request, write(PostCustomerOverviewJsonV500(customer.customer_number)))
       Then("We should get a 200")
       response.code should equal(200)
-      val infoPost = response.body.extract[CustomerWithAttributesJsonV500]
+      val infoPost = response.body.extract[CustomerOverviewJsonV500]
       infoPost.legal_name should equal(legalName)
       infoPost.mobile_phone_number should equal(mobileNumber)
     }

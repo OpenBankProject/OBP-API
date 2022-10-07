@@ -97,7 +97,7 @@ case class PostCustomerJsonV500(
 
 case class PostCustomerOverviewJsonV500(customer_number: String)
 
-case class CustomerWithAttributesJsonV500(
+case class CustomerOverviewJsonV500(
    bank_id: String,
    customer_id: String,
    customer_number : String,
@@ -403,8 +403,8 @@ object JSONFactory500 {
 
   def createCustomerWithAttributesJson(cInfo : Customer, 
                                        customerAttributes: List[CustomerAttribute], 
-                                       accounts: List[(BankAccount, List[AccountAttribute])]) : CustomerWithAttributesJsonV500 = {
-    CustomerWithAttributesJsonV500(
+                                       accounts: List[(BankAccount, List[AccountAttribute])]) : CustomerOverviewJsonV500 = {
+    CustomerOverviewJsonV500(
       bank_id = cInfo.bankId.toString,
       customer_id = cInfo.customerId,
       customer_number = cInfo.number,

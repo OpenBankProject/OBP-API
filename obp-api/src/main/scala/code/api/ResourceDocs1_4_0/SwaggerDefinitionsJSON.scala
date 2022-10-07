@@ -2331,7 +2331,7 @@ object SwaggerDefinitionsJSON {
     account_routings = List(accountRoutingJsonV121),
     account_attributes = List(accountAttributeResponseJson500)
   )
-  val customerWithAttributesJsonV500 = CustomerWithAttributesJsonV500(
+  val customerOverviewJsonV500 = CustomerOverviewJsonV500(
     bank_id = bankIdExample.value,
     customer_id = ExampleValue.customerIdExample.value,
     customer_number = ExampleValue.customerNumberExample.value,
