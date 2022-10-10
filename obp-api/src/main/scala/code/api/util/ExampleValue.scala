@@ -40,7 +40,10 @@ object ExampleValue {
   lazy val sessionIdExample = ConnectorField("b4e0352a-9a0f-4bfa-b30b-9003aa467f50", s"A string that MUST uniquely identify the session on this OBP instance, can be used in all cache. ")
 
   lazy val userIdExample = ConnectorField("9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", s"A string that MUST uniquely identify the user on this OBP instance.")
-  glossaryItems += makeGlossaryItem("User.userId", userIdExample)
+  glossaryItems += makeGlossaryItem("User.userId", userIdExample)  
+  
+  lazy val relationshipTypeExample = ConnectorField("Owner", s"Relationship between two parties.")
+  glossaryItems += makeGlossaryItem("Customer.relationshipType", relationshipTypeExample)
 
 
   lazy val usernameExample = ConnectorField("felixsmith", s"The username the user uses to authenticate.")
@@ -59,6 +62,9 @@ object ExampleValue {
 
   lazy val customerIdExample = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer and is used in URLs. This SHOULD NOT be the customer number. The combination of customerId and bankId MUST be unique on an OBP instance. customerId SHOULD be unique on an OBP instance. Ideally customerId is a UUID. A mapping between customer number and customer id is kept in OBP.")
   glossaryItems += makeGlossaryItem("Customer.customerId", customerIdExample)
+  
+  lazy val customerAccountLinkIdExample = ConnectorField("xyz8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer Account Link and is used in URLs. ")
+  glossaryItems += makeGlossaryItem("Customer.customerAccountLinkId", customerAccountLinkIdExample)
 
   lazy val customerAttributeId = ConnectorField("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", s"A non human friendly string that identifies the customer attribute and is used in URLs.")
   glossaryItems += makeGlossaryItem("Customer.customerAttributeId", customerAttributeId)

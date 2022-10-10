@@ -1,7 +1,6 @@
 package code.api.v5_0_0
 
 import java.util.Date
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -38,6 +37,7 @@ import net.liftweb.util.Props
 import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
+import code.util.Helper.booleanToFuture
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1398,6 +1398,235 @@ trait APIMethods500 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      createCustomerAccountLink,
+      implementedInApiVersion,
+      nameOf(createCustomerAccountLink),
+      "POST",
+      "/banks/BANK_ID/customer_account_links",
+      "Create Customer Account Link",
+      s"""Link a Customer to a Account
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      createCustomerAccountLinkJson,
+      customerAccountLinkJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        AccountAlreadyExistsForCustomer,
+        CreateCustomerAccountLinkError,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagAccount),
+      Some(List(canCreateCustomerAccountLink)))
+    lazy val createCustomerAccountLink : OBPEndpoint = {
+      case "banks" :: BankId(bankId):: "customer_account_links" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateCustomerAccountLinkJson ", 400, cc.callContext) {
+              json.extract[CreateCustomerAccountLinkJson]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, cc.callContext)
+            _ <- booleanToFuture(s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bankId.value}) in URL", 400, callContext) {
+              customer.bankId == bankId.value
+            }
+            (_, callContext) <- NewStyle.function.getBankAccount(bankId, AccountId(postedData.account_id), callContext)
+            _ <- booleanToFuture("Field customer_id is not defined in the posted json!", 400, callContext) {
+              postedData.customer_id.nonEmpty
+            }
+            (customerAccountLinkExists, callContext) <- Connector.connector.vend.getCustomerAccountLink(postedData.customer_id, postedData.account_id, callContext)
+            _ <- booleanToFuture(AccountAlreadyExistsForCustomer, 400, callContext) {
+              customerAccountLinkExists.isEmpty
+            }
+            (customerAccountLink, callContext) <- NewStyle.function.createCustomerAccountLink(postedData.customer_id, postedData.account_id, postedData.relationship_type, callContext)
+          } yield {
+            (JSONFactory500.createCustomerAccountLinkJson(customerAccountLink), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerAccountLinksByCustomerId,
+      implementedInApiVersion,
+      nameOf(getCustomerAccountLinksByCustomerId),
+      "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/customer_account_links",
+      "Get Customer Account Links by CUSTOMER_ID",
+      s""" Get Customer Account Links by CUSTOMER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      customerAccountLinksJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAccountLinks)))
+    lazy val getCustomerAccountLinksByCustomerId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "customer_account_links" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
+            _ <- booleanToFuture(s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bankId.value}) in URL", 400, callContext) {
+              customer.bankId == bankId.value
+            }
+            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByCustomerId(customerId, callContext)
+          } yield {
+            (JSONFactory500.createCustomerAccountLinksJon(customerAccountLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerAccountLinksByAccountId,
+      implementedInApiVersion,
+      nameOf(getCustomerAccountLinksByAccountId),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/customer_account_links",
+      "Get Customer Account Links by ACCOUNT_ID",
+      s""" Get Customer Account Links by ACCOUNT_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      customerAccountLinksJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        BankAccountNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAccountLinks)))
+    lazy val getCustomerAccountLinksByAccountId : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "customer_account_links" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByAccountId(accountId, cc.callContext)
+          } yield {
+            (JSONFactory500.createCustomerAccountLinksJon(customerAccountLinks), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getCustomerAccountLinkById,
+      implementedInApiVersion,
+      nameOf(getCustomerAccountLinkById),
+      "GET",
+      "/banks/BANK_ID/customer_account_links/CUSTOMER_ACCOUNT_LINK_ID",
+      "Get Customer Account Link by Id",
+      s""" Get Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      customerAccountLinkJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canGetCustomerAccountLink)))
+    lazy val getCustomerAccountLinkById : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (customerAccountLink, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, cc.callContext)
+          } yield {
+            (JSONFactory500.createCustomerAccountLinkJson(customerAccountLink), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      updateCustomerAccountLinkById,
+      implementedInApiVersion,
+      nameOf(updateCustomerAccountLinkById),
+      "PUT",
+      "/banks/BANK_ID/customer_account_links/CUSTOMER_ACCOUNT_LINK_ID",
+      "Update Customer Account Link by Id",
+      s""" Update Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      customerAccountLinkJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canUpdateCustomerAccountLink)))
+    lazy val updateCustomerAccountLinkById : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $UpdateCustomerAccountLinkJson ", 400, cc.callContext) {
+              json.extract[CreateCustomerAccountLinkJson]
+            }
+            (_, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, cc.callContext)
+
+            (customerAccountLink, callContext) <-  NewStyle.function.updateCustomerAccountLinkById(customerAccountLinkId, postedData.relationship_type, callContext)
+          } yield {
+            (JSONFactory500.createCustomerAccountLinkJson(customerAccountLink), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      deleteCustomerAccountLinkById,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAccountLinkById),
+      "DELETE",
+      "/banks/BANK_ID/customer_account_links/CUSTOMER_ACCOUNT_LINK_ID",
+      "Delete Customer Account Link",
+      s""" Delete Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagNewStyle),
+      Some(List(canDeleteCustomerAccountLink)))
+    lazy val deleteCustomerAccountLinkById : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, cc.callContext)
+            (deleted, callContext) <-  NewStyle.function.deleteCustomerAccountLinkById(customerAccountLinkId, callContext)
+          } yield {
+            (Full(deleted), HttpCode.`200`(callContext))
+          }
+      }
+    }
   }
 }
 

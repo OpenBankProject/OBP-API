@@ -429,6 +429,12 @@ object ErrorMessages {
   val EntitlementCannotBeGrantedGrantorIssue = "OBP-30221: Entitlement cannot be granted due to the grantor's insufficient privileges."
 
   val CounterpartyNotFoundByRoutings = "OBP-30222: Counterparty not found. Please specify valid value for Routings."
+  val AccountAlreadyExistsForCustomer = "OBP-30223: The Account is already linked to a Customer at the bank specified by BANK_ID"
+  val CreateCustomerAccountLinkError = "OBP-30224: Could not create the customer account link."
+  val CustomerAccountLinkNotFoundById = "OBP-30225: Customer Account Link not found. Please specify valid values for CUSTOMER_ACCOUNT_LINK_ID."
+  val GetCustomerAccountLinksError = "OBP-30226: Could not get the customer account links."
+  val UpdateCustomerAccountLinkError = "OBP-30227: Could not update the customer account link."
+  val DeleteCustomerAccountLinkError = "OBP-30227: Could not delete the customer account link."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"

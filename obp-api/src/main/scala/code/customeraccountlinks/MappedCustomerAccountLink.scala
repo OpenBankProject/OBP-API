@@ -7,19 +7,19 @@ import net.liftweb.mapper._
 
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.util.Helpers.tryo
 
 object MappedCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
   def createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
-
-    val createCustomerAccountLink = CustomerAccountLink.create
+    tryo {
+      CustomerAccountLink.create
       .CustomerId(customerId)
       .AccountId(accountId)
       .RelationshipType(relationshipType)
       .saveMe()
-
-    Some(createCustomerAccountLink)
+    }
   }
-  def getOCreateCustomerAccountLink(customerId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
+  def getOrCreateCustomerAccountLink(customerId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
     getCustomerAccountLink(accountId, customerId) match {
       case Empty =>
         val createCustomerAccountLink = CustomerAccountLink.create
@@ -36,32 +36,51 @@ object MappedCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
     CustomerAccountLink.find(
       By(CustomerAccountLink.CustomerId, customerId))
   }
-  def getCustomerAccountLinksByCustomerId(customerId: String): List[CustomerAccountLinkTrait] = {
-    CustomerAccountLink.findAll(
-      By(CustomerAccountLink.CustomerId, customerId))
+  
+  def getCustomerAccountLinksByCustomerId(customerId: String): Box[List[CustomerAccountLinkTrait]] = {
+    tryo {
+      CustomerAccountLink.findAll(
+        By(CustomerAccountLink.CustomerId, customerId))
+    }
   }
 
-  def getCustomerAccountLinksByAccountId(accountId: String): List[CustomerAccountLinkTrait] = {
-    val customerAccountLinks : List[CustomerAccountLinkTrait] = CustomerAccountLink.findAll(
-      By(CustomerAccountLink.AccountId, accountId)).sortWith(_.id.get < _.id.get)
-    customerAccountLinks
+  def getCustomerAccountLinksByAccountId(accountId: String): Box[List[CustomerAccountLinkTrait]] = {
+    tryo {
+      CustomerAccountLink.findAll(
+        By(CustomerAccountLink.AccountId, accountId)).sortWith(_.id.get < _.id.get)
+    }
   }
 
-  def getCustomerAccountLink(accountId : String, customerId: String): Box[CustomerAccountLinkTrait] = {
+  def getCustomerAccountLink(customerId: String, accountId : String): Box[CustomerAccountLinkTrait] = {
     CustomerAccountLink.find(
-      By(CustomerAccountLink.AccountId, accountId),
-      By(CustomerAccountLink.CustomerId, customerId))
+      By(CustomerAccountLink.CustomerId, customerId),
+      By(CustomerAccountLink.AccountId, accountId)
+    )
+  }
+
+  def getCustomerAccountLinkById(customerAccountLinkId: String): Box[CustomerAccountLinkTrait] = {
+    CustomerAccountLink.find(
+      By(CustomerAccountLink.CustomerAccountLinkId, customerAccountLinkId)
+    )
+  }
+
+  def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
+    CustomerAccountLink.find(By(CustomerAccountLink.CustomerAccountLinkId, customerAccountLinkId)) match {
+      case Full(t) => Full(t.RelationshipType(relationshipType).saveMe())
+      case Empty => Empty ?~! ErrorMessages.CustomerAccountLinkNotFound
+      case Failure(msg, exception, chain) => Failure(msg, exception, chain)
+    }
   }
 
   def getCustomerAccountLinks: Box[List[CustomerAccountLinkTrait]] = {
-    Full(CustomerAccountLink.findAll())
+    tryo {CustomerAccountLink.findAll()}
   }
 
   def bulkDeleteCustomerAccountLinks(): Boolean = {
     CustomerAccountLink.bulkDelete_!!()
   }
 
-  def deleteCustomerAccountLink(customerAccountLinkId: String): Future[Box[Boolean]] = {
+  def deleteCustomerAccountLinkById(customerAccountLinkId: String): Future[Box[Boolean]] = {
     Future {
       CustomerAccountLink.find(By(CustomerAccountLink.CustomerAccountLinkId, customerAccountLinkId)) match {
         case Full(t) => Full(t.delete_!)

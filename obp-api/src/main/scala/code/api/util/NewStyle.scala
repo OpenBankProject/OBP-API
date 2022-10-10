@@ -3,7 +3,6 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
@@ -69,6 +68,7 @@ import code.api.v4_0_0.JSONFactory400
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
+import code.customeraccountlinks.CustomerAccountLinkTrait
 import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceDoc}
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
@@ -3740,5 +3740,36 @@ object NewStyle extends MdcLoggable{
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+    
+    def createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[CustomerAccountLinkTrait] =
+      Connector.connector.vend.createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, CreateCustomerAccountLinkError), i._2)
+      }
+    
+    def getCustomerAccountLinksByCustomerId(customerId: String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAccountLinkTrait]] =
+      Connector.connector.vend.getCustomerAccountLinksByCustomerId(customerId: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, GetCustomerAccountLinksError), i._2)
+      }
+    
+    def getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAccountLinkTrait]] =
+      Connector.connector.vend.getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, GetCustomerAccountLinksError), i._2)
+      }
+    
+    def getCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]): OBPReturnType[CustomerAccountLinkTrait] =
+      Connector.connector.vend.getCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, CustomerAccountLinkNotFoundById), i._2)
+      }
+    
+    def deleteCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
+      Connector.connector.vend.deleteCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, DeleteCustomerAccountLinkError), i._2)
+      }
+    
+    def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[CustomerAccountLinkTrait] =
+      Connector.connector.vend.updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, UpdateCustomerAccountLinkError), i._2)
+      }
   }
+
 }

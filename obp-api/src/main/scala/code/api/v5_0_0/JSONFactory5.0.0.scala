@@ -28,7 +28,6 @@ package code.api.v5_0_0
 
 import java.lang
 import java.util.Date
-
 import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.BankRoutingJsonV121
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
@@ -40,6 +39,7 @@ import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, JSONFactory300}
 import code.api.v3_1_0.{AccountAttributeResponseJson, AccountBasicV310, CustomerWithAttributesJsonV310, PhysicalCardWithAttributesJsonV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.bankattribute.BankAttribute
+import code.customeraccountlinks.CustomerAccountLinkTrait
 import com.openbankproject.commons.model.{AccountAttribute, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, Customer, CustomerAttribute, PhysicalCardTrait, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
 import net.liftweb.json.JsonAST.JValue
 
@@ -315,6 +315,28 @@ case class UpdatePhysicalCardJsonV500(
   brand: String
 )
 
+case class CreateCustomerAccountLinkJson(
+  customer_id: String,
+  account_id: String,
+  relationship_type: String
+)
+
+case class UpdateCustomerAccountLinkJson(
+  relationship_type: String
+)
+
+case class CustomerAccountLinkJson(
+  customer_account_link_id: String,
+  customer_id: String,
+  account_id: String,
+  relationship_type: String
+)
+
+case class CustomerAccountLinksJson(
+  links:List[CustomerAccountLinkJson]
+)
+
+
 object JSONFactory500 {
 
   def createUserAuthContextJson(userAuthContext: UserAuthContext): UserAuthContextJsonV500 = {
@@ -478,5 +500,19 @@ object JSONFactory500 {
       brand = stringOptionOrNull(card.brand)
     )
   }
+
+  def createCustomerAccountLinkJson(customerAccountLink: CustomerAccountLinkTrait): CustomerAccountLinkJson ={
+    CustomerAccountLinkJson(
+    customerAccountLink.customerAccountLinkId,
+    customerAccountLink.customerId,
+    customerAccountLink.accountId,
+    customerAccountLink.relationshipType
+    )
+  }
+  
+  def createCustomerAccountLinksJon(customerAccountLinks: List[CustomerAccountLinkTrait]): CustomerAccountLinksJson = {
+    CustomerAccountLinksJson(customerAccountLinks.map(createCustomerAccountLinkJson))
+  }
+  
 }
 

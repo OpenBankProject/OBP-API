@@ -18,9 +18,9 @@ class RemotedataCustomerAccountLinksActor extends Actor with ObpActorHelper with
       logger.debug(s"createCustomerAccountLink($accountId, $relationshipType)")
       sender ! (mapper.createCustomerAccountLink(accountId, customerId, relationshipType))
       
-    case cc.getOCreateCustomerAccountLink(customerId: String, accountId: String, relationshipType) =>
-      logger.debug(s"getOCreateCustomerAccountLink($accountId, $relationshipType)")
-      sender ! (mapper.getOCreateCustomerAccountLink(accountId, customerId, relationshipType))
+    case cc.getOrCreateCustomerAccountLink(customerId: String, accountId: String, relationshipType) =>
+      logger.debug(s"getOrCreateCustomerAccountLink($accountId, $relationshipType)")
+      sender ! (mapper.getOrCreateCustomerAccountLink(accountId, customerId, relationshipType))
 
     case cc.getCustomerAccountLinkByCustomerId(customerId: String) =>
       logger.debug(s"getCustomerAccountLinkByCustomerId($customerId)")
@@ -33,6 +33,14 @@ class RemotedataCustomerAccountLinksActor extends Actor with ObpActorHelper with
     case cc.getCustomerAccountLinksByAccountId(accountId: String) =>
       logger.debug(s"getCustomerAccountLinksByAccountId($accountId)")
       sender ! (mapper.getCustomerAccountLinksByAccountId(accountId))
+      
+    case cc.getCustomerAccountLinkById(customerAccountLinkId: String)=>
+      logger.debug(s"getCustomerAccountLinkById($customerAccountLinkId)")
+      sender ! (mapper.getCustomerAccountLinkById(customerAccountLinkId))
+      
+    case cc.updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String)=>
+      logger.debug(s"updateCustomerAccountLinkById($customerAccountLinkId, $relationshipType)")
+      sender ! (mapper.updateCustomerAccountLinkById(customerAccountLinkId, relationshipType))
 
     case cc.getCustomerAccountLink(customerId: String, accountId: String) =>
       logger.debug(s"getCustomerAccountLink($accountId, $customerId)")
@@ -46,9 +54,9 @@ class RemotedataCustomerAccountLinksActor extends Actor with ObpActorHelper with
       logger.debug(s"bulkDeleteCustomerAccountLinks()")
       sender ! (mapper.bulkDeleteCustomerAccountLinks())
       
-    case cc.deleteCustomerAccountLink(customerAccountLinkId) =>
+    case cc.deleteCustomerAccountLinkById(customerAccountLinkId) =>
       logger.debug(s"deleteCustomerAccountLink($customerAccountLinkId)")
-      mapper.deleteCustomerAccountLink(customerAccountLinkId) pipeTo sender
+      mapper.deleteCustomerAccountLinkById(customerAccountLinkId) pipeTo sender
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
