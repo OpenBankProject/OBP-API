@@ -5557,7 +5557,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getCustomerAccountLink(customerId: String, accountId: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{
-    CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLink(customerId, accountId) map { ( _, callContext) }
+    (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLink(customerId, accountId), callContext)
   }
 
   override def getCustomerAccountLinksByCustomerId(customerId: String, callContext: Option[CallContext]) = Future{

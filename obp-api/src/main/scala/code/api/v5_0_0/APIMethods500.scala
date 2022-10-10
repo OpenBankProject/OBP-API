@@ -1429,10 +1429,12 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId):: "customer_account_links" :: Nil JsonPost json -> _ => {
         cc =>
           for {
-            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateCustomerAccountLinkJson ", 400, cc.callContext) {
+            (_, _,callContext) <- SS.userBank
+            
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateCustomerAccountLinkJson ", 400, callContext) {
               json.extract[CreateCustomerAccountLinkJson]
             }
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, cc.callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, callContext)
             _ <- booleanToFuture(s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bankId.value}) in URL", 400, callContext) {
               customer.bankId == bankId.value
             }
@@ -1516,7 +1518,8 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "customer_account_links" :: Nil JsonGet _ => {
         cc =>
           for {
-            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByAccountId(accountId, cc.callContext)
+            (_, _,callContext) <- SS.userBank
+            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByAccountId(accountId, callContext)
           } yield {
             (JSONFactory500.createCustomerAccountLinksJon(customerAccountLinks), HttpCode.`200`(callContext))
           }
@@ -1549,7 +1552,8 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonGet _ => {
         cc =>
           for {
-            (customerAccountLink, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, cc.callContext)
+            (_, _,callContext) <- SS.userBank
+            (customerAccountLink, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, callContext)
           } yield {
             (JSONFactory500.createCustomerAccountLinkJson(customerAccountLink), HttpCode.`200`(callContext))
           }
@@ -1568,7 +1572,7 @@ trait APIMethods500 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      EmptyBody,
+      updateCustomerAccountLinkJson,
       customerAccountLinkJson,
       List(
         $UserNotLoggedIn,
@@ -1582,10 +1586,11 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $UpdateCustomerAccountLinkJson ", 400, cc.callContext) {
-              json.extract[CreateCustomerAccountLinkJson]
+            (Full(u), _,callContext) <- SS.userBank
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $UpdateCustomerAccountLinkJson ", 400, callContext) {
+              json.extract[UpdateCustomerAccountLinkJson]
             }
-            (_, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, cc.callContext)
+            (_, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, callContext)
 
             (customerAccountLink, callContext) <-  NewStyle.function.updateCustomerAccountLinkById(customerAccountLinkId, postedData.relationship_type, callContext)
           } yield {
@@ -1620,10 +1625,11 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (_, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, cc.callContext)
+            (Full(u), _,callContext) <- SS.userBank
+            (_, callContext) <-  NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, callContext)
             (deleted, callContext) <-  NewStyle.function.deleteCustomerAccountLinkById(customerAccountLinkId, callContext)
           } yield {
-            (Full(deleted), HttpCode.`200`(callContext))
+            (Full(deleted), HttpCode.`204`(callContext))
           }
       }
     }
