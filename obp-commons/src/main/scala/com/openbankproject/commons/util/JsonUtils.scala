@@ -683,16 +683,11 @@ object JsonUtils {
    * @param jValue
    * @return
    */
-  def collectFieldNames(jValue: JValue, types: List[(String, Class[_])]): Map[String, String] = {
+  def collectFieldNames(jValue: JValue): Map[String, String] = {
     val buffer = scala.collection.mutable.Map[String, String]()
     transformField(jValue){
       case (jField, path) =>
-        types.exists(i => jField.name == i._1 && i._2.getCanonicalName().contains("Option")) match {
-          case false =>
-            buffer += (s"${jField.name}*" -> jField.value.toString)
-          case true =>
-            buffer += (jField.name -> jField.value.toString)
-        }
+        buffer += (jField.name -> jField.value.toString)
         jField
     }
 
