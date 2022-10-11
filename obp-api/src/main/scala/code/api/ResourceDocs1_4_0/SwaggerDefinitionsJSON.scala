@@ -4905,6 +4905,26 @@ object SwaggerDefinitionsJSON {
     card_attributes = List(cardAttributeCommons),
     brand = brandExample.value
   )
+
+  val createCustomerAccountLinkJson =  CreateCustomerAccountLinkJson(
+    customer_id = customerIdExample.value,
+    account_id = accountIdExample.value,
+    relationship_type= relationshipTypeExample.value
+  )
+  val updateCustomerAccountLinkJson = UpdateCustomerAccountLinkJson(
+    relationship_type= relationshipTypeExample.value
+  )
+
+  val customerAccountLinkJson =  CustomerAccountLinkJson(
+    customer_account_link_id = customerAccountLinkIdExample.value,
+    customer_id = customerIdExample.value,
+    account_id = accountIdExample.value,
+    relationship_type= relationshipTypeExample.value
+  )
+
+  val customerAccountLinksJson =  CustomerAccountLinksJson(
+    List(customerAccountLinkJson)
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

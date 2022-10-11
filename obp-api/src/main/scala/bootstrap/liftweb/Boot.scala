@@ -39,7 +39,7 @@ import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
-import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400}
+import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500}
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
@@ -102,6 +102,7 @@ import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apicollection.ApiCollection
 import code.bankattribute.BankAttribute
 import code.connectormethod.ConnectorMethod
+import code.customeraccountlinks.CustomerAccountLink
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
@@ -466,6 +467,7 @@ class Boot extends MdcLoggable {
     LiftRules.statelessDispatch.append(ResourceDocs300)
     LiftRules.statelessDispatch.append(ResourceDocs310)
     LiftRules.statelessDispatch.append(ResourceDocs400)
+    LiftRules.statelessDispatch.append(ResourceDocs500)
     ////////////////////////////////////////////////////
 
 
@@ -967,7 +969,8 @@ object ToSchemify {
     BankAttribute,
     RateLimiting,
     MappedCustomerDependant,
-    AttributeDefinition
+    AttributeDefinition,
+    CustomerAccountLink
   )
 
   // The following tables are accessed directly via Mapper / JDBC
