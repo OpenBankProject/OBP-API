@@ -1673,9 +1673,7 @@ trait APIMethods210 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadMetrics, callContext)
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
-            }
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams)) 
           } yield {
             (JSONFactory210.createMetricsJson(metrics), HttpCode.`200`(callContext))

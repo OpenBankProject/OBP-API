@@ -960,25 +960,21 @@ object NewStyle extends MdcLoggable{
     def extractHttpParamsFromUrl(url: String): Future[List[HTTPParam]] = {
       createHttpParamsByUrlFuture(url) map { unboxFull(_) }
     }
-    def createObpParams(httpParams: List[HTTPParam], allowedParams: List[String], callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
+    def createObpParams(httpParams: List[HTTPParam], allowedParams: List[String], callContext: Option[CallContext]): OBPReturnType[List[OBPQueryParam]] = {
       val httpParamsAllowed = httpParams.filter(
         x => allowedParams.contains(x.name)
       )
-      createQueriesByHttpParamsFuture(httpParamsAllowed) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+      createQueriesByHttpParamsFuture(httpParamsAllowed, callContext)
     }
     
     def extractQueryParams(url: String,
                            allowedParams: List[String],
-                           callContext: Option[CallContext]): Future[List[OBPQueryParam]] = {
+                           callContext: Option[CallContext]): OBPReturnType[List[OBPQueryParam]] = {
       val httpParams = createHttpParamsByUrl(url).toList.flatten
       val httpParamsAllowed = httpParams.filter(
         x => allowedParams.contains(x.name)
       )
-      createQueriesByHttpParamsFuture(httpParamsAllowed) map {
-        x => fullBoxOrException(x ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
-      } map { unboxFull(_) }
+      createQueriesByHttpParamsFuture(httpParamsAllowed, callContext)
     }
     
     

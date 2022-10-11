@@ -3,6 +3,8 @@ package code.api.v5_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.api.util.ApiRole.CanCreateCustomer
+import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole.CanCreateCustomer
 import code.api.v3_1_0.CustomerJsonV310
 import code.api.v4_0_0.BanksJson400
 import code.entitlement.Entitlement
@@ -44,4 +46,14 @@ trait V500ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     createCustomer(consumerAndToken).customer_id
   }
 
+  
+  def createCustomerEndpointV500(bankId: String, legalName: String, mobilePhoneNumber: String): CustomerJsonV310 = {
+    Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+    val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+    val response = makePostRequest(request, write(PostCustomerJsonV500(legal_name = legalName,mobile_phone_number = mobilePhoneNumber)))
+    Then("We should get a 201")
+    response.code should equal(201)
+    response.body.extract[CustomerJsonV310]
+  }
+  
 }

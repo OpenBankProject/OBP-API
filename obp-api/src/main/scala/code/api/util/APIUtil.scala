@@ -447,6 +447,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     CustomResponseHeaders(
       getGatewayLoginHeader(cc).list ::: 
         getRateLimitHeadersNewStyle(cc).list ::: 
+        getPaginationHeadersNewStyle(cc).list ::: 
         getRequestHeadersToMirror(cc).list
     )
   }
@@ -456,13 +457,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case (Some(x), true) =>
         CustomResponseHeaders(
           List(
-            ("X-Rate-Limit-Reset", x.`X-Rate-Limit-Reset`.toString),
-            ("X-Rate-Limit-Remaining", x.`X-Rate-Limit-Remaining`.toString),
-            ("X-Rate-Limit-Limit", x.`X-Rate-Limit-Limit`.toString)
+            ("X-Rate-Limit-Reset", x.xRateLimitReset.toString),
+            ("X-Rate-Limit-Remaining", x.xRateLimitRemaining.toString),
+            ("X-Rate-Limit-Limit", x.xRateLimitLimit.toString)
           )
         )
       case _ =>
         CustomResponseHeaders((Nil))
+    }
+  }
+  private def getPaginationHeadersNewStyle(cc: Option[CallContextLight]) = {
+    cc match {
+      case Some(x) if x.paginationLimit.isDefined && x.paginationOffset.isDefined =>
+        CustomResponseHeaders(
+          List(("Range", s"items=${x.paginationOffset.getOrElse("")}-${x.paginationLimit.getOrElse("")}"))
+        )
+      case _ =>
+        CustomResponseHeaders(Nil)
     }
   }
   private def getSignRequestHeadersNewStyle(cc: Option[CallContext], httpBody: Box[String]): CustomResponseHeaders = {
@@ -888,7 +899,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def getOffset(httpParams: List[HTTPParam]): Box[OBPOffset] = {
-    (getPaginationParam(httpParams, "offset", None, 0, FilterOffersetError), getPaginationParam(httpParams, "obp_offset", Some(0), 0, FilterOffersetError)) match {
+    (getPaginationParam(httpParams, "offset", None, 0, FilterOffersetError), getPaginationParam(httpParams, "obp_offset", Some(Constant.Pagination.offset), 0, FilterOffersetError)) match {
       case (Full(left), _) =>
         Full(OBPOffset(left))
       case (Failure(m, e, c), _) =>
@@ -897,12 +908,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Full(OBPOffset(right))
       case (_, Failure(m, e, c)) =>
         Failure(m, e, c)
-      case _ => Full(OBPOffset(0))
+      case _ => Full(OBPOffset(Constant.Pagination.offset))
     }
   }
 
   def getLimit(httpParams: List[HTTPParam]): Box[OBPLimit] = {
-    (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(50), 1, FilterLimitError)) match {
+    (getPaginationParam(httpParams, "limit", None, 1, FilterLimitError), getPaginationParam(httpParams, "obp_limit", Some(Constant.Pagination.limit), 1, FilterLimitError)) match {
       case (Full(left), _) =>
         Full(OBPLimit(left))
       case (Failure(m, e, c), _) =>
@@ -911,7 +922,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Full(OBPLimit(right))
       case (_, Failure(m, e, c)) =>
         Failure(m, e, c)
-      case _ => Full(OBPLimit(500))
+      case _ => Full(OBPLimit(Constant.Pagination.limit))
     }
   }
 
@@ -1039,8 +1050,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def createQueriesByHttpParamsFuture(httpParams: List[HTTPParam]) = Future {
-    createQueriesByHttpParams(httpParams: List[HTTPParam])
+  def createQueriesByHttpParamsFuture(httpParams: List[HTTPParam], callContext: Option[CallContext]): OBPReturnType[List[OBPQueryParam]] = {
+    Future(createQueriesByHttpParams(httpParams: List[HTTPParam])) map { i =>
+      (i, callContext) 
+    } map { x => 
+      fullBoxOrException(x._1 ~> APIFailureNewStyle(InvalidFilterParameterFormat, 400, callContext.map(_.toLight)))
+    } map { unboxFull(_) } map { i => 
+      val limit: Option[String] = i.collectFirst { case OBPLimit(value) => value.toString }
+      val offset: Option[String] = i.collectFirst { case OBPOffset(value) => value.toString }
+      (i, callContext.map(_.copy(paginationOffset = offset, paginationLimit = limit))) 
+    }
   }
 
   /**

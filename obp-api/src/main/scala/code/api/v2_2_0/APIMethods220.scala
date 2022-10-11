@@ -907,9 +907,7 @@ trait APIMethods220 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetConnectorMetrics, callContext)
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            obpQueryParams <- createQueriesByHttpParamsFuture(httpParams) map {
-              x => unboxFullOrFail(x, callContext, InvalidFilterParameterFormat)
-            }
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
             metrics <- Future(ConnectorMetricsProvider.metrics.vend.getAllConnectorMetrics(obpQueryParams))
           } yield {
             (JSONFactory220.createConnectorMetricsJson(metrics), HttpCode.`200`(callContext))

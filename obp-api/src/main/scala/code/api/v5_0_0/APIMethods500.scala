@@ -1033,7 +1033,7 @@ trait APIMethods500 {
          |
          |""",
       postCustomerOverviewJsonV500,
-      customerWithAttributesJsonV310,
+      customerOverviewJsonV500,
       List(
         UserNotLoggedIn,
         UserCustomerLinksNotFoundForUser,
@@ -1068,6 +1068,59 @@ trait APIMethods500 {
               callContext: Option[CallContext])
           } yield {
             (JSONFactory500.createCustomerWithAttributesJson(customer, customerAttributes, accountAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getCustomerOverviewFlat,
+      implementedInApiVersion,
+      nameOf(getCustomerOverviewFlat),
+      "POST",
+      "/banks/BANK_ID/customers/customer-number-query/overview-flat",
+      "Get Customer Overview Flat",
+      s"""Gets the Customer Overview Flat specified by customer_number and bank_code.
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      postCustomerOverviewJsonV500,
+      customerOverviewFlatJsonV500,
+      List(
+        UserNotLoggedIn,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
+      Some(List(canGetCustomer))
+    )
+
+    lazy val getCustomerOverviewFlat : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "customers" :: "customer-number-query" :: "overview-flat" ::  Nil JsonPost  json -> req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[PostCustomerOverviewJsonV500]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
+              bankId,
+              CustomerId(customer.customerId),
+              callContext: Option[CallContext])
+            accountIds <- AccountAttributeX.accountAttributeProvider.vend
+              .getAccountIdsByParams(bankId, List("customer_number" -> List(postedData.customer_number)).toMap)
+            (accounts: List[BankAccount], callContext) <- NewStyle.function.getBankAccounts(accountIds.toList.flatten.map(i => BankIdAccountId(bankId, AccountId(i))), callContext)
+            (accountAttributes, callContext) <- NewStyle.function.getAccountAttributesForAccounts(
+              bankId,
+              accounts,
+              callContext: Option[CallContext])
+          } yield {
+            (JSONFactory500.createCustomerOverviewFlatJson(customer, customerAttributes, accountAttributes), HttpCode.`200`(callContext))
           }
       }
     }
@@ -1177,10 +1230,10 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonGet _ => {
         cc => {
           for {
-            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
-            customers <- NewStyle.function.getCustomers(bankId, cc.callContext, requestParams)
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            customers <- NewStyle.function.getCustomers(bankId, callContext, requestParams)
           } yield {
-            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+            (JSONFactory300.createCustomersJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
         }
       }
@@ -1211,10 +1264,10 @@ trait APIMethods500 {
       case "banks" :: BankId(bankId) :: "customers-minimal" :: Nil JsonGet _ => {
         cc => {
           for {
-            requestParams <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
-            customers <- NewStyle.function.getCustomers(bankId, cc.callContext, requestParams)
+            (requestParams, callContext) <- extractQueryParams(cc.url, List("limit","offset","sort_direction"), cc.callContext)
+            customers <- NewStyle.function.getCustomers(bankId, callContext, requestParams)
           } yield {
-            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(cc.callContext))
+            (createCustomersMinimalJson(customers.sortBy(_.bankId)), HttpCode.`200`(callContext))
           }
         }
       }

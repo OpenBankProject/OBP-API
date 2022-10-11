@@ -254,18 +254,18 @@ object RateLimitingUtil extends MdcLoggable {
         case PER_MONTH  => c.per_month
         case PER_YEAR   => -1
       }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = z._1))
-        .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
+      userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
+        .map(_.copy(xRateLimitReset = z._1))
+        .map(_.copy(xRateLimitRemaining = limit - z._2))
     }
     def setXRateLimitsAnonymous(id: String, z: (Long, Long), period: LimitCallPeriod): Option[CallContext] = {
       val limit = period match {
         case PER_HOUR   => perHourLimitAnonymous
         case _   => -1
       }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = z._1))
-        .map(_.copy(`X-Rate-Limit-Remaining` = limit - z._2))
+      userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
+        .map(_.copy(xRateLimitReset = z._1))
+        .map(_.copy(xRateLimitRemaining = limit - z._2))
     }
 
     def exceededRateLimit(c: CallLimit, period: LimitCallPeriod): Option[CallContextLight] = {
@@ -279,9 +279,9 @@ object RateLimitingUtil extends MdcLoggable {
         case PER_MONTH  => c.per_month
         case PER_YEAR   => -1
       }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = remain))
-        .map(_.copy(`X-Rate-Limit-Remaining` = 0)).map(_.toLight)
+      userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
+        .map(_.copy(xRateLimitReset = remain))
+        .map(_.copy(xRateLimitRemaining = 0)).map(_.toLight)
     }
 
     def exceededRateLimitAnonymous(id: String, period: LimitCallPeriod): Option[CallContextLight] = {
@@ -290,9 +290,9 @@ object RateLimitingUtil extends MdcLoggable {
         case PER_HOUR   => perHourLimitAnonymous
         case _   => -1
       }
-      userAndCallContext._2.map(_.copy(`X-Rate-Limit-Limit` = limit))
-        .map(_.copy(`X-Rate-Limit-Reset` = remain))
-        .map(_.copy(`X-Rate-Limit-Remaining` = 0)).map(_.toLight)
+      userAndCallContext._2.map(_.copy(xRateLimitLimit = limit))
+        .map(_.copy(xRateLimitReset = remain))
+        .map(_.copy(xRateLimitRemaining = 0)).map(_.toLight)
     }
 
     userAndCallContext._2 match {
