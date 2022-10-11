@@ -434,7 +434,7 @@ object ErrorMessages {
   val CustomerAccountLinkNotFoundById = "OBP-30225: Customer Account Link not found. Please specify valid values for CUSTOMER_ACCOUNT_LINK_ID."
   val GetCustomerAccountLinksError = "OBP-30226: Could not get the customer account links."
   val UpdateCustomerAccountLinkError = "OBP-30227: Could not update the customer account link."
-  val DeleteCustomerAccountLinkError = "OBP-30227: Could not delete the customer account link."
+  val DeleteCustomerAccountLinkError = "OBP-30228: Could not delete the customer account link."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
