@@ -37,7 +37,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
     lazy val customerId1 = "wrongId"
     
     scenario("We will call the endpoints without user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6,  VersionOfApi) {
-      val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links" ).POST 
+      val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links" ).POST 
       val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(createCustomerAccountLinkJson))
       Then("We should get a 401")
       responseApiEndpoint1.code should equal(401)
@@ -46,7 +46,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint2")
-      val requestApiEndpoint2 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1 ).GET 
+      val requestApiEndpoint2 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1 ).GET 
       val responseApiEndpoint2 = makeGetRequest(requestApiEndpoint2)
       Then("We should get a 401")
       responseApiEndpoint2.code should equal(401)
@@ -54,7 +54,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       responseApiEndpoint2.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint3")
-      val requestApiEndpoint3 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1 ).PUT
+      val requestApiEndpoint3 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1 ).PUT
       val responseApiEndpoint3 = makePutRequest(requestApiEndpoint3, write(updateCustomerAccountLinkJson))
       Then("We should get a 401")
       responseApiEndpoint2.code should equal(401)
@@ -62,7 +62,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       responseApiEndpoint2.body.extract[ErrorMessage].message should equal (UserNotLoggedIn)
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint4")
-      val requestApiEndpoint4 =  (v5_0_0_Request / "banks" / testBankId /"customers"/customerId1 / "customer_account_links" )
+      val requestApiEndpoint4 =  (v5_0_0_Request / "banks" / testBankId /"customers"/customerId1 / "customer-account-links" )
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
       Then("We should get a 401")
       responseApiEndpoint4.code should equal(401)
@@ -71,7 +71,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint5")
-      val requestApiEndpoint5 =  (v5_0_0_Request / "banks" / testBankId /"accounts"/testAccountId.value / "customer_account_links")
+      val requestApiEndpoint5 =  (v5_0_0_Request / "banks" / testBankId /"accounts"/testAccountId.value / "customer-account-links")
       val responseApiEndpoint5 = makeGetRequest(requestApiEndpoint5)
       Then("We should get a 401")
       responseApiEndpoint5.code should equal(401)
@@ -81,7 +81,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint6")
-      val requestApiEndpoint6 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1)
+      val requestApiEndpoint6 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1)
       val responseApiEndpoint6 = makeDeleteRequest(requestApiEndpoint6)
       Then("We should get a 401")
       responseApiEndpoint2.code should equal(401)
@@ -90,7 +90,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
     }    
 
     scenario("We will call the endpoint without roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
-      val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links" ).POST <@(user1)
+      val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links" ).POST <@(user1)
       val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(createCustomerAccountLinkJson))
       Then("We should get a 403")
       responseApiEndpoint1.code should equal(403)
@@ -100,7 +100,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint2")
-      val requestApiEndpoint2 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1 ).GET <@(user1)
+      val requestApiEndpoint2 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1 ).GET <@(user1)
       val responseApiEndpoint2 = makeGetRequest(requestApiEndpoint2)
       Then("We should get a 403")
       responseApiEndpoint2.code should equal(403)
@@ -109,7 +109,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       responseApiEndpoint2.body.extract[ErrorMessage].message contains (canGetCustomerAccountLink.toString()) should be (true)
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint3")
-      val requestApiEndpoint3 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1 ).PUT<@(user1)
+      val requestApiEndpoint3 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1 ).PUT<@(user1)
       val responseApiEndpoint3 = makePutRequest(requestApiEndpoint3, write(updateCustomerAccountLinkJson))
       Then("We should get a 403")
       responseApiEndpoint3.code should equal(403)
@@ -118,7 +118,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       responseApiEndpoint3.body.extract[ErrorMessage].message contains (canUpdateCustomerAccountLink.toString()) should be (true)
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint4")
-      val requestApiEndpoint4 =  (v5_0_0_Request / "banks" / testBankId /"customers"/customerId1 / "customer_account_links" ).GET <@(user1)
+      val requestApiEndpoint4 =  (v5_0_0_Request / "banks" / testBankId /"customers"/customerId1 / "customer-account-links" ).GET <@(user1)
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
       Then("We should get a 403")
       responseApiEndpoint4.code should equal(403)
@@ -128,7 +128,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint5")
-      val requestApiEndpoint5 =  (v5_0_0_Request / "banks" / testBankId /"accounts"/testAccountId.value / "customer_account_links").GET<@(user1)
+      val requestApiEndpoint5 =  (v5_0_0_Request / "banks" / testBankId /"accounts"/testAccountId.value / "customer-account-links").GET<@(user1)
       val responseApiEndpoint5 = makeGetRequest(requestApiEndpoint5)
       Then("We should get a 403")
       responseApiEndpoint5.code should equal(403)
@@ -138,7 +138,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint6")
-      val requestApiEndpoint6 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1).DELETE <@(user1)
+      val requestApiEndpoint6 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1).DELETE <@(user1)
       val responseApiEndpoint6 = makeDeleteRequest(requestApiEndpoint6)
       Then("We should get a 403")
       responseApiEndpoint6.code should equal(403)
@@ -169,7 +169,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, ApiRole.canGetCustomerAccountLinks.toString())
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, ApiRole.canDeleteCustomerAccountLink.toString())
       
-      val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links" ).POST <@(user1)
+      val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links" ).POST <@(user1)
       val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(createCustomerAccountLinkJson))
       Then("We should get a 201")
       responseApiEndpoint1.code should equal(201)
@@ -179,7 +179,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       customerAccountLinkId1.nonEmpty should be (true)
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint2")
-      val requestApiEndpoint2 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1 ).GET <@(user1)
+      val requestApiEndpoint2 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1 ).GET <@(user1)
       val responseApiEndpoint2 = makeGetRequest(requestApiEndpoint2)
       Then("We should get a 200")
       responseApiEndpoint2.code should equal(200)
@@ -188,7 +188,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       customerAccountLinkId2 should be (customerAccountLinkId1)
       
       Then(s"We make a request $VersionOfApi $ApiEndpoint3")
-      val requestApiEndpoint3 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1 ).PUT <@(user1)
+      val requestApiEndpoint3 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1 ).PUT <@(user1)
       val responseApiEndpoint3 = makePutRequest(requestApiEndpoint3, write(updateCustomerAccountLinkJson))
       Then("We should get a 200")
       responseApiEndpoint3.code should equal(200)
@@ -197,7 +197,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       customerAccountLinkId3 should be (customerAccountLinkId1)
       
       Then(s"We make a request $VersionOfApi $ApiEndpoint4")
-      val requestApiEndpoint4 =  (v5_0_0_Request / "banks" / testBankId /"customers"/customerId / "customer_account_links" ).GET <@(user1)
+      val requestApiEndpoint4 =  (v5_0_0_Request / "banks" / testBankId /"customers"/customerId / "customer-account-links" ).GET <@(user1)
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
       Then("We should get a 200")
       responseApiEndpoint4.code should equal(200)
@@ -207,7 +207,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       
       
       Then(s"We make a request $VersionOfApi $ApiEndpoint5")
-      val requestApiEndpoint5 =  (v5_0_0_Request / "banks" / testBankId /"accounts"/testAccountId.value / "customer_account_links").GET <@(user1)
+      val requestApiEndpoint5 =  (v5_0_0_Request / "banks" / testBankId /"accounts"/testAccountId.value / "customer-account-links").GET <@(user1)
       val responseApiEndpoint5 = makeGetRequest(requestApiEndpoint5)
       Then("We should get a 200")
       responseApiEndpoint5.code should equal(200)
@@ -218,7 +218,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
       Then(s"We make a request $VersionOfApi $ApiEndpoint6")
-      val requestApiEndpoint6 =  (v5_0_0_Request / "banks" / testBankId / "customer_account_links"/customerAccountLinkId1).DELETE <@(user1)
+      val requestApiEndpoint6 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links"/customerAccountLinkId1).DELETE <@(user1)
       val responseApiEndpoint6 = makeDeleteRequest(requestApiEndpoint6)
       Then("We should get a 204")
       responseApiEndpoint6.code should equal(204)

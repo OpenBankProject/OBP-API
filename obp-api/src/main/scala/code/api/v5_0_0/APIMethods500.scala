@@ -1456,7 +1456,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(createCustomerAccountLink),
       "POST",
-      "/banks/BANK_ID/customer_account_links",
+      "/banks/BANK_ID/customer-account-links",
       "Create Customer Account Link",
       s"""Link a Customer to a Account
          |
@@ -1479,7 +1479,7 @@ trait APIMethods500 {
       List(apiTagCustomer, apiTagAccount),
       Some(List(canCreateCustomerAccountLink)))
     lazy val createCustomerAccountLink : OBPEndpoint = {
-      case "banks" :: BankId(bankId):: "customer_account_links" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId):: "customer-account-links" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             (_, _,callContext) <- SS.userBank
@@ -1511,7 +1511,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(getCustomerAccountLinksByCustomerId),
       "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/customer_account_links",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/customer-account-links",
       "Get Customer Account Links by CUSTOMER_ID",
       s""" Get Customer Account Links by CUSTOMER_ID
          |
@@ -1530,7 +1530,7 @@ trait APIMethods500 {
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAccountLinks)))
     lazy val getCustomerAccountLinksByCustomerId : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "customer_account_links" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "customer-account-links" :: Nil JsonGet _ => {
         cc =>
           for {
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, cc.callContext)
@@ -1549,7 +1549,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(getCustomerAccountLinksByAccountId),
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/customer_account_links",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/customer-account-links",
       "Get Customer Account Links by ACCOUNT_ID",
       s""" Get Customer Account Links by ACCOUNT_ID
          |
@@ -1568,7 +1568,7 @@ trait APIMethods500 {
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAccountLinks)))
     lazy val getCustomerAccountLinksByAccountId : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "customer_account_links" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "customer-account-links" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, _,callContext) <- SS.userBank
@@ -1584,7 +1584,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(getCustomerAccountLinkById),
       "GET",
-      "/banks/BANK_ID/customer_account_links/CUSTOMER_ACCOUNT_LINK_ID",
+      "/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID",
       "Get Customer Account Link by Id",
       s""" Get Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
          |
@@ -1602,7 +1602,7 @@ trait APIMethods500 {
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAccountLink)))
     lazy val getCustomerAccountLinkById : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customer-account-links" :: customerAccountLinkId :: Nil JsonGet _ => {
         cc =>
           for {
             (_, _,callContext) <- SS.userBank
@@ -1618,7 +1618,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(updateCustomerAccountLinkById),
       "PUT",
-      "/banks/BANK_ID/customer_account_links/CUSTOMER_ACCOUNT_LINK_ID",
+      "/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID",
       "Update Customer Account Link by Id",
       s""" Update Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
          |
@@ -1636,7 +1636,7 @@ trait APIMethods500 {
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canUpdateCustomerAccountLink)))
     lazy val updateCustomerAccountLinkById : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "customer-account-links" :: customerAccountLinkId :: Nil JsonPut json -> _ => {
         cc =>
           for {
             (Full(u), _,callContext) <- SS.userBank
@@ -1657,7 +1657,7 @@ trait APIMethods500 {
       implementedInApiVersion,
       nameOf(deleteCustomerAccountLinkById),
       "DELETE",
-      "/banks/BANK_ID/customer_account_links/CUSTOMER_ACCOUNT_LINK_ID",
+      "/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID",
       "Delete Customer Account Link",
       s""" Delete Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
          |
@@ -1675,7 +1675,7 @@ trait APIMethods500 {
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canDeleteCustomerAccountLink)))
     lazy val deleteCustomerAccountLinkById : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "customer_account_links" :: customerAccountLinkId :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "customer-account-links" :: customerAccountLinkId :: Nil JsonDelete _ => {
         cc =>
           for {
             (Full(u), _,callContext) <- SS.userBank
