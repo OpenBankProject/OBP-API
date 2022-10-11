@@ -401,7 +401,7 @@ object ErrorMessages {
   
   val InvalidCardNumber = "OBP-30200: Card not found. Please specify a valid value for CARD_NUMBER. "
 
-  val CustomerAccountLinkNotFound = "OBP-30204:Customer Account Link not found"
+  val CustomerAccountLinkNotFound = "OBP-30204: Customer Account Link not found"
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
   val EntitlementIsSystemRole = "OBP-30206: This entitlement is a System Role. Please set bank_id to empty string."
