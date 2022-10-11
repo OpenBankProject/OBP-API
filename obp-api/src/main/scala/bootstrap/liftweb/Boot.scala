@@ -39,7 +39,7 @@ import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
-import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400}
+import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500}
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
@@ -467,6 +467,7 @@ class Boot extends MdcLoggable {
     LiftRules.statelessDispatch.append(ResourceDocs300)
     LiftRules.statelessDispatch.append(ResourceDocs310)
     LiftRules.statelessDispatch.append(ResourceDocs400)
+    LiftRules.statelessDispatch.append(ResourceDocs500)
     ////////////////////////////////////////////////////
 
 
