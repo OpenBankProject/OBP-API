@@ -96,6 +96,12 @@ object ApiRole {
   
   case class CanGetCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCustomer = CanGetCustomer()
+  
+  case class CanGetCustomerOverview(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerOverview = CanGetCustomerOverview()  
+  
+  case class CanGetCustomerOverviewFlat(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetCustomerOverviewFlat = CanGetCustomerOverviewFlat()
 
   case class CanCreateCustomer(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateCustomer = CanCreateCustomer()

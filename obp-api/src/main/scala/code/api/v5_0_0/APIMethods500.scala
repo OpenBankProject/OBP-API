@@ -1040,21 +1040,17 @@ trait APIMethods500 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
-      Some(List(canGetCustomer))
+      Some(List(canGetCustomerOverview))
     )
 
     lazy val getCustomerOverview : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: "customer-number-query" :: "overview" ::  Nil JsonPost  json -> req => {
         cc =>
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 "
-            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 ", 400, cc.callContext) {
               json.extract[PostCustomerOverviewJsonV500]
             }
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bankId, cc.callContext)
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
               CustomerId(customer.customerId),
@@ -1093,21 +1089,17 @@ trait APIMethods500 {
         UnknownError
       ),
       List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
-      Some(List(canGetCustomer))
+      Some(List(canGetCustomerOverviewFlat))
     )
 
     lazy val getCustomerOverviewFlat : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: "customer-number-query" :: "overview-flat" ::  Nil JsonPost  json -> req => {
         cc =>
           for {
-            (Full(u), callContext) <- authenticatedAccess(cc)
-            (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, canGetCustomer, callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 "
-            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 ", 400, cc.callContext) {
               json.extract[PostCustomerOverviewJsonV500]
             }
-            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bank.bankId, callContext)
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bankId, cc.callContext)
             (customerAttributes, callContext) <- NewStyle.function.getCustomerAttributes(
               bankId,
               CustomerId(customer.customerId),
