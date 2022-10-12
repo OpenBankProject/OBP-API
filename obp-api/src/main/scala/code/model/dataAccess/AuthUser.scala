@@ -1419,9 +1419,43 @@ def restoreSomeSessions(): Unit = {
             Views.views.vend.grantAccessToCustomView(view.uid, user)
         }
 
-        
-      } else {
-      }
+        //3rd: if the ids are not change, but views are changed, we still need compare the view for each account:
+        if(cbsRemovedBankAccountIds.equals(csbNewBankAccountIds)) {
+          for {
+            bankAccountId <- obpBankAccountIds
+            // we can not get the views from the `viewDefinition` table, because we can not delete system views at all. we need to read the view from accountAccess table.
+            //obpViewsForAccount = MapperViews.availableViewsForAccount(bankAccountId).map(_.viewId.value)
+            obpViewsForAccount = Views.views.vend.privateViewsUserCanAccessForAccount(user, bankAccountId).map(_.viewId.value)
+            
+            cbsViewsForAccount = accountsHeld.find(account => account.bankId.equals(bankAccountId.bankId.value) && account.accountId.equals(bankAccountId.accountId.value)).map(_.viewsToGenerate).getOrElse(Nil)
+           
+            //cbs removed these views, but OBP still contains the data for them, so we need to clean data in OBP side.
+            cbsRemovedViewsForAccount = obpViewsForAccount diff cbsViewsForAccount
+            _ = if(cbsRemovedViewsForAccount.nonEmpty){
+              val cbsRemovedViewIdBankIdAccountIds = cbsRemovedViewsForAccount.map(view => ViewIdBankIdAccountId(ViewId(view), bankAccountId.bankId, bankAccountId.accountId))
+              Views.views.vend.revokeAccessToMultipleViews(cbsRemovedViewIdBankIdAccountIds, user) 
+              cbsRemovedViewsForAccount.map(view =>Views.views.vend.removeCustomView(ViewId(view), bankAccountId))
+              UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+            } 
+            //cbs has new views which are not in obp yet, we need to create new data for these accounts.
+            csbNewViewsForAccount = cbsViewsForAccount diff obpViewsForAccount
+            _ = if(csbNewViewsForAccount.nonEmpty){
+              for{
+                newViewForAccount <- csbNewViewsForAccount
+                view <- Views.views.vend.getOrCreateAccountView(bankAccountId, newViewForAccount) //this method will return both system views and custom views back.
+              }yield{
+                if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
+                  Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
+                else //otherwise, we will call `grantAccessToCustomView`
+                  Views.views.vend.grantAccessToCustomView(view.uid, user)
+                UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+              }
+            } 
+          } yield {
+            bankAccountId
+          }
+        }
+      } 
   }
   /**
     * Find the authUser by author user name(authUser and resourceUser are the same).
