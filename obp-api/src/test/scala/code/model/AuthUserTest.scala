@@ -2,10 +2,10 @@ package code.model
 
 import code.UserRefreshes.MappedUserRefreshes
 import code.accountholders.MapperAccountHolders
-import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, SYSTEM_STAGE_ONE_VIEW_ID}
+import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, SYSTEM_STAGE_ONE_VIEW_ID, SYSTEM_STANDARD_VIEW_ID}
 import code.bankconnectors.Connector
 import code.connector.MockedCbsConnector
-import code.model.dataAccess.{AuthUser}
+import code.model.dataAccess.AuthUser
 import code.setup.{DefaultUsers, PropsReset, ServerSetup}
 import code.views.MapperViews
 import code.views.system.{AccountAccess, ViewDefinition}
@@ -81,7 +81,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     InboundAccountCommons(
       bankId = bankIdAccountId1.bankId.value,
       accountId = bankIdAccountId1.accountId.value,
-      viewsToGenerate = SYSTEM_OWNER_VIEW_ID :: Nil,
+      viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: Nil,
       branchId = "",
       accountNumber = "",
       accountType = "",
@@ -121,7 +121,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     InboundAccountCommons(
       bankId = bankIdAccountId1.bankId.value,
       accountId = bankIdAccountId1.accountId.value,
-      viewsToGenerate = SYSTEM_STAGE_ONE_VIEW_ID :: SYSTEM_OWNER_VIEW_ID:: Nil,
+      viewsToGenerate = SYSTEM_STAGE_ONE_VIEW_ID :: SYSTEM_STANDARD_VIEW_ID:: Nil,
       branchId = "",
       accountNumber = "",
       accountType = "",
@@ -161,7 +161,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     InboundAccountCommons(
       bankId = bankIdAccountId2.bankId.value,
       accountId = bankIdAccountId2.accountId.value,
-      viewsToGenerate = SYSTEM_OWNER_VIEW_ID :: Nil,
+      viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: Nil,
       branchId = "",
       accountNumber = "",
       accountType = "",
@@ -181,7 +181,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     InboundAccountCommons(
       bankId = bankIdAccountId1.bankId.value,
       accountId = bankIdAccountId1.accountId.value,
-      viewsToGenerate = SYSTEM_OWNER_VIEW_ID :: Nil,
+      viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: Nil,
       branchId = "",
       accountNumber = "",
       accountType = "",
@@ -198,7 +198,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     InboundAccountCommons(
       bankId = bankIdAccountId2.bankId.value,
       accountId = bankIdAccountId2.accountId.value,
-      viewsToGenerate = SYSTEM_OWNER_VIEW_ID :: Nil,
+      viewsToGenerate = SYSTEM_STANDARD_VIEW_ID :: Nil,
       branchId = "",
       accountNumber = "",
       accountType = "",
@@ -233,19 +233,20 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       val allViewsForAccount1 = MapperViews.availableViewsForAccount(bankIdAccountId1)
       val allViewsForAccount2 = MapperViews.availableViewsForAccount(bankIdAccountId2)
       val allViews = ViewDefinition.findAll()
+      allViewsForAccount1.toString().contains(SYSTEM_STANDARD_VIEW_ID) should equal(true)
       allViewsForAccount1.toString().contains(SYSTEM_OWNER_VIEW_ID) should equal(true)
       allViewsForAccount1.toString().contains("_public") should equal(true)
       allViewsForAccount1.toString().contains("accountant") should equal(true)
       allViewsForAccount1.toString().contains("auditor") should equal(true)
-      allViewsForAccount2.toString().contains(SYSTEM_OWNER_VIEW_ID) should equal(true)
+      allViewsForAccount2.toString().contains(SYSTEM_STANDARD_VIEW_ID) should equal(true)
       allViewsForAccount2.toString().contains("_public") should equal(true)
       allViewsForAccount2.toString().contains("accountant") should equal(true)
       allViewsForAccount2.toString().contains("auditor") should equal(true)
-      allViews.length should equal(5) // 3 system views + 2 custom views
+      allViews.length should equal(6) // 3 system views + 2 custom views
 
       Then("We check the AccountAccess")
       val numberOfAccountAccess = AccountAccess.findAll().length
-      numberOfAccountAccess should equal(8) 
+      numberOfAccountAccess should equal(10) 
 
     }
   }
@@ -279,8 +280,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system view. both accounts should have the `owner` view.")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
@@ -298,8 +299,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system view. both accounts should have the `owner` view.")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(0)
@@ -338,8 +339,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system views")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
@@ -356,8 +357,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(1)
 
       Then("We check the views, only support the system views")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
@@ -375,8 +376,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(1)
 
       Then("We check the views, only support the system views")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(0)
@@ -393,8 +394,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system views")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(0)
@@ -433,8 +434,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system view. both accounts should have the `owner` view.")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
@@ -454,8 +455,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system view. both accounts should have the `owner` view.")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
@@ -474,8 +475,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder2.size should be(0)
 
       Then("We check the views, only support the system views")
-      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
-      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_OWNER_VIEW_ID))
+      allViewsForAccount1.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
+      allViewsForAccount2.map(_.viewId.value) should equal(List(SYSTEM_STANDARD_VIEW_ID))
 
       Then("We check the AccountAccess")
       account1Access.length should equal(0)
@@ -514,12 +515,12 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the views, there should be two system views: Stage")
       allViewsForAccount1.length should be(2)
-      allViewsForAccount1.map(_.viewId.value) contains (SYSTEM_OWNER_VIEW_ID) should be (true)
+      allViewsForAccount1.map(_.viewId.value) contains (SYSTEM_STANDARD_VIEW_ID) should be (true)
       allViewsForAccount1.map(_.viewId.value) contains (SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
-      account1Access.map(_.view_id.get).contains(SYSTEM_OWNER_VIEW_ID) should be (true)
+      account1Access.map(_.view_id.get).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
 
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
@@ -528,8 +529,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView)
 
       Then("We check the AccountAccess, we can only remove the StageOne access, not owner view, if use is the account holder, we can not revoke the access")
-      account1Access.length should equal(1)
-      account1Access.map(_.view_id.get).contains(SYSTEM_OWNER_VIEW_ID) should be (true)
+      account1Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)
@@ -542,12 +542,12 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the views, only support the system view. both accounts should have the `owner` view.")
       allViewsForAccount1.length should be(2)
-      allViewsForAccount1.map(_.viewId.value) contains (SYSTEM_OWNER_VIEW_ID) should be (true)
+      allViewsForAccount1.map(_.viewId.value) contains (SYSTEM_STANDARD_VIEW_ID) should be (true)
       allViewsForAccount1.map(_.viewId.value) contains (SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
 
       Then("We check the AccountAccess")
       account1Access.length should equal(2)
-      account1Access.map(_.view_id.get).contains(SYSTEM_OWNER_VIEW_ID) should be (true)
+      account1Access.map(_.view_id.get).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
       account1Access.map(_.view_id.get).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
 
       Then("We check the MappedUserRefreshes table")
@@ -561,8 +561,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       accountholder1.size should be(1)
 
       Then("We check the AccountAccess")
-      account1Access.length should equal(1)
-      account1Access.map(_.view_id.get).contains(SYSTEM_OWNER_VIEW_ID) should be (true)
+      account1Access.length should equal(0)
 
       Then("We check the MappedUserRefreshes table")
       MappedUserRefreshes.findAll().length should be (1)

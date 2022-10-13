@@ -565,7 +565,7 @@ object MapperViews extends Views with MdcLoggable {
     val publicView = CUSTOM_PUBLIC_VIEW_ID.equals(viewId.toLowerCase)
     val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
     val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
-    val smallPaymentVerifiedView = SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID.equals(viewId.toLowerCase)
+    val standardView = SYSTEM_STANDARD_VIEW_ID.equals(viewId.toLowerCase)
     val stageOneView = SYSTEM_STAGE_ONE_VIEW_ID.toLowerCase.equals(viewId.toLowerCase)
     
     val theView =
@@ -577,8 +577,8 @@ object MapperViews extends Views with MdcLoggable {
         getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else if (auditorsView)
         getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
-      else if (smallPaymentVerifiedView)
-        getOrCreateSystemView(SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID)
+      else if (standardView)
+        getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID)
       else if (stageOneView)
         getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID)
       else {
