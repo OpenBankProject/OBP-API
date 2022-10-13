@@ -420,11 +420,11 @@ object JSONFactory1_4_0 extends MdcLoggable{
    * @param parameter BANK_ID
    * @return [BANK_ID](/glossary#Bank.bank_id):gh.29.uk 
    */
-  def prepareDescription(parameter: String, types: List[(String, Boolean)]): String = {
+  def prepareDescription(parameter: String, optionalTypeFields: List[(String, Boolean)]): String = {
     val glossaryItemTitle = getGlossaryItemTitle(parameter)
     val exampleFieldValue = getExampleFieldValue(parameter)
     def boldIfMandatory() = {
-      types.exists(i => i._1 == parameter && i._2 == false) match {
+      optionalTypeFields.exists(i => i._1 == parameter && i._2 == false) match {
         case true =>
           s"**$parameter**"
         case false =>
@@ -444,7 +444,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
     jsonBody.productIterator
-    val (jsonBodyJValue: json.JValue, types) = jsonBody match {
+    val (jsonBodyJValue: json.JValue, optionalTypeFields) = jsonBody match {
       case JvalueCaseClass(jValue) =>
         val types = Nil
         (jValue, types)
@@ -455,9 +455,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
         (decompose(jsonBody), types)
     }
 
-    val jsonBodyFields =JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList.sorted
+    // Group by is mandatory criteria and sort those 2 groups by name of the field
+    val jsonBodyFieldsOptional = JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList
+      .filter(x => optionalTypeFields.exists(i => i._1 == x && i._2 == true)).sorted
+    val jsonBodyFieldsMandatory = JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList
+      .filter(x => optionalTypeFields.exists(i => i._1 == x && i._2 == false)).sorted
+    val jsonBodyFields = jsonBodyFieldsMandatory ::: jsonBodyFieldsOptional
 
-    val jsonFieldsDescription = jsonBodyFields.map(i => prepareDescription(i, types))
+    val jsonFieldsDescription = jsonBodyFields.map(i => prepareDescription(i, optionalTypeFields))
     
     val jsonTitleType = if (jsonType.contains("request")) "\n\n\n**JSON request body fields:**\n\n" else  "\n\n\n**JSON response body fields:**\n\n"
 
