@@ -80,7 +80,7 @@ class TransactionRequestTest extends V310ServerSetup {
       val account = createAccountRelevantResource(Some(resourceUser1), BankId(bankId), AccountId(APIUtil.generateUUID()), "EUR")
       val request310 = (
         v3_1_0_Request / "banks" / bankId / "accounts" / account.accountId.value 
-        / Constant.CUSTOM_OWNER_VIEW_ID / "transaction-requests").GET <@(user2)
+        / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET <@(user2)
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)

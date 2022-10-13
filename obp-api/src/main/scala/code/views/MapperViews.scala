@@ -268,7 +268,7 @@ object MapperViews extends Views with MdcLoggable {
 
 
   def canRevokeAccess(viewDefinition: ViewDefinition, user : User) : Boolean = {
-    if(viewDefinition.viewId == ViewId(CUSTOM_OWNER_VIEW_ID)) {
+    if(viewDefinition.viewId == ViewId(SYSTEM_OWNER_VIEW_ID)) {
       //if the user is an account holder, we can't revoke access to the owner view
       val accountHolders = MapperAccountHolders.getAccountHolders(viewDefinition.bankId, viewDefinition.accountId)
       if(accountHolders.map(h => h.userPrimaryKey).contains(user.userPrimaryKey)) {
@@ -592,7 +592,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, CUSTOM_OWNER_VIEW_ID) match {
+    getExistingView(bankId, accountId, SYSTEM_OWNER_VIEW_ID) match {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -659,7 +659,7 @@ object MapperViews extends Views with MdcLoggable {
       isSystem_(false).
       isFirehose_(false).
       name_("_" + randomString(5)).
-      metadataView_(CUSTOM_OWNER_VIEW_ID).
+      metadataView_(SYSTEM_OWNER_VIEW_ID).
       description_(randomString(3)).
       view_id("_" + randomString(3)).
       isPublic_(false).
@@ -816,7 +816,7 @@ object MapperViews extends Views with MdcLoggable {
       .bank_id(bankId.value)
       .account_id(accountId.value)
       .name_("Owner")
-      .view_id(CUSTOM_OWNER_VIEW_ID)
+      .view_id(SYSTEM_OWNER_VIEW_ID)
       .description_(description)
       .isPublic_(false) //(default is false anyways)
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)
