@@ -49,6 +49,12 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object hideOtherAccountMetadataIfAlias_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canGrantAccessToViews_ extends MappedText(this){
+    override def defaultValue = ""
+  }
+  object canRevokeAccessToViews_ extends MappedText(this){
+    override def defaultValue = ""
+  }
   object canSeeTransactionThisBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -303,6 +309,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     isPublic_(viewData.is_public)
     isFirehose_(viewData.is_firehose.getOrElse(false))
     metadataView_(viewData.metadata_view)
+    
+    canGrantAccessToViews_(viewData.can_grant_access_to_views.getOrElse(Nil).mkString(","))
+    canRevokeAccessToViews_(viewData.can_revoke_access_to_views.getOrElse(Nil).mkString(","))
 
     val actions = viewData.allowed_actions
 
@@ -408,6 +417,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
+  def canGrantAccessToViews : List[String] = canGrantAccessToViews_.get.split(",").toList.map(_.trim)
+  def canRevokeAccessToViews : List[String] = canRevokeAccessToViews_.get.split(",").toList.map(_.trim)
+  
   //reading access
 
   //transaction fields

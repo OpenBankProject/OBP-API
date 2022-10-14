@@ -52,6 +52,8 @@ trait ViewSpecification {
   def which_alias_to_use: String
   def hide_metadata_if_alias_used: Boolean
   def allowed_actions : List[String]
+  def can_grant_access_to_views : Option[List[String]] = None
+  def can_revoke_access_to_views : Option[List[String]] = None
 }
 
 /*
