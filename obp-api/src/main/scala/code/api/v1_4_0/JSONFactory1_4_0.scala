@@ -366,7 +366,31 @@ object JSONFactory1_4_0 extends MdcLoggable{
    * @return Bank.bank_id
    */
   def getGlossaryItemTitle(parameter: String): String = {
-    glossaryItems.find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}")).map(_.title).getOrElse("").replaceAll(" ","-")
+    def isUrlParameter(): Boolean = {
+      List(
+        "BANK_ID", 
+        "ACCOUNT_ID", 
+        "CUSTOMER_ID",
+        "TRANSACTION_ID",
+        "ATTRIBUTE_ID",
+        "VIEW_ID",
+        "USER_ID",
+        "PRODUCT_CODE",
+        "PRODUCT_ID",
+        "OPERATION_ID",
+        "ENDPOINT_TAG_ID",
+      ).exists(_ == parameter)
+    }
+    parameter match {
+      case _ if isUrlParameter() =>
+        glossaryItems
+          .find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}"))
+          .map(_.title).getOrElse("").replaceAll(" ","-")
+      case _ =>
+        glossaryItems
+          .find(_.title.toLowerCase.equals(s"${parameter.toLowerCase}"))
+          .map(_.title).getOrElse("").replaceAll(" ","-")
+    }
   }
   
   /**
