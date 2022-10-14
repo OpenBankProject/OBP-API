@@ -70,7 +70,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def randomOwnerViewPermalinkViaEndpoint(bankId: String, account: AccountJSON) : String = {
     val request = v4_0_0_Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
-    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true).filter(_.id == CUSTOM_OWNER_VIEW_ID)
+    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views.filterNot(_.is_public==true).filter(_.id == SYSTEM_OWNER_VIEW_ID)
     val randomPosition = nextInt(possibleViewsPermalinks.size)
     possibleViewsPermalinks(randomPosition).id
   }

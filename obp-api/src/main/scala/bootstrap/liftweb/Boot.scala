@@ -727,8 +727,8 @@ class Boot extends MdcLoggable {
       val owner = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).isDefined
       val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).isDefined
       val accountant = Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID).isDefined
-      val smallPaymentVerified = Views.views.vend.getOrCreateSystemView(SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID).isDefined
-      val accountHolder = Views.views.vend.getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID).isDefined
+      val standard = Views.views.vend.getOrCreateSystemView(SYSTEM_STANDARD_VIEW_ID).isDefined
+      val stageOne = Views.views.vend.getOrCreateSystemView(SYSTEM_STAGE_ONE_VIEW_ID).isDefined
       // Only create Firehose view if they are enabled at instance.
       val accountFirehose = if (ApiPropsWithAlias.allowAccountFirehose)
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
@@ -740,8 +740,8 @@ class Boot extends MdcLoggable {
            |System view ${SYSTEM_AUDITOR_VIEW_ID} exists/created at the instance: ${auditor}
            |System view ${SYSTEM_ACCOUNTANT_VIEW_ID} exists/created at the instance: ${accountant}
            |System view ${SYSTEM_FIREHOSE_VIEW_ID} exists/created at the instance: ${accountFirehose}
-           |System view ${SYSTEM_SMALL_PAYMENT_VERIFIED_VIEW_ID} exists/created at the instance: ${smallPaymentVerified}
-           |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${accountHolder}
+           |System view ${SYSTEM_STANDARD_VIEW_ID} exists/created at the instance: ${standard}
+           |System view ${SYSTEM_STAGE_ONE_VIEW_ID} exists/created at the instance: ${stageOne}
            |""".stripMargin
       logger.info(comment)
 
