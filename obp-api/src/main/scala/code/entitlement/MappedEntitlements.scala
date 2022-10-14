@@ -2,7 +2,7 @@ package code.entitlement
 
 import code.api.dynamic.endpoint.helper.DynamicEntityInfo
 import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanCreateEntitlementAtOneBank}
-import code.api.util.ErrorMessages
+import code.api.util.{ErrorMessages, NotificationUtil}
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
@@ -110,6 +110,8 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       val addEntitlement: MappedEntitlement = 
         MappedEntitlement.create.mBankId(bankId).mUserId(userId).mRoleName(roleName).mCreatedByProcess(createdByProcess)
         .saveMe()
+      // When a role is Granted, we should send an email to the Recipient telling them they have been granted the role.
+      NotificationUtil.sendEmailRegardingAssignedRole(userId: String, addEntitlement: Entitlement)
       Full(addEntitlement)
     }
     // Return a Box so we can handle errors later.
