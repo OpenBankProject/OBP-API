@@ -1,7 +1,7 @@
 package code.api.util
 
 
-import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, parseDate}
+import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, oneYearAgoDate, formatDate, oneYearAgo, parseDate}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
@@ -97,7 +97,10 @@ object ExampleValue {
   lazy val relationshipStatusExample = ConnectorField("single", s"relationship status")
   glossaryItems += makeGlossaryItem("Customer.relationshipStatus", relationshipStatusExample)
   
-  lazy val dependentsExample = ConnectorField("1", s"the number of dependents")
+  lazy val dependantsExample = ConnectorField("2", s"the number of dependants")
+  glossaryItems += makeGlossaryItem("Customer.dependants", dependantsExample)
+  
+  lazy val dependentsExample = ConnectorField("2", s"the number of dependents") // Dominant form in American English
   glossaryItems += makeGlossaryItem("Customer.dependents", dependentsExample)
   
   lazy val kycStatusExample = ConnectorField(booleanTrue, s"This is boolean to indicate if the cusomter's KYC has been checked.") 
@@ -1080,9 +1083,6 @@ object ExampleValue {
   lazy val temporaryCreditDocumentationExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("temporary_credit_documentation", temporaryCreditDocumentationExample)
 
-  lazy val dependantsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("dependants", dependantsExample)
-
   lazy val locationExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("location", locationExample)
 
@@ -1270,7 +1270,7 @@ object ExampleValue {
   lazy val wednesdayExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("wednesday", wednesdayExample)
 
-  lazy val lastOkDateExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val lastOkDateExample = ConnectorField(formatDate(oneYearAgoDate),NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("last_ok_date", lastOkDateExample)
 
   lazy val transactionTypesExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -1982,7 +1982,7 @@ object ExampleValue {
   lazy val toCurrencyCodeExample = ConnectorField("EUR",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("to_currency_code", toCurrencyCodeExample)
 
-  lazy val dobOfDependantsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val dobOfDependantsExample = ConnectorField("[2019-09-08, 2017-07-12]",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("dob_of_dependants", dobOfDependantsExample)
 
   lazy val settlementAccountsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
@@ -2066,7 +2066,7 @@ object ExampleValue {
   lazy val currentCreditDocumentationExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("current_credit_documentation", currentCreditDocumentationExample)
 
-  lazy val mobilePhoneNumberExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val mobilePhoneNumberExample = ConnectorField("+49 30 901820",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("mobile_phone_number", mobilePhoneNumberExample)
 
   lazy val saturdayExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
