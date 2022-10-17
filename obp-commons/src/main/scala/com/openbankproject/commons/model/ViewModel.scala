@@ -247,6 +247,10 @@ trait View {
 
   def hideOtherAccountMetadataIfAlias: Boolean
 
+  // Introduced in version 5.0.0
+  def canGrantAccessToViews : Option[List[String]] = None
+  def canRevokeAccessToViews : Option[List[String]] = None
+
   //reading access
 
   //transaction fields

@@ -417,8 +417,18 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
-  def canGrantAccessToViews : List[String] = canGrantAccessToViews_.get.split(",").toList.map(_.trim)
-  def canRevokeAccessToViews : List[String] = canRevokeAccessToViews_.get.split(",").toList.map(_.trim)
+  override def canGrantAccessToViews : Option[List[String]] = {
+    canGrantAccessToViews_.get == null || canGrantAccessToViews_.get.isEmpty() match {
+      case true => None
+      case _ => Some(canGrantAccessToViews_.get.split(",").toList.map(_.trim))
+    }
+  }
+  override def canRevokeAccessToViews : Option[List[String]] = {
+    canRevokeAccessToViews_.get == null || canRevokeAccessToViews_.get.isEmpty()  match {
+      case true => None
+      case _ => Some(canRevokeAccessToViews_.get.split(",").toList.map(_.trim))
+    }
+  }
   
   //reading access
 

@@ -1,6 +1,7 @@
 package code.api.v5_0_0
 
 import java.util.Date
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -17,6 +18,7 @@ import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
 import code.api.v5_0_0.JSONFactory500.createPhysicalCardJson
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
+import code.model._
 import code.entitlement.Entitlement
 import code.model.dataAccess.BankAccountCreation
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
@@ -37,6 +39,7 @@ import net.liftweb.util.Props
 import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
+import code.api.v5_0_0.JSONFactory500.createViewsJsonV500
 import code.util.Helper.booleanToFuture
 
 import scala.collection.immutable.{List, Nil}
@@ -1440,6 +1443,67 @@ trait APIMethods500 {
             //NOTE: OBP do not store the 3 digits cvv, only the hash, so we copy it here.
             (createPhysicalCardJson(card, u).copy(cvv=cvv.toString), HttpCode.`201`(callContext))
           }
+      }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      getViewsForBankAccount,
+      implementedInApiVersion,
+      nameOf(getViewsForBankAccount),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      "Get Views for Account",
+      s"""#Views
+         |
+         |
+         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+         |
+         |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+         |
+         |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+         |
+         |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+         |
+         |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+         |
+         |**Metadata:**
+         |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+         |
+         |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+         |
+         |# All
+         |*Optional*
+         |
+         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
+      emptyObjectJson,
+      viewsJsonV300,
+      List(
+        $UserNotLoggedIn,
+        $BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount, apiTagNewStyle))
+
+    lazy val getViewsForBankAccount : OBPEndpoint = {
+      //get the available views on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
+        cc =>
+          val res =
+            for {
+              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + cc.userId + ". account : " + accountId, cc=cc.callContext){
+                cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId))
+              }
+            } yield {
+              for {
+                views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankId, accountId)))
+              } yield {
+                (createViewsJsonV500(views), HttpCode.`200`(cc.callContext))
+              }
+            }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
       }
     }
 
