@@ -1,7 +1,8 @@
 package code.api.v5_0_0
 
-import java.util.Date
+import java.util.concurrent.ThreadLocalRandom
 
+import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -15,36 +16,30 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
-import code.api.v5_0_0.JSONFactory500.createPhysicalCardJson
+import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewsJsonV500, createViewJsonV500}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
-import code.model._
 import code.entitlement.Entitlement
+import code.model._
 import code.model.dataAccess.BankAccountCreation
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.util.Helper
+import code.util.Helper.booleanToFuture
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, prettyRender}
-import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-import java.util.concurrent.ThreadLocalRandom
-
-import code.accountattribute.AccountAttributeX
-import code.api.v5_0_0.JSONFactory500.createViewsJsonV500
-import code.util.Helper.booleanToFuture
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -1447,7 +1442,7 @@ trait APIMethods500 {
     }
 
 
-    resourceDocs += ResourceDoc(
+    staticResourceDocs += ResourceDoc(
       getViewsForBankAccount,
       implementedInApiVersion,
       nameOf(getViewsForBankAccount),
@@ -1479,7 +1474,7 @@ trait APIMethods500 {
          |
          |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      viewsJsonV300,
+      viewsJsonV500,
       List(
         $UserNotLoggedIn,
         $BankAccountNotFound,
@@ -1504,6 +1499,41 @@ trait APIMethods500 {
               }
             }
           res map { fullBoxOrException(_) } map { unboxFull(_) }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getSystemView,
+      implementedInApiVersion,
+      "getSystemView",
+      "GET",
+      "/system-views/VIEW_ID",
+      "Get System View",
+      s"""Get System View
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      viewJsonV500,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canGetSystemView))
+    )
+
+    lazy val getSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            view <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
+          } yield {
+            (createViewJsonV500(view), HttpCode.`200`(cc.callContext))
+          }
       }
     }
 
