@@ -3,6 +3,7 @@ package code.api.v5_0_0
 import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -16,7 +17,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
-import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewsJsonV500, createViewJsonV500}
+import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsJsonV500}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -1537,6 +1538,60 @@ trait APIMethods500 {
           }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      createSystemView,
+      implementedInApiVersion,
+      nameOf(createSystemView),
+      "POST",
+      "/system-views",
+      "Create System View",
+      s"""Create a system view
+         |
+         | ${authenticationRequiredMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
+         | The 'alias' field in the JSON can take one of two values:
+         |
+         | * _public_: to use the public alias if there is one specified for the other account.
+         | * _private_: to use the public alias if there is one specified for the other account.
+         |
+         | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+         |
+         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+         |
+         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+         | 
+         | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
+         | """,
+      createSystemViewJsonV500,
+      viewJsonV500,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canCreateSystemView))
+    )
+
+    lazy val createSystemView : OBPEndpoint = {
+      //creates a system view
+      case "system-views" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            createViewJson <- NewStyle.function.tryons(failMsg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson ", 400, cc.callContext) {
+              json.extract[CreateViewJson]
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=cc.callContext) {
+              createViewJson.is_public == false
+            }
+            view <- NewStyle.function.createSystemView(createViewJson, cc.callContext)
+          } yield {
+            (createViewJsonV500(view),  HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       createCustomerAccountLink,

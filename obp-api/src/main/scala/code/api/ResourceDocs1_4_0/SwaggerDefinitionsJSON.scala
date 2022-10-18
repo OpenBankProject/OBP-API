@@ -188,6 +188,11 @@ object SwaggerDefinitionsJSON {
 
   val createSystemViewJson = createViewJson.copy(name = "test", metadata_view = "test", is_public = false)
 
+  val createSystemViewJsonV500 = createSystemViewJson.copy(
+    can_grant_access_to_views = Some(List("owner")),
+    can_revoke_access_to_views = Some(List("owner"))
+  )
+
   val updateViewJSON = UpdateViewJSON(
     description = "this is for family",
     is_public = true,

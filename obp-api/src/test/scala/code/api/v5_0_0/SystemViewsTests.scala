@@ -46,6 +46,8 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
+import scala.collection.immutable.List
+
 class SystemViewsTests extends V500ServerSetup {
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -64,14 +66,21 @@ class SystemViewsTests extends V500ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.getSystemView))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.createSystemView))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.createSystemView))
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.updateSystemView))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteSystemView))
   
   // Custom view, name starts from `_`
   // System view, owner
   val randomSystemViewId = APIUtil.generateUUID()
-  val postBodySystemViewJson = createSystemViewJson.copy(name=randomSystemViewId).copy(metadata_view = randomSystemViewId)
+  val postBodySystemViewJson = createSystemViewJson
+    .copy(name=randomSystemViewId)
+    .copy(metadata_view = randomSystemViewId)
+    // Implemented in version 5.0.0
+    .copy(
+      can_grant_access_to_views = Some(List("owner")),
+      can_revoke_access_to_views = Some(List("owner"))
+    )
   val systemViewId = MapperViews.getNewViewPermalink(postBodySystemViewJson.name)
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
