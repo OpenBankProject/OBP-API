@@ -3390,7 +3390,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def isOwnerView(viewId: ViewId): Boolean = {
     viewId.value == SYSTEM_OWNER_VIEW_ID ||
       viewId.value == "_" + SYSTEM_OWNER_VIEW_ID || // New views named like this are forbidden from this commit
-      viewId.value == CUSTOM_OWNER_VIEW_ID // New views named like this are forbidden from this commit
+      viewId.value == SYSTEM_OWNER_VIEW_ID // New views named like this are forbidden from this commit
   }
 
   /**

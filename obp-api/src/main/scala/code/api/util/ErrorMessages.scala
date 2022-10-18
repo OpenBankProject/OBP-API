@@ -142,7 +142,7 @@ object ErrorMessages {
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
-  val InvalidCustomViewFormat = s"OBP-20020: View name must start with `_`. eg: _work, _life. Reserved names: $CUSTOM_OWNER_VIEW_ID "
+  val InvalidCustomViewFormat = s"OBP-20020: View name must start with `_`. eg: _work, _life. "
   val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
   val ViewDoesNotPermitAccess = "OBP-20022: View does not permit the access."
 
@@ -287,7 +287,7 @@ object ErrorMessages {
   val CreateCardError = "OBP-30032: Could not insert the Card"
   val UpdateCardError = "OBP-30033: Could not update the Card"
 
-  val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Accountant, Auditor, _Public."
+  val ViewIdNotSupported = "OBP-30034: This ViewId is do not supported. Only support four now: Owner, Accountant, Auditor, StageOne, SmallPaymentVerified, _Public."
 
   val UserCustomerLinkNotFound = "OBP-30035: User Customer Link not found"
 
@@ -401,6 +401,7 @@ object ErrorMessages {
   
   val InvalidCardNumber = "OBP-30200: Card not found. Please specify a valid value for CARD_NUMBER. "
 
+  val CustomerAccountLinkNotFound = "OBP-30204: Customer Account Link not found"
 
   val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
   val EntitlementIsSystemRole = "OBP-30206: This entitlement is a System Role. Please set bank_id to empty string."
@@ -428,6 +429,12 @@ object ErrorMessages {
   val EntitlementCannotBeGrantedGrantorIssue = "OBP-30221: Entitlement cannot be granted due to the grantor's insufficient privileges."
 
   val CounterpartyNotFoundByRoutings = "OBP-30222: Counterparty not found. Please specify valid value for Routings."
+  val AccountAlreadyExistsForCustomer = "OBP-30223: The Account is already linked to a Customer at the bank specified by BANK_ID"
+  val CreateCustomerAccountLinkError = "OBP-30224: Could not create the customer account link."
+  val CustomerAccountLinkNotFoundById = "OBP-30225: Customer Account Link not found. Please specify valid values for CUSTOMER_ACCOUNT_LINK_ID."
+  val GetCustomerAccountLinksError = "OBP-30226: Could not get the customer account links."
+  val UpdateCustomerAccountLinkError = "OBP-30227: Could not update the customer account link."
+  val DeleteCustomerAccountLinkError = "OBP-30228: Could not delete the customer account link."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"

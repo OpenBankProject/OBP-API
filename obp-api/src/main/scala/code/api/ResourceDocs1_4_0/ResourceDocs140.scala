@@ -112,5 +112,21 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
       })
     })
   }
+  // Hack to provide Resource Docs / Swagger on endpoints other than 1.4.0 where it is defined.
+  object ResourceDocs500 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
+    val version: ApiVersion = ApiVersion.v5_0_0 // = "4.0.0" // We match other api versions so API explorer can easily use the path.
+    val versionStatus = "BLEEDING-EDGE"
+    val routes = List(
+      ImplementationsResourceDocs.getResourceDocsObpV400,
+      ImplementationsResourceDocs.getResourceDocsSwagger,
+      ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp,
+//      ImplementationsResourceDocs.getStaticResourceDocsObp
+    )
+    routes.foreach(route => {
+      oauthServe(apiPrefix {
+        route
+      })
+    })
+  }
 
 }

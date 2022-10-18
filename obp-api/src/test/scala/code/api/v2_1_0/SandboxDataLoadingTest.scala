@@ -307,7 +307,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     //there should be an owner view
     //Note: system views not bankId, accountId, so here, we need to get all the views 
     val (views,accountAccess) = Views.views.vend.privateViewsUserCanAccess(owner)
-    val ownerView = views.find(v => v.viewId.value == CUSTOM_OWNER_VIEW_ID)
+    val ownerView = views.find(v => v.viewId.value == SYSTEM_OWNER_VIEW_ID)
     owner.hasOwnerViewAccess(BankIdAccountId(foundAccount.bankId, foundAccount.accountId)) should equal(true)
 
     //and the owners should have access to it 

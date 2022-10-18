@@ -182,7 +182,7 @@ class TransactionTest extends V310ServerSetup {
       
       Then("We can get the transaction back")
       val transactionNewId = responseJson.transaction_id
-      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / CUSTOM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
+      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
@@ -255,7 +255,7 @@ class TransactionTest extends V310ServerSetup {
 
       Then("We can get the transaction back")
       val transactionNewId = responseJson.transaction_id
-      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / CUSTOM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
+      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
@@ -327,7 +327,7 @@ class TransactionTest extends V310ServerSetup {
 
       Then("We can get the transaction back")
       val transactionNewId = responseJson.transaction_id
-      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / CUSTOM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
+      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
@@ -411,7 +411,7 @@ class TransactionTest extends V310ServerSetup {
 
       Then("We can get the transaction back")
       val transactionNewId = responseJson.transaction_id
-      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / CUSTOM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
+      val getTransactionbyIdRequest = (v3_1_0_Request / "banks" / bankId1/ "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "transactions" / transactionNewId / "transaction").GET <@ (user1)
       val getTransactionbyIdResponse = makeGetRequest(getTransactionbyIdRequest)
 
       getTransactionbyIdResponse.code should equal(200)
