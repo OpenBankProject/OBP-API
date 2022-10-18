@@ -761,6 +761,7 @@ trait APIMethods500 {
         UserNotLoggedIn,
         $BankNotFound,
         InvalidJsonFormat,
+        ConsentRequestIsInvalid,
         ConsentAllowedScaMethods,
         RolesAllowedInConsent,
         ViewsAllowedInConsent,
@@ -786,7 +787,7 @@ trait APIMethods500 {
               )) map {
               i => unboxFullOrFail(i,callContext, ConsentRequestNotFound)
             }
-            _ <- Helper.booleanToFuture(ConsentRequestAlreadyUsed, cc=callContext){
+            _ <- Helper.booleanToFuture(ConsentRequestIsInvalid, cc=callContext){
               Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId).isEmpty
             }
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
