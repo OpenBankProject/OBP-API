@@ -28,22 +28,21 @@ package code.api.v5_0_0
 
 import java.lang
 import java.util.Date
-import code.api.util.APIUtil.{stringOptionOrNull, stringOrNull}
+
+import code.api.util.APIUtil.{nullToString, stringOptionOrNull, stringOrNull}
 import code.api.v1_2_1.BankRoutingJsonV121
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v1_3_0.JSONFactory1_3_0.{cardActionsToString, createAccountJson, createPinResetJson, createReplacementJson}
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.CustomerCreditRatingJSON
 import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, JSONFactory300}
-import code.api.v3_1_0.{AccountAttributeResponseJson, AccountBasicV310, CustomerWithAttributesJsonV310, PhysicalCardWithAttributesJsonV310, PostConsentEntitlementJsonV310}
+import code.api.v3_1_0.{AccountBasicV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.bankattribute.BankAttribute
 import code.customeraccountlinks.CustomerAccountLinkTrait
-import com.openbankproject.commons.model.{AccountAttribute, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, Customer, CustomerAttribute, PhysicalCardTrait, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
+import com.openbankproject.commons.model._
 import net.liftweb.json.JsonAST.JValue
 
-import scala.collection.immutable
 import scala.collection.immutable.List
 
 case class PostBankJson500(
@@ -660,7 +659,7 @@ object JSONFactory500 {
       enabled = card.enabled,
       cancelled = card.cancelled,
       on_hot_list = card.onHotList,
-      technology = stringOrNull(card.technology),
+      technology = nullToString(card.technology),
       networks = card.networks,
       allows = card.allows.map(cardActionsToString).toList,
       account = createAccountJson(card.account, user),

@@ -455,15 +455,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
           s"$parameter"
       }
     }
-    if(exampleFieldValue.contains(ExampleValue.NoExampleProvided)){
+    if(glossaryItemTitle.contains("jsonstring")){
       "" 
     } else {
-      s"""
-         |
-         |* [${boldIfMandatory()}](/glossary#$glossaryItemTitle): $exampleFieldValue
-         |
-         |""".stripMargin
-    }
+    s"""
+       |
+       |* [${boldIfMandatory()}](/glossary#$glossaryItemTitle): $exampleFieldValue
+       |
+       |""".stripMargin
+  }
   }
 
   def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {

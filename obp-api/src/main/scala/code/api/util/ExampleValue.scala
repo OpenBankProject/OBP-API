@@ -23,7 +23,7 @@ case class ConnectorField(value: String, description: String) {
 object ExampleValue {
 
   val NoDescriptionProvided = "no-description-provided"
-  val NoExampleProvided = "no-example-provided"
+  val NoExampleProvided = ""
   val booleanTrue = "true"
 
   lazy val bankIdGlossary = glossaryItems.find(_.title == "Bank.bank_id").map(_.textDescription)
