@@ -24,17 +24,17 @@
                 <hr/>
                 <h3>
                     <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                        I got a 404 error, what am I doing wrong
+                        <lift:loc locid="I.got.a.404.error.what.am.I.doing.wrong">I got a 404 error, what am I doing wrong</lift:loc><br/>
                     </button>
                 </h3>
                 <ol id="main-faq-item1" class="collapse">
                     <li>
-                        Avoid using trailing slashes, else, you would get a 404 error. Example:<br/>
+                        <lift:loc locid="Avoid.using.trailing.slashes.else.you.would.get.a.404.error.Example">Avoid using trailing slashes, else, you would get a 404 error. Example:</lift:loc><br/><br/>
                         .../obp/v1.4.0 200 OK<br/>
                         .../obp/v1.4.0/ 404 Not Found<br/>
                     </li>
-                    <li>Double check parameters are spelt correctly (including http vs https etc.)</li>
-                    <li>Check your encoding (use UTF8)</li>
+                    <li><lift:loc locid="Double.check.parameters.are.spelt.correctly.including.http.vs.https.etc">Double check parameters are spelt correctly (including http vs https etc.)</lift:loc></li>
+                    <li> <lift:loc locid="Check.your.encoding.use.UTF8">Check your encoding (use UTF8)</lift:loc></li>
                 </ol>
                 <img src="/media/images/icons/chevron_down_thick.svg" alt="">
             </div>
@@ -47,15 +47,15 @@
                 <hr/>
                 <h3>
                     <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                        How should I login?
+                        <lift:loc locid="How.should.I.login?">How should I login?</lift:loc>
                     </button>
                 </h3>
                 <p id="main-faq-item2" class="collapse">
-                    There are two ways to authenticate a user: <a
-                        href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS">OAuth</a> and <a
-                        href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">Direct Login</a>. If you
+                    <lift:loc locid="There.are.two.ways.to.authenticate.a.user">There are two ways to authenticate a user:</lift:loc><a
+                        href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS">OAuth</a><lift:loc locid="and"> and </lift:loc><a
+                        href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login"><lift:loc locid="Direct.Login"> Direct Login </lift:loc></a>. <lift:loc locid="If.you.are.using.this.sandbox.for.a.hackathon.we.recommend.you.use.Direct.Login.to.authenticate.as.it.is.easier.than.the.OAuth.workflow"> If you
                     are using this sandbox for a hackathon, we recommend you use Direct Login to authenticate as it
-                    is easier than the OAuth workflow.
+                    is easier than the OAuth workflow. </lift:loc>
                 </p>
                 <img src="/media/images/icons/chevron_down_thick.svg" alt="">
             </div>
@@ -66,24 +66,24 @@
                 <hr/>
                 <h3>
                     <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                        How can I use OAuth or Direct Login?
+                        <lift:loc locid="How.can.I.use.OAuth.or.Direct.Login">How can I use OAuth or Direct Login?</lift:loc>
                     </button>
                 </h3>
                 <p id="main-faq-item3" class="collapse">
-                    If you want to use OBP with OAuth, we recommend you use (and fork) one of our <a
+                    <lift:loc locid="If.you.want.to.use.OBP.with.OAuth.we.recommend.you.use.and.fork.one.of.our">If you want to use OBP with OAuth, we recommend you use (and fork) one of our</lift:loc> <a
                         href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS">OAuth Starter
                     SDKs</a>.
-                    If you are using this sandbox for a hackathon, we recommend you use <a
+                    <lift:loc locid="If.you.are.using.this.sandbox.for.a.hackathon.we.recommend.you.use">If you are using this sandbox for a hackathon, we recommend you use</lift:loc> <a
                         class="direct-login-documentation-url" data-lift="WebUI.directLoginDocumentationUrl"
                         href="">Direct Login</a>.
-                    For an OAuth walkthrough example with sample code, please see <a
+                    <lift:loc locid="For.an.OAuth.walkthrough.example.with.sample.code.please.see">For an OAuth walkthrough example with sample code, please see</lift:loc> <a
                         href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Python">here</a>.
-                    We use OAuth 1.0a. For deepish technical details of the flow <a
-                        class="oauth-1-documentation-url" data-lift="WebUI.oauth1DocumentationUrl" href="">see
-                    here.</a><br/>
-                    We also support OAuth 2.0. For the technical details of using OBP API with OAuth 2.0, please <a
-                        class="oauth-2-documentation-url" data-lift="WebUI.oauth2DocumentationUrl" href="">see
-                    here.</a><br/>
+                    <lift:loc locid="We.use.OAuth.1.0a.For.deepish.technical.details.of.the.flow">We use OAuth 1.0a. For deepish technical details of the flow</lift:loc> <a
+                        class="oauth-1-documentation-url" data-lift="WebUI.oauth1DocumentationUrl" href=""><lift:loc locid="see.here">see
+                    here.</lift:loc></a><br/>
+                    <lift:loc locid="We.also.support.OAuth.2.0.For.the.technical.details.of.using.OBP.API.with.OAuth.2.0.please">We also support OAuth 2.0. For the technical details of using OBP API with OAuth 2.0, please</lift:loc> <a
+                        class="oauth-2-documentation-url" data-lift="WebUI.oauth2DocumentationUrl" href=""><lift:loc locid="see.here">see
+                    here.</lift:loc></a><br/>
                 </p>
                 <img src="/media/images/icons/chevron_down_thick.svg" alt="">
             </div>
@@ -96,11 +96,11 @@
                 <hr/>
                 <h3>
                     <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                        Where can I read the API documentation?
+                        <lift:loc locid="Where.can.I.read.the.API.documentation">Where can I read the API documentation?</lift:loc>
                     </button>
                 </h3>
                 <p id="main-faq-item4" class="collapse">
-                    Please use the <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API
+                    <lift:loc locid="Please.use.the">Please use the</lift:loc> <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API
                     Explorer</a>
                 </p>
                 <img src="/media/images/icons/chevron_down_thick.svg" alt="">
@@ -111,14 +111,14 @@
                 <hr/>
                 <h3>
                     <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                        How can I use the example customer data?
+                        <lift:loc locid="How.can.I.use.the.example.customer.data">How can I use the example customer data?</lift:loc>
                     </button>
                 </h3>
                 <p id="main-faq-item5" class="collapse">
-                    You will need to login to the API as a sandbox customer. You can do this using the API Explorer,
-                    or any REST client. You can find some example credentials <a
+                    <lift:loc locid="You.will.need.to.login.to.the.API.as.a.sandbox.customer.You.can.do.this.using.the.API.Explorer.or.any.REST.client.You.can.find.some.example.credentials">You will need to login to the API as a sandbox customer. You can do this using the API Explorer,
+                        or any REST client. You can find some example credentials</lift:loc> <a
                         class="example_sandbox_credentials_link" data-lift="WebUI.exampleSandboxCredentialsLink"
-                        href="https://github.com/OpenBankProject/OBP-API/wiki/">here</a>.</p>
+                        href="https://github.com/OpenBankProject/OBP-API/wiki/"><lift:loc locid="here">here</lift:loc></a>.</p>
                 <img src="/media/images/icons/chevron_down_thick.svg" alt="">
             </div>
         </div>
@@ -130,11 +130,11 @@
                 <hr/>
                 <h3>
                     <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                        Where does the data come from?
+                        <lift:loc locid="Where.does.the.data.come.from">Where does the data come from?</lift:loc>
                     </button>
                 </h3>
-                <p id="main-faq-item6" class="collapse faq-data-text" data-lift="WebUI.faqDataText">Text is
-                    replaced</p>
+                <p id="main-faq-item6" class="collapse faq-data-text" data-lift="WebUI.faqDataText"><lift:loc locid="Text.is.replaced">Text is
+                    replaced</lift:loc></p>
                 <img src="/media/images/icons/chevron_down_thick.svg" alt="">
             </div>
         </div>
@@ -143,16 +143,16 @@
                 <hr/>
                 <h3>
                     <button aria-expanded="false" onclick="mouseClick(this)" onKeyDown="EnterKeyPressed(this)">
-                        Where can i get more information and support?
+                        <lift:loc locid="Where.can.I.get.more.information.and.support">Where can I get more information and support?</lift:loc>
                     </button>
                 </h3>
                 <p id="main-faq-item7" class="collapse">
-                    Please refer to our <a class="faq-link" data-lift="WebUI.faqLink" href=""
+                    <lift:loc locid="Please.refer.to.our">Please refer to our</lift:loc> <a class="faq-link" data-lift="WebUI.faqLink" href=""
                                            target="_blank">FAQ</a>, <a class="glossary-link"
                                                                        data-lift="WebUI.glossaryLink" href=""
-                                                                       target="_blank">Glossary</a>, join our <a
-                        class="support-platform-link" data-lift="WebUI.supportPlatformLink" href="" target="_blank">Rocket-Chat
-                    channels</a> or email us at <a class="faq-email" data-lift="WebUI.faqEmail" href="">contact@openbankproject.com</a>
+                                                                       target="_blank"><lift:loc locid="Glossary">Glossary</lift:loc></a>, <lift:loc locid="join.our">join our</lift:loc> <a
+                        class="support-platform-link" data-lift="WebUI.supportPlatformLink" href="" target="_blank"><lift:loc locid="Rocket.Chat.channels">Rocket-Chat
+                    channels</lift:loc></a> <lift:loc locid="or.email.us.at">or email us at</lift:loc> <a class="faq-email" data-lift="WebUI.faqEmail" href="">contact@openbankproject.com</a>
                 </p>
                 <img src="/media/images/icons/chevron_down_thick.svg" alt="">
             </div>
