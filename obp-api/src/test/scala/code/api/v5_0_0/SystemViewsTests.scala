@@ -33,7 +33,6 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.v3_1_0.APIMethods310.Implementations3_1_0
 import code.api.v5_0_0.APIMethods500.Implementations5_0_0
 import code.entitlement.Entitlement
 import code.setup.APIResponse
@@ -67,7 +66,7 @@ class SystemViewsTests extends V500ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.getSystemView))
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.createSystemView))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.updateSystemView))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteSystemView))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.deleteSystemView))
   
   // Custom view, name starts from `_`
   // System view, owner

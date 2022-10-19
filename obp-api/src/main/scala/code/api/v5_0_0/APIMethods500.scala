@@ -1505,6 +1505,38 @@ trait APIMethods500 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      deleteSystemView,
+      implementedInApiVersion,
+      "deleteSystemView",
+      "DELETE",
+      "/system-views/VIEW_ID",
+      "Delete System View",
+      "Deletes the system view specified by VIEW_ID",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError,
+        "user does not have owner access"
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canDeleteSystemView))
+    )
+
+    lazy val deleteSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonDelete req => {
+        cc =>
+          for {
+            _ <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
+            view <- NewStyle.function.deleteSystemView(ViewId(viewId), cc.callContext)
+          } yield {
+            (Full(view),  HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
 
     staticResourceDocs += ResourceDoc(
       getSystemView,
