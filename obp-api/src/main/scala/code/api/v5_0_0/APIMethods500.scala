@@ -1611,7 +1611,7 @@ trait APIMethods500 {
       viewJsonV500,
       List(
         InvalidJsonFormat,
-        UserNotLoggedIn,
+        $UserNotLoggedIn,
         BankAccountNotFound,
         UnknownError
       ),
@@ -1624,19 +1624,17 @@ trait APIMethods500 {
       case "system-views" :: viewId :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            (Full(user), callContext) <-  authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateSystemView, callContext)
             updateJson <- Future { tryo{json.extract[UpdateViewJsonV500]} } map {
               val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
-              x => unboxFullOrFail(x, callContext, msg)
+              x => unboxFullOrFail(x, cc.callContext, msg)
             }
-            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=callContext) {
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=cc.callContext) {
               updateJson.is_public == false
             }
-            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
-            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, callContext)
+            _ <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
+            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, cc.callContext)
           } yield {
-            (JSONFactory310.createViewJSON(updatedView), HttpCode.`200`(callContext))
+            (JSONFactory310.createViewJSON(updatedView), HttpCode.`200`(cc.callContext))
           }
       }
     }
