@@ -3927,7 +3927,7 @@ trait APIMethods310 {
         "user does not have owner access"
       ),
       List(apiTagSystemView, apiTagNewStyle),
-      Some(List(canCreateSystemView))
+      Some(List(canDeleteSystemView))
     )
 
     lazy val deleteSystemView: OBPEndpoint = {
