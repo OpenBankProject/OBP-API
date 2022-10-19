@@ -37,6 +37,7 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, prettyRender}
+import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
 import scala.collection.immutable.{List, Nil}
@@ -1591,8 +1592,55 @@ trait APIMethods500 {
           }
       }
     }
-    
 
+
+    staticResourceDocs += ResourceDoc(
+      updateSystemView,
+      implementedInApiVersion,
+      nameOf(updateSystemView),
+      "PUT",
+      "/system-views/VIEW_ID",
+      "Update System View",
+      s"""Update an existing view on a bank account
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         |
+         |The json sent is the same as during view creation (above), with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateSystemViewJson500,
+      viewJsonV500,
+      List(
+        InvalidJsonFormat,
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canUpdateSystemView))
+    )
+
+    lazy val updateSystemView : OBPEndpoint = {
+      //updates a view on a bank account
+      case "system-views" :: viewId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <-  authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateSystemView, callContext)
+            updateJson <- Future { tryo{json.extract[UpdateViewJsonV500]} } map {
+              val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
+              x => unboxFullOrFail(x, callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=callContext) {
+              updateJson.is_public == false
+            }
+            _ <- NewStyle.function.systemView(ViewId(viewId), callContext)
+            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, callContext)
+          } yield {
+            (JSONFactory310.createViewJSON(updatedView), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       createCustomerAccountLink,
       implementedInApiVersion,

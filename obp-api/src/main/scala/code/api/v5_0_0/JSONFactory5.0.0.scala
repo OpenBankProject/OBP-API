@@ -393,7 +393,29 @@ case class CreateViewJsonV500(
     can_revoke_access_to_views = this.can_revoke_access_to_views
   )
 }
-
+case class UpdateViewJsonV500(
+                               description: String,
+                               metadata_view: String,
+                               is_public: Boolean,
+                               is_firehose: Option[Boolean] = None,
+                               which_alias_to_use: String,
+                               hide_metadata_if_alias_used: Boolean,
+                               allowed_actions: List[String],
+                               can_grant_access_to_views : Option[List[String]] = None,
+                               can_revoke_access_to_views : Option[List[String]] = None
+                             ) {
+  def toUpdateViewJson = UpdateViewJSON(
+    description = this.description,
+    metadata_view = this.metadata_view,
+    is_public = this.is_public,
+    is_firehose = this.is_firehose,
+    which_alias_to_use = this.which_alias_to_use,
+    hide_metadata_if_alias_used = this.hide_metadata_if_alias_used,
+    allowed_actions = this.allowed_actions,
+    can_grant_access_to_views = this.can_grant_access_to_views,
+    can_revoke_access_to_views = this.can_revoke_access_to_views
+  )
+}
 case class ViewsJsonV500(views : List[ViewJsonV500])
 
 case class ViewJsonV500(

@@ -33,7 +33,6 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.APIMethods310.Implementations3_1_0
 import code.api.v5_0_0.APIMethods500.Implementations5_0_0
 import code.entitlement.Entitlement
@@ -67,7 +66,7 @@ class SystemViewsTests extends V500ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.getSystemView))
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.createSystemView))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.updateSystemView))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.updateSystemView))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteSystemView))
   
   // Custom view, name starts from `_`
@@ -128,7 +127,7 @@ class SystemViewsTests extends V500ServerSetup {
       val response400 = postSystemView(postBodySystemViewJson, user1)
       Then("We should get a 201")
       response400.code should equal(201)
-      response400.body.extract[ViewJsonV300]
+      response400.body.extract[ViewJsonV500]
     }
   }
   
@@ -189,7 +188,7 @@ class SystemViewsTests extends V500ServerSetup {
       val updatedAliasToUse = "public"
       val allowedActions = List("can_see_images", "can_delete_comment")
 
-      def viewUpdateJson(originalView : ViewJsonV300) = {
+      def viewUpdateJson(originalView : ViewJsonV500) = {
         //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
         UpdateViewJSON(
           description = updatedViewDescription,
@@ -198,7 +197,9 @@ class SystemViewsTests extends V500ServerSetup {
           is_firehose = Some(true),
           which_alias_to_use = updatedAliasToUse,
           hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias_used,
-          allowed_actions = allowedActions
+          allowed_actions = allowedActions,
+          can_grant_access_to_views = Some(originalView.can_grant_access_to_views),
+          can_revoke_access_to_views = Some(originalView.can_revoke_access_to_views)
         )
       }
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
@@ -207,7 +208,7 @@ class SystemViewsTests extends V500ServerSetup {
       Given("A view exists")
       val creationReply = postSystemView(postBodySystemViewJson, user1)
       creationReply.code should equal (201)
-      val createdView : ViewJsonV300 = creationReply.body.extract[ViewJsonV300]
+      val createdView : ViewJsonV500 = creationReply.body.extract[ViewJsonV500]
       createdView.id should not startWith("_")
       createdView.can_see_images should equal(true)
       createdView.can_delete_comment should equal(true)
@@ -220,7 +221,7 @@ class SystemViewsTests extends V500ServerSetup {
       val reply = putSystemView(createdView.id, viewUpdateJson(createdView), user1)
       Then("We should get back the updated view")
       reply.code should equal (200)
-      val updatedView = reply.body.extract[ViewJsonV300]
+      val updatedView = reply.body.extract[ViewJsonV500]
       updatedView.can_see_images should equal(true)
       updatedView.can_delete_comment should equal(true)
       updatedView.can_delete_physical_location should equal(false)
