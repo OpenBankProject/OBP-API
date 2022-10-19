@@ -73,14 +73,9 @@ class SystemViewsTests extends V500ServerSetup {
   // Custom view, name starts from `_`
   // System view, owner
   val randomSystemViewId = APIUtil.generateUUID()
-  val postBodySystemViewJson = createSystemViewJson
+  val postBodySystemViewJson = createSystemViewJsonV500
     .copy(name=randomSystemViewId)
-    .copy(metadata_view = randomSystemViewId)
-    // Implemented in version 5.0.0
-    .copy(
-      can_grant_access_to_views = Some(List("owner")),
-      can_revoke_access_to_views = Some(List("owner"))
-    )
+    .copy(metadata_view = randomSystemViewId).toCreateViewJson
   val systemViewId = MapperViews.getNewViewPermalink(postBodySystemViewJson.name)
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {

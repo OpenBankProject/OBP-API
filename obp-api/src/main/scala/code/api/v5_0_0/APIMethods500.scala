@@ -1580,12 +1580,12 @@ trait APIMethods500 {
         cc =>
           for {
             createViewJson <- NewStyle.function.tryons(failMsg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson ", 400, cc.callContext) {
-              json.extract[CreateViewJson]
+              json.extract[CreateViewJsonV500]
             }
             _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=cc.callContext) {
               createViewJson.is_public == false
             }
-            view <- NewStyle.function.createSystemView(createViewJson, cc.callContext)
+            view <- NewStyle.function.createSystemView(createViewJson.toCreateViewJson, cc.callContext)
           } yield {
             (createViewJsonV500(view),  HttpCode.`201`(cc.callContext))
           }

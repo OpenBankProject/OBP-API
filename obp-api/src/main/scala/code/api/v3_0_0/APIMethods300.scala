@@ -148,7 +148,7 @@ trait APIMethods300 {
         |
         | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
         | """,
-      SwaggerDefinitionsJSON.createViewJson,
+      SwaggerDefinitionsJSON.createViewJsonV300,
       viewJsonV300,
       List(
         UserNotLoggedIn,

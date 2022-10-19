@@ -3,6 +3,7 @@ package code.api.v3_1_0
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
@@ -16,7 +17,7 @@ import code.api.v1_2_1.{JSONFactory, RateLimiting}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v2_1_0._
 import code.api.v2_2_0.{CreateAccountJSONV220, JSONFactory220}
-import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.{CreateViewJsonV300, JSONFactory300}
 import code.api.v3_0_0.JSONFactory300.createAdapterInfoJson
 import code.api.v3_1_0.JSONFactory310._
 import code.bankconnectors.rest.RestConnector_vMar2019
@@ -3877,7 +3878,7 @@ trait APIMethods310 {
         | 
         | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
         | """,
-      SwaggerDefinitionsJSON.createSystemViewJson,
+      SwaggerDefinitionsJSON.createSystemViewJsonV300,
       viewJsonV300,
       List(
         UserNotLoggedIn,
@@ -3897,12 +3898,12 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateSystemView, callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson "
             createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[CreateViewJson]
+              json.extract[CreateViewJsonV300]
             }
             _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=callContext) {
               createViewJson.is_public == false
             }
-            view <- NewStyle.function.createSystemView(createViewJson, callContext)
+            view <- NewStyle.function.createSystemView(createViewJson.toCreateViewJson, callContext)
           } yield {
             (JSONFactory310.createViewJSON(view),  HttpCode.`201`(callContext))
           }
