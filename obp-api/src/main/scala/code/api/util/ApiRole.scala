@@ -351,6 +351,9 @@ object ApiRole {
 
   case class CanReadMetrics (requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadMetrics = CanReadMetrics()
+  
+  case class CanGetMetrics (requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetMetrics = CanGetMetrics()
 
   case class CanGetConfig(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConfig = CanGetConfig()

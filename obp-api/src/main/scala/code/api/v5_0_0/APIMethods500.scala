@@ -21,6 +21,7 @@ import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV50
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
+import code.metrics.APIMetrics
 import code.model._
 import code.model.dataAccess.BankAccountCreation
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
@@ -1537,6 +1538,93 @@ trait APIMethods500 {
       }
     }
 
+    staticResourceDocs += ResourceDoc(
+      getMetricsAtBank,
+      implementedInApiVersion,
+      nameOf(getMetricsAtBank),
+      "GET",
+      "/management/metrics/banks/BANK_ID",
+      "Get Metrics at Bank",
+      s"""Get the all metrics at the Bank specified by BANK_ID
+         |
+         |require CanReadMetrics role
+         |
+         |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+         |
+         |Should be able to filter on the following metrics fields
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+         |
+         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |5 sort_by (defaults to date field) eg: sort_by=date
+         |  possible values:
+         |    "url",
+         |    "date",
+         |    "user_name",
+         |    "app_name",
+         |    "developer_email",
+         |    "implemented_by_partial_function",
+         |    "implemented_in_version",
+         |    "consumer_id",
+         |    "verb"
+         |
+         |6 direction (defaults to date desc) eg: direction=desc
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+         |
+         |Other filters:
+         |
+         |7 consumer_id  (if null ignore)
+         |
+         |8 user_id (if null ignore)
+         |
+         |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         |
+         |10 url (if null ignore), note: can not contain '&'.
+         |
+         |11 app_name (if null ignore)
+         |
+         |12 implemented_by_partial_function (if null ignore),
+         |
+         |13 implemented_in_version (if null ignore)
+         |
+         |14 verb (if null ignore)
+         |
+         |15 correlation_id (if null ignore)
+         |
+         |16 duration (if null ignore) non digit chars will be silently omitted
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      metricsJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi, apiTagNewStyle),
+      Some(List(canGetMetrics)))
+
+    lazy val getMetricsAtBank : OBPEndpoint = {
+      case "management" :: "metrics" :: "banks" :: bankId :: Nil JsonGet _ => {
+        cc => {
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams ::: List(OBPBankId(bankId))))
+          } yield {
+            (JSONFactory210.createMetricsJson(metrics), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
 
     staticResourceDocs += ResourceDoc(
       getSystemView,
