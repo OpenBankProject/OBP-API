@@ -17,7 +17,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
-import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsJsonV500}
+import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsJsonV500, createViewsIdsJsonV500}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -1656,6 +1656,40 @@ trait APIMethods500 {
             view <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
           } yield {
             (createViewJsonV500(view), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getSystemViewsIds,
+      implementedInApiVersion,
+      nameOf(getSystemViewsIds),
+      "GET",
+      "/system-views-ids",
+      "Get Ids of System Views",
+      s"""Get Ids of System Views
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      viewIdsJsonV500,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canGetSystemView))
+    )
+
+    lazy val getSystemViewsIds: OBPEndpoint = {
+      case "system-views-ids" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            views <- NewStyle.function.systemViews()
+          } yield {
+            (createViewsIdsJsonV500(views), HttpCode.`200`(cc.callContext))
           }
       }
     }

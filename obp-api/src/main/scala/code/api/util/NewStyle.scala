@@ -654,6 +654,9 @@ object NewStyle extends MdcLoggable{
       Views.views.vend.systemViewFuture(viewId) map {
         unboxFullOrFail(_, callContext, s"$SystemViewNotFound. Current ViewId is $viewId")
       }
+    }    
+    def systemViews(): Future[List[View]] = {
+      Views.views.vend.getSystemViews()
     }
     def grantAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
       view.isSystem match {

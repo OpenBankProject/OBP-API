@@ -3005,6 +3005,11 @@ object SwaggerDefinitionsJSON {
     views = List(viewJsonV500)
   )
 
+  val viewIdJsonV500 = ViewIdJsonV500(id = "owner")
+  val viewIdsJsonV500 = ViewsIdsJsonV500(
+    views = List(viewIdJsonV500)
+  )
+
   val fXRateJSON = FXRateJsonV220(
     bank_id = bankIdExample.value,
     from_currency_code = "EUR",

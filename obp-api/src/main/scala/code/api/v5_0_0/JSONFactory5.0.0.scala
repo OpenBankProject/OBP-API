@@ -418,6 +418,9 @@ case class UpdateViewJsonV500(
 }
 case class ViewsJsonV500(views : List[ViewJsonV500])
 
+case class ViewIdJsonV500(id: String)
+case class ViewsIdsJsonV500(views : List[ViewIdJsonV500])
+
 case class ViewJsonV500(
                          val id: String,
                          val short_name: String,
@@ -835,6 +838,11 @@ object JSONFactory500 {
   }
   def createViewsJsonV500(views : List[View]) : ViewsJsonV500 = {
     ViewsJsonV500(views.map(createViewJsonV500))
+  }
+
+
+  def createViewsIdsJsonV500(views : List[View]) : ViewsIdsJsonV500 = {
+    ViewsIdsJsonV500(views.map(i => ViewIdJsonV500(i.viewId.value)))
   }
   
 }
