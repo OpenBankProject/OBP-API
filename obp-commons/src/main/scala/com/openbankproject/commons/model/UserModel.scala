@@ -69,6 +69,7 @@ trait User {
   def isConsentUser  = createdByConsentId.nonEmpty
   def isDeleted: Option[Boolean]
   def lastMarketingAgreementSignedDate: Option[Date]
+  def lastUsedLocale: Option[String] = None
 }
 
 case class UserPrimaryKey(val value : Long) {

@@ -122,7 +122,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.users.{UserAgreement, UserAttribute, UserInitAction, UserInvitation}
+import code.users.{UserAgreement, UserAttribute, UserInitAction, UserInvitation, Users}
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
@@ -130,7 +130,7 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook, WebhookHelperActors}
 import code.webuiprops.WebUiProps
-import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.{ErrorMessage, User}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import javax.mail.{Authenticator, PasswordAuthentication}
@@ -611,7 +611,11 @@ class Boot extends MdcLoggable {
         // In case it's true we use that value to set up a new cookie value
         S.param("locale") match {
           case Full(requestedLocale) if requestedLocale != null => {
-            val computedLocale = I18NUtil.computeLocale(requestedLocale)
+            val computedLocale: Locale = I18NUtil.computeLocale(requestedLocale)
+            val id: Long = AuthUser.getCurrentUser.map(_.user.userPrimaryKey.value).getOrElse(0)
+            Users.users.vend.getResourceUserByResourceUserId(id).map { 
+              u => u.LastUsedLocale(computedLocale.toString).save
+            }
             S.addCookie(HTTPCookie(localeCookieName, requestedLocale))
             computedLocale
           }
