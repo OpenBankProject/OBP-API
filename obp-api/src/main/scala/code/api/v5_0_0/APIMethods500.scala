@@ -33,7 +33,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, prettyRender}
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.Props
+import net.liftweb.util.{Helpers, Props}
 import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
@@ -1675,6 +1675,36 @@ trait APIMethods500 {
             (deleted, callContext) <-  NewStyle.function.deleteCustomerAccountLinkById(customerAccountLinkId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getAdapterInfo,
+      implementedInApiVersion,
+      nameOf(getAdapterInfo),
+      "GET",
+      "/adapter",
+      "Get Adapter Info",
+      s"""Get basic information about the Adapter.
+         |
+         |${authenticationRequiredMessage(false)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      adapterInfoJsonV300,
+      List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(apiTagApi, apiTagNewStyle),
+      Some(List(canGetAdapterInfo))
+    )
+    lazy val getAdapterInfo: OBPEndpoint = {
+      case "adapter" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- SS.user
+            (adapterInfo,_) <- NewStyle.function.getAdapterInfo(callContext)
+          } yield {
+            (JSONFactory500.createAdapterInfoJson(adapterInfo,cc.startTime.getOrElse(Helpers.now).getTime), HttpCode.`200`(callContext))
           }
       }
     }

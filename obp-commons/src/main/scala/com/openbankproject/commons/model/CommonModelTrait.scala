@@ -65,7 +65,8 @@ case class InboundStatusMessage(
   source: String,
   status: String,
   errorCode: String,
-  text: String
+  text: String,
+  duration: Option[String] = None //added from V500
 )
 
 case class Status(

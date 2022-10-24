@@ -718,6 +718,12 @@ object ExampleValue {
 
   lazy val statusExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("status", statusExample)
+  
+  lazy val errorCodeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("errorCode", statusExample)
+  
+  lazy val textExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("text", statusExample)
 
   lazy val canSeeTransactionBalanceExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_transaction_balance", canSeeTransactionBalanceExample)

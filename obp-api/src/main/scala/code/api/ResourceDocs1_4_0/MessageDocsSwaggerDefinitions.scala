@@ -95,10 +95,11 @@ object MessageDocsSwaggerDefinitions
   
   
   val inboundStatusMessage = InboundStatusMessage(
-    source ="String",
-    status ="String",
-    errorCode ="String",
-    text= "String"
+    source = sourceExample.value,
+    status = statusExample.value,
+    errorCode = errorCodeExample.value,
+    text = textExample.value,
+    duration= Some(durationExample.value),
   )
 
   val inboundStatus = Status("Status errorCode", List(inboundStatusMessage))
@@ -109,8 +110,8 @@ object MessageDocsSwaggerDefinitions
     errorCode ="",
     backendMessages = List(inboundStatusMessage),
     name = usernameExample.value,
-    version = "",
-    git_commit = "String",
+    version = versionExample.value,
+    git_commit = gitCommitExample.value,
     date = DateWithMsExampleString
   )
 
