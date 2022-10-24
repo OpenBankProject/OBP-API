@@ -236,11 +236,11 @@ case class FastFirehoseAccountJsonV400(
   bank_id: String,
   label: String,
   number: String,
-  owners: String,
+  owners: List[FastFirehoseOwners],
   product_code: String,
   balance: AmountOfMoneyJsonV121,
-  account_routings: String ,
-  account_attributes: String
+  account_routings: List[FastFirehoseRoutings] ,
+  account_attributes: List[FastFirehoseAttributes]
 )
 
 case class FastFirehoseAccountsJsonV400(

@@ -3609,12 +3609,12 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value,
     label = labelExample.value,
     number = numberExample.value,
-    owners = "user_id:b27327a2-a822-41e5-a909-0150da688939,provider:https://finx22openplatform.fintech-galaxy.com,user_name:synth_user_1_54891",
+    owners = List(FastFirehoseOwners(user_id="b27327a2-a822-41e5-a909-0150da688939",provider="https://finx22openplatform.fintech-galaxy.com,user_name:synth_user_1_54891", user_name="")),
     product_code = productCodeExample.value,
     balance = amountOfMoneyJsonV121,
-    account_routings = "bank_id:bisb.com,account_id:c590e38e-847c-466f-9a62-f2ad67daf106",
-    account_attributes= "type:INTEGER,code:Loan1,value:0," +
-      "type:STRING,code:Loan1,value:4421.783" 
+    account_routings = List(FastFirehoseRoutings(bank_id="bisb.com",account_id="c590e38e-847c-466f-9a62-f2ad67daf106")),
+    account_attributes= List(FastFirehoseAttributes(`type`="INTEGER",code="Loan1",value="0"), 
+  FastFirehoseAttributes(`type`="STRING",code="Loan1",value="4421.783"))
       
   )
 
