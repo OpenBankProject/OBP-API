@@ -115,8 +115,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value
-      )),
+      text=inboundStatusMessageTextExample.value)),
       name=inboundAdapterInfoInternalNameExample.value,
       version=inboundAdapterInfoInternalVersionExample.value,
       git_commit=inboundAdapterInfoInternalGit_commitExample.value,
@@ -6475,8 +6474,7 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
           backendMessages=List( InboundStatusMessage(source=sourceExample.value,
             status=inboundStatusMessageStatusExample.value,
             errorCode=inboundStatusMessageErrorCodeExample.value,
-            text=inboundStatusMessageTextExample.value
-          ))),
+            text=inboundStatusMessageTextExample.value))),
         data=FooBar(name = "James Brown", number = 1234567890, fooBarId = Some("foobar-id-value")))
       ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
