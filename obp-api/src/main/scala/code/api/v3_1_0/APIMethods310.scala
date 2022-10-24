@@ -1054,15 +1054,18 @@ trait APIMethods310 {
       """.stripMargin,
       emptyObjectJson,
       adapterInfoJsonV300,
-      List(UserNotLoggedIn, UnknownError),
-      List(apiTagApi, apiTagNewStyle))
+      List(UserNotLoggedIn,UserHasMissingRoles, UnknownError),
+      List(apiTagApi, apiTagNewStyle),
+      Some(List(canGetAdapterInfo))
+    )
 
 
     lazy val getAdapterInfo: OBPEndpoint = {
       case "adapter" :: Nil JsonGet _ => {
         cc =>
           for {
-            (_, callContext) <- anonymousAccess(cc)
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAdapterInfo, callContext)
             (ai,_) <- NewStyle.function.getAdapterInfo(callContext)
           } yield {
             (createAdapterInfoJson(ai), HttpCode.`200`(callContext))
