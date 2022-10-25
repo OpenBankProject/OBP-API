@@ -106,6 +106,14 @@ case class BankJson400(
                         bank_routings: List[BankRoutingJsonV121],
                         attributes: Option[List[BankAttributeBankResponseJsonV400]]
                       )
+case class PostBankJson400(
+  id: String,
+  short_name: String,
+  full_name: String,
+  logo: String,
+  website: String,
+  bank_routings: List[BankRoutingJsonV121]
+)
 
 case class BanksJson400(banks: List[BankJson400])
 

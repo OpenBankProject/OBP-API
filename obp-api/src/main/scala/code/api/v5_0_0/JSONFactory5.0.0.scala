@@ -51,8 +51,7 @@ case class PostBankJson500(
     full_name: Option[String],
     logo: Option[String],
     website: Option[String],
-    bank_routings: Option[List[BankRoutingJsonV121]],
-    attributes: Option[List[BankAttributeBankResponseJsonV400]]
+    bank_routings: Option[List[BankRoutingJsonV121]]
 )
 
 case class BankJson500(

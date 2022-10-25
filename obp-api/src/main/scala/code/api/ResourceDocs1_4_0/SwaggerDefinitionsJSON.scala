@@ -1036,6 +1036,14 @@ object SwaggerDefinitionsJSON {
     list = List(bankAttributeBankResponseJsonV400)
   )
   
+  val postBankJson400 = PostBankJson400(
+    id = "gh.29.uk",
+    short_name = "short_name ",
+    full_name = "full_name",
+    logo = "logo",
+    website = "www.openbankproject.com",
+    bank_routings = List(bankRoutingJsonV121)
+  )
   val bankJson400 = BankJson400(
     id = "gh.29.uk",
     short_name = "short_name ",
@@ -1061,8 +1069,7 @@ object SwaggerDefinitionsJSON {
     full_name = Some(fullNameExample.value),
     logo = Some(logoExample.value),
     website = Some(websiteExample.value),
-    bank_routings = Some(List(bankRoutingJsonV121)),
-    attributes = Some(List(bankAttributeBankResponseJsonV400))
+    bank_routings = Some(List(bankRoutingJsonV121))
   )
 
   val banksJSON400 = BanksJson400(

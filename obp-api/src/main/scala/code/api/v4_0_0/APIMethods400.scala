@@ -3969,7 +3969,7 @@ trait APIMethods400 {
          |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
          |
          |""",
-      bankJson400,
+      postBankJson400,
       bankJson400,
       List(
         InvalidJsonFormat,
