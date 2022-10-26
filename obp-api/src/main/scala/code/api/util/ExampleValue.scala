@@ -1520,7 +1520,7 @@ object ExampleValue {
   lazy val networksExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("networks", networksExample)
   
-  lazy val allowsExample = ConnectorField(List(CardAction.CREDIT.toString.toLowerCase,CardAction.DEBIT.toString.toLowerCase,CardAction.CASH_WITHDRAWAL.toString.toLowerCase).toString(), "The actions of the card.")
+  lazy val allowsExample = ConnectorField(List(CardAction.CREDIT.toString.toLowerCase,CardAction.DEBIT.toString.toLowerCase,CardAction.CASH_WITHDRAWAL.toString.toLowerCase).mkString("[",",","]"), "The actions of the card.")
   glossaryItems += makeGlossaryItem("allows", allowsExample)
 
   lazy val `data.bankIdExample` = ConnectorField(NoExampleProvided,NoDescriptionProvided)
