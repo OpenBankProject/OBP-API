@@ -99,7 +99,7 @@ object MessageDocsSwaggerDefinitions
     status = statusExample.value,
     errorCode = errorCodeExample.value,
     text = textExample.value,
-    duration= Some(durationExample.value),
+    duration= Some(BigDecimal(durationExample.value)),
   )
 
   val inboundStatus = Status("Status errorCode", List(inboundStatusMessage))

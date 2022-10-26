@@ -4925,6 +4925,24 @@ object SwaggerDefinitionsJSON {
   val customerAccountLinksJson =  CustomerAccountLinksJson(
     List(customerAccountLinkJson)
   )
+  
+  val inboundStatusMessage = InboundStatusMessage(
+    source = sourceExample.value,
+    status = statusExample.value,
+    errorCode = errorCodeExample.value,
+    text = textExample.value,
+    duration = Some (BigDecimal(durationExample.value))
+  )
+  
+  val adapterInfoJsonV500 = AdapterInfoJsonV500(
+    name = nameExample.value,
+    version = nameExample.value,
+    git_commit = gitCommitExample.value,
+    date = dateExample.value,
+    total_duration = BigDecimal(durationExample.value),
+    backend_messages= List(inboundStatusMessage),
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

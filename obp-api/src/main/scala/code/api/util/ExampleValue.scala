@@ -686,7 +686,7 @@ object ExampleValue {
   lazy val enabledExample = ConnectorField(booleanTrue,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("enabled", enabledExample)
 
-  lazy val durationExample = ConnectorField("10",NoDescriptionProvided)
+  lazy val durationExample = ConnectorField("5.123"," This is a decimal number in seconds, eg: 1 for 1 second, 0.001 for 1 ms")
   glossaryItems += makeGlossaryItem("duration", durationExample)
 
   lazy val canSeeBankAccountTypeExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)

@@ -79,7 +79,7 @@ class GetAdapterInfoTest extends V500ServerSetup with DefaultUsers {
       Then("We should get a 200")
       response310.code should equal(200)
       response310.body.extract[AdapterInfoJsonV500].name should equal("LocalMappedConnector")
-      response310.body.extract[AdapterInfoJsonV500].total_duration.length >0 shouldBe(true)
+      response310.body.extract[AdapterInfoJsonV500].total_duration >0 shouldBe(true)
     }
   }
 

@@ -376,7 +376,7 @@ case class AdapterInfoJsonV500(
   version: String,
   git_commit: String,
   date: String,
-  total_duration: String,
+  total_duration: BigDecimal,
   backend_messages: List[InboundStatusMessage],
 )
 
@@ -612,7 +612,7 @@ object JSONFactory500 {
       version = inboundAdapterInfoInternal.version,
       git_commit = inboundAdapterInfoInternal.git_commit,
       date = inboundAdapterInfoInternal.date,
-      total_duration = s"${Helpers.now.getTime - startTime} ms",
+      total_duration = BigDecimal(Helpers.now.getTime - startTime)/1000,
       backend_messages = inboundAdapterInfoInternal.backendMessages
     )
   }
