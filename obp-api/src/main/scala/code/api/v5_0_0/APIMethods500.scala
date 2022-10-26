@@ -990,9 +990,12 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants.getOrElse(0)}) not equal the length(${postedData.dob_of_dependants.getOrElse(Nil).length }) of dob_of_dependants array", 400, cc.callContext) {
               postedData.dependants.getOrElse(0) == postedData.dob_of_dependants.getOrElse(Nil).length
             }
-            (customer, callContext) <- NewStyle.function.createCustomer(
+            customerNumber = postedData.customer_number.getOrElse(Random.nextInt(Integer.MAX_VALUE).toString)
+            (_, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, customerNumber, cc.callContext)
+            (customer, callContext) <- NewStyle.function.createCustomerC2(
               bankId,
               postedData.legal_name,
+              customerNumber,
               postedData.mobile_phone_number,
               postedData.email.getOrElse(""),
               CustomerFaceImage(
@@ -1012,7 +1015,7 @@ trait APIMethods500 {
               postedData.title.getOrElse(""),
               postedData.branch_id.getOrElse(""),
               postedData.name_suffix.getOrElse(""),
-              cc.callContext,
+              callContext,
             )
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))

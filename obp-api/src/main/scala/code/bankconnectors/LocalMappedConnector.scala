@@ -3481,6 +3481,52 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     ), callContext)
   }
 
+  override def createCustomerC2(
+                                 bankId: BankId,
+                                 legalName: String,
+                                 customerNumber: String,
+                                 mobileNumber: String,
+                                 email: String,
+                                 faceImage:
+                                 CustomerFaceImageTrait,
+                                 dateOfBirth: Date,
+                                 relationshipStatus: String,
+                                 dependents: Int,
+                                 dobOfDependents: List[Date],
+                                 highestEducationAttained: String,
+                                 employmentStatus: String,
+                                 kycStatus: Boolean,
+                                 lastOkDate: Date,
+                                 creditRating: Option[CreditRatingTrait],
+                                 creditLimit: Option[AmountOfMoneyTrait],
+                                 title: String,
+                                 branchId: String,
+                                 nameSuffix: String,
+                                 callContext: Option[CallContext]
+                               ): OBPReturnType[Box[Customer]] = Future {
+    (CustomerX.customerProvider.vend.addCustomer(
+      bankId,
+      customerNumber,
+      legalName,
+      mobileNumber,
+      email,
+      faceImage,
+      dateOfBirth,
+      relationshipStatus,
+      dependents,
+      dobOfDependents,
+      highestEducationAttained,
+      employmentStatus,
+      kycStatus,
+      lastOkDate,
+      creditRating,
+      creditLimit,
+      title,
+      branchId,
+      nameSuffix
+    ), callContext)
+  }
+
   override def updateCustomerScaData(customerId: String,
                                      mobileNumber: Option[String],
                                      email: Option[String],

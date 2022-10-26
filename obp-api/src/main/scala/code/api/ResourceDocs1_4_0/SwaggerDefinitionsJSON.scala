@@ -2420,6 +2420,7 @@ object SwaggerDefinitionsJSON {
   val postCustomerJsonV500 =
     PostCustomerJsonV500(
       legal_name = ExampleValue.legalNameExample.value,
+      customer_number = Some(ExampleValue.customerNumberExample.value),
       mobile_phone_number = ExampleValue.mobilePhoneNumberExample.value,
       email = Some(ExampleValue.emailExample.value),
       face_image = Some(customerFaceImageJson),

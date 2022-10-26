@@ -75,6 +75,7 @@ case class CreateAccountRequestJsonV500(
 
 case class PostCustomerJsonV500(
    legal_name: String,
+   customer_number: Option[String] = None,
    mobile_phone_number: String,
    email: Option[String] = None,
    face_image: Option[CustomerFaceImageJson] = None,
