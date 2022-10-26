@@ -7,6 +7,7 @@ import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.apicollection.ApiCollection
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
+import com.openbankproject.commons.model.CardAction
 import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
@@ -1518,6 +1519,9 @@ object ExampleValue {
 
   lazy val networksExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("networks", networksExample)
+  
+  lazy val allowsExample = ConnectorField(List(CardAction.CREDIT.toString.toLowerCase,CardAction.DEBIT.toString.toLowerCase,CardAction.CASH_WITHDRAWAL.toString.toLowerCase).toString(), "The actions of the card.")
+  glossaryItems += makeGlossaryItem("allows", allowsExample)
 
   lazy val `data.bankIdExample` = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("data.bankid", `data.bankIdExample` )
@@ -1714,8 +1718,7 @@ object ExampleValue {
   lazy val meetingsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("meetings", meetingsExample)
 
-  lazy val cardNumberExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("card_number", cardNumberExample)
+  lazy val cardNumberExample = bankCardNumberExample
 
   lazy val instructedamountExample = ConnectorField("100",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("instructedamount", instructedamountExample)
@@ -2064,9 +2067,6 @@ object ExampleValue {
 
   lazy val revokedExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("revoked", revokedExample)
-
-  lazy val allowsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("allows", allowsExample)
 
   lazy val currentCreditDocumentationExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("current_credit_documentation", currentCreditDocumentationExample)

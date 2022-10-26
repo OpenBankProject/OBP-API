@@ -3888,7 +3888,7 @@ object SwaggerDefinitionsJSON {
     account_routings = List(AccountRoutingJsonV121(accountRoutingSchemeExample.value, accountRoutingAddressExample.value))
   )
   val createPhysicalCardJsonV310 = CreatePhysicalCardJsonV310(
-    card_number = bankCardNumberExample.value,
+    card_number = cardNumberExample.value,
     card_type = cardTypeExample.value,
     name_on_card = nameOnCardExample.value,
     issue_number = issueNumberExample.value,
@@ -3896,9 +3896,10 @@ object SwaggerDefinitionsJSON {
     valid_from_date = DateWithDayExampleObject,
     expires_date = DateWithDayExampleObject,
     enabled = true,
-    technology = "technology1",
-    networks = List("network1", "network2"),
-    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    technology = technologyExample.value,
+    networks = List(networksExample.value),
+    allows = allowsExample.value.replaceAll(""""""","").replace("""[""","")
+      .replace("""]""","").split(",").toList,
     account_id =accountIdExample.value,
     replacement = Some(replacementJSON),
     pin_reset = List(pinResetJSON, pinResetJSON1),
