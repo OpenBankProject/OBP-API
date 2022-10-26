@@ -35,13 +35,14 @@ import code.api.v1_3_0.JSONFactory1_3_0.{cardActionsToString, createAccountJson,
 import code.api.v1_3_0.{PinResetJSON, ReplacementJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, MetaJsonV140}
 import code.api.v2_1_0.CustomerCreditRatingJSON
-import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, JSONFactory300}
-import code.api.v3_1_0.{AccountBasicV310, PostConsentEntitlementJsonV310}
+import code.api.v3_0_0.{AdapterInfoJsonV300, CustomerAttributeResponseJsonV300, JSONFactory300}
+import code.api.v3_1_0.{AccountAttributeResponseJson, AccountBasicV310, CustomerWithAttributesJsonV310, PhysicalCardWithAttributesJsonV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.bankattribute.BankAttribute
 import code.customeraccountlinks.CustomerAccountLinkTrait
-import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.{AccountAttribute, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankAccount, CardAttribute, CreateViewJson, Customer, CustomerAttribute, InboundAdapterInfoInternal, InboundStatusMessage, PhysicalCardTrait, UpdateViewJSON, User, UserAuthContext, UserAuthContextUpdate, View, ViewBasic}
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers
 
 import scala.collection.immutable.List
 
@@ -367,6 +368,15 @@ case class CustomerAccountLinkJson(
 
 case class CustomerAccountLinksJson(
   links:List[CustomerAccountLinkJson]
+)
+
+case class AdapterInfoJsonV500(
+  name: String,
+  version: String,
+  git_commit: String,
+  date: String,
+  total_duration: String,
+  backend_messages: List[InboundStatusMessage],
 )
 
 
@@ -843,6 +853,17 @@ object JSONFactory500 {
 
   def createViewsIdsJsonV500(views : List[View]) : ViewsIdsJsonV500 = {
     ViewsIdsJsonV500(views.map(i => ViewIdJsonV500(i.viewId.value)))
+  }
+  
+  def createAdapterInfoJson(inboundAdapterInfoInternal: InboundAdapterInfoInternal, startTime: Long): AdapterInfoJsonV500 = {
+    AdapterInfoJsonV500(
+      name = inboundAdapterInfoInternal.name,
+      version = inboundAdapterInfoInternal.version,
+      git_commit = inboundAdapterInfoInternal.git_commit,
+      date = inboundAdapterInfoInternal.date,
+      total_duration = s"${Helpers.now.getTime - startTime} ms",
+      backend_messages = inboundAdapterInfoInternal.backendMessages
+    )
   }
   
 }

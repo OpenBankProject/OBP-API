@@ -964,7 +964,6 @@ object SwaggerJSONFactory extends MdcLoggable {
     //Make a final string
     val definitions = "{\"definitions\":{" + particularDefinitionsPart + "}}"
     //Make a jsonAST from a string
-    org.scalameta.logger.elem(definitions)
     parse(definitions)
   }
 

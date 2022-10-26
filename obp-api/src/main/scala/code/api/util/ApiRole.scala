@@ -358,6 +358,12 @@ object ApiRole {
   case class CanGetConfig(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConfig = CanGetConfig()
   
+  case class CanGetAdapterInfo(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAdapterInfo = CanGetAdapterInfo()
+  
+  case class CanGetAdapterInfoAtOneBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAdapterInfoAtOneBank = CanGetAdapterInfoAtOneBank()
+  
   case class CanGetDatabaseInfo(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetDatabaseInfo = CanGetDatabaseInfo()
   

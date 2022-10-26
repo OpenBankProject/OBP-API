@@ -23,21 +23,20 @@ Berlin 13359, Germany
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
   */
-package code.api.v3_1_0
+package code.api.v3_0_0
 
-import com.openbankproject.commons.util.ApiVersion
-import code.api.v3_0_0.AdapterInfoJsonV300
-import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, canGetAdapterInfo}
+import code.api.util.ApiRole.canGetAdapterInfoAtOneBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
-import code.setup.{APIResponse, DefaultUsers}
-import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
+import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
+import code.api.util.APIUtil.OAuth._
 import code.entitlement.Entitlement
+import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
-class GetAdapterInfoTest extends V310ServerSetup with DefaultUsers {
+class GetAdapterInfoTest extends V300ServerSetup with DefaultUsers {
 
   /**
     * Test tags
@@ -46,14 +45,14 @@ class GetAdapterInfoTest extends V310ServerSetup with DefaultUsers {
     *
     *  This is made possible by the scalatest maven plugin
     */
-  object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.getAdapterInfo))
+  object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
+  object ApiEndpoint extends Tag(nameOf(Implementations3_0_0.getAdapterInfoForBank))
 
   feature("Get Adapter Info v3.1.0")
   {
     scenario(s"$UserNotLoggedIn error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "adapter").GET
+      val request310 = (v3_0Request /"banks"/testBankId1.value/ "adapter").GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
@@ -62,17 +61,17 @@ class GetAdapterInfoTest extends V310ServerSetup with DefaultUsers {
     }
     scenario(s"$UserHasMissingRoles error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "adapter").GET <@ (user1)
+      val request310 = (v3_0Request / "banks"/testBankId1.value/ "adapter").GET <@ (user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + canGetAdapterInfo)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + canGetAdapterInfo)
+      And("error should be " + UserHasMissingRoles + canGetAdapterInfoAtOneBank)
+      response310.body.extract[ErrorMessage].message contains  (UserHasMissingRoles + canGetAdapterInfoAtOneBank) shouldBe (true)
     }
     scenario("We will try to get adapter info", ApiEndpoint, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetAdapterInfo.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetAdapterInfoAtOneBank.toString)
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "adapter").GET <@ (user1)
+      val request310 = (v3_0Request / "banks"/testBankId1.value/ "adapter").GET <@ (user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
       response310.code should equal(200)

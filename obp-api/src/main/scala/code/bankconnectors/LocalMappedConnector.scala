@@ -87,14 +87,13 @@ import com.tesobe.model.UpdateBankAccount
 import com.twilio.Twilio
 import com.twilio.rest.api.v2010.account.Message
 import com.twilio.`type`.PhoneNumber
-
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.{JArray, JBool, JInt, JObject, JString, JValue}
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
-import net.liftweb.util.Mailer
+import net.liftweb.util.{Helpers, Mailer}
 import net.liftweb.util.Mailer.{From, PlainMailBodyType, Subject, To}
 import org.iban4j
 import org.iban4j.{CountryCode, IbanFormat}
@@ -126,15 +125,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
 
   //
-  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future(
+  override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future {
+    val startTime = Helpers.now.getTime
+    val source = APIUtil.getPropsValue("db.driver","org.h2.Driver")
     Full(InboundAdapterInfoInternal(
       errorCode = "",
-      backendMessages = Nil,
+      backendMessages = List(
+        InboundStatusMessage(
+          source = source,
+          status = "Success",
+          errorCode = "",
+          text =s"Get data from $source database",
+          duration = Some(s"${Helpers.now.getTime - startTime} ms")
+        )
+      ),
       name = "LocalMappedConnector",
       version = "mapped",
       git_commit = APIUtil.gitCommit,
       date = DateWithMsFormat.format(new Date())
-    ), callContext))
+    ), callContext)
+  }
   
   override def validateAndCheckIbanNumber(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[IbanChecker]] = Future {
     import org.iban4j.CountryCode
