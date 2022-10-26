@@ -1007,16 +1007,19 @@ trait APIMethods300 {
       """.stripMargin,
       emptyObjectJson,
       adapterInfoJsonV300,
-      List(UserNotLoggedIn, UnknownError),
-      List(apiTagApi, apiTagNewStyle))
+      List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
+      List(apiTagApi, apiTagNewStyle),
+      Some(List(canGetAdapterInfoAtOneBank))
+    )
 
 
     lazy val getAdapterInfoForBank: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "adapter" :: Nil JsonGet _ => {
           cc =>
             for {
-              (_, callContext) <- anonymousAccess(cc)
+              (Full(u), callContext) <- authenticatedAccess(cc)
               (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+              _ <- NewStyle.function.hasEntitlement(bankId.value, u.userId, ApiRole.canGetAdapterInfoAtOneBank, callContext)
               (ai, callContext) <- NewStyle.function.getAdapterInfo(callContext)
             } yield {
               (createAdapterInfoJson(ai), callContext)
