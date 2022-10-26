@@ -118,7 +118,7 @@ object ErrorMessages {
   val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired:"
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
   val UserNotFoundById = "OBP-20005: User not found. Please specify a valid value for USER_ID."
-  val UserHasMissingRoles = "OBP-20006: User is missing one or more roles:"
+  val UserHasMissingRoles = "OBP-20006: User is missing one or more roles: "
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
