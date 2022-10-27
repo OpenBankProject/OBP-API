@@ -6,6 +6,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.customer.MappedCustomer
 import code.customer.internalMapping.MappedCustomerIdMapping
+import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
 import code.customerattribute.MappedCustomerAttribute
 import code.kycchecks.MappedKycCheck
@@ -34,8 +35,9 @@ object DeleteCustomerCascade {
           deleteCustomerAddress(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
-        deleteCustomerUserCustomerLinks(customerId) ::
-        deleteCustomer(customerId) ::
+          deleteCustomerUserCustomerLinks(customerId) ::
+          deleteCustomer(customerId) ::
+          deleteCustomerAccountLinks(customerId) ::
         Nil
     doneTasks.forall(_ == true)
   }
@@ -49,7 +51,11 @@ object DeleteCustomerCascade {
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
   }
-
+  private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
+    CustomerAccountLink.bulkDelete_!!(
+      By(CustomerAccountLink.CustomerId, customerId.value)
+    )
+  }
   private def deleteCustomerAttributes(customerId: CustomerId): Boolean = {
     MappedCustomerAttribute.bulkDelete_!!(By(MappedCustomerAttribute.mCustomerId, customerId.value))
   }

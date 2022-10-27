@@ -136,9 +136,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           status = "Success",
           errorCode = "",
           text =s"Get data from $source database",
-          duration = Some(s"${Helpers.now.getTime - startTime} ms")
-        )
-      ),
+          duration = Some(BigDecimal(Helpers.now.getTime - startTime)/1000))),
       name = "LocalMappedConnector",
       version = "mapped",
       git_commit = APIUtil.gitCommit,

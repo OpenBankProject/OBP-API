@@ -4171,7 +4171,7 @@ object SwaggerDefinitionsJSON {
     account_routings = List(AccountRoutingJsonV121(accountRoutingSchemeExample.value, accountRoutingAddressExample.value))
   )
   val createPhysicalCardJsonV310 = CreatePhysicalCardJsonV310(
-    card_number = bankCardNumberExample.value,
+    card_number = cardNumberExample.value,
     card_type = cardTypeExample.value,
     name_on_card = nameOnCardExample.value,
     issue_number = issueNumberExample.value,
@@ -4179,9 +4179,10 @@ object SwaggerDefinitionsJSON {
     valid_from_date = DateWithDayExampleObject,
     expires_date = DateWithDayExampleObject,
     enabled = true,
-    technology = "technology1",
-    networks = List("network1", "network2"),
-    allows = List(CardAction.CREDIT.toString.toLowerCase, CardAction.DEBIT.toString.toLowerCase),
+    technology = technologyExample.value,
+    networks = List(networksExample.value),
+    allows = allowsExample.value.replaceAll(""""""","").replace("""[""","")
+      .replace("""]""","").split(",").toList,
     account_id =accountIdExample.value,
     replacement = Some(replacementJSON),
     pin_reset = List(pinResetJSON, pinResetJSON1),
@@ -5208,6 +5209,24 @@ object SwaggerDefinitionsJSON {
   val customerAccountLinksJson =  CustomerAccountLinksJson(
     List(customerAccountLinkJson)
   )
+  
+  val inboundStatusMessage = InboundStatusMessage(
+    source = sourceExample.value,
+    status = statusExample.value,
+    errorCode = errorCodeExample.value,
+    text = textExample.value,
+    duration = Some (BigDecimal(durationExample.value))
+  )
+  
+  val adapterInfoJsonV500 = AdapterInfoJsonV500(
+    name = nameExample.value,
+    version = nameExample.value,
+    git_commit = gitCommitExample.value,
+    date = dateExample.value,
+    total_duration = BigDecimal(durationExample.value),
+    backend_messages= List(inboundStatusMessage),
+  )
+  
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

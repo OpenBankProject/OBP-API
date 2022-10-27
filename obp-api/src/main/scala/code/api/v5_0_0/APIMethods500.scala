@@ -2049,7 +2049,7 @@ trait APIMethods500 {
          |
       """.stripMargin,
       emptyObjectJson,
-      adapterInfoJsonV300,
+      adapterInfoJsonV500,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagApi, apiTagNewStyle),
       Some(List(canGetAdapterInfo))
