@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_0_0
 
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.CanGetMetrics
+import code.api.util.ApiRole.CanGetMetricsAtOneBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v2_1_0.MetricsJson
 import code.api.v5_0_0.APIMethods500.Implementations5_0_0
@@ -79,13 +79,13 @@ class MetricsTest extends V500ServerSetup {
       val response400 = getMetrics(user1, bankId)
       Then("We should get a 403")
       response400.code should equal(403)
-      response400.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetrics) should be (true)
+      response400.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetricsAtOneBank) should be (true)
     }
   }
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetMetrics.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetMetricsAtOneBank.toString)
       val response400 = getMetrics(user1, bankId)
       Then("We should get a 200")
       response400.code should equal(200)

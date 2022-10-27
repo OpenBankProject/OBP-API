@@ -1617,7 +1617,7 @@ trait APIMethods500 {
         UnknownError
       ),
       List(apiTagMetric, apiTagApi, apiTagNewStyle),
-      Some(List(canGetMetrics)))
+      Some(List(canGetMetricsAtOneBank)))
 
     lazy val getMetricsAtBank : OBPEndpoint = {
       case "management" :: "metrics" :: "banks" :: bankId :: Nil JsonGet _ => {
