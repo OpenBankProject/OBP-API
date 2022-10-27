@@ -95,7 +95,7 @@ object SwaggerDefinitionsJSON {
     accountRoutings = List(accountRouting)
   )
 
-  val createViewJson = CreateViewJson(
+  val createViewJsonV300 = CreateViewJsonV300(
     name = "_test",
     description = "This view is for family",
     metadata_view ="_test",
@@ -186,9 +186,103 @@ object SwaggerDefinitionsJSON {
     )
   )
 
-  val createSystemViewJson = createViewJson.copy(name = "test", metadata_view = "test", is_public = false)
+  val createSystemViewJsonV300 = createViewJsonV300.copy(name = "test", metadata_view = "test", is_public = false)
 
-  val updateViewJSON = UpdateViewJSON(
+  val createSystemViewJsonV500 = CreateViewJsonV500(
+    name = "_test",
+    description = "This view is for family",
+    metadata_view ="_test",
+    is_public = false,
+    which_alias_to_use = "family",
+    hide_metadata_if_alias_used = false,
+    allowed_actions = List(
+      "can_see_transaction_this_bank_account",
+      "can_see_transaction_other_bank_account",
+      "can_see_transaction_metadata",
+      "can_see_transaction_label",
+      "can_see_transaction_amount",
+      "can_see_transaction_type",
+      "can_see_transaction_currency",
+      "can_see_transaction_start_date",
+      "can_see_transaction_finish_date",
+      "can_see_transaction_balance",
+      "can_see_comments",
+      "can_see_narrative",
+      "can_see_tags",
+      "can_see_images",
+      "can_see_bank_account_owners",
+      "can_see_bank_account_type",
+      "can_see_bank_account_balance",
+      "can_see_bank_account_currency",
+      "can_see_bank_account_label",
+      "can_see_bank_account_national_identifier",
+      "can_see_bank_account_swift_bic",
+      "can_see_bank_account_iban",
+      "can_see_bank_account_number",
+      "can_see_bank_account_bank_name",
+      "can_see_other_account_national_identifier",
+      "can_see_other_account_swift_bic",
+      "can_see_other_account_iban",
+      "can_see_other_account_bank_name",
+      "can_see_other_account_number",
+      "can_see_other_account_metadata",
+      "can_see_other_account_kind",
+      "can_see_more_info",
+      "can_see_url",
+      "can_see_image_url",
+      "can_see_open_corporates_url",
+      "can_see_corporate_location",
+      "can_see_physical_location",
+      "can_see_public_alias",
+      "can_see_private_alias",
+      "can_add_more_info",
+      "can_add_url",
+      "can_add_image_url",
+      "can_add_open_corporates_url",
+      "can_add_corporate_location",
+      "can_add_physical_location",
+      "can_add_public_alias",
+      "can_add_private_alias",
+      "can_delete_corporate_location",
+      "can_delete_physical_location",
+      "can_edit_narrative",
+      "can_add_comment",
+      "can_delete_comment",
+      "can_add_tag",
+      "can_delete_tag",
+      "can_add_image",
+      "can_delete_image",
+      "can_add_where_tag",
+      "can_see_where_tag",
+      "can_delete_where_tag",
+      "can_create_counterparty",
+      //V300 New
+      "can_see_bank_routing_scheme",
+      "can_see_bank_routing_address",
+      "can_see_bank_account_routing_scheme",
+      "can_see_bank_account_routing_address",
+      "can_see_other_bank_routing_scheme",
+      "can_see_other_bank_routing_address",
+      "can_see_other_account_routing_scheme",
+      "can_see_other_account_routing_address",
+      //v310
+      "can_query_available_funds",
+      "can_add_transaction_request_to_own_account",
+      "can_add_transaction_request_to_any_account",
+      "can_see_bank_account_credit_limit",
+      //v400
+      "can_create_direct_debit",
+      "can_create_standing_order",
+
+      //payments
+      "can_add_transaction_request_to_any_account"
+    ),
+    // Version 5.0.0
+    can_grant_access_to_views = Some(List("owner")),
+    can_revoke_access_to_views = Some(List("owner"))
+  )
+
+  val updateViewJsonV300 = UpdateViewJsonV300(
     description = "this is for family",
     is_public = true,
     metadata_view = SYSTEM_OWNER_VIEW_ID,
@@ -267,8 +361,91 @@ object SwaggerDefinitionsJSON {
       "can_query_available_funds"
     )
   )
+  lazy val updateSystemViewJson310 = updateViewJsonV300.copy(is_public = false, is_firehose = Some(false))
   
-  lazy val updateSystemViewJson310 = updateViewJSON.copy(is_public = false, is_firehose = Some(false))
+  val updateViewJsonV500 = UpdateViewJsonV500(
+    description = "this is for family",
+    is_public = true,
+    metadata_view = SYSTEM_OWNER_VIEW_ID,
+    which_alias_to_use = "family",
+    hide_metadata_if_alias_used = true,
+    allowed_actions = List(
+      "can_see_transaction_this_bank_account",
+      "can_see_transaction_other_bank_account",
+      "can_see_transaction_metadata",
+      "can_see_transaction_label",
+      "can_see_transaction_amount",
+      "can_see_transaction_type",
+      "can_see_transaction_currency",
+      "can_see_transaction_start_date",
+      "can_see_transaction_finish_date",
+      "can_see_transaction_balance",
+      "can_see_comments",
+      "can_see_narrative", "can_see_tags",
+      "can_see_images",
+      "can_see_bank_account_owners",
+      "can_see_bank_account_type",
+      "can_see_bank_account_balance",
+      "can_see_bank_account_currency",
+      "can_see_bank_account_label",
+      "can_see_bank_account_national_identifier",
+      "can_see_bank_account_swift_bic",
+      "can_see_bank_account_iban",
+      "can_see_bank_account_number",
+      "can_see_bank_account_bank_name",
+      "can_see_other_account_national_identifier",
+      "can_see_other_account_swift_bic",
+      "can_see_other_account_iban",
+      "can_see_other_account_bank_name",
+      "can_see_other_account_number",
+      "can_see_other_account_metadata",
+      "can_see_other_account_kind",
+      "can_see_more_info",
+      "can_see_url",
+      "can_see_image_url",
+      "can_see_open_corporates_url",
+      "can_see_corporate_location",
+      "can_see_physical_location",
+      "can_see_public_alias",
+      "can_see_private_alias",
+      "can_add_more_info",
+      "can_add_url",
+      "can_add_image_url",
+      "can_add_open_corporates_url",
+      "can_add_corporate_location",
+      "can_add_physical_location",
+      "can_add_public_alias",
+      "can_add_private_alias",
+      "can_delete_corporate_location",
+      "can_delete_physical_location",
+      "can_edit_narrative",
+      "can_add_comment",
+      "can_delete_comment",
+      "can_add_tag",
+      "can_delete_tag",
+      "can_add_image",
+      "can_delete_image",
+      "can_add_where_tag",
+      "can_see_where_tag",
+      "can_delete_where_tag",
+      "can_create_counterparty",
+      //V300 New
+      "can_see_bank_routing_scheme",
+      "can_see_bank_routing_address",
+      "can_see_bank_account_routing_scheme",
+      "can_see_bank_account_routing_address",
+      "can_see_other_bank_routing_scheme",
+      "can_see_other_bank_routing_address",
+      "can_see_other_account_routing_scheme",
+      "can_see_other_account_routing_address",
+      //v310
+      "can_query_available_funds"
+    ),
+    // Version 5.0.0
+    can_grant_access_to_views = Some(List("owner")),
+    can_revoke_access_to_views = Some(List("owner"))
+  )
+  lazy val updateSystemViewJson500 = updateViewJsonV500.copy(is_public = false, is_firehose = Some(false))
 
   val transactionTypeIdSwagger = TransactionTypeId(value = "123")
 
@@ -834,8 +1011,8 @@ object SwaggerDefinitionsJSON {
   )
 
   val bankRoutingJsonV121 = BankRoutingJsonV121(
-    scheme = "Bank_ID",
-    address = "gh.29.uk"
+    scheme = schemeExample.value,
+    address = addressExample.value
   )
 
   val bankJSON = BankJSON(
@@ -859,6 +1036,14 @@ object SwaggerDefinitionsJSON {
     list = List(bankAttributeBankResponseJsonV400)
   )
   
+  val postBankJson400 = PostBankJson400(
+    id = "gh.29.uk",
+    short_name = "short_name ",
+    full_name = "full_name",
+    logo = "logo",
+    website = "www.openbankproject.com",
+    bank_routings = List(bankRoutingJsonV121)
+  )
   val bankJson400 = BankJson400(
     id = "gh.29.uk",
     short_name = "short_name ",
@@ -869,23 +1054,22 @@ object SwaggerDefinitionsJSON {
     attributes = Some(List(bankAttributeBankResponseJsonV400))
   )  
   val bankJson500 = BankJson500(
-    id = "gh.29.uk",
-    bank_code = "bank_code ",
-    full_name = "full_name",
-    logo = "logo",
-    website = "www.openbankproject.com",
+    id = bankIdExample.value,
+    bank_code = bankCodeExample.value,
+    full_name = bankFullNameExample.value,
+    logo = bankLogoUrlExample.value,
+    website = bankLogoUrlExample.value,
     bank_routings = List(bankRoutingJsonV121),
     attributes = Some(List(bankAttributeBankResponseJsonV400))
   ) 
   
   val postBankJson500 = PostBankJson500(
-    id = Some("gh.29.uk"),
-    bank_code = "bank_code",
-    full_name = Some("full_name"),
-    logo = Some("logo"),
-    website = Some("www.openbankproject.com"),
-    bank_routings = Some(List(bankRoutingJsonV121)),
-    attributes = Some(List(bankAttributeBankResponseJsonV400))
+    id = Some(idExample.value),
+    bank_code = bankCodeExample.value,
+    full_name = Some(fullNameExample.value),
+    logo = Some(logoExample.value),
+    website = Some(websiteExample.value),
+    bank_routings = Some(List(bankRoutingJsonV121))
   )
 
   val banksJSON400 = BanksJson400(
@@ -1281,7 +1465,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
@@ -1298,7 +1482,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
@@ -2002,7 +2186,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value,
@@ -2136,7 +2320,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
@@ -2172,7 +2356,7 @@ object SwaggerDefinitionsJSON {
       face_image = customerFaceImageJson,
       date_of_birth = DateWithDayExampleObject,
       relationship_status = ExampleValue.relationshipStatusExample.value,
-      dependants = ExampleValue.dependentsExample.value.toInt,
+      dependants = ExampleValue.dependantsExample.value.toInt,
       dob_of_dependants = List(DateWithDayExampleObject),
       credit_rating = customerCreditRatingJSON,
       credit_limit = amountOfMoneyJsonV121,
@@ -2192,7 +2376,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = "19900101",
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List("19900101"),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
@@ -2221,7 +2405,7 @@ object SwaggerDefinitionsJSON {
       face_image = customerFaceImageJson,
       date_of_birth = DateWithDayExampleObject,
       relationship_status = ExampleValue.relationshipStatusExample.value,
-      dependants = ExampleValue.dependentsExample.value.toInt,
+      dependants = ExampleValue.dependantsExample.value.toInt,
       dob_of_dependants = List(DateWithDayExampleObject),
       credit_rating = customerCreditRatingJSON,
       credit_limit = amountOfMoneyJsonV121,
@@ -2236,12 +2420,13 @@ object SwaggerDefinitionsJSON {
   val postCustomerJsonV500 =
     PostCustomerJsonV500(
       legal_name = ExampleValue.legalNameExample.value,
-      mobile_phone_number = ExampleValue.mobileNumberExample.value,
+      customer_number = Some(ExampleValue.customerNumberExample.value),
+      mobile_phone_number = ExampleValue.mobilePhoneNumberExample.value,
       email = Some(ExampleValue.emailExample.value),
       face_image = Some(customerFaceImageJson),
       date_of_birth = Some(DateWithDayExampleObject),
       relationship_status = Some(ExampleValue.relationshipStatusExample.value),
-      dependants = Some(ExampleValue.dependentsExample.value.toInt),
+      dependants = Some(ExampleValue.dependantsExample.value.toInt),
       dob_of_dependants = Some(List(DateWithDayExampleObject)),
       credit_rating = Some(customerCreditRatingJSON),
       credit_limit = Some(amountOfMoneyJsonV121),
@@ -2264,7 +2449,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
@@ -2341,7 +2526,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
@@ -2366,7 +2551,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = DateWithDayExampleObject,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List(DateWithDayExampleObject),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
@@ -2390,7 +2575,7 @@ object SwaggerDefinitionsJSON {
     face_image = customerFaceImageJson,
     date_of_birth = "19900101",
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     dob_of_dependants = List("19900101"),
     credit_rating = Option(customerCreditRatingJSON),
     credit_limit = Option(amountOfMoneyJsonV121),
@@ -2409,7 +2594,7 @@ object SwaggerDefinitionsJSON {
   val putUpdateCustomerDataJsonV310 = PutUpdateCustomerDataJsonV310(
     face_image = customerFaceImageJson,
     relationship_status = ExampleValue.relationshipStatusExample.value,
-    dependants = ExampleValue.dependentsExample.value.toInt,
+    dependants = ExampleValue.dependantsExample.value.toInt,
     highest_education_attained = ExampleValue.highestEducationAttainedExample.value,
     employment_status = ExampleValue.employmentStatusExample.value
   )
@@ -2733,6 +2918,104 @@ object SwaggerDefinitionsJSON {
 
   val viewsJSONV220 = ViewsJSONV220(
     views = List(viewJSONV220)
+  )
+
+
+  val viewJsonV500 = ViewJsonV500(
+    id = "1234",
+    short_name = "short_name",
+    description = "description",
+    metadata_view = SYSTEM_OWNER_VIEW_ID,
+    is_public = true,
+    is_system = true,
+    alias = "No",
+    hide_metadata_if_alias_used = true,
+    can_add_comment = true,
+    can_add_corporate_location = true,
+    can_add_image = true,
+    can_add_image_url = true,
+    can_add_more_info = true,
+    can_add_open_corporates_url = true,
+    can_add_physical_location = true,
+    can_add_private_alias = true,
+    can_add_public_alias = true,
+    can_add_tag = true,
+    can_add_url = true,
+    can_add_where_tag = true,
+    can_delete_comment = true,
+    can_add_counterparty = true,
+    can_delete_corporate_location = true,
+    can_delete_image = true,
+    can_delete_physical_location = true,
+    can_delete_tag = true,
+    can_delete_where_tag = true,
+    can_edit_owner_comment = true,
+    can_see_bank_account_balance = true,
+    can_query_available_funds = true,
+    can_see_bank_account_bank_name = true,
+    can_see_bank_account_currency = true,
+    can_see_bank_account_iban = true,
+    can_see_bank_account_label = true,
+    can_see_bank_account_national_identifier = true,
+    can_see_bank_account_number = true,
+    can_see_bank_account_owners = true,
+    can_see_bank_account_swift_bic = true,
+    can_see_bank_account_type = true,
+    can_see_comments = true,
+    can_see_corporate_location = true,
+    can_see_image_url = true,
+    can_see_images = true,
+    can_see_more_info = true,
+    can_see_open_corporates_url = true,
+    can_see_other_account_bank_name = true,
+    can_see_other_account_iban = true,
+    can_see_other_account_kind = true,
+    can_see_other_account_metadata = true,
+    can_see_other_account_national_identifier = true,
+    can_see_other_account_number = true,
+    can_see_other_account_swift_bic = true,
+    can_see_owner_comment = true,
+    can_see_physical_location = true,
+    can_see_private_alias = true,
+    can_see_public_alias = true,
+    can_see_tags = true,
+    can_see_transaction_amount = true,
+    can_see_transaction_balance = true,
+    can_see_transaction_currency = true,
+    can_see_transaction_description = true,
+    can_see_transaction_finish_date = true,
+    can_see_transaction_metadata = true,
+    can_see_transaction_other_bank_account = true,
+    can_see_transaction_start_date = true,
+    can_see_transaction_this_bank_account = true,
+    can_see_transaction_type = true,
+    can_see_url = true,
+    can_see_where_tag = true,
+    //V300 new 
+    can_see_bank_routing_scheme = true,
+    can_see_bank_routing_address = true,
+    can_see_bank_account_routing_scheme = true,
+    can_see_bank_account_routing_address = true,
+    can_see_other_bank_routing_scheme = true,
+    can_see_other_bank_routing_address = true,
+    can_see_other_account_routing_scheme = true,
+    can_see_other_account_routing_address = true,
+    can_add_transaction_request_to_own_account = true, //added following two for payments
+    can_add_transaction_request_to_any_account = true,
+    can_see_bank_account_credit_limit = true,
+    can_create_direct_debit = true,
+    can_create_standing_order = true,
+    can_grant_access_to_views = List("Owner"),
+    can_revoke_access_to_views = List("Owner")
+  )
+
+  val viewsJsonV500 = ViewsJsonV500(
+    views = List(viewJsonV500)
+  )
+
+  val viewIdJsonV500 = ViewIdJsonV500(id = "owner")
+  val viewIdsJsonV500 = ViewsIdsJsonV500(
+    views = List(viewIdJsonV500)
   )
 
   val fXRateJSON = FXRateJsonV220(
@@ -3334,12 +3617,12 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value,
     label = labelExample.value,
     number = numberExample.value,
-    owners = "user_id:b27327a2-a822-41e5-a909-0150da688939,provider:https://finx22openplatform.fintech-galaxy.com,user_name:synth_user_1_54891",
+    owners = List(FastFirehoseOwners(user_id="b27327a2-a822-41e5-a909-0150da688939",provider="https://finx22openplatform.fintech-galaxy.com,user_name:synth_user_1_54891", user_name="")),
     product_code = productCodeExample.value,
     balance = amountOfMoneyJsonV121,
-    account_routings = "bank_id:bisb.com,account_id:c590e38e-847c-466f-9a62-f2ad67daf106",
-    account_attributes= "type:INTEGER,code:Loan1,value:0," +
-      "type:STRING,code:Loan1,value:4421.783" 
+    account_routings = List(FastFirehoseRoutings(bank_id="bisb.com",account_id="c590e38e-847c-466f-9a62-f2ad67daf106")),
+    account_attributes= List(FastFirehoseAttributes(`type`="INTEGER",code="Loan1",value="0"), 
+  FastFirehoseAttributes(`type`="STRING",code="Loan1",value="4421.783"))
       
   )
 

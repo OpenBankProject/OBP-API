@@ -1,7 +1,7 @@
 package code.api.v4_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.{CanDeleteAccountCascade, CanDeleteBankCascade}
@@ -76,7 +76,7 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       val account = response400.body.extract[CreateAccountResponseJsonV310]
       account.account_id should not be empty
 
-      val postBodyView = createViewJson.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false)
+      val postBodyView = createViewJsonV300.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false).toCreateViewJson
       createViewViaEndpoint(bankId, account.account_id, postBodyView, user1)
       
       createAccountAttributeViaEndpoint(

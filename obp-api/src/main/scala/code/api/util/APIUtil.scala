@@ -806,6 +806,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       null
     else
       text
+  
+  def nullToString(text : String) =
+    if(text == null)
+      null
+    else
+      text
 
   def stringOptionOrNull(text : Option[String]) =
     text match {

@@ -148,7 +148,7 @@ trait APIMethods300 {
         |
         | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
         | """,
-      SwaggerDefinitionsJSON.createViewJson,
+      SwaggerDefinitionsJSON.createViewJsonV300,
       viewJsonV300,
       List(
         UserNotLoggedIn,
@@ -233,7 +233,7 @@ trait APIMethods300 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      updateViewJSON,
+      updateViewJsonV300,
       viewJsonV300,
       List(
         InvalidJsonFormat,
@@ -251,7 +251,7 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
-              updateJson <- Future { tryo{json.extract[UpdateViewJSON]} } map {
+              updateJson <- Future { tryo{json.extract[UpdateViewJsonV300]} } map {
                 val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
                 x => unboxFullOrFail(x, callContext, msg)
               }
@@ -270,7 +270,7 @@ trait APIMethods300 {
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {
               for {
-                updatedView <- account.updateView(u, viewId, updateJson)
+                updatedView <- account.updateView(u, viewId, updateJson.toUpdateViewJson)
               } yield {
                 (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
               }

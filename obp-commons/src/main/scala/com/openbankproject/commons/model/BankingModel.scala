@@ -393,16 +393,19 @@ case class FirehoseAccountUser(
   displayName : String
 )
 
+case class FastFirehoseOwners(user_id: String, provider: String, user_name: String)
+case class FastFirehoseRoutings(bank_id: String, account_id: String)
+case class FastFirehoseAttributes(`type`: String, code: String, value: String)
 case class FastFirehoseAccount(
   id: String,
   bankId: String,
   label: String,
   number: String,
-  owners: String,
+  owners: List[FastFirehoseOwners],
   productCode: String,
   balance: AmountOfMoney,
-  accountRoutings: String,
-  accountAttributes: String
+  accountRoutings: List[FastFirehoseRoutings],
+  accountAttributes: List[FastFirehoseAttributes],
 )
 
 case class FastFirehoseAccounts(

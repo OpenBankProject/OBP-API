@@ -125,6 +125,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .flatMap(consumerIdToPrimaryKey)
       .map(By(MappedMetric.consumerId, _) )
 
+    val bankId = queryParams.collect { case OBPBankId(value) => Like(MappedMetric.url, s"%banks/$value%") }.headOption
     val userId = queryParams.collect { case OBPUserId(value) => By(MappedMetric.userId, value) }.headOption
     val url = queryParams.collect { case OBPUrl(value) => By(MappedMetric.url, value) }.headOption
     val appName = queryParams.collect { case OBPAppName(value) => By(MappedMetric.appName, value) }.headOption
@@ -149,6 +150,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       ordering,
       consumerId.toSeq,
       userId.toSeq,
+      bankId.toSeq,
       url.toSeq,
       appName.toSeq,
       implementedInVersion.toSeq,

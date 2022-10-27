@@ -873,6 +873,60 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   private def findFirehoseAccounts(bankId: BankId, ordering: SQLSyntax, limit: Int, offset: Int)(implicit session: DBSession = AutoSession) = {
+    def parseOwners(owners: String): List[FastFirehoseOwners] = {
+      if(!owners.isEmpty) {
+        transformString(owners).map {
+          i =>
+            FastFirehoseOwners(
+              user_id = i("user_id").mkString(""),
+              provider = i("provider").mkString(""),
+              user_name = i("user_name").mkString("")
+            )
+        }
+      } else {
+        List()
+      }
+    }
+    def parseRoutings(owners: String): List[FastFirehoseRoutings] = {
+      if(!owners.isEmpty) {
+        transformString(owners).map {
+          i =>
+            FastFirehoseRoutings(
+              bank_id = i("bank_id").mkString(""),
+              account_id = i("account_id").mkString("")
+            )
+        }
+      } else {
+        List()
+      }
+    }
+    def parseAttributes(owners: String): List[FastFirehoseAttributes] = {
+      if(!owners.isEmpty) {
+        transformString(owners).map {
+          i =>
+            FastFirehoseAttributes(
+              `type` = i("type").mkString(""),
+              code = i("code").mkString(""),
+              value = i("value").mkString("")
+            )
+        }
+      } else {
+        List()
+      }
+    }
+    def transformString(owners: String): List[Map[String, List[String]]] = {
+      val splitToRows: List[String] = owners.split("::").toList
+      val keyValuePairs: List[List[(String, String)]] = splitToRows.map { i=>
+        i.split(",").toList.map {
+          x =>
+            val keyValue: Array[String] = x.split(":")
+            if(keyValue.size == 2) (keyValue(0), keyValue(1)) else (keyValue(0), "")
+        }
+      }
+      val maps: List[Map[String, List[String]]] = keyValuePairs.map(_.groupBy(_._1).map { case (k,v) => (k,v.map(_._2))})
+      maps
+    }
+
     val sqlResult = sql"""
        |select
        |    mappedbankaccount.theaccountid as account_id,
@@ -887,7 +941,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        |            ||resourceuser.provider_
        |            ||',user_name:'
        |            ||resourceuser.name_,
-       |         ',') as owners
+       |         '::') as owners
        |     from resourceuser
        |     where
        |        resourceuser.id = mapperaccountholders.user_c
@@ -901,7 +955,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        |            ||bankaccountrouting.bankid 
        |            ||',account_id:' 
        |            ||bankaccountrouting.accountid,
-       |            ','
+       |            '::'
        |            ) as account_routings
        |        from bankaccountrouting
        |        where 
@@ -915,7 +969,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        |                ||mappedaccountattribute.mcode
        |                ||',value:'
        |                ||mappedaccountattribute.mvalue,
-       |            ',') as account_attributes
+       |            '::') as account_attributes
        |    from mappedaccountattribute
        |    where
        |         mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
@@ -930,28 +984,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        |
        |
        |""".stripMargin
-      .map(
+      .map {
         rs => // Map result to case class
+          val owners = parseOwners(rs.stringOpt(5).map(_.toString).getOrElse(""))
+          val routings = parseRoutings(rs.stringOpt(9).map(_.toString).getOrElse(""))
+          val attributes = parseAttributes(rs.stringOpt(10).map(_.toString).getOrElse(""))
           FastFirehoseAccount(
             id = rs.stringOpt(1).map(_.toString).getOrElse(null),
-            bankId= rs.stringOpt(2).map(_.toString).getOrElse(null),
-            label= rs.stringOpt(3).map(_.toString).getOrElse(null),
+            bankId = rs.stringOpt(2).map(_.toString).getOrElse(null),
+            label = rs.stringOpt(3).map(_.toString).getOrElse(null),
             number = rs.stringOpt(4).map(_.toString).getOrElse(null),
-            owners = rs.stringOpt(5).map(_.toString).getOrElse(null),
-            productCode =  rs.stringOpt(6).map(_.toString).getOrElse(null),
+            owners = owners,
+            productCode = rs.stringOpt(6).map(_.toString).getOrElse(null),
             balance = AmountOfMoney(
               currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
-              amount = rs.bigIntOpt(8).map( a => 
+              amount = rs.bigIntOpt(8).map(a =>
                 Helper.smallestCurrencyUnitToBigDecimal(
                   a.longValue(),
                   rs.stringOpt(7).getOrElse("EUR")
                 ).toString()
               ).getOrElse(null)
             ),
-            accountRoutings = rs.stringOpt(9).map(_.toString).getOrElse(null),
-            accountAttributes = rs.stringOpt(10).map(_.toString).getOrElse(null)
+            accountRoutings = routings,
+            accountAttributes = attributes
           )
-      ).list().apply()
+      }.list().apply()
     sqlResult
   }
   
@@ -3414,6 +3471,52 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (CustomerX.customerProvider.vend.addCustomer(
       bankId,
       Random.nextInt(Integer.MAX_VALUE).toString,
+      legalName,
+      mobileNumber,
+      email,
+      faceImage,
+      dateOfBirth,
+      relationshipStatus,
+      dependents,
+      dobOfDependents,
+      highestEducationAttained,
+      employmentStatus,
+      kycStatus,
+      lastOkDate,
+      creditRating,
+      creditLimit,
+      title,
+      branchId,
+      nameSuffix
+    ), callContext)
+  }
+
+  override def createCustomerC2(
+                                 bankId: BankId,
+                                 legalName: String,
+                                 customerNumber: String,
+                                 mobileNumber: String,
+                                 email: String,
+                                 faceImage:
+                                 CustomerFaceImageTrait,
+                                 dateOfBirth: Date,
+                                 relationshipStatus: String,
+                                 dependents: Int,
+                                 dobOfDependents: List[Date],
+                                 highestEducationAttained: String,
+                                 employmentStatus: String,
+                                 kycStatus: Boolean,
+                                 lastOkDate: Date,
+                                 creditRating: Option[CreditRatingTrait],
+                                 creditLimit: Option[AmountOfMoneyTrait],
+                                 title: String,
+                                 branchId: String,
+                                 nameSuffix: String,
+                                 callContext: Option[CallContext]
+                               ): OBPReturnType[Box[Customer]] = Future {
+    (CustomerX.customerProvider.vend.addCustomer(
+      bankId,
+      customerNumber,
       legalName,
       mobileNumber,
       email,

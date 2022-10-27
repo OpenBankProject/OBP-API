@@ -366,7 +366,31 @@ object JSONFactory1_4_0 extends MdcLoggable{
    * @return Bank.bank_id
    */
   def getGlossaryItemTitle(parameter: String): String = {
-    glossaryItems.find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}")).map(_.title).getOrElse("").replaceAll(" ","-")
+    def isUrlParameter(): Boolean = {
+      List(
+        "BANK_ID", 
+        "ACCOUNT_ID", 
+        "CUSTOMER_ID",
+        "TRANSACTION_ID",
+        "ATTRIBUTE_ID",
+        "VIEW_ID",
+        "USER_ID",
+        "PRODUCT_CODE",
+        "PRODUCT_ID",
+        "OPERATION_ID",
+        "ENDPOINT_TAG_ID",
+      ).exists(_ == parameter)
+    }
+    parameter match {
+      case _ if isUrlParameter() =>
+        glossaryItems
+          .find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}"))
+          .map(_.title).getOrElse("").replaceAll(" ","-")
+      case _ =>
+        glossaryItems
+          .find(_.title.toLowerCase.equals(s"${parameter.toLowerCase}"))
+          .map(_.title).getOrElse("").replaceAll(" ","-")
+    }
   }
   
   /**
@@ -420,31 +444,31 @@ object JSONFactory1_4_0 extends MdcLoggable{
    * @param parameter BANK_ID
    * @return [BANK_ID](/glossary#Bank.bank_id):gh.29.uk 
    */
-  def prepareDescription(parameter: String, types: List[(String, Boolean)]): String = {
+  def prepareDescription(parameter: String, optionalTypeFields: List[(String, Boolean)]): String = {
     val glossaryItemTitle = getGlossaryItemTitle(parameter)
     val exampleFieldValue = getExampleFieldValue(parameter)
     def boldIfMandatory() = {
-      types.exists(i => i._1 == parameter && i._2 == false) match {
+      optionalTypeFields.exists(i => i._1 == parameter && i._2 == false) match {
         case true =>
-          s"**$parameter**"
+          s"***$parameter**"
         case false =>
           s"$parameter"
       }
     }
-    if(exampleFieldValue.contains(ExampleValue.NoExampleProvided)){
+    if(glossaryItemTitle.contains("jsonstring")){
       "" 
     } else {
-      s"""
-         |
-         |* [${boldIfMandatory()}](/glossary#$glossaryItemTitle): $exampleFieldValue
-         |
-         |""".stripMargin
-    }
+    s"""
+       |
+       |* [${boldIfMandatory()}](/glossary#$glossaryItemTitle): $exampleFieldValue
+       |
+       |""".stripMargin
+  }
   }
 
   def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
     jsonBody.productIterator
-    val (jsonBodyJValue: json.JValue, types) = jsonBody match {
+    val (jsonBodyJValue: json.JValue, optionalTypeFields) = jsonBody match {
       case JvalueCaseClass(jValue) =>
         val types = Nil
         (jValue, types)
@@ -455,9 +479,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
         (decompose(jsonBody), types)
     }
 
-    val jsonBodyFields =JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList.sorted
+    // Group by is mandatory criteria and sort those 2 groups by name of the field
+    val jsonBodyFieldsOptional = JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList
+      .filter(x => optionalTypeFields.exists(i => i._1 == x && i._2 == true)).sorted
+    val jsonBodyFieldsMandatory = JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList
+      .filter(x => optionalTypeFields.exists(i => i._1 == x && i._2 == false)).sorted
+    val jsonBodyFields = jsonBodyFieldsMandatory ::: jsonBodyFieldsOptional
 
-    val jsonFieldsDescription = jsonBodyFields.map(i => prepareDescription(i, types))
+    val jsonFieldsDescription = jsonBodyFields.map(i => prepareDescription(i, optionalTypeFields))
     
     val jsonTitleType = if (jsonType.contains("request")) "\n\n\n**JSON request body fields:**\n\n" else  "\n\n\n**JSON response body fields:**\n\n"
 

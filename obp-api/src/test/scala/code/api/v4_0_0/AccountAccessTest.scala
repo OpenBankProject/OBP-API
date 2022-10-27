@@ -2,7 +2,7 @@ package code.api.v4_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import com.openbankproject.commons.util.ApiVersion
@@ -37,7 +37,7 @@ class AccountAccessTest extends V400ServerSetup {
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val ownerView = randomOwnerViewPermalinkViaEndpoint(bankId, bankAccount)
   lazy val postAccountAccessJson = PostAccountAccessJsonV400(resourceUser2.userId, PostViewJsonV400("_test_view", false))
-  lazy val postBodyViewJson = createViewJson
+  lazy val postBodyViewJson = createViewJsonV300.toCreateViewJson
   
   def createAnAccount(bankId: String, user: Option[(Consumer,Token)]): CreateAccountResponseJsonV310 = {
     val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))

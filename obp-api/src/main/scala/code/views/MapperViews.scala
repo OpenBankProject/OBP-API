@@ -340,6 +340,15 @@ object MapperViews extends Views with MdcLoggable {
   def systemView(viewId : ViewId) : Box[View] = {
     ViewDefinition.findSystemView(viewId.value)
   }
+  def getSystemViews() : Future[List[View]] = {
+    Future {
+      ViewDefinition.findAll(
+        NullRef(ViewDefinition.bank_id),
+        NullRef(ViewDefinition.account_id),
+        By(ViewDefinition.isSystem_, true)
+      )
+    }
+  }
   def systemViewFuture(viewId : ViewId) : Future[Box[View]] = {
     Future {
       systemView(viewId)

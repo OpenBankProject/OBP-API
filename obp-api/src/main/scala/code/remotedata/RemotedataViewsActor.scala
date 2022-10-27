@@ -64,6 +64,10 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.systemView(viewId: ViewId) =>
       logger.debug("view(" + viewId  + ")")
       sender ! (mapper.systemView(viewId))
+      
+    case cc.getSystemViews() =>
+      logger.debug("getSystemViews()")
+      sender ! (mapper.getSystemViews())
 
     case cc.customViewFuture(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("customViewFuture(" + viewId +", "+ bankAccountId + ")")

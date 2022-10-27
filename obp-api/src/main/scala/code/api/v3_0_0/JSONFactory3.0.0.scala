@@ -71,7 +71,44 @@ import scala.util.Try
 
 
 //started - view relevant case classes
-
+case class CreateViewJsonV300(
+  name: String,
+  description: String,
+  metadata_view: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions : List[String]
+) {
+  def toCreateViewJson = CreateViewJson(
+    name = this.name,
+    description = this.description,
+    metadata_view = this.metadata_view,
+    is_public = this.is_public,
+    which_alias_to_use = this.which_alias_to_use,
+    hide_metadata_if_alias_used = this.hide_metadata_if_alias_used,
+    allowed_actions = this.allowed_actions
+  )
+}
+case class UpdateViewJsonV300(
+  description: String,
+  metadata_view: String,
+  is_public: Boolean,
+  is_firehose: Option[Boolean] = None,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions: List[String]
+) {
+  def toUpdateViewJson = UpdateViewJSON(
+    description = this.description,
+    metadata_view = this.metadata_view,
+    is_public = this.is_public,
+    is_firehose = this.is_firehose,
+    which_alias_to_use = this.which_alias_to_use,
+    hide_metadata_if_alias_used = this.hide_metadata_if_alias_used,
+    allowed_actions = this.allowed_actions
+  )
+}
 case class ViewsJsonV300(
   views : List[ViewJsonV300]
 )

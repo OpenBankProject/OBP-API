@@ -29,7 +29,7 @@ package code.api.v2_2_0
 import code.api.Constant._
 import _root_.net.liftweb.json.Serialization.write
 import com.openbankproject.commons.model.ErrorMessage
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJson
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2._
 import code.api.v1_2_1.UpdateViewJsonV121
@@ -67,7 +67,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
   /********************* API test methods ********************/
 
   //System view, owner
-  val postBodySystemViewJson = createViewJson.copy(name=SYSTEM_OWNER_VIEW_ID)
+  val postBodySystemViewJson = createViewJsonV300.copy(name=SYSTEM_OWNER_VIEW_ID).toCreateViewJson
   
   def randomBank : String = {
     val banksJson = getBanksInfo.body.extract[BanksJSON]
@@ -90,7 +90,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
     viewsIdsToGrant
   }
 
-  def randomView(isPublic: Boolean, alias: String) = createViewJson
+  def randomView(isPublic: Boolean, alias: String) = createViewJsonV300.toCreateViewJson
 
 
   def getBanksInfo : APIResponse  = {

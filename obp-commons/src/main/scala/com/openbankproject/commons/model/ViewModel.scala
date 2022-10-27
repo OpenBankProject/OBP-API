@@ -52,6 +52,8 @@ trait ViewSpecification {
   def which_alias_to_use: String
   def hide_metadata_if_alias_used: Boolean
   def allowed_actions : List[String]
+  def can_grant_access_to_views : Option[List[String]] = None
+  def can_revoke_access_to_views : Option[List[String]] = None
 }
 
 /*
@@ -64,7 +66,9 @@ case class CreateViewJson(
                            is_public: Boolean,
                            which_alias_to_use: String,
                            hide_metadata_if_alias_used: Boolean,
-                           allowed_actions : List[String]
+                           allowed_actions : List[String],
+                           override val can_grant_access_to_views : Option[List[String]] = None,
+                           override val can_revoke_access_to_views : Option[List[String]] = None
                          ) extends ViewSpecification
 
 
@@ -78,7 +82,9 @@ case class UpdateViewJSON(
                            override val is_firehose: Option[Boolean] = None,
                            which_alias_to_use: String,
                            hide_metadata_if_alias_used: Boolean,
-                           allowed_actions: List[String]) extends ViewSpecification
+                           allowed_actions: List[String],
+                           override val can_grant_access_to_views : Option[List[String]] = None,
+                           override val can_revoke_access_to_views : Option[List[String]] = None) extends ViewSpecification
 
 
 
@@ -244,6 +250,10 @@ trait View {
   def usePrivateAliasIfOneExists: Boolean
 
   def hideOtherAccountMetadataIfAlias: Boolean
+
+  // Introduced in version 5.0.0
+  def canGrantAccessToViews : Option[List[String]] = None
+  def canRevokeAccessToViews : Option[List[String]] = None
 
   //reading access
 

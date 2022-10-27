@@ -1,6 +1,9 @@
 package code.api.v5_0_0
 
-import java.util.Date
+import java.util.concurrent.ThreadLocalRandom
+
+import code.accountattribute.AccountAttributeX
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
@@ -14,20 +17,23 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
-import code.api.v5_0_0.JSONFactory500.createPhysicalCardJson
+import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsJsonV500, createViewsIdsJsonV500}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
+import code.metrics.APIMetrics
+import code.model._
 import code.model.dataAccess.BankAccountCreation
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.util.Helper
+import code.util.Helper.booleanToFuture
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
-import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRouting, BankAccount, BankId, BankIdAccountId, CardAction, CardAttributeCommons, CardCollectionInfo, CardPostedInfo, CardReplacementInfo, CardReplacementReason, CreditLimit, CreditRating, CustomerFaceImage, CustomerId, PinResetInfo, PinResetReason, ProductCode, TransactionRequestType, UserAuthContextUpdateStatus, View, ViewId}
+import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
@@ -41,7 +47,6 @@ import code.util.Helper.booleanToFuture
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -763,6 +768,7 @@ trait APIMethods500 {
         UserNotLoggedIn,
         $BankNotFound,
         InvalidJsonFormat,
+        ConsentRequestIsInvalid,
         ConsentAllowedScaMethods,
         RolesAllowedInConsent,
         ViewsAllowedInConsent,
@@ -788,7 +794,7 @@ trait APIMethods500 {
               )) map {
               i => unboxFullOrFail(i,callContext, ConsentRequestNotFound)
             }
-            _ <- Helper.booleanToFuture(ConsentRequestAlreadyUsed, cc=callContext){
+            _ <- Helper.booleanToFuture(ConsentRequestIsInvalid, cc=callContext){
               Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId).isEmpty
             }
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
@@ -988,9 +994,12 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg =  InvalidJsonContent + s" The field dependants(${postedData.dependants.getOrElse(0)}) not equal the length(${postedData.dob_of_dependants.getOrElse(Nil).length }) of dob_of_dependants array", 400, cc.callContext) {
               postedData.dependants.getOrElse(0) == postedData.dob_of_dependants.getOrElse(Nil).length
             }
-            (customer, callContext) <- NewStyle.function.createCustomer(
+            customerNumber = postedData.customer_number.getOrElse(Random.nextInt(Integer.MAX_VALUE).toString)
+            (_, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, customerNumber, cc.callContext)
+            (customer, callContext) <- NewStyle.function.createCustomerC2(
               bankId,
               postedData.legal_name,
+              customerNumber,
               postedData.mobile_phone_number,
               postedData.email.getOrElse(""),
               CustomerFaceImage(
@@ -1010,7 +1019,7 @@ trait APIMethods500 {
               postedData.title.getOrElse(""),
               postedData.branch_id.getOrElse(""),
               postedData.name_suffix.getOrElse(""),
-              cc.callContext,
+              callContext,
             )
           } yield {
             (JSONFactory310.createCustomerJson(customer), HttpCode.`201`(callContext))
@@ -1443,6 +1452,354 @@ trait APIMethods500 {
       }
     }
 
+
+    staticResourceDocs += ResourceDoc(
+      getViewsForBankAccount,
+      implementedInApiVersion,
+      nameOf(getViewsForBankAccount),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      "Get Views for Account",
+      s"""#Views
+         |
+         |
+         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+         |
+         |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+         |
+         |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+         |
+         |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+         |
+         |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+         |
+         |**Metadata:**
+         |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+         |
+         |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+         |
+         |# All
+         |*Optional*
+         |
+         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
+      emptyObjectJson,
+      viewsJsonV500,
+      List(
+        $UserNotLoggedIn,
+        $BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagView, apiTagAccount, apiTagNewStyle))
+
+    lazy val getViewsForBankAccount : OBPEndpoint = {
+      //get the available views on an bank account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet req => {
+        cc =>
+          val res =
+            for {
+              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + cc.userId + ". account : " + accountId, cc=cc.callContext){
+                cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId))
+              }
+            } yield {
+              for {
+                views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankId, accountId)))
+              } yield {
+                (createViewsJsonV500(views), HttpCode.`200`(cc.callContext))
+              }
+            }
+          res map { fullBoxOrException(_) } map { unboxFull(_) }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      deleteSystemView,
+      implementedInApiVersion,
+      "deleteSystemView",
+      "DELETE",
+      "/system-views/VIEW_ID",
+      "Delete System View",
+      "Deletes the system view specified by VIEW_ID",
+      emptyObjectJson,
+      emptyObjectJson,
+      List(
+        UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError,
+        "user does not have owner access"
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canDeleteSystemView))
+    )
+
+    lazy val deleteSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonDelete req => {
+        cc =>
+          for {
+            _ <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
+            view <- NewStyle.function.deleteSystemView(ViewId(viewId), cc.callContext)
+          } yield {
+            (Full(view),  HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getMetricsAtBank,
+      implementedInApiVersion,
+      nameOf(getMetricsAtBank),
+      "GET",
+      "/management/metrics/banks/BANK_ID",
+      "Get Metrics at Bank",
+      s"""Get the all metrics at the Bank specified by BANK_ID
+         |
+         |require CanReadMetrics role
+         |
+         |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+         |
+         |Should be able to filter on the following metrics fields
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+         |
+         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |5 sort_by (defaults to date field) eg: sort_by=date
+         |  possible values:
+         |    "url",
+         |    "date",
+         |    "user_name",
+         |    "app_name",
+         |    "developer_email",
+         |    "implemented_by_partial_function",
+         |    "implemented_in_version",
+         |    "consumer_id",
+         |    "verb"
+         |
+         |6 direction (defaults to date desc) eg: direction=desc
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+         |
+         |Other filters:
+         |
+         |7 consumer_id  (if null ignore)
+         |
+         |8 user_id (if null ignore)
+         |
+         |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         |
+         |10 url (if null ignore), note: can not contain '&'.
+         |
+         |11 app_name (if null ignore)
+         |
+         |12 implemented_by_partial_function (if null ignore),
+         |
+         |13 implemented_in_version (if null ignore)
+         |
+         |14 verb (if null ignore)
+         |
+         |15 correlation_id (if null ignore)
+         |
+         |16 duration (if null ignore) non digit chars will be silently omitted
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      metricsJson,
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagApi, apiTagNewStyle),
+      Some(List(canGetMetricsAtOneBank)))
+
+    lazy val getMetricsAtBank : OBPEndpoint = {
+      case "management" :: "metrics" :: "banks" :: bankId :: Nil JsonGet _ => {
+        cc => {
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams ::: List(OBPBankId(bankId))))
+          } yield {
+            (JSONFactory210.createMetricsJson(metrics), HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getSystemView,
+      implementedInApiVersion,
+      "getSystemView",
+      "GET",
+      "/system-views/VIEW_ID",
+      "Get System View",
+      s"""Get System View
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      viewJsonV500,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canGetSystemView))
+    )
+
+    lazy val getSystemView: OBPEndpoint = {
+      case "system-views" :: viewId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            view <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
+          } yield {
+            (createViewJsonV500(view), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      getSystemViewsIds,
+      implementedInApiVersion,
+      nameOf(getSystemViewsIds),
+      "GET",
+      "/system-views-ids",
+      "Get Ids of System Views",
+      s"""Get Ids of System Views
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      emptyObjectJson,
+      viewIdsJsonV500,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canGetSystemView))
+    )
+
+    lazy val getSystemViewsIds: OBPEndpoint = {
+      case "system-views-ids" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            views <- NewStyle.function.systemViews()
+          } yield {
+            (createViewsIdsJsonV500(views), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      createSystemView,
+      implementedInApiVersion,
+      nameOf(createSystemView),
+      "POST",
+      "/system-views",
+      "Create System View",
+      s"""Create a system view
+         |
+         | ${authenticationRequiredMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
+         | The 'alias' field in the JSON can take one of two values:
+         |
+         | * _public_: to use the public alias if there is one specified for the other account.
+         | * _private_: to use the public alias if there is one specified for the other account.
+         |
+         | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+         |
+         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+         |
+         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+         | 
+         | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
+         | """,
+      createSystemViewJsonV500,
+      viewJsonV500,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canCreateSystemView))
+    )
+
+    lazy val createSystemView : OBPEndpoint = {
+      //creates a system view
+      case "system-views" :: Nil JsonPost json -> _ => {
+        cc =>
+          for {
+            createViewJson <- NewStyle.function.tryons(failMsg = s"$InvalidJsonFormat The Json body should be the $CreateViewJson ", 400, cc.callContext) {
+              json.extract[CreateViewJsonV500]
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=cc.callContext) {
+              createViewJson.is_public == false
+            }
+            view <- NewStyle.function.createSystemView(createViewJson.toCreateViewJson, cc.callContext)
+          } yield {
+            (createViewJsonV500(view),  HttpCode.`201`(cc.callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      updateSystemView,
+      implementedInApiVersion,
+      nameOf(updateSystemView),
+      "PUT",
+      "/system-views/VIEW_ID",
+      "Update System View",
+      s"""Update an existing view on a bank account
+         |
+         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.
+         |
+         |The json sent is the same as during view creation (above), with one difference: the 'name' field
+         |of a view is not editable (it is only set when a view is created)""",
+      updateSystemViewJson500,
+      viewJsonV500,
+      List(
+        InvalidJsonFormat,
+        $UserNotLoggedIn,
+        BankAccountNotFound,
+        UnknownError
+      ),
+      List(apiTagSystemView, apiTagNewStyle),
+      Some(List(canUpdateSystemView))
+    )
+
+    lazy val updateSystemView : OBPEndpoint = {
+      //updates a view on a bank account
+      case "system-views" :: viewId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            updateJson <- Future { tryo{json.extract[UpdateViewJsonV500]} } map {
+              val msg = s"$InvalidJsonFormat The Json body should be the $UpdateViewJSON "
+              x => unboxFullOrFail(x, cc.callContext, msg)
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=cc.callContext) {
+              updateJson.is_public == false
+            }
+            _ <- NewStyle.function.systemView(ViewId(viewId), cc.callContext)
+            updatedView <- NewStyle.function.updateSystemView(ViewId(viewId), updateJson.toUpdateViewJson, cc.callContext)
+          } yield {
+            (JSONFactory310.createViewJSON(updatedView), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       createCustomerAccountLink,
       implementedInApiVersion,

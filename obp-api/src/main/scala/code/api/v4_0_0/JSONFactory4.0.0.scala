@@ -106,6 +106,14 @@ case class BankJson400(
                         bank_routings: List[BankRoutingJsonV121],
                         attributes: Option[List[BankAttributeBankResponseJsonV400]]
                       )
+case class PostBankJson400(
+  id: String,
+  short_name: String,
+  full_name: String,
+  logo: String,
+  website: String,
+  bank_routings: List[BankRoutingJsonV121]
+)
 
 case class BanksJson400(banks: List[BankJson400])
 
@@ -236,11 +244,11 @@ case class FastFirehoseAccountJsonV400(
   bank_id: String,
   label: String,
   number: String,
-  owners: String,
+  owners: List[FastFirehoseOwners],
   product_code: String,
   balance: AmountOfMoneyJsonV121,
-  account_routings: String ,
-  account_attributes: String
+  account_routings: List[FastFirehoseRoutings] ,
+  account_attributes: List[FastFirehoseAttributes]
 )
 
 case class FastFirehoseAccountsJsonV400(

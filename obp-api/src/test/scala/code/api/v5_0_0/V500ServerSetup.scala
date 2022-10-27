@@ -12,6 +12,7 @@ import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.util.ApiShortVersions
 import dispatch.Req
 import code.api.util.APIUtil.OAuth._
+import code.api.v2_0_0.BasicAccountsJSON
 import net.liftweb.json.Serialization.write
 
 import scala.util.Random.nextInt
@@ -31,6 +32,16 @@ trait V500ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
+  }
+
+  def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = v5_0_0_Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken) //TODO, how can we know which endpoint it called? Although it is V300, but this endpoint called V200-privateAccountsAtOneBank
+    makeGetRequest(request)
+  }
+  def randomPrivateAccountId(bankId : String) : String = {
+    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[BasicAccountsJSON].accounts //TODO, how to make this map automatically.
+    val randomPosition = nextInt(accountsJson.size)
+    accountsJson(randomPosition).id
   }
 
   // This will call create customer ,then return the customerId

@@ -654,6 +654,9 @@ object NewStyle extends MdcLoggable{
       Views.views.vend.systemViewFuture(viewId) map {
         unboxFullOrFail(_, callContext, s"$SystemViewNotFound. Current ViewId is $viewId")
       }
+    }    
+    def systemViews(): Future[List[View]] = {
+      Views.views.vend.getSystemViews()
     }
     def grantAccessToCustomView(view : View, user: User, callContext: Option[CallContext]) : Future[View] = {
       view.isSystem match {
@@ -2501,6 +2504,53 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.createCustomer(
         bankId: BankId,
         legalName: String,
+        mobileNumber: String,
+        email: String,
+        faceImage:
+          CustomerFaceImageTrait,
+        dateOfBirth: Date,
+        relationshipStatus: String,
+        dependents: Int,
+        dobOfDependents: List[Date],
+        highestEducationAttained: String,
+        employmentStatus: String,
+        kycStatus: Boolean,
+        lastOkDate: Date,
+        creditRating: Option[CreditRatingTrait],
+        creditLimit: Option[AmountOfMoneyTrait],
+        title: String,
+        branchId: String,
+        nameSuffix: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, CreateCustomerError), i._2)
+      }
+    def createCustomerC2(
+                        bankId: BankId,
+                        legalName: String,
+                        customerNumber: String,
+                        mobileNumber: String,
+                        email: String,
+                        faceImage:
+                        CustomerFaceImageTrait,
+                        dateOfBirth: Date,
+                        relationshipStatus: String,
+                        dependents: Int,
+                        dobOfDependents: List[Date],
+                        highestEducationAttained: String,
+                        employmentStatus: String,
+                        kycStatus: Boolean,
+                        lastOkDate: Date,
+                        creditRating: Option[CreditRatingTrait],
+                        creditLimit: Option[AmountOfMoneyTrait],
+                        title: String,
+                        branchId: String,
+                        nameSuffix: String,
+                        callContext: Option[CallContext]): OBPReturnType[Customer] = 
+      Connector.connector.vend.createCustomerC2(
+        bankId: BankId,
+        legalName: String,
+        customerNumber: String,
         mobileNumber: String,
         email: String,
         faceImage:
