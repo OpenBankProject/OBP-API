@@ -652,7 +652,7 @@ object ExampleValue {
   lazy val executionDateExample = ConnectorField("2020-01-27",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("execution_date", executionDateExample)
 
-  lazy val technologyExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val technologyExample = ConnectorField("technology1",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("technology", technologyExample)
 
   lazy val connectorNameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
