@@ -379,6 +379,7 @@ object SwaggerJSONFactory extends MdcLoggable {
         .replaceAll("/MEETING_ID", "/{MEETING_ID}")
         .replaceAll("/COLLECTION_CODE", "/{COLLECTION_CODE}")
         .replaceAll("/COUNTERPARTY_ID", "/{COUNTERPARTY_ID}")
+        .replaceAll("/COUNTERPARTY_NAME", "/{COUNTERPARTY_NAME}")
       
       var pathParameters = List.empty[OperationParameter]
       if(path.contains("/{BANK_ID}"))
@@ -483,6 +484,8 @@ object SwaggerJSONFactory extends MdcLoggable {
         pathParameters = OperationParameterPathJson(name="COLLECTION_CODE", description= "the collection code") :: pathParameters
       if(path.contains("/{COUNTERPARTY_ID}"))
         pathParameters = OperationParameterPathJson(name="COUNTERPARTY_ID", description= "the counterparty id") :: pathParameters
+      if(path.contains("/{COUNTERPARTY_NAME}"))
+        pathParameters = OperationParameterPathJson(name="COUNTERPARTY_NAME", description= "the counterparty name") :: pathParameters
       if(path.contains("/{API_VERSION}"))
         pathParameters = OperationParameterPathJson(name="API_VERSION", description="eg:v2.2.0, v3.0.0") :: pathParameters
   

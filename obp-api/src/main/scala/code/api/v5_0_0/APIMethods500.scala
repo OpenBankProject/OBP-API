@@ -1137,7 +1137,7 @@ trait APIMethods500 {
       """Gets all Customers that are linked to me.
         |
         |Authentication via OAuth is required.""",
-      emptyObjectJson,
+      EmptyBody,
       customerJsonV210,
       List(
         $UserNotLoggedIn,
@@ -1172,7 +1172,7 @@ trait APIMethods500 {
          |
          |
          |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       customerJSONs,
       List(
         $UserNotLoggedIn,
@@ -1216,7 +1216,7 @@ trait APIMethods500 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customersJsonV300,
       List(
         UserNotLoggedIn,
@@ -1252,7 +1252,7 @@ trait APIMethods500 {
          |
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customersMinimalJsonV300,
       List(
         UserCustomerLinksNotFoundForUser,
@@ -1484,7 +1484,7 @@ trait APIMethods500 {
          |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
          |
          |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJsonV500,
       List(
         $UserNotLoggedIn,
@@ -1521,8 +1521,8 @@ trait APIMethods500 {
       "/system-views/VIEW_ID",
       "Delete System View",
       "Deletes the system view specified by VIEW_ID",
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         BankAccountNotFound,
@@ -1609,7 +1609,7 @@ trait APIMethods500 {
          |16 duration (if null ignore) non digit chars will be silently omitted
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       metricsJson,
       List(
         $UserNotLoggedIn,
@@ -1645,7 +1645,7 @@ trait APIMethods500 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       viewJsonV500,
       List(
         $UserNotLoggedIn,
@@ -1679,7 +1679,7 @@ trait APIMethods500 {
          |${authenticationRequiredMessage(true)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       viewIdsJsonV500,
       List(
         $UserNotLoggedIn,
@@ -2048,7 +2048,7 @@ trait APIMethods500 {
          |${authenticationRequiredMessage(false)}
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       adapterInfoJsonV500,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagApi, apiTagNewStyle),

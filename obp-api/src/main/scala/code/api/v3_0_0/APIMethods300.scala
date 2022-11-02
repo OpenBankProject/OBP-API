@@ -93,7 +93,7 @@ trait APIMethods300 {
         |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
         |
         |${authenticationRequiredMessage(true)} and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJsonV300,
       List(
         UserNotLoggedIn,
@@ -198,7 +198,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
          |
         |The user needs to have access to the owner view.""",
-      emptyObjectJson,
+      EmptyBody,
       viewsJsonV300,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagNewStyle))
@@ -302,7 +302,7 @@ trait APIMethods300 {
         |
         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedCoreAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
       apiTagAccount ::  apiTagNewStyle :: Nil)
@@ -345,7 +345,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(false)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedCoreAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UnknownError),
       apiTagAccountPublic :: apiTagAccount ::  apiTagNewStyle :: Nil)
@@ -387,7 +387,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
         |
         |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       newModeratedCoreAccountJsonV300,
       List(BankAccountNotFound,UnknownError),
       apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: apiTagPsd2 :: Nil)
@@ -422,7 +422,7 @@ trait APIMethods300 {
          |
          |${authenticationRequiredMessage(true)}
          |""",
-      emptyObjectJson,
+      EmptyBody,
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
       List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2, apiTagNewStyle)
@@ -479,7 +479,7 @@ trait APIMethods300 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,AccountFirehoseNotAllowedOnThisInstance,UnknownError),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
@@ -567,7 +567,7 @@ trait APIMethods300 {
          |${authenticationRequiredMessage(true)}
          |
          |""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       transactionsJsonV300,
       List(UserNotLoggedIn, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData, apiTagNewStyle),
@@ -629,7 +629,7 @@ trait APIMethods300 {
         |${urlParametersDocument(true, true)}
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       coreTransactionsJsonV300,
       List(
         FilterSortDirectionError,
@@ -687,7 +687,7 @@ trait APIMethods300 {
         |${urlParametersDocument(true, true)}
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       transactionsJsonV300,
       List(
         FilterSortDirectionError,
@@ -899,7 +899,7 @@ trait APIMethods300 {
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -932,7 +932,7 @@ trait APIMethods300 {
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -969,7 +969,7 @@ trait APIMethods300 {
         |CanGetAnyUser entitlement is required,
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -1005,7 +1005,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(false)}
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagApi, apiTagNewStyle),
@@ -1200,7 +1200,7 @@ trait APIMethods300 {
          |* License the data under this endpoint is released under.
          |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       branchJsonV300,
       List(
         UserNotLoggedIn,
@@ -1261,7 +1261,7 @@ trait APIMethods300 {
          |note: withinMetersOf, nearLatitude and nearLongitude either all empty or all have value.
          |
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       branchesJsonV300,
       List(
         UserNotLoggedIn,
@@ -1377,7 +1377,7 @@ trait APIMethods300 {
          |
          |
           |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       atmJsonV300,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM, apiTagNewStyle)
@@ -1418,7 +1418,7 @@ trait APIMethods300 {
           |You can use the url query parameters *limit* and *offset* for pagination
          |
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       atmJsonV300,
       List(
         UserNotLoggedIn,
@@ -1496,7 +1496,7 @@ trait APIMethods300 {
         |* locked_status (if null ignore)
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV200,
       List(
         UserNotLoggedIn,
@@ -1538,7 +1538,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       customersWithAttributesJsonV300,
       List(
         UserNotLoggedIn,
@@ -1586,7 +1586,7 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       userJsonV200,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagUser, apiTagNewStyle))
@@ -1620,7 +1620,7 @@ trait APIMethods300 {
          |${accountTypeFilterText("/banks/BANK_ID/accounts/private")}
          |
          |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle, apiTagPsd2)
@@ -1659,7 +1659,7 @@ trait APIMethods300 {
          |${accountTypeFilterText("/banks/BANK_ID/accounts/account_ids/private")}
          |
          |${authenticationRequiredMessage(true)}""".stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
@@ -1694,7 +1694,7 @@ trait APIMethods300 {
          |${authenticationRequiredMessage(false)}
          |
          |Authentication is required if the view VIEW_ID is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       otherAccountsJsonV300,
       List(
         UserNotLoggedIn,
@@ -1731,7 +1731,7 @@ trait APIMethods300 {
          |${authenticationRequiredMessage(false)}
          |
          |Authentication is required if the view is not public.""",
-      emptyObjectJson,
+      EmptyBody,
       otherAccountJsonV300,
       List(
         UserNotLoggedIn,
@@ -1836,7 +1836,7 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
@@ -1875,7 +1875,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
         |
         """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
@@ -1914,7 +1914,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
          |
         """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementRequestsJSON,
       List(
         UserNotLoggedIn,
@@ -1949,8 +1949,8 @@ trait APIMethods300 {
         |
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(
         UserNotLoggedIn,
         InvalidConnectorResponse,
@@ -1989,7 +1989,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
          |
         """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       entitlementJSONs,
       List(
         UserNotLoggedIn,
@@ -2024,7 +2024,7 @@ trait APIMethods300 {
         |Returns the glossary of the API
         |
         |""",
-      emptyObjectJson,
+      EmptyBody,
       glossaryItemsJsonV300,
       List(UnknownError),
       apiTagDocumentation :: apiTagNewStyle :: Nil)
@@ -2066,7 +2066,7 @@ trait APIMethods300 {
         |
         |
         """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       coreAccountsHeldJsonV300,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2, apiTagNewStyle)
@@ -2142,7 +2142,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       aggregateMetricsJSONV300,
       List(
         UserNotLoggedIn,
@@ -2267,8 +2267,8 @@ trait APIMethods300 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
-      emptyObjectJson,
+      EmptyBody,
+      EmptyBody,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
       List(apiTagScope, apiTagConsumer, apiTagNewStyle))
 
@@ -2305,7 +2305,7 @@ trait APIMethods300 {
         |
         |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       scopeJsons,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
       List(apiTagScope, apiTagConsumer, apiTagNewStyle))
@@ -2339,7 +2339,7 @@ trait APIMethods300 {
         |* Short and full name of bank
         |* Logo URL
         |* Website""",
-      emptyObjectJson,
+      EmptyBody,
       banksJSON,
       List(UnknownError),
       apiTagBank :: apiTagPSD2AIS:: apiTagPsd2 :: apiTagNewStyle :: Nil)
@@ -2369,7 +2369,7 @@ trait APIMethods300 {
         |* Short and full name of bank
         |* Logo URL
         |* Website""",
-      emptyObjectJson,
+      EmptyBody,
       bankJson400,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
       apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
