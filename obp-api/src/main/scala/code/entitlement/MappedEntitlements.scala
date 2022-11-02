@@ -1,6 +1,6 @@
 package code.entitlement
 
-import code.api.dynamic.endpoint.helper.DynamicEntityInfo
+import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanCreateEntitlementAtOneBank}
 import code.api.util.{ErrorMessages, NotificationUtil}
 import code.util.{MappedUUID, UUIDString}

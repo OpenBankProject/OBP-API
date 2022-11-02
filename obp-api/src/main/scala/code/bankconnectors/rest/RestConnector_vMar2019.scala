@@ -6486,6 +6486,8 @@ trait RestConnector_vMar2019 extends Connector with KafkaHelper with MdcLoggable
                                     entityId: Option[String],
                                     bankId: Option[String],
                                     queryParameters: Option[Map[String, List[String]]],
+                                    userId: Option[String],
+                                    isPersonalEntity: Boolean,
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
     import com.openbankproject.commons.dto.{OutBoundDynamicEntityProcess => OutBound, InBoundDynamicEntityProcess => InBound}
     val url = getUrl(callContext, "dynamicEntityProcess")

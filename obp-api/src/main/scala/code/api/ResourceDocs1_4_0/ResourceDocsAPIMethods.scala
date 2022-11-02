@@ -4,12 +4,13 @@ import java.util.UUID.randomUUID
 import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
-import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
+import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.util.APIUtil._
 import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc, canReadStaticResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ExampleValue.endpointMappingRequestBodyExample
-import code.api.util.{APIUtil, _}
+import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}

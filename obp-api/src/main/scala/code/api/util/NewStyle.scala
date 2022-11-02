@@ -63,9 +63,10 @@ import code.validation.{JsonSchemaValidationProvider, JsonValidation}
 import net.liftweb.http.JsonResponse
 import net.liftweb.util.Props
 import code.api.JsonResponseException
-import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo}
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.v4_0_0.JSONFactory400
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
+import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.customeraccountlinks.CustomerAccountLinkTrait
@@ -3161,6 +3162,8 @@ object NewStyle extends MdcLoggable{
                                entityId: Option[String],
                                bankId: Option[String],
                                queryParameters: Option[Map[String, List[String]]],
+                               userId: Option[String],
+                               isPersonalEntity: Boolean,
                                callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
       import DynamicEntityOperation._
       validateBankId(bankId, callContext)
@@ -3213,7 +3216,7 @@ object NewStyle extends MdcLoggable{
           // @(variable-binding pattern), we can use the empty variable 
           // If there is not instance in requestBody, we just call the `dynamicEntityProcess` directly.
         case empty @None => 
-          Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, queryParameters, callContext)
+          Connector.connector.vend.dynamicEntityProcess(operation, entityName, empty, entityId, bankId, queryParameters, userId, isPersonalEntity, callContext)
         // @(variable-binding pattern), we can use both v and body variables.
         case requestBody @Some(body) =>
           // If the request body is existing, we need to validate the body first. 
@@ -3221,7 +3224,7 @@ object NewStyle extends MdcLoggable{
           dynamicEntity.validateEntityJson(body, callContext).flatMap {
             // If there is no error in the request body
             case None => 
-              Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, bankId, queryParameters, callContext)
+              Connector.connector.vend.dynamicEntityProcess(operation, entityName, requestBody, entityId, bankId, queryParameters, userId,  isPersonalEntity, callContext)
             // If there are errors, we need to show them to end user. 
             case Some(errorMsg) => 
               Helper.booleanToFuture(s"$DynamicEntityInstanceValidateFail details: $errorMsg", cc=callContext)(false)

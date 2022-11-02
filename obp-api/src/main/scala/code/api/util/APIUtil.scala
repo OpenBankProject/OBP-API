@@ -40,7 +40,7 @@ import code.api.Constant._
 import code.api.OAuthHandshake._
 import code.api.builder.OBP_APIBuilder
 import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
-import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
@@ -52,7 +52,8 @@ import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.OBPAPIDynamicEntity
-import code.api.{DirectLogin, _}
+import code.api._
+import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
 import code.consumer.Consumers
@@ -81,7 +82,7 @@ import dispatch.url
 import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
-import net.liftweb.common.{Empty, _}
+import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPParam

@@ -9,11 +9,11 @@ import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
-import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper, DynamicEntityInfo}
+import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper, DynamicEndpoints}
 import code.api.util.APIUtil.{fullBoxOrException, _}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, _}
+import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.DynamicUtil.Validation
 import code.api.util.ErrorMessages.{BankNotFound, _}
@@ -38,6 +38,7 @@ import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400._
 import code.api.dynamic.endpoint.helper._
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
+import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
@@ -54,7 +55,7 @@ import code.loginattempts.LoginAttempt
 import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.metadata.tags.Tags
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
-import code.model.{toUserExtended, _}
+import code.model._
 import code.ratelimiting.RateLimitingDI
 import code.scope.Scope
 import code.snippet.{WebUIPlaceholder, WebUITemplate}
@@ -2169,7 +2170,7 @@ trait APIMethods400 {
       for {
         // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankId, dynamicEntityId, cc.callContext)
-        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
+        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, cc.callContext)
         resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
         _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = cc.callContext) {
           resultList.arr.isEmpty
@@ -2300,7 +2301,7 @@ trait APIMethods400 {
       for {
         // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankId, dynamicEntityId, cc.callContext)
-        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
+        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, cc.callContext)
         resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
         _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = cc.callContext) {
           resultList.arr.isEmpty
@@ -2415,7 +2416,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
               entity.userId.equals(cc.userId)
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
@@ -2458,7 +2459,7 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
               entity.userId.equals(cc.userId)
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, cc.callContext)
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, cc.callContext)
             resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty

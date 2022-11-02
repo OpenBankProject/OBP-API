@@ -6469,6 +6469,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
                                     entityId: Option[String],
                                     bankId: Option[String],
                                     queryParameters: Option[Map[String, List[String]]],
+                                    userId: Option[String],
+                                    isPersonalEntity: Boolean,
                                     callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = {
     import com.openbankproject.commons.dto.{InBoundDynamicEntityProcess => InBound, OutBoundDynamicEntityProcess => OutBound}
     val procedureName = StringHelpers.snakify("dynamicEntityProcess")
