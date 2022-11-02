@@ -88,6 +88,15 @@ class DeleteBankCascadeTest extends V400ServerSetup {
         Some("LKJL98769F")
       )
 
+      createAccountAttributeViaEndpoint(
+        bankId,
+        account.account_id,
+        "customer_number",
+        createCustomerViaEndpointAndGetNumber(bankId, resourceUser1.userId),
+        "STRING",
+        None
+      )
+
       grantUserAccessToViewViaEndpoint(
         bankId,
         account.account_id,

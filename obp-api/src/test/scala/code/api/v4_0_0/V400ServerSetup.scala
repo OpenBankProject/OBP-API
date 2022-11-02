@@ -183,19 +183,24 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     responseCreate310.body.extract[AccountAttributeResponseJson]
   }
   
-  // This will call create customer ,then return the customerId
-  def createAndGetCustomerIdViaEndpoint(bankId:String, consumerAndToken: Option[(Consumer, Token)]) = {
+  private def createCustomer(bankId:String, userId: String) = {
     val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
-    def createCustomer(consumerAndToken: Option[(Consumer, Token)]) ={
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
-      When("We make a request v3.1.0")
-      val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
-      val response310 = makePostRequest(request310, write(postCustomerJson))
-      Then("We should get a 201")
-      response310.code should equal(201)
-      response310.body.extract[CustomerJsonV310]
-    }
-    createCustomer(consumerAndToken).customer_id
+    Entitlement.entitlement.vend.addEntitlement(bankId, userId, CanCreateCustomer.toString)
+    When("We make a request v3.1.0")
+    val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+    val response310 = makePostRequest(request310, write(postCustomerJson))
+    Then("We should get a 201")
+    response310.code should equal(201)
+    response310.body.extract[CustomerJsonV310]
+  }
+  
+  // This will call create customer ,then return the customerId
+  def createAndGetCustomerIdViaEndpoint(bankId:String, userId: String = resourceUser1.userId) = {
+    createCustomer(bankId, userId).customer_id
+  }
+  // This will call create customer ,then return the customerId
+  def createCustomerViaEndpointAndGetNumber(bankId:String, userId: String) = {
+    createCustomer(bankId, userId).customer_id
   } 
   
   //This will call create user customer link

@@ -56,7 +56,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
   }
 
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / "customers" / customerId ).GET
@@ -67,7 +67,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
     }
   }
   feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "user_customer_links" / "customers" / customerId).GET <@(user1)
@@ -107,7 +107,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
 
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
-      lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
         .copy(user_id = firstUserId, customer_id = customerId)
       When("We make a request v4.0.0")
@@ -120,7 +120,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
-      lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
         .copy(user_id = firstUserId, customer_id = customerId)
       When("We make a request v4.0.0")
@@ -133,7 +133,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
     }
   }
   feature(s"test $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint4 version $VersionOfApi - All good") {
-    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+    lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
     lazy val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson
       .copy(user_id = firstUserId, customer_id = customerId)
 

@@ -73,7 +73,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
@@ -291,7 +291,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   //////// auto validate endpoint
   feature(s"test Force-Error header $VersionOfApi - auto validate static endpoint, authenticated access") {
     scenario(s"We will call the endpoint $ApiEndpoint2 with Force-Error have wrong format header", VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
@@ -310,7 +310,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with Force-Error header value not support by current endpoint", VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
@@ -328,7 +328,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with Response-Code header value is not Int", VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
@@ -346,7 +346,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value", VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
@@ -366,7 +366,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value and Response-Code value", VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
@@ -387,7 +387,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
     scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
