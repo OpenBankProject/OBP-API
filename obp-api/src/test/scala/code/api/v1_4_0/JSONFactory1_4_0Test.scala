@@ -100,7 +100,7 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
       val resourceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList,false, None)
 
       for{
-        resouceDoc <- resourceDocs.resource_docs
+        resouceDoc <- resourceDocs.resource_docs if (resouceDoc.request_verb != "DELETE")
         json <- List(compactRender(decompose(resouceDoc.success_response_body)))
         jsonSchema <- List(compactRender(resouceDoc.typed_success_response_body))
       } yield {

@@ -766,7 +766,7 @@ trait APIMethods300 {
         |
         """,
       elasticSearchJsonV300,
-      EmptyBody, //TODO what is output here?
+      emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse, apiTagNewStyle),
       Some(List(canSearchWarehouse)))
@@ -845,7 +845,7 @@ trait APIMethods300 {
          |
         """,
       elasticSearchJsonV300,
-      EmptyBody, //TODO what is output here?
+      emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse, apiTagNewStyle),
       Some(List(canSearchWarehouseStatistics))
