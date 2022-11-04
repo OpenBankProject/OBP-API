@@ -200,7 +200,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   }
   // This will call create customer ,then return the customerId
   def createCustomerViaEndpointAndGetNumber(bankId:String, userId: String) = {
-    createCustomer(bankId, userId).customer_id
+    createCustomer(bankId, userId).customer_number
   } 
   
   //This will call create user customer link
