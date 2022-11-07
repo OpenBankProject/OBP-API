@@ -2100,8 +2100,8 @@ trait APIMethods400 {
          |          if you add it, the entity will be the Bank level.
          |          if you omit it, the entity will be the System level.  
          |""",
-      dynamicEntityRequestBodyExample,
-      dynamicEntityResponseBodyExample,
+      dynamicEntityRequestBodyExample.copy(bankId = None),
+      dynamicEntityResponseBodyExample.copy(bankId = None),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -2212,7 +2212,7 @@ trait APIMethods400 {
          |```
          |""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
-      dynamicEntityResponseBodyExample,
+      dynamicEntityResponseBodyExample.copy(bankId= None),
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
