@@ -38,6 +38,9 @@ import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.OAuthHandshake._
+import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.builder.OBP_APIBuilder
 import code.api.dynamic.endpoint.OBPAPIDynamicEndpoint
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints, DynamicEntityHelper}
@@ -52,6 +55,7 @@ import code.api.v1_2.ErrorMessage
 import code.api.v2_0_0.CreateEntitlementJSON
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.OBPAPIDynamicEntity
+import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.{DirectLogin, _}
 import code.authtypevalidation.AuthenticationTypeValidationProvider
 import code.bankconnectors.Connector
@@ -4273,4 +4277,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
   
   val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
+  
+  lazy val allStaticResourceDocs = (OBPAPI5_0_0.allResourceDocs
+    ++ OBP_UKOpenBanking_200.allResourceDocs
+    ++ OBP_UKOpenBanking_310.allResourceDocs
+    ++ code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1.allResourceDocs
+    ++ code.api.STET.v1_4.OBP_STET_1_4.allResourceDocs
+    ++ OBP_BERLIN_GROUP_1.allResourceDocs
+    ++ code.api.AUOpenBanking.v1_0_0.ApiCollector.allResourceDocs
+    ++ code.api.MxOF.CNBV9_1_0_0.allResourceDocs
+    ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3.allResourceDocs
+    ++ code.api.MxOF.OBP_MXOF_1_0_0.allResourceDocs
+    ++ code.api.BahrainOBF.v1_0_0.ApiCollector.allResourceDocs).toList
+  
+  def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+  
+  def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs
+    
 }
