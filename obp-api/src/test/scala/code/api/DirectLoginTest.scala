@@ -1,6 +1,5 @@
 package code.api
 
-import code.api.util.APIUtil.OAuth.Token
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -8,7 +7,6 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_0_0.UserJsonV300
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
-import code.model
 import code.model.dataAccess.AuthUser
 import code.setup.{APIResponse, ServerSetup}
 import code.userlocks.UserLocksProvider
