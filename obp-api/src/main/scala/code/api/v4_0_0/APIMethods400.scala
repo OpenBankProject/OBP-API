@@ -3652,7 +3652,7 @@ trait APIMethods400 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       userJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -3688,7 +3688,7 @@ trait APIMethods400 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -3723,7 +3723,7 @@ trait APIMethods400 {
          |* locked_status (if null ignore)
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5250,7 +5250,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customersJsonV300,
       List(
         UserNotLoggedIn,
@@ -5286,7 +5286,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customersMinimalJsonV300,
       List(
         UserNotLoggedIn,
@@ -5323,7 +5323,7 @@ trait APIMethods400 {
          |
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       scopeJsons,
       List(UserNotLoggedIn, EntitlementNotFound, ConsumerNotFoundByConsumerId, UnknownError),
       List(apiTagScope, apiTagConsumer, apiTagNewStyle))
@@ -12307,7 +12307,7 @@ trait APIMethods400 {
      s"""Get messages for the customer specified by CUSTOMER_ID
          ${authenticationRequiredMessage(true)}
         """,
-     emptyObjectJson,
+     EmptyBody,
      customerMessagesJsonV400,
      List(
        UserNotLoggedIn,
