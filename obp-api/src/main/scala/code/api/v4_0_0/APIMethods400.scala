@@ -9212,7 +9212,7 @@ trait APIMethods400 {
               json.extract[PostApiCollectionEndpointJson400]
             }
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
-              getAllResourceDocs.find(_.operationId==postJson.operation_id).isDefined
+              getAllResourceDocs.find(_.operationId==postJson.operation_id.trim).isDefined
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
@@ -9261,7 +9261,7 @@ trait APIMethods400 {
               json.extract[PostApiCollectionEndpointJson400]
             }
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
-              getAllResourceDocs.find(_.operationId==postJson.operation_id).isDefined
+              getAllResourceDocs.find(_.operationId==postJson.operation_id.trim).isDefined
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectioId, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
