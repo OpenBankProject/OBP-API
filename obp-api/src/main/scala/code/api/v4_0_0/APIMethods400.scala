@@ -1984,13 +1984,13 @@ trait APIMethods400 {
     
     
     staticResourceDocs += ResourceDoc(
-      getDynamicEntities,
+      getSystemDynamicEntities,
       implementedInApiVersion,
-      nameOf(getDynamicEntities),
+      nameOf(getSystemDynamicEntities),
       "GET",
-      "/management/dynamic-entities",
-      "Get Dynamic Entities",
-      s"""Get the all Dynamic Entities.""",
+      "/management/system-dynamic-entities",
+      "Get System Dynamic Entities",
+      s"""Get all System Dynamic Entities """,
       EmptyBody,
       ListResult(
         "dynamic_entities",
@@ -2002,12 +2002,11 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canGetDynamicEntities))
+      Some(List(canGetSystemLevelDynamicEntities))
     )
 
-
-    lazy val getDynamicEntities: OBPEndpoint = {
-      case "management" :: "dynamic-entities" :: Nil JsonGet req => {
+    lazy val getSystemDynamicEntities: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: Nil JsonGet req => {
         cc =>
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None))
@@ -2039,7 +2038,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canGetBankLevelDynamicEntities, canGetDynamicEntities))
+      Some(List(canGetBankLevelDynamicEntities))
     )
 
     lazy val getBankLevelDynamicEntities: OBPEndpoint = {
@@ -2073,13 +2072,13 @@ trait APIMethods400 {
     }
     
     private def createDynamicEntityDoc = ResourceDoc(
-      createDynamicEntity,
+      createSystemDynamicEntity,
       implementedInApiVersion,
-      nameOf(createDynamicEntity),
+      nameOf(createSystemDynamicEntity),
       "POST",
-      "/management/dynamic-entities",
-      "Create Dynamic Entity",
-      s"""Create a DynamicEntity.
+      "/management/system-dynamic-entities",
+      "Create System Level Dynamic Entity",
+      s"""Create a system level Dynamic Entity.
          |
          |
          |${authenticationRequiredMessage(true)}
@@ -2096,9 +2095,6 @@ trait APIMethods400 {
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
-         | Note: BankId filed is optional, 
-         |          if you add it, the entity will be the Bank level.
-         |          if you omit it, the entity will be the System level.  
          |""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample.copy(bankId = None),
@@ -2109,12 +2105,12 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canCreateDynamicEntity)))
+      Some(List(canCreateSystemLevelDynamicEntity)))
 
-    lazy val createDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic-entities" :: Nil JsonPost json -> _ => {
+    lazy val createSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
-          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId)
+          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId, None)
           createDynamicEntityMethod(cc, dynamicEntity)
       }
     }
@@ -2156,11 +2152,11 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canCreateBankLevelDynamicEntity, canCreateDynamicEntity)))
+      Some(List(canCreateBankLevelDynamicEntity)))
     lazy val createBankLevelDynamicEntity: OBPEndpoint = {
       case "management" ::"banks" :: BankId(bankId) :: "dynamic-entities" :: Nil JsonPost json -> _ => {
         cc =>
-          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId).copy(bankId = Some(bankId.value))
+          val dynamicEntity = DynamicEntityCommons(json.asInstanceOf[JObject], None, cc.userId, Some(bankId.value))
           createDynamicEntityMethod(cc, dynamicEntity)
       }
     }
@@ -2177,7 +2173,7 @@ trait APIMethods400 {
         }
 
         jsonObject = json.asInstanceOf[JObject]
-        dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId).copy(bankId = bankId)
+        dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId, bankId)
         Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
       } yield {
         val commonsData: DynamicEntityCommons = result
@@ -2187,13 +2183,13 @@ trait APIMethods400 {
 
 
     private def updateDynamicEntityDoc = ResourceDoc(
-      updateDynamicEntity,
+      updateSystemDynamicEntity,
       implementedInApiVersion,
-      nameOf(updateDynamicEntity),
+      nameOf(updateSystemDynamicEntity),
       "PUT",
-      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
-      "Update Dynamic Entity",
-      s"""Update a DynamicEntity.
+      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Update System Level Dynamic Entity",
+      s"""Update a System Level Dynamic Entity.
          |
          |
          |${authenticationRequiredMessage(true)}
@@ -2216,13 +2212,14 @@ trait APIMethods400 {
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
         InvalidJsonFormat,
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canUpdateDynamicEntity)))
-    lazy val updateDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
+      Some(List(canUpdateSystemDynamicEntity)))
+    lazy val updateSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
           updateDynamicEntityMethod(None, dynamicEntityId, json, cc)
       }
@@ -2263,7 +2260,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canUpdateBankLevelDynamicEntity, canUpdateDynamicEntity)))
+      Some(List(canUpdateBankLevelDynamicEntity)))
     lazy val updateBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
@@ -2272,12 +2269,12 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      deleteDynamicEntity,
+      deleteSystemDynamicEntity,
       implementedInApiVersion,
-      nameOf(deleteDynamicEntity),
+      nameOf(deleteSystemDynamicEntity),
       "DELETE",
-      "/management/dynamic-entities/DYNAMIC_ENTITY_ID",
-      "Delete Dynamic Entity",
+      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID",
+      "Delete System Level Dynamic Entity",
       s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
          |
          |""",
@@ -2289,9 +2286,9 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canDeleteDynamicEntity)))
-    lazy val deleteDynamicEntity: OBPEndpoint = {
-      case "management" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
+      Some(List(canDeleteSystemLevelDynamicEntity)))
+    lazy val deleteSystemDynamicEntity: OBPEndpoint = {
+      case "management" :: "system-dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
         cc =>
           deleteDynamicEntityMethod(None, dynamicEntityId, cc)
       }
@@ -2308,7 +2305,7 @@ trait APIMethods400 {
         }
         deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(bankId, dynamicEntityId)
       } yield {
-        (deleted, HttpCode.`204`(cc.callContext))
+        (deleted, HttpCode.`200`(cc.callContext))
       }
     }
 
@@ -2331,7 +2328,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle),
-      Some(List(canDeleteBankLevelDynamicEntity, canDeleteDynamicEntity)))
+      Some(List(canDeleteBankLevelDynamicEntity)))
     lazy val deleteBankLevelDynamicEntity: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
         cc =>
@@ -2402,6 +2399,7 @@ trait APIMethods400 {
       List(
         $UserNotLoggedIn,
         InvalidJsonFormat,
+        DynamicEntityNotFoundByDynamicEntityId,
         UnknownError
       ),
       List(apiTagManageDynamicEntity, apiTagApi, apiTagNewStyle)
@@ -2411,18 +2409,19 @@ trait APIMethods400 {
       case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonPut json -> _ => {
         cc =>
           for {
-            // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
-            (entity, _) <- NewStyle.function.getDynamicEntityById(None, dynamicEntityId, cc.callContext)
-            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
-              entity.userId.equals(cc.userId)
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(cc.userId))
+            entityOption =  dynamicEntities.find(_.dynamicEntityId.equals(Some(dynamicEntityId)))
+            myEntity <- NewStyle.function.tryons(InvalidMyDynamicEntityUser, 400, cc.callContext) {
+                entityOption.get
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, cc.callContext)
-            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+            // Check whether there are uploaded data, only if no uploaded data allow to update DynamicEntity.
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, myEntity.entityName, None, myEntity.dynamicEntityId, myEntity.bankId, None, Some(myEntity.userId), false, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], myEntity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
             }
             jsonObject = json.asInstanceOf[JObject]
-            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId)
+            dynamicEntity = DynamicEntityCommons(jsonObject, Some(dynamicEntityId), cc.userId, myEntity.bankId)
             Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, cc.callContext)
           } yield {
             val commonsData: DynamicEntityCommons = result
@@ -2454,17 +2453,18 @@ trait APIMethods400 {
       case "my" :: "dynamic-entities" :: dynamicEntityId :: Nil JsonDelete _ => {
         cc =>
           for {
-            // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
-            (entity, _) <- NewStyle.function.getDynamicEntityById(None, dynamicEntityId, cc.callContext)
-            _ <- Helper.booleanToFuture(InvalidMyDynamicEntityUser, cc=cc.callContext) {
-              entity.userId.equals(cc.userId)
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(cc.userId))
+            entityOption =  dynamicEntities.find(_.dynamicEntityId.equals(Some(dynamicEntityId)))
+            myEntity <- NewStyle.function.tryons(InvalidMyDynamicEntityUser, 400, cc.callContext) {
+              entityOption.get
             }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, entity.entityName, None, None, entity.bankId, None, None, false, cc.callContext)
-            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entity.entityName)
+            // Check whether there are uploaded data, only if no uploaded data allow to delete DynamicEntity.
+            (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ALL, myEntity.entityName, None, myEntity.dynamicEntityId, myEntity.bankId, None, Some(myEntity.userId), false, cc.callContext)
+            resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], myEntity.entityName)
             _ <- Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc=cc.callContext) {
               resultList.arr.isEmpty
             }
-            deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
+            deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(myEntity.bankId, dynamicEntityId)
           } yield {
             (deleted, HttpCode.`200`(cc.callContext))
           }

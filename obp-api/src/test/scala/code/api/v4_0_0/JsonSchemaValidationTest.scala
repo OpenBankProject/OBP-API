@@ -405,7 +405,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   }
   // prepare one dynamic entity FooBar
   private def addDynamicEntity(): APIResponse = {
-    addEntitlement(canCreateDynamicEntity)
+    addEntitlement(canCreateSystemLevelDynamicEntity)
     val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
     val fooBar =
       s"""

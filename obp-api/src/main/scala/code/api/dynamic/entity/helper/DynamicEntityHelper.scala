@@ -593,10 +593,28 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 }
 
 object DynamicEntityInfo {
-  def canCreateRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, bankId.isDefined)
-  def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, bankId.isDefined)
-  def canGetRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, bankId.isDefined)
-  def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole = getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, bankId.isDefined)
+  def canCreateRole(entityName: String, bankId:Option[String]): ApiRole = 
+    if(bankId.isDefined) 
+      getOrCreateDynamicApiRole("CanCreateDynamicEntityAtOneBank_" + entityName, true) 
+    else  
+      getOrCreateDynamicApiRole("CanCreateDynamicEntity_System" + entityName, false) 
+  def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole = 
+    if(bankId.isDefined) 
+      getOrCreateDynamicApiRole("CanUpdateDynamicEntityAtOneBank_" + entityName, true) 
+    else  
+      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_System" + entityName, false) 
+      
+  def canGetRole(entityName: String, bankId:Option[String]): ApiRole = 
+    if(bankId.isDefined)
+      getOrCreateDynamicApiRole("CanGetDynamicEntityAtOneBank_" + entityName, true) 
+    else  
+      getOrCreateDynamicApiRole("CanGetDynamicEntity_System" + entityName, false) 
+      
+  def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole = 
+    if(bankId.isDefined) 
+      getOrCreateDynamicApiRole("CanDeleteDynamicEntityAtOneBank_" + entityName, true) 
+    else  
+      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false) 
 
   def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
     canCreateRole(entityName, bankId), 

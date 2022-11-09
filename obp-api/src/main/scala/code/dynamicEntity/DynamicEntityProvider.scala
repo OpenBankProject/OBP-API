@@ -376,8 +376,6 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * @param jsonObject the follow schema json:
    * {{{
    *   {
-   *     "BankId": "gh.29.uk",
-   *     "isPersonalEntity": true,
    *     "FooBar": {
    *         "description": "description of this entity, can be markdown text.",
    *         "required": [
@@ -401,11 +399,9 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * }
    * }}}
    * @param dynamicEntityId
-   * @param bankId
-   * @param isPersonalEntity
    * @return object of DynamicEntityCommons
    */
-  def apply(jsonObject: JObject, dynamicEntityId: Option[String], userId: String): DynamicEntityCommons = {
+  def apply(jsonObject: JObject, dynamicEntityId: Option[String], userId: String, bankId: Option[String]): DynamicEntityCommons = {
 
     def checkFormat(requirement: Boolean, message: String) = {
       if (!requirement) throw new IllegalArgumentException(message)
@@ -524,7 +520,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, None, hasPersonalEntity)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntity)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames

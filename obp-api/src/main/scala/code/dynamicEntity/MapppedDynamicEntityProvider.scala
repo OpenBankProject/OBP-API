@@ -11,17 +11,18 @@ import org.apache.commons.lang3.StringUtils
 object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJsonFormats with MdcLoggable {
 
   override def getById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntityT] = {
-    if (bankId.isEmpty) 
-      DynamicEntity.find(By(DynamicEntity.DynamicEntityId, dynamicEntityId))
+    if (bankId.isEmpty)//If bankId is empty, we only return the system level entities
+      DynamicEntity.find(
+        By(DynamicEntity.DynamicEntityId, dynamicEntityId),
+        NullRef(DynamicEntity.BankId))
     else
       DynamicEntity.find(
         By(DynamicEntity.DynamicEntityId, dynamicEntityId),
-        By(DynamicEntity.BankId, bankId.get
-        ))
+        By(DynamicEntity.BankId, bankId.get))
   }
 
   override def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT] =
-    if (bankId.isEmpty)
+    if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
       DynamicEntity.find(
         By(DynamicEntity.EntityName, entityName),
         NullRef(DynamicEntity.BankId)
@@ -34,8 +35,8 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       
 
   override def getDynamicEntities(bankId: Option[String]): List[DynamicEntity] = {
-    if (bankId.isEmpty)
-      DynamicEntity.findAll()
+    if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
+      DynamicEntity.findAll(NullRef(DynamicEntity.BankId))
     else
       DynamicEntity.findAll(By(DynamicEntity.BankId, bankId.get))
   }
