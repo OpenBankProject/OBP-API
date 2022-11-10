@@ -35,7 +35,7 @@ trait DynamicEntityT {
    * @return
    */
   def userId: String
-  def hasPersonalEntity: Option[Boolean]
+  def hasPersonalEntity: Boolean
 
   /**
    * Add Option(bank_id) to Dynamic Entity.
@@ -365,7 +365,7 @@ case class DynamicEntityCommons(entityName: String,
                                 dynamicEntityId: Option[String] = None,
                                 userId: String,
                                 bankId: Option[String] ,
-                                hasPersonalEntity: Option[Boolean]
+                                hasPersonalEntity: Boolean
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -411,11 +411,11 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
     // validate whether json is object and have a single field, currently support one entity definition
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
-    checkFormat(fields.size == 1, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
+    checkFormat(fields.size <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should at most two fields: entity and hasPersonalEntity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
     
-    val hasPersonalEntity: Option[Boolean] = fields.filter(_.name=="hasPersonalEntity").map(_.value.asInstanceOf[JBool].values).headOption
+    val hasPersonalEntity: Boolean = fields.filter(_.name=="hasPersonalEntity").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(true)
     
-    val JField(entityName, metadataJson) = fields.filter(_.name!="bankId").head
+    val JField(entityName, metadataJson) = fields.filter(_.name!="hasPersonalEntity").head
     
     val namePattern = "[-_A-Za-z0-9]+".r.pattern
     // validate entity name

@@ -2095,6 +2095,8 @@ trait APIMethods400 {
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
+         |
+         |Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
          |""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample.copy(bankId = None),

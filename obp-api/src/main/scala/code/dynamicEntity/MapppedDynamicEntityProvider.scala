@@ -66,7 +66,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .MetadataJson(dynamicEntity.metadataJson)
           .UserId(dynamicEntity.userId)
           .BankId(dynamicEntity.bankId.getOrElse(null))
-          .HasPersonalEntity(dynamicEntity.hasPersonalEntity.getOrElse(true))
+          .HasPersonalEntity(dynamicEntity.hasPersonalEntity)
           .saveMe()
       } catch {
         case e =>
@@ -105,7 +105,7 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   override def metadataJson: String = MetadataJson.get
   override def userId: String = UserId.get
   override def bankId: Option[String] = if (BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get)
-  override def hasPersonalEntity: Option[Boolean] = Option(HasPersonalEntity.get)
+  override def hasPersonalEntity: Boolean = HasPersonalEntity.get
 }
 
 object DynamicEntity extends DynamicEntity with LongKeyedMetaMapper[DynamicEntity] {

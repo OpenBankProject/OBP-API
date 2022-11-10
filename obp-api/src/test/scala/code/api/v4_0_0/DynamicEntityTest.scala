@@ -1803,11 +1803,11 @@ class DynamicEntityTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val requestSystemLevel = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ (user1)
 
-      val haspersonalEntityFalse = parse(
+      val hasPersonalEntityFalse = parse(
         """
           |{
+          |    "hasPersonalEntity": false,
           |    "FooBar": {
-          |       "haspersonalentity": false,
           |       "description": "description of this entity, can be markdown text.",
           |        "required": [
           |            "name"
@@ -1829,7 +1829,7 @@ class DynamicEntityTest extends V400ServerSetup {
           |}
           |""".stripMargin)
 
-      val responseSystemLevel = makePostRequest(requestSystemLevel, write(haspersonalEntityFalse))
+      val responseSystemLevel = makePostRequest(requestSystemLevel, write(hasPersonalEntityFalse))
       Then("We should get a 201")
       responseSystemLevel.code should equal(201)
 
@@ -1843,11 +1843,11 @@ class DynamicEntityTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val requestSystemLevel = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST <@ (user1)
 
-      val haspersonalEntityFalse = parse(
+      val hasPersonalEntityFalse = parse(
         """
           |{
+          |     "hasPersonalEntity": false,
           |    "FooBar": {
-          |       "haspersonalentity": false,
           |       "description": "description of this entity, can be markdown text.",
           |        "required": [
           |            "name"
@@ -1869,7 +1869,7 @@ class DynamicEntityTest extends V400ServerSetup {
           |}
           |""".stripMargin)
       
-      val responseSystemLevel = makePostRequest(requestSystemLevel, write(haspersonalEntityFalse))
+      val responseSystemLevel = makePostRequest(requestSystemLevel, write(hasPersonalEntityFalse))
       Then("We should get a 201")
       responseSystemLevel.code should equal(201)
 

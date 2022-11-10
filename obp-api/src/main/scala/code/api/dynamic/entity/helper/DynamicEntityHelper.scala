@@ -23,11 +23,11 @@ object EntityName {
 
     //eg: /my/FooBar21
     case "my" :: entityName ::  Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasPersonalEntity)
         .map(_ => (None, entityName, "", true))
     //eg: /my/FooBar21/FOO_BAR21_ID
     case "my" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty && definitionMap._2.hasPersonalEntity)
         .map(_ => (None, entityName, id, true))
       
     //eg: /FooBar21
@@ -42,11 +42,11 @@ object EntityName {
     
     //eg: /Banks/BANK_ID/my/FooBar21
     case "banks" :: bankId :: "my" :: entityName :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasPersonalEntity)
         .map(_ => (Some(bankId), entityName, "", true))
     //eg: /Banks/BANK_ID/my/FooBar21/FOO_BAR21_ID
     case "banks" :: bankId :: "my" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId) && definitionMap._2.hasPersonalEntity)
         .map(_ => (Some(bankId),entityName, id, true))
 
     //contains Bank:
@@ -67,7 +67,7 @@ object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
   
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
+  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity))).toMap
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
@@ -138,6 +138,8 @@ object DynamicEntityHelper {
   private def createDocs(fun: (String, String) => ResourceDocTag)
                 (dynamicEntityInfo: DynamicEntityInfo): mutable.Map[(DynamicEntityOperation, String), ResourceDoc] = {
     val entityName = dynamicEntityInfo.entityName
+    val hasPersonalEntity = dynamicEntityInfo.hasPersonalEntity
+    
     // e.g: "someMultiple-part_Name" -> ["Some", "Multiple", "Part", "Name"]
     val capitalizedNameParts = entityName.split("(?<=[a-z0-9])(?=[A-Z])|-|_").map(_.capitalize).filterNot(_.trim.isEmpty)
     val splitName = s"""${capitalizedNameParts.mkString(" ")}"""
@@ -307,143 +309,144 @@ object DynamicEntityHelper {
       createdByBankId= dynamicEntityInfo.bankId
     )
 
-    resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
-      endPoint,
-      implementedInApiVersion,
-      buildGetAllFunctionName(bankId, s"My$entityName"),
-      "GET",
-      s"$myResourceDocUrl",
-      s"Get My $splitName List",
-      s"""Get My $splitName List.
-         |${dynamicEntityInfo.description}
-         |
-         |${dynamicEntityInfo.fieldsDescription}
-         |
-         |${methodRoutingExample(entityName)}
-         |
-         |${authenticationRequiredMessage(true)}
-         |
-         |Can do filter on the fields
-         |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
-         |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
-         |""".stripMargin,
-      EmptyBody,
-      dynamicEntityInfo.getExampleList,
-      List(
-        UserNotLoggedIn,
-        UnknownError
-      ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      createdByBankId= dynamicEntityInfo.bankId
-    )
-    
-    resourceDocs += (DynamicEntityOperation.GET_ONE, mySplitNameWithBankId) -> ResourceDoc(
-      endPoint,
-      implementedInApiVersion,
-      buildGetOneFunctionName(bankId, s"My$entityName"),
-      "GET",
-      s"$myResourceDocUrl/$idNameInUrl",
-      s"Get My $splitName by id",
-      s"""Get My $splitName by id.
-         |${dynamicEntityInfo.description}
-         |
-         |${dynamicEntityInfo.fieldsDescription}
-         |
-         |${methodRoutingExample(entityName)}
-         |
-         |${authenticationRequiredMessage(true)}
-         |""".stripMargin,
-      EmptyBody,
-      dynamicEntityInfo.getSingleExample,
-      List(
-        UserNotLoggedIn,
-        UnknownError
-      ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      createdByBankId= dynamicEntityInfo.bankId
-    )
-
-    resourceDocs += (DynamicEntityOperation.CREATE, mySplitNameWithBankId) -> ResourceDoc(
-      endPoint,
-      implementedInApiVersion,
-      buildCreateFunctionName(bankId, s"My$entityName"),
-      "POST",
-      s"$myResourceDocUrl",
-      s"Create new My $splitName",
-      s"""Create new My $splitName.
-         |${dynamicEntityInfo.description}
-         |
-         |${dynamicEntityInfo.fieldsDescription}
-         |
-         |${methodRoutingExample(entityName)}
-         |
-         |${authenticationRequiredMessage(true)}
-         |
-         |""",
-      dynamicEntityInfo.getSingleExampleWithoutId,
-      dynamicEntityInfo.getSingleExample,
-      List(
-        UserNotLoggedIn,
-        InvalidJsonFormat,
-        UnknownError
-      ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      createdByBankId= dynamicEntityInfo.bankId
+    if(hasPersonalEntity){ //only hasPersonalEntity == true, then create the myEndpoints
+      resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
+        endPoint,
+        implementedInApiVersion,
+        buildGetAllFunctionName(bankId, s"My$entityName"),
+        "GET",
+        s"$myResourceDocUrl",
+        s"Get My $splitName List",
+        s"""Get My $splitName List.
+           |${dynamicEntityInfo.description}
+           |
+           |${dynamicEntityInfo.fieldsDescription}
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |${authenticationRequiredMessage(true)}
+           |
+           |Can do filter on the fields
+           |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
+           |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
+           |""".stripMargin,
+        EmptyBody,
+        dynamicEntityInfo.getExampleList,
+        List(
+          UserNotLoggedIn,
+          UnknownError
+        ),
+        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        createdByBankId= dynamicEntityInfo.bankId
       )
-
-    resourceDocs += (DynamicEntityOperation.UPDATE, mySplitNameWithBankId) -> ResourceDoc(
-      endPoint,
-      implementedInApiVersion,
-      buildUpdateFunctionName(bankId, s"My$entityName"),
-      "PUT",
-      s"$myResourceDocUrl/$idNameInUrl",
-      s"Update My $splitName",
-      s"""Update My $splitName.
-         |${dynamicEntityInfo.description}
-         |
-         |${dynamicEntityInfo.fieldsDescription}
-         |
-         |${methodRoutingExample(entityName)}
-         |
-         |${authenticationRequiredMessage(true)}
-         |
-         |""",
-      dynamicEntityInfo.getSingleExampleWithoutId,
-      dynamicEntityInfo.getSingleExample,
-      List(
-        UserNotLoggedIn,
-        InvalidJsonFormat,
-        UnknownError
-      ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      Some(List(dynamicEntityInfo.canUpdateRole)),
-      createdByBankId= dynamicEntityInfo.bankId
-    )
-
-    resourceDocs += (DynamicEntityOperation.DELETE, mySplitNameWithBankId) -> ResourceDoc(
-      endPoint,
-      implementedInApiVersion,
-      buildDeleteFunctionName(bankId, s"My$entityName"),
-      "DELETE",
-      s"$myResourceDocUrl/$idNameInUrl",
-      s"Delete My $splitName by id",
-      s"""Delete My $splitName by id
-         |
-         |${methodRoutingExample(entityName)}
-         |
-         |${authenticationRequiredMessage(true)}
-         |
-         |""",
-      dynamicEntityInfo.getSingleExampleWithoutId,
-      dynamicEntityInfo.getSingleExample,
-      List(
-        UserNotLoggedIn,
-        UnknownError
-      ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
-      createdByBankId= dynamicEntityInfo.bankId
-    )
-
+      
+      resourceDocs += (DynamicEntityOperation.GET_ONE, mySplitNameWithBankId) -> ResourceDoc(
+        endPoint,
+        implementedInApiVersion,
+        buildGetOneFunctionName(bankId, s"My$entityName"),
+        "GET",
+        s"$myResourceDocUrl/$idNameInUrl",
+        s"Get My $splitName by id",
+        s"""Get My $splitName by id.
+           |${dynamicEntityInfo.description}
+           |
+           |${dynamicEntityInfo.fieldsDescription}
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |${authenticationRequiredMessage(true)}
+           |""".stripMargin,
+        EmptyBody,
+        dynamicEntityInfo.getSingleExample,
+        List(
+          UserNotLoggedIn,
+          UnknownError
+        ),
+        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        createdByBankId= dynamicEntityInfo.bankId
+      )
+  
+      resourceDocs += (DynamicEntityOperation.CREATE, mySplitNameWithBankId) -> ResourceDoc(
+        endPoint,
+        implementedInApiVersion,
+        buildCreateFunctionName(bankId, s"My$entityName"),
+        "POST",
+        s"$myResourceDocUrl",
+        s"Create new My $splitName",
+        s"""Create new My $splitName.
+           |${dynamicEntityInfo.description}
+           |
+           |${dynamicEntityInfo.fieldsDescription}
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |${authenticationRequiredMessage(true)}
+           |
+           |""",
+        dynamicEntityInfo.getSingleExampleWithoutId,
+        dynamicEntityInfo.getSingleExample,
+        List(
+          UserNotLoggedIn,
+          InvalidJsonFormat,
+          UnknownError
+        ),
+        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        createdByBankId= dynamicEntityInfo.bankId
+        )
+  
+      resourceDocs += (DynamicEntityOperation.UPDATE, mySplitNameWithBankId) -> ResourceDoc(
+        endPoint,
+        implementedInApiVersion,
+        buildUpdateFunctionName(bankId, s"My$entityName"),
+        "PUT",
+        s"$myResourceDocUrl/$idNameInUrl",
+        s"Update My $splitName",
+        s"""Update My $splitName.
+           |${dynamicEntityInfo.description}
+           |
+           |${dynamicEntityInfo.fieldsDescription}
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |${authenticationRequiredMessage(true)}
+           |
+           |""",
+        dynamicEntityInfo.getSingleExampleWithoutId,
+        dynamicEntityInfo.getSingleExample,
+        List(
+          UserNotLoggedIn,
+          InvalidJsonFormat,
+          UnknownError
+        ),
+        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        Some(List(dynamicEntityInfo.canUpdateRole)),
+        createdByBankId= dynamicEntityInfo.bankId
+      )
+  
+      resourceDocs += (DynamicEntityOperation.DELETE, mySplitNameWithBankId) -> ResourceDoc(
+        endPoint,
+        implementedInApiVersion,
+        buildDeleteFunctionName(bankId, s"My$entityName"),
+        "DELETE",
+        s"$myResourceDocUrl/$idNameInUrl",
+        s"Delete My $splitName by id",
+        s"""Delete My $splitName by id
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |${authenticationRequiredMessage(true)}
+           |
+           |""",
+        dynamicEntityInfo.getSingleExampleWithoutId,
+        dynamicEntityInfo.getSingleExample,
+        List(
+          UserNotLoggedIn,
+          UnknownError
+        ),
+        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        createdByBankId= dynamicEntityInfo.bankId
+      )
+    }
     resourceDocs
   }
 
@@ -493,7 +496,7 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String]) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean) {
 
   import net.liftweb.json
 
