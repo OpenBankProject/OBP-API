@@ -284,7 +284,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
           logger.debug(s"Generating OBP Resource Docs requestedApiVersion is $requestedApiVersionString")
           val requestedApiVersion  = ApiVersionUtils.valueOf(requestedApiVersionString)
           
-          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
+          val dynamicDocs = allDynamicResourceDocs
             .filter(rd => rd.implementedInApiVersion == requestedApiVersion)
             .map(it => it.specifiedUrl match {
               case Some(_) => it
@@ -332,7 +332,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicResourceDocsTTL second) {
-          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs)
+          val dynamicDocs = allDynamicResourceDocs
             .filter(rd => if (bankId.isDefined) rd.createdByBankId == bankId else true)
             .map(it => it.specifiedUrl match {
               case Some(_) => it
@@ -817,7 +817,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       resourceDocs match {
         case docs @Some(_) => resourceDocsToJValue(docs)
         case _ =>
-          val dynamicDocs = (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+          val dynamicDocs = allDynamicResourceDocs
           resourceDocsToJValue(Some(dynamicDocs))
       }
     }

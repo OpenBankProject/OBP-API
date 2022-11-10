@@ -9,6 +9,10 @@ import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
+import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
+import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.berlin.group.v1.OBP_BERLIN_GROUP_1
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpoint}
 import code.api.dynamic.endpoint.helper.{CompiledObjects, DynamicEndpointHelper, DynamicEndpoints}
@@ -39,6 +43,7 @@ import code.api.v4_0_0.JSONFactory400._
 import code.api.dynamic.endpoint.helper._
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
+import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.{ChargePolicy, Constant, JsonResponseException}
 import code.apicollection.MappedApiCollectionsProvider
 import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
@@ -3651,7 +3656,7 @@ trait APIMethods400 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       userJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -3687,7 +3692,7 @@ trait APIMethods400 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       List(apiTagUser, apiTagNewStyle),
@@ -3722,7 +3727,7 @@ trait APIMethods400 {
          |* locked_status (if null ignore)
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       usersJsonV400,
       List(
         $UserNotLoggedIn,
@@ -5249,7 +5254,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customersJsonV300,
       List(
         UserNotLoggedIn,
@@ -5285,7 +5290,7 @@ trait APIMethods400 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      emptyObjectJson,
+      EmptyBody,
       customersMinimalJsonV300,
       List(
         UserNotLoggedIn,
@@ -5322,7 +5327,7 @@ trait APIMethods400 {
          |
          |
       """.stripMargin,
-      emptyObjectJson,
+      EmptyBody,
       scopeJsons,
       List(UserNotLoggedIn, EntitlementNotFound, ConsumerNotFoundByConsumerId, UnknownError),
       List(apiTagScope, apiTagConsumer, apiTagNewStyle))
@@ -9211,8 +9216,7 @@ trait APIMethods400 {
               json.extract[PostApiCollectionEndpointJson400]
             }
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
-              (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs ++ OBPAPI4_0_0.allResourceDocs).toList
-                .find(_.operationId==postJson.operation_id).isDefined
+              getAllResourceDocs.find(_.operationId==postJson.operation_id.trim).isDefined
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(cc.userId, apiCollectionName, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
@@ -9261,8 +9265,7 @@ trait APIMethods400 {
               json.extract[PostApiCollectionEndpointJson400]
             }
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
-              (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs ++ OBPAPI4_0_0.allResourceDocs).toList
-                .find(_.operationId==postJson.operation_id).isDefined
+              getAllResourceDocs.find(_.operationId==postJson.operation_id.trim).isDefined
             }
             (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectioId, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
@@ -12308,7 +12311,7 @@ trait APIMethods400 {
      s"""Get messages for the customer specified by CUSTOMER_ID
          ${authenticationRequiredMessage(true)}
         """,
-     emptyObjectJson,
+     EmptyBody,
      customerMessagesJsonV400,
      List(
        UserNotLoggedIn,
