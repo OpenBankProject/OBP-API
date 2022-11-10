@@ -136,11 +136,141 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
       apiCollectionEndpointsJsonGetAfterDelete.api_collection_endpoints.length should be (0)
 
       {
-        Then(s"we test the $ApiEndpoint6")
+        Then(s"we test the $ApiEndpoint6- OBPv400")
         val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
   
         lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="OBPv4.0.0-getBanks")
   
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+  
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+  
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+
+      {
+        Then(s"we test the $ApiEndpoint6- OBPv500")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="OBPv5.0.0-createCustomer")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+      
+      {
+        Then(s"we test the $ApiEndpoint6- UKv3.1-createAccountAccessConsents")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="UKv3.1-createAccountAccessConsents")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+      {
+        Then(s"we test the $ApiEndpoint6- BGv1.3-getConsentStatus")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="BGv1.3-getConsentStatus")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+      {
+        Then(s"we test the $ApiEndpoint6- STETv1.4-consentsPut")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="STETv1.4-consentsPut")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+      {
+        Then(s"we test the $ApiEndpoint6- PAPIv2.1.1.1-getAccount")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="PAPIv2.1.1.1-getAccount")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+      {
+        Then(s"we test the $ApiEndpoint6- AUv1.0.0-listBalance")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="AUv1.0.0-listBalance")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+      {
+        Then(s"we test the $ApiEndpoint6- BAHRAIN-OBFv1.0.0-accountAccessConsentsPost")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="BAHRAIN-OBFv1.0.0-accountAccessConsentsPost")
+
+        val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
+        Then("We should get a 201")
+        responseApiCollectionEndpointJson.code should equal(201)
+        val apiCollectionEndpoint = responseApiCollectionEndpointJson.body.extract[ApiCollectionEndpointJson400]
+
+        apiCollectionEndpoint.operation_id should be (postApiCollectionEndpointJson.operation_id)
+        apiCollectionEndpoint.api_collection_endpoint_id shouldNot be (null)
+
+        val  operationId= apiCollectionEndpoint.operation_id
+      }
+      {
+        Then(s"we test the $ApiEndpoint6- CNBV9v1.0.0-getMxAtms")
+        val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+
+        lazy val postApiCollectionEndpointJson = SwaggerDefinitionsJSON.postApiCollectionEndpointJson400.copy(operation_id="CNBV9v1.0.0-getMxAtms")
+
         val responseApiCollectionEndpointJson = makePostRequest(requestApiCollectionEndpoint, write(postApiCollectionEndpointJson))
         Then("We should get a 201")
         responseApiCollectionEndpointJson.code should equal(201)
@@ -162,7 +292,7 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
 
         val apiCollectionsJsonGet400 = responseGet.body.extract[ApiCollectionEndpointsJson400]
 
-        apiCollectionsJsonGet400.api_collection_endpoints.length should be (1)
+        apiCollectionsJsonGet400.api_collection_endpoints.length should be (9)
       }
     }
   }
