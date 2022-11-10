@@ -3105,7 +3105,7 @@ object NewStyle extends MdcLoggable{
       else APIUtil.getPropsValue(s"dynamicEntity.cache.ttl.seconds", "30").toInt
     }
 
-    def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT] = {
+    def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
       validateBankId(bankId, None)
@@ -3113,7 +3113,7 @@ object NewStyle extends MdcLoggable{
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL second) {
-          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId)
+          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId, returnBothBankAndSystemLevel)
         }
       }
     }

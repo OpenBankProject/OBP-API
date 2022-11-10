@@ -2009,7 +2009,7 @@ trait APIMethods400 {
       case "management" :: "system-dynamic-entities" :: Nil JsonGet req => {
         cc =>
           for {
-            dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None))
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
             val jObjects = listCommons.map(_.jValue)
@@ -2045,7 +2045,7 @@ trait APIMethods400 {
       case "management" :: "banks" :: bankId :: "dynamic-entities" :: Nil JsonGet req => {
         cc =>
           for {
-            dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bankId)))
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bankId),false))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
             val jObjects = listCommons.map(_.jValue)

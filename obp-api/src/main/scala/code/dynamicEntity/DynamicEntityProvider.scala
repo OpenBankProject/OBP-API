@@ -288,7 +288,7 @@ object ReferenceType {
   )
 
   def referenceTypeNames: List[String] = {
-    val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities(None)
+    val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities(None, true)
       .map(entity => s"reference:${entity.entityName}")
 
     val staticRefs: List[String] = staticRefTypeToValidateFunction.keys.toList
@@ -545,7 +545,7 @@ trait DynamicEntityProvider {
   // so --> here can not use bankId as parameters: 
   def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT]
 
-  def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT]
+  def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntityT]
   
   def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity]
 

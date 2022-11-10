@@ -34,8 +34,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       )
       
 
-  override def getDynamicEntities(bankId: Option[String]): List[DynamicEntity] = {
-    if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
+  override def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntity] = {
+    if(returnBothBankAndSystemLevel)
+      DynamicEntity.findAll()
+    else if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
       DynamicEntity.findAll(NullRef(DynamicEntity.BankId))
     else
       DynamicEntity.findAll(By(DynamicEntity.BankId, bankId.get))

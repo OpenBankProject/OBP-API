@@ -353,7 +353,7 @@ trait APIMethodsDynamicEntity {
           )
           deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
         } yield {
-          (deleteResult, HttpCode.`204`(Some(cc)))
+          (deleteResult, HttpCode.`200`(Some(cc)))
         }
       }
     }

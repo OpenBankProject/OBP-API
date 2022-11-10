@@ -66,9 +66,9 @@ object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
   
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
+  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId))).toMap
 
-  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None).flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
+  def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap(dEntity => DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId))
 
   def doc: ArrayBuffer[ResourceDoc] = {
     val docs = operationToResourceDoc.values.toList
@@ -595,24 +595,24 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 object DynamicEntityInfo {
   def canCreateRole(entityName: String, bankId:Option[String]): ApiRole = 
     if(bankId.isDefined) 
-      getOrCreateDynamicApiRole("CanCreateDynamicEntityAtOneBank_" + entityName, true) 
+      getOrCreateDynamicApiRole("CanCreateDynamicEntity_" + entityName, true) 
     else  
       getOrCreateDynamicApiRole("CanCreateDynamicEntity_System" + entityName, false) 
   def canUpdateRole(entityName: String, bankId:Option[String]): ApiRole = 
     if(bankId.isDefined) 
-      getOrCreateDynamicApiRole("CanUpdateDynamicEntityAtOneBank_" + entityName, true) 
+      getOrCreateDynamicApiRole("CanUpdateDynamicEntity_" + entityName, true) 
     else  
       getOrCreateDynamicApiRole("CanUpdateDynamicEntity_System" + entityName, false) 
       
   def canGetRole(entityName: String, bankId:Option[String]): ApiRole = 
     if(bankId.isDefined)
-      getOrCreateDynamicApiRole("CanGetDynamicEntityAtOneBank_" + entityName, true) 
+      getOrCreateDynamicApiRole("CanGetDynamicEntity_" + entityName, true) 
     else  
       getOrCreateDynamicApiRole("CanGetDynamicEntity_System" + entityName, false) 
       
   def canDeleteRole(entityName: String, bankId:Option[String]): ApiRole = 
     if(bankId.isDefined) 
-      getOrCreateDynamicApiRole("CanDeleteDynamicEntityAtOneBank_" + entityName, true) 
+      getOrCreateDynamicApiRole("CanDeleteDynamicEntity_" + entityName, true) 
     else  
       getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false) 
 

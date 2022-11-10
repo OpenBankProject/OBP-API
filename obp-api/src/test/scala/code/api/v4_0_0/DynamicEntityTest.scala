@@ -1041,554 +1041,711 @@ class DynamicEntityTest extends V400ServerSetup {
   }
   }
 
-//  feature("Test all the CRUD Foobar Records and Foobar Roles") {
-//    scenario("We will call the endpoint with the proper Role " + canCreateSystemLevelDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
-//      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
-//      val requestBankLevel = (v4_0_0_Request / "management" /"banks" /testBankId1.value/ "dynamic-entities").POST <@(user1)
-//
-//      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
-//      val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
-//
-//      val systemLevelEntity = makePostRequest(request, write(rightEntity))
-//      Then("We should get a 201")
-//      systemLevelEntity.code should equal(201)
-//
-//      {
-//        Then("we can insert the new FooBar data - SystemLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//
-//        val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user1)
-//        val responseGetFoobars = makeGetRequest(requestGetFoobars)
-//        responseGetFoobars.code should equal(200)
-//
-//        val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user1)
-//        val responseGetFoobar = makeGetRequest(requestGetFoobar)
-//        responseGetFoobar.code should equal(200)
-//
-//        val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user1)
-//        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
-//        responseUpdateFoobar.code should equal(200)
-//        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
-//        responseUpdateFoobarName should equal("James Brown123")
-//
-//        val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        When("When other user call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//      }
-//
-//      val bankLevelEntity = makePostRequest(requestBankLevel, write(rightEntity))
-//      Then("We should get a 201")
-//      bankLevelEntity.code should equal(201)
-//
-//      {
-//        Then("we can insert the new FooBar data - BankLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankId should equal(testBankId1.value)
-//
-//        val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user1)
-//        val responseGetFoobars = makeGetRequest(requestGetFoobars)
-//        responseGetFoobars.code should equal(200)
-//        val dynamicBankIdGetFoobars = (responseGetFoobars.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankIdGetFoobars should equal(testBankId1.value)
-//
-//        val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user1)
-//        val responseGetFoobar = makeGetRequest(requestGetFoobar)
-//        responseGetFoobar.code should equal(200)
-//        val dynamicBankIdGetFoobar = (responseGetFoobar.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankIdGetFoobar should equal(testBankId1.value)
-//
-//        val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user1)
-//        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
-//        responseUpdateFoobar.code should equal(200)
-//        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
-//        responseUpdateFoobarName should equal("James Brown123")
-//
-//        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        When("When other user call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//      }
-//
-//    }
-//
-//    scenario("when user1 create fooBar, and delete the foobar, user2 create foobar again. user1 should not have the role for it " , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanCreateSystemLevelDynamicEntity.toString)
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanDeleteSystemLevelDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val requestSystemLevel = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
-//      val requestBankLevel = (v4_0_0_Request / "management" / "banks" /testBankId1.value / "dynamic-entities").POST <@(user1)
-//
-//      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
-//
-//      val response= makePostRequest(requestSystemLevel, write(rightEntity))
-//      Then("We should get a 201")
-//      response.code should equal(201)
-//      val dynamicEntityId = (response.body \ "dynamicEntityId").asInstanceOf[JString].s
-//
-//      {
-//        Then("we can insert the new FooBar data - SystemLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val fooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//
-//        {
-//          Then("user2 can not get the foo bar records")
-//          val requestCreateFoobarUser2 = (dynamicEntity_Request/ "FooBar").GET <@(user2)
-//          val responseCreateFoobarUser2 = makeGetRequest(requestCreateFoobarUser2)
-//          responseCreateFoobarUser2.code should equal(403)
-//          And("error should be " + UserHasMissingRoles)
-//          responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//        }
-//
-//        Then("we grant user3 can get FooBar role, user3 can get the foobar records. ")
-//        Entitlement.entitlement.vend.addEntitlement("", resourceUser3.userId, "CanGetDynamicEntity_FooBar")
-//        val requestCreateFoobarUser3 = (dynamicEntity_Request / "FooBar").GET <@(user3)
-//        val responseCreateFoobarUser3 = makeGetRequest(requestCreateFoobarUser3)
-//        responseCreateFoobarUser3.code should equal(200)
-//
-//        {
-//          Then(s"user1 try to delete the FooBar entity, it will show the error $DynamicEntityOperationNotAllowed")
-//          val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
-//          val response400 = makeDeleteRequest(request400)
-//          response400.code should equal(400)
-//          response400.body.extract[ErrorMessage].message contains (DynamicEntityOperationNotAllowed) should be (true)
-//        }
-//
-//        Then("user1 delete the FooBar data first")
-//        val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / fooBarId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        Then("user1 delete the FooBar entity")
-//        val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
-//        val response400 = makeDeleteRequest(request400)
-//        response400.code should equal(200)
-//
-//        Then("user2 create foobar dynamic entity")
-//        val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user2)
-//        val responseNoBankId = makePostRequest(request, write(rightEntity))
-//        Then("We should get a 201")
-//        responseNoBankId.code should equal(201)
-//
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(201)
-//
-//        When("When user1 call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser1 = (dynamicEntity_Request / "FooBar").POST <@(user1)
-//        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
-//        responseCreateFoobarUser1.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//        val responseCreateFoobarUser3Again = makePostRequest(requestCreateFoobarUser3, write(foobarObject))
-//        responseCreateFoobarUser3Again.code should equal(403)
-//      }
-//
-//      val responseBankLevel= makePostRequest(requestBankLevel, write(rightEntity))
-//      Then("We should get a 201")
-//      responseBankLevel.code should equal(201)
-//      val dynamicEntityIdBankLevel = (responseBankLevel.body \ "dynamicEntityId").asInstanceOf[JString].s
-//
-//      {
-//        Then("user1 can insert the new FooBar data - BankLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val fooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankId should equal(testBankId1.value)
-//
-//        Then("we grant user3 can get FooBar role ")
-//        Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser3.userId, "CanGetDynamicEntityAtOneBank_FooBar")
-//        val requestCreateFoobarUser3 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user3)
-//        val responseCreateFoobarUser3 = makeGetRequest(requestCreateFoobarUser3)
-//        responseCreateFoobarUser3.code should equal(200)
-//
-//
-//        Then("user1 delete the FooBar data")
-//        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / fooBarId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        Then("user1 delete the FooBar entity")
-//        val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityIdBankLevel).DELETE <@(user1)
-//        val response400 = makeDeleteRequest(request400)
-//        Then("We should get a 200")
-//        response400.code should equal(200)
-//
-//        When("When user2 call the foobar endpoints, it need some roles")
-//        val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user2)
-//        val responseWithBankId = makePostRequest(request, write(rightEntity))
-//        Then("We should get a 201")
-//        responseWithBankId.code should equal(201)
-//
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(201)
-//
-//        When("When user1 call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser1 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
-//        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
-//        responseCreateFoobarUser1.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//        val responseCreateFoobarUser3Again = makePostRequest(requestCreateFoobarUser3, write(foobarObject))
-//        responseCreateFoobarUser3Again.code should equal(403)
-//
-//      }
-//
-//    }
-//  }
-//
-//  feature("Test Bank Level Dynamic Entities and Records") {
-//    scenario("One System Foobar, one Bank Level Foobar, check the roles for two users", VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
-//      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, CanCreateBankLevelDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
-//      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
-//      val requestBankLevel = (v4_0_0_Request / "management" /"banks" /testBankId1.value/ "dynamic-entities").POST <@(user2)
-//
-//      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
-//      val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
-//
-//      val systemLevelEntity = makePostRequest(request, write(rightEntity))
-//      Then("We should get a 201")
-//      systemLevelEntity.code should equal(201)
-//
-//      val bankLevelEntity = makePostRequest(requestBankLevel, write(rightEntity))
-//      Then("We should get a 201")
-//      bankLevelEntity.code should equal(201)
-//
-//      Then("user1 can insert the new FooBar data - SystemLevel")
-//      val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
-//      val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//      responseCreateFoobar.code should equal(201)
-//      val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//
-//      val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user1)
-//      val responseGetFoobars = makeGetRequest(requestGetFoobars)
-//      responseGetFoobars.code should equal(200)
-//
-//      val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user1)
-//      val responseGetFoobar = makeGetRequest(requestGetFoobar)
-//      responseGetFoobar.code should equal(200)
-//
-//      val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user1)
-//      val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
-//      responseUpdateFoobar.code should equal(200)
-//      val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
-//      responseUpdateFoobarName should equal("James Brown123")
-//
-//      val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user1)
-//      val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//      responseDeleteFoobar.code should equal(200)
-//
-//      When("When other user call the foobar endpoints, it need some roles")
-//      val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
-//      val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//      responseCreateFoobarUser2.code should equal(403)
-//      And("error should be " + UserHasMissingRoles)
-//      responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//      val requestGetFoobarsUser2 = (dynamicEntity_Request / "FooBar").GET <@(user2)
-//      val responseGetFoobarsUser2 = makeGetRequest(requestGetFoobarsUser2)
-//      responseGetFoobarsUser2.code should equal(403)
-//      And("error should be " + UserHasMissingRoles)
-//      responseGetFoobarsUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//      val requestGetFoobarUser2 = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user2)
-//      val responseGetFoobarUser2 = makeGetRequest(requestGetFoobarUser2)
-//      responseGetFoobarUser2.code should equal(403)
-//      And("error should be " + UserHasMissingRoles)
-//      responseGetFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//      val requestUpdateFoobarUser2 = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user2)
-//      val responseUpdateFoobarUser2 = makePutRequest(requestUpdateFoobarUser2, write(foobarUpdateObject))
-//      responseUpdateFoobarUser2.code should equal(403)
-//      And("error should be " + UserHasMissingRoles)
-//      responseUpdateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//      val requestDeleteFoobarUser2 = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user2)
-//      val responseDeleteFoobarUser2 = makeDeleteRequest(requestDeleteFoobarUser2)
-//      responseDeleteFoobarUser2.code should equal(403)
-//
-//      {
-//        Then("User2 can insert the new FooBar data - BankLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankId should equal(testBankId1.value)
-//
-//        val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user2)
-//        val responseGetFoobars = makeGetRequest(requestGetFoobars)
-//        responseGetFoobars.code should equal(200)
-//        val dynamicBankIdGetFoobars = (responseGetFoobars.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankIdGetFoobars should equal(testBankId1.value)
-//
-//        val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user2)
-//        val responseGetFoobar = makeGetRequest(requestGetFoobar)
-//        responseGetFoobar.code should equal(200)
-//        val dynamicBankIdGetFoobar = (responseGetFoobar.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankIdGetFoobar should equal(testBankId1.value)
-//
-//        val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user2)
-//        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
-//        responseUpdateFoobar.code should equal(200)
-//        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
-//        responseUpdateFoobarName should equal("James Brown123")
-//
-//        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user2)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        When("When other user call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//      }
-//
-//    }
-//
-//  }
-//
-//  feature("Test personal CRUD Records.") {
-//    scenario("We will call the endpoint with the proper Role " + canCreateSystemLevelDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val requestSystemLevel = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
-//      val requestBankLevel = (v4_0_0_Request / "management" / "banks" /testBankId1.value / "dynamic-entities").POST <@(user1)
-//
-//      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
-//      val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
-//
-//      val responseSystemLevel = makePostRequest(requestSystemLevel, write(rightEntity))
-//      Then("We should get a 201")
-//      responseSystemLevel.code should equal(201)
-//
-//      val responseBankLevel = makePostRequest(requestBankLevel, write(rightEntity))
-//      Then("We should get a 201")
-//      responseBankLevel.code should equal(201)
-//
-//      {
-//        Then("we can insert the new FooBar data - BankLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankId should equal(testBankId1.value)
-//
-//        val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user1)
-//        val responseGetFoobars = makeGetRequest(requestGetFoobars)
-//        responseGetFoobars.code should equal(200)
-//        val dynamicBankIdGetFoobars = (responseGetFoobars.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankIdGetFoobars should equal(testBankId1.value)
-//
-//        val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user1)
-//        val responseGetFoobar = makeGetRequest(requestGetFoobar)
-//        responseGetFoobar.code should equal(200)
-//        val dynamicBankIdGetFoobar = (responseGetFoobar.body \ "bank_id").asInstanceOf[JString].s
-//        dynamicBankIdGetFoobar should equal(testBankId1.value)
-//
-//        val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user1)
-//        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
-//        responseUpdateFoobar.code should equal(200)
-//        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
-//        responseUpdateFoobarName should equal("James Brown123")
-//
-//        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        When("When other user call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//      }
-//
-//      {
-//        Then("we can insert the new FooBar data - SystemLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//
-//        val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user1)
-//        val responseGetFoobars = makeGetRequest(requestGetFoobars)
-//        responseGetFoobars.code should equal(200)
-//
-//        val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user1)
-//        val responseGetFoobar = makeGetRequest(requestGetFoobar)
-//        responseGetFoobar.code should equal(200)
-//
-//        val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user1)
-//        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
-//        responseUpdateFoobar.code should equal(200)
-//        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
-//        responseUpdateFoobarName should equal("James Brown123")
-//
-//        val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        When("When other user call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//      }
-//
-//    }
-//
-//    scenario("when user1 create fooBar, and delete the foorbar, user2 create foobar again. user1 should not have the role for it " , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanCreateSystemLevelDynamicEntity.toString)
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
-//      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanDeleteSystemLevelDynamicEntity.toString)
-//      When("We make a request v4.0.0")
-//      val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
-//
-//      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
-//
-//      val responseWithBankId = makePostRequest(request, write(rightEntity))
-//      Then("We should get a 201")
-//      responseWithBankId.code should equal(201)
-//      val dynamicEntityId = (responseWithBankId.body \ "dynamicEntityId").asInstanceOf[JString].s
-//
-//
-//      {
-//        Then("user1 can insert the new FooBar data - SystemLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request/ "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val fooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//
-//        Then("we grant user3 can get FooBar role ")
-//        Entitlement.entitlement.vend.addEntitlement("", resourceUser3.userId, "CanGetDynamicEntity_FooBar")
-//        val requestCreateFoobarUser3 = (dynamicEntity_Request/ "FooBar").GET <@(user3)
-//        val responseCreateFoobarUser3 = makeGetRequest(requestCreateFoobarUser3)
-//        responseCreateFoobarUser3.code should equal(200)
-//
-//
-//        Then("user1 delete the FooBar data")
-//        val requestDeleteFoobar = (dynamicEntity_Request/ "FooBar" / fooBarId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//
-//
-//        Then("user1 delete the FooBar entity")
-//        val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
-//        val response400 = makeDeleteRequest(request400)
-//        Then("We should get a 200")
-//        response400.code should equal(200)
-//
-//
-//
-//
-//        When("When user2 call the foobar endpoints, it need some roles")
-//        val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user2)
-//        val responseWithBankId = makePostRequest(request, write(rightEntity))
-//        Then("We should get a 201")
-//        responseWithBankId.code should equal(201)
-//
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request/"FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(201)
-//
-//        When("When user1 call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser1 = (dynamicEntity_Request/"FooBar").POST <@(user1)
-//        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
-//        responseCreateFoobarUser1.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//        val responseCreateFoobarUser3Again = makePostRequest(requestCreateFoobarUser3, write(foobarObject))
-//        responseCreateFoobarUser3Again.code should equal(403)
-//
-//      }
-//
-//      {
-//        Then("we can insert the new FooBar data - BankLevel")
-//        val requestCreateFoobar = (dynamicEntity_Request / "banks" /testBankId1.value / "FooBar").POST <@(user1)
-//        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-//        responseCreateFoobar.code should equal(201)
-//        val FooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
-//
-//        Then("we grant user3 can get FooBar role ")
-//        Entitlement.entitlement.vend.addEntitlement("", resourceUser3.userId, "CanGetDynamicEntity_FooBar")
-//        val requestCreateFoobarUser3 = (dynamicEntity_Request / "banks" /testBankId1.value /  "FooBar").GET <@(user3)
-//        val responseCreateFoobarUser3 = makeGetRequest(requestCreateFoobarUser3)
-//        responseCreateFoobarUser3.code should equal(200)
-//
-//        Then("user1 delete the FooBar data")
-//        val requestDeleteFoobar = (dynamicEntity_Request / "banks" /testBankId1.value /  "FooBar" / FooBarId ).DELETE <@(user1)
-//        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
-//        responseDeleteFoobar.code should equal(200)
-//
-//        Then("user1 delete the FooBar entity")
-//        val request400 = (v4_0_0_Request / "management" / "banks" /testBankId1.value /  "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
-//        val response400 = makeDeleteRequest(request400)
-//        response400.code should equal(200)
-//
-//        When("When user2 call the foobar endpoints, it need some roles")
-//        val request = (v4_0_0_Request / "management" / "banks" /testBankId1.value /  "dynamic-entities").POST <@(user2)
-//        val responseNoBankId = makePostRequest(request, write(rightEntity))
-//        Then("We should get a 201")
-//        responseNoBankId.code should equal(201)
-//
-//        val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
-//        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
-//        responseCreateFoobarUser2.code should equal(201)
-//
-//        When("When user1 call the foobar endpoints, it need some roles")
-//        val requestCreateFoobarUser1 = (dynamicEntity_Request / "FooBar").POST <@(user1)
-//        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
-//        responseCreateFoobarUser1.code should equal(403)
-//        And("error should be " + UserHasMissingRoles)
-//        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
-//
-//        val responseCreateFoobarUser3Again = makePostRequest(requestCreateFoobarUser3, write(foobarObject))
-//        responseCreateFoobarUser3Again.code should equal(403)
-//      }
-//
-//    }
-//  }
+  feature("Test CRUD Foobar Records and Roles (both Bank and System levels) ") {
+    scenario("We create the system and bank level entities, and check the Foobar roles ", ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
+      val requestBankLevel = (v4_0_0_Request / "management" /"banks" /testBankId1.value/ "dynamic-entities").POST <@(user1)
+
+      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
+      val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
+
+      val systemLevelEntity = makePostRequest(request, write(rightEntity))
+      Then("We should get a 201")
+      systemLevelEntity.code should equal(201)
+
+      {
+        Then("we can insert the new FooBar data - SystemLevel")
+        val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+
+        val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user1)
+        val responseGetFoobars = makeGetRequest(requestGetFoobars)
+        responseGetFoobars.code should equal(200)
+
+        val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user1)
+        val responseGetFoobar = makeGetRequest(requestGetFoobar)
+        responseGetFoobar.code should equal(200)
+
+        val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user1)
+        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+        responseUpdateFoobar.code should equal(200)
+        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+        responseUpdateFoobarName should equal("James Brown123")
+
+        val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        {
+          When("user 2 call the foobar endpoints, it need the roles")
+          Then("we can insert the new FooBar data - SystemLevel")
+          val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user2)
+          val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+          responseCreateFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseCreateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntity_SystemFooBar") should be (true)
+
+          val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user2)
+          val responseGetFoobars = makeGetRequest(requestGetFoobars)
+          responseGetFoobars.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseGetFoobars.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseGetFoobars.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_SystemFooBar") should be (true)
+
+          val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user2)
+          val responseGetFoobar = makeGetRequest(requestGetFoobar)
+          responseGetFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseGetFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseGetFoobar.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_SystemFooBar") should be (true)
+
+          val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user2)
+          val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+          responseUpdateFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseUpdateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseUpdateFoobar.body.extract[ErrorMessage].message contains ("CanUpdateDynamicEntity_SystemFooBar") should be (true)
+
+          val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user2)
+          val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+          responseDeleteFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseDeleteFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseDeleteFoobar.body.extract[ErrorMessage].message contains ("CanDeleteDynamicEntity_SystemFooBar") should be (true)
+        }
+
+        {
+          Then("we grant user2 the missing roles and CRUD again - SystemLevel")
+          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanCreateDynamicEntity_SystemFooBar")
+          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanUpdateDynamicEntity_SystemFooBar")
+          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanGetDynamicEntity_SystemFooBar")
+          Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanDeleteDynamicEntity_SystemFooBar")
+          val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user2)
+          val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+          responseCreateFoobar.code should equal(201)
+          val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+
+          val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user2)
+          val responseGetFoobars = makeGetRequest(requestGetFoobars)
+          responseGetFoobars.code should equal(200)
+
+          val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user2)
+          val responseGetFoobar = makeGetRequest(requestGetFoobar)
+          responseGetFoobar.code should equal(200)
+
+          val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user2)
+          val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+          responseUpdateFoobar.code should equal(200)
+          val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+          responseUpdateFoobarName should equal("James Brown123")
+
+          val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user2)
+          val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+          responseDeleteFoobar.code should equal(200)
+          
+        }
+      }
+
+      val bankLevelEntity = makePostRequest(requestBankLevel, write(rightEntity))
+      Then("We should get a 201")
+      bankLevelEntity.code should equal(201)
+
+      {
+        Then("we can insert the new FooBar data - BankLevel")
+        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankId should equal(testBankId1.value)
+
+        val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user1)
+        val responseGetFoobars = makeGetRequest(requestGetFoobars)
+        responseGetFoobars.code should equal(200)
+        val dynamicBankIdGetFoobars = (responseGetFoobars.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankIdGetFoobars should equal(testBankId1.value)
+
+        val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user1)
+        val responseGetFoobar = makeGetRequest(requestGetFoobar)
+        responseGetFoobar.code should equal(200)
+        val dynamicBankIdGetFoobar = (responseGetFoobar.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankIdGetFoobar should equal(testBankId1.value)
+
+        val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user1)
+        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+        responseUpdateFoobar.code should equal(200)
+        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+        responseUpdateFoobarName should equal("James Brown123")
+
+        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        {
+          When("user 2 call the foobar endpoints, it need the roles")
+          Then("we can insert the new FooBar data - SystemLevel")
+          val requestCreateFoobar = (dynamicEntity_Request / "banks"/ testBankId1.value / "FooBar").POST <@(user2)
+          val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+          responseCreateFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseCreateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntity_FooBar") should be (true)
+
+          val requestGetFoobars = (dynamicEntity_Request /"banks"/ testBankId1.value / "FooBar").GET <@(user2)
+          val responseGetFoobars = makeGetRequest(requestGetFoobars)
+          responseGetFoobars.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseGetFoobars.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseGetFoobars.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_FooBar") should be (true)
+          
+
+          val requestGetFoobar = (dynamicEntity_Request / "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user2)
+          val responseGetFoobar = makeGetRequest(requestGetFoobar)
+          responseGetFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseGetFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseGetFoobar.body.extract[ErrorMessage].message contains ("CanGetDynamicEntity_FooBar") should be (true)
+
+          val requestUpdateFoobar = (dynamicEntity_Request / "banks"/ testBankId1.value /"FooBar" / dynamicEntityId).PUT <@(user2)
+          val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+          responseUpdateFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseUpdateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseUpdateFoobar.body.extract[ErrorMessage].message contains ("CanUpdateDynamicEntity_FooBar") should be (true)
+
+          val requestDeleteFoobar = (dynamicEntity_Request / "banks"/ testBankId1.value /"FooBar" / dynamicEntityId ).DELETE <@(user2)
+          val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+          responseDeleteFoobar.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseDeleteFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+          responseDeleteFoobar.body.extract[ErrorMessage].message contains ("CanDeleteDynamicEntity_FooBar") should be (true)
+        }
+        
+        {
+          Then("we grant user2 roles and try CRUD again")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanCreateDynamicEntity_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanGetDynamicEntity_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanUpdateDynamicEntity_FooBar")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanDeleteDynamicEntity_FooBar")
+          
+          val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
+          val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+          responseCreateFoobar.code should equal(201)
+          val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+          val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
+          dynamicBankId should equal(testBankId1.value)
+
+          val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user2)
+          val responseGetFoobars = makeGetRequest(requestGetFoobars)
+          responseGetFoobars.code should equal(200)
+          val dynamicBankIdGetFoobars = (responseGetFoobars.body \ "bank_id").asInstanceOf[JString].s
+          dynamicBankIdGetFoobars should equal(testBankId1.value)
+
+          val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user2)
+          val responseGetFoobar = makeGetRequest(requestGetFoobar)
+          responseGetFoobar.code should equal(200)
+          val dynamicBankIdGetFoobar = (responseGetFoobar.body \ "bank_id").asInstanceOf[JString].s
+          dynamicBankIdGetFoobar should equal(testBankId1.value)
+
+          val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user2)
+          val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+          responseUpdateFoobar.code should equal(200)
+          val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+          responseUpdateFoobarName should equal("James Brown123")
+
+          val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user1)
+          val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+          responseDeleteFoobar.code should equal(200)
+        }
+      }
+
+    }
+
+    scenario("when user1 create fooBar, and delete the foobar entity, user2 create foobar again. user1 should not have the role for it " , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanDeleteSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateBankLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, CanCreateBankLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanDeleteBankLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, CanDeleteBankLevelDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val requestSystemLevel = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+      val requestBankLevel = (v4_0_0_Request / "management" / "banks" /testBankId1.value / "dynamic-entities").POST <@(user1)
+
+      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
+
+      val response= makePostRequest(requestSystemLevel, write(rightEntity))
+      Then("We should get a 201")
+      response.code should equal(201)
+      val dynamicEntityId = (response.body \ "dynamicEntityId").asInstanceOf[JString].s
+
+      {
+        Then("we can insert the new FooBar data - SystemLevel")
+        val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val fooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+
+        {
+          Then("user2 can not get the foo bar records")
+          val requestCreateFoobarUser2 = (dynamicEntity_Request/ "FooBar").GET <@(user2)
+          val responseCreateFoobarUser2 = makeGetRequest(requestCreateFoobarUser2)
+          responseCreateFoobarUser2.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+        }
+
+        Then("we grant user2 can get FooBar role, user2 can get the foobar records. ")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, "CanGetDynamicEntity_SystemFooBar")
+        val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").GET <@(user2)
+        val responseCreateFoobarUser2 = makeGetRequest(requestCreateFoobarUser2)
+        responseCreateFoobarUser2.code should equal(200)
+
+        {
+          Then(s"user1 try to delete the FooBar entity, it will show the error $DynamicEntityOperationNotAllowed")
+          val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+          val response400 = makeDeleteRequest(request400)
+          response400.code should equal(400)
+          response400.body.extract[ErrorMessage].message contains (DynamicEntityOperationNotAllowed) should be (true)
+        }
+
+        Then("user1 delete the FooBar data first")
+        val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / fooBarId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        Then("user1 delete the FooBar entity")
+        val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+        val response400 = makeDeleteRequest(request400)
+        response400.code should equal(200)
+
+        Then("user2 create foobar dynamic entity")
+        val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user2)
+        val responseNoBankId = makePostRequest(request, write(rightEntity))
+        Then("We should get a 201")
+        responseNoBankId.code should equal(201)
+
+        {
+          val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
+          responseCreateFoobarUser2.code should equal(201)
+        }
+
+        When("When user1 call the foobar endpoints, it need some roles")
+        val requestCreateFoobarUser1 = (dynamicEntity_Request / "FooBar").POST <@(user1)
+        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
+        responseCreateFoobarUser1.code should equal(403)
+        And("error should be " + UserHasMissingRoles)
+        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+      }
+
+      Then("we test the bank level")
+      val responseBankLevel= makePostRequest(requestBankLevel, write(rightEntity))
+      Then("We should get a 201")
+      responseBankLevel.code should equal(201)
+      val dynamicEntityIdBankLevel = (responseBankLevel.body \ "dynamicEntityId").asInstanceOf[JString].s
+
+      {
+        Then("user1 can insert the new FooBar data - BankLevel")
+        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val fooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankId should equal(testBankId1.value)
+
+        {
+          Then("user2 need some roles")
+          val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user2)
+          val responseCreateFoobarUser2 = makeGetRequest(requestCreateFoobarUser2)
+          responseCreateFoobarUser2.code should equal(403)
+          And("error should be " + UserHasMissingRoles)
+          responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+        }
+        {
+          Then("we grant user2 can get FooBar role ")
+          Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser3.userId, "CanGetDynamicEntity_FooBar")
+          val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user3)
+          val responseCreateFoobarUser2 = makeGetRequest(requestCreateFoobarUser2)
+          responseCreateFoobarUser2.code should equal(200)
+        }
+        
+        Then("user1 delete the FooBar data")
+        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / fooBarId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        Then("user1 delete the FooBar entity")
+        val request400 = (v4_0_0_Request / "management" / "banks"/ testBankId1.value / "dynamic-entities" / dynamicEntityIdBankLevel).DELETE <@(user1)
+        val response400 = makeDeleteRequest(request400)
+        Then("We should get a 200")
+        response400.code should equal(200)
+
+        Then("When user2 call the foobar endpoints, it need some roles")
+        val request = (v4_0_0_Request / "management"/"banks"/ testBankId1.value /"dynamic-entities").POST <@(user2)
+        val responseWithBankId = makePostRequest(request, write(rightEntity))
+        Then("We should get a 201")
+        responseWithBankId.code should equal(201)
+
+        val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
+        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
+        responseCreateFoobarUser2.code should equal(201)
+
+        When("When user1 call the foobar endpoints, it need some roles")
+        val requestCreateFoobarUser1 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
+        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
+        responseCreateFoobarUser1.code should equal(403)
+        And("error should be " + UserHasMissingRoles)
+        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+
+      }
+
+    }
+
+    scenario("User1 create System Foobar, user2 create bank Foobar, test the roles..", VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, CanCreateBankLevelDynamicEntity.toString)
+      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
+      val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
+      
+      
+      When("user1  create system Foobar")
+      val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+      val systemLevelEntity = makePostRequest(request, write(rightEntity))
+      Then("We should get a 201")
+      systemLevelEntity.code should equal(201)
+
+      Then("user1  create bank Foobar")
+      val requestBankLevel = (v4_0_0_Request / "management" /"banks" /testBankId1.value/ "dynamic-entities").POST <@(user2)
+      val bankLevelEntity = makePostRequest(requestBankLevel, write(rightEntity))
+      Then("We should get a 201")
+      bankLevelEntity.code should equal(201)
+
+      
+      Then("user1 can insert the new FooBar data - SystemLevel")
+      val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
+      val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+      responseCreateFoobar.code should equal(201)
+      val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+
+      val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user1)
+      val responseGetFoobars = makeGetRequest(requestGetFoobars)
+      responseGetFoobars.code should equal(200)
+
+      val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user1)
+      val responseGetFoobar = makeGetRequest(requestGetFoobar)
+      responseGetFoobar.code should equal(200)
+
+      val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user1)
+      val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+      responseUpdateFoobar.code should equal(200)
+      val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+      responseUpdateFoobarName should equal("James Brown123")
+
+      val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user1)
+      val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+      responseDeleteFoobar.code should equal(200)
+
+      When("When user2 user call the system foobar endpoints, it need some roles")
+      val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
+      val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
+      responseCreateFoobarUser2.code should equal(403)
+      And("error should be " + UserHasMissingRoles)
+      responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+
+      val requestGetFoobarsUser2 = (dynamicEntity_Request / "FooBar").GET <@(user2)
+      val responseGetFoobarsUser2 = makeGetRequest(requestGetFoobarsUser2)
+      responseGetFoobarsUser2.code should equal(403)
+      And("error should be " + UserHasMissingRoles)
+      responseGetFoobarsUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+
+      val requestGetFoobarUser2 = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user2)
+      val responseGetFoobarUser2 = makeGetRequest(requestGetFoobarUser2)
+      responseGetFoobarUser2.code should equal(403)
+      And("error should be " + UserHasMissingRoles)
+      responseGetFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+
+      val requestUpdateFoobarUser2 = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user2)
+      val responseUpdateFoobarUser2 = makePutRequest(requestUpdateFoobarUser2, write(foobarUpdateObject))
+      responseUpdateFoobarUser2.code should equal(403)
+      And("error should be " + UserHasMissingRoles)
+      responseUpdateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+
+      val requestDeleteFoobarUser2 = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user2)
+      val responseDeleteFoobarUser2 = makeDeleteRequest(requestDeleteFoobarUser2)
+      responseDeleteFoobarUser2.code should equal(403)
+
+      {
+        Then("User2 can insert the new FooBar data - BankLevel")
+        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankId should equal(testBankId1.value)
+
+        val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user2)
+        val responseGetFoobars = makeGetRequest(requestGetFoobars)
+        responseGetFoobars.code should equal(200)
+        val dynamicBankIdGetFoobars = (responseGetFoobars.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankIdGetFoobars should equal(testBankId1.value)
+
+        val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user2)
+        val responseGetFoobar = makeGetRequest(requestGetFoobar)
+        responseGetFoobar.code should equal(200)
+        val dynamicBankIdGetFoobar = (responseGetFoobar.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankIdGetFoobar should equal(testBankId1.value)
+
+        val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user2)
+        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+        responseUpdateFoobar.code should equal(200)
+        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+        responseUpdateFoobarName should equal("James Brown123")
+
+        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user2)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        {
+          When("User1 call the foobar endpoints, it need some roles")
+          val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
+          val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+          responseCreateFoobar.code should equal(403)
+  
+          val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user1)
+          val responseGetFoobars = makeGetRequest(requestGetFoobars)
+          responseGetFoobars.code should equal(403)
+  
+          val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user1)
+          val responseGetFoobar = makeGetRequest(requestGetFoobar)
+          responseGetFoobar.code should equal(403)
+  
+          val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user1)
+          val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+          responseUpdateFoobar.code should equal(403)
+  
+          val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user1)
+          val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+          responseDeleteFoobar.code should equal(403)
+        } 
+      }
+
+    }
+ 
+  }
+
+  feature("Test personal CRUD Records.") {
+    scenario("We will call the endpoint with the proper Role " + canCreateSystemLevelDynamicEntity , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val requestSystemLevel = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+      val requestBankLevel = (v4_0_0_Request / "management" / "banks" /testBankId1.value / "dynamic-entities").POST <@(user1)
+
+      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
+      val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
+
+      val responseSystemLevel = makePostRequest(requestSystemLevel, write(rightEntity))
+      Then("We should get a 201")
+      responseSystemLevel.code should equal(201)
+
+      val responseBankLevel = makePostRequest(requestBankLevel, write(rightEntity))
+      Then("We should get a 201")
+      responseBankLevel.code should equal(201)
+
+      {
+        Then("we can insert the new FooBar data - BankLevel")
+        val requestCreateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+        val dynamicBankId = (responseCreateFoobar.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankId should equal(testBankId1.value)
+
+        val requestGetFoobars = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").GET <@(user1)
+        val responseGetFoobars = makeGetRequest(requestGetFoobars)
+        responseGetFoobars.code should equal(200)
+        val dynamicBankIdGetFoobars = (responseGetFoobars.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankIdGetFoobars should equal(testBankId1.value)
+
+        val requestGetFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).GET <@(user1)
+        val responseGetFoobar = makeGetRequest(requestGetFoobar)
+        responseGetFoobar.code should equal(200)
+        val dynamicBankIdGetFoobar = (responseGetFoobar.body \ "bank_id").asInstanceOf[JString].s
+        dynamicBankIdGetFoobar should equal(testBankId1.value)
+
+        val requestUpdateFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId).PUT <@(user1)
+        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+        responseUpdateFoobar.code should equal(200)
+        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+        responseUpdateFoobarName should equal("James Brown123")
+
+        val requestDeleteFoobar = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar" / dynamicEntityId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        When("When other user call the foobar endpoints, it need some roles")
+        val requestCreateFoobarUser2 = (dynamicEntity_Request/ "banks"/ testBankId1.value / "FooBar").POST <@(user2)
+        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
+        responseCreateFoobarUser2.code should equal(403)
+        And("error should be " + UserHasMissingRoles)
+        responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+      }
+
+      {
+        Then("we can insert the new FooBar data - SystemLevel")
+        val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+
+        val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user1)
+        val responseGetFoobars = makeGetRequest(requestGetFoobars)
+        responseGetFoobars.code should equal(200)
+
+        val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user1)
+        val responseGetFoobar = makeGetRequest(requestGetFoobar)
+        responseGetFoobar.code should equal(200)
+
+        val requestUpdateFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId).PUT <@(user1)
+        val responseUpdateFoobar = makePutRequest(requestUpdateFoobar, write(foobarUpdateObject))
+        responseUpdateFoobar.code should equal(200)
+        val responseUpdateFoobarName = (responseUpdateFoobar.body \ "foo_bar" \ "name").asInstanceOf[JString].s
+        responseUpdateFoobarName should equal("James Brown123")
+
+        val requestDeleteFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        When("When other user call the foobar endpoints, it need some roles")
+        val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
+        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
+        responseCreateFoobarUser2.code should equal(403)
+        And("error should be " + UserHasMissingRoles)
+        responseCreateFoobarUser2.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+      }
+
+    }
+
+    scenario("when user1 create fooBar, and delete the foorbar, user2 create foobar again. user1 should not have the role for it " , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanDeleteSystemLevelDynamicEntity.toString)
+      When("We make a request v4.0.0")
+      val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+
+      val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
+
+      val responseWithBankId = makePostRequest(request, write(rightEntity))
+      Then("We should get a 201")
+      responseWithBankId.code should equal(201)
+      val dynamicEntityId = (responseWithBankId.body \ "dynamicEntityId").asInstanceOf[JString].s
+
+
+      {
+        Then("user1 can insert the new FooBar data - SystemLevel")
+        val requestCreateFoobar = (dynamicEntity_Request/ "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val fooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+
+        Then("we grant user3 can get FooBar role ")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser3.userId, "CanGetDynamicEntity_FooBar")
+        val requestCreateFoobarUser3 = (dynamicEntity_Request/ "FooBar").GET <@(user3)
+        val responseCreateFoobarUser3 = makeGetRequest(requestCreateFoobarUser3)
+        responseCreateFoobarUser3.code should equal(200)
+
+
+        Then("user1 delete the FooBar data")
+        val requestDeleteFoobar = (dynamicEntity_Request/ "FooBar" / fooBarId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+
+
+        Then("user1 delete the FooBar entity")
+        val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+        val response400 = makeDeleteRequest(request400)
+        Then("We should get a 200")
+        response400.code should equal(200)
+
+
+
+
+        When("When user2 call the foobar endpoints, it need some roles")
+        val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user2)
+        val responseWithBankId = makePostRequest(request, write(rightEntity))
+        Then("We should get a 201")
+        responseWithBankId.code should equal(201)
+
+        val requestCreateFoobarUser2 = (dynamicEntity_Request/"FooBar").POST <@(user2)
+        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
+        responseCreateFoobarUser2.code should equal(201)
+
+        When("When user1 call the foobar endpoints, it need some roles")
+        val requestCreateFoobarUser1 = (dynamicEntity_Request/"FooBar").POST <@(user1)
+        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
+        responseCreateFoobarUser1.code should equal(403)
+        And("error should be " + UserHasMissingRoles)
+        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+
+        val responseCreateFoobarUser3Again = makePostRequest(requestCreateFoobarUser3, write(foobarObject))
+        responseCreateFoobarUser3Again.code should equal(403)
+
+      }
+
+      {
+        Then("we can insert the new FooBar data - BankLevel")
+        val requestCreateFoobar = (dynamicEntity_Request / "banks" /testBankId1.value / "FooBar").POST <@(user1)
+        val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
+        responseCreateFoobar.code should equal(201)
+        val FooBarId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
+
+        Then("we grant user3 can get FooBar role ")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser3.userId, "CanGetDynamicEntity_FooBar")
+        val requestCreateFoobarUser3 = (dynamicEntity_Request / "banks" /testBankId1.value /  "FooBar").GET <@(user3)
+        val responseCreateFoobarUser3 = makeGetRequest(requestCreateFoobarUser3)
+        responseCreateFoobarUser3.code should equal(200)
+
+        Then("user1 delete the FooBar data")
+        val requestDeleteFoobar = (dynamicEntity_Request / "banks" /testBankId1.value /  "FooBar" / FooBarId ).DELETE <@(user1)
+        val responseDeleteFoobar = makeDeleteRequest(requestDeleteFoobar)
+        responseDeleteFoobar.code should equal(200)
+
+        Then("user1 delete the FooBar entity")
+        val request400 = (v4_0_0_Request / "management" / "banks" /testBankId1.value /  "dynamic-entities" / dynamicEntityId).DELETE <@(user1)
+        val response400 = makeDeleteRequest(request400)
+        response400.code should equal(200)
+
+        When("When user2 call the foobar endpoints, it need some roles")
+        val request = (v4_0_0_Request / "management" / "banks" /testBankId1.value /  "dynamic-entities").POST <@(user2)
+        val responseNoBankId = makePostRequest(request, write(rightEntity))
+        Then("We should get a 201")
+        responseNoBankId.code should equal(201)
+
+        val requestCreateFoobarUser2 = (dynamicEntity_Request / "FooBar").POST <@(user2)
+        val responseCreateFoobarUser2 = makePostRequest(requestCreateFoobarUser2, write(foobarObject))
+        responseCreateFoobarUser2.code should equal(201)
+
+        When("When user1 call the foobar endpoints, it need some roles")
+        val requestCreateFoobarUser1 = (dynamicEntity_Request / "FooBar").POST <@(user1)
+        val responseCreateFoobarUser1 = makePostRequest(requestCreateFoobarUser1, write(foobarObject))
+        responseCreateFoobarUser1.code should equal(403)
+        And("error should be " + UserHasMissingRoles)
+        responseCreateFoobarUser1.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
+
+        val responseCreateFoobarUser3Again = makePostRequest(requestCreateFoobarUser3, write(foobarObject))
+        responseCreateFoobarUser3Again.code should equal(403)
+      }
+
+    }
+  }
 
 }
