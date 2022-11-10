@@ -91,7 +91,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       addDynamicEntity()
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST
+      val request = (dynamicEntity_Request / "FooBar").POST
       val response = makePostRequest(request, correctFooBar, ("Force-Error", "OBP-20006"))
 
       Then("We should get a 401")
@@ -632,11 +632,10 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   // prepare one dynamic entity FooBar
   private def addDynamicEntity(): APIResponse = {
     addEntitlement(canCreateSystemLevelDynamicEntity)
-    val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
+    val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ user1
     val fooBar =
       s"""
          |{
-         |    "bankId": "$bankId",
          |    "FooBar": {
          |        "description": "description of this entity, can be markdown text.",
          |        "required": [

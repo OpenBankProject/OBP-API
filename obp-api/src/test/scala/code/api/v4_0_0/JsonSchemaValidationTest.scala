@@ -410,7 +410,6 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     val fooBar =
       s"""
          |{
-         |    "bankId": "$bankId",
          |    "FooBar": {
          |        "description": "description of this entity, can be markdown text.",
          |        "required": [

@@ -2145,9 +2145,7 @@ trait APIMethods400 {
          |```
          |${ReferenceType.referenceTypeAndExample.mkString("\n")}
          |```
-         | Note: BankId filed is optional, 
-         |          if you add it, the entity will be the Bank level.
-         |          if you omit it, the entity will be the System level.  
+         | Note: if you set `hasPersonalEntity` = false, then OBP will not generate the CRUD my FooBar endpoints.
          |""",
       dynamicEntityRequestBodyExample.copy(bankId = None),
       dynamicEntityResponseBodyExample,

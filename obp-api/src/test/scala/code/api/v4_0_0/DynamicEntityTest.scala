@@ -1835,7 +1835,8 @@ class DynamicEntityTest extends V400ServerSetup {
 
       val requestCreateFoobar = (dynamicEntity_Request / "my" / "FooBar").POST <@ (user1)
       val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-      responseCreateFoobar.code should equal(400)
+      responseCreateFoobar.code should equal(404)
+      responseCreateFoobar.body.toString contains (s"$InvalidUri") should be (true)
     }
     
     scenario("User1 Create Bank Level Foobar and set hasPersonalEntity = false, then there will be no my endpoints at all" , ApiEndpoint1, VersionOfApi) {
@@ -1875,7 +1876,8 @@ class DynamicEntityTest extends V400ServerSetup {
 
       val requestCreateFoobar = (dynamicEntity_Request/ "banks" / testBankId1.value / "my" / "FooBar").POST <@ (user1)
       val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
-      responseCreateFoobar.code should equal(400)
+      responseCreateFoobar.code should equal(404)
+      responseCreateFoobar.body.toString contains (s"$InvalidUri") should be (true)
     }
 
   }
