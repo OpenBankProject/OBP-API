@@ -326,7 +326,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedDirectLogin, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
-      addDynamicEntity()
+      addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
@@ -344,7 +344,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedAll, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
-      addDynamicEntity()
+      addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
@@ -402,9 +402,9 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     response
   }
   // prepare one dynamic entity FooBar
-  private def addDynamicEntity(): APIResponse = {
+  private def addSystemDynamicEntity(): APIResponse = {
     grantEntitlement(canCreateSystemLevelDynamicEntity)
-    val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
+    val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ user1
     val fooBar =
       s"""
          |{
