@@ -325,7 +325,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneAuthenticationTypeValidation(allowedDirectLogin, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
+      addOneAuthenticationTypeValidation(allowedDirectLogin, s"OBPv4.0.0-dynamicEntity_createFooBar")
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
