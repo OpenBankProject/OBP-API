@@ -20,6 +20,16 @@ import scala.collection.mutable.ArrayBuffer
 object EntityName {
   // unapply result structure: (BankId, entityName, id, isPersonalEntity)
   def unapply(url: List[String]): Option[(Option[String], String, String, Boolean)] = url match {
+
+    //eg: /my/FooBar21
+    case "my" :: entityName ::  Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
+        .map(_ => (None, entityName, "", true))
+    //eg: /my/FooBar21/FOO_BAR21_ID
+    case "my" :: entityName :: id :: Nil =>
+      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
+        .map(_ => (None, entityName, id, true))
+      
     //eg: /FooBar21
     case entityName ::  Nil =>
       DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
@@ -30,15 +40,6 @@ object EntityName {
         .map(_ => (None, entityName, id, false))
 
     
-    //eg: /my/FooBar21
-    case "my" :: entityName ::  Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
-        .map(_ => (None, entityName, "", true))
-    //eg: /my/FooBar21/FOO_BAR21_ID
-    case "my" :: entityName :: id :: Nil =>
-      DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == None && definitionMap._1._2 == entityName && definitionMap._2.bankId.isEmpty)
-        .map(_ => (None, entityName, id, true))
-      
     //eg: /Banks/BANK_ID/my/FooBar21
     case "banks" :: bankId :: "my" :: entityName :: Nil =>
       DynamicEntityHelper.definitionsMap.find(definitionMap => definitionMap._1._1 == Some(bankId) && definitionMap._1._2 == entityName && definitionMap._2.bankId == Some(bankId))
