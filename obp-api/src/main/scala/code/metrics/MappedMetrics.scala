@@ -64,6 +64,29 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
     metric.save
   }
+  override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
+    val metric = MetricsArchive.find(By(MetricsArchive.id, primaryKey)).getOrElse(MetricsArchive.create)
+    metric
+      .primaryKey(primaryKey)
+      .userId(userId)
+      .url(url)
+      .date(date)
+      .duration(duration)
+      .userName(userName)
+      .appName(appName)
+      .developerEmail(developerEmail)
+      .consumerId(consumerId)
+      .implementedByPartialFunction(implementedByPartialFunction)
+      .implementedInVersion(implementedInVersion)
+      .verb(verb)
+      .correlationId(correlationId)
+      
+    httpCode match {
+      case Some(code) => metric.httpCode(code)
+      case None =>
+    }
+    metric.save
+  }
 
   private lazy val getDbConnectionParameters: (String, String, String) = {
     val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
@@ -162,6 +185,78 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       anon.toSeq,
       excludeAppNames.toSeq.flatten
     ).flatten
+  } 
+  
+  //TODO, maybe move to `APIUtil.scala`
+  private def getQueryParamsMetricsArchive(queryParams: List[OBPQueryParam]) = {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MetricsArchive](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MetricsArchive](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MetricsArchive.date, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MetricsArchive.date, date) }.headOption
+    val ordering = queryParams.collect {
+      case OBPOrdering(field, dir) =>
+        val direction = dir match {
+          case OBPAscending => Ascending
+          case OBPDescending => Descending
+        }
+        field match {
+          case Some(s) if s == "user_id" => OrderBy(MetricsArchive.userId, direction)
+          case Some(s) if s == "user_name" => OrderBy(MetricsArchive.userName, direction)
+          case Some(s) if s == "developer_email" => OrderBy(MetricsArchive.developerEmail, direction)
+          case Some(s) if s == "app_name" => OrderBy(MetricsArchive.appName, direction)
+          case Some(s) if s == "url" => OrderBy(MetricsArchive.url, direction)
+          case Some(s) if s == "date" => OrderBy(MetricsArchive.date, direction)
+          case Some(s) if s == "consumer_id" => OrderBy(MetricsArchive.consumerId, direction)
+          case Some(s) if s == "verb" => OrderBy(MetricsArchive.verb, direction)
+          case Some(s) if s == "implemented_in_version" => OrderBy(MetricsArchive.implementedInVersion, direction)
+          case Some(s) if s == "implemented_by_partial_function" => OrderBy(MetricsArchive.implementedByPartialFunction, direction)
+          case Some(s) if s == "correlation_id" => OrderBy(MetricsArchive.correlationId, direction)
+          case Some(s) if s == "duration" => OrderBy(MetricsArchive.duration, direction)
+          case _ => OrderBy(MetricsArchive.date, Descending)
+        }
+    }
+    // he optional variables:
+    val consumerId = queryParams.collect { case OBPConsumerId(value) => value}.headOption
+      .flatMap(consumerIdToPrimaryKey)
+      .map(By(MetricsArchive.consumerId, _) )
+
+    val bankId = queryParams.collect { case OBPBankId(value) => Like(MetricsArchive.url, s"%banks/$value%") }.headOption
+    val userId = queryParams.collect { case OBPUserId(value) => By(MetricsArchive.userId, value) }.headOption
+    val url = queryParams.collect { case OBPUrl(value) => By(MetricsArchive.url, value) }.headOption
+    val appName = queryParams.collect { case OBPAppName(value) => By(MetricsArchive.appName, value) }.headOption
+    val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => By(MetricsArchive.implementedInVersion, value) }.headOption
+    val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => By(MetricsArchive.implementedByPartialFunction, value) }.headOption
+    val verb = queryParams.collect { case OBPVerb(value) => By(MetricsArchive.verb, value) }.headOption
+    val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MetricsArchive.correlationId, value) }.headOption
+    val duration = queryParams.collect { case OBPDuration(value) => By(MetricsArchive.duration, value) }.headOption
+    val anon = queryParams.collect {
+      case OBPAnon(true) => By(MetricsArchive.userId, "null")
+      case OBPAnon(false) => NotBy(MetricsArchive.userId, "null")
+    }.headOption
+    val excludeAppNames = queryParams.collect { 
+      case OBPExcludeAppNames(values) => 
+        values.map(NotBy(MetricsArchive.appName, _)) 
+    }.headOption
+
+    Seq(
+      offset.toSeq,
+      fromDate.toSeq,
+      toDate.toSeq,
+      ordering,
+      consumerId.toSeq,
+      userId.toSeq,
+      bankId.toSeq,
+      url.toSeq,
+      appName.toSeq,
+      implementedInVersion.toSeq,
+      implementedByPartialFunction.toSeq,
+      verb.toSeq,
+      limit.toSeq,
+      correlationId.toSeq,
+      duration.toSeq,
+      anon.toSeq,
+      excludeAppNames.toSeq.flatten
+    ).flatten
   }
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
@@ -177,6 +272,22 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllMetrics days){
           val optionalParams = getQueryParams(queryParams)
           MappedMetric.findAll(optionalParams: _*)
+      }
+    }
+  }
+  // TODO Cache this as long as fromDate and toDate are in the past (before now)
+  override def getAllMetricsArchive(queryParams: List[OBPQueryParam]): List[APIMetric] = {
+    /**
+      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
+      * is just a temporary value field with UUID values in order to prevent any ambiguity.
+      * The real value will be assigned by Macro during compile time at this line of a code:
+      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
+      */
+    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+      CacheKeyFromArguments.buildCacheKey { 
+        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllMetrics days){
+          val optionalParams = getQueryParamsMetricsArchive(queryParams)
+          MetricsArchive.findAll(optionalParams: _*)
       }
     }
   }
@@ -473,6 +584,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 }
 
 class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
+
   override def getSingleton = MappedMetric
 
   object userId extends UUIDString(this)
@@ -495,6 +607,7 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   object correlationId extends MappedUUID(this)
 
 
+  override def getPrimaryKey(): Long = id.get
   override def getUrl(): String = url.get
   override def getDate(): Date = date.get
   override def getDuration(): Long = duration.get
@@ -511,6 +624,57 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
-  //override def dbIndexes = Index(userId) :: Index(url) :: Index(date) :: Index(userName) :: Index(appName) :: Index(developerEmail) :: super.dbIndexes
+  // Please note that the old table name was "MappedMetric"
+  // Renaming implications:
+  //   - at an existing sandbox the table "MappedMetric" still exists with rows until this change is deployed at it
+  //     and new rows are stored in the table "Metric"      
+  //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
+  override def dbTableName = "Metric" // define the DB table name
   override def dbIndexes = Index(date) :: Index(consumerId) :: super.dbIndexes
+}
+
+
+class MetricsArchive extends APIMetric with LongKeyedMapper[MetricsArchive] with IdPK {
+  override def getSingleton = MetricsArchive
+
+  object primaryKey extends MappedLong(this)
+  object userId extends UUIDString(this)
+  object url extends MappedString(this, 2000) // TODO Introduce / use class for Mapped URLs
+  object date extends MappedDateTime(this)
+  object duration extends MappedLong(this)
+  object userName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  object appName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  object developerEmail extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+
+  //The consumerId, Foreign key to Consumer not key
+  object consumerId extends UUIDString(this)
+  //name of the Scala Partial Function being used for the endpoint
+  object implementedByPartialFunction  extends MappedString(this, 128)
+  //name of version where the call is implemented) -- S.request.get.view
+  object implementedInVersion  extends MappedString(this, 16)
+  //(GET, POST etc.) --S.request.get.requestType
+  object verb extends MappedString(this, 16)
+  object httpCode extends MappedInt(this)
+  object correlationId extends MappedUUID(this)
+
+
+  override def getPrimaryKey(): Long = primaryKey.get
+  override def getUrl(): String = url.get
+  override def getDate(): Date = date.get
+  override def getDuration(): Long = duration.get
+  override def getUserId(): String = userId.get
+  override def getUserName(): String = userName.get
+  override def getAppName(): String = appName.get
+  override def getDeveloperEmail(): String = developerEmail.get
+  override def getConsumerId(): String = consumerId.get
+  override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
+  override def getImplementedInVersion(): String = implementedInVersion.get
+  override def getVerb(): String = verb.get
+  override def getHttpCode(): Int = httpCode.get
+  override def getCorrelationId(): String = correlationId.get
+}
+object MetricsArchive extends MetricsArchive with LongKeyedMetaMapper[MetricsArchive] {
+  override def dbIndexes = 
+    Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) :: 
+      Index(appName) :: Index(developerEmail) :: super.dbIndexes
 }

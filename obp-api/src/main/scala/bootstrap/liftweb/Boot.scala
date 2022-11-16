@@ -84,7 +84,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
-import code.metrics.{MappedConnectorMetric, MappedMetric}
+import code.metrics.{MappedConnectorMetric, MappedMetric, MetricsArchive}
 import code.migration.MigrationScriptLog
 import code.model.{Consumer, _}
 import code.model.dataAccess._
@@ -96,7 +96,7 @@ import code.productcollectionitem.MappedProductCollectionItem
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
-import code.scheduler.DatabaseDriverScheduler
+import code.scheduler.{DatabaseDriverScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
 import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apicollection.ApiCollection
@@ -683,6 +683,7 @@ class Boot extends MdcLoggable {
       case Full(i) => DatabaseDriverScheduler.start(i)
       case _ => // Do not start it
     }
+    MetricsArchiveScheduler.start(intervalInSeconds = 86400)
     
 
     APIUtil.akkaSanityCheck() match {
@@ -951,6 +952,7 @@ object ToSchemify {
     MappedTransactionRequest,
     TransactionRequestAttribute,
     MappedMetric,
+    MetricsArchive,
     MapperAccountHolders,
     MappedEntitlement,
     MappedConnectorMetric,

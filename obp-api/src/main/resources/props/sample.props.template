@@ -1205,3 +1205,6 @@ user_account_validated_redirect_url =
 # Defines is it user is automatically validated, without SCA flow, after user account created
 # In case is not defined default value is false
 user_account_is_validated = false
+
+# Defines the number of days we keep rows in the table "MetricsArchive"
+retain_archive_metrics_days = 365
