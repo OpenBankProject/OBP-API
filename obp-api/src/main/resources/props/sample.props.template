@@ -1208,3 +1208,6 @@ user_account_is_validated = false
 
 # Defines the number of days we keep rows in the table "MetricsArchive"
 retain_archive_metrics_days = 365
+
+# Defines the number of days we keep rows in the table "Metric" former "MappedMetric"
+retain_metrics_days = 60

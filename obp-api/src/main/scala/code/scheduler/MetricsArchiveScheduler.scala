@@ -5,7 +5,7 @@ import java.util.{Calendar, Date}
 
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, OBPFromDate}
-import code.metrics.{APIMetrics, MetricsArchive}
+import code.metrics.{APIMetrics, MappedMetric, MetricsArchive}
 import code.util.Helper.MdcLoggable
 import net.liftweb.mapper.By_<=
 
@@ -17,6 +17,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   private lazy val actorSystem = ObpLookupSystem.obpLookupSystem
   implicit lazy val executor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
+  private val oneDayInMillis: Long = 86400000
 
   def start(intervalInSeconds: Long): Unit = {
     scheduler.schedule(
@@ -26,6 +27,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
         def run(): Unit = {
           copyDataToMetricsArchive()
           deleteOutdatedRowsFromMetricsArchive()
+          deleteOutdatedRowsFromMetric()
         } 
       }
     )
@@ -33,7 +35,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   
   def copyDataToMetricsArchive() = {
     val currentTime = new Date()
-    val twoDaysAgo: Date = new Date(currentTime.getTime - (86400000 * 2))
+    val twoDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * 2))
     // Get the data from the table "Metric" (former "MappedMetric")
     val chunkOfData = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPFromDate(twoDaysAgo)))
     chunkOfData map { i =>
@@ -60,9 +62,17 @@ object MetricsArchiveScheduler extends MdcLoggable {
   def deleteOutdatedRowsFromMetricsArchive() = {
     val currentTime = new Date()
     val days = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", 365)
-    val oneYearAgo: Date = new Date(currentTime.getTime - (86400000 * days))
+    val oneYearAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Delete the outdated rows from the table "MetricsArchive"
     MetricsArchive.bulkDelete_!!(By_<=(MetricsArchive.date, oneYearAgo))
+  }
+  
+  def deleteOutdatedRowsFromMetric() = {
+    val currentTime = new Date()
+    val days = APIUtil.getPropsAsLongValue("retain_metrics_days=60", 60)
+    val daysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
+    // Delete the outdated rows from the table "Metric"
+    MappedMetric.bulkDelete_!!(By_<=(MappedMetric.date, daysAgo))
   }
   
   private def getMillisTillMidnight(): Long = {
