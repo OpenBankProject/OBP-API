@@ -61,7 +61,11 @@ object MetricsArchiveScheduler extends MdcLoggable {
 
   def deleteOutdatedRowsFromMetricsArchive() = {
     val currentTime = new Date()
-    val days = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", 365)
+    val defaultValue : Int = 365 * 3
+    val days = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", defaultValue) match {
+      case days if days > 364 => days
+      case _ => 365
+    }
     val oneYearAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Delete the outdated rows from the table "MetricsArchive"
     MetricsArchive.bulkDelete_!!(By_<=(MetricsArchive.date, oneYearAgo))
