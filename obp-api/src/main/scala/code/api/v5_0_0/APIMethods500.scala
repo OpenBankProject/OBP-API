@@ -591,7 +591,22 @@ trait APIMethods500 {
       "POST",
       "/consumer/consent-requests",
       "Create Consent Request",
-      s"""""",
+      s"""
+         |Client Authentication (mandatory)
+         |
+         |It is used when applications request an access token to access their own resources, not on behalf of a user.
+         |
+         |The client needs to authenticate themselves for this request.
+         |In case of public client we use client_id and private kew to obtain access token, otherwise we use client_id and client_secret.
+         |The obtained access token is used in the HTTP Bearer auth header of our request.
+         |
+         |Example:
+         |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
+         |
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
       postConsentRequestJsonV500,
       consentRequestResponseJson,
       List(
