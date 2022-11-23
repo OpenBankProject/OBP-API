@@ -744,10 +744,11 @@ trait APIMethods500 {
       nameOf(createConsentByConsentRequestIdEmail),
       "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents",
-      "Create Consent By Request Id(EMAIL)",
+      "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
       s"""
          |
-         |This endpoint starts the process of creating a Consent by consent request id.
+         |This endpoint finishes the process of creating a Consent by CONSENT_REQUEST_ID.
+         |Please note that the Consent cannot elevate the privileges logged in user already have.
          |
          |""",
       EmptyBody,
@@ -771,10 +772,11 @@ trait APIMethods500 {
       nameOf(createConsentByConsentRequestIdSms),
       "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents",
-      "Create Consent By Request Id (SMS)",
+      "Create Consent By CONSENT_REQUEST_ID (SMS)",
       s"""
          |
-         |This endpoint starts the process of creating a Consent.
+         |This endpoint finishes the process of creating a Consent.
+         |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
       EmptyBody,
