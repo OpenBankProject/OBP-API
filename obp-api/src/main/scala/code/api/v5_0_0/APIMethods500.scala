@@ -870,7 +870,7 @@ trait APIMethods500 {
   
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
-              case _ => Random.nextInt(99999999).toString()
+              case _ => SecureRandomUtil.numeric()
             }
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, Some(consentRequestId))) map {
               i => connectorEmptyResponse(i, callContext)
