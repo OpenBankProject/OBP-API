@@ -603,9 +603,6 @@ trait APIMethods500 {
          |Example:
          |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
          |
-         |
-         |${authenticationRequiredMessage(true)}
-         |
          |""".stripMargin,
       postConsentRequestJsonV500,
       consentRequestResponseJson,
