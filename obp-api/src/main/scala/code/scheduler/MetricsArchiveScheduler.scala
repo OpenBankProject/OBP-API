@@ -35,9 +35,13 @@ object MetricsArchiveScheduler extends MdcLoggable {
   
   def copyDataToMetricsArchive() = {
     val currentTime = new Date()
-    val twoDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * 2))
+    val days = APIUtil.getPropsAsLongValue("copy_metrics_days", 2) match {
+      case days if days > 2 => days
+      case _ => 2
+    }
+    val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Get the data from the table "Metric" (former "MappedMetric")
-    val chunkOfData = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPFromDate(twoDaysAgo)))
+    val chunkOfData = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPFromDate(someDaysAgo)))
     chunkOfData map { i =>
       // and copy it to the table "MetricsArchive"
       APIMetrics.apiMetrics.vend.saveMetricsArchive(
