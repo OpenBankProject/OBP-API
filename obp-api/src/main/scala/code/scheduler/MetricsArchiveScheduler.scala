@@ -4,10 +4,11 @@ import java.util.concurrent.TimeUnit
 import java.util.{Calendar, Date}
 
 import code.actorsystem.ObpLookupSystem
-import code.api.util.{APIUtil, OBPFromDate}
-import code.metrics.{APIMetrics, MappedMetric, MetricsArchive}
+import code.api.util.{APIUtil, OBPToDate}
+import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricsArchive}
 import code.util.Helper.MdcLoggable
-import net.liftweb.mapper.By_<=
+import net.liftweb.common.Full
+import net.liftweb.mapper.{By, By_<=}
 
 import scala.concurrent.duration._
 
@@ -25,42 +26,11 @@ object MetricsArchiveScheduler extends MdcLoggable {
       interval = Duration(intervalInSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
         def run(): Unit = {
-          copyDataToMetricsArchive()
+          conditionalDeleteMetricsRow()
           deleteOutdatedRowsFromMetricsArchive()
-          deleteOutdatedRowsFromMetric()
         } 
       }
     )
-  }
-  
-  def copyDataToMetricsArchive() = {
-    val currentTime = new Date()
-    val days = APIUtil.getPropsAsLongValue("copy_metrics_days", 2) match {
-      case days if days > 2 => days
-      case _ => 2
-    }
-    val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
-    // Get the data from the table "Metric" (former "MappedMetric")
-    val chunkOfData = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPFromDate(someDaysAgo)))
-    chunkOfData map { i =>
-      // and copy it to the table "MetricsArchive"
-      APIMetrics.apiMetrics.vend.saveMetricsArchive(
-        i.getPrimaryKey(),
-        i.getUserId(),
-        i.getUrl(),
-        i.getDate(),
-        i.getDuration(),
-        i.getUserName(),
-        i.getAppName(),
-        i.getDeveloperEmail(),
-        i.getConsumerId(),
-        i.getImplementedByPartialFunction(),
-        i.getImplementedInVersion(),
-        i.getVerb(),
-        Some(i.getHttpCode()),
-        i.getCorrelationId()
-      )
-    }
   }
 
   def deleteOutdatedRowsFromMetricsArchive() = {
@@ -74,15 +44,51 @@ object MetricsArchiveScheduler extends MdcLoggable {
     // Delete the outdated rows from the table "MetricsArchive"
     MetricsArchive.bulkDelete_!!(By_<=(MetricsArchive.date, oneYearAgo))
   }
-  
-  def deleteOutdatedRowsFromMetric() = {
+
+  def conditionalDeleteMetricsRow() = {
     val currentTime = new Date()
-    val days = APIUtil.getPropsAsLongValue("retain_metrics_days=60", 60)
-    val daysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
-    // Delete the outdated rows from the table "Metric"
-    MappedMetric.bulkDelete_!!(By_<=(MappedMetric.date, daysAgo))
+    val days = APIUtil.getPropsAsLongValue("retain_metrics_days", 60) match {
+      case days if days > 59 => days
+      case _ => 60
+    }
+    val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
+    // Get the data from the table "Metric" older than specified by retain_metrics_days
+    val chunkOfData = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPToDate(someDaysAgo)))
+    chunkOfData map { i =>
+      // and copy it to the table "MetricsArchive"
+      copyRowToMetricsArchive(i)
+    }
+    val maybeDeletedRows: List[(Boolean, Long)] = chunkOfData map { i =>
+      // and delete it after successful coping
+      MetricsArchive.find(By(MetricsArchive.primaryKey, i.getPrimaryKey())) match {
+        case Full(_) => (MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getPrimaryKey())), i.getPrimaryKey())
+        case _ => (false, i.getPrimaryKey())
+      }
+    }
+    maybeDeletedRows.filter(_._1 == false).map { i => 
+      logger.warn(s"Row with primary key ${i._2} of the table Metric is not successfully copied.")
+    }
   }
-  
+
+  private def copyRowToMetricsArchive(i: APIMetric): Unit = {
+    APIMetrics.apiMetrics.vend.saveMetricsArchive(
+      i.getPrimaryKey(),
+      i.getUserId(),
+      i.getUrl(),
+      i.getDate(),
+      i.getDuration(),
+      i.getUserName(),
+      i.getAppName(),
+      i.getDeveloperEmail(),
+      i.getConsumerId(),
+      i.getImplementedByPartialFunction(),
+      i.getImplementedInVersion(),
+      i.getVerb(),
+      Some(i.getHttpCode()),
+      i.getCorrelationId()
+    )
+  }
+
   private def getMillisTillMidnight(): Long = {
     val c = Calendar.getInstance
     c.add(Calendar.DAY_OF_MONTH, 1)

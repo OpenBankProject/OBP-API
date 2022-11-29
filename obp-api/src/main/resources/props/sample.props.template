@@ -1212,5 +1212,3 @@ retain_archive_metrics_days = 1095
 
 # Defines the number of days we keep rows in the table "Metric" former "MappedMetric"
 retain_metrics_days = 60
-# Defines the number of last days we copy rows from the table "Metric" to "MetricsArchive"
-copy_metrics_days = 2
