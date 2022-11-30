@@ -49,10 +49,14 @@ trait DefaultUsers {
   val defaultProvider = Constant.HostName
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser1"), userId1, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser2 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser2"), userId2, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser3 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser3"), userId3, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser4 = UserX.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, Some("resourceUser4"), userId4, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser1 = UserX.createResourceUser(provider = defaultProvider, providerId= None, createdByConsentId= None, 
+    name= Some("resourceUser1"),email= Some("resourceUser1@123.com"), userId= userId1, company = Some("Tesobe GmbH")).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser2 = UserX.createResourceUser(provider = defaultProvider, providerId= None, createdByConsentId= None, 
+    name= Some("resourceUser2"),email= Some("resourceUser2@123.com"), userId= userId2, company = Some("Tesobe GmbH")).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser3 = UserX.createResourceUser(provider = defaultProvider, providerId= None, createdByConsentId= None, 
+    name= Some("resourceUser3"),email= Some("resourceUser3@123.com"), userId= userId3, company = Some("Tesobe GmbH")).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser4 = UserX.createResourceUser(provider = GatewayLogin.gateway, providerId = Some("simonr"), 
+    createdByConsentId= Some("simonr"), name= Some("resourceUser4"), email= Some("resourceUser4@123.com"), userId=userId4, company = Some("Tesobe GmbH")).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   // create the tokens in database, we only need token-key and token-secretAllCases
   lazy val testToken1 = Tokens.tokens.vend.createToken(
