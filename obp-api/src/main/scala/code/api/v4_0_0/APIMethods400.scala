@@ -9254,7 +9254,7 @@ trait APIMethods400 {
     )
 
     lazy val createMyApiCollectionEndpointById: OBPEndpoint = {
-      case "my" :: "api-collection-ids" :: apiCollectioId :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
+      case "my" :: "api-collection-ids" :: apiCollectionId :: "api-collection-endpoints" :: Nil JsonPost json -> _ => {
         cc =>
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionEndpointJson400", 400, cc.callContext) {
@@ -9263,9 +9263,9 @@ trait APIMethods400 {
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})", cc=Some(cc)) {
               getAllResourceDocs.find(_.operationId==postJson.operation_id.trim).isDefined
             }
-            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectioId, Some(cc))
+            (apiCollection, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
             apiCollectionEndpoint <- Future{MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollection.apiCollectionId, postJson.operation_id)} 
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectioId) ", cc=callContext) {
+            _ <- Helper.booleanToFuture(failMsg = s"$ApiCollectionEndpointAlreadyExisting Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectionId) ", cc=callContext) {
               apiCollectionEndpoint.isEmpty
             }
             (apiCollectionEndpoint, callContext) <- NewStyle.function.createApiCollectionEndpoint(
