@@ -1,8 +1,5 @@
 package code.api.v5_0_0
 
-import java.util.UUID
-import java.util.concurrent.TimeUnit
-
 import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
@@ -25,6 +22,8 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
 
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.util.Random
 
 class AccountTest extends V500ServerSetup with DefaultUsers {

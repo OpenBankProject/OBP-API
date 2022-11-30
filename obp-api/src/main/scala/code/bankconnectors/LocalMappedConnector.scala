@@ -513,35 +513,77 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    * 
    */
   override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
-    val userId = callContext.map(_.userId).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
-    val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] = for {
-      user <- Users.users.vend.getUserByUserId(userId)
-      bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
-    } yield {
-      for {
-        bankAccountId <- bankAccountIds
-        inboundAccountCommons = InboundAccountCommons(
-          bankId = bankAccountId.bankId.value,
-          accountId = bankAccountId.accountId.value,
-          viewsToGenerate = List("owner"), //TODO, so far only set the `owner` view, later need to simulate other views.
-          branchId = "",
-          accountNumber = "",
-          accountType = "",
-          balanceAmount = "",
-          balanceCurrency = "",
-          owners = List(""),
-          bankRoutingScheme = "",
-          bankRoutingAddress = "",
-          branchRoutingScheme = "",
-          branchRoutingAddress = "",
-          accountRoutingScheme = "",
-          accountRoutingAddress = ""
-        )
-      } yield {
-        inboundAccountCommons
-      }
+    //1st: get the accounts from userAuthContext
+    val viewsToGenerate = List("owner") //TODO, so far only set the `owner` view, later need to simulate other views.
+    val userId = Users.users.vend.getUserByUserName(username).map(_.userId).getOrElse("")
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userId says: $userId")}
+    val userAuthContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId)
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userAuthContexts says: $userAuthContexts")}
+    //Find the key == AccountNumber in the UserAuthContext, and remove the duplications there.
+    val customerNumbers = userAuthContexts.map(_.filter(_.key.replaceAll(" ","").replaceAll("_","").equalsIgnoreCase("CustomerNumber")).map(_.value).toSet).getOrElse(Set.empty[String])
+    val bankIds = userAuthContexts.map(_.filter(_.key.replaceAll(" ","").replaceAll("_","").equalsIgnoreCase("BankId")).map(_.value).toSet).getOrElse(Set.empty[String])
+
+    val bankAccountIdBoxList = for{
+      bankId <- bankIds
+      customerNumber <- customerNumbers
+    }yield{
+      CustomerX.customerProvider.vend.getCustomerByCustomerNumber(customerNumber, BankId(bankId)).map(customer =>
+        code.customeraccountlinks.MappedCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(_.accountId).map(accountId =>
+          code.bankconnectors.LocalMappedConnector.getBankAccountByAccountIdLegacy(AccountId(accountId), None).map(result =>
+            BankIdAccountId(result._1.bankId, result._1.accountId)))).flatten.flatten
     }
-    inboundAccountCommonsBox.map(inboundAccountCommons => (inboundAccountCommons.toList, callContext))
+
+    val validBankAccountIds = bankAccountIdBoxList.filter(_.isDefined).map(_.head)
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.validBankAccountIds says: $validBankAccountIds")}
+    
+    if(validBankAccountIds.nonEmpty){//if validBankAccountIds is `nonEmpty`, this mean these accounts are from the CustomerAccountLink, this mean, OBP simulate the CBS side, OBP do not allowed to create accounts.
+      Full(validBankAccountIds.map(bankAccountId =>InboundAccountCommons(
+        bankId = bankAccountId.bankId.value,
+        accountId = bankAccountId.accountId.value,
+        viewsToGenerate = viewsToGenerate,
+        branchId = "",
+        accountNumber = "",
+        accountType = "",
+        balanceAmount = "",
+        balanceCurrency = "",
+        owners = List(""),
+        bankRoutingScheme = "",
+        bankRoutingAddress = "",
+        branchRoutingScheme = "",
+        branchRoutingAddress = "",
+        accountRoutingScheme = "",
+        accountRoutingAddress = ""
+      )).toList,callContext)
+    } else{//following ids are from accountHolder, --> these should not be changed by UserAuthContext stuff.
+      val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] = for {
+        user <- Users.users.vend.getUserByUserId(userId)
+        bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
+      } yield {
+        for {
+          bankAccountId <- bankAccountIds
+          inboundAccountCommons = InboundAccountCommons(
+            bankId = bankAccountId.bankId.value,
+            accountId = bankAccountId.accountId.value,
+            viewsToGenerate = viewsToGenerate,
+            branchId = "",
+            accountNumber = "",
+            accountType = "",
+            balanceAmount = "",
+            balanceCurrency = "",
+            owners = List(""),
+            bankRoutingScheme = "",
+            bankRoutingAddress = "",
+            branchRoutingScheme = "",
+            branchRoutingAddress = "",
+            accountRoutingScheme = "",
+            accountRoutingAddress = ""
+          )
+        } yield {
+          inboundAccountCommons
+        }
+      }
+      inboundAccountCommonsBox.map(inboundAccountCommons => (inboundAccountCommons.toList, callContext))
+    }
   }
 
   override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future {
@@ -686,6 +728,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
+    getBankAccountByAccountIdLegacy(accountId : AccountId, callContext: Option[CallContext])
+  }
+  
+  def getBankAccountByAccountIdLegacy(accountId : AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] =  {
     MappedBankAccount.find(
       By(MappedBankAccount.theAccountId, accountId.value)
     ).map(bankAccount => (bankAccount, callContext))
