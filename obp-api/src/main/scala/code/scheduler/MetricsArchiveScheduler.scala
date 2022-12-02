@@ -40,9 +40,9 @@ object MetricsArchiveScheduler extends MdcLoggable {
       case days if days > 364 => days
       case _ => 365
     }
-    val oneYearAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
+    val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Delete the outdated rows from the table "MetricsArchive"
-    MetricsArchive.bulkDelete_!!(By_<=(MetricsArchive.date, oneYearAgo))
+    MetricsArchive.bulkDelete_!!(By_<=(MetricsArchive.date, someYearsAgo))
   }
 
   def conditionalDeleteMetricsRow() = {
@@ -53,12 +53,12 @@ object MetricsArchiveScheduler extends MdcLoggable {
     }
     val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Get the data from the table "Metric" older than specified by retain_metrics_days
-    val chunkOfData = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPToDate(someDaysAgo)))
-    chunkOfData map { i =>
+    val canditateMetricRowsToMove = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPToDate(someDaysAgo)))
+    canditateMetricRowsToMove map { i =>
       // and copy it to the table "MetricsArchive"
       copyRowToMetricsArchive(i)
     }
-    val maybeDeletedRows: List[(Boolean, Long)] = chunkOfData map { i =>
+    val maybeDeletedRows: List[(Boolean, Long)] = canditateMetricRowsToMove map { i =>
       // and delete it after successful coping
       MetricsArchive.find(By(MetricsArchive.primaryKey, i.getPrimaryKey())) match {
         case Full(_) => (MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getPrimaryKey())), i.getPrimaryKey())
