@@ -16,9 +16,9 @@ class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLo
 
   def receive = {
 
-    case cc.getOrCreateAccountHolder(user: User, account :BankIdAccountId) =>
-      logger.debug(s"getOrCreateAccountHolder($user, $account)")
-      sender ! (mapper.getOrCreateAccountHolder(user: User, account :BankIdAccountId))
+    case cc.getOrCreateAccountHolder(user: User, account :BankIdAccountId, source: Option[String]) =>
+      logger.debug(s"getOrCreateAccountHolder($user, $account, $source)")
+      sender ! (mapper.getOrCreateAccountHolder(user: User, account :BankIdAccountId, source))
       
     case cc.getAccountHolders(bankId: BankId, accountId: AccountId) =>
       logger.debug(s"getAccountHolders($bankId, $accountId)")
@@ -28,13 +28,13 @@ class RemotedataAccountHoldersActor extends Actor with ObpActorHelper with MdcLo
       logger.debug(s"getAccountsHeld($bankId, $user)")
       sender ! (mapper.getAccountsHeld(bankId: BankId, user: User))
 
-    case cc.getAccountsHeldByUser(user: User) =>
-      logger.debug(s"getAccountsHeldByUser($user)")
-      sender ! (mapper.getAccountsHeldByUser(user: User))
+    case cc.getAccountsHeldByUser(user: User, source: Option[String]) =>
+      logger.debug(s"getAccountsHeldByUser($user, $source)")
+      sender ! (mapper.getAccountsHeldByUser(user: User, source: Option[String]))
       
     case cc.bulkDeleteAllAccountHolders() =>
       logger.debug(s"bulkDeleteAllAccountHolders()")
-      sender ! (mapper.bulkDeleteAllAccountHolders())     
+      sender ! (mapper.bulkDeleteAllAccountHolders())  
       
     case cc.deleteAccountHolder(user: User, bankAccountUID :BankIdAccountId) =>
       logger.debug(s"deleteAccountHolder($user,$bankAccountUID)")

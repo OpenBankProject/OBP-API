@@ -1405,7 +1405,7 @@ def restoreSomeSessions(): Unit = {
         //2st: create views/accountAccess/accountHolders for the new coming accounts
         for {
           newBankAccountId <- csbNewBankAccountIds
-          _ = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,newBankAccountId)
+          _ = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,newBankAccountId,Some("CBS"))
           bankId = newBankAccountId.bankId
           accountId = newBankAccountId.accountId
           newBankAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)

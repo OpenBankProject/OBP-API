@@ -11,7 +11,7 @@ object RemotedataAccountHolders extends ObpActorInit with AccountHolders {
 
   val cc = RemotedataAccountHoldersCaseClasses
 
-  override def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId): Box[MapperAccountHolders] = getValueFromFuture(
+  override def getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId, source: Option[String] = None): Box[MapperAccountHolders] = getValueFromFuture(
     (actor ? cc.getOrCreateAccountHolder(user: User, bankAccountUID :BankIdAccountId)).mapTo[Box[MapperAccountHolders]]
   )
 
@@ -23,8 +23,8 @@ object RemotedataAccountHolders extends ObpActorInit with AccountHolders {
     (actor ? cc.getAccountsHeld(bankId: BankId, user: User)).mapTo[Set[BankIdAccountId]]
   )
 
-  override def getAccountsHeldByUser(user: User): Set[BankIdAccountId] = getValueFromFuture(
-    (actor ? cc.getAccountsHeldByUser(user: User)).mapTo[Set[BankIdAccountId]]
+  override def getAccountsHeldByUser(user: User, source: Option[String] = None): Set[BankIdAccountId] = getValueFromFuture(
+    (actor ? cc.getAccountsHeldByUser(user: User, source: Option[String])).mapTo[Set[BankIdAccountId]]
   )
 
   def bulkDeleteAllAccountHolders(): Box[Boolean] = getValueFromFuture(
