@@ -1848,7 +1848,7 @@ trait APIMethods500 {
             _ <- booleanToFuture(AccountAlreadyExistsForCustomer, 400, callContext) {
               customerAccountLinkExists.isEmpty
             }
-            (customerAccountLink, callContext) <- NewStyle.function.createCustomerAccountLink(postedData.customer_id, postedData.account_id, postedData.relationship_type, callContext)
+            (customerAccountLink, callContext) <- NewStyle.function.createCustomerAccountLink(postedData.customer_id, postedData.bank_id, postedData.account_id, postedData.relationship_type, callContext)
           } yield {
             (JSONFactory500.createCustomerAccountLinkJson(customerAccountLink), HttpCode.`201`(callContext))
           }

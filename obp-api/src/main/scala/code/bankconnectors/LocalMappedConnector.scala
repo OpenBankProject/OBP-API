@@ -5718,23 +5718,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       Future{(Full("Success"), callContext)}
   }
 
-  override def getCustomerAccountLink(customerId: String, accountId: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{
-    (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLink(customerId, accountId), callContext)
-  }
-
   override def getCustomerAccountLinksByCustomerId(customerId: String, callContext: Option[CallContext]) = Future{
     (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinksByCustomerId(customerId),callContext)
-  }
-
-
-  override def getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAccountLinkTrait]]] =  Future{
-    (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinksByAccountId(accountId),callContext)
   }
 
   override def getCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]) = Future{
     (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinkById(customerAccountLinkId),callContext)
   }
-
 
   override def deleteCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]) = 
     CustomerAccountLinkTrait.customerAccountLink.vend.deleteCustomerAccountLinkById(customerAccountLinkId).map {(_, callContext)}
@@ -5743,8 +5733,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (CustomerAccountLinkTrait.customerAccountLink.vend.updateCustomerAccountLinkById(customerAccountLinkId, relationshipType),callContext)
   }
 
-  override def createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{
-    CustomerAccountLinkTrait.customerAccountLink.vend.createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String) map { ( _, callContext) }
+  override def createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{
+    CustomerAccountLinkTrait.customerAccountLink.vend.createCustomerAccountLink(customerId: String, bankId, accountId: String, relationshipType: String) map { ( _, callContext) }
   }
 
 }
