@@ -512,11 +512,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    *   and return the accounts back.
    * 
    */
-  override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
+  override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
     val viewsToGenerate = List("owner") //TODO, so far only set the `owner` view, later need to simulate other views.
-    val userId = Users.users.vend.getUserByUserName(username).map(_.userId).getOrElse("")
-    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userId says: $userId")}
+    val userId = Users.users.vend.getUserByProviderId(provider, username).map(_.userId).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
     val userAuthContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId)
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userAuthContexts says: $userAuthContexts")}
     //Find the key == AccountNumber in the UserAuthContext, and remove the duplications there.
@@ -586,8 +586,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future {
-    getBankAccountsForUserLegacy(username, callContext)
+  override def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future {
+    getBankAccountsForUserLegacy(provider, username, callContext)
   }
 
   override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {

@@ -83,7 +83,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
 
   // This is tricky for now. Because for GatewayLogin, we do not create any user for the first CBS Call. 
   // We get the username from gatewayLogin token -> call CBS (CBS checked the user and return the response) -> api create the users.  
-  def getAuthInfoFirstCbsCall (username: String, callContext: Option[CallContext]): Box[AuthInfo]=
+  def getAuthInfoFirstCbsCall (provider: String, username:String, callContext: Option[CallContext]): Box[AuthInfo]=
     for{
       cc <- tryo {callContext.get} ?~! NoCallContext
       gatewayLoginRequestPayLoad <- cc.gatewayLoginRequestPayload orElse (
@@ -484,11 +484,11 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
     ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
-  override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = saveConnectorMetric{
-    getValueFromFuture(getBankAccountsForUser(username: String, callContext: Option[CallContext]))
+  override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = saveConnectorMetric{
+    getValueFromFuture(getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]))
   }("getBankAccounts")
 
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountSept2018], Option[CallContext])]] = saveConnectorMetric{
+  override def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccountSept2018], Option[CallContext])]] = saveConnectorMetric{
      /**
         * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
         * is just a temporary value filed with UUID values in order to prevent any ambiguity.
@@ -500,7 +500,7 @@ trait KafkaMappedConnector_vSept2018 extends Connector with KafkaHelper with Mdc
       Caching.memoizeWithProvider(Some(cacheKey.toString()))(accountsTTL second) {
 
         val req = OutboundGetAccounts(
-          getAuthInfoFirstCbsCall(username, callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
+          getAuthInfoFirstCbsCall(provider: String, username:String, callContext).openOrThrowException(s"$attemptedToOpenAnEmptyBox getBankAccountsFuture.callContext is Empty !"),
           InternalBasicCustomers(Nil)
         )
         logger.debug(s"Kafka getBankAccountsFuture says: req is: $req")

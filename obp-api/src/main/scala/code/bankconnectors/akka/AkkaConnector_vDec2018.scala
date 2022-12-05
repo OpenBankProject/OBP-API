@@ -128,6 +128,7 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
     exampleOutboundMessage = (
       OutBoundGetBankAccountsForUser(
         outboundAdapterCallContext,
+        provider=providerExample.value,
         usernameExample.value)
       ),
     exampleInboundMessage = (
@@ -139,8 +140,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
       ),
     adapterImplementation = Some(AdapterImplementation("Accounts", 5))
   )
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
-    val req = OutBoundGetBankAccountsForUser(callContext.map(_.toOutboundAdapterCallContext).get, username)
+  override def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
+    val req = OutBoundGetBankAccountsForUser(callContext.map(_.toOutboundAdapterCallContext).get, provider: String, username:String)
     val response = (southSideActor ? req).mapTo[InBoundGetBankAccountsForUser] recoverWith { recoverFunction }
     response.map(a =>(Full(a.data, callContext)))
   }

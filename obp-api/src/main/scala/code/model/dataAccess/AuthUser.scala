@@ -1351,7 +1351,7 @@ def restoreSomeSessions(): Unit = {
    */
   def refreshUser(user: User, callContext: Option[CallContext]) = {
     for{
-      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
+      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.provider, user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
       _ = logger.debug(s"--> for user($user): AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")

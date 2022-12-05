@@ -434,7 +434,7 @@ trait Connector extends MdcLoggable {
   /**
    * please see @getBankAccountsForUser
    */
-  def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]) : Box[(List[InboundAccount], Option[CallContext])] = Failure(setUnimplementedError)
+  def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]) : Box[(List[InboundAccount], Option[CallContext])] = Failure(setUnimplementedError)
 
   /**
     * Get Accounts from cbs, this method is mainly used for onboarding Bank Customer to OBP.
@@ -450,7 +450,7 @@ trait Connector extends MdcLoggable {
     * @param callContext inside, should contains the proper values for CBS to identify a bank Customer 
     * @return all the accounts, get from Main Frame.
     */
-  def getBankAccountsForUser(username: String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
+  def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]) : Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
     Failure(setUnimplementedError)
   }
 
