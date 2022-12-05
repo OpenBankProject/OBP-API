@@ -40,10 +40,6 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
     case cc.getAllMetrics(queryParams) =>
       logger.debug("getAllMetrics()")
       sender ! (mapper.getAllMetrics(queryParams))
-      
-    case cc.getAllMetricsArchive(queryParams) =>
-      logger.debug("getAllMetricsArchive()")
-      sender ! (mapper.getAllMetricsArchive(queryParams))
 
     case cc.getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"RemotedataMetricsActor.getAllAggregateMetricsFuture($queryParams)")

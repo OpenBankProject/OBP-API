@@ -85,8 +85,6 @@ trait APIMetrics {
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
   
-  def getAllMetricsArchive(queryParams: List[OBPQueryParam]): List[APIMetric]
-  
   def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]]
   
   def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]]
@@ -104,7 +102,6 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
-  case class getAllMetricsArchive(queryParams: List[OBPQueryParam])
   case class getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam])
   case class getTopApisFuture(queryParams: List[OBPQueryParam])
   case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
@@ -115,7 +112,7 @@ object RemotedataMetricsCaseClasses extends RemotedataMetricsCaseClasses
 
 trait APIMetric {
 
-  def getPrimaryKey() : Long
+  def getMetricId() : Long
   def getUrl() : String
   def getDate() : Date
   def getDuration(): Long

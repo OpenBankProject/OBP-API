@@ -927,6 +927,8 @@ class Boot extends MdcLoggable {
 
 object ToSchemify {
   // The following tables will be accessed via Akka to the OBP Storage instance which in turn uses Mapper / JDBC
+  // TODO EPIC The aim is to have all models prefixed with "Mapped" but table names should not be prefixed with "Mapped
+  // TODO EPIC The aim is to remove all field name prefixes("m")
   val modelsRemotedata: List[MetaMapper[_]] = List(
     AccountAccess,
     ViewDefinition,

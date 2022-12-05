@@ -60,9 +60,9 @@ object MetricsArchiveScheduler extends MdcLoggable {
     }
     val maybeDeletedRows: List[(Boolean, Long)] = canditateMetricRowsToMove map { i =>
       // and delete it after successful coping
-      MetricsArchive.find(By(MetricsArchive.primaryKey, i.getPrimaryKey())) match {
-        case Full(_) => (MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getPrimaryKey())), i.getPrimaryKey())
-        case _ => (false, i.getPrimaryKey())
+      MetricsArchive.find(By(MetricsArchive.metricId, i.getMetricId())) match {
+        case Full(_) => (MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getMetricId())), i.getMetricId())
+        case _ => (false, i.getMetricId())
       }
     }
     maybeDeletedRows.filter(_._1 == false).map { i => 
@@ -72,7 +72,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
 
   private def copyRowToMetricsArchive(i: APIMetric): Unit = {
     APIMetrics.apiMetrics.vend.saveMetricsArchive(
-      i.getPrimaryKey(),
+      i.getMetricId(),
       i.getUserId(),
       i.getUrl(),
       i.getDate(),

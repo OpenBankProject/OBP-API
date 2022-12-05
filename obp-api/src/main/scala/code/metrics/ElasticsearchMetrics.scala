@@ -54,24 +54,6 @@ object ElasticsearchMetrics extends APIMetrics {
 
     MappedMetric.findAll(optionalParams: _*)
   }
-  override def getAllMetricsArchive(queryParams: List[OBPQueryParam]): List[APIMetric] = {
-    //TODO: replace the following with valid ES query
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MetricsArchive](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MetricsArchive](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MetricsArchive.date, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MetricsArchive.date, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MetricsArchive.date, Ascending)
-          case OBPDescending => OrderBy(MetricsArchive.date, Descending)
-        }
-    }
-    val optionalParams : Seq[QueryParam[MetricsArchive]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering).flatten
-
-    MetricsArchive.findAll(optionalParams: _*)
-  }
   
   override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = ???
   

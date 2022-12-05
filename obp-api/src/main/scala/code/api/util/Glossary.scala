@@ -807,14 +807,23 @@ object Glossary extends MdcLoggable  {
 		  """
 			|Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
 		  """)
+	
+	  glossaryItems += GlossaryItem(
+		title = "Consent",
+		description =
+			s"""Consents provide a mechanism by which a third party App or User can access resources on behalf of a User.
+				|${getGlossaryItem("Consent OBP Flow Example")}
+				|${getGlossaryItem("Consent / Account Onboarding")}
+				|""".stripMargin)
 
 
 	glossaryItems += GlossaryItem(
-		title = "Consents Flow Example",
+		title = "Consent OBP Flow Example",
 		description =
-				"""#### 1) Call endpoint Create consent request using application access(Client Credentials)
+				s"""
+					|#### 1) Call endpoint Create Consent Request using application access (Client Credentials)
 					|
-					|Url: [http://127.0.0.1:8080/obp/v5.0.0/consumer/consent-requests](http://127.0.0.1:8080/obp/v5.0.0/consumer/consent-requests)
+					|Url: [$getObpApiRoot/v5.0.0/consumer/consent-requests]($getObpApiRoot/v5.0.0/consumer/consent-requests)
 					|
 					|Post body:
 					|
@@ -856,7 +865,7 @@ object Glossary extends MdcLoggable  {
 					|
 					|#### 2) Call endpoint Create Consent By CONSENT_REQUEST_ID (SMS) with logged on user
 					|
-					|Url: http://127.0.0.1:8080/obp/v5.0.0/consumer/consent-requests/bc0209bd-bdbe-4329-b953-d92d17d733f4/EMAIL/consents									
+					|Url: $getObpApiRoot/v5.0.0/consumer/consent-requests/bc0209bd-bdbe-4329-b953-d92d17d733f4/EMAIL/consents									
 					|
 					|Output:
 					|```
@@ -875,7 +884,7 @@ object Glossary extends MdcLoggable  {
 					|
 					|
 					|#### 4) Call endpoint Answer Consent Challenge with logged on user
-					|Url: http://127.0.0.1:8080/obp/v5.0.0/banks/gh.29.uk.x/consents/155f86b2-247f-4702-a7b2-671f2c3303b6/challenge
+					|Url: $getObpApiRoot/v5.0.0/banks/gh.29.uk.x/consents/155f86b2-247f-4702-a7b2-671f2c3303b6/challenge
 					|Post body:
 					|```
 					|{
@@ -896,7 +905,7 @@ object Glossary extends MdcLoggable  {
 					|
 					|#### 5) Call endpoint Get Customer by CUSTOMER_ID with Consent Header
 					|
-					|Url: http://127.0.0.1:8080/obp/v5.0.0/banks/gh.29.uk.x/customers/a9c8bea0-4f03-4762-8f27-4b463bb50a93
+					|Url: $getObpApiRoot/v5.0.0/banks/gh.29.uk.x/customers/a9c8bea0-4f03-4762-8f27-4b463bb50a93
 					|
 					|Request Header: 
 					|```

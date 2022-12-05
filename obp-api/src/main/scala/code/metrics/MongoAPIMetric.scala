@@ -58,7 +58,7 @@ import scala.concurrent.Future
    object correlationId extends StringField(this,255)
 
 
-   def getPrimaryKey(): Long  = id.get
+   def getMetricId(): Long  = id.get
    def getUrl() = url.get
    def getDate() = date.get
    def getDuration(): Long = duration.get
@@ -110,7 +110,6 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     MongoAPIMetric.findAll
   }
-  override def getAllMetricsArchive(queryParams: List[OBPQueryParam]): List[APIMetric] = ???
   
   override def bulkDeleteMetrics(): Boolean = ???
   
