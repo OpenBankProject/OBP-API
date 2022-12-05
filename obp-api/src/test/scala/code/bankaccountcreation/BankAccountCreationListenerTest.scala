@@ -1,5 +1,6 @@
 package code.bankaccountcreation
 
+import code.TestServer
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
@@ -12,6 +13,8 @@ import com.tesobe.model.CreateBankAccount
 import code.model.dataAccess.{BankAccountCreationListener, ResourceUser}
 import net.liftmodules.amqp.AMQPMessage
 import code.bankconnectors.Connector
+import code.connector.MockedCbsConnector.{defaultProvider, resourceUser1Name, resourceUser1}
+import code.model.UserX
 import code.setup.{DefaultConnectorTestSetup, ServerSetup}
 import code.users.Users
 import com.openbankproject.commons.model.{BankId, User}
@@ -32,14 +35,12 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
   feature("Bank account creation via AMQP messages") {
 
-    val userId = "foo"
-    val userProvider = "bar"
-
-    //need to create the user for the bank accout creation process to work
-    def getTestUser() =
-      Users.users.vend.getUserByProviderId(userProvider, userId).getOrElse {
-        Users.users.vend.createResourceUser(userProvider, Some(userId), None, None, None, None, None, None, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-      }
+    val userProvider = defaultProvider
+    val userProviderId = resourceUser1Name
+    val userId1 = TestServer.userId1
+    
+    //need to create the user for the bank account creation process to work
+    def getTestUser() = resourceUser1
 
     val expectedBankId = "quxbank"
     val accountNumber = "123456"
@@ -79,7 +80,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
         //using expectedBankId as the bank name should be okay as the behaviour should be to slugify the bank name to get the id
         //what to do if this slugification results in an id collision has not been determined yet
-        val msgContent = CreateBankAccount(userId, userProvider, accountNumber, bankIdentifier, expectedBankId)
+        val msgContent = CreateBankAccount(userProviderId, userProvider, accountNumber, bankIdentifier, expectedBankId)
 
         BankAccountCreationListener.createBankAccountListener ! AMQPMessage(msgContent)
 
@@ -105,7 +106,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         val createdBank = createBank(expectedBankId)
 
         When("We create a bank account")
-        val msgContent = CreateBankAccount(userId, userProvider, accountNumber, createdBank.nationalIdentifier, createdBank.bankId.value)
+        val msgContent = CreateBankAccount(userProviderId, userProvider, accountNumber, createdBank.nationalIdentifier, createdBank.bankId.value)
 
         BankAccountCreationListener.createBankAccountListener ! AMQPMessage(msgContent)
 

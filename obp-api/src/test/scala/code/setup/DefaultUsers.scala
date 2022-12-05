@@ -1,7 +1,8 @@
 package code.setup
 
-import java.util.{Date, UUID}
+import code.TestServer
 
+import java.util.{Date, UUID}
 import code.api.{Constant, GatewayLogin}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
@@ -23,15 +24,15 @@ import scala.compat.Platform
   */
 trait DefaultUsers {
   
-  lazy val userId1 = Some(UUID.randomUUID.toString)
-  lazy val userId2 = Some(UUID.randomUUID.toString)
-  lazy val userId3 = Some(UUID.randomUUID.toString)
-  lazy val userId4 = Some(UUID.randomUUID.toString)
+  lazy val userId1 = TestServer.userId1
+  lazy val userId2 = TestServer.userId2
+  lazy val userId3 = TestServer.userId3
+  lazy val userId4 = TestServer.userId4
   
-  val resourceUser1Name = "resourceUser1"
-  val resourceUser2Name = "resourceUser2"
-  val resourceUser3Name = "resourceUser3"
-  val resourceUser4Name = "resourceUser4"
+  lazy val resourceUser1Name = TestServer.resourceUser1Name 
+  lazy val resourceUser2Name = TestServer.resourceUser2Name 
+  lazy val resourceUser3Name = TestServer.resourceUser3Name 
+  lazy val resourceUser4Name = TestServer.resourceUser4Name 
 
   //create the application(consumer, used it in the Login credential, mainly used the consume_key and consumer_secret)
   lazy val testConsumer = Consumers.consumers.vend.createConsumer(
