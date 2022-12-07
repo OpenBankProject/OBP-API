@@ -516,7 +516,9 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
-  object correlationId extends MappedUUID(this)
+  object correlationId extends MappedUUID(this){
+    override def dbNotNull_? = true
+  }
 
 
   override def getMetricId(): Long = id.get
@@ -567,7 +569,9 @@ class MetricsArchive extends APIMetric with LongKeyedMapper[MetricsArchive] with
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
-  object correlationId extends MappedUUID(this)
+  object correlationId extends MappedUUID(this){
+    override def dbNotNull_? = true
+  }
 
 
   override def getMetricId(): Long = metricId.get
