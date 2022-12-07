@@ -1,4 +1,4 @@
-FROM jetty:9.4-jre11-slim
+FROM jetty:9.4.49-jre11-alpine
 
 # Copy build artifact (.war file) into jetty from 'maven' stage.
 COPY /obp-api/target/obp-api-1.*.war /var/lib/jetty/webapps/ROOT.war

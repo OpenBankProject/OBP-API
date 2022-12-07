@@ -1,4 +1,4 @@
-FROM jetty:9.4-jre11-slim
+FROM jetty:9.4.49-jre11-alpine
 
 # Copy OBP source code
 # Copy build artifact (.war file) into jetty from 'maven' stage.
