@@ -814,6 +814,7 @@ object Glossary extends MdcLoggable  {
 			s"""Consents provide a mechanism by which a third party App or User can access resources on behalf of a User.
 				|${getGlossaryItem("Consent OBP Flow Example")}
 				|${getGlossaryItem("Consent / Account Onboarding")}
+				|<img width="468" alt="OBP Access Control Image" src="$getServerUrl/media/images/glossary/OBP_Consent_Request__3_.png"></img>
 				|""".stripMargin)
 
 
