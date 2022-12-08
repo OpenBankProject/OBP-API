@@ -40,7 +40,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST
@@ -56,7 +56,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
@@ -73,7 +73,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
       val response400 = makePostRequest(request400, write(putCustomerAttributeJsonV400))
@@ -97,7 +97,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
       val response400 = makePostRequest(request400, write(putCustomerAttributeJsonV400))
@@ -122,7 +122,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / "customerAttributeId").PUT
@@ -138,7 +138,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / "customerAttributeId").PUT <@ (user1)
@@ -154,7 +154,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
@@ -180,7 +180,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attributes" / "customerAttributeId").PUT <@ (user1)
@@ -206,7 +206,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("We grant the role to the user1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canUpdateCustomerAttributeAtOneBank.toString)
@@ -226,7 +226,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("We grant the role to the user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateCustomerAttributeAtAnyBank.toString)
@@ -248,7 +248,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         val bankId = randomBankId
         val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-        val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+        val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
         When("We make a request v4.0.0")
         Then("we create the Customer Attribute ")
@@ -276,7 +276,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         val bankId = randomBankId
         val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-        val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+        val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
         Then("we create the Customer Attribute ")
         val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
@@ -296,7 +296,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         val bankId = randomBankId
         val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-        val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+        val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
         Then("we create the Customer Attribute ")
         val customerAttributeId = createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
@@ -317,7 +317,7 @@ class CustomerAttributesTest extends V400ServerSetup {
 
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
@@ -341,7 +341,7 @@ class CustomerAttributesTest extends V400ServerSetup {
     scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
 
       val bankId = randomBankId
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
       createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
@@ -406,7 +406,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         When("We create an attribute for later deletion")
         val bankId = randomBankId
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-        val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+        val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
         val requestCreation = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
         Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)
@@ -443,7 +443,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         When("We create an attribute for later deletion - canDeleteCustomerAttributeAtAnyBank")
         val bankId = randomBankId
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
-        val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+        val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
         val requestCreation = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "attribute").POST <@ (user1)
         Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateCustomerAttributeAtOneBank.toString)

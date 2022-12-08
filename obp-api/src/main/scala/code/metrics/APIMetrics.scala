@@ -58,6 +58,21 @@ trait APIMetrics {
                  verb: String,
                  httpCode: Option[Int],
                  correlationId: String): Unit
+  
+  def saveMetricsArchive(primaryKey: Long,
+                         userId: String,
+                         url: String,
+                         date: Date,
+                         duration: Long,
+                         userName: String,
+                         appName: String,
+                         developerEmail: String,
+                         consumerId: String,
+                         implementedByPartialFunction: String,
+                         implementedInVersion: String,
+                         verb: String,
+                         httpCode: Option[Int],
+                         correlationId: String): Unit
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]]
@@ -82,6 +97,7 @@ trait APIMetrics {
 
 class RemotedataMetricsCaseClasses {
   case class saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String)
+  case class saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String)
 //  case class getAllGroupedByUrl()
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
@@ -96,6 +112,7 @@ object RemotedataMetricsCaseClasses extends RemotedataMetricsCaseClasses
 
 trait APIMetric {
 
+  def getMetricId() : Long
   def getUrl() : String
   def getDate() : Date
   def getDuration(): Long

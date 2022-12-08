@@ -31,13 +31,13 @@ import java.util.Date
 
 import code.api.util.OBPQueryParam
 import net.liftweb.common.Box
-import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
+import net.liftweb.mongodb.record.field.{DateField, LongPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.record.field.{IntField, LongField, StringField}
 
 import scala.concurrent.Future
 
- private class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
+ private class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with LongPk[MongoAPIMetric] with APIMetric {
    def meta = MongoAPIMetric
    object userId extends StringField(this,255)
    object url extends StringField(this,255)
@@ -58,6 +58,7 @@ import scala.concurrent.Future
    object correlationId extends StringField(this,255)
 
 
+   def getMetricId(): Long  = id.get
    def getUrl() = url.get
    def getDate() = date.get
    def getDuration(): Long = duration.get
@@ -91,6 +92,8 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
       correlationId(correlationId)
     saveTheRecord()
   }
+  override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String): Unit = ???
+  
 
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]] = {
 //    MongoAPIMetric.findAll.groupBy[String](_.url.get)
@@ -107,6 +110,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     MongoAPIMetric.findAll
   }
+  
   override def bulkDeleteMetrics(): Boolean = ???
   
   override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = ???

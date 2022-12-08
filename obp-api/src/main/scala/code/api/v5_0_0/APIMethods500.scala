@@ -591,7 +591,19 @@ trait APIMethods500 {
       "POST",
       "/consumer/consent-requests",
       "Create Consent Request",
-      s"""""",
+      s"""
+         |Client Authentication (mandatory)
+         |
+         |It is used when applications request an access token to access their own resources, not on behalf of a user.
+         |
+         |The client needs to authenticate themselves for this request.
+         |In case of public client we use client_id and private kew to obtain access token, otherwise we use client_id and client_secret.
+         |The obtained access token is used in the HTTP Bearer auth header of our request.
+         |
+         |Example:
+         |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
+         |
+         |""".stripMargin,
       postConsentRequestJsonV500,
       consentRequestResponseJson,
       List(
@@ -729,10 +741,11 @@ trait APIMethods500 {
       nameOf(createConsentByConsentRequestIdEmail),
       "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents",
-      "Create Consent By Request Id(EMAIL)",
+      "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
       s"""
          |
-         |This endpoint starts the process of creating a Consent by consent request id.
+         |This endpoint finishes the process of creating a Consent by CONSENT_REQUEST_ID.
+         |Please note that the Consent cannot elevate the privileges logged in user already have.
          |
          |""",
       EmptyBody,
@@ -756,10 +769,11 @@ trait APIMethods500 {
       nameOf(createConsentByConsentRequestIdSms),
       "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents",
-      "Create Consent By Request Id (SMS)",
+      "Create Consent By CONSENT_REQUEST_ID (SMS)",
       s"""
          |
-         |This endpoint starts the process of creating a Consent.
+         |This endpoint finishes the process of creating a Consent.
+         |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
       EmptyBody,
@@ -853,7 +867,7 @@ trait APIMethods500 {
   
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
-              case _ => Random.nextInt(99999999).toString()
+              case _ => SecureRandomUtil.numeric()
             }
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, Some(consentRequestId))) map {
               i => connectorEmptyResponse(i, callContext)

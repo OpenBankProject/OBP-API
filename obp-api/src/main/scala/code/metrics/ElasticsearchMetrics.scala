@@ -19,6 +19,7 @@ object ElasticsearchMetrics extends APIMetrics {
       es.indexMetric(userId, url, date, duration, userName, appName, developerEmail, correlationId)
     }
   }
+  override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String,  httpCode: Option[Int], correlationId: String): Unit = ???
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: replace the following with valid ES query

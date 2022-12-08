@@ -261,17 +261,20 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         }
         val updatedConsumer = c.saveMe()
 
+        // In case we use Hydra ORY as Identity Provider we update corresponding client at Hydra side a well
         if(integrateWithHydra && Option(originIsActive) != isActive && isActive.isDefined) {
           val clientId = c.key.get
           val existsOAuth2Client = Box.tryo(hydraAdmin.getOAuth2Client(clientId))
             .filter(null !=)
-          // if disable consumer, delete hydra client, else if enable consumer, create hydra client
-          // note: hydra update client endpoint have bug, can't update any client, So here delete and create new one
+          // Please note: 
+          // Hydra's update client endpoint has a bug. Cannot update clients, so we need to delete and create a new one.
+          // If a consumer is disabled we delete a corresponding client at Hydra side. 
+          // If the consumer is enabled we delete and create our corresponding client at Hydra side.
           if (isActive == Some(false)) {
               existsOAuth2Client
               .map { oAuth2Client =>
                   hydraAdmin.deleteOAuth2Client(clientId)
-                  // set grantTypes to empty to disable the client
+                  // set grantTypes to empty list in order to disable the client
                   oAuth2Client.setGrantTypes(Collections.emptyList())
                   hydraAdmin.createOAuth2Client(oAuth2Client)
               }
@@ -279,7 +282,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             existsOAuth2Client
               .map { oAuth2Client =>
                 hydraAdmin.deleteOAuth2Client(clientId)
-                // set grantTypes to correct value to enable the client
+                // set grantTypes to correct value in order to enable the client
                 oAuth2Client.setGrantTypes(HydraUtil.grantTypes)
                 hydraAdmin.createOAuth2Client(oAuth2Client)
               }
@@ -437,6 +440,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
             case None =>
           }
           val createdConsumer = c.saveMe()
+          // In case we use Hydra ORY as Identity Provider we create corresponding client at Hydra side a well
           if(integrateWithHydra) createHydraClient(createdConsumer)
           createdConsumer
         }

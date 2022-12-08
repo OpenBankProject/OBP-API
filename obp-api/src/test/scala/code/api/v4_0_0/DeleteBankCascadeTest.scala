@@ -1,23 +1,21 @@
 package code.api.v4_0_0
 
+import java.util.concurrent.TimeUnit
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiRole}
-import code.api.util.ApiRole.{CanDeleteAccountCascade, CanDeleteBankCascade}
+import code.api.util.ApiRole.{CanDeleteBankCascade, canGetCustomersMinimalAtAnyBank}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
+import code.api.util.{APIUtil, ApiRole}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
-import code.model.dataAccess.MappedBank
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.json.Serialization.write
-import net.liftweb.mapper.By
 import org.scalatest.Tag
-
-import java.util.concurrent.TimeUnit
 
 class DeleteBankCascadeTest extends V400ServerSetup {
 
@@ -88,6 +86,16 @@ class DeleteBankCascadeTest extends V400ServerSetup {
         Some("LKJL98769F")
       )
 
+      val customerNumber = createCustomerViaEndpointAndGetNumber(bankId, resourceUser1.userId)
+      createAccountAttributeViaEndpoint(
+        bankId,
+        account.account_id,
+        "customer_number",
+        customerNumber,
+        "STRING",
+        None
+      )
+
       grantUserAccessToViewViaEndpoint(
         bankId,
         account.account_id,
@@ -113,6 +121,16 @@ class DeleteBankCascadeTest extends V400ServerSetup {
 
       When("We try to delete one more time")
       makeDeleteRequest(request400).code should equal(404)
+
+      // Bnam customers must be deleted as well
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetCustomersMinimalAtAnyBank.toString)
+      When(s"We make a request $VersionOfApi")
+      val request = (v4_0_0_Request / "customers-minimal").GET <@(user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+      val responseBody = response.body.extract[CustomersMinimalJsonV400]
+      responseBody.customers.length equals 0
     }
   }
   

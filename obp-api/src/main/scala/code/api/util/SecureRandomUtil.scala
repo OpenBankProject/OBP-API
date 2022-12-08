@@ -19,5 +19,8 @@ object SecureRandomUtil {
   
   def alphanumeric(nrChars: Int = 24): String = {
     new BigInteger(nrChars * 5, csprng).toString(32)
+  }  
+  def numeric(maxNumber: Int = 99999999): String = {
+    csprng.nextInt(maxNumber).toString()
   }
 }

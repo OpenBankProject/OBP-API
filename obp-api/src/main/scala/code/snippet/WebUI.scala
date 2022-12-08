@@ -33,7 +33,7 @@ import java.io.InputStream
 import code.api.Constant
 import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
 import code.api.util.ApiRole.CanReadGlossary
-import code.api.util.{APIUtil, ApiRole, CustomJsonFormats, ErrorMessages, PegdownOptions}
+import code.api.util.{APIUtil, ApiRole, CustomJsonFormats, ErrorMessages, I18NUtil, PegdownOptions}
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{LiftRules, S, SessionVar}
@@ -90,11 +90,14 @@ class WebUI extends MdcLoggable{
       if (supportedLocales.contains(locale) || supportedLocales.contains(hyphenLocale) ) {""} else {"none"}
     }
     val page = Constant.HostName + S.uri
+    val language = I18NUtil.currentLocale().getLanguage()
+
     "#es a [href]" #> scala.xml.Unparsed(s"${page}?${replaceLocale("locale=es_ES")}") &
       "#en a [href]" #> scala.xml.Unparsed(s"${page}?${replaceLocale("locale=en_GB")}") &
       "#es a [style]"  #> s"display: ${displayLanguage("es_ES")}" &
       "#locale_separator [style]"  #> {if(supportedLocales.size == 1) "display: none" else ""} &
-      "#en a [style]"  #> s"display: ${displayLanguage("en_GB")}"
+      "#en a [style]"  #> s"display: ${displayLanguage("en_GB")}" &
+      s"#${language.toLowerCase()} *" #> scala.xml.Unparsed(s"<b>${language.toUpperCase()}</b>")
     
   }
 
