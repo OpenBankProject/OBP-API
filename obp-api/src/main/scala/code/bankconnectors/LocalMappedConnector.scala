@@ -520,17 +520,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
     val userAuthContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId)
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userAuthContexts says: $userAuthContexts")}
-    //Find the key == AccountNumber in the UserAuthContext, and remove the duplications there.
-    val customerNumbers = userAuthContexts.map(_.filter(_.key.replaceAll(" ","").replaceAll("_","").equalsIgnoreCase("CustomerNumber")).map(_.value).toSet).getOrElse(Set.empty[String])
-    val bankIds = userAuthContexts.map(_.filter(_.key.replaceAll(" ","").replaceAll("_","").equalsIgnoreCase("BankId")).map(_.value).toSet).getOrElse(Set.empty[String])
-
+    
+    val bankIdCustomerPairs: Set[(String, String)] =  APIUtil.getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts.getOrElse(List.empty[UserAuthContext]))
+    
     val bankAccountIdBoxList = for{
-      bankId <- bankIds
-      customerNumber <- customerNumbers
+      bankIdCustomerPair <- bankIdCustomerPairs
     }yield{
-      CustomerX.customerProvider.vend.getCustomerByCustomerNumber(customerNumber, BankId(bankId)).map(customer =>
-        code.customeraccountlinks.MappedCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(_.accountId).map(accountId =>
-          code.bankconnectors.LocalMappedConnector.getBankAccountByAccountIdLegacy(AccountId(accountId), None).map(result =>
+      CustomerX.customerProvider.vend.getCustomerByCustomerNumber(bankIdCustomerPair._2, BankId(bankIdCustomerPair._1)).map(customer =>
+        code.customeraccountlinks.MappedCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(accountCustomerLink =>
+          code.bankconnectors.LocalMappedConnector.getBankAccountCommon(BankId(accountCustomerLink.bankId),AccountId(accountCustomerLink.accountId), None).map(result =>
             BankIdAccountId(result._1.bankId, result._1.accountId)))).flatten.flatten
     }
 

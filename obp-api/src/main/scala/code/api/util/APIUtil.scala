@@ -77,7 +77,7 @@ import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
-import com.openbankproject.commons.model.{Customer, _}
+import com.openbankproject.commons.model.{Customer, UserAuthContext, _}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util._
@@ -110,8 +110,8 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import code.users.Users
 
 import scala.collection.mutable
@@ -4293,5 +4293,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
   
   def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs
+  
+  def getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts: List[UserAuthContext]): Set[(String, String)] = userAuthContexts
+    .filter(_.key.trim.equalsIgnoreCase("BANK_ID::::CUSTOMER_NUMBER"))
+    .map(_.value)
+    .map(_.split("::::"))
+    .filter(_.length == 2)
+    .map(a =>(a.apply(0),a.apply(1))).toSet
     
 }
