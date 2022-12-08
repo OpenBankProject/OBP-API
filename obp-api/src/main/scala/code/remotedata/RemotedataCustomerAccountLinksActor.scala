@@ -20,7 +20,7 @@ class RemotedataCustomerAccountLinksActor extends Actor with ObpActorHelper with
       
     case cc.getOrCreateCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType) =>
       logger.debug(s"getOrCreateCustomerAccountLink($customerId, $bankId, $accountId, $relationshipType)")
-      sender ! (mapper.getOrCreateCustomerAccountLink(accountId, bankId, customerId, relationshipType))
+      sender ! (mapper.getOrCreateCustomerAccountLink(customerId, bankId, accountId, relationshipType))
 
     case cc.getCustomerAccountLinkByCustomerId(customerId: String) =>
       logger.debug(s"getCustomerAccountLinkByCustomerId($customerId)")
