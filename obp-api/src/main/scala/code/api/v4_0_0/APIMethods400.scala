@@ -9046,13 +9046,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollections,
+      getApiCollectionsForUser,
       implementedInApiVersion,
-      nameOf(getApiCollections),
+      nameOf(getApiCollectionsForUser),
       "GET",
       "/users/USER_ID/api-collections",
-      "Get Api Collections",
-      s"""Get Api Collections.
+      "Get Api Collections for User",
+      s"""Get Api Collections for User.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -9063,15 +9063,48 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle),
-      Some(canGetAllApiCollections :: Nil)
+      Some(canGetAllApiCollectionsForUser :: Nil)
     )
 
-    lazy val getApiCollections: OBPEndpoint = {
+    lazy val getApiCollectionsForUser: OBPEndpoint = {
       case "users" :: userId :: "api-collections" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, callContext) <- NewStyle.function.findByUserId(userId, Some(cc))
             (apiCollections, callContext) <- NewStyle.function.getApiCollectionsByUserId(userId, callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      getAllApiCollections,
+      implementedInApiVersion,
+      nameOf(getAllApiCollections),
+      "GET",
+      "/management/api-collections",
+      "Get All Api Collections",
+      s"""Get All Api Collections.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionsJson400,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle),
+      Some(canGetAllApiCollections :: Nil)
+    )
+
+    lazy val getAllApiCollections: OBPEndpoint = {
+      case "management" :: "api-collections" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollections, callContext) <- NewStyle.function.getAllApiCollections(cc.callContext)
           } yield {
             (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
           }

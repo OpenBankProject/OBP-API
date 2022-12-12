@@ -53,10 +53,11 @@ class ApiCollectionTest extends V400ServerSetup {
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionById))
   
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getSharableApiCollectionById))
-  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getApiCollections))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getApiCollectionsForUser))
+  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.getAllApiCollections))
 
   feature("Test the apiCollection endpoints") {
-    scenario("We create my apiCollection and get,delete", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint7,  VersionOfApi) {
+    scenario("We create my apiCollection and get,delete", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
       When("We make a request v4.0.0")
 
       {
@@ -232,13 +233,45 @@ class ApiCollectionTest extends V400ServerSetup {
       responseApiEndpoint6.body.toString contains(s"$UserHasMissingRoles") should be (true)
 
       Then("grant the role and test it again")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllApiCollections.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllApiCollectionsForUser.toString)
       val responseApiEndpoint6WithRole = makeGetRequest(requestApiEndpoint6)
       
       Then("We should get a 200")
       responseApiEndpoint6WithRole.code should equal(200)
       val apiCollectionsResponseApiEndpoint6 = responseApiEndpoint6WithRole.body.extract[ApiCollectionsJson400]
       apiCollectionsResponseApiEndpoint6.api_collections.head should be (apiCollectionJson400)
+
+      val requestUser2 = (v4_0_0_Request / "my" / "api-collections").POST <@ (user2)
+      val responseUser2 = makePostRequest(requestUser2, write(postApiCollectionJson))
+      Then("We should get a 201")
+      responseUser2.code should equal(201)
+
+      {
+        Then(s"we test the $ApiEndpoint8")
+        val requestApiEndpoint8 = (v4_0_0_Request / "management" / "api-collections").GET
+
+        val responseApiEndpoint8 = makeGetRequest(requestApiEndpoint8)
+        Then(s"we should get the error messages")
+        responseApiEndpoint8.code should equal(401)
+        responseApiEndpoint8.body.toString contains(s"$UserNotLoggedIn") should be (true)
+      }
+
+      Then(s"we test the $ApiEndpoint8")
+      val requestApiEndpoint8 = (v4_0_0_Request /"management" / "api-collections").GET <@ (user1)
+
+      val responseApiEndpoint8 = makeGetRequest(requestApiEndpoint8)
+      Then(s"we should get the error messages")
+      responseApiEndpoint8.code should equal(403)
+      responseApiEndpoint8.body.toString contains(s"$UserHasMissingRoles") should be (true)
+
+      Then("grant the role and test it again")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllApiCollections.toString)
+      val responseApiEndpoint8WithRole = makeGetRequest(requestApiEndpoint8)
+
+      Then("We should get a 200")
+      responseApiEndpoint8WithRole.code should equal(200)
+      val apiCollectionsResponseApiEndpoint8 = responseApiEndpoint8WithRole.body.extract[ApiCollectionsJson400]
+      apiCollectionsResponseApiEndpoint8.api_collections.head should be (apiCollectionJson400)
      
     }
   }
