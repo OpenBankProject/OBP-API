@@ -1371,6 +1371,8 @@ def restoreSomeSessions(): Unit = {
         //first, we compare the accounts in obp  and the accounts in cbs,   
         val (_, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
         val obpAccountAccessBankAccountIds = privateAccountAccess.map(accountAccess =>BankIdAccountId(BankId(accountAccess.bank_id.get), AccountId(accountAccess.account_id.get))).toSet
+        
+        // This will return all account held for the user, no mater what the source is.
         val userOwnBankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
 
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts

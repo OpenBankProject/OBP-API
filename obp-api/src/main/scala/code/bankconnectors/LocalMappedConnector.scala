@@ -521,23 +521,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val userAuthContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId)
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userAuthContexts says: $userAuthContexts")}
     
-    val bankIdCustomerPairs: Set[(String, String)] =  APIUtil.getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts.getOrElse(List.empty[UserAuthContext]))
+    //Get the (BankId,Customer) pairs from UserAuthContext,
+    val bankIdCustomerNumberPairs: Set[(String, String)] =  APIUtil.getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts.getOrElse(List.empty[UserAuthContext]))
     
-    val bankAccountIdBoxList = for{
-      bankIdCustomerPair <- bankIdCustomerPairs
+    // get the Bank Account Ids from Customer Account Link,
+    val bankAccountIdFromCustomerAccountLinksBoxList = for{
+      bankIdCustomerPair <- bankIdCustomerNumberPairs
     }yield{
-      CustomerX.customerProvider.vend.getCustomerByCustomerNumber(bankIdCustomerPair._2, BankId(bankIdCustomerPair._1)).map(customer =>
-        code.customeraccountlinks.MappedCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(accountCustomerLink =>
-          code.bankconnectors.LocalMappedConnector.getBankAccountCommon(BankId(accountCustomerLink.bankId),AccountId(accountCustomerLink.accountId), None).map(result =>
+      CustomerX.customerProvider.vend.getCustomerByCustomerNumber(bankIdCustomerPair._2, BankId(bankIdCustomerPair._1)).map(customer => //check if the Customer Number is existing in Customer table.
+        code.customeraccountlinks.MappedCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(customerAccountLink => // get the account Customer link from CustomerAccountLink 
+          code.bankconnectors.LocalMappedConnector.getBankAccountCommon(BankId(customerAccountLink.bankId),AccountId(customerAccountLink.accountId), None).map(result => // check the bankAccount from CustomerAccountLink.
             BankIdAccountId(result._1.bankId, result._1.accountId)))).flatten.flatten
     }
 
-    val validBankAccountIdsFromUserAuthContext = bankAccountIdBoxList.filter(_.isDefined).map(_.head)
+    //find the proper bankAccountIds from the `bankAccountIdFromCustomerAccountLinksBoxList`
+    val validBankAccountIdsFromUserAuthContext = bankAccountIdFromCustomerAccountLinksBoxList.filter(_.isDefined).map(_.head)
+    
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.validBankAccountIdsFromUserAuthContext says: $validBankAccountIdsFromUserAuthContext")}
 
+    //Get All OBP accounts from `Account Holder` table, source == null --> mean accounts are created by OBP endpoints, not from User Auth Context,
     val userOwnBankAccountIdsFromAccountHolder = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user, Some(null))
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userOwnBankAccountIdsFromAccountHolder says: $userOwnBankAccountIdsFromAccountHolder")}
     
+    //We return the accounts created by OBP and accounts from UserAuthContext,
     val validBankAccountIds = validBankAccountIdsFromUserAuthContext++userOwnBankAccountIdsFromAccountHolder
     
     Full(validBankAccountIds.map(bankAccountId =>InboundAccountCommons(

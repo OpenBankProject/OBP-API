@@ -4293,7 +4293,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
   
   def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs
+
+  /**
+   * @param userAuthContexts
+   * {
+      "key": "BANK_ID::::CUSTOMER_NUMBER",
+      "value": "gh.29.uk::::1907911253"
+      }
   
+      {
+        "key": "BANK_ID::::CUSTOMER_NUMBER",
+        "value": "gh.28.uk::::1907911252"
+      }
+   * @return
+   * 
+   * ==> Set(("gh.29.uk","1907911253"),("gh.28.uk","1907911252"))
+   */
   def getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts: List[UserAuthContext]): Set[(String, String)] = userAuthContexts
     .filter(_.key.trim.equalsIgnoreCase("BANK_ID::::CUSTOMER_NUMBER"))
     .map(_.value)
