@@ -744,7 +744,7 @@ trait APIMethods500 {
       "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
       s"""
          |
-         |This endpoint finishes the process of creating a Consent by CONSENT_REQUEST_ID.
+         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
          |Please note that the Consent cannot elevate the privileges logged in user already have.
          |
          |""",
@@ -772,7 +772,7 @@ trait APIMethods500 {
       "Create Consent By CONSENT_REQUEST_ID (SMS)",
       s"""
          |
-         |This endpoint finishes the process of creating a Consent.
+         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
          |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
