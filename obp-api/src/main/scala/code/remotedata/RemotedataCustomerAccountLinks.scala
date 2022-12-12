@@ -22,6 +22,10 @@ object RemotedataCustomerAccountLinks extends ObpActorInit with CustomerAccountL
   def getCustomerAccountLinkByCustomerId(customerId: String): Box[CustomerAccountLinkTrait] = getValueFromFuture(
     (actor ? cc.getCustomerAccountLinkByCustomerId(customerId)).mapTo[Box[CustomerAccountLinkTrait]]
   )
+
+  def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String): Box[List[CustomerAccountLinkTrait]] = getValueFromFuture(
+    (actor ? cc.getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String)).mapTo[Box[List[CustomerAccountLinkTrait]]]
+  )
   def getCustomerAccountLinksByCustomerId(customerId: String): Box[List[CustomerAccountLinkTrait]] = getValueFromFuture(
     (actor ? cc.getCustomerAccountLinksByCustomerId(customerId)).mapTo[Box[List[CustomerAccountLinkTrait]]]
   )

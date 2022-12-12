@@ -1894,9 +1894,9 @@ trait APIMethods500 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getCustomerAccountLinksByAccountId,
+      getCustomerAccountLinksByBankIdAccountId,
       implementedInApiVersion,
-      nameOf(getCustomerAccountLinksByAccountId),
+      nameOf(getCustomerAccountLinksByBankIdAccountId),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/customer-account-links",
       "Get Customer Account Links by ACCOUNT_ID",
@@ -1916,12 +1916,12 @@ trait APIMethods500 {
       ),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAccountLinks)))
-    lazy val getCustomerAccountLinksByAccountId : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "customer-account-links" :: Nil JsonGet _ => {
+    lazy val getCustomerAccountLinksByBankIdAccountId : OBPEndpoint = {
+      case "banks" :: bankId :: "accounts" :: accountId :: "customer-account-links" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, _,callContext) <- SS.userBank
-            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByAccountId(accountId, callContext)
+            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByBankIdAccountId(bankId, accountId, callContext)
           } yield {
             (JSONFactory500.createCustomerAccountLinksJon(customerAccountLinks), HttpCode.`200`(callContext))
           }

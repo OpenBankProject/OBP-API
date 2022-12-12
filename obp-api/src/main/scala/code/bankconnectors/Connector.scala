@@ -2603,7 +2603,7 @@ trait Connector extends MdcLoggable {
   
   def getCustomerAccountLinksByCustomerId(customerId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAccountLinkTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
   
-  def getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAccountLinkTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
+  def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAccountLinkTrait]]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{(Failure(setUnimplementedError), callContext)}
   

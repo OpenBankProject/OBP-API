@@ -5700,6 +5700,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinkById(customerAccountLinkId),callContext)
   }
 
+  override def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String, callContext: Option[CallContext])= Future{
+    (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinksByBankIdAccountId(bankId, accountId),callContext)
+  }
+
   override def deleteCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]) = 
     CustomerAccountLinkTrait.customerAccountLink.vend.deleteCustomerAccountLinkById(customerAccountLinkId).map {(_, callContext)}
 

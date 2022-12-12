@@ -43,6 +43,16 @@ object MappedCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
       By(CustomerAccountLink.CustomerId, customerId))
   }
 
+
+  override def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String): Box[List[CustomerAccountLinkTrait]] = {
+    tryo {
+      CustomerAccountLink.findAll(
+        By(CustomerAccountLink.BankId, bankId),
+        By(CustomerAccountLink.AccountId, accountId)
+      )
+    }
+  }
+
   override def getCustomerAccountLinksByCustomerId(customerId: String): Box[List[CustomerAccountLinkTrait]] = {
     tryo {
       CustomerAccountLink.findAll(

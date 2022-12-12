@@ -3797,8 +3797,8 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, GetCustomerAccountLinksError), i._2)
       }
     
-    def getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAccountLinkTrait]] =
-      Connector.connector.vend.getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]) map {
+    def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAccountLinkTrait]] =
+      Connector.connector.vend.getCustomerAccountLinksByBankIdAccountId(bankId, accountId: String, callContext: Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, GetCustomerAccountLinksError), i._2)
       }
     

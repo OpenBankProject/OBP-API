@@ -21,7 +21,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getCustomerAccountLinkById))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.updateCustomerAccountLinkById))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getCustomerAccountLinksByCustomerId))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations5_0_0.getCustomerAccountLinksByAccountId))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations5_0_0.getCustomerAccountLinksByBankIdAccountId))
   object ApiEndpoint6 extends Tag(nameOf(Implementations5_0_0.deleteCustomerAccountLinkById))
 
 
@@ -159,7 +159,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       lazy val testBankId = randomBankId
       lazy val testAccountId = testAccountId1
       val customerId = createAndGetCustomerIdViaEndpoint(testBankId, user1)
-      lazy val createCustomerAccountLinkJson = SwaggerDefinitionsJSON.createCustomerAccountLinkJson.copy(customer_id = customerId, account_id= testAccountId.value)
+      lazy val createCustomerAccountLinkJson = SwaggerDefinitionsJSON.createCustomerAccountLinkJson.copy(customer_id = customerId, bank_id = testBankId, account_id= testAccountId.value)
       lazy val updateCustomerAccountLinkJson = SwaggerDefinitionsJSON.updateCustomerAccountLinkJson.copy(relationship_type ="test")
       
       

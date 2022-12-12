@@ -24,6 +24,7 @@ trait CustomerAccountLinkProvider {
   def createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait]
   def getOrCreateCustomerAccountLink(customerId: String, bankId: String,  accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait]
   def getCustomerAccountLinkByCustomerId(customerId: String): Box[CustomerAccountLinkTrait]
+  def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String): Box[List[CustomerAccountLinkTrait]]
   def getCustomerAccountLinksByCustomerId(customerId: String): Box[List[CustomerAccountLinkTrait]]
   def getCustomerAccountLinksByAccountId(bankId: String, accountId: String): Box[List[CustomerAccountLinkTrait]]
   def getCustomerAccountLinkById(customerAccountLinkId: String): Box[CustomerAccountLinkTrait]
@@ -37,6 +38,7 @@ class RemotedataCustomerAccountLinkProviderCaseClass {
   case class createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String)
   case class getOrCreateCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String)
   case class getCustomerAccountLinkByCustomerId(customerId: String)
+  case class getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String)
   case class getCustomerAccountLinksByCustomerId(customerId: String)
   case class getCustomerAccountLinksByAccountId(bankId: String, accountId: String)
   case class getCustomerAccountLinkById(customerAccountLinkId: String)
