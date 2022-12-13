@@ -1253,7 +1253,6 @@ object JSONFactory400 {
             stringOrNull(tr.id.value),
             "/challenge").mkString("")
           val link = challenge.challengeType match  {
-            case challengeType if challengeType == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString => otpViaWebFormPath
             case challengeType if challengeType == ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString => otpViaApiPath
             case _ => ""
           } 

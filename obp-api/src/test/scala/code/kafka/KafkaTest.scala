@@ -64,7 +64,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         Then("For KafkaMappedConnector_vSept2018 connector, we need to make these two methods work `getAuthInfoFirstCbsCall` and `getAuthInfo`")
         
         val firstAuthInfo: Box[AuthInfo] = for{
-          firstGetAuthInfo <- KafkaMappedConnector_vSept2018.getAuthInfoFirstCbsCall("", callContext)
+          firstGetAuthInfo <- KafkaMappedConnector_vSept2018.getAuthInfoFirstCbsCall("","", callContext)
         } yield {
           (firstGetAuthInfo)
         }
@@ -230,7 +230,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
         val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetAccounts]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetAccounts]
 
         dispathResponse(inBound)
-        val future = Connector.connector.vend.getBankAccountsForUser("", callContext)
+        val future = Connector.connector.vend.getBankAccountsForUser("", "", callContext)
         val result = future.getContent
 
         result.map(_._1.head).toString should be (Full(inBound.data.head).toString)
@@ -242,7 +242,7 @@ class KafkaTest extends KafkaSetup with ServerSetupWithTestData {
       scenario(s"test getBankAccountsForUser method",kafkaTest) {
         val inBound = Connector.connector.vend.messageDocs.filter(_.exampleInboundMessage.isInstanceOf[InboundGetAccounts]).map(_.exampleInboundMessage).head.asInstanceOf[InboundGetAccounts]
         dispathResponse(inBound)
-        val box = Connector.connector.vend.getBankAccountsForUserLegacy("", callContext)
+        val box = Connector.connector.vend.getBankAccountsForUserLegacy("","", callContext)
 
         box.map(_._1.head).toString should be (Full(inBound.data.head).toString)
       }

@@ -84,7 +84,7 @@ class KafkaMappedConnector_vMay2019Test extends KafkaSetup with ServerSetupWithT
         Then("For KafkaMappedConnector_vSept2018 connector, we need to make these two methods work `getAuthInfoFirstCbsCall` and `getAuthInfo`")
 
         val firstAuthInfo: Box[AuthInfo] = for {
-          firstGetAuthInfo <- KafkaMappedConnector_vSept2018.getAuthInfoFirstCbsCall("", callContext)
+          firstGetAuthInfo <- KafkaMappedConnector_vSept2018.getAuthInfoFirstCbsCall("","", callContext)
         } yield {
           (firstGetAuthInfo)
         }

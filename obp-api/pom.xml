@@ -509,6 +509,11 @@
       <artifactId>hydra-client</artifactId>
       <version>1.7.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.12.7.1</version>
+    </dependency>
   </dependencies>
 
   <build>

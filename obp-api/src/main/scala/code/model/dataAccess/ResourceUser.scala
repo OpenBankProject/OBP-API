@@ -73,10 +73,10 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   }
 
   /**
-  * the id of the user at that provider
+  * the id of the user at that provider --> now, this field will be the same as `providerId`
   */
   object providerId extends MappedString(this, 100){
-    override def defaultValue = java.util.UUID.randomUUID.toString
+    override def defaultValue = name_.get
   }
   object Company extends MappedString(this, 50)
   object CreatedByConsentId extends MappedString(this, 100)

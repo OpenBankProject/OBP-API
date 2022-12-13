@@ -1352,7 +1352,7 @@ def restoreSomeSessions(): Unit = {
    */
   def refreshUser(user: User, callContext: Option[CallContext]) = {
     for{
-      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.name,callContext) map {
+      (accountsHeld, _) <- Connector.connector.vend.getBankAccountsForUser(user.provider, user.name,callContext) map {
         connectorEmptyResponse(_, callContext)
       }
       _ = logger.debug(s"--> for user($user): AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
@@ -1372,6 +1372,8 @@ def restoreSomeSessions(): Unit = {
         //first, we compare the accounts in obp  and the accounts in cbs,   
         val (_, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
         val obpAccountAccessBankAccountIds = privateAccountAccess.map(accountAccess =>BankIdAccountId(BankId(accountAccess.bank_id.get), AccountId(accountAccess.account_id.get))).toSet
+        
+        // This will return all account held for the user, no mater what the source is.
         val userOwnBankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
 
         //The accounts from AccountAccess may contains other users' account info, so here we filter the accounts By account holder, only show the user's own accounts
@@ -1406,7 +1408,7 @@ def restoreSomeSessions(): Unit = {
         //2st: create views/accountAccess/accountHolders for the new coming accounts
         for {
           newBankAccountId <- csbNewBankAccountIds
-          _ = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,newBankAccountId)
+          _ = AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user,newBankAccountId,Some("UserAuthContext"))
           bankId = newBankAccountId.bankId
           accountId = newBankAccountId.accountId
           newBankAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)

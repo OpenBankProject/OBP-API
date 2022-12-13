@@ -30,12 +30,12 @@ package code.util
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.Date
-
 import code.api.Constant
 import code.api.util.APIUtil.{DateWithMsFormat, DefaultToDate, theEpochTime, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.setup.PropsReset
+import com.openbankproject.commons.model.UserAuthContextCommons
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
@@ -671,6 +671,61 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     APIUtil.getObpFormatOperationId("OBPv4_0_0-dynamicEntity_deleteFooBar33") should be ("OBPv4.0.0-dynamicEntity_deleteFooBar33")
     APIUtil.getObpFormatOperationId("OBPv3.0.0-getCoreAccountById") should be ("OBPv3.0.0-getCoreAccountById")
     APIUtil.getObpFormatOperationId("xxx") should be ("xxx")
+  }
+
+  feature("test APIUtil.getBankIdAccountIdPairsFromUserAuthContexts method") {
+
+    scenario(s"Test the Success cases") {
+      val userAuthContexts = List(UserAuthContextCommons(
+        userAuthContextId = "",
+        userId = "",
+        key = "BANK_ID::::CUSTOMER_NUMBER",
+        value = "bank_id1::::customer_number1",
+        timeStamp = new Date(0),
+        consumerId = ""
+      ), UserAuthContextCommons(
+        userAuthContextId = "",
+        userId = "",
+        key = "BANK_ID::::CUSTOMER_NUMBER",
+        value = "bank_id2::::customer_number2",
+        timeStamp = new Date(0),
+        consumerId = ""
+      ), UserAuthContextCommons(
+        userAuthContextId = "",
+        userId = "",
+        key = "BANK_ID::::CUSTOMER_NUMBER",
+        value = "bank_id3::::customer_number3",
+        timeStamp = new Date(0),
+        consumerId = ""
+      ))
+
+      val expectedValue = Set(("bank_id1", "customer_number1"), ("bank_id2", "customer_number2"), ("bank_id3", "customer_number3"))
+      val actualValue = APIUtil.getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts)
+      actualValue should be(expectedValue)
+    }
+
+    scenario(s"Test the Empty cases") {
+      val userAuthContexts = List(UserAuthContextCommons(
+        userAuthContextId = "",
+        userId = "",
+        key = "BANK_ID1::::CUSTOMER_NUMBER",
+        value = "bank_id1::::customer_number1",
+        timeStamp = new Date(0),
+        consumerId = ""
+      ), UserAuthContextCommons(
+        userAuthContextId = "",
+        userId = "",
+        key = "BANK_ID:::CUSTOMER_NUMBER",
+        value = "bank_id2::::customer_number2",
+        timeStamp = new Date(0),
+        consumerId = ""
+      ))
+
+      val expectedValue = Set()
+      val actualValue = APIUtil.getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts)
+      actualValue should be(expectedValue)
+    }
+    
   }
 
 }

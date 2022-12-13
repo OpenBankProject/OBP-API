@@ -351,6 +351,7 @@ case class UpdatePhysicalCardJsonV500(
 
 case class CreateCustomerAccountLinkJson(
   customer_id: String,
+  bank_id: String,
   account_id: String,
   relationship_type: String
 )
@@ -362,6 +363,7 @@ case class UpdateCustomerAccountLinkJson(
 case class CustomerAccountLinkJson(
   customer_account_link_id: String,
   customer_id: String,
+  bank_id: String,
   account_id: String,
   relationship_type: String
 )
@@ -737,6 +739,7 @@ object JSONFactory500 {
     CustomerAccountLinkJson(
     customerAccountLink.customerAccountLinkId,
     customerAccountLink.customerId,
+    customerAccountLink.bankId,
     customerAccountLink.accountId,
     customerAccountLink.relationshipType
     )

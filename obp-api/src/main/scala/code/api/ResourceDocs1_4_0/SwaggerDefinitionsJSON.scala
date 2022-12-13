@@ -5192,6 +5192,7 @@ object SwaggerDefinitionsJSON {
 
   val createCustomerAccountLinkJson =  CreateCustomerAccountLinkJson(
     customer_id = customerIdExample.value,
+    bank_id = bankIdExample.value,
     account_id = accountIdExample.value,
     relationship_type= relationshipTypeExample.value
   )
@@ -5202,6 +5203,7 @@ object SwaggerDefinitionsJSON {
   val customerAccountLinkJson =  CustomerAccountLinkJson(
     customer_account_link_id = customerAccountLinkIdExample.value,
     customer_id = customerIdExample.value,
+    bank_id = bankIdExample.value,
     account_id = accountIdExample.value,
     relationship_type= relationshipTypeExample.value
   )

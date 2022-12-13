@@ -10,20 +10,26 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.util.Helpers.tryo
 
 object MappedCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
-  def createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
+  override def createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
     tryo {
       CustomerAccountLink.create
       .CustomerId(customerId)
+      .BankId(bankId)
       .AccountId(accountId)
       .RelationshipType(relationshipType)
       .saveMe()
     }
   }
-  def getOrCreateCustomerAccountLink(customerId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
-    getCustomerAccountLink(accountId, customerId) match {
+  override def getOrCreateCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
+    CustomerAccountLink.find(
+      By(CustomerAccountLink.CustomerId, customerId),
+      By(CustomerAccountLink.BankId, bankId),
+      By(CustomerAccountLink.AccountId, accountId)
+    ) match {
       case Empty =>
         val createCustomerAccountLink = CustomerAccountLink.create
           .CustomerId(customerId)
+          .BankId(bankId)
           .AccountId(accountId)
           .RelationshipType(relationshipType)
           .saveMe()
@@ -32,39 +38,44 @@ object MappedCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
     }
   }
 
-  def getCustomerAccountLinkByCustomerId(customerId: String): Box[CustomerAccountLinkTrait] = {
+  override def getCustomerAccountLinkByCustomerId(customerId: String): Box[CustomerAccountLinkTrait] = {
     CustomerAccountLink.find(
       By(CustomerAccountLink.CustomerId, customerId))
   }
-  
-  def getCustomerAccountLinksByCustomerId(customerId: String): Box[List[CustomerAccountLinkTrait]] = {
+
+
+  override def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String): Box[List[CustomerAccountLinkTrait]] = {
+    tryo {
+      CustomerAccountLink.findAll(
+        By(CustomerAccountLink.BankId, bankId),
+        By(CustomerAccountLink.AccountId, accountId)
+      )
+    }
+  }
+
+  override def getCustomerAccountLinksByCustomerId(customerId: String): Box[List[CustomerAccountLinkTrait]] = {
     tryo {
       CustomerAccountLink.findAll(
         By(CustomerAccountLink.CustomerId, customerId))
     }
   }
 
-  def getCustomerAccountLinksByAccountId(accountId: String): Box[List[CustomerAccountLinkTrait]] = {
+
+  override def getCustomerAccountLinksByAccountId(bankId: String, accountId: String): Box[List[CustomerAccountLinkTrait]] = {
     tryo {
       CustomerAccountLink.findAll(
-        By(CustomerAccountLink.AccountId, accountId)).sortWith(_.id.get < _.id.get)
+        By(CustomerAccountLink.BankId, bankId),
+        By(CustomerAccountLink.AccountId, accountId))
     }
   }
 
-  def getCustomerAccountLink(customerId: String, accountId : String): Box[CustomerAccountLinkTrait] = {
-    CustomerAccountLink.find(
-      By(CustomerAccountLink.CustomerId, customerId),
-      By(CustomerAccountLink.AccountId, accountId)
-    )
-  }
-
-  def getCustomerAccountLinkById(customerAccountLinkId: String): Box[CustomerAccountLinkTrait] = {
+  override def getCustomerAccountLinkById(customerAccountLinkId: String): Box[CustomerAccountLinkTrait] = {
     CustomerAccountLink.find(
       By(CustomerAccountLink.CustomerAccountLinkId, customerAccountLinkId)
     )
   }
 
-  def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
+  override def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String): Box[CustomerAccountLinkTrait] = {
     CustomerAccountLink.find(By(CustomerAccountLink.CustomerAccountLinkId, customerAccountLinkId)) match {
       case Full(t) => Full(t.RelationshipType(relationshipType).saveMe())
       case Empty => Empty ?~! ErrorMessages.CustomerAccountLinkNotFound
@@ -72,15 +83,15 @@ object MappedCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
     }
   }
 
-  def getCustomerAccountLinks: Box[List[CustomerAccountLinkTrait]] = {
+  override def getCustomerAccountLinks: Box[List[CustomerAccountLinkTrait]] = {
     tryo {CustomerAccountLink.findAll()}
   }
 
-  def bulkDeleteCustomerAccountLinks(): Boolean = {
+  override def bulkDeleteCustomerAccountLinks(): Boolean = {
     CustomerAccountLink.bulkDelete_!!()
   }
 
-  def deleteCustomerAccountLinkById(customerAccountLinkId: String): Future[Box[Boolean]] = {
+  override def deleteCustomerAccountLinkById(customerAccountLinkId: String): Future[Box[Boolean]] = {
     Future {
       CustomerAccountLink.find(By(CustomerAccountLink.CustomerAccountLinkId, customerAccountLinkId)) match {
         case Full(t) => Full(t.delete_!)
@@ -97,11 +108,13 @@ class CustomerAccountLink extends CustomerAccountLinkTrait with LongKeyedMapper[
 
   object CustomerAccountLinkId extends MappedUUID(this)
   object CustomerId extends UUIDString(this)
+  object BankId extends MappedString(this, 255)
   object AccountId extends UUIDString(this)
   object RelationshipType extends MappedString(this, 255)
 
   override def customerAccountLinkId: String = CustomerAccountLinkId.get
   override def customerId: String = CustomerId.get // id.toString
+  override def bankId: String = BankId.get // id.toString
   override def accountId: String = AccountId.get
   override def relationshipType: String = RelationshipType.get
 }

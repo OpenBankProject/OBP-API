@@ -512,40 +512,62 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    *   and return the accounts back.
    * 
    */
-  override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
-    val userId = callContext.map(_.userId).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
-    val inboundAccountCommonsBox: Box[Set[InboundAccountCommons]] = for {
-      user <- Users.users.vend.getUserByUserId(userId)
-      bankAccountIds = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
-    } yield {
-      for {
-        bankAccountId <- bankAccountIds
-        inboundAccountCommons = InboundAccountCommons(
-          bankId = bankAccountId.bankId.value,
-          accountId = bankAccountId.accountId.value,
-          viewsToGenerate = List("owner"), //TODO, so far only set the `owner` view, later need to simulate other views.
-          branchId = "",
-          accountNumber = "",
-          accountType = "",
-          balanceAmount = "",
-          balanceCurrency = "",
-          owners = List(""),
-          bankRoutingScheme = "",
-          bankRoutingAddress = "",
-          branchRoutingScheme = "",
-          branchRoutingAddress = "",
-          accountRoutingScheme = "",
-          accountRoutingAddress = ""
-        )
-      } yield {
-        inboundAccountCommons
-      }
+  override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
+    //1st: get the accounts from userAuthContext
+    val viewsToGenerate = List("owner") //TODO, so far only set the `owner` view, later need to simulate other views.
+    val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
+    val userId = user.userId
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
+    val userAuthContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(userId)
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userAuthContexts says: $userAuthContexts")}
+    
+    //Get the (BankId,Customer) pairs from UserAuthContext,
+    val bankIdCustomerNumberPairs: Set[(String, String)] =  APIUtil.getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts.getOrElse(List.empty[UserAuthContext]))
+    
+    // get the Bank Account Ids from Customer Account Link,
+    val bankAccountIdFromCustomerAccountLinksBoxList = for{
+      bankIdCustomerPair <- bankIdCustomerNumberPairs
+    }yield{
+      CustomerX.customerProvider.vend.getCustomerByCustomerNumber(bankIdCustomerPair._2, BankId(bankIdCustomerPair._1)).map(customer => //check if the Customer Number is existing in Customer table.
+        code.customeraccountlinks.MappedCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(customerAccountLink => // get the account Customer link from CustomerAccountLink 
+          code.bankconnectors.LocalMappedConnector.getBankAccountCommon(BankId(customerAccountLink.bankId),AccountId(customerAccountLink.accountId), None).map(result => // check the bankAccount from CustomerAccountLink.
+            BankIdAccountId(result._1.bankId, result._1.accountId)))).flatten.flatten
     }
-    inboundAccountCommonsBox.map(inboundAccountCommons => (inboundAccountCommons.toList, callContext))
+
+    //find the proper bankAccountIds from the `bankAccountIdFromCustomerAccountLinksBoxList`
+    val validBankAccountIdsFromUserAuthContext = bankAccountIdFromCustomerAccountLinksBoxList.filter(_.isDefined).map(_.head)
+    
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.validBankAccountIdsFromUserAuthContext says: $validBankAccountIdsFromUserAuthContext")}
+
+    //Get All OBP accounts from `Account Holder` table, source == null --> mean accounts are created by OBP endpoints, not from User Auth Context,
+    val userOwnBankAccountIdsFromAccountHolder = AccountHolders.accountHolders.vend.getAccountsHeldByUser(user, Some(null))
+    tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.userOwnBankAccountIdsFromAccountHolder says: $userOwnBankAccountIdsFromAccountHolder")}
+    
+    //We return the accounts created by OBP and accounts from UserAuthContext,
+    val validBankAccountIds = validBankAccountIdsFromUserAuthContext++userOwnBankAccountIdsFromAccountHolder
+    
+    Full(validBankAccountIds.map(bankAccountId =>InboundAccountCommons(
+        bankId = bankAccountId.bankId.value,
+        accountId = bankAccountId.accountId.value,
+        viewsToGenerate = viewsToGenerate,
+        branchId = "",
+        accountNumber = "",
+        accountType = "",
+        balanceAmount = "",
+        balanceCurrency = "",
+        owners = List(""),
+        bankRoutingScheme = "",
+        bankRoutingAddress = "",
+        branchRoutingScheme = "",
+        branchRoutingAddress = "",
+        accountRoutingScheme = "",
+        accountRoutingAddress = ""
+      )).toList,callContext)
+    
   }
 
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future {
-    getBankAccountsForUserLegacy(username, callContext)
+  override def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = Future {
+    getBankAccountsForUserLegacy(provider, username, callContext)
   }
 
   override def getTransactionLegacy(bankId: BankId, accountId: AccountId, transactionId: TransactionId, callContext: Option[CallContext]) = {
@@ -686,6 +708,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
+    getBankAccountByAccountIdLegacy(accountId : AccountId, callContext: Option[CallContext])
+  }
+  
+  def getBankAccountByAccountIdLegacy(accountId : AccountId, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] =  {
     MappedBankAccount.find(
       By(MappedBankAccount.theAccountId, accountId.value)
     ).map(bankAccount => (bankAccount, callContext))
@@ -5672,23 +5698,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       Future{(Full("Success"), callContext)}
   }
 
-  override def getCustomerAccountLink(customerId: String, accountId: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{
-    (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLink(customerId, accountId), callContext)
-  }
-
   override def getCustomerAccountLinksByCustomerId(customerId: String, callContext: Option[CallContext]) = Future{
     (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinksByCustomerId(customerId),callContext)
-  }
-
-
-  override def getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CustomerAccountLinkTrait]]] =  Future{
-    (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinksByAccountId(accountId),callContext)
   }
 
   override def getCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]) = Future{
     (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinkById(customerAccountLinkId),callContext)
   }
 
+  override def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String, callContext: Option[CallContext])= Future{
+    (CustomerAccountLinkTrait.customerAccountLink.vend.getCustomerAccountLinksByBankIdAccountId(bankId, accountId),callContext)
+  }
 
   override def deleteCustomerAccountLinkById(customerAccountLinkId: String, callContext: Option[CallContext]) = 
     CustomerAccountLinkTrait.customerAccountLink.vend.deleteCustomerAccountLinkById(customerAccountLinkId).map {(_, callContext)}
@@ -5697,8 +5717,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (CustomerAccountLinkTrait.customerAccountLink.vend.updateCustomerAccountLinkById(customerAccountLinkId, relationshipType),callContext)
   }
 
-  override def createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{
-    CustomerAccountLinkTrait.customerAccountLink.vend.createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String) map { ( _, callContext) }
+  override def createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[Box[CustomerAccountLinkTrait]] = Future{
+    CustomerAccountLinkTrait.customerAccountLink.vend.createCustomerAccountLink(customerId: String, bankId, accountId: String, relationshipType: String) map { ( _, callContext) }
   }
 
 }

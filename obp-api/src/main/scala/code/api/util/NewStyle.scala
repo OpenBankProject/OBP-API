@@ -3787,8 +3787,8 @@ object NewStyle extends MdcLoggable{
       }
     }
     
-    def createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[CustomerAccountLinkTrait] =
-      Connector.connector.vend.createCustomerAccountLink(customerId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]) map {
+    def createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[CustomerAccountLinkTrait] =
+      Connector.connector.vend.createCustomerAccountLink(customerId: String, bankId, accountId: String, relationshipType: String, callContext: Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, CreateCustomerAccountLinkError), i._2)
       }
     
@@ -3797,8 +3797,8 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, GetCustomerAccountLinksError), i._2)
       }
     
-    def getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAccountLinkTrait]] =
-      Connector.connector.vend.getCustomerAccountLinksByAccountId(accountId: String, callContext: Option[CallContext]) map {
+    def getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String, callContext: Option[CallContext]): OBPReturnType[List[CustomerAccountLinkTrait]] =
+      Connector.connector.vend.getCustomerAccountLinksByBankIdAccountId(bankId, accountId: String, callContext: Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, GetCustomerAccountLinksError), i._2)
       }
     

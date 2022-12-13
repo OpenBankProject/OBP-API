@@ -4,6 +4,8 @@ import code.api.util.APIUtil
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
+import java.util.UUID
+
 object TestServer {
 
   val host = "localhost"
@@ -21,4 +23,15 @@ object TestServer {
   server.setHandler(context)
 
   server.start()
+
+  val userId1 = Some(UUID.randomUUID.toString)
+  val userId2 = Some(UUID.randomUUID.toString)
+  val userId3 = Some(UUID.randomUUID.toString)
+  val userId4 = Some(UUID.randomUUID.toString)
+
+  val resourceUser1Name = "resourceUser1"
+  val resourceUser2Name = "resourceUser2"
+  val resourceUser3Name = "resourceUser3"
+  val resourceUser4Name = "resourceUser4"
+  
 }

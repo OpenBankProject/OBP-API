@@ -1,13 +1,15 @@
 package code.setup
 
-import java.util.{Date, UUID}
+import code.TestServer
 
+import java.util.{Date, UUID}
 import code.api.{Constant, GatewayLogin}
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth.{Consumer, Token}
 import code.api.util.ErrorMessages._
 import code.consumer.Consumers
 import code.model.TokenType._
+import code.model.dataAccess.ResourceUser
 import code.model.{AppType, UserX}
 import code.token.Tokens
 import net.liftweb.util.Helpers._
@@ -22,10 +24,15 @@ import scala.compat.Platform
   */
 trait DefaultUsers {
   
-  lazy val userId1 = Some(UUID.randomUUID.toString)
-  lazy val userId2 = Some(UUID.randomUUID.toString)
-  lazy val userId3 = Some(UUID.randomUUID.toString)
-  lazy val userId4 = Some(UUID.randomUUID.toString)
+  lazy val userId1 = TestServer.userId1
+  lazy val userId2 = TestServer.userId2
+  lazy val userId3 = TestServer.userId3
+  lazy val userId4 = TestServer.userId4
+  
+  lazy val resourceUser1Name = TestServer.resourceUser1Name 
+  lazy val resourceUser2Name = TestServer.resourceUser2Name 
+  lazy val resourceUser3Name = TestServer.resourceUser3Name 
+  lazy val resourceUser4Name = TestServer.resourceUser4Name 
 
   //create the application(consumer, used it in the Login credential, mainly used the consume_key and consumer_secret)
   lazy val testConsumer = Consumers.consumers.vend.createConsumer(
@@ -49,10 +56,27 @@ trait DefaultUsers {
   val defaultProvider = Constant.HostName
   
   // create some resource user for test purposes
-  lazy val resourceUser1 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser1"), userId1, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser2 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser2"), userId2, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser3 = UserX.createResourceUser(defaultProvider, None, None, None, Some("resourceUser3"), userId3, None).openOrThrowException(attemptedToOpenAnEmptyBox)
-  lazy val resourceUser4 = UserX.createResourceUser(GatewayLogin.gateway, Some("simonr"), Some("simonr"), None, Some("resourceUser4"), userId4, None).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val resourceUser1 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser1Name).map(_.asInstanceOf[ResourceUser])
+    .getOrElse(UserX.createResourceUser(provider = defaultProvider, providerId= Some(resourceUser1Name), createdByConsentId= None, name= Some(resourceUser1Name),
+      email= Some("resourceUser1@123.com"), userId= userId1, company = Some("Tesobe GmbH"))
+      .openOrThrowException(attemptedToOpenAnEmptyBox)
+    )
+  
+  lazy val resourceUser2 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser2Name).map(_.asInstanceOf[ResourceUser])
+    .getOrElse(UserX.createResourceUser(provider = defaultProvider, providerId= Some(resourceUser2Name), createdByConsentId= None, 
+      name= Some(resourceUser2Name),email= Some("resourceUser2@123.com"), userId= userId2, company = Some("Tesobe GmbH"))
+      .openOrThrowException(attemptedToOpenAnEmptyBox)
+    )
+  
+  lazy val resourceUser3 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser3Name).map(_.asInstanceOf[ResourceUser])
+    .getOrElse(UserX.createResourceUser(provider = defaultProvider, providerId= Some(resourceUser3Name), createdByConsentId= None, 
+      name= Some(resourceUser3Name),email= Some("resourceUser3@123.com"), userId= userId3, company = Some("Tesobe GmbH"))
+      .openOrThrowException(attemptedToOpenAnEmptyBox))
+  
+  lazy val resourceUser4 = UserX.findByProviderId(provider = defaultProvider, idGivenByProvider= resourceUser4Name).map(_.asInstanceOf[ResourceUser])
+    .getOrElse(UserX.createResourceUser(provider = GatewayLogin.gateway, providerId = Some(resourceUser4Name), createdByConsentId= Some("simonr"), name= Some(resourceUser4Name), 
+      email= Some("resourceUser4@123.com"), userId=userId4, company = Some("Tesobe GmbH"))
+      .openOrThrowException(attemptedToOpenAnEmptyBox))
 
   // create the tokens in database, we only need token-key and token-secretAllCases
   lazy val testToken1 = Tokens.tokens.vend.createToken(

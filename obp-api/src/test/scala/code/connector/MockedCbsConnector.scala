@@ -27,7 +27,7 @@ object MockedCbsConnector extends ServerSetup
   val bankIdAccountId = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("KOa4M8UfjUuWPIXwPXYPpy5FoFcTUwpfHgXC1qpSluc"))
   val bankIdAccountId2 = BankIdAccountId(BankId("obp-bank-x-gh"),AccountId("tKWSUBy6sha3Vhxc/vw9OK96a0RprtoxUuObMYR29TI"))
   
-  override def getBankAccountsForUserLegacy(username: String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
+  override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     Full(
       List(InboundAccountCommons(
         bankId = bankIdAccountId.bankId.value,
@@ -66,8 +66,8 @@ object MockedCbsConnector extends ServerSetup
     )
   }
 
-  override def getBankAccountsForUser(username: String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
-    getBankAccountsForUserLegacy(username,callContext)
+  override def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]):  Future[Box[(List[InboundAccount], Option[CallContext])]] = Future{
+    getBankAccountsForUserLegacy(provider, username,callContext)
   }
 }
 
