@@ -744,7 +744,7 @@ trait APIMethods500 {
       "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
       s"""
          |
-         |This endpoint finishes the process of creating a Consent by CONSENT_REQUEST_ID.
+         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
          |Please note that the Consent cannot elevate the privileges logged in user already have.
          |
          |""",
@@ -772,7 +772,7 @@ trait APIMethods500 {
       "Create Consent By CONSENT_REQUEST_ID (SMS)",
       s"""
          |
-         |This endpoint finishes the process of creating a Consent.
+         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
          |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
@@ -858,7 +858,10 @@ trait APIMethods500 {
                 }
                 )
             }
-            (consumerId, applicationText) <- consentRequestJson.consumer_id match {
+            // Use consumer specified at the payload of consent request in preference to the field ConsumerId of consent request
+            // i.e. ConsentRequest.Payload.consumer_id in preference to ConsentRequest.ConsumerId
+            calculatedConsumerId = consentRequestJson.consumer_id.orElse(Some(createdConsentRequest.consumerId))
+            (consumerId, applicationText) <- calculatedConsumerId match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
                 c => (Some(c.consumerId.get), c.description)
               }
