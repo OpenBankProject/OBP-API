@@ -4315,5 +4315,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     .map(_.split("::::"))
     .filter(_.length == 2)
     .map(a =>(a.apply(0),a.apply(1))).toSet
+
+  /**
+   * We support the `::::` as the delimiter in UserAuthContext, so we need a guard for it.
+   * @param value
+   * @return
+   */
+  def `checkIfContains::::` (value: String) = value.contains("::::")
     
 }

@@ -4005,6 +4005,10 @@ trait APIMethods400 {
               !bank.id.contains(" ")
             }
 
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters", cc=cc.callContext) {
+              !`checkIfContains::::` (bank.id)
+            }
+
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id,
               bank.full_name,
