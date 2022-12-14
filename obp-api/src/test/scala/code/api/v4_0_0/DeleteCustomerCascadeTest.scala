@@ -53,7 +53,7 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
   }
   feature(s"test $ApiEndpoint1 - Authorized access") {
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute")
       createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)

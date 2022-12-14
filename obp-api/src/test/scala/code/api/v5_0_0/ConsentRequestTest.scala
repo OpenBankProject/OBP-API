@@ -30,10 +30,13 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.Consent
 import code.api.util.ErrorMessages._
-import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
+import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310}
+import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
+import code.api.v4_0_0.UsersJsonV400
 import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
 import code.consent.ConsentStatus
 import code.entitlement.Entitlement
+import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
@@ -42,7 +45,7 @@ import org.scalatest.Tag
 
 import scala.language.postfixOps
 
-class ConsentRequestTest extends V500ServerSetupAsync {
+class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
 
   /**
     * Test tags
@@ -56,6 +59,7 @@ class ConsentRequestTest extends V500ServerSetupAsync {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.createConsentByConsentRequestId))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getUsers))
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
   lazy val accountAccess = List(AccountAccessV500(
@@ -70,7 +74,7 @@ class ConsentRequestTest extends V500ServerSetupAsync {
   val createConsentRequestWithoutLoginUrl = (v5_0_0_Request / "consumer" / "consent-requests")
   val createConsentRequestUrl = (v5_0_0_Request / "consumer"/ "consent-requests").POST<@(user1)
   def getConsentRequestUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
-  def createConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
+  def createConsentByConsentRequestIdEmail(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
   feature("Create/Get Consent Request v5.0.0") {
@@ -82,7 +86,7 @@ class ConsentRequestTest extends V500ServerSetupAsync {
       response500.body.extract[ErrorMessage].message should equal (ApplicationNotIdentified)
     }
 
-    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJsonV310))
       Then("We should get a 201")
@@ -100,11 +104,19 @@ class ConsentRequestTest extends V500ServerSetupAsync {
       When("We try to make the GET request v5.0.0")
       Then("We grant the role and test it again")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
-      val createConsentByRequestResponse = makePostRequest(createConsentByRequestIdUrl(consentRequestId), write(""))
+      val createConsentByRequestResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
       Then("We should get a 200")
       createConsentByRequestResponse.code should equal(201)
       val consentId = createConsentByRequestResponse.body.extract[ConsentJsonV500].consent_id
-  
+      val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
+      
+      setPropsValues("consumer_validation_method_for_consent"->"NONE")
+      val requestWhichFails = (v5_0_0_Request / "users").GET
+      val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
+      Then("We get successful response")
+      responseWhichFails.code should equal(401)
+      
+      
       val answerConsentChallengeRequest = (v5_0_0_Request / "banks" / testBankId1.value / "consents" / consentId / "challenge").POST <@ (user1)
       val challenge = Consent.challengeAnswerAtTestEnvironment
       val post = PostConsentChallengeJsonV310(answer = challenge)
@@ -120,8 +132,14 @@ class ConsentRequestTest extends V500ServerSetupAsync {
       getConsentByRequestResponseJson.consent_request_id.head should be(consentRequestId)
       getConsentByRequestResponseJson.status should be(ConsentStatus.ACCEPTED.toString)
       
+      val consentRequestHeader = (s"Consent-JWT", getConsentByRequestResponseJson.jwt)
+      val requestGetUsers = (v5_0_0_Request / "users").GET
+      val responseGetUsers = makeGetRequest(requestGetUsers, List(consentRequestHeader))
+      Then("We get successful response")
+      responseGetUsers.code should equal(200)
+      val users = responseGetUsers.body.extract[UsersJsonV400].users
+      users.size should be > 0
     }
-
 
   }
   

@@ -79,7 +79,7 @@ import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.{PemCertificateRole, StrongCustomerAuthentication}
-import com.openbankproject.commons.model.{Customer, _}
+import com.openbankproject.commons.model.{Customer, UserAuthContext, _}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util._
@@ -112,8 +112,8 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-import java.security.AccessControlException
 
+import java.security.AccessControlException
 import code.users.Users
 
 import scala.collection.mutable
@@ -742,13 +742,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /** only  A-Z, a-z, 0-9 and max length <= 512  */
-  def checkMediumAlphaNumeric(value:String): String ={
+  def basicConsumerKeyValidation(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9]+)$""".r
     value match {
       case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
-      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
-      case _ => ErrorMessages.InvalidValueCharacters
+      case regex(e) if(valueLength > 512) => ErrorMessages.ConsumerKeyIsToLong
+      case _ => ErrorMessages.ConsumerKeyIsInvalid
     }
   }
 
@@ -4295,5 +4295,27 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
   
   def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs
+
+  /**
+   * @param userAuthContexts
+   * {
+      "key": "BANK_ID::::CUSTOMER_NUMBER",
+      "value": "gh.29.uk::::1907911253"
+      }
+  
+      {
+        "key": "BANK_ID::::CUSTOMER_NUMBER",
+        "value": "gh.28.uk::::1907911252"
+      }
+   * @return
+   * 
+   * ==> Set(("gh.29.uk","1907911253"),("gh.28.uk","1907911252"))
+   */
+  def getBankIdAccountIdPairsFromUserAuthContexts(userAuthContexts: List[UserAuthContext]): Set[(String, String)] = userAuthContexts
+    .filter(_.key.trim.equalsIgnoreCase("BANK_ID::::CUSTOMER_NUMBER"))
+    .map(_.value)
+    .map(_.split("::::"))
+    .filter(_.length == 2)
+    .map(a =>(a.apply(0),a.apply(1))).toSet
     
 }

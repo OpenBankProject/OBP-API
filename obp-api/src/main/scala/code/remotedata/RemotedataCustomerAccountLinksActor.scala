@@ -14,25 +14,29 @@ class RemotedataCustomerAccountLinksActor extends Actor with ObpActorHelper with
 
   def receive: PartialFunction[Any, Unit] = {
 
-    case cc.createCustomerAccountLink(customerId: String, accountId: String, relationshipType) =>
-      logger.debug(s"createCustomerAccountLink($accountId, $relationshipType)")
-      sender ! (mapper.createCustomerAccountLink(accountId, customerId, relationshipType))
+    case cc.createCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType) =>
+      logger.debug(s"createCustomerAccountLink($customerId, $bankId, $accountId, $relationshipType)")
+      sender ! (mapper.createCustomerAccountLink(accountId, bankId: String, customerId, relationshipType))
       
-    case cc.getOrCreateCustomerAccountLink(customerId: String, accountId: String, relationshipType) =>
-      logger.debug(s"getOrCreateCustomerAccountLink($accountId, $relationshipType)")
-      sender ! (mapper.getOrCreateCustomerAccountLink(accountId, customerId, relationshipType))
+    case cc.getOrCreateCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType) =>
+      logger.debug(s"getOrCreateCustomerAccountLink($customerId, $bankId, $accountId, $relationshipType)")
+      sender ! (mapper.getOrCreateCustomerAccountLink(customerId, bankId, accountId, relationshipType))
 
     case cc.getCustomerAccountLinkByCustomerId(customerId: String) =>
       logger.debug(s"getCustomerAccountLinkByCustomerId($customerId)")
       sender ! (mapper.getCustomerAccountLinkByCustomerId(customerId))
       
+    case cc.getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String)=>
+      logger.debug(s"getCustomerAccountLinksByBankIdAccountId(bankId($bankId), accountId($accountId))")
+      sender ! (mapper.getCustomerAccountLinksByBankIdAccountId(bankId: String, accountId: String))
+      
     case cc.getCustomerAccountLinksByCustomerId(customerId: String) =>
       logger.debug(s"getCustomerAccountLinksByCustomerId($customerId)")
       sender ! (mapper.getCustomerAccountLinksByCustomerId(customerId))
 
-    case cc.getCustomerAccountLinksByAccountId(accountId: String) =>
-      logger.debug(s"getCustomerAccountLinksByAccountId($accountId)")
-      sender ! (mapper.getCustomerAccountLinksByAccountId(accountId))
+    case cc.getCustomerAccountLinksByAccountId(bankId: String, accountId: String) =>
+      logger.debug(s"getCustomerAccountLinksByAccountId($bankId, $accountId)")
+      sender ! (mapper.getCustomerAccountLinksByAccountId(bankId, accountId))
       
     case cc.getCustomerAccountLinkById(customerAccountLinkId: String)=>
       logger.debug(s"getCustomerAccountLinkById($customerAccountLinkId)")
@@ -41,10 +45,6 @@ class RemotedataCustomerAccountLinksActor extends Actor with ObpActorHelper with
     case cc.updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String)=>
       logger.debug(s"updateCustomerAccountLinkById($customerAccountLinkId, $relationshipType)")
       sender ! (mapper.updateCustomerAccountLinkById(customerAccountLinkId, relationshipType))
-
-    case cc.getCustomerAccountLink(customerId: String, accountId: String) =>
-      logger.debug(s"getCustomerAccountLink($accountId, $customerId)")
-      sender ! (mapper.getCustomerAccountLink(accountId, customerId))
 
     case cc.getCustomerAccountLinks() =>
       logger.debug(s"getCustomerAccountLinks()")

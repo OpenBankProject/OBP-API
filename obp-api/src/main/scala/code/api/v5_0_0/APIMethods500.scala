@@ -591,7 +591,19 @@ trait APIMethods500 {
       "POST",
       "/consumer/consent-requests",
       "Create Consent Request",
-      s"""""",
+      s"""
+         |Client Authentication (mandatory)
+         |
+         |It is used when applications request an access token to access their own resources, not on behalf of a user.
+         |
+         |The client needs to authenticate themselves for this request.
+         |In case of public client we use client_id and private kew to obtain access token, otherwise we use client_id and client_secret.
+         |The obtained access token is used in the HTTP Bearer auth header of our request.
+         |
+         |Example:
+         |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
+         |
+         |""".stripMargin,
       postConsentRequestJsonV500,
       consentRequestResponseJson,
       List(
@@ -729,10 +741,11 @@ trait APIMethods500 {
       nameOf(createConsentByConsentRequestIdEmail),
       "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents",
-      "Create Consent By Request Id(EMAIL)",
+      "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
       s"""
          |
-         |This endpoint starts the process of creating a Consent by consent request id.
+         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
+         |Please note that the Consent cannot elevate the privileges logged in user already have.
          |
          |""",
       EmptyBody,
@@ -756,10 +769,11 @@ trait APIMethods500 {
       nameOf(createConsentByConsentRequestIdSms),
       "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents",
-      "Create Consent By Request Id (SMS)",
+      "Create Consent By CONSENT_REQUEST_ID (SMS)",
       s"""
          |
-         |This endpoint starts the process of creating a Consent.
+         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
+         |Please note that the Consent cannot elevate the privileges logged in user already have. 
          |
          |""",
       EmptyBody,
@@ -844,7 +858,10 @@ trait APIMethods500 {
                 }
                 )
             }
-            (consumerId, applicationText) <- consentRequestJson.consumer_id match {
+            // Use consumer specified at the payload of consent request in preference to the field ConsumerId of consent request
+            // i.e. ConsentRequest.Payload.consumer_id in preference to ConsentRequest.ConsumerId
+            calculatedConsumerId = consentRequestJson.consumer_id.orElse(Some(createdConsentRequest.consumerId))
+            (consumerId, applicationText) <- calculatedConsumerId match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContext) map {
                 c => (Some(c.consumerId.get), c.description)
               }
@@ -853,7 +870,7 @@ trait APIMethods500 {
   
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
-              case _ => Random.nextInt(99999999).toString()
+              case _ => SecureRandomUtil.numeric()
             }
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, Some(consentRequestId))) map {
               i => connectorEmptyResponse(i, callContext)
@@ -1848,7 +1865,7 @@ trait APIMethods500 {
             _ <- booleanToFuture(AccountAlreadyExistsForCustomer, 400, callContext) {
               customerAccountLinkExists.isEmpty
             }
-            (customerAccountLink, callContext) <- NewStyle.function.createCustomerAccountLink(postedData.customer_id, postedData.account_id, postedData.relationship_type, callContext)
+            (customerAccountLink, callContext) <- NewStyle.function.createCustomerAccountLink(postedData.customer_id, postedData.bank_id, postedData.account_id, postedData.relationship_type, callContext)
           } yield {
             (JSONFactory500.createCustomerAccountLinkJson(customerAccountLink), HttpCode.`201`(callContext))
           }
@@ -1894,9 +1911,9 @@ trait APIMethods500 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getCustomerAccountLinksByAccountId,
+      getCustomerAccountLinksByBankIdAccountId,
       implementedInApiVersion,
-      nameOf(getCustomerAccountLinksByAccountId),
+      nameOf(getCustomerAccountLinksByBankIdAccountId),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/customer-account-links",
       "Get Customer Account Links by ACCOUNT_ID",
@@ -1916,12 +1933,12 @@ trait APIMethods500 {
       ),
       List(apiTagCustomer, apiTagNewStyle),
       Some(List(canGetCustomerAccountLinks)))
-    lazy val getCustomerAccountLinksByAccountId : OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "customer-account-links" :: Nil JsonGet _ => {
+    lazy val getCustomerAccountLinksByBankIdAccountId : OBPEndpoint = {
+      case "banks" :: bankId :: "accounts" :: accountId :: "customer-account-links" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, _,callContext) <- SS.userBank
-            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByAccountId(accountId, callContext)
+            (customerAccountLinks, callContext) <-  NewStyle.function.getCustomerAccountLinksByBankIdAccountId(bankId, accountId, callContext)
           } yield {
             (JSONFactory500.createCustomerAccountLinksJon(customerAccountLinks), HttpCode.`200`(callContext))
           }

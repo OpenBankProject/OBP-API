@@ -62,7 +62,7 @@ class ConsentTest extends V310ServerSetup {
   lazy val views = List(PostConsentViewJsonV310(bankId, bankAccount.id, "owner"))
   lazy val postConsentEmailJsonV310 = SwaggerDefinitionsJSON.postConsentEmailJsonV310
     .copy(entitlements=entitlements)
-    .copy(consumer_id=None)
+    .copy(consumer_id=Some(testConsumer.consumerId.get))
     .copy(views=views)
 
   val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
@@ -155,8 +155,8 @@ class ConsentTest extends V310ServerSetup {
 
         // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
         val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
-        val user = makeGetRequest((v3_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
-          .body.extract[UserJsonV300]
+        val response = makeGetRequest((v3_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
+        val user =   response.body.extract[UserJsonV300]
         val assignedEntitlements: Seq[PostConsentEntitlementJsonV310] = user.entitlements.list.flatMap(
           e => entitlements.find(_ == PostConsentEntitlementJsonV310(e.bank_id, e.role_name))
         )

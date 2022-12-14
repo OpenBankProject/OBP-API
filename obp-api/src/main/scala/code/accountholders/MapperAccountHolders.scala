@@ -22,6 +22,7 @@ class MapperAccountHolders extends LongKeyedMapper[MapperAccountHolders] with Id
 
   object accountBankPermalink extends UUIDString(this)
   object accountPermalink extends AccountIdString(this)
+  object source extends MappedString(this, 255)
 
 }
 
@@ -34,7 +35,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
 
   //Note, this method, will not check the existing of bankAccount, any value of BankIdAccountId
   //Can create the MapperAccountHolders.
-  def getOrCreateAccountHolder(user: User, bankIdAccountId :BankIdAccountId): Box[MapperAccountHolders] ={
+  def getOrCreateAccountHolder(user: User, bankIdAccountId :BankIdAccountId, source: Option[String] = None): Box[MapperAccountHolders] ={
   
     val mapperAccountHolder = MapperAccountHolders.find(
       By(MapperAccountHolders.user, user.userPrimaryKey.value),
@@ -54,6 +55,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
           .accountBankPermalink(bankIdAccountId.bankId.value)
           .accountPermalink(bankIdAccountId.accountId.value)
           .user(user.userPrimaryKey.value)
+          .source(source.getOrElse(null))
           .saveMe
         logger.debug(
           s"getOrCreateAccountHolder--> create account holder: $holder"
@@ -88,12 +90,22 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
     transformHolderToAccount(accountHolders)
   }
 
-  def getAccountsHeldByUser(user: User): Set[BankIdAccountId] = {
-    val accountHolders = MapperAccountHolders.findAll(
-      By(MapperAccountHolders.user, user.asInstanceOf[ResourceUser])
-    )
-    transformHolderToAccount(accountHolders)
-  }
+  def getAccountsHeldByUser(user: User, source: Option[String] = None): Set[BankIdAccountId] = {
+      val accountHolders = if(source.isEmpty){
+        MapperAccountHolders.findAll(By(MapperAccountHolders.user, user.asInstanceOf[ResourceUser]))
+      }else if (source.equals(Some("")) || source.equals(Some(null))){
+        MapperAccountHolders.findAll(
+          By(MapperAccountHolders.user, user.asInstanceOf[ResourceUser]),
+          NullRef(MapperAccountHolders.source)
+        )
+      }else{
+        MapperAccountHolders.findAll(
+          By(MapperAccountHolders.user, user.asInstanceOf[ResourceUser]),
+          By(MapperAccountHolders.source, source.get)
+        )
+      }
+      transformHolderToAccount(accountHolders)
+    }
 
   private def transformHolderToAccount(accountHolders: List[MapperAccountHolders]) = {
     //accountHolders --> BankIdAccountIds

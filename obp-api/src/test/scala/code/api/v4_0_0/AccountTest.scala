@@ -432,7 +432,7 @@ class AccountTest extends V400ServerSetup {
     scenario(s"We will test ${ApiEndpoint7.name}", ApiEndpoint7, VersionOfApi) {
       // Create customer
       val bankId = randomBankId
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       
       // Link Customer to a User
       val postJson = SwaggerDefinitionsJSON.createUserCustomerLinkJson

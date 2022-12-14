@@ -807,6 +807,148 @@ object Glossary extends MdcLoggable  {
 		  """
 			|Link Users and Customers in a many to many relationship. A User can represent many Customers (e.g. the bank may have several Customer records for the same individual or a dependant). In this way Customers can easily be attached / detached from Users.
 		  """)
+	
+	  glossaryItems += GlossaryItem(
+		title = "Consent",
+		description =
+			s"""Consents provide a mechanism by which a third party App or User can access resources on behalf of a User.
+				|${getGlossaryItem("Consent OBP Flow Example")}
+				|${getGlossaryItem("Consent / Account Onboarding")}
+				|<img width="468" alt="OBP Access Control Image" src="$getServerUrl/media/images/glossary/OBP_Consent_Request__3_.png"></img>
+				|""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Consent OBP Flow Example",
+		description =
+				s"""
+					|#### 1) Call endpoint Create Consent Request using application access (Client Credentials)
+					|
+					|Url: [$getObpApiRoot/v5.0.0/consumer/consent-requests]($getObpApiRoot/v5.0.0/consumer/consent-requests)
+					|
+					|Post body:
+					|
+					|```
+					|{
+					|  "everything": false,
+					|  "account_access": [
+					|
+					|  ],
+					|  "entitlements": [
+					|    {
+					|      "bank_id": "gh.29.uk.x",
+					|      "role_name": "CanGetCustomer"
+					|    }
+					|  ],
+					|  "email": "marko@tesobe.com"
+					|}
+					|```
+					|
+					|Output:
+					|```
+					|{
+					|  "consent_request_id":"bc0209bd-bdbe-4329-b953-d92d17d733f4",
+					|  "payload":{
+					|    "everything":false,
+					|    "account_access":[],
+					|    "entitlements":[{
+					|      "bank_id":"gh.29.uk.x",
+					|      "role_name":"CanGetCustomer"
+					|    }],
+					|    "email":"marko@tesobe.com"
+					|  },
+					|  "consumer_id":"0b34068b-cb22-489a-b1ee-9f49347b3346"
+					|}
+					|```
+					|
+					|
+					|
+					|
+					|#### 2) Call endpoint Create Consent By CONSENT_REQUEST_ID (SMS) with logged on user
+					|
+					|Url: $getObpApiRoot/v5.0.0/consumer/consent-requests/bc0209bd-bdbe-4329-b953-d92d17d733f4/EMAIL/consents									
+					|
+					|Output:
+					|```
+					|{
+					|  "consent_id":"155f86b2-247f-4702-a7b2-671f2c3303b6",
+					|  "jwt":"eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEN1c3RvbWVyIiwiYmFua19pZCI6ImdoLjI5LnVrLngifV0sImNyZWF0ZWRCeVVzZXJJZCI6ImFiNjUzOWE5LWIxMDUtNDQ4OS1hODgzLTBhZDhkNmM2MTY1NyIsInN1YiI6IjU3NGY4OGU5LTE5NDktNDQwNy05NTMwLTA0MzM3MTU5YzU2NiIsImF1ZCI6IjFhMTA0NjNiLTc4NTYtNDU4ZC1hZGI2LTViNTk1OGY1NmIxZiIsIm5iZiI6MTY2OTg5NDU5OSwiaXNzIjoiaHR0cDpcL1wvMTI3LjAuMC4xOjgwODAiLCJleHAiOjE2Njk4OTgxOTksImlhdCI6MTY2OTg5NDU5OSwianRpIjoiMTU1Zjg2YjItMjQ3Zi00NzAyLWE3YjItNjcxZjJjMzMwM2I2Iiwidmlld3MiOltdfQ.lLbn9BtgKvgAcb07if12SaEyPAKgXOEmr6x3Y5pU-vE",
+					|  "status":"INITIATED",
+					|  "consent_request_id":"bc0209bd-bdbe-4329-b953-d92d17d733f4"
+					|}
+					|```
+					|
+					|#### 3) We receive the SCA message via SMS                    
+					|Your consent challenge : 29131491, Application: Any application		
+					|
+					|
+					|
+					|
+					|#### 4) Call endpoint Answer Consent Challenge with logged on user
+					|Url: $getObpApiRoot/v5.0.0/banks/gh.29.uk.x/consents/155f86b2-247f-4702-a7b2-671f2c3303b6/challenge
+					|Post body:
+					|```
+					|{
+					|  "answer": "29131491"
+					|}
+					|```
+					|Output:
+					|```
+					|{
+					|  "consent_id":"155f86b2-247f-4702-a7b2-671f2c3303b6",
+					|  "jwt":"eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEN1c3RvbWVyIiwiYmFua19pZCI6ImdoLjI5LnVrLngifV0sImNyZWF0ZWRCeVVzZXJJZCI6ImFiNjUzOWE5LWIxMDUtNDQ4OS1hODgzLTBhZDhkNmM2MTY1NyIsInN1YiI6IjU3NGY4OGU5LTE5NDktNDQwNy05NTMwLTA0MzM3MTU5YzU2NiIsImF1ZCI6IjFhMTA0NjNiLTc4NTYtNDU4ZC1hZGI2LTViNTk1OGY1NmIxZiIsIm5iZiI6MTY2OTg5NDU5OSwiaXNzIjoiaHR0cDpcL1wvMTI3LjAuMC4xOjgwODAiLCJleHAiOjE2Njk4OTgxOTksImlhdCI6MTY2OTg5NDU5OSwianRpIjoiMTU1Zjg2YjItMjQ3Zi00NzAyLWE3YjItNjcxZjJjMzMwM2I2Iiwidmlld3MiOltdfQ.lLbn9BtgKvgAcb07if12SaEyPAKgXOEmr6x3Y5pU-vE",
+					|  "status":"ACCEPTED"
+					|}
+					|```
+					|
+					|
+					|
+					|
+					|#### 5) Call endpoint Get Customer by CUSTOMER_ID with Consent Header
+					|
+					|Url: $getObpApiRoot/v5.0.0/banks/gh.29.uk.x/customers/a9c8bea0-4f03-4762-8f27-4b463bb50a93
+					|
+					|Request Header: 
+					|```
+					|Consent-JWT:eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEN1c3RvbWVyIiwiYmFua19pZCI6ImdoLjI5LnVrLngifV0sImNyZWF0ZWRCeVVzZXJJZCI6ImFiNjUzOWE5LWIxMDUtNDQ4OS1hODgzLTBhZDhkNmM2MTY1NyIsInN1YiI6IjU3NGY4OGU5LTE5NDktNDQwNy05NTMwLTA0MzM3MTU5YzU2NiIsImF1ZCI6IjFhMTA0NjNiLTc4NTYtNDU4ZC1hZGI2LTViNTk1OGY1NmIxZiIsIm5iZiI6MTY2OTg5NDU5OSwiaXNzIjoiaHR0cDpcL1wvMTI3LjAuMC4xOjgwODAiLCJleHAiOjE2Njk4OTgxOTksImlhdCI6MTY2OTg5NDU5OSwianRpIjoiMTU1Zjg2YjItMjQ3Zi00NzAyLWE3YjItNjcxZjJjMzMwM2I2Iiwidmlld3MiOltdfQ.lLbn9BtgKvgAcb07if12SaEyPAKgXOEmr6x3Y5pU-
+					|```
+					|Output:
+					|```
+					|{
+					|  "bank_id":"gh.29.uk.x",
+					|  "customer_id":"a9c8bea0-4f03-4762-8f27-4b463bb50a93",
+					|  "customer_number":"0908977830011-#2",
+					|  "legal_name":"NONE",
+					|  "mobile_phone_number":"+3816319549071",
+					|  "email":"marko@tesobe.com1",
+					|  "face_image":{
+					|    "url":"www.openbankproject",
+					|    "date":"2017-09-18T22:00:00Z"
+					|  },
+					|  "date_of_birth":"2017-09-18T22:00:00Z",
+					|  "relationship_status":"Single",
+					|  "dependants":5,
+					|  "dob_of_dependants":[],
+					|  "credit_rating":{
+					|    "rating":"3",
+					|    "source":"OBP"
+					|  },
+					|  "credit_limit":{
+					|    "currency":"EUR",
+					|    "amount":"10001"
+					|  },
+					|  "highest_education_attained":"Bachelor’s Degree",
+					|  "employment_status":"Employed",
+					|  "kyc_status":true,
+					|  "last_ok_date":"2017-09-18T22:00:00Z",
+					|  "title":null,
+					|  "branch_id":"3210",
+					|  "name_suffix":null,
+					|  "customer_attributes":[]
+					|}
+					|```
+					|""".stripMargin)
+
 
 
 	glossaryItems += GlossaryItem(

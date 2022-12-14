@@ -61,6 +61,7 @@ object Migration extends MdcLoggable {
     
     def executeScripts(startedBeforeSchemifier: Boolean): Boolean = executeScript {
       dummyScript()
+      addMapperAccountHoldersFieldSource()
       addAccountAccessConsumerId()
       populateTableViewDefinition()
       populateTableAccountAccess()
@@ -427,6 +428,12 @@ object Migration extends MdcLoggable {
       }
     }
     
+    private def addMapperAccountHoldersFieldSource(): Boolean = {
+      val name = nameOf(addMapperAccountHoldersFieldSource)
+      runOnce(name) {
+        MigrationOfAccountHolderAddedSource.addMapperAccountHoldersSource(name)
+      }
+    }
   }
 
   /**

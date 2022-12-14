@@ -204,7 +204,7 @@ object DirectLogin extends RestHelper with MdcLoggable {
         case "password" =>
           basicPasswordValidation(parameterValue)
         case "consumer_key" =>
-          checkMediumAlphaNumeric(parameterValue)
+          basicConsumerKeyValidation(parameterValue)
         case "token" =>
           checkMediumString(parameterValue)
         case _ => ErrorMessages.InvalidDirectLoginParameters

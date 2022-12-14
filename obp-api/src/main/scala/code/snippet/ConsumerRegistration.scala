@@ -134,6 +134,7 @@ class ConsumerRegistration extends MdcLoggable {
       val jwks = jwksVar.is
       val jwsAlg = signingAlgVar.is
       var jwkPrivateKey: String = s"Please change this value to ${if(StringUtils.isNotBlank(jwksUri)) "jwks_uri" else "jwks"} corresponding private key"
+      // In case we use Hydra ORY as Identity Provider we create corresponding client at Hydra side a well
       if(HydraUtil.integrateWithHydra) {
         HydraUtil.createHydraClient(consumer, oAuth2Client => {
           val signingAlg = signingAlgVar.is

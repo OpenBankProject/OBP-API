@@ -137,7 +137,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         other_account_secondary_routing_address= counterpartyCounterparty.otherAccountSecondaryRoutingAddress
       ), bodyValue, description, sharedChargePolicy)
 
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId.value, user1)
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId.value, resourceUser1.userId)
       val requestWithAuthUser = (v5_0_0_Request / "management" /"banks" / bankId.value / "cards" ).POST <@ (user1)
       val properCardJson = createPhysicalCardJsonV500.copy(
         account_id = fromAccount.accountId.value,

@@ -64,6 +64,29 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
     metric.save
   }
+  override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
+    val metric = MetricsArchive.find(By(MetricsArchive.id, primaryKey)).getOrElse(MetricsArchive.create)
+    metric
+      .metricId(primaryKey)
+      .userId(userId)
+      .url(url)
+      .date(date)
+      .duration(duration)
+      .userName(userName)
+      .appName(appName)
+      .developerEmail(developerEmail)
+      .consumerId(consumerId)
+      .implementedByPartialFunction(implementedByPartialFunction)
+      .implementedInVersion(implementedInVersion)
+      .verb(verb)
+      .correlationId(correlationId)
+      
+    httpCode match {
+      case Some(code) => metric.httpCode(code)
+      case None =>
+    }
+    metric.save
+  }
 
   private lazy val getDbConnectionParameters: (String, String, String) = {
     val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
@@ -473,6 +496,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 }
 
 class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
+
   override def getSingleton = MappedMetric
 
   object userId extends UUIDString(this)
@@ -492,9 +516,12 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
-  object correlationId extends MappedUUID(this)
+  object correlationId extends MappedUUID(this){
+    override def dbNotNull_? = true
+  }
 
 
+  override def getMetricId(): Long = id.get
   override def getUrl(): String = url.get
   override def getDate(): Date = date.get
   override def getDuration(): Long = duration.get
@@ -511,6 +538,59 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
-  //override def dbIndexes = Index(userId) :: Index(url) :: Index(date) :: Index(userName) :: Index(appName) :: Index(developerEmail) :: super.dbIndexes
+  // Please note that the old table name was "MappedMetric"
+  // Renaming implications:
+  //   - at an existing sandbox the table "MappedMetric" still exists with rows until this change is deployed at it
+  //     and new rows are stored in the table "Metric"      
+  //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
+  override def dbTableName = "Metric" // define the DB table name
   override def dbIndexes = Index(date) :: Index(consumerId) :: super.dbIndexes
+}
+
+
+class MetricsArchive extends APIMetric with LongKeyedMapper[MetricsArchive] with IdPK {
+  override def getSingleton = MetricsArchive
+
+  object metricId extends MappedLong(this)
+  object userId extends UUIDString(this)
+  object url extends MappedString(this, 2000) // TODO Introduce / use class for Mapped URLs
+  object date extends MappedDateTime(this)
+  object duration extends MappedLong(this)
+  object userName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  object appName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  object developerEmail extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+
+  //The consumerId, Foreign key to Consumer not key
+  object consumerId extends UUIDString(this)
+  //name of the Scala Partial Function being used for the endpoint
+  object implementedByPartialFunction  extends MappedString(this, 128)
+  //name of version where the call is implemented) -- S.request.get.view
+  object implementedInVersion  extends MappedString(this, 16)
+  //(GET, POST etc.) --S.request.get.requestType
+  object verb extends MappedString(this, 16)
+  object httpCode extends MappedInt(this)
+  object correlationId extends MappedUUID(this){
+    override def dbNotNull_? = true
+  }
+
+
+  override def getMetricId(): Long = metricId.get
+  override def getUrl(): String = url.get
+  override def getDate(): Date = date.get
+  override def getDuration(): Long = duration.get
+  override def getUserId(): String = userId.get
+  override def getUserName(): String = userName.get
+  override def getAppName(): String = appName.get
+  override def getDeveloperEmail(): String = developerEmail.get
+  override def getConsumerId(): String = consumerId.get
+  override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
+  override def getImplementedInVersion(): String = implementedInVersion.get
+  override def getVerb(): String = verb.get
+  override def getHttpCode(): Int = httpCode.get
+  override def getCorrelationId(): String = correlationId.get
+}
+object MetricsArchive extends MetricsArchive with LongKeyedMetaMapper[MetricsArchive] {
+  override def dbIndexes = 
+    Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) :: 
+      Index(appName) :: Index(developerEmail) :: super.dbIndexes
 }
