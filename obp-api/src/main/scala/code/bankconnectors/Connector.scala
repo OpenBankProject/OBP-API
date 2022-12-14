@@ -2534,6 +2534,8 @@ trait Connector extends MdcLoggable {
                              entityId: Option[String],
                              bankId: Option[String],
                              queryParameters: Option[Map[String, List[String]]],
+                             userId: Option[String],
+                             isPersonalEntity: Boolean,
                              callContext: Option[CallContext]): OBPReturnType[Box[JValue]] = Future{(Failure(setUnimplementedError), callContext)}
 
   def dynamicEndpointProcess(url: String, jValue: JValue, method: HttpMethod, params: Map[String, List[String]], pathParams: Map[String, String],

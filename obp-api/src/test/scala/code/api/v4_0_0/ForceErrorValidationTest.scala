@@ -88,10 +88,10 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the dynamic entity endpoint without authentication", VersionOfApi) {
-      addDynamicEntity()
+      addSystemDynamicEntity()
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST
+      val request = (dynamicEntity_Request / "FooBar").POST
       val response = makePostRequest(request, correctFooBar, ("Force-Error", "OBP-20006"))
 
       Then("We should get a 401")
@@ -410,11 +410,11 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   ////// dynamic entity
   feature(s"test dynamic entity endpoints Force-Error, version $VersionOfApi - authenticated access") {
     scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error have wrong format header", VersionOfApi) {
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-xxxx"))
 
       Then("We should get a 400")
@@ -426,11 +426,11 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error header value not support by current endpoint", VersionOfApi) {
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20009"))
       Then("We should get a 400")
       response.code should equal(400)
@@ -441,11 +441,11 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with Response-Code header value is not Int", VersionOfApi) {
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"), ("Response-Code" -> "not_integer"))
       Then("We should get a 400")
       response.code should equal(400)
@@ -456,11 +456,11 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value", VersionOfApi) {
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"))
       Then("We should get a 403")
       response.code should equal(403)
@@ -473,11 +473,11 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value and Response-Code value", VersionOfApi) {
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"), ("Response-Code" -> "444"))
       Then("We should get a 444")
       response.code should equal(444)
@@ -491,11 +491,11 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
     scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response = makePostRequest(request, correctFooBar, ("Force-Error" -> "OBP-20006"))
       Then("We should not get a 403")
       response.code should not  equal(403)
@@ -630,13 +630,12 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   }
 
   // prepare one dynamic entity FooBar
-  private def addDynamicEntity(): APIResponse = {
-    addEntitlement(canCreateDynamicEntity)
-    val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
+  private def addSystemDynamicEntity(): APIResponse = {
+    addEntitlement(canCreateSystemLevelDynamicEntity)
+    val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ user1
     val fooBar =
       s"""
          |{
-         |    "bankId": "$bankId",
          |    "FooBar": {
          |        "description": "description of this entity, can be markdown text.",
          |        "required": [

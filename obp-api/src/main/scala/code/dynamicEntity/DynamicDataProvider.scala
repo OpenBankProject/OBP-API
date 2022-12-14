@@ -17,25 +17,29 @@ trait DynamicDataT {
   def dynamicEntityName: String
   def dataJson: String
   def bankId: Option[String]
+  def userId: Option[String]
+  def isPersonalEntity: Boolean
 }
 
 case class DynamicDataCommons(dynamicEntityName: String,
                                 dataJson: String,
                                 dynamicDataId: Option[String] = None,
-                                bankId: Option[String]
+                                bankId: Option[String],
+                                userId: Option[String],
+                                isPersonalEntity: Boolean
                                ) extends DynamicDataT with JsonFieldReName
 
 object DynamicDataCommons extends Converter[DynamicDataT, DynamicDataCommons]
 
 
 trait DynamicDataProvider {
-  def save(bankId: Option[String], entityName: String, requestBody: JObject): Box[DynamicDataT]
-  def update(bankId: Option[String], entityName: String, requestBody: JObject, id: String): Box[DynamicDataT]
-  def get(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT]
-  def getAllDataJson(bankId: Option[String], entityName: String): List[JObject]
-  def getAll(bankId: Option[String], entityName: String): List[DynamicDataT]
-  def delete(bankId: Option[String], entityName: String, id: String): Box[Boolean]
-  def existsData(dbankId: Option[String], ynamicEntityName: String): Boolean
+  def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT]
+  def update(bankId: Option[String], entityName: String, requestBody: JObject, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT]
+  def get(bankId: Option[String], entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT]
+  def getAllDataJson(bankId: Option[String], entityName: String, userId: Option[String], isPersonalEntity: Boolean): List[JObject]
+  def getAll(bankId: Option[String], entityName: String, userId: Option[String], isPersonalEntity: Boolean): List[DynamicDataT]
+  def delete(bankId: Option[String], entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[Boolean]
+  def existsData(bankId: Option[String], dynamicEntityName: String, userId: Option[String], isPersonalEntity: Boolean): Boolean
 }
 
 

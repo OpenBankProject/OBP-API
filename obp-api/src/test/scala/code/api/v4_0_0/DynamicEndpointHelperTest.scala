@@ -770,7 +770,9 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
       dynamicDataId: Option[String],
       dynamicEntityName: String,
       dataJson: String,
-      bankId: Option[String]
+      bankId: Option[String],
+      userId: Option[String],
+      isPersonalEntity: Boolean
     )extends DynamicDataT
     
     val dataJsonString = """{
@@ -788,7 +790,7 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
                            |}
                            |}""".stripMargin
     val dynamicDataJson = json.parse(dataJsonString)
-    val dynamicDataList = List(DataTest(Some("1"),"PetEntity",dataJsonString, Some(testBankId1.value)), DataTest(Some("2"),"PetEntity2",dataJsonString2, Some(testBankId1.value)))
+    val dynamicDataList = List(DataTest(Some("1"),"PetEntity",dataJsonString, Some(testBankId1.value), None, false), DataTest(Some("2"),"PetEntity2",dataJsonString2, Some(testBankId1.value), None, false))
 
 
     val expectedResult = ("PetEntity", "1")
