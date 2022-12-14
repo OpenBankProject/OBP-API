@@ -1734,6 +1734,8 @@ trait APIMethods200 {
             _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            _ <- Helper.booleanToBox(
+              !`checkIfContains::::` (postedData.customer_number), s"$InvalidJsonFormat customer_number can not contain `::::` characters")
             requiredEntitlements = canCreateCustomer ::
                                    canCreateUserCustomerLink ::
                                    Nil

@@ -440,6 +440,8 @@ trait APIMethods220 {
             bank <- tryo{ json.extract[BankJSONV220] } ?~! ErrorMessages.InvalidJsonFormat
             _ <- Helper.booleanToBox(
               bank.id.length > 5,s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.")
+            _ <- Helper.booleanToBox(
+              !`checkIfContains::::` (bank.id), s"$InvalidJsonFormat BANK_ID can not contain `::::` characters")
             u <- cc.user ?~!ErrorMessages.UserNotLoggedIn
             consumer <- cc.consumer ?~! ErrorMessages.InvalidConsumerCredentials
             _ <- NewStyle.function.hasEntitlementAndScope("", u.userId, consumer.id.get.toString,  canCreateBank, cc.callContext)
