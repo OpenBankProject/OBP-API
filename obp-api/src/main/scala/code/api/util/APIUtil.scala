@@ -2759,7 +2759,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
       } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
-        Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
+        val consentValue = APIUtil.getConsentJWT(reqHeaders)
+        Consent.getConsentsJwtValueByConsentId(consentValue.getOrElse("")) match {
+          case Some(jwt) => // JWT value obtained via "Consent-Id" request header
+            Consent.applyRules(Some(jwt), cc)
+          case _ => // Assume it's JWT obtained via "Consent-JWT" request header
+            Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
+        }
       } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
         getUserFromOAuthHeaderFuture(cc)
       } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
