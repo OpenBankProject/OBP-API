@@ -831,9 +831,7 @@ object Glossary extends MdcLoggable  {
 					|```
 					|{
 					|  "everything": false,
-					|  "account_access": [
-					|
-					|  ],
+					|  "account_access": [],
 					|  "entitlements": [
 					|    {
 					|      "bank_id": "gh.29.uk.x",
