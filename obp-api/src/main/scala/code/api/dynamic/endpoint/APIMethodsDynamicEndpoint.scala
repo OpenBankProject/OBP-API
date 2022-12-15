@@ -1,10 +1,11 @@
 package code.api.dynamic.endpoint
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
-import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEntityHelper, DynamicEntityInfo, EntityName, MockResponseHolder}
+import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, MockResponseHolder}
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper.DynamicReq
 import code.api.dynamic.endpoint.helper.MockResponseHolder
-import code.api.util.APIUtil.{fullBoxOrException, _}
+import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo, EntityName}
+import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
@@ -98,7 +99,7 @@ trait APIMethodsDynamicEndpoint {
                     DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
                   }
                   dynamicData <- Future {
-                    DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName)
+                    DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName, None, false)
                   }
                   dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
                   //                //We only get the value, but not sure the field name of it.
@@ -127,7 +128,7 @@ trait APIMethodsDynamicEndpoint {
                   }
                   //build the entity body according to the request json and mapping
                   entityBody = JsonUtils.buildJson(json, requestMappingJvalue)
-                  (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, None, None, Some(cc))
+                  (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, None, None, None, false, Some(cc))
                   singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
                   responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
                   responseBody = JsonUtils.buildJson(singleObject, responseBodyScheme)
@@ -139,13 +140,13 @@ trait APIMethodsDynamicEndpoint {
                   (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
                   }
-                  dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName)
+                  dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName, None,false)
                   dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
                   entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                   isDeleted <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     val entityIdName = DynamicEntityHelper.createEntityId(entityName)
                     val entityIdValue = (entityObject \ entityIdName).asInstanceOf[JString].s
-                    DynamicDataProvider.connectorMethodProvider.vend.delete(bankId, entityName, entityIdValue).head
+                    DynamicDataProvider.connectorMethodProvider.vend.delete(bankId, entityName, entityIdValue, None, false).head
                   }
                 } yield {
                   JBool(isDeleted)
@@ -155,16 +156,16 @@ trait APIMethodsDynamicEndpoint {
                   (entityName, entityIdKey, entityIdValueFromUrl) <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
                   }
-                  dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName)
+                  dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName, None, false)
                   dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
                   entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                   _ <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     val entityIdName = DynamicEntityHelper.createEntityId(entityName)
                     val entityIdValue = (entityObject \ entityIdName).asInstanceOf[JString].s
-                    DynamicDataProvider.connectorMethodProvider.vend.delete(bankId, entityName, entityIdValue).head
+                    DynamicDataProvider.connectorMethodProvider.vend.delete(bankId, entityName, entityIdValue, None, false).head
                   }
                   entityBody = JsonUtils.buildJson(json, requestMappingJvalue)
-                  (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, bankId, None, Some(cc))
+                  (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, bankId, None, None, false, Some(cc))
                   singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
                   responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
                   responseBody = JsonUtils.buildJson(singleObject, responseBodyScheme)

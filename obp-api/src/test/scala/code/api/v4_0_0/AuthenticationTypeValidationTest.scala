@@ -325,12 +325,12 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
     scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
-      addOneAuthenticationTypeValidation(allowedDirectLogin, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addOneAuthenticationTypeValidation(allowedDirectLogin, s"OBPv4.0.0-dynamicEntity_createFooBar_")
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId / "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response= makePostRequest(request, newFooBar)
       Then("We should get a 400")
       response.code should equal(400)
@@ -344,11 +344,11 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
     scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedAll, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
-      addDynamicEntity()
-      addStringEntitlement("CanCreateDynamicEntity_FooBar", bankId)
+      addSystemDynamicEntity()
+      addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
       When("We make a request v4.0.0")
-      val request = (dynamicEntity_Request / "banks" / bankId /  "FooBar").POST <@ user1
+      val request = (dynamicEntity_Request / "FooBar").POST <@ user1
       val response= makePostRequest(request, newFooBar)
       Then("We should get a 201")
       response.code should equal(201)
@@ -402,13 +402,12 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     response
   }
   // prepare one dynamic entity FooBar
-  private def addDynamicEntity(): APIResponse = {
-    grantEntitlement(canCreateDynamicEntity)
-    val request = (v4_0_0_Request / "management" / "dynamic-entities").POST <@ user1
+  private def addSystemDynamicEntity(): APIResponse = {
+    grantEntitlement(canCreateSystemLevelDynamicEntity)
+    val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ user1
     val fooBar =
       s"""
          |{
-         |    "bankId": "$bankId",
          |    "FooBar": {
          |        "description": "description of this entity, can be markdown text.",
          |        "required": [
