@@ -49,7 +49,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup {
 
   feature("Get all scanned API versions should works") {
     scenario("We get all the scanned API versions", ApiEndpoint, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "api" / "versions").GET
 

@@ -35,6 +35,7 @@ trait DynamicEntityT {
    * @return
    */
   def userId: String
+  def hasPersonalEntity: Boolean
 
   /**
    * Add Option(bank_id) to Dynamic Entity.
@@ -287,7 +288,7 @@ object ReferenceType {
   )
 
   def referenceTypeNames: List[String] = {
-    val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities(None)
+    val dynamicRefs: List[String] = NewStyle.function.getDynamicEntities(None, true)
       .map(entity => s"reference:${entity.entityName}")
 
     val staticRefs: List[String] = staticRefTypeToValidateFunction.keys.toList
@@ -347,7 +348,7 @@ object ReferenceType {
     } else {
       val dynamicEntityName = typeName.replace("reference:", "")
       val errorMsg = s"""$dynamicEntityName not found by the id value '$value', propertyName is '$propertyName'"""
-      NewStyle.function.invokeDynamicConnector(DynamicEntityOperation.GET_ONE,dynamicEntityName, None, Some(value), None, None, callContext)
+      NewStyle.function.invokeDynamicConnector(DynamicEntityOperation.GET_ONE,dynamicEntityName, None, Some(value), None, None, None, false,callContext)
         .recover {
           case _: Throwable => errorMsg
         }
@@ -363,7 +364,8 @@ case class DynamicEntityCommons(entityName: String,
                                 metadataJson: String,
                                 dynamicEntityId: Option[String] = None,
                                 userId: String,
-                                bankId: Option[String] 
+                                bankId: Option[String] ,
+                                hasPersonalEntity: Boolean
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -374,7 +376,6 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * @param jsonObject the follow schema json:
    * {{{
    *   {
-   *     "BankId": "gh.29.uk",
    *     "FooBar": {
    *         "description": "description of this entity, can be markdown text.",
    *         "required": [
@@ -400,7 +401,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
    * @param dynamicEntityId
    * @return object of DynamicEntityCommons
    */
-  def apply(jsonObject: JObject, dynamicEntityId: Option[String], userId: String): DynamicEntityCommons = {
+  def apply(jsonObject: JObject, dynamicEntityId: Option[String], userId: String, bankId: Option[String]): DynamicEntityCommons = {
 
     def checkFormat(requirement: Boolean, message: String) = {
       if (!requirement) throw new IllegalArgumentException(message)
@@ -410,11 +411,11 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
     // validate whether json is object and have a single field, currently support one entity definition
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
-    checkFormat(fields.size <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should at most two fields: entity and BankId, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
-
-    val bankId: Option[String] = fields.filter(_.name=="bankId").map(_.value.asInstanceOf[JString].values).headOption
+    checkFormat(fields.size <= 2, s"$DynamicEntityInstanceValidateFail The Json root object should at most two fields: entity and hasPersonalEntity, but current entityNames: ${fields.map(_.name).mkString(",  ")}")
     
-    val JField(entityName, metadataJson) = fields.filter(_.name!="bankId").head
+    val hasPersonalEntity: Boolean = fields.filter(_.name=="hasPersonalEntity").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(true)
+    
+    val JField(entityName, metadataJson) = fields.filter(_.name!="hasPersonalEntity").head
     
     val namePattern = "[-_A-Za-z0-9]+".r.pattern
     // validate entity name
@@ -519,7 +520,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntity)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames
@@ -529,7 +530,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
  * example case classes, as an example schema of DynamicEntity, for request body example usage
  * @param FooBar
  */
-case class DynamicEntityFooBar(bankId: Option[String], FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None)
+case class DynamicEntityFooBar(bankId: Option[String], FooBar: DynamicEntityDefinition, dynamicEntityId: Option[String] = None, userId: Option[String] = None, hasPersonalEntity:Boolean = true)
 case class DynamicEntityDefinition(description: String, required: List[String],properties: DynamicEntityFullBarFields)
 case class DynamicEntityFullBarFields(name: DynamicEntityStringTypeExample, number: DynamicEntityIntTypeExample)
 case class DynamicEntityStringTypeExample(`type`: DynamicEntityFieldType, minLength: Int, maxLength: Int, example: String, description: String)
@@ -544,7 +545,7 @@ trait DynamicEntityProvider {
   // so --> here can not use bankId as parameters: 
   def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT]
 
-  def getDynamicEntities(bankId: Option[String]): List[DynamicEntityT]
+  def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntityT]
   
   def getDynamicEntitiesByUserId(userId: String): List[DynamicEntity]
 

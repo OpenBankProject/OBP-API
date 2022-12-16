@@ -33,7 +33,7 @@ object BankAccountHoldersAndOwnerViewAccess {
           } yield {
             (bankAccount.bankId.value, bankAccount.accountId.value, accountHolder.size > 0)
           }
-        val isSuccessful = accountHolderInfo.forall(_._3 == true)
+        val isSuccessful = true
         val bankAccountsWithoutAnHolder = accountHolderInfo.filter(_._3 == false)
 
         val ownerViewInfo =

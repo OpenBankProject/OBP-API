@@ -1043,7 +1043,7 @@ object DynamicEndpointHelper extends RestHelper {
   def deleteObjectByKeyValuePair (dynamicDataList: List[DynamicDataT], jsonArray: JArray, key:String, value:String): JValue = {
     val dynamicDataJson = getObjectByKeyValuePair(jsonArray: JArray, key:String, value:String)
     val (dynamicEntityName, dynamicDateId) = findDynamicData(dynamicDataList, dynamicDataJson)
-    JBool(DynamicDataProvider.connectorMethodProvider.vend.delete(None, dynamicEntityName, dynamicDateId).getOrElse(false))
+    JBool(DynamicDataProvider.connectorMethodProvider.vend.delete(None, dynamicEntityName, dynamicDateId, None, false).getOrElse(false))
   }
   
   def addedBankToPath(swagger: String, bankId: Option[String]): JValue = {

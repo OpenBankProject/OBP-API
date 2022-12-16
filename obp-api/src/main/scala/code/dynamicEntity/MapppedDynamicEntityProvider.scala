@@ -11,17 +11,18 @@ import org.apache.commons.lang3.StringUtils
 object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJsonFormats with MdcLoggable {
 
   override def getById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntityT] = {
-    if (bankId.isEmpty) 
-      DynamicEntity.find(By(DynamicEntity.DynamicEntityId, dynamicEntityId))
+    if (bankId.isEmpty)//If bankId is empty, we only return the system level entities
+      DynamicEntity.find(
+        By(DynamicEntity.DynamicEntityId, dynamicEntityId),
+        NullRef(DynamicEntity.BankId))
     else
       DynamicEntity.find(
         By(DynamicEntity.DynamicEntityId, dynamicEntityId),
-        By(DynamicEntity.BankId, bankId.get
-        ))
+        By(DynamicEntity.BankId, bankId.get))
   }
 
   override def getByEntityName(bankId: Option[String], entityName: String): Box[DynamicEntityT] =
-    if (bankId.isEmpty)
+    if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
       DynamicEntity.find(
         By(DynamicEntity.EntityName, entityName),
         NullRef(DynamicEntity.BankId)
@@ -33,9 +34,11 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       )
       
 
-  override def getDynamicEntities(bankId: Option[String]): List[DynamicEntity] = {
-    if (bankId.isEmpty)
+  override def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntity] = {
+    if(returnBothBankAndSystemLevel)
       DynamicEntity.findAll()
+    else if (bankId.isEmpty)//If Bank id is empty, we only return  the system level entity
+      DynamicEntity.findAll(NullRef(DynamicEntity.BankId))
     else
       DynamicEntity.findAll(By(DynamicEntity.BankId, bankId.get))
   }
@@ -63,6 +66,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .MetadataJson(dynamicEntity.metadataJson)
           .UserId(dynamicEntity.userId)
           .BankId(dynamicEntity.bankId.getOrElse(null))
+          .HasPersonalEntity(dynamicEntity.hasPersonalEntity)
           .saveMe()
       } catch {
         case e =>
@@ -94,12 +98,14 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   object MetadataJson extends MappedText(this)
   object UserId extends MappedString(this, 255)
   object BankId extends MappedString(this, 255)
+  object HasPersonalEntity extends MappedBoolean(this)
 
   override def dynamicEntityId: Option[String] = Option(DynamicEntityId.get)
   override def entityName: String = EntityName.get
   override def metadataJson: String = MetadataJson.get
   override def userId: String = UserId.get
   override def bankId: Option[String] = if (BankId.get == null || BankId.get.isEmpty) None else Some(BankId.get)
+  override def hasPersonalEntity: Boolean = HasPersonalEntity.get
 }
 
 object DynamicEntity extends DynamicEntity with LongKeyedMetaMapper[DynamicEntity] {
