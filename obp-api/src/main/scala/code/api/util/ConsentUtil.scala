@@ -381,7 +381,7 @@ object Consent {
   }
   
   def getConsentsJwtValueByConsentId(consentId: String): Option[String] = {
-    ControlHelpers.tryo(UUID.fromString(consentId)).isDefined match {
+    APIUtil.checkIfStringIsUUID(consentId) match {
       case true => // String is a UUID
         Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
           case Full(consent) => Some(consent.jsonWebToken) 

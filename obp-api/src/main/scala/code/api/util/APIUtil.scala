@@ -112,8 +112,9 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.security.AccessControlException
+import java.util.regex.Pattern
+
 import code.users.Users
 
 import scala.collection.mutable
@@ -3481,6 +3482,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return UUID as a String value
    */
   def generateUUID(): String = UUID.randomUUID().toString
+
+  /**
+   * This function validates UUID (Universally Unique Identifier) strings 
+   * @param value a string we're trying to validate
+   * @return false in case the string doesn't represent a UUID, true in case the string represents a UUID
+   */
+  def checkIfStringIsUUID(value: String): Boolean = {
+    Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+      .matcher(value).matches()
+  }
+  
 
   def mockedDataText(isMockedData: Boolean) =
     if (isMockedData)
