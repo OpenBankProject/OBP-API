@@ -68,7 +68,7 @@ object Migration extends MdcLoggable {
       generateAndPopulateMissingConsumersUUIDs(startedBeforeSchemifier)
       populateTableRateLimiting()
       updateTableViewDefinition()
-      bankAccountHoldersAndOwnerViewAccessInfo()
+      bankAccountHoldersAndOwnerViewAccessInfo(startedBeforeSchemifier)
       alterTableMappedConsent()
       alterColumnChallengeAtTableMappedConsent()
       alterTableOpenIDConnectToken()
@@ -183,10 +183,15 @@ object Migration extends MdcLoggable {
       }
     }
 
-    private def bankAccountHoldersAndOwnerViewAccessInfo(): Boolean = {
-      val name = nameOf(bankAccountHoldersAndOwnerViewAccessInfo)
-      runOnce(name) {
-        BankAccountHoldersAndOwnerViewAccess.saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name)
+    private def bankAccountHoldersAndOwnerViewAccessInfo(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.bankAccountHoldersAndOwnerViewAccessInfo(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(bankAccountHoldersAndOwnerViewAccessInfo(startedBeforeSchemifier))
+        runOnce(name) {
+          BankAccountHoldersAndOwnerViewAccess.saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name)
+        }
       }
     }
     private def alterTableMappedConsent(): Boolean = {
