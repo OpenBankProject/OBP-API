@@ -2,7 +2,7 @@ package code.api.v1_3_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import code.api.util.VersionedOBPApis
 import code.api.v1_2_1.APIMethods121
 import code.util.Helper.MdcLoggable
@@ -15,7 +15,7 @@ import code.util.Helper.MdcLoggable
 object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 with MdcLoggable with VersionedOBPApis{
 
   val version : ApiVersion = ApiVersion.v1_3_0 //  "1.3.0"
-  val versionStatus = "STABLE"
+  val versionStatus = ApiVersionStatus.STABLE.toString
 
   //TODO: check all these calls to see if they should really have the same behaviour as 1.2.1
 

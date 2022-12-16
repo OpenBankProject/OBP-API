@@ -29,6 +29,11 @@ object ApiShortVersions extends Enumeration {
   val `dynamic-entity` = Value("dynamic-entity")
 }
 
+object ApiVersionStatus extends Enumeration {
+  type Status = Value
+  val STABLE, `BLEEDING-EDGE`,DRAFT  = Value
+}
+
 sealed trait ApiVersion {
   lazy val dottedApiVersion: String = this.toString.replace("_", ".").replace("v","")
   lazy val vDottedApiVersion: String = this.toString.replace("_", ".")
