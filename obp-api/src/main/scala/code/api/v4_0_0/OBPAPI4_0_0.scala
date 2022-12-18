@@ -39,7 +39,7 @@ import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
@@ -51,7 +51,7 @@ object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v4_0_0
 
-  val versionStatus = "DRAFT" // TODO this should be a property of ApiVersion.
+  val versionStatus = ApiVersionStatus.STABLE.toString
 
   // Possible Endpoints from 4.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations4_0_0) -- List(Implementations4_0_0.genericEndpoint, Implementations4_0_0.root)

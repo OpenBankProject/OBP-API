@@ -23,9 +23,15 @@ object ApiShortVersions extends Enumeration {
   val `v3.1.0` = Value("v3.1.0")
   val `v4.0.0` = Value("v4.0.0")
   val `v5.0.0` = Value("v5.0.0")
+  val `v5.1.0` = Value("v5.1.0")
   val b1 = Value
   val `dynamic-endpoint` = Value("dynamic-endpoint")
   val `dynamic-entity` = Value("dynamic-entity")
+}
+
+object ApiVersionStatus extends Enumeration {
+  type Status = Value
+  val STABLE, `BLEEDING-EDGE`,DRAFT  = Value
 }
 
 sealed trait ApiVersion {
@@ -108,6 +114,7 @@ object ApiVersion {
   val v3_1_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v3.1.0`.toString)
   val v4_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v4.0.0`.toString)
   val v5_0_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v5.0.0`.toString)
+  val v5_1_0 = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`v5.1.0`.toString)
   val `dynamic-endpoint` = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`dynamic-endpoint`.toString)
   val `dynamic-entity` = ScannedApiVersion(urlPrefix,ApiStandards.obp.toString,ApiShortVersions.`dynamic-entity`.toString)
   
@@ -126,6 +133,7 @@ object ApiVersion {
       v3_1_0 :: 
       v4_0_0 :: 
       v5_0_0 :: 
+      v5_1_0 :: 
       b1 :: 
       `dynamic-endpoint` :: 
       `dynamic-entity`::

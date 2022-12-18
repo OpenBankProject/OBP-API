@@ -33,7 +33,7 @@ import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.{APIUtil, VersionedOBPApis}
 import code.api.v5_0_0.OBPAPI5_0_0.{allResourceDocs, apiPrefix, registerRoutes, routes}
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
@@ -45,7 +45,7 @@ object OBPAPIDynamicEntity extends OBPRestHelper with MdcLoggable with Versioned
 
   val version : ApiVersion = ApiVersion.`dynamic-entity`
 
-  val versionStatus = "BLEEDING-EDGE" // TODO this should be a property of ApiVersion.
+  val versionStatus = ApiVersionStatus.`BLEEDING-EDGE`.toString
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(ImplementationsDynamicEntity.resourceDocs)

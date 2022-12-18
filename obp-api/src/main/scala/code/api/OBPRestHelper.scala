@@ -38,6 +38,7 @@ import code.api.v3_0_0.APIMethods300
 import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
 import code.api.v5_0_0.OBPAPI5_0_0
+import code.api.v5_1_0.OBPAPI5_1_0
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.AuthUser
 import code.util.Helper.MdcLoggable
@@ -666,7 +667,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
                                autoValidateAll: Boolean = false): Unit = {
 
     def isAutoValidate(doc: ResourceDoc): Boolean = {                         //note: only support v5.0.0 and v4.0.0 at the moment.
-      doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && List(OBPAPI5_0_0.version,OBPAPI4_0_0.version).contains(doc.implementedInApiVersion))
+      doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && List(OBPAPI5_1_0.version,OBPAPI5_0_0.version,OBPAPI4_0_0.version).contains(doc.implementedInApiVersion))
     }
 
     for(route <- routes) {
