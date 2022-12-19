@@ -131,14 +131,27 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
       val getConsentByRequestResponseJson = getConsentByRequestResponse.body.extract[ConsentJsonV500]
       getConsentByRequestResponseJson.consent_request_id.head should be(consentRequestId)
       getConsentByRequestResponseJson.status should be(ConsentStatus.ACCEPTED.toString)
-      
-      val consentRequestHeader = (s"Consent-JWT", getConsentByRequestResponseJson.jwt)
+
+
       val requestGetUsers = (v5_0_0_Request / "users").GET
+      
+      // Test Request Header "Consent-JWT:SOME_VALUE"
+      val consentRequestHeader = (s"Consent-JWT", getConsentByRequestResponseJson.jwt)
       val responseGetUsers = makeGetRequest(requestGetUsers, List(consentRequestHeader))
       Then("We get successful response")
       responseGetUsers.code should equal(200)
       val users = responseGetUsers.body.extract[UsersJsonV400].users
       users.size should be > 0
+      
+      // Test Request Header "Consent-Id:SOME_VALUE"
+      val consentIdRequestHeader = (s"Consent-Id", getConsentByRequestResponseJson.consent_id)
+      val responseGetUsersSecond = makeGetRequest(requestGetUsers, List(consentIdRequestHeader))
+      Then("We get successful response")
+      responseGetUsersSecond.code should equal(200)
+      val usersSecond = responseGetUsersSecond.body.extract[UsersJsonV400].users
+      usersSecond.size should be > 0
+
+      users.size should equal(usersSecond.size)
     }
 
   }
