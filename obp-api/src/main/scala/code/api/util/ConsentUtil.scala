@@ -313,7 +313,7 @@ object Consent {
     }
   } 
   
-  private def hasConsentInternal(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+  private def hasConsentCommon(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
@@ -368,7 +368,7 @@ object Consent {
     (hasConsentInternalOldStyle(consentIdAsJwt, callContext), callContext)
   }  
   private def hasConsent(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasConsentInternal(consentAsJwt, callContext)
+    hasConsentCommon(consentAsJwt, callContext)
   }
   
   def applyRules(consentJwt: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
