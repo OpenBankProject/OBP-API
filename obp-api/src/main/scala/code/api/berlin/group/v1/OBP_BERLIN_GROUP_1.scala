@@ -28,7 +28,7 @@ package code.api.berlin.group.v1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.ScannedApiVersion
+import com.openbankproject.commons.util.{ApiVersionStatus, ScannedApiVersion}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import code.api.berlin.group.v1.APIMethods_BERLIN_GROUP_1._
@@ -45,7 +45,7 @@ This file defines which endpoints from all the versions are available in v1
 object OBP_BERLIN_GROUP_1 extends OBPRestHelper with MdcLoggable with ScannedApis{
 
   override val apiVersion = ScannedApiVersion("berlin-group", "BG", "v1")
-  val versionStatus = "DRAFT"
+  val versionStatus = ApiVersionStatus.DRAFT.toString
 
   val allEndpoints =  
     getAccountList ::
