@@ -2762,11 +2762,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
       } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
         val consentValue = APIUtil.getConsentJWT(reqHeaders)
-        Consent.getConsentsJwtValueByConsentId(consentValue.getOrElse("")) match {
+        Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
           case Some(jwt) => // JWT value obtained via "Consent-Id" request header
             Consent.applyRules(Some(jwt), cc)
-          case _ => // Assume it's JWT obtained via "Consent-JWT" request header
-            Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
+          case _ => 
+            JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
+              case true => // It's JWT obtained via "Consent-JWT" request header
+                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
+              case false => // Unrecognised consent value
+                Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
+            }
         }
       } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
         getUserFromOAuthHeaderFuture(cc)
@@ -3488,8 +3493,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * This function validates UUID (Universally Unique Identifier) strings 
    * @param value a string we're trying to validate
    * @return false in case the string doesn't represent a UUID, true in case the string represents a UUID
+   *         
+   *A Version 1 UUID is a universally unique identifier that is generated using 
+   * a timestamp and the MAC address of the computer on which it was generated.
    */
-  def checkIfStringIsUUID(value: String): Boolean = {
+  def checkIfStringIsUUIDVersion1(value: String): Boolean = {
     Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
       .matcher(value).matches()
   }

@@ -150,8 +150,14 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
       responseGetUsersSecond.code should equal(200)
       val usersSecond = responseGetUsersSecond.body.extract[UsersJsonV400].users
       usersSecond.size should be > 0
-
       users.size should equal(usersSecond.size)
+      
+      // Test Request Header "Consent-JWT:INVALID_JWT_VALUE"
+      val wrongRequestHeader = (s"Consent-JWT", "INVALID_JWT_VALUE")
+      val responseGetUsersWrong = makeGetRequest(requestGetUsers, List(wrongRequestHeader))
+      Then("We get successful response")
+      responseGetUsersWrong.code should equal(401)
+      responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
     }
 
   }
