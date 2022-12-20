@@ -962,6 +962,9 @@ object ApiRole {
   case class CanGetAccountsMinimalForCustomerAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAccountsMinimalForCustomerAtAnyBank = CanGetAccountsMinimalForCustomerAtAnyBank()
   
+  case class CanRevokeConsentAtBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canRevokeConsentAtBank = CanRevokeConsentAtBank()
+  
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 
   private case class DynamicApiRole(role: String, requiresBankId: Boolean = false) extends ApiRole{
