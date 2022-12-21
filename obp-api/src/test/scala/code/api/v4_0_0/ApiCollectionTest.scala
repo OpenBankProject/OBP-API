@@ -232,7 +232,7 @@ class ApiCollectionTest extends V400ServerSetup {
       responseApiEndpoint6.body.toString contains(s"$UserHasMissingRoles") should be (true)
 
       Then("grant the role and test it again")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllApiCollectionsForUser.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetApiCollectionsForUser.toString)
       val responseApiEndpoint6WithRole = makeGetRequest(requestApiEndpoint6)
       
       Then("We should get a 200")

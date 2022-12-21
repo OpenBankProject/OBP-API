@@ -9065,7 +9065,7 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle),
-      Some(canGetAllApiCollectionsForUser :: Nil)
+      Some(canGetApiCollectionsForUser :: Nil)
     )
 
     lazy val getApiCollectionsForUser: OBPEndpoint = {
