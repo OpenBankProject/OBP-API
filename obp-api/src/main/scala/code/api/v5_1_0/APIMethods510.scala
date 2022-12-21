@@ -39,8 +39,8 @@ trait APIMethods510 {
       nameOf(getAllApiCollections),
       "GET",
       "/management/api-collections",
-      "Get All Api Collections",
-      s"""Get All Api Collections.
+      "Get All API Collections",
+      s"""Get All API Collections.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
