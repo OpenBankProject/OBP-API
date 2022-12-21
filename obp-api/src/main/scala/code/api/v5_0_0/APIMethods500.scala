@@ -158,6 +158,9 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters", cc=cc.callContext) {
               !bank.id.contains(" ")
             }
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters", cc=cc.callContext) {
+              !`checkIfContains::::`(bank.id.getOrElse(""))
+            }
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, cc=cc.callContext) {
               !banks.exists { b => Some(b.bankId.value) == bank.id }
@@ -1012,6 +1015,10 @@ trait APIMethods500 {
               postedData.dependants.getOrElse(0) == postedData.dob_of_dependants.getOrElse(Nil).length
             }
             customerNumber = postedData.customer_number.getOrElse(Random.nextInt(Integer.MAX_VALUE).toString)
+
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat customer_number can not contain `::::` characters", cc=cc.callContext) {
+              !`checkIfContains::::` (customerNumber)
+            }
             (_, callContext) <- NewStyle.function.checkCustomerNumberAvailable(bankId, customerNumber, cc.callContext)
             (customer, callContext) <- NewStyle.function.createCustomerC2(
               bankId,

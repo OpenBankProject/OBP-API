@@ -1352,6 +1352,8 @@ trait APIMethods210 {
             _ <- tryo(assert(isValidID(bankId.value)))?~! InvalidBankIdFormat
             (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJsonV210]} ?~! InvalidJsonFormat
+            _ <- Helper.booleanToBox(
+              !`checkIfContains::::` (postedData.customer_number), s"$InvalidJsonFormat customer_number can not contain `::::` characters")
             _ <- NewStyle.function.hasAllEntitlements(bankId.value, u.userId, createCustomerEntitlementsRequiredForSpecificBank, createCustomerEntitlementsRequiredForAnyBank, callContext)
             _ <- tryo(assert(CustomerX.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~! s"Problem getting user_id"
