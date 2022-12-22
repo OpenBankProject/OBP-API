@@ -344,6 +344,7 @@ object ErrorMessages {
 
   val ApiCollectionNotFound = "OBP-30079: ApiCollection not found."
   val CreateApiCollectionError = "OBP-30080: Could not create ApiCollection."
+  val UpdateApiCollectionError = "OBP-300801: Could not update ApiCollection."
   val DeleteApiCollectionError = "OBP-30081: Could not delete ApiCollection."
 
   val ApiCollectionEndpointNotFound = "OBP-30082: ApiCollectionEndpoint not found."
@@ -379,8 +380,7 @@ object ErrorMessages {
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
   val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
   val MeetingNotFound = "OBP-30104: Meeting not found."
-
-  val UpdateApiCollectionError = "OBP-30120: Could not update ApiCollection."
+  
 
 
   val InvalidAccountBalanceCurrency = "OBP-30105: Invalid Balance Currency."
