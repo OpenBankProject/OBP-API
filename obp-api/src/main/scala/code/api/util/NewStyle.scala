@@ -3518,6 +3518,22 @@ object NewStyle extends MdcLoggable{
       ) map {
         i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
       }
+    }    
+    
+    def updateApiCollection(apiCollectionId : String, 
+                            apiCollectionName: String, 
+                            isSharable: Boolean, 
+                            description: String, 
+                            callContext: Option[CallContext]
+    ) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.updateApiCollectionById(
+        apiCollectionId: String,
+        apiCollectionName: String,
+        description: String,
+        isSharable: Boolean)
+      ) map {
+        i => (unboxFullOrFail(i, callContext, UpdateApiCollectionError), callContext)
+      }
     }
 
     def getUserByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[User] = {

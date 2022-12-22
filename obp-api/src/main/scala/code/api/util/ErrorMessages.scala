@@ -380,6 +380,8 @@ object ErrorMessages {
   val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
   val MeetingNotFound = "OBP-30104: Meeting not found."
 
+  val UpdateApiCollectionError = "OBP-30120: Could not update ApiCollection."
+
 
   val InvalidAccountBalanceCurrency = "OBP-30105: Invalid Balance Currency."
   val InvalidAccountBalanceAmount = "OBP-30106: Invalid Balance Amount."

@@ -1,14 +1,16 @@
 package code.api.v5_1_0
 
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.revokedConsentJsonV310
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, postApiCollectionJson400, revokedConsentJsonV310}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.ApiTag.{apiTagConsent, apiTagNewStyle, apiTagPSD2AIS, apiTagPsd2}
-import code.api.util.ErrorMessages.{BankNotFound, ConsentNotFound, UnknownError, UserNotLoggedIn}
+import code.api.util.ApiTag.{apiTagApiCollection, apiTagConsent, apiTagNewStyle, apiTagPSD2AIS, apiTagPsd2}
+import code.api.util.ErrorMessages.{$UserNotLoggedIn, ApiCollectionAlreadyExisting, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn}
 import code.api.util.NewStyle
 import code.api.util.NewStyle.HttpCode
 import code.api.v3_1_0.ConsentJsonV310
+import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
+import code.apicollection.MappedApiCollectionsProvider
 import code.consent.Consents
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.util.Helper
@@ -92,7 +94,53 @@ trait APIMethods510 {
           }
       }
     }
-    
+
+
+    staticResourceDocs += ResourceDoc(
+      updateMyApiCollection,
+      implementedInApiVersion,
+      nameOf(updateMyApiCollection),
+      "PUT",
+      "/my/api-collections/API_COLLECTION_ID",
+      "Update My Api Collection By API_COLLECTION_ID",
+      s"""Update Api Collection for logged in user.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      postApiCollectionJson400,
+      apiCollectionJson400,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UserNotFoundByUserId,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle)
+    )
+
+    lazy val updateMyApiCollection: OBPEndpoint = {
+      case "my" :: "api-collections" :: apiCollectionId :: Nil JsonPut json -> _ => {
+        cc =>
+          for {
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostApiCollectionJson400", 400, cc.callContext) {
+              json.extract[PostApiCollectionJson400]
+            }
+            (_, callContext) <- NewStyle.function.getApiCollectionById(apiCollectionId, cc.callContext)
+            (apiCollection, callContext) <- NewStyle.function.updateApiCollection(
+              apiCollectionId,
+              putJson.api_collection_name,
+              putJson.is_sharable,
+              putJson.description.getOrElse(""),
+              callContext
+            )
+          } yield {
+            (JSONFactory400.createApiCollectionJsonV400(apiCollection), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+
 
   }
 }
