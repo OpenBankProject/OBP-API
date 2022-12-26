@@ -61,8 +61,10 @@ class ApiCollectionTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+  feature(s"test $ApiEndpoint1 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+      
+      // Create an API Collection
       When(s"We make a request $ApiEndpoint1")
       val requestPost510 = (v5_1_0_Request / "my" / "api-collections").POST <@ (user1)
       val postApiCollectionJson = SwaggerDefinitionsJSON.postApiCollectionJson400
@@ -75,7 +77,7 @@ class ApiCollectionTest extends V510ServerSetup {
       apiCollectionJson400.user_id should be (resourceUser1.userId)
       apiCollectionJson400.api_collection_id shouldNot be (null)
 
-      // Get
+      // Get the API Collection by API_COLLECTION_ID and compare the responses createMyApiCollection and getMyApiCollectionById
       Then(s"we test the $ApiEndpoint2")
       val requestGetSingle = (v5_1_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_id).GET <@ (user1)
       val responseGetSingle = makeGetRequest(requestGetSingle)
@@ -84,7 +86,7 @@ class ApiCollectionTest extends V510ServerSetup {
       val apiCollectionsJsonGetSingle400 = responseGetSingle.body.extract[ApiCollectionJson400]
       apiCollectionsJsonGetSingle400 should be (apiCollectionJson400)
 
-      // Update
+      // Update the API Collection's name and description
       When(s"We make a request $ApiEndpoint3")
       val requestPut510 = (v5_1_0_Request / "my" / "api-collections" / apiCollectionsJsonGetSingle400.api_collection_id).PUT <@ (user1)
       val putApiCollectionJson = SwaggerDefinitionsJSON.postApiCollectionJson400
@@ -97,7 +99,7 @@ class ApiCollectionTest extends V510ServerSetup {
       apiCollectionPutJson400.is_sharable should be (putApiCollectionJson.is_sharable)
       apiCollectionPutJson400.api_collection_name should be (putApiCollectionJson.api_collection_name)
 
-      // Get
+      // Get the API Collection by API_COLLECTION_ID and compare the responses updateMyApiCollection and getMyApiCollectionById
       Then(s"we test the $ApiEndpoint2")
       val responseGetSingleSecond = makeGetRequest(requestGetSingle)
       Then("We should get a 200")
