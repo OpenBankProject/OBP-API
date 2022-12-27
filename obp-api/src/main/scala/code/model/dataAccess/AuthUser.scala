@@ -979,7 +979,6 @@ def restoreSomeSessions(): Unit = {
     * Overridden in order to add custom error message. Attention: Not calling super will change the default behavior!
     */
   override protected def loginMenuLocParams: List[LocParam[Unit]] = {
-    org.scalameta.logger.elem(S.queryString)
     If(notLoggedIn_? _, () => RedirectResponse("/already-logged-in")) ::
       Template(() => wrapIt(login)) ::
       Nil
