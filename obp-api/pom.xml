@@ -222,10 +222,11 @@
 <!--        </exclusion>-->
 <!--      </exclusions>-->
 <!--    </dependency>-->
+    <!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch -->
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>7.17.1</version>
+      <version>8.5.3</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
     <dependency>
