@@ -231,7 +231,7 @@
     <dependency>
       <groupId>com.sksamuel.elastic4s</groupId>
       <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
-      <version>8.2.1</version>
+      <version>8.5.2</version>
     </dependency>
     <!-- for LiftConsole -->
     <dependency>
