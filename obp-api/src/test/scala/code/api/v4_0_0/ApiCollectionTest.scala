@@ -53,7 +53,7 @@ class ApiCollectionTest extends V400ServerSetup {
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionById))
   
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getSharableApiCollectionById))
-  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getApiCollections))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getApiCollectionsForUser))
 
   feature("Test the apiCollection endpoints") {
     scenario("We create my apiCollection and get,delete", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint7,  VersionOfApi) {
@@ -232,7 +232,7 @@ class ApiCollectionTest extends V400ServerSetup {
       responseApiEndpoint6.body.toString contains(s"$UserHasMissingRoles") should be (true)
 
       Then("grant the role and test it again")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllApiCollections.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetApiCollectionsForUser.toString)
       val responseApiEndpoint6WithRole = makeGetRequest(requestApiEndpoint6)
       
       Then("We should get a 200")
