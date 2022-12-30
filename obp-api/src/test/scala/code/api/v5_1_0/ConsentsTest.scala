@@ -23,7 +23,7 @@ Berlin 13359, Germany
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
   */
-package code.api.v5_0_0
+package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
@@ -34,6 +34,8 @@ import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJson
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.api.v4_0_0.UsersJsonV400
 import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
+import code.api.v5_0_0.{AccountAccessV500, ConsentJsonV500, ConsentRequestResponseJson}
+import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.consent.ConsentStatus
 import code.entitlement.Entitlement
 import code.setup.PropsReset
@@ -45,7 +47,7 @@ import org.scalatest.Tag
 
 import scala.language.postfixOps
 
-class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
+class ConsentsTest extends V510ServerSetup with PropsReset{
 
   /**
     * Test tags
@@ -54,14 +56,16 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
     *
     *  This is made possible by the scalatest maven plugin
     */
-  object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
+  object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.createConsentRequest))
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_0_0.createConsentByConsentRequestId))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getUsers))
+  object ApiEndpoint6 extends Tag(nameOf(Implementations5_1_0.revokeConsentAtBank))
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
+  lazy val bankId = testBankId1.value
   lazy val accountAccess = List(AccountAccessV500(
     account_routing = AccountRoutingJsonV121(
       scheme = "AccountId",
@@ -71,22 +75,34 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
     .copy(consumer_id=None)
     .copy(account_access=accountAccess)
   
-  val createConsentRequestWithoutLoginUrl = (v5_0_0_Request / "consumer" / "consent-requests")
-  val createConsentRequestUrl = (v5_0_0_Request / "consumer"/ "consent-requests").POST<@(user1)
-  def getConsentRequestUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
-  def createConsentByConsentRequestIdEmail(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
-  def getConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
+  val createConsentRequestWithoutLoginUrl = (v5_1_0_Request / "consumer" / "consent-requests")
+  val createConsentRequestUrl = (v5_1_0_Request / "consumer"/ "consent-requests").POST<@(user1)
+  def getConsentRequestUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
+  def createConsentByConsentRequestIdEmail(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
+  def getConsentByRequestIdUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
+  def revokeConsentUrl(consentId: String) = v5_1_0_Request / "banks" / bankId / "consents" / consentId / "revoke"
 
-  feature("Create/Get Consent Request v5.0.0") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v5.0.0")
-      val response500 = makePostRequest(createConsentRequestWithoutLoginUrl, write(postConsentRequestJsonV310))
+  feature(s"test $ApiEndpoint6 version $VersionOfApi - Unauthorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
+      When(s"We make a request $ApiEndpoint6")
+      val response510 = makeGetRequest(revokeConsentUrl("whatever"))
       Then("We should get a 401")
-      response500.code should equal(401)
-      response500.body.extract[ErrorMessage].message should equal (ApplicationNotIdentified)
+      response510.code should equal(401)
+      response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
-
-    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+  }
+  feature(s"test $ApiEndpoint6 version $VersionOfApi - Authorized access") {
+    scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
+      When(s"We make a request $ApiEndpoint1")
+      val response510 = makeGetRequest(revokeConsentUrl("whatever")<@(user1))
+      Then("We should get a 403")
+      response510.code should equal(403)
+      response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanRevokeConsentAtBank) should be (true)
+    }
+  }
+  
+  feature(s"Create/Use/Revoke Consent $VersionOfApi") {
+    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJsonV310))
       Then("We should get a 201")
@@ -111,13 +127,13 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
       val consentJwt = createConsentByRequestResponse.body.extract[ConsentJsonV500].jwt
       
       setPropsValues("consumer_validation_method_for_consent"->"NONE")
-      val requestWhichFails = (v5_0_0_Request / "users").GET
+      val requestWhichFails = (v5_1_0_Request / "users").GET
       val responseWhichFails = makeGetRequest(requestWhichFails, List((s"Consent-JWT", consentJwt)))
       Then("We get successful response")
       responseWhichFails.code should equal(401)
       
       
-      val answerConsentChallengeRequest = (v5_0_0_Request / "banks" / testBankId1.value / "consents" / consentId / "challenge").POST <@ (user1)
+      val answerConsentChallengeRequest = (v5_1_0_Request / "banks" / testBankId1.value / "consents" / consentId / "challenge").POST <@ (user1)
       val challenge = Consent.challengeAnswerAtTestEnvironment
       val post = PostConsentChallengeJsonV310(answer = challenge)
       val answerConsentChallengeResponse = makePostRequest(answerConsentChallengeRequest, write(post))
@@ -133,7 +149,7 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
       getConsentByRequestResponseJson.status should be(ConsentStatus.ACCEPTED.toString)
 
 
-      val requestGetUsers = (v5_0_0_Request / "users").GET
+      val requestGetUsers = (v5_1_0_Request / "users").GET
       
       // Test Request Header "Consent-JWT:SOME_VALUE"
       val consentRequestHeader = (s"Consent-JWT", getConsentByRequestResponseJson.jwt)
@@ -158,8 +174,16 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
       Then("We get successful response")
       responseGetUsersWrong.code should equal(401)
       responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
+      
+      // Revoke consent
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanRevokeConsentAtBank.toString)
+      val response510 = makeGetRequest(revokeConsentUrl(getConsentByRequestResponseJson.consent_id)<@(user1))
+      Then("We should get a 200")
+      response510.code should equal(200)
+      
+      // We cannot get all users anymore
+      makeGetRequest(requestGetUsers, List(consentIdRequestHeader)).code should equal(401)
     }
-
   }
   
 }
