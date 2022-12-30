@@ -323,6 +323,9 @@ object ApiRole {
   case class CanGetApiCollection(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetApiCollection = CanGetApiCollection()
 
+  case class CanGetApiCollectionsForUser(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetApiCollectionsForUser = CanGetApiCollectionsForUser()
+
   case class CanGetAllApiCollections(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetAllApiCollections = CanGetAllApiCollections()
   

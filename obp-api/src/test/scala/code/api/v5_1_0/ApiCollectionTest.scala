@@ -27,10 +27,12 @@ package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ErrorMessages.UserNotLoggedIn
+import code.api.util.ApiRole
+import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotLoggedIn}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
-import code.api.v4_0_0.ApiCollectionJson400
-import code.api.v5_1_0.APIMethods510.Implementations5_1_0
+import code.api.v4_0_0.{ApiCollectionJson400, ApiCollectionsJson400}
+import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
+import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -50,7 +52,54 @@ class ApiCollectionTest extends V510ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createMyApiCollection))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionById))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.updateMyApiCollection))
+  object ApiEndpoint8 extends Tag(nameOf(Implementations5_1_0.getAllApiCollections))
 
+  feature("Test the apiCollection endpoints") {
+    scenario("We create the apiCollection get All API collections back", ApiEndpoint8,  VersionOfApi) {
+      When("We make a request v4.0.0")
+
+      val request = (v5_1_0_Request / "my" / "api-collections").POST <@ (user1)
+
+      lazy val postApiCollectionJson = SwaggerDefinitionsJSON.postApiCollectionJson400
+      val response = makePostRequest(request, write(postApiCollectionJson))
+      Then("We should get a 201")
+      response.code should equal(201)
+      val apiCollectionJson400 = response.body.extract[ApiCollectionJson400]
+
+
+      val requestUser2 = (v5_1_0_Request / "my" / "api-collections").POST <@ (user2)
+      val responseUser2 = makePostRequest(requestUser2, write(postApiCollectionJson))
+      Then("We should get a 201")
+      responseUser2.code should equal(201)
+
+      Then(s"we test the $ApiEndpoint8")
+      val requestApiEndpoint = (v5_1_0_Request / "management" / "api-collections").GET
+      val requestApiEndpoint8 = (v5_1_0_Request /"management" / "api-collections").GET <@ (user1)
+
+      val responseApiEndpoint8 = makeGetRequest(requestApiEndpoint)
+      Then(s"we should get the error messages")
+      responseApiEndpoint8.code should equal(401)
+      responseApiEndpoint8.body.toString contains(s"$UserNotLoggedIn") should be (true)
+
+      {
+        Then(s"we test the $ApiEndpoint8")
+        val responseApiEndpoint8 = makeGetRequest(requestApiEndpoint8)
+        Then(s"we should get the error messages")
+        responseApiEndpoint8.code should equal(403)
+        responseApiEndpoint8.body.toString contains(s"$UserHasMissingRoles") should be (true)
+      }
+      Then("grant the role and test it again")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canGetAllApiCollections.toString)
+      val responseApiEndpoint8WithRole = makeGetRequest(requestApiEndpoint8)
+
+      Then("We should get a 200")
+      responseApiEndpoint8WithRole.code should equal(200)
+      val apiCollectionsResponseApiEndpoint8 = responseApiEndpoint8WithRole.body.extract[ApiCollectionsJson400]
+      apiCollectionsResponseApiEndpoint8.api_collections.head should be (apiCollectionJson400)
+
+    }
+  }
+  
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")

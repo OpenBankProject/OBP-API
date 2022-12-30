@@ -344,7 +344,7 @@ object ErrorMessages {
 
   val ApiCollectionNotFound = "OBP-30079: ApiCollection not found."
   val CreateApiCollectionError = "OBP-30080: Could not create ApiCollection."
-  val UpdateApiCollectionError = "OBP-300801: Could not update ApiCollection."
+  val UpdateApiCollectionError = "OBP-3008A: Could not update ApiCollection."
   val DeleteApiCollectionError = "OBP-30081: Could not delete ApiCollection."
 
   val ApiCollectionEndpointNotFound = "OBP-30082: ApiCollectionEndpoint not found."

@@ -1,16 +1,15 @@
 package code.api.v5_1_0
 
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, postApiCollectionJson400, revokedConsentJsonV310}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, postApiCollectionJson400, revokedConsentJsonV310}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.ApiTag.{apiTagApiCollection, apiTagConsent, apiTagNewStyle, apiTagPSD2AIS, apiTagPsd2}
-import code.api.util.ErrorMessages.{$UserNotLoggedIn, ApiCollectionAlreadyExisting, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn}
+import code.api.util.ApiTag._
+import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.NewStyle
 import code.api.util.NewStyle.HttpCode
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
-import code.apicollection.MappedApiCollectionsProvider
 import code.consent.Consents
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.util.Helper
@@ -42,7 +41,39 @@ trait APIMethods510 {
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
 
 
-    resourceDocs += ResourceDoc(
+    staticResourceDocs += ResourceDoc(
+      getAllApiCollections,
+      implementedInApiVersion,
+      nameOf(getAllApiCollections),
+      "GET",
+      "/management/api-collections",
+      "Get All API Collections",
+      s"""Get All API Collections.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      apiCollectionsJson400,
+      List(
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagApiCollection, apiTagNewStyle),
+      Some(canGetAllApiCollections :: Nil)
+    )
+
+    lazy val getAllApiCollections: OBPEndpoint = {
+      case "management" :: "api-collections" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (apiCollections, callContext) <- NewStyle.function.getAllApiCollections(cc.callContext)
+          } yield {
+            (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       revokeConsentAtBank,
       implementedInApiVersion,
       nameOf(revokeConsentAtBank),
@@ -50,7 +81,7 @@ trait APIMethods510 {
       "/banks/BANK_ID/consents/CONSENT_ID/revoke",
       "Revoke Consent at Bank",
       s"""
-         |Revoke Consent for current user specified by CONSENT_ID
+         |Revoke Consent specified by CONSENT_ID
          |
          |There are a few reasons you might need to revoke an application’s access to a user’s account:
          |  - The user explicitly wishes to revoke the application’s access

@@ -9052,13 +9052,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollections,
+      getApiCollectionsForUser,
       implementedInApiVersion,
-      nameOf(getApiCollections),
+      nameOf(getApiCollectionsForUser),
       "GET",
       "/users/USER_ID/api-collections",
-      "Get Api Collections",
-      s"""Get Api Collections.
+      "Get Api Collections for User",
+      s"""Get Api Collections for User.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -9069,10 +9069,10 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle),
-      Some(canGetAllApiCollections :: Nil)
+      Some(canGetApiCollectionsForUser :: Nil)
     )
 
-    lazy val getApiCollections: OBPEndpoint = {
+    lazy val getApiCollectionsForUser: OBPEndpoint = {
       case "users" :: userId :: "api-collections" :: Nil JsonGet _ => {
         cc =>
           for {
