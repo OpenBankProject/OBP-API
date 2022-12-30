@@ -135,7 +135,7 @@ Berlin 13359, Germany
 						<!-- login state -->
 						<li data-lift="Nav.item?name=Login" class="navitem">
 							<!-- LOGGED OUT -->
-							<p>
+							<p data-lift="WebUI.userIsLoggedIn">
 								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link"><lift:loc locid="register">Register</lift:loc></a><a data-lift="Login.loggedOut" href="#" class="btn btn-danger login"><lift:loc locid="logon">Log on</lift:loc></a>
 							</p>
 						</li>
@@ -191,7 +191,7 @@ Berlin 13359, Germany
 				</li>
 				<li>
 					<div class="navitem" id="register-link-nav">
-						<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link">Register</a>
+						<a data-lift="WebUI.userIsLoggedIn" href="/user_mgt/sign_up" class="navbar-btn" id ="register-link">Register</a>
 						<a data-lift="Login.loggedIn" href="#" class="logout">Log off</a></p>
 					</div>
 				</li>
