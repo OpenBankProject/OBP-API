@@ -290,27 +290,27 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   }
 
   override def addPublicAlias(counterpartyId : String, alias: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterpartyId).map(_.publicAlias(alias).save())
+    getCounterpartyMetadata(counterpartyId).map(_.publicAlias(alias).save)
   }
 
   override def addPrivateAlias(counterpartyId : String, alias: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterpartyId).map(_.privateAlias(alias).save())
+    getCounterpartyMetadata(counterpartyId).map(_.privateAlias(alias).save)
   }
 
   override def addURL(counterpartyId : String, url: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterpartyId).map(_.url(url).save())
+    getCounterpartyMetadata(counterpartyId).map(_.url(url).save)
   }
 
   override def addImageURL(counterpartyId : String, url: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterpartyId).map(_.imageUrl(url).save())
+    getCounterpartyMetadata(counterpartyId).map(_.imageUrl(url).save)
   }
 
   override def addOpenCorporatesURL(counterpartyId : String, url: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterpartyId).map(_.openCorporatesUrl(url).save())
+    getCounterpartyMetadata(counterpartyId).map(_.openCorporatesUrl(url).save)
   }
 
   override def addMoreInfo(counterpartyId : String, moreInfo: String): Box[Boolean] = {
-    getCounterpartyMetadata(counterpartyId).map(_.moreInfo(moreInfo).save())
+    getCounterpartyMetadata(counterpartyId).map(_.moreInfo(moreInfo).save)
   }
 
   override def addPhysicalLocation(counterpartyId : String, userId: UserPrimaryKey, datePosted : Date, longitude : Double, latitude : Double): Box[Boolean] = {
@@ -372,7 +372,7 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
   private def trySave(f : => Any) : Boolean =
     tryo{
       f
-      save()
+      save
     }.getOrElse(false)
 
   private def setWhere(whereTag : Box[MappedCounterpartyWhereTag])

@@ -21,7 +21,7 @@ object MappedSocialMediasProvider extends SocialMediaHandleProvider {
       .mHandle(handle)
       .mDateAdded(dateAdded)
       .mDateActivated(dateActivated)
-      .save()
+      .save
   }
 }
 

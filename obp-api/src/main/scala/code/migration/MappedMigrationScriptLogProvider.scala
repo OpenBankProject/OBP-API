@@ -15,7 +15,7 @@ object MappedMigrationScriptLogProvider extends MigrationScriptLogProvider with 
           .StartDate(startDate)
           .EndDate(endDate)
           .Remark(comment)
-          .save()
+          .save
       case _ =>
         MigrationScriptLog
           .create
@@ -25,7 +25,7 @@ object MappedMigrationScriptLogProvider extends MigrationScriptLogProvider with 
           .StartDate(startDate)
           .EndDate(endDate)
           .Remark(comment)
-          .save()
+          .save
     }
   }
   override def isExecuted(name: String): Boolean = {

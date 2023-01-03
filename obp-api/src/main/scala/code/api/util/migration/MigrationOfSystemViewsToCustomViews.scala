@@ -58,7 +58,7 @@ object UpdateTableViewDefinition {
             view <- views
             accountAccess <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).toList
           } yield {
-            accountAccess.view_id(view.viewId.value).save()
+            accountAccess.view_id(view.viewId.value).save
           }
         
         val isSuccessful = views.forall(_.isSystem == false)

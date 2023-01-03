@@ -47,7 +47,7 @@ object TableRateLmiting {
                   .PerMonthCallLimit(consumer.perMonthCallLimit.get)
                   .FromDate(Date.from(oneDayAgo.toInstant()))
                   .ToDate(Date.from(oneYearInFuture.toInstant()))
-                .save()
+                .save
             }
           }
         val isSuccessful = insertedRows.forall(_ == true)
