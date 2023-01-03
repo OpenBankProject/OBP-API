@@ -332,12 +332,8 @@ class Boot extends MdcLoggable {
     
     // ensure our relational database's tables are created/fit the schema
     val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
-    if(connector != "mongodb")
-      schemifyAll()
+    schemifyAll()
 
-    // This sets up MongoDB config (for the mongodb connector)
-    if( connector == "mongodb")
-      MongoConfig.init
 
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"

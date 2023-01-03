@@ -170,16 +170,6 @@
       <scope>test</scope>
   </dependency>
     <dependency>
-      <groupId>net.liftweb</groupId>
-      <artifactId>lift-mongodb_${scala.version}</artifactId>
-      <version>${lift.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>net.liftweb</groupId>
-      <artifactId>lift-mongodb-record_${scala.version}</artifactId>
-      <version>${lift.version}</version>
-    </dependency>
-    <dependency>
       <groupId>cglib</groupId>
       <artifactId>cglib</artifactId>
       <version>3.3.0</version>

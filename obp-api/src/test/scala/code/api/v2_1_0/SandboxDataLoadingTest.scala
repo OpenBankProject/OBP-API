@@ -98,7 +98,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
       m == Nonce || m == code.model.Token || m == code.model.Consumer || m == AuthUser || m == ResourceUser
     }
     //drop database tables before
-    //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
     ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
     //we need to delete the test uses manully here.
