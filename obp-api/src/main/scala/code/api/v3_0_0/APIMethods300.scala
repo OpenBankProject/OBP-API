@@ -572,18 +572,21 @@ trait APIMethods300 {
       transactionsJsonV300,
       List(UserNotLoggedIn, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseAccountFirehoseAtAnyBank)))
+      Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
+    )
 
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
       //get private accounts for all banks
       case "banks" :: BankId(bankId):: "firehose" :: "accounts" ::  AccountId(accountId) :: "views" :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
+          val allowedEntitlements = canUseAccountFirehoseAtAnyBank :: ApiRole.canUseAccountFirehose :: Nil
+          val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=callContext) {
               allowAccountFirehose
             }
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseAccountFirehoseAtAnyBank, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)(bankId.value, u.userId, allowedEntitlements, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
