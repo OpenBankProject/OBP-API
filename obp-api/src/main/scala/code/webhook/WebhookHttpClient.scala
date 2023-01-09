@@ -181,17 +181,14 @@ object WebhookHttpClient extends MdcLoggable {
   // needed for the future flatMap/onComplete in the end
   implicit lazy val executionContext = system.dispatcher
 
-  // The Actor which has sent the request. 
-  // We need to respond to it after we finish an event.
-  lazy val requestActor = ObpLookupSystem.getWebhookActor()
   
   private def makeRequest(httpRequest: HttpRequest, request: WebhookRequestTrait): Unit = {
     makeHttpRequest(httpRequest).onComplete {
         case Success(res@HttpResponse(status, headers, entity, protocol)) =>
-          requestActor ! WebhookResponse(status.toString(), request)
+          WebhookAction.webhookResponse(status.toString(), request)
           res.discardEntityBytes()
         case Failure(error)   =>
-          requestActor ! WebhookFailure(error.getMessage, request)
+          WebhookAction.webhookFailure(error.getMessage, request)
       }
   }
 

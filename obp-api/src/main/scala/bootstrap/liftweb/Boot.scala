@@ -29,6 +29,7 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
+
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -47,24 +48,33 @@ import code.api.util.APIUtil.{enableVersionIfAllowed, errorJsonResponse, getProp
 import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
+import code.apicollection.ApiCollection
+import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.atms.MappedAtm
 import code.authtypevalidation.AuthenticationTypeValidation
+import code.bankattribute.BankAttribute
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
+import code.connectormethod.ConnectorMethod
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
 import code.crm.MappedCrmEvent
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
 import code.customerattribute.MappedCustomerAttribute
 import code.database.authorisation.Authorisation
 import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
+import code.dynamicMessageDoc.DynamicMessageDoc
+import code.dynamicResourceDoc.DynamicResourceDoc
+import code.endpointMapping.EndpointMapping
+import code.endpointTag.EndpointTag
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
 import code.fx.{MappedCurrency, MappedFXRate}
@@ -85,28 +95,19 @@ import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricsArchive}
 import code.migration.MigrationScriptLog
-import code.model.{Consumer, _}
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
+import code.model.{Consumer, _}
 import code.obp.grpc.HelloWorldServer
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
+import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.remotedata.RemotedataActors
 import code.scheduler.{DatabaseDriverScheduler, MetricsArchiveScheduler}
 import code.scope.{MappedScope, MappedUserScope}
-import code.apicollectionendpoint.ApiCollectionEndpoint
-import code.apicollection.ApiCollection
-import code.bankattribute.BankAttribute
-import code.connectormethod.ConnectorMethod
-import code.customeraccountlinks.CustomerAccountLink
-import code.dynamicMessageDoc.DynamicMessageDoc
-import code.dynamicResourceDoc.DynamicResourceDoc
-import code.endpointMapping.EndpointMapping
-import code.endpointTag.EndpointTag
-import code.productfee.ProductFee
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -121,19 +122,17 @@ import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.userlocks.UserLocks
-import code.users.{UserAgreement, UserAttribute, UserInitAction, UserInvitation, Users}
+import code.users._
 import code.util.Helper.MdcLoggable
 import code.util.{Helper, HydraUtil}
 import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
-import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook, WebhookHelperActors}
+import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
 import code.webuiprops.WebUiProps
-import com.openbankproject.commons.model.{ErrorMessage, User}
+import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
-
-import javax.mail.{Authenticator, PasswordAuthentication}
 import javax.mail.internet.MimeMessage
 import net.liftweb.common._
 import net.liftweb.db.DBLogEntry
@@ -484,8 +483,7 @@ class Boot extends MdcLoggable {
         Nil
       }
     }
-
-    WebhookHelperActors.startLocalWebhookHelperWorkers(actorSystem)
+    
 
     if (connector.startsWith("kafka") || (connector == "star" && APIUtil.getPropsValue("starConnector_supported_types","").split(",").contains("kafka"))) {
       logger.info(s"KafkaHelperActors.startLocalKafkaHelperWorkers( ${actorSystem} ) starting")
