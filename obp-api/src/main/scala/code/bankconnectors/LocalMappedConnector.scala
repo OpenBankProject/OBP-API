@@ -114,8 +114,7 @@ import scala.util.{Random, Try}
 object LocalMappedConnector extends Connector with MdcLoggable {
 
   //  override type AccountType = MappedBankAccount
-  val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "10"
-
+  
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache = ScalaCache(GuavaCache(underlyingGuavaCache))
   val getTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
