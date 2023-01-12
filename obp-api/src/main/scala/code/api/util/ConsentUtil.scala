@@ -427,7 +427,7 @@ object Consent {
       }
     }
     
-    def checkFrequencyPerDay(storedConsent: consent.Consent) = {
+    def checkFrequencyPerDay(storedConsent: consent.ConsentTrait) = {
       def isSameDay(date1: Date, date2: Date): Boolean = {
         val fmt = new SimpleDateFormat("yyyyMMdd")
         fmt.format(date1).equals(fmt.format(date2))

@@ -33,10 +33,10 @@ trait ConsentProvider {
     frequencyPerDay: Int,
     combinedServiceIndicator: Boolean,
     apiStandard: Option[String],
-    apiVersion: Option[String]): Box[Consent]  
+    apiVersion: Option[String]): Box[ConsentTrait]  
   def updateBerlinGroupConsent(
                                 consentId: String,
-                                usesSoFarTodayCounter: Int): Box[Consent]
+                                usesSoFarTodayCounter: Int): Box[ConsentTrait]
 
   def saveUKConsent(
     user: Option[User],
@@ -49,10 +49,10 @@ trait ConsentProvider {
     transactionToDateTime: Date,
     apiStandard: Option[String],
     apiVersion: Option[String]
-  ): Box[Consent]
+  ): Box[ConsentTrait]
 }
 
-trait Consent {
+trait ConsentTrait {
   def consentId: String
   def userId: String
   def secret: String
