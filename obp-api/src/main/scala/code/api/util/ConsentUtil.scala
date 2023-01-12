@@ -334,6 +334,8 @@ object Consent {
                 case _ =>
                   (Failure(ErrorMessages.UnknownError), Some(cc))
               }
+            case _ =>
+              (Failure("Cannot add entitlements based on: " + consentAsJwt), Some(cc))
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentAsJwt), Some(cc))
@@ -421,6 +423,8 @@ object Consent {
                 case _ =>
                   (Failure(ErrorMessages.UnknownError), Some(cc))
               }
+            case _ =>
+              (Failure("Cannot add entitlements based on: " + consentId), Some(cc))
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentId), Some(cc))
