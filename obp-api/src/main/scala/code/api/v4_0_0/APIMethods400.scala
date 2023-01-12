@@ -9557,7 +9557,7 @@ trait APIMethods400 {
     lazy val createJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonPost _ -> _ => {
         cc =>
-          val Some(httpBody): Option[String] = cc.httpBody
+          val httpBody: String = cc.httpBody.getOrElse("")
           for {
             (Full(u), callContext) <- SS.user
 
@@ -9603,7 +9603,7 @@ trait APIMethods400 {
     lazy val updateJsonSchemaValidation: OBPEndpoint = {
       case "management" :: "json-schema-validations" :: operationId :: Nil JsonPut _ -> _ => {
         cc =>
-          val Some(httpBody): Option[String] = cc.httpBody
+          val httpBody: String = cc.httpBody.getOrElse("")
           for {
             (Full(u), callContext) <- SS.user
 
