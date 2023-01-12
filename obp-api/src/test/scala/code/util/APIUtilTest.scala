@@ -251,7 +251,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val httpParams: List[HTTPParam] = List(HTTPParam("wrongName", List("wrongValue")))
       val startTime = OBPFromDate(theEpochTime)
       val returnValue = getFromDate(httpParams)
-      returnValue shouldBe a[Full[OBPFromDate]]
+      returnValue.toString should startWith("Full(OBPFromDate")
 
       val currentTime = OBPFromDate(theEpochTime)
       val beWithinTolerance = be  >= startTime and be <= currentTime
@@ -293,7 +293,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       val startTime = OBPToDate(DefaultToDate)
 
       val returnValue = getToDate(httpParams)
-      returnValue shouldBe a[Full[OBPToDate]]
+      returnValue.toString should startWith("Full(OBPToDate")
 
       val currentTime = OBPToDate(DefaultToDate)
       val beWithinTolerance = be  >= startTime and be <= currentTime
