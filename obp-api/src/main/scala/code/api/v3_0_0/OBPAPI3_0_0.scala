@@ -28,7 +28,7 @@ package code.api.v3_0_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import code.api.util.VersionedOBPApis
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
@@ -53,7 +53,7 @@ object OBPAPI3_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v3_0_0
 
-  val versionStatus = "STABLE" // TODO this should be a property of ApiVersion.
+  val versionStatus = ApiVersionStatus.STABLE.toString // TODO this should be a property of ApiVersion.
 
 
   // Possible Endpoints from 1.2.1

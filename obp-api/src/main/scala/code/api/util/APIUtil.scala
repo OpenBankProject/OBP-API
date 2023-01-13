@@ -112,8 +112,9 @@ import javassist.{ClassPool, LoaderClassPath}
 import javassist.expr.{ExprEditor, MethodCall}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
-
 import java.security.AccessControlException
+import java.util.regex.Pattern
+
 import code.users.Users
 
 import scala.collection.mutable
@@ -2488,6 +2489,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
         case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
         case ApiVersion.v5_0_0 => LiftRules.statelessDispatch.append(v5_0_0.OBPAPI5_0_0)
+        case ApiVersion.v5_1_0 => LiftRules.statelessDispatch.append(v5_1_0.OBPAPI5_1_0)
         case ApiVersion.`dynamic-endpoint` => LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
         case ApiVersion.`dynamic-entity` => LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
         case ApiVersion.`b1` => LiftRules.statelessDispatch.append(OBP_APIBuilder)
@@ -2759,7 +2761,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc)
       } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
-        Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
+        val consentValue = APIUtil.getConsentJWT(reqHeaders)
+        Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
+          case Some(jwt) => // JWT value obtained via "Consent-Id" request header
+            Consent.applyRules(Some(jwt), cc)
+          case _ => 
+            JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
+              case true => // It's JWT obtained via "Consent-JWT" request header
+                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc)
+              case false => // Unrecognised consent value
+                Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
+            }
+        }
       } else if (hasAnOAuthHeader(cc.authReqHeaderField)) { // OAuth 1
         getUserFromOAuthHeaderFuture(cc)
       } else if (hasAnOAuth2Header(cc.authReqHeaderField)) { // OAuth 2
@@ -3475,6 +3488,20 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return UUID as a String value
    */
   def generateUUID(): String = UUID.randomUUID().toString
+
+  /**
+   * This function validates UUID (Universally Unique Identifier) strings 
+   * @param value a string we're trying to validate
+   * @return false in case the string doesn't represent a UUID, true in case the string represents a UUID
+   *         
+   *A Version 1 UUID is a universally unique identifier that is generated using 
+   * a timestamp and the MAC address of the computer on which it was generated.
+   */
+  def checkIfStringIsUUIDVersion1(value: String): Boolean = {
+    Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+      .matcher(value).matches()
+  }
+  
 
   def mockedDataText(isMockedData: Boolean) =
     if (isMockedData)
@@ -4317,5 +4344,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     .map(_.split("::::"))
     .filter(_.length == 2)
     .map(a =>(a.apply(0),a.apply(1))).toSet
+
+  /**
+   * We support the `::::` as the delimiter in UserAuthContext, so we need a guard for it.
+   * @param value
+   * @return
+   */
+  def `checkIfContains::::` (value: String) = value.contains("::::")
     
 }

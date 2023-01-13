@@ -13,30 +13,34 @@ object LoginAttempt extends MdcLoggable {
   val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "5"
   
   def incrementBadLoginAttempts(username: String, provider: String): Unit = {
+    username.isEmpty() match {
+      case true => // Not a valid case. GitLab issue 389
+        logger.warn(s"Username is empty: incrementBadLoginAttempts(username=$username, provider=$provider")
+      case false =>
+        logger.debug(s"Hello from incrementBadLoginAttempts with $username")
 
-    logger.debug(s"Hello from incrementBadLoginAttempts with $username")
+        // Find badLoginAttempt record if one exists for a user
+        MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
+          // If it exits update the date and increment
+          case Full(loginAttempt) =>
 
-    // Find badLoginAttempt record if one exists for a user
-    MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
-      // If it exits update the date and increment
-      case Full(loginAttempt) =>
+            logger.debug(s"incrementBadLoginAttempts found ${loginAttempt.mBadAttemptsSinceLastSuccessOrReset} loginAttempt(s) with id ${loginAttempt.id}")
 
-        logger.debug(s"incrementBadLoginAttempts found ${loginAttempt.mBadAttemptsSinceLastSuccessOrReset} loginAttempt(s) with id ${loginAttempt.id}")
+            loginAttempt
+              .mLastFailureDate(now)
+              .mBadAttemptsSinceLastSuccessOrReset(loginAttempt.mBadAttemptsSinceLastSuccessOrReset + 1) // Increment
+              .save
+          case _ =>
+            // If none exists, add one
+            MappedBadLoginAttempt.create
+              .mUsername(username)
+              .Provider(provider)
+              .mLastFailureDate(now)
+              .mBadAttemptsSinceLastSuccessOrReset(1) // Start with 1
+              .save()
 
-        loginAttempt
-          .mLastFailureDate(now)
-          .mBadAttemptsSinceLastSuccessOrReset(loginAttempt.mBadAttemptsSinceLastSuccessOrReset + 1) // Increment
-          .save
-      case _ =>
-        // If none exists, add one
-        MappedBadLoginAttempt.create
-          .mUsername(username)
-          .Provider(provider)
-          .mLastFailureDate(now)
-          .mBadAttemptsSinceLastSuccessOrReset(1) // Start with 1
-          .save()
-
-        logger.debug(s"incrementBadLoginAttempts created loginAttempt")
+            logger.debug(s"incrementBadLoginAttempts created loginAttempt")
+        }
     }
   }
   

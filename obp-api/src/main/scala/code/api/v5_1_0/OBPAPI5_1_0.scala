@@ -24,7 +24,7 @@ This product includes software developed at
 TESOBE (http://www.tesobe.com/)
 
   */
-package code.api.v5_0_0
+package code.api.v5_1_0
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
@@ -36,11 +36,10 @@ import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
-import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
-import code.api.v4_0_0.{APIMethods400, OBPAPI4_0_0}
-import code.api.v4_0_0.OBPAPI4_0_0.{Implementations4_0_0, endpointsOf4_0_0}
+import code.api.v3_1_0.APIMethods310
+import code.api.v4_0_0.APIMethods400
+import code.api.v5_0_0.{APIMethods500, OBPAPI5_0_0}
 import code.util.Helper.MdcLoggable
-import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
@@ -49,7 +48,7 @@ import org.apache.http.HttpStatus
 /*
 This file defines which endpoints from all the versions are available in v5.0.0
  */
-object OBPAPI5_0_0 extends OBPRestHelper 
+object OBPAPI5_1_0 extends OBPRestHelper 
   with APIMethods130 
   with APIMethods140 
   with APIMethods200 
@@ -60,30 +59,31 @@ object OBPAPI5_0_0 extends OBPRestHelper
   with APIMethods310 
   with APIMethods400 
   with APIMethods500 
+  with APIMethods510 
   with MdcLoggable 
   with VersionedOBPApis{
 
-  val version : ApiVersion = ApiVersion.v5_0_0
+  val version : ApiVersion = ApiVersion.v5_1_0
 
-  val versionStatus = ApiVersionStatus.STABLE.toString
+  val versionStatus = ApiVersionStatus.`BLEEDING-EDGE`.toString
 
-  // Possible Endpoints from 5.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
+  // Possible Endpoints from 5.1.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
-  val endpointsOf5_0_0 = getEndpoints(Implementations5_0_0)
+  val endpointsOf5_1_0 = getEndpoints(Implementations5_1_0)
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(
-    OBPAPI4_0_0.allResourceDocs,
-    Implementations5_0_0.resourceDocs
+    OBPAPI5_0_0.allResourceDocs,
+    Implementations5_1_0.resourceDocs
   )
 
   // all endpoints
-  private val endpoints: List[OBPEndpoint] = OBPAPI4_0_0.routes ++ endpointsOf5_0_0
+  private val endpoints: List[OBPEndpoint] = OBPAPI5_0_0.routes ++ endpointsOf5_1_0
 
   // Filter the possible endpoints by the disabled / enabled Props settings and add them together
   val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 
-  // register v5.0.0 apis first, Make them available for use!
+  // register v5.1.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
 

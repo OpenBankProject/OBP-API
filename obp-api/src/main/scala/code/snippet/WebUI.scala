@@ -463,6 +463,9 @@ class WebUI extends MdcLoggable{
   def forBanks: CssSel = {
     "@for-banks [style]" #> s"display: $displayForBanks"
   }
+  def userIsLoggedIn: CssSel = {
+    "#register-link [href]" #> scala.xml.Unparsed(s"/already-logged-in")
+  }
 
   def alreadyLoggedIn: CssSel = {
     lazy val logoutLink = s" ${Constant.HostName}${AuthUser.logoutPath.foldLeft("")(_ + "/" + _)}"

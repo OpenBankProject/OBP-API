@@ -1,10 +1,10 @@
 package code.api.util
 
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, UUID}
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
-import code.api.v3_1_0.{PostConsentEntitlementJsonV310, PostConsentBodyCommonJson, PostConsentViewJsonV310}
+import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
 import code.api.{Constant, RequestHeader}
 import code.bankconnectors.Connector
 import code.consent
@@ -19,11 +19,12 @@ import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By
+import net.liftweb.util.ControlHelpers
 import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import scala.collection.immutable.{List, Nil}
@@ -312,7 +313,7 @@ object Consent {
     }
   } 
   
-  private def hasConsentInternal(consentIdAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+  private def hasConsentCommon(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
@@ -335,15 +336,15 @@ object Consent {
               }
           }
         case _ =>
-          (Failure("Cannot create or get the user based on: " + consentIdAsJwt), Some(cc))
+          (Failure("Cannot create or get the user based on: " + consentAsJwt), Some(cc))
       }
     }
 
-    JwtUtil.getSignedPayloadAsJson(consentIdAsJwt) match {
+    JwtUtil.getSignedPayloadAsJson(consentAsJwt) match {
       case Full(jsonAsString) =>
         try {
           val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          checkConsent(consent, consentIdAsJwt, callContext) match { // Check is it Consent-JWT expired
+          checkConsent(consent, consentAsJwt, callContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
             case failure@Failure(_, _, _) => // Handled errors
@@ -359,23 +360,34 @@ object Consent {
       case failure@Failure(_, _, _) =>
         Future(failure, Some(callContext))
       case _ =>
-        Future(Failure("Cannot extract data from: " + consentIdAsJwt), Some(callContext))
+        Future(Failure("Cannot extract data from: " + consentAsJwt), Some(callContext))
     }
   }
   
   private def hasConsentOldStyle(consentIdAsJwt: String, callContext: CallContext): (Box[User], CallContext) = {
     (hasConsentInternalOldStyle(consentIdAsJwt, callContext), callContext)
   }  
-  private def hasConsent(consentIdAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-    hasConsentInternal(consentIdAsJwt, callContext)
+  private def hasConsent(consentAsJwt: String, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+    hasConsentCommon(consentAsJwt, callContext)
   }
   
-  def applyRules(consentId: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
+  def applyRules(consentJwt: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
-    (consentId, allowed) match {
+    (consentJwt, allowed) match {
       case (Some(consentId), true) => hasConsent(consentId, callContext)
       case (_, false) => Future((Failure(ErrorMessages.ConsentDisabled), Some(callContext)))
       case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
+    }
+  }
+  
+  def getConsentJwtValueByConsentId(consentId: String): Option[String] = {
+    APIUtil.checkIfStringIsUUIDVersion1(consentId) match {
+      case true => // String is a UUID
+        Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
+          case Full(consent) => Some(consent.jsonWebToken) 
+          case _ => None // It's not valid UUID value
+        }
+      case false => None // It's not UUID at all
     }
   }
 

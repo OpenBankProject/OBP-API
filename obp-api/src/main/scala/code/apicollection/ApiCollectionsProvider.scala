@@ -16,11 +16,18 @@ trait ApiCollectionsProvider {
   def getApiCollectionById(
     apiCollectionId: String
   ): Box[ApiCollectionTrait]
+  
+  def updateApiCollectionById(apiCollectionId: String, 
+                              name: String, 
+                              description: String, 
+                              isSharable: Boolean): Box[ApiCollectionTrait]
 
   def getApiCollectionByUserIdAndCollectionName(
     userId: String,
     apiCollectionName: String
-  ): Box[ApiCollectionTrait]
+  ): Box[ApiCollectionTrait] 
+  
+  def getAllApiCollections(): List[ApiCollectionTrait]
   
   def deleteApiCollectionById(
     apiCollectionId: String,
@@ -50,9 +57,20 @@ object MappedApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
         .saveMe()
     )
 
+  override def updateApiCollectionById(apiCollectionId: String, name: String, description: String, isSharable: Boolean): Box[ApiCollection] = {
+    ApiCollection.find(By(ApiCollection.ApiCollectionId,apiCollectionId)).map { collection =>
+      collection
+        .ApiCollectionName(name)
+        .Description(description)
+        .IsSharable(isSharable)
+        .saveMe()
+    }
+  }
   override def getApiCollectionById(
     apiCollectionId: String
   ) = ApiCollection.find(By(ApiCollection.ApiCollectionId,apiCollectionId))
+
+  override def getAllApiCollections(): List[ApiCollectionTrait] = ApiCollection.findAll()
 
   override def getApiCollectionByUserIdAndCollectionName(
     userId: String,

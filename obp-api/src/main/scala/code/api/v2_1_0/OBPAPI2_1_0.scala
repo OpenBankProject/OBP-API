@@ -33,7 +33,7 @@ import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 
 import scala.collection.immutable.Nil
 
@@ -44,7 +44,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val version : ApiVersion = ApiVersion.v2_1_0 //"2.1.0"
 
-  val versionStatus = "STABLE"
+  val versionStatus = ApiVersionStatus.STABLE.toString
 
   // Possible Endpoints 1.2.1
   val endpointsOf1_2_1 = Implementations1_2_1.addCommentForViewOnTransaction ::

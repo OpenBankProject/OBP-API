@@ -344,6 +344,7 @@ object ErrorMessages {
 
   val ApiCollectionNotFound = "OBP-30079: ApiCollection not found."
   val CreateApiCollectionError = "OBP-30080: Could not create ApiCollection."
+  val UpdateApiCollectionError = "OBP-3008A: Could not update ApiCollection."
   val DeleteApiCollectionError = "OBP-30081: Could not delete ApiCollection."
 
   val ApiCollectionEndpointNotFound = "OBP-30082: ApiCollectionEndpoint not found."
@@ -379,6 +380,7 @@ object ErrorMessages {
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
   val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
   val MeetingNotFound = "OBP-30104: Meeting not found."
+  
 
 
   val InvalidAccountBalanceCurrency = "OBP-30105: Invalid Balance Currency."
@@ -502,6 +504,7 @@ object ErrorMessages {
   val ConsentRequestIsInvalid = "OBP-35029: The CONSENT_REQUEST_ID is invalid. "
   val ConsumerKeyIsInvalid = "OBP-35030: The Consumer Key must be alphanumeric. (A-Z, a-z, 0-9)"
   val ConsumerKeyIsToLong = "OBP-35031: The Consumer Key max length <= 512"
+  val ConsentHeaderValueInvalid = "OBP-35032: The Consent's Request Header value is not formatted as UUID or JWT."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

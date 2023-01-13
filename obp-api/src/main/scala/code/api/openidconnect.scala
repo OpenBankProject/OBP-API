@@ -39,7 +39,7 @@ import code.token.{OpenIDConnectToken, TokensOpenIDConnect}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import javax.net.ssl.HttpsURLConnection
 import net.liftweb.common._
 import net.liftweb.http._
@@ -86,7 +86,7 @@ object OpenIdConnectConfig {
 object OpenIdConnect extends OBPRestHelper with MdcLoggable {
 
   val version = ApiVersion.openIdConnect1 // "1.0" // TODO: Should this be the lowest version supported or when introduced?
-  val versionStatus = "DRAFT"
+  val versionStatus = ApiVersionStatus.DRAFT.toString
 
   val openIdConnect = "OpenID Connect"
 

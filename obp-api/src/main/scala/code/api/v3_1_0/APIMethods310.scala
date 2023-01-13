@@ -3673,6 +3673,15 @@ trait APIMethods310 {
       s"""
         |Revoke Consent for current user specified by CONSENT_ID
         |
+        |There are a few reasons you might need to revoke an application’s access to a user’s account:
+        |  - The user explicitly wishes to revoke the application’s access
+        |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+        |  - etc.
+        |
+        |Please note that this endpoint only supports the case:: "The user explicitly wishes to revoke the application’s access"
+        |
+        |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+        |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
         |
         |${authenticationRequiredMessage(true)}
         |

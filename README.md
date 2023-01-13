@@ -25,8 +25,26 @@ Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) for 
 
 OBP instances support multiple versions of the API simultaniously (unless they are deactivated in config)
 To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at the root endpoint e.g. /obp/v2.0.0/root or /obp/v3.0.0/root
+```
+24.01.2017, [V1.2.1](https://apisandbox.openbankproject.com/obp/v1.2.1/root) was marked as stable. 
+24.01.2017, [V1.3.0](https://apisandbox.openbankproject.com/obp/v1.3.0/root) was marked as stable. 
+08.06.2017, [V2.0.0](https://apisandbox.openbankproject.com/obp/v2.0.0/root) was marked as stable. 
+27.10.2018, [V2.1.0](https://apisandbox.openbankproject.com/obp/v2.1.0/root) was marked as stable. 
+27.10.2018, [V2.2.0](https://apisandbox.openbankproject.com/obp/v2.2.0/root) was marked as stable. 
+18.11.2020, [V3.0.0](https://apisandbox.openbankproject.com/obp/v3.0.0/root) was marked as stable. 
+18.11.2020, [V3.1.0](https://apisandbox.openbankproject.com/obp/v3.1.0/root) was marked as stable. 
+16.12.2022, [V4.0.0](https://apisandbox.openbankproject.com/obp/v4.0.0/root) was marked as stable. 
+16.12.2022, [V5.0.0](https://apisandbox.openbankproject.com/obp/v5.0.0/root) was marked as stable. 
+```
 
-On the 8th of June 2017, [V2.0.0](https://apisandbox.openbankproject.com/obp/v2.0.0/root) was marked as stable.
+
+
+
+
+
+
+
+
 
 ## LICENSE
 .

@@ -19,6 +19,16 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 
 object JwtUtil extends MdcLoggable {
   
+  def checkIfStringIsJWTValue(jwtToken: String): Box[String] = {
+    try {
+      val signedJWT: SignedJWT = SignedJWT.parse(jwtToken)
+      Full(signedJWT.toString())
+    } catch {
+      case e: Exception => 
+        Failure(e.getMessage())
+    }
+  }
+  
   def getSignedPayloadAsJson(jwtToken: String): Box[String] = {
     try {
       val signedJWT = SignedJWT.parse(jwtToken)

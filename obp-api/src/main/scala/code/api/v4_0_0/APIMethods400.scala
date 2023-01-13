@@ -4007,6 +4007,10 @@ trait APIMethods400 {
               !bank.id.contains(" ")
             }
 
+            _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters", cc=cc.callContext) {
+              !`checkIfContains::::` (bank.id)
+            }
+
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               bank.id,
               bank.full_name,
@@ -9048,13 +9052,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getApiCollections,
+      getApiCollectionsForUser,
       implementedInApiVersion,
-      nameOf(getApiCollections),
+      nameOf(getApiCollectionsForUser),
       "GET",
       "/users/USER_ID/api-collections",
-      "Get Api Collections",
-      s"""Get Api Collections.
+      "Get Api Collections for User",
+      s"""Get Api Collections for User.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -9065,10 +9069,10 @@ trait APIMethods400 {
         UnknownError
       ),
       List(apiTagApiCollection, apiTagNewStyle),
-      Some(canGetAllApiCollections :: Nil)
+      Some(canGetApiCollectionsForUser :: Nil)
     )
 
-    lazy val getApiCollections: OBPEndpoint = {
+    lazy val getApiCollectionsForUser: OBPEndpoint = {
       case "users" :: userId :: "api-collections" :: Nil JsonGet _ => {
         cc =>
           for {

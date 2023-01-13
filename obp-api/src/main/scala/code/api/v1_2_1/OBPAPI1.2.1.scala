@@ -28,7 +28,7 @@ package code.api.v1_2_1
 
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import code.api.util.VersionedOBPApis
 import code.util.Helper.MdcLoggable
 
@@ -38,7 +38,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with MdcLoggable wit
 
 
   val version : ApiVersion = ApiVersion.v1_2_1  //    "1.2.1"
-  val versionStatus = "STABLE"
+  val versionStatus = ApiVersionStatus.STABLE.toString
 
   val endpointsOf1_2_1 = List(
     Implementations1_2_1.root(version, versionStatus),

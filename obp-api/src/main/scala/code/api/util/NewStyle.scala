@@ -3495,6 +3495,10 @@ object NewStyle extends MdcLoggable{
       Future(MappedApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
     }
 
+    def getAllApiCollections(callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
+      Future(MappedApiCollectionsProvider.getAllApiCollections(), callContext) 
+    }
+
     def getFeaturedApiCollections(callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
       //we get the getFeaturedApiCollectionIds from props, and remove the deplication there.
       val featuredApiCollectionIds =  APIUtil.getPropsValue("featured_api_collection_ids","").split(",").map(_.trim).toSet.toList
@@ -3517,6 +3521,22 @@ object NewStyle extends MdcLoggable{
         description: String)
       ) map {
         i => (unboxFullOrFail(i, callContext, CreateApiCollectionError), callContext)
+      }
+    }    
+    
+    def updateApiCollection(apiCollectionId : String, 
+                            apiCollectionName: String, 
+                            isSharable: Boolean, 
+                            description: String, 
+                            callContext: Option[CallContext]
+    ) : OBPReturnType[ApiCollectionTrait] = {
+      Future(MappedApiCollectionsProvider.updateApiCollectionById(
+        apiCollectionId: String,
+        apiCollectionName: String,
+        description: String,
+        isSharable: Boolean)
+      ) map {
+        i => (unboxFullOrFail(i, callContext, UpdateApiCollectionError), callContext)
       }
     }
 
