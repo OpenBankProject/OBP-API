@@ -1,5 +1,6 @@
 package code.accountattribute
 
+import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
 import code.api.attributedefinition.AttributeDefinition
 import code.products.MappedProduct
 import code.util.{AttributeQueryTrait, MappedUUID, UUIDString}
@@ -154,11 +155,14 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
   }
 
   override def getAccountIdsByParams(bankId: BankId, params: Map[String, List[String]]): Future[Box[List[String]]] = Future {
+    val paramFiltered = params.filterNot(_._1 == PARAM_TIMESTAMP) // ignore `_timestamp_` parameter, it is for invalid Browser caching
+      .filterNot(_._1 == PARAM_LOCALE)
+    
     Box !! {
-      if (params.isEmpty) {
+      if (paramFiltered.isEmpty) {
         MappedAccountAttribute.findAll(By(MappedAccountAttribute.mBankIdId, bankId.value)).map(_.accountId.value)
       } else {
-        val paramList = params.toList
+        val paramList = paramFiltered.toList.filterNot(_._1 == PARAM_TIMESTAMP).filterNot(_._1 == PARAM_LOCALE)
         val parameters: List[String] = MappedAccountAttribute.getParameters(paramList)
         val sqlParametersFilter = MappedAccountAttribute.getSqlParametersFilter(paramList)
         val accountIdList = paramList.isEmpty match {

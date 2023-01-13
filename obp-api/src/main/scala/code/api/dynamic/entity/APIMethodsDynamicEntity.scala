@@ -1,6 +1,7 @@
 package code.api.dynamic.entity
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
+import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, MockResponseHolder}
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper.DynamicReq
 import code.api.dynamic.endpoint.helper.MockResponseHolder
@@ -65,7 +66,7 @@ trait APIMethodsDynamicEntity {
         case map if map.isEmpty => resultList
         case params =>
           val filteredWithFieldValue = resultList.arr.filter { jValue =>
-            params.filter(_._1!="locale").forall { kv =>
+            params.filter(_._1!=PARAM_LOCALE).forall { kv =>
               val (path, values) = kv
               values.exists(JsonUtils.isFieldEquals(jValue, path, _))
             }
