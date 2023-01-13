@@ -83,7 +83,7 @@ case class APIFailureNewStyle(failMsg: String,
     val errorCode = extractErrorMessageCode(failMsg)
     val errorBody = extractErrorMessageBody(failMsg)
     
-    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),"locale")
+    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),PARAM_LOCALE)
     val localeFromUrl = I18NUtil.computeLocale(localeUrlParameter)
     
     

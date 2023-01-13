@@ -45,6 +45,8 @@ object Constant extends MdcLoggable {
   final val OUTGOING_SETTLEMENT_ACCOUNT_ID = "OBP-OUTGOING-SETTLEMENT-ACCOUNT"    
   final val ALL_CONSUMERS = "ALL_CONSUMERS"  
 
+  final val PARAM_LOCALE = "locale"
+  final val PARAM_TIMESTAMP = "_timestamp_"
 }
 
 

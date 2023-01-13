@@ -1,10 +1,10 @@
 package code.api.v3_0_0
 
 import java.util.regex.Pattern
-
 import code.accountattribute.AccountAttributeX
 import code.accountholders.AccountHolders
 import code.api.APIFailureNewStyle
+import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, branchJsonV300, _}
 import code.api.util.APIUtil.{getGlossaryItems, _}
@@ -501,7 +501,8 @@ trait APIMethods300 {
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId)) 
             }
-            params = req.params.filterNot(_._1 == "_timestamp_") // ignore `_timestamp_` parameter, it is for invalid Browser caching
+            params = req.params.filterNot(_._1 == PARAM_TIMESTAMP) // ignore `_timestamp_` parameter, it is for invalid Browser caching
+              .filterNot(_._1 == PARAM_LOCALE)
             availableBankIdAccountIdList2 <- if(params.isEmpty) {
               Future.successful(availableBankIdAccountIdList)
             } else {
@@ -571,18 +572,21 @@ trait APIMethods300 {
       transactionsJsonV300,
       List(UserNotLoggedIn, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData, apiTagNewStyle),
-      Some(List(canUseAccountFirehoseAtAnyBank)))
+      Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
+    )
 
     lazy val getFirehoseTransactionsForBankAccount : OBPEndpoint = {
       //get private accounts for all banks
       case "banks" :: BankId(bankId):: "firehose" :: "accounts" ::  AccountId(accountId) :: "views" :: ViewId(viewId) :: "transactions" :: Nil JsonGet req => {
         cc =>
+          val allowedEntitlements = canUseAccountFirehoseAtAnyBank :: ApiRole.canUseAccountFirehose :: Nil
+          val allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- Helper.booleanToFuture(failMsg = AccountFirehoseNotAllowedOnThisInstance , cc=callContext) {
               allowAccountFirehose
             }
-            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUseAccountFirehoseAtAnyBank, callContext)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + allowedEntitlementsTxt)(bankId.value, u.userId, allowedEntitlements, callContext)
             (bank, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId),Some(u), callContext)
