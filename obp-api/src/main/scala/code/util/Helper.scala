@@ -381,7 +381,8 @@ object Helper{
   }
 
   def i18n(message: String, default: Option[String] = None): String = {
-    if(S.?(message)==message) {
+    val translatedMessage = S.?(message)
+    if(translatedMessage==message) {
       val words = message.split('.').toList match {
         case x :: Nil => Helpers.capify(x) :: Nil
         case x :: xs  => Helpers.capify(x) :: xs
@@ -389,7 +390,7 @@ object Helper{
       }
       default.getOrElse(words.mkString(" ") + ".")
     }
-    else S.?(message)
+    else translatedMessage
   }
 
   /**

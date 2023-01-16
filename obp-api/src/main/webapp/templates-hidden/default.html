@@ -114,7 +114,7 @@ Berlin 13359, Germany
 						</li>
 						<li class="navitem">
 							<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">
-								<lift:loc locid="api_explorer">API Explorer</lift:loc>
+								<p data-lift="WebUiTranslation.apiExplorer" id="api_explorer">API Explorer</p>
 							</a>
 						</li>
 						<li data-lift="Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true" class="navitem">
@@ -122,12 +122,12 @@ Berlin 13359, Germany
 						</li>
 						<li class="navitem">
 							<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">
-								<lift:loc locid="introduction">Introduction</lift:loc>
+								<p data-lift="WebUiTranslation.introduction" id="introduction">Introduction</p>
 							</a>
 						</li>
 						<li class="navitem">
 							<a class="navlink" id="technical-faqs-anchor" data-lift="WebUI.technicalFaqsAnchor" href="">
-								<lift:loc locid="support">Support</lift:loc>
+								<p data-lift="WebUiTranslation.support" id="support">Support</p>
 							</a>
 						</li>
 					</ul>
@@ -136,7 +136,7 @@ Berlin 13359, Germany
 						<li data-lift="Nav.item?name=Login" class="navitem">
 							<!-- LOGGED OUT -->
 							<p data-lift="WebUI.userIsLoggedIn">
-								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link"><lift:loc locid="register">Register</lift:loc></a><a data-lift="Login.loggedOut" href="#" class="btn btn-danger login"><lift:loc locid="logon">Log on</lift:loc></a>
+								<a href="/user_mgt/sign_up" class="navbar-btn" id ="register-link">Register</a><a id="logon" data-lift="Login.loggedOut" href="#" class="btn btn-danger login">Log on</a>
 							</p>
 						</li>
 
@@ -170,7 +170,9 @@ Berlin 13359, Germany
 			<ul>
 				<li>
 					<div class="navitem">
-						<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API Explorer</a>
+						<a class="navlink api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">
+							<p data-lift="WebUiTranslation.apiExplorer" id="api_explorer">API Explorer</p>
+						</a>
 					</div>
 				</li>
 				<li>
@@ -180,13 +182,15 @@ Berlin 13359, Germany
 				</li>
 				<li>
 					<div class="navitem">
-						<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">Introduction</a>
+						<a class="navlink" id="sandbox-introduction-link" data-lift="WebUI.sandboxIntroductionLink" href="">
+							<p data-lift="WebUiTranslation.introduction" id="introduction">Introduction</p>
+						</a>
 					</div>
 				</li>
 				<li>
 					<div class="navitem" id="technical-faqs-anchor-nav">
 						<a class="navlink" id="technical-faqs-anchor" data-lift="WebUI.technicalFaqsAnchor" href="">
-							<lift:loc locid="support">Support</lift:loc></a>
+							<p data-lift="WebUiTranslation.support" id="support">Support</p></a>
 					</div>
 				</li>
 				<li>
@@ -208,11 +212,13 @@ Berlin 13359, Germany
 				<ul>
 					<li>
 						<a class="termsAndConditions-link" data-lift="WebUI.termsAndConditions" href="">
-							<lift:loc locid="terms_conditions">Terms and Conditions</lift:loc></a>
+							<p data-lift="WebUiTranslation.termsConditions" id="terms_conditions">Terms and Conditions</p>
+						</a>
 					</li>
 					<li>
 						<a class="privacy-policy-link" data-lift="WebUI.privacyPolicyLink" href="https://openbankproject.com/privacy-policy">
-							<lift:loc locid="privacy_policy">Privacy Policy</lift:loc></a>
+							<p data-lift="WebUiTranslation.privacyPolicy" id="privacy_policy">Privacy Policy</p>
+						</a>
 					</li>
 					<li>
 						<a id="footer-div-social" href="http://twitter.com/#!/OpenBankProject" data-lift="WebUI.footerSocialLink">Twitter</a>
@@ -222,18 +228,21 @@ Berlin 13359, Germany
 					</li>
 					<li>
 						<a class="api-documentation-link" data-lift="WebUI.apiDocumentationLink" href="">
-							<lift:loc locid="api_documentation">API Documentation</lift:loc></a>
+							<p data-lift="WebUiTranslation.apiDocumentation" id="api_documentation">API Documentation</p>
+						</a>
 					</li>
 					<li>
 						<a class="sofi-link" data-lift="WebUI.sofiLink" href="">Sofit</a>
 					</li>
 					<li>
 						<a href="/user_mgt/sign_up?after-signup=link-to-customer" class="navbar-btn" id ="register-link">
-							<lift:loc locid="register">On Board</lift:loc></a>
+							<p data-lift="WebUiTranslation.register" id="register">On Board</p>
+						</a>
+						
 					</li>
 					<li>
 						<a class="api-link" data-lift="WebUI.apiLinkHuman" href="">
-							<lift:loc locid="api_host">This API Host</lift:loc></a>
+							<p data-lift="WebUiTranslation.apiHost" id="api_host">This API Host</p></a>
 					</li>
 				</ul>
 				<br>
@@ -244,7 +253,7 @@ Berlin 13359, Germany
 					<span><a id="es" href="/">ES</a></span>
 				</div>
 				<div id="copyright">
-					<a href="http://openbankproject.com"><lift:loc locid="open_bank_project_is">Open Bank Project is &copy;2011 - </lift:loc> <span id="copyright-year" data-lift="WebUI.currentYearText">2018</span> </a> <a href="http://tesobe.com"><lift:loc locid="and_commercial_licenses">TESOBE and distributed under the AGPL and commercial licenses. </lift:loc></a>
+					<a data-lift="WebUiTranslation.openBankProjectIs" id="open_bank_project_is" href="http://openbankproject.com">Open Bank Project is &copy;2011 - 2023</a> <a data-lift="WebUiTranslation.andCommercialLicenses" id="and_commercial_licenses" href="http://tesobe.com">TESOBE and distributed under the AGPL and commercial licenses. </a>
 				</div>
 			</div>
 		</footer>

@@ -35,6 +35,7 @@ import code.api.util.APIUtil.{activeBrand, getRemoteIpAddress, getServerUrl}
 import code.api.util.ApiRole.CanReadGlossary
 import code.api.util.{APIUtil, ApiRole, CustomJsonFormats, ErrorMessages, I18NUtil, PegdownOptions}
 import code.model.dataAccess.AuthUser
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import net.liftweb.http.{LiftRules, S, SessionVar}
 import net.liftweb.util.Helpers._
@@ -464,7 +465,8 @@ class WebUI extends MdcLoggable{
     "@for-banks [style]" #> s"display: $displayForBanks"
   }
   def userIsLoggedIn: CssSel = {
-    "#register-link [href]" #> scala.xml.Unparsed(s"/already-logged-in")
+    "#register-link [href]" #> scala.xml.Unparsed(s"/already-logged-in") &
+      "#register-link *" #> scala.xml.Unparsed(Helper.i18n("register", Some("Register")))
   }
 
   def alreadyLoggedIn: CssSel = {
