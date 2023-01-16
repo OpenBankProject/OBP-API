@@ -1,5 +1,7 @@
 package code.api.util
 
+import code.api.Constant.PARAM_LOCALE
+
 import java.util.{Date, Locale}
 
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
@@ -25,7 +27,7 @@ object I18NUtil {
   def currentLocale() : Locale = {
     // Cookie name
     val localeCookieName = "SELECTED_LOCALE"
-    S.param("locale") match {
+    S.param(PARAM_LOCALE) match {
       // 1st choice: Use query parameter as a source of truth if any
       case Full(requestedLocale) if requestedLocale != null => {
         val computedLocale = I18NUtil.computeLocale(requestedLocale)

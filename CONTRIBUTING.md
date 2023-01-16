@@ -11,6 +11,7 @@ If submitting a pull request please read and sign our [CLA](http://github.com/Op
 
 Please reference Issue Numbers in your commits.
 
+
 ## Git commit messages
 
 Please structure git commit messages in a way as shown below:
@@ -21,6 +22,12 @@ Please structure git commit messages in a way as shown below:
 5. performance/Something
 6. test/Something
 7. enhancement/Something
+
+Please also check if it also needs to be tagged (see below)
+
+## Git commit tags
+
+1. api_change <- if the requests/results of endpoints change or endpoints are added/deleted
 
 ## Code comments
 
