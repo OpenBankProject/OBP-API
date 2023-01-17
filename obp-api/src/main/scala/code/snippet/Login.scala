@@ -31,7 +31,6 @@ import code.api.OpenIdConnectConfig
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.model.dataAccess.{Admin, AuthUser}
 import code.snippet.OpenidConnectInvoke.openIDConnect1IsNotSet
-import code.util.Helper
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.CssSel
@@ -63,7 +62,6 @@ class Login {
     if(AuthUser.loggedIn_?){
       "*" #> NodeSeq.Empty
     } else {
-      "#logon *" #> scala.xml.Unparsed(Helper.i18n("logon", Some("Log on"))) &
       ".login [href]" #> AuthUser.loginPageURL &
       ".forgot [href]" #> {
         val href = for {
