@@ -21,7 +21,7 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: |
-          cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/default.props
+          cp obp-api/src/main/resources/props/sample.props.template obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
           echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
           echo hostname=http://localhost:8016 >> obp-api/src/main/resources/props/test.default.props
