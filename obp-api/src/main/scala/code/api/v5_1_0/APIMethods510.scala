@@ -1,7 +1,7 @@
 package code.api.v5_1_0
 
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, postApiCollectionJson400, revokedConsentJsonV310}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -16,7 +16,7 @@ import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 
@@ -32,7 +32,7 @@ trait APIMethods510 {
 
   class Implementations510 {
 
-    val implementedInApiVersion = ApiVersion.v5_1_0
+    val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_1_0
 
     private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
     def resourceDocs = staticResourceDocs 
@@ -41,6 +41,34 @@ trait APIMethods510 {
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
 
 
+
+    staticResourceDocs += ResourceDoc(
+      root,
+      implementedInApiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Hosted at information
+        |* Energy source information
+        |* Git Commit""",
+      EmptyBody,
+      apiInfoJson400,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: apiTagNewStyle :: Nil)
+
+    lazy val root : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc => Future {
+          JSONFactory510.getApiInfoJSON(implementedInApiVersion) -> HttpCode.`200`(cc.callContext)
+        }
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       getAllApiCollections,
       implementedInApiVersion,
