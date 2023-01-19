@@ -4,10 +4,10 @@ import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util
 import java.util.{Calendar, Date}
-
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
+import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
@@ -3447,7 +3447,8 @@ trait APIMethods400 {
             availableBankIdAccountIdList <- Future {
               Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId,a.accountId))
             }
-            params = req.params.filterNot(_._1 == "_timestamp_") // ignore `_timestamp_` parameter, it is for invalid Browser caching
+            params = req.params.filterNot(_._1 == PARAM_TIMESTAMP) // ignore `_timestamp_` parameter, it is for invalid Browser caching
+              .filterNot(_._1 == PARAM_LOCALE)
             availableBankIdAccountIdList2 <- if(params.isEmpty) {
               Future.successful(availableBankIdAccountIdList)
             } else {
@@ -5156,13 +5157,14 @@ trait APIMethods400 {
           for {
             (Full(u), bank, callContext) <- SS.userBank
             (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(u, bankId)
-            params = req.params
+            params = req.params.filterNot(_._1 == PARAM_TIMESTAMP) // ignore `_timestamp_` parameter, it is for invalid Browser caching
+              .filterNot(_._1 == PARAM_LOCALE)
             privateAccountAccess2 <- if(params.isEmpty || privateAccountAccess.isEmpty) {
               Future.successful(privateAccountAccess)
             } else {
               AccountAttributeX.accountAttributeProvider.vend
-                .getAccountIdsByParams(bankId, req.params)
-                .map { boxedAccountIds =>
+                .getAccountIdsByParams(bankId, params)
+                .map { boxedAccountIds => 
                   val accountIds = boxedAccountIds.getOrElse(Nil)
                   privateAccountAccess.filter(aa => accountIds.contains(aa.account_id.get))
                 }

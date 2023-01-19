@@ -616,7 +616,7 @@ class Boot extends MdcLoggable {
 
         // Check to see if the user explicitly requests a new locale 
         // In case it's true we use that value to set up a new cookie value
-        S.param("locale") match {
+        S.param(PARAM_LOCALE) match {
           case Full(requestedLocale) if requestedLocale != null => {
             val computedLocale: Locale = I18NUtil.computeLocale(requestedLocale)
             val id: Long = AuthUser.getCurrentUser.map(_.user.userPrimaryKey.value).getOrElse(0)

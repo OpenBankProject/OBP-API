@@ -1,5 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.Constant.PARAM_LOCALE
+
 import java.util.UUID.randomUUID
 import code.api.OBPRestHelper
 import code.api.builder.OBP_APIBuilder
@@ -989,7 +991,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
     val languageParam = for {
-      x <- S.param("language").or(S.param("locale"))
+      x <- S.param("language").or(S.param(PARAM_LOCALE))
       y <- stringToLanguageParam(x)
     } yield y
     logger.info(s"languageParam is $languageParam")
