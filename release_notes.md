@@ -3,6 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+20/01/2023    c26226e6      Added props show_ip_address_change_warning, default is false. 
 29/09/2022    eaa32f41      Added props excluded.response.behaviour, default is false. Set it to true to activate the props: excluded.response.field.values. Note: excluded.response.field.values can also be activated on a per call basis by the url param ?exclude-optional-fields=true
 07/09/2022    53564924      renamed props `language_tag` to `default_locale`, default is en_GB.
 08/08/2022    1ff7bf0a      removed props `meeting.tokbox_enabled`, `meeting.tokbox_api_key` and `meeting.tokbox_api_secret`. 
