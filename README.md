@@ -58,7 +58,7 @@ To compile and run jetty, install Maven 3, create your configuration in obp-api/
 
      mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 
-## To run with IntelliJ IDEA
+## To run via IntelliJ IDEA
 
 * Make sure you have the IntelliJ Scala plugin installed.
 
@@ -74,24 +74,45 @@ To compile and run jetty, install Maven 3, create your configuration in obp-api/
 
 * If you see a message about an unmanaged pom.xml, click the option to let Maven manage it.
 
-* Navigate to obp-api/test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.12.4 or so.
-
-* In obp-api/src/main/resources/props create a test.default.props for tests. Set connector=mapped
+* Navigate to obp-api/test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.12.12 or so.
 
 * In obp-api/src/main/resources/props create a \<yourloginname\>.props (or default.props) for development. Set connector=mapped
 
 * Now **Rebuild** the project so everything is compiled. At this point you may need to select the SDK, see above.
 
-* Once you have rebuilt the project without compile errors, you should be able to RunWebApp in obp-api/src/test/scala
+* Once you have rebuilt the project without compile errors, you should be able to RunWebApp/RunTLSWebApp/RunMTLSWebApp in obp-api/src/test/scala
 
 * If you have trouble (re)building, try using the IntelliJ IDEA terminal: mvn clean test-compile
+
+### To run via IntelliJ IDEA in development mode without secure connection
 
 * Run RunWebApp by right clicking on it or selecting Run. The built in jetty server should start on localhost:8080
 
 * Browse to localhost:8080 but don't try anything else there yet.
 
-### Run some tests.
+### To run via IntelliJ IDEA in TLS development mode (secure connection)
+
+* Run RunTLSWebApp by right clicking on it and selecting Run/Debug. The built in jetty server should start on localhost:8080
+
+* Browse to localhost:8080 but don't try anything else there yet
+
+In `development` mode we use this option in order to try OpenID Connect functionality. I.e. redirect URI must be `https` one. 
+
+### To run ia IntelliJ IDEA in MTLS development mode (secure connection)
+
+* Run RunMTLSWebApp by right clicking on it and selecting Run/Debug. The built in jetty server should start on localhost:8080
+
+* Import certificate obp-api/src/test/resources/cert/localhost_SAN_dns_ip.pfx into your browser.
+
+* Browse to localhost:8080 but don't try anything else there yet
+
+In `development` mode we use this option in order to try UK Open Banking APIs functionality where mutual TLS is part of that standard.
+
+
+## Run some tests.
   
+* In obp-api/src/main/resources/props create a test.default.props for tests. Set connector=mapped
+
 * Run a single test. For instance right click on obp-api/test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
 
 * Run multiple tests: Right click on obp-api/test/scala/code and select Run. If need be:
