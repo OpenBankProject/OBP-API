@@ -525,6 +525,11 @@ class Boot extends MdcLoggable {
       Menu.i("Plain") / "plain",
       Menu.i("Static") / "static",
       Menu.i("SDKs") / "sdks",
+      Menu.i("Debug") / "debug",
+      Menu.i("debug-basic") / "debug" / "debug-basic",
+      Menu.i("debug-localization") / "debug" / "debug-localization",
+      Menu.i("debug-plain") / "debug" / "debug-plain",
+      Menu.i("debug-webui") / "debug" / "debug-webui",
       Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
         submenus(Consumer.menus : _*),
       Menu("Consumer Registration", Helper.i18n("consumer.registration.nav.name")) / "consumer-registration" >> AuthUser.loginFirst,
