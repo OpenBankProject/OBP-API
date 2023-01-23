@@ -465,7 +465,10 @@ class WebUI extends MdcLoggable{
     "@for-banks [style]" #> s"display: $displayForBanks"
   }
   def userIsLoggedIn: CssSel = {
-    "#register-link [href]" #> scala.xml.Unparsed(s"/already-logged-in")
+    if(AuthUser.loggedIn_?)
+      "#register-link [href]" #> scala.xml.Unparsed(s"/already-logged-in")
+    else
+      "#register-link [href]" #> scala.xml.Unparsed(s"/user_mgt/sign_up")
   }
 
   def alreadyLoggedIn: CssSel = {
