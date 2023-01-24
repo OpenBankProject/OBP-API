@@ -26,6 +26,8 @@ import java.util.regex.Pattern
 
 import com.openbankproject.commons.model.enums.LanguageParam
 
+import java.lang.reflect.Field
+
 object JSONFactory1_4_0 extends MdcLoggable{
   implicit def formats: Formats = CustomJsonFormats.formats
   case class PostCustomerJson(
@@ -466,27 +468,49 @@ object JSONFactory1_4_0 extends MdcLoggable{
   }
   }
 
-  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
-    jsonBody.productIterator
-    val (jsonBodyJValue: json.JValue, optionalTypeFields) = jsonBody match {
-      case JvalueCaseClass(jValue) =>
-        val types = Nil
-        (jValue, types)
-      case _ =>
-        val types = jsonBody.getClass()
-          .getDeclaredFields().toList
-          .map(f => (f.getName(), f.getType().getCanonicalName().contains("Option")))
-        (decompose(jsonBody), types)
+  def getAllFields(jsonBody: scala.Product): List[Field] = {
+    def loopAllFields(rootFields: List[Field]) = {
+      val fields = for {
+        field <- jsonBody.productIterator.toList if (field.isInstanceOf[scala.Product] && field != jsonBody)
+        fields = getAllFields(field.asInstanceOf[scala.Product])
+      } yield
+        fields
+      (rootFields ++ fields.flatten).toSet.toList
     }
 
+    //The root level is a list: eg: List[Users]
+    if(jsonBody.isInstanceOf[List[Any]] && jsonBody.productIterator.toList.nonEmpty){
+      val rootFields: List[Field] = jsonBody.productIterator.toSet.head.getClass.getDeclaredFields.toList
+      loopAllFields(rootFields)
+    }else {
+      jsonBody match {
+        case JvalueCaseClass(jValue) =>
+          val types = Nil
+          types
+        case _ =>
+          val rootFields: List[Field] = jsonBody.getClass().getDeclaredFields().toSet.toList
+          loopAllFields(rootFields)
+      }
+    }
+  }
+  
+  def checkFieldOption(jsonBody: scala.Product, rootFields: List[Field]) = {
+    val types = rootFields.map(f => (f.getName(), f.getType().getCanonicalName().contains("Option")))
+    (decompose(jsonBody), types)
+  }
+  
+    
+  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
+    val allFields = getAllFields(jsonBody)
+    val (jsonBodyJValue: json.JValue, allFieldsAndOptionStatus) = checkFieldOption(jsonBody, allFields)
     // Group by is mandatory criteria and sort those 2 groups by name of the field
     val jsonBodyFieldsOptional = JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList
-      .filter(x => optionalTypeFields.exists(i => i._1 == x && i._2 == true)).sorted
+      .filter(x => allFieldsAndOptionStatus.exists(i => i._1 == x && i._2 == true)).sorted
     val jsonBodyFieldsMandatory = JsonUtils.collectFieldNames(jsonBodyJValue).keySet.toList
-      .filter(x => optionalTypeFields.exists(i => i._1 == x && i._2 == false)).sorted
+      .filter(x => allFieldsAndOptionStatus.exists(i => i._1 == x && i._2 == false)).sorted
     val jsonBodyFields = jsonBodyFieldsMandatory ::: jsonBodyFieldsOptional
 
-    val jsonFieldsDescription = jsonBodyFields.map(i => prepareDescription(i, optionalTypeFields))
+    val jsonFieldsDescription = jsonBodyFields.map(i => prepareDescription(i, allFieldsAndOptionStatus))
     
     val jsonTitleType = if (jsonType.contains("request")) "\n\n\n**JSON request body fields:**\n\n" else  "\n\n\n**JSON response body fields:**\n\n"
 
@@ -527,6 +551,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
             ""
           }
         //3rd: get the fields description from the response body:
+        //response body can be a nest class, need to loop all the fields.
         val responseFieldsDescription = prepareJsonFieldDescription(resourceDocUpdatedTags.successResponseBody,"response")
         urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }

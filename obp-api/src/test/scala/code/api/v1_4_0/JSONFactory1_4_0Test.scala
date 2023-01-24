@@ -1,7 +1,8 @@
 package code.api.v1_4_0
 
-import java.util.Date
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.usersJsonV400
 
+import java.util.Date
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.{APIUtil, ExampleValue}
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
@@ -49,6 +50,40 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
     scenario("prepareDescription should work well, extract the parameters from URL") {
       val description = JSONFactory1_4_0.prepareDescription("BANK_ID", Nil)
       description.contains("[BANK_ID](/glossary#Bank.bank_id): gh.29.uk") should be (true)
+    }
+    
+    scenario("prepareJsonFieldDescription should work well - users object") {
+      val usersJson = usersJsonV400
+      val description = JSONFactory1_4_0.prepareJsonFieldDescription(usersJson, "response")
+      description.contains(
+        """
+          |JSON response body fields:
+          |
+          |*user_id = 9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1,
+          |
+          |*email = felixsmith@example.com,
+          |
+          |*provider_id = ,
+          |
+          |*provider = ,
+          |
+          |*username = felixsmith,
+          |
+          |*entitlements = ,
+          |
+          |*views = ,
+          |
+          |*agreements = ,
+          |
+          |*is_deleted = false,
+          |
+          |*last_marketing_agreement_signed_date = ,
+          |
+          |*is_locked = false
+          |    
+          |""".stripMargin
+      ) should be (false)
+      println(description)
     }
     
     scenario("PrepareUrlParameterDescription should work well, extract the parameters from URL") {
