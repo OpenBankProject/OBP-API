@@ -3133,7 +3133,7 @@ object Glossary extends MdcLoggable  {
 	glossaryItems.appendAll(
 		getListOfFiles().map(file =>
 			GlossaryItem(
-				title = file.getName,
+				title = file.getName.replace(".md", ""),
 				description = getContentFromMarkdownFile(file.getPath)
 			)
 		)
