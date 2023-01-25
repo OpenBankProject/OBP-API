@@ -3,7 +3,7 @@ package code.api.v3_0_0
 import java.util.regex.Pattern
 import code.accountattribute.AccountAttributeX
 import code.accountholders.AccountHolders
-import code.api.APIFailureNewStyle
+import code.api.{APIFailureNewStyle, Constant}
 import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{bankJSON, banksJSON, branchJsonV300, _}
@@ -986,7 +986,7 @@ trait APIMethods300 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canGetAnyUser, callContext)
-            user <- Users.users.vend.getUserByUserNameFuture(username) map {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, username) map {
               x => unboxFullOrFail(x, callContext, UserNotFoundByUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, callContext)

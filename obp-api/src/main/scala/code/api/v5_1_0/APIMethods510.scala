@@ -1,7 +1,7 @@
 package code.api.v5_1_0
 
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, postApiCollectionJson400, revokedConsentJsonV310}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -11,7 +11,9 @@ import code.api.util.NewStyle.HttpCode
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
 import code.consent.Consents
+import code.loginattempts.LoginAttempt
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
+import code.users.Users
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -171,6 +173,41 @@ trait APIMethods510 {
     }
 
 
+    staticResourceDocs += ResourceDoc(
+      getUserByUsername,
+      implementedInApiVersion,
+      nameOf(getUserByUsername),
+      "GET",
+      "/users/provider/PROVIDER/username/USERNAME",
+      "Get User by USERNAME",
+      s"""Get user by PROVIDER and USERNAME
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      EmptyBody,
+      userJsonV400,
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser))
+    )
+    
+    lazy val getUserByUsername: OBPEndpoint = {
+      case "users" :: "provider" :: provider :: "username" :: username :: Nil JsonGet _ => {
+        cc =>
+          for {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username) map {
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            isLocked = LoginAttempt.userIsLocked(user.name)
+          } yield {
+            (JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
 
 
   }

@@ -3666,7 +3666,7 @@ trait APIMethods400 {
       case "users" :: "username" :: username :: Nil JsonGet _ => {
         cc =>
           for {
-            user <- Users.users.vend.getUserByUserNameFuture(username) map {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, username) map {
               x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
