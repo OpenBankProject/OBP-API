@@ -452,7 +452,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     def boldIfMandatory() = {
       optionalTypeFields.exists(i => i._1 == parameter && i._2 == false) match {
         case true =>
-          s"***$parameter**"
+          s"**$parameter**"
         case false =>
           s"$parameter"
       }
@@ -462,7 +462,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     } else {
     s"""
        |
-       |* [${boldIfMandatory()}](/glossary#$glossaryItemTitle): $exampleFieldValue
+       |[${boldIfMandatory()}](/glossary#$glossaryItemTitle): $exampleFieldValue
        |
        |""".stripMargin
   }
