@@ -3113,8 +3113,8 @@ object Glossary extends MdcLoggable  {
 		val source = scala.io.Source.fromFile(path)
 		val lines: String = try source.mkString finally source.close()
 		lines
-			.replaceAll("PLACEHOLDER_SERVER_URL", getServerUrl)
-			.replaceAll("PLACEHOLDER_API_ROOT", getObpApiRoot)
+			.replaceAll("getServerUrl", getServerUrl)
+			.replaceAll("getObpApiRoot", getObpApiRoot)
 	}
 
 	private def getListOfFiles():List[File] = {
@@ -3135,7 +3135,7 @@ object Glossary extends MdcLoggable  {
 	glossaryItems.appendAll(
 		getListOfFiles().map(file =>
 			GlossaryItem(
-				title = file.getName.replace(".md", ""),
+				title = file.getName.replace(".md", "").replace("_", " "),
 				description = getContentFromMarkdownFile(file.getPath)
 			)
 		)

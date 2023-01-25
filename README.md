@@ -58,7 +58,7 @@ To compile and run jetty, install Maven 3, create your configuration in obp-api/
 
      mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 
-[Note: How to run via IntelliJ IDEA](docs/glossary/Run via IntelliJ IDEA.md)
+[Note: How to run via IntelliJ IDEA](docs/glossary/Run_via_IntelliJ_IDEA.md)
 
 ## Run some tests.
   
