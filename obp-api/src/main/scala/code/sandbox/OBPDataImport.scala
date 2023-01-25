@@ -500,22 +500,22 @@ trait OBPDataImport extends MdcLoggable {
       crmEvents <- createCrmEvents(data)
     } yield {
       logger.info(s"importData is saving ${banks.size} banks..")
-      banks.foreach(_.save())
+      banks.foreach(_.save)
 
       logger.info(s"importData is saving ${users.size} users..")
-      users.foreach(_.save())
+      users.foreach(_.save)
 
       logger.info(s"importData is saving ${branches.size} branches..")
-      branches.foreach(_.save())
+      branches.foreach(_.save)
 
       logger.info(s"importData is saving ${atms.size} ATMs..")
-      atms.foreach(_.save())
+      atms.foreach(_.save)
 
       logger.info(s"importData is saving ${products.size} products..")
-      products.foreach(_.save())
+      products.foreach(_.save)
 
       logger.info(s"importData is saving ${crmEvents.size} crmEvents..")
-      crmEvents.foreach(_.save())
+      crmEvents.foreach(_.save)
 
 
 
@@ -526,7 +526,7 @@ trait OBPDataImport extends MdcLoggable {
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
         case (account, systemViews, accOwnerUsernames) =>
-          account.save()
+          account.save
 
           systemViews.filterNot(_.isPublic).foreach(v => {
             //grant the owner access to Private systemViews
@@ -539,7 +539,7 @@ trait OBPDataImport extends MdcLoggable {
       }
       logger.info(s"importData is saving ${transactions.size} transactions (and loading them again)")
       transactions.foreach { t =>
-        t.save()
+        t.save
         //load it to force creation of metadata (If we are using Mapped connector, MappedCounterpartyMetadata.create will be called)
         val lt = Connector.connector.vend.getTransactionLegacy(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
       }

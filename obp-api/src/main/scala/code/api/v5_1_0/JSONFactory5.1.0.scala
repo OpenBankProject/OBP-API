@@ -26,8 +26,61 @@
   */
 package code.api.v5_1_0
 
+import code.api.Constant
+import code.api.util.APIUtil
+import code.api.util.APIUtil.gitCommit
+import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
+import com.openbankproject.commons.util.ScannedApiVersion
+
+
+case class APIInfoJsonV510(
+                           version : String,
+                           version_status: String,
+                           git_commit : String,
+                           stage : String,
+                           connector : String,
+                           hostname : String,
+                           local_identity_provider : String,
+                           hosted_by : HostedBy400,
+                           hosted_at : HostedAt400,
+                           energy_source : EnergySource400,
+                           resource_docs_requires_role: Boolean
+                         )
 
 object JSONFactory510 {
+  def getApiInfoJSON(implementedInApiVersion: ScannedApiVersion) = {
+    val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI5_1_0.versionStatus)
+    val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
+    val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
+    val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
+    val organisationWebsite = APIUtil.getPropsValue("organisation_website", "https://www.tesobe.com")
+    val hostedBy = new HostedBy400(organisation, email, phone, organisationWebsite)
+
+    val organisationHostedAt = APIUtil.getPropsValue("hosted_at.organisation", "")
+    val organisationWebsiteHostedAt = APIUtil.getPropsValue("hosted_at.organisation_website", "")
+    val hostedAt = HostedAt400(organisationHostedAt, organisationWebsiteHostedAt)
+
+    val organisationEnergySource = APIUtil.getPropsValue("energy_source.organisation", "")
+    val organisationWebsiteEnergySource = APIUtil.getPropsValue("energy_source.organisation_website", "")
+    val energySource = EnergySource400(organisationEnergySource, organisationWebsiteEnergySource)
+
+    val connector = APIUtil.getPropsValue("connector").openOrThrowException("no connector set")
+    val resourceDocsRequiresRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
+
+    APIInfoJsonV510(
+      version = apiVersion.vDottedApiVersion,
+      version_status = apiVersionStatus,
+      git_commit = gitCommit,
+      connector = connector,
+      hostname = Constant.HostName,
+      stage = System.getProperty("run.mode"),
+      local_identity_provider = Constant.localIdentityProvider,
+      hosted_by = hostedBy,
+      hosted_at = hostedAt,
+      energy_source = energySource,
+      resource_docs_requires_role = resourceDocsRequiresRole
+    )
+  }
 
   
 }

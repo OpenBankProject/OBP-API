@@ -18,7 +18,7 @@ trait CreateAuthUsers {
       def save() = {
         val usr = Users.users.vend.saveResourceUser(value)
         for (uu <- usr) {
-          u.user(uu).save()
+          u.user(uu).save
         }
       }
     }

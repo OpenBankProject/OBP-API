@@ -6,7 +6,7 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.bankconnectors.Connector
-import code.consent.Consent
+import code.consent.ConsentTrait
 import code.database.authorisation.Authorisation
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
@@ -496,7 +496,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
   
-  def createPostConsentResponseJson(consent: Consent) : PostConsentResponseJson = {
+  def createPostConsentResponseJson(consent: ConsentTrait) : PostConsentResponseJson = {
     PostConsentResponseJson(
       consentId = consent.consentId,
       consentStatus = consent.status.toLowerCase(),
@@ -504,7 +504,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createGetConsentResponseJson(createdConsent: Consent) : GetConsentResponseJson = {
+  def createGetConsentResponseJson(createdConsent: ConsentTrait) : GetConsentResponseJson = {
     val jsonWebTokenAsJValue: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(createdConsent.jsonWebToken)
       .map(parse(_).extract[ConsentJWT])
     val access: ConsentAccessJson = jsonWebTokenAsJValue
@@ -520,7 +520,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats {
     )
   }
 
-  def createStartConsentAuthorisationJson(consent: Consent, challenge: ChallengeTrait) : StartConsentAuthorisationJson = {
+  def createStartConsentAuthorisationJson(consent: ConsentTrait, challenge: ChallengeTrait) : StartConsentAuthorisationJson = {
     StartConsentAuthorisationJson(
       scaStatus = challenge.scaStatus.map(_.toString).getOrElse("None"),
       pushMessage = "started", //TODO Not implement how to fill this.

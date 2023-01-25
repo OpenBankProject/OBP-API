@@ -2,19 +2,18 @@ package code.transaction
 
 
 import code.accountholders.AccountHolders
-import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, ApiTrigger}
-import code.bankconnectors.{Connector, LocalMappedConnector}
+import code.bankconnectors.LocalMappedConnector
 import code.bankconnectors.LocalMappedConnector.getBankAccountCommon
 import code.model._
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper.MdcLoggable
 import code.util._
-import code.webhook.WebhookActor
-import code.webhook.WebhookActor.RelatedEntity
+import code.webhook.WebhookAction
+import code.webhook.WebhookActor.{AccountNotificationWebhookRequest, RelatedEntity, WebhookRequest}
 import com.openbankproject.commons.model._
-import net.liftweb.common._
 import net.liftweb.common.Box.tryo
+import net.liftweb.common._
 import net.liftweb.mapper._
 
 class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated with TransactionUUID with MdcLoggable {
@@ -239,7 +238,6 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
   override def afterSave = List(
     t =>
       tryo {
-        val actor = ObpLookupSystem.getWebhookActor()
         def getAmount(value: Long): String = {
           Helper.smallestCurrencyUnitToBigDecimal(value, t.currency.get).toString() + " " + t.currency.get
         }
@@ -256,24 +254,28 @@ object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[Mapp
             val userIdCustomerIdsPairs: Map[String, List[String]] = userIdCustomerIdPairs.groupBy(_._1).map( a => (a._1,a._2.map(_._2)))
             val eventId = APIUtil.generateUUID()
             logger.debug("Before firing WebhookActor.AccountNotificationWebhookRequest.eventId: " + eventId)
-            actor ! WebhookActor.AccountNotificationWebhookRequest(
-              apiTrigger,
-              eventId,
-              t.theBankId.value,
-              t.theAccountId.value,
-              t.theTransactionId.value,
-              userIdCustomerIdsPairs.map(pair => RelatedEntity(pair._1, pair._2)).toList
+            WebhookAction.accountNotificationWebhookRequest(
+              AccountNotificationWebhookRequest(
+                apiTrigger,
+                eventId,
+                t.theBankId.value,
+                t.theAccountId.value,
+                t.theTransactionId.value,
+                userIdCustomerIdsPairs.map(pair => RelatedEntity(pair._1, pair._2)).toList
+              )
             )
           } else{
             val eventId = APIUtil.generateUUID()
             logger.debug("Before firing WebhookActor.WebhookRequest.eventId: " + eventId)
-            actor ! WebhookActor.WebhookRequest(
-              apiTrigger,
-              eventId,
-              t.theBankId.value,
-              t.theAccountId.value,
-              getAmount(t.amount.get),
-              getAmount(t.newAccountBalance.get)
+            WebhookAction.webhookRequest(
+              WebhookRequest(
+                apiTrigger,
+                eventId,
+                t.theBankId.value,
+                t.theAccountId.value,
+                getAmount(t.amount.get),
+                getAmount(t.newAccountBalance.get)
+              )
             )
           }
         }

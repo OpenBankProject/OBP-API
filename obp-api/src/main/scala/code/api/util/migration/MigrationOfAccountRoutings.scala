@@ -99,7 +99,7 @@ object MigrationOfAccountRoutings {
         false // DB have the same routing
       case Full(routing) =>
         // only accountRoutingAddress is different.
-        routing.AccountRoutingAddress(accountRoutingAddress).save()
+        routing.AccountRoutingAddress(accountRoutingAddress).save
       case _ =>
         // query according unique index: UniqueIndex(BankId, AccountRoutingScheme, AccountRoutingAddress)
         BankAccountRouting.find(By(BankAccountRouting.BankId, bankId),
@@ -108,7 +108,7 @@ object MigrationOfAccountRoutings {
           ) match {
           case Full(routing) =>
             // only accountId is different
-            routing.AccountId(accountId).save()
+            routing.AccountId(accountId).save
           case _ =>
             // not exists corresponding routing in DB.
             BankAccountRouting.create
@@ -116,7 +116,7 @@ object MigrationOfAccountRoutings {
               .AccountId(accountId)
               .AccountRoutingScheme(accountRoutingScheme)
               .AccountRoutingAddress(accountRoutingAddress)
-              .save()
+              .save
         }
     }
   }

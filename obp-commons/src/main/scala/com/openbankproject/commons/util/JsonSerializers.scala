@@ -32,7 +32,7 @@ object JsonSerializers {
       override def lookupParameterNames(constructor: Constructor[_]): Traversable[String] =  try {
           defaultFormats.parameterNameReader.lookupParameterNames(constructor)
         } catch {
-          case _ => constructor.getParameters.map(_.getName)
+          case _ : Throwable => constructor.getParameters.map(_.getName)
         }
     }
   }

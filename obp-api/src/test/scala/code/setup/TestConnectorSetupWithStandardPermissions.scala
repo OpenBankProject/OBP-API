@@ -8,8 +8,6 @@ import code.model.dataAccess._
 import code.views.Views
 import com.openbankproject.commons.model._
 import net.liftweb.mapper.MetaMapper
-import net.liftweb.mongodb._
-import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers._
 
 /**
@@ -39,9 +37,6 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
 
   protected def wipeTestData(): Unit = {
-
-    //drop the mongo Database after each test
-    MongoDB.getDb(DefaultConnectionIdentifier).foreach(_.dropDatabase())
 
     //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {

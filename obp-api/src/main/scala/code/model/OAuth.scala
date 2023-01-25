@@ -455,7 +455,7 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     for {
       consumer <- Consumer.findAll(NullRef(Consumer.consumerId))++ Consumer.findAll(By(Consumer.consumerId,""))
     } yield {
-      consumer.consumerId(APIUtil.generateUUID()).save()
+      consumer.consumerId(APIUtil.generateUUID()).save
     }
   }.forall(_ == true)
 
@@ -843,7 +843,7 @@ object MappedTokenProvider extends TokensProvider {
 
   override def updateToken(id: Long, userId: Long): Boolean = {
     Token.find(By(Token.id, id)) match {
-      case Full(t) => t.userForeignKey(userId).save()
+      case Full(t) => t.userForeignKey(userId).save
       case _       => false
     }
   }
