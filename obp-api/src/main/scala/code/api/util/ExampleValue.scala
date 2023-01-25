@@ -1802,7 +1802,7 @@ object ExampleValue {
   lazy val canSeeBankRoutingAddressExample = ConnectorField(booleanTrue,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_bank_routing_address", canSeeBankRoutingAddressExample)
 
-  lazy val usersExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val usersExample = ConnectorField("user list", "Please refer to the user object.")
   glossaryItems += makeGlossaryItem("users", usersExample)
 
   lazy val staffNameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
