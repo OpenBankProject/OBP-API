@@ -151,7 +151,7 @@ object ErrorMessages {
   val ScopeNotFound = "OBP-20025: Scope not found. Please specify a valid value for SCOPE_ID."
   val ConsumerDoesNotHaveScope = "OBP-20026: CONSUMER_ID does not have the SCOPE_ID "
 
-  val UserNotFoundByUsername = "OBP-20027: User not found by username."
+  val UserNotFoundByProviderAndUsername = "OBP-20027: User not found by provider and username."
   val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing:"
   val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
   val GatewayLoginHostPropertyMissing = "OBP-20030: Property gateway.host is not defined."
@@ -721,7 +721,7 @@ object ErrorMessages {
     UserNoPermissionAccessView -> 403,
     UserNotSuperAdminOrMissRole -> 403,
     ConsumerHasMissingRoles -> 403,
-    UserNotFoundByUsername -> 404,
+    UserNotFoundByProviderAndUsername -> 404,
     ApplicationNotIdentified -> 401,
     CouldNotExchangeAuthorizationCodeForTokens -> 401,
     CouldNotSaveOpenIDConnectUser -> 401,

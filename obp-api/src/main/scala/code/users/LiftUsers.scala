@@ -92,13 +92,16 @@ object LiftUsers extends Users with MdcLoggable{
     Future(getUsersByUserIds(userIds))
   }
 
-  override def getUserByUserName(userName: String): Box[User] = {
-    ResourceUser.find(By(ResourceUser.name_, userName))
+  override def getUserByUserName(provider : String, userName: String): Box[User] = {
+    ResourceUser.find(
+      By(ResourceUser.provider_, provider),
+      By(ResourceUser.name_, userName)
+    )
   }
 
   override def getUserByProviderAndUsernameFuture(provider: String, username: String): Future[Box[User]] = {
     Future {
-      getUserByUserName(username)
+      getUserByUserName(provider, username)
     }
   }
 

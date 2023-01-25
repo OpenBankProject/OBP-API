@@ -10,7 +10,7 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant
-import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID}
+import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
@@ -5513,7 +5513,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this", "11 September 2018")
   override def setAccountHolder(owner: String, bankId: BankId, accountId: AccountId, account_owners: List[String]): Unit = {
     //    if (account_owners.contains(owner)) { // No need for now, fix it later
-    val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
+    val resourceUserOwner = Users.users.vend.getUserByUserName(localIdentityProvider, owner)
     resourceUserOwner match {
       case Full(owner) => {
         if (!accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {

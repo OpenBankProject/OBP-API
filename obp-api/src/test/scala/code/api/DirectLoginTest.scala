@@ -1,5 +1,6 @@
 package code.api
 
+import code.api.Constant.localIdentityProvider
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
@@ -184,7 +185,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.UsernameHasBeenLocked)
 
       Then("We unlock the username")
-      LoginAttempt.resetBadLoginAttempts(USERNAME)
+      LoginAttempt.resetBadLoginAttempts(localIdentityProvider, USERNAME)
     }
 
     scenario("Consumer API key is disabled") {
@@ -431,7 +432,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       lazy val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
 
       // Lock the user in order to test functionality
-      UserLocksProvider.lockUser(username)
+      UserLocksProvider.lockUser(localIdentityProvider, username)
 
       When("when we use the token to get current user and it should NOT work due to locked user - New Style")
       lazy val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"

@@ -139,7 +139,7 @@ object DAuth extends RestHelper with MdcLoggable {
     logger.debug("login_user_name: " + userName)
     for {
       tuple <-
-        UserX.getOrCreateDauthResourceUser(userName, provider) match {
+        UserX.getOrCreateDauthResourceUser(provider, userName) match {
             case Full(u) =>
               Full((u,callContext)) // Return user
             case Empty =>
@@ -159,7 +159,7 @@ object DAuth extends RestHelper with MdcLoggable {
     logger.debug("login_user_name: " + username)
     
     for {
-      tuple <- Future { UserX.getOrCreateDauthResourceUser(username, provider)} map {
+      tuple <- Future { UserX.getOrCreateDauthResourceUser(provider, username)} map {
           case (Full(u)) =>
             Full(u, callContext) // Return user
           case (Empty) =>

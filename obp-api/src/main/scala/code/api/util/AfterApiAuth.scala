@@ -68,7 +68,7 @@ object AfterApiAuth extends MdcLoggable{
           if (u.isDeleted.getOrElse(false)) {
             (Failure(UserIsDeleted), cc) // The user is DELETED.
           } else {
-            LoginAttempt.userIsLocked(u.name) match {
+            LoginAttempt.userIsLocked(u.provider, u.name) match {
               case true => (Failure(UsernameHasBeenLocked), cc) // The user is LOCKED.
               case false => (user, cc) // All good
             }

@@ -2,9 +2,8 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.UUID
-
 import code.accountholders.AccountHolders
-import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
+import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ApiPropsWithAlias, ErrorMessages}
 import code.bankconnectors.Connector
@@ -124,7 +123,7 @@ trait OBPDataImport extends MdcLoggable {
   protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]]
 
   protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[ResourceUser]]] = {
-    val existingResourceUsers = toImport.flatMap(u => Users.users.vend.getUserByUserName(u.user_name))
+    val existingResourceUsers = toImport.flatMap(u => Users.users.vend.getUserByUserName(localIdentityProvider, u.user_name))
     val allUsernames = toImport.map(_.user_name)
     val duplicateUsernames = allUsernames diff allUsernames.distinct
 

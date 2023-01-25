@@ -189,7 +189,7 @@ trait APIMethods510 {
       """.stripMargin,
       EmptyBody,
       userJsonV400,
-      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canGetAnyUser))
     )
@@ -199,10 +199,10 @@ trait APIMethods510 {
         cc =>
           for {
             user <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username) map {
-              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByProviderAndUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
-            isLocked = LoginAttempt.userIsLocked(user.name)
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
           } yield {
             (JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked), HttpCode.`200`(cc.callContext))
           }

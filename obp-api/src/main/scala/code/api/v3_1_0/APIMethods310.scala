@@ -1,5 +1,7 @@
 package code.api.v3_1_0
 
+import code.api.Constant.localIdentityProvider
+
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
@@ -499,7 +501,7 @@ trait APIMethods310 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canReadUserLockedStatus))
     )
@@ -511,7 +513,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus, callContext)
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404) }
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(localIdentityProvider, username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
@@ -535,7 +537,7 @@ trait APIMethods310 {
          |""".stripMargin,
       EmptyBody,
       badLoginStatusJson,
-      List(UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canUnlockUser)))
 
@@ -546,9 +548,9 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser, callContext)
-            _ <- Future { LoginAttempt.resetBadLoginAttempts(username) } 
-            _ <- Future { UserLocksProvider.unlockUser(username) } 
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404) }
+            _ <- Future { LoginAttempt.resetBadLoginAttempts(localIdentityProvider,username) } 
+            _ <- Future { UserLocksProvider.unlockUser(localIdentityProvider,username) } 
+            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(localIdentityProvider, username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }

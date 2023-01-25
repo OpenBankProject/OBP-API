@@ -7,7 +7,7 @@ import java.util.{Calendar, Date}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
-import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
+import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
@@ -2799,7 +2799,7 @@ trait APIMethods400 {
          |""".stripMargin,
       EmptyBody,
       userLockStatusJson,
-      List($UserNotLoggedIn, UserNotFoundByUsername, UserHasMissingRoles, UnknownError),
+      List($UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canLockUser)))
 
@@ -2808,8 +2808,8 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), callContext) <-  SS.user
-            userLocks <- Future { UserLocksProvider.lockUser(username) } map {
-              unboxFullOrFail(_, callContext, s"$UserNotFoundByUsername($username)", 404)
+            userLocks <- Future { UserLocksProvider.lockUser(localIdentityProvider,username) } map {
+              unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404)
             }
           } yield {
             (JSONFactory400.createUserLockStatusJson(userLocks), HttpCode.`200`(callContext))
@@ -2889,7 +2889,7 @@ trait APIMethods400 {
 
             canCreateEntitlementAtAnyBankRole = Entitlement.entitlement.vend.getEntitlement("", loggedInUser.userId, canCreateEntitlementAtAnyBank.toString())
             
-            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postedData.username, postedData.provider, callContext)
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postedData.provider, postedData.username, callContext)
 
             _ <- if (canCreateEntitlementAtAnyBankRole.isDefined) { 
               //If the loggedIn User has `CanCreateEntitlementAtAnyBankRole` role, then we can grant all the requestRoles to the requestUser.
@@ -3633,7 +3633,7 @@ trait APIMethods400 {
             acceptMarketingInfo <- NewStyle.function.getAgreementByUserId(user.userId, "accept_marketing_info", cc.callContext)
             termsAndConditions <- NewStyle.function.getAgreementByUserId(user.userId, "terms_and_conditions", cc.callContext)
             privacyConditions <- NewStyle.function.getAgreementByUserId(user.userId, "privacy_conditions", cc.callContext)
-            isLocked = LoginAttempt.userIsLocked(user.name)
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
           } yield {
             val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
             (JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements), isLocked), HttpCode.`200`(cc.callContext))
@@ -3657,7 +3657,7 @@ trait APIMethods400 {
       """.stripMargin,
       EmptyBody,
       userJsonV400,
-      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByUsername, UnknownError),
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canGetAnyUser)))
 
@@ -3667,10 +3667,10 @@ trait APIMethods400 {
         cc =>
           for {
             user <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, username) map {
-              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByUsername, 404)
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByProviderAndUsername, 404)
             }
             entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
-            isLocked = LoginAttempt.userIsLocked(user.name)
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
           } yield {
             (JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked), HttpCode.`200`(cc.callContext))
           }
@@ -4405,7 +4405,7 @@ trait APIMethods400 {
             }
 
             _ <- NewStyle.function.canGrantAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
-            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.username, postJson.provider, cc.callContext)
+            (targetUser, callContext) <- NewStyle.function.getOrCreateResourceUser(postJson.provider, postJson.username, cc.callContext)
             views <- getViews(bankId, accountId, postJson, callContext)
             addedView <- grantMultpleAccountAccessToUser(bankId, accountId, targetUser, views, callContext)
           } yield {
