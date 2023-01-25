@@ -28,13 +28,13 @@
 
 * Run RunWebApp by right clicking on it or selecting Run. The built in jetty server should start on localhost:8080
 
-* Browse to localhost:8080 but don't try anything else there yet.
+* Browse to http://localhost:8080 but don't try anything else there yet.
 
 ### To run via IntelliJ IDEA in TLS development mode (secure connection)
 
 * Run RunTLSWebApp by right clicking on it and selecting Run/Debug. The built in jetty server should start on localhost:8080
 
-* Browse to localhost:8080 but don't try anything else there yet
+* Browse to https://localhost:8080 but don't try anything else there yet
 
 In `development` mode we use this option in order to try OpenID Connect functionality. I.e. redirect URI must be `https` one. 
 
@@ -44,6 +44,6 @@ In `development` mode we use this option in order to try OpenID Connect function
 
 * Import certificate obp-api/src/test/resources/cert/localhost_SAN_dns_ip.pfx into your browser.
 
-* Browse to localhost:8080 but don't try anything else there yet
+* Browse to https://localhost:8080 but don't try anything else there yet
 
 In `development` mode we use this option in order to try UK Open Banking APIs functionality where mutual TLS is part of that standard.

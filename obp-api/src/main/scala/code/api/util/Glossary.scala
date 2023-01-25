@@ -3113,6 +3113,8 @@ object Glossary extends MdcLoggable  {
 		val source = scala.io.Source.fromFile(path)
 		val lines: String = try source.mkString finally source.close()
 		lines
+			.replaceAll("PLACEHOLDER_SERVER_URL", getServerUrl)
+			.replaceAll("PLACEHOLDER_API_ROOT", getObpApiRoot)
 	}
 
 	private def getListOfFiles():List[File] = {
