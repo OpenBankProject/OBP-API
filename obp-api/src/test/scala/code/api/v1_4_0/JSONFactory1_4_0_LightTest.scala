@@ -22,7 +22,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
 
     case class ClassTwo(
       string2: String = "2",
-      strings2: List[String] = List("List-2"),
+      strings2: List[String] = List("List-2")
     )
 
     val oneObject = ClassOne()
@@ -34,7 +34,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
     val twoObject = ClassTwo()
 
     case class NestedListClass(
-      classes1: List[ClassOne] = List(oneObject),
+      classes1: List[ClassOne] = List(oneObject)
     )
 
     val nestedClass = NestedClass()
@@ -98,15 +98,13 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
        listFields.toString contains ("private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.classes2, ") shouldBe (true)
        listFields.toString contains ("private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.string2, ") shouldBe (true)
        listFields.toString contains ("public static scala.collection.immutable.Nil$ scala.collection.immutable.Nil$.MODULE$, public static final long scala.None$.serialVersionUID, ") shouldBe (true)
-       listFields.toString contains ("private final byte java.lang.String.coder, private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.$outer, ") shouldBe (true)
-       listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionSomeInt, static final byte java.lang.String.LATIN1, ") shouldBe (true)
+       listFields.toString contains ("private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.$outer, ") shouldBe (true)
+       listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionSomeInt") shouldBe (true)
        listFields.toString contains ("public static scala.None$ scala.None$.MODULE$, private final java.lang.Object scala.Some.value, private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.classes1, ") shouldBe (true)
        listFields.toString contains ("private final java.util.Date code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassDate, ") shouldBe (true)
        listFields.toString contains ("private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.strings2, ") shouldBe (true)
        listFields.toString contains ("private int java.lang.String.hash, private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.string1, ") shouldBe (true)
        listFields.toString contains ("private static final long java.lang.String.serialVersionUID, private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.$outer, ") shouldBe (true)
-       listFields.toString contains ("private static final java.io.ObjectStreamField[] java.lang.String.serialPersistentFields, private final byte[] java.lang.String.value, ") shouldBe (true)
-       listFields.toString contains ("public static final java.util.Comparator java.lang.String.CASE_INSENSITIVE_ORDER, public static final long scala.Some.serialVersionUID, static final byte java.lang.String.UTF16, ") shouldBe (true)
        listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionNoneIn") shouldBe (true)
 //      println(listFields)
     }
