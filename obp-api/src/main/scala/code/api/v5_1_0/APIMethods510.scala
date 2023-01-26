@@ -282,7 +282,7 @@ trait APIMethods510 {
       nameOf(unlockUser),
       "PUT",
       "/users/PROVIDER/USERNAME/lock-status",
-      "UnLock the user",
+      "Unlock the user",
       s"""
          |Unlock a User.
          |
