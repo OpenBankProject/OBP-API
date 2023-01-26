@@ -205,9 +205,9 @@ trait APIMethods510 {
 
 
     staticResourceDocs += ResourceDoc(
-      getUserByUsername,
+      getUserByProviderAndUsername,
       implementedInApiVersion,
-      nameOf(getUserByUsername),
+      nameOf(getUserByProviderAndUsername),
       "GET",
       "/users/provider/PROVIDER/username/USERNAME",
       "Get User by USERNAME",
@@ -225,7 +225,7 @@ trait APIMethods510 {
       Some(List(canGetAnyUser))
     )
     
-    lazy val getUserByUsername: OBPEndpoint = {
+    lazy val getUserByProviderAndUsername: OBPEndpoint = {
       case "users" :: "provider" :: provider :: "username" :: username :: Nil JsonGet _ => {
         cc =>
           for {
@@ -241,9 +241,9 @@ trait APIMethods510 {
     }
 
     resourceDocs += ResourceDoc(
-      getBadLoginStatus,
+      getUserLockStatus,
       implementedInApiVersion,
-      nameOf(getBadLoginStatus),
+      nameOf(getUserLockStatus),
       "GET",
       "/users/PROVIDER/USERNAME/lock-status",
       "Get User Lock Status",
@@ -258,7 +258,7 @@ trait APIMethods510 {
       List(apiTagUser, apiTagNewStyle),
       Some(List(canReadUserLockedStatus))
     )
-    lazy val getBadLoginStatus: OBPEndpoint = {
+    lazy val getUserLockStatus: OBPEndpoint = {
       //get private accounts for all banks
       case "users" ::provider :: username :: "lock-status" :: Nil JsonGet req => {
         cc =>
@@ -277,9 +277,9 @@ trait APIMethods510 {
     }
 
     resourceDocs += ResourceDoc(
-      unlockUser,
+      unlockUserByProviderAndUsername,
       implementedInApiVersion,
-      nameOf(unlockUser),
+      nameOf(unlockUserByProviderAndUsername),
       "PUT",
       "/users/PROVIDER/USERNAME/lock-status",
       "Unlock the user",
@@ -296,7 +296,7 @@ trait APIMethods510 {
       List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canUnlockUser)))
-    lazy val unlockUser: OBPEndpoint = {
+    lazy val unlockUserByProviderAndUsername: OBPEndpoint = {
       //get private accounts for all banks
       case "users" ::  provider :: username :: "lock-status" :: Nil JsonPut req => {
         cc =>
@@ -321,9 +321,9 @@ trait APIMethods510 {
     }
 
     staticResourceDocs += ResourceDoc(
-      lockUser,
+      lockUserByProviderAndUsername,
       implementedInApiVersion,
-      nameOf(lockUser),
+      nameOf(lockUserByProviderAndUsername),
       "POST",
       "/users/PROVIDER/USERNAME/locks",
       "Lock the user",
@@ -338,7 +338,7 @@ trait APIMethods510 {
       List($UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canLockUser)))
-    lazy val lockUser: OBPEndpoint = {
+    lazy val lockUserByProviderAndUsername: OBPEndpoint = {
       case "users" :: provider :: username :: "locks" :: Nil JsonPost req => {
         cc =>
           for {

@@ -24,9 +24,9 @@ class LockUserTest extends V510ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.lockUser))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.getBadLoginStatus))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.unlockUser))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.lockUserByProviderAndUsername))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.getUserLockStatus))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.unlockUserByProviderAndUsername))
   
 
   feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, version $VersionOfApi - Unauthorized access") {
