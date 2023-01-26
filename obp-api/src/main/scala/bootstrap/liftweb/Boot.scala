@@ -93,7 +93,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
-import code.metrics.{MappedConnectorMetric, MappedMetric, MetricsArchive}
+import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.migration.MigrationScriptLog
 import code.model.dataAccess._
 import code.model.dataAccess.internalMapping.AccountIdMapping
@@ -955,7 +955,7 @@ object ToSchemify {
     MappedTransactionRequest,
     TransactionRequestAttribute,
     MappedMetric,
-    MetricsArchive,
+    MetricArchive,
     MapperAccountHolders,
     MappedEntitlement,
     MappedConnectorMetric,

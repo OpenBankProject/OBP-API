@@ -65,7 +65,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     metric.save
   }
   override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
-    val metric = MetricsArchive.find(By(MetricsArchive.id, primaryKey)).getOrElse(MetricsArchive.create)
+    val metric = MetricArchive.find(By(MetricArchive.id, primaryKey)).getOrElse(MetricArchive.create)
     metric
       .metricId(primaryKey)
       .userId(userId)
@@ -548,8 +548,8 @@ object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] 
 }
 
 
-class MetricsArchive extends APIMetric with LongKeyedMapper[MetricsArchive] with IdPK {
-  override def getSingleton = MetricsArchive
+class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with IdPK {
+  override def getSingleton = MetricArchive
 
   object metricId extends MappedLong(this)
   object userId extends UUIDString(this)
@@ -589,7 +589,7 @@ class MetricsArchive extends APIMetric with LongKeyedMapper[MetricsArchive] with
   override def getHttpCode(): Int = httpCode.get
   override def getCorrelationId(): String = correlationId.get
 }
-object MetricsArchive extends MetricsArchive with LongKeyedMetaMapper[MetricsArchive] {
+object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
   override def dbIndexes = 
     Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) :: 
       Index(appName) :: Index(developerEmail) :: super.dbIndexes
