@@ -82,7 +82,7 @@ import scala.concurrent.Future
   *  
   * 
   * 3 RelationShips:
-  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save() --> create ResourceUser user.
+  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save --> create ResourceUser user.
   *      They share the same username and email.
   *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
   *      one AuthUser <---> one ResourceUser 
@@ -370,7 +370,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
         }
       }
     }
-    super.save()
+    super.save
   }
 
   override def delete_!(): Boolean = {
@@ -1582,7 +1582,7 @@ def restoreSomeSessions(): Unit = {
           .lastName(Helpers.randomString(16))
           .password(Helpers.randomString(40))
           .validated(false)
-        scrambledUser.save()
+        scrambledUser.save
       case Empty => true // There is a resource user but no the correlated Auth user 
       case _ => false // Error case
     }

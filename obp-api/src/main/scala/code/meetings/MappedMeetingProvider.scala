@@ -74,7 +74,7 @@ object MappedMeetingProvider extends MeetingProvider {
         .mStatus(invitee.status)
         .saveMe()
       createdMeeting.mInvitees += meetingInvitee
-      createdMeeting.save()
+      createdMeeting.save
     }} ?~! ErrorMessages.CreateMeetingInviteeException
    } yield {
      createdMeeting

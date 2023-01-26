@@ -44,7 +44,7 @@ import java.util.Date
   *
   *
   * 3 RelationShips:
-  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save() --> create ResourceUser user.
+  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save --> create ResourceUser user.
   *      They share the same username and email.
   *   2)AuthUser `user` field as the Foreign Key to link to Resource User.
   *      one AuthUser <---> one ResourceUser

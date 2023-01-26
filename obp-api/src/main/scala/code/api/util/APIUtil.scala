@@ -3452,10 +3452,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   // All OBP REST end points start with /obp
   def getObpApiRoot: String = s"$getServerUrl/obp"
-
-  // Get OAuth2 Authentication Server URL
-  def getOAuth2ServerUrl: String = getPropsValue("oauth2_server_url").openOr(MissingPropsValueAtThisInstance + "oauth2_server_url")
-
+  
   lazy val defaultBankId =
     if (Props.mode == Props.RunModes.Test)
       APIUtil.getPropsValue("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET_Test")

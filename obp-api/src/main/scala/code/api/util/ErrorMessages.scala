@@ -213,7 +213,7 @@ object ErrorMessages {
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
   val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
-  val Oauth2TokenMatchCertificateFail = "OBP-20210: The token linked with a different client certificate. "
+  val Oauth2TokenMatchCertificateFail = "OBP-20210: The token is linked with a different client certificate. "
 
   val OneTimePasswordExpired = "OBP-20211: The One Time Password (OTP) has expired. "
   

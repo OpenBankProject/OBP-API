@@ -32,7 +32,7 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
     UserInvitation.find(
       By(UserInvitation.UserInvitationId, userInvitationId)
     ) match {
-      case Full(userInvitation) => userInvitation.Status(status).save()
+      case Full(userInvitation) => userInvitation.Status(status).save
       case _ => false
     }
   }
@@ -49,7 +49,7 @@ object MappedUserInvitationProvider extends UserInvitationProvider {
           .Country(Helpers.randomString(userInvitation.country.length))
           .Purpose(Helpers.randomString(userInvitation.purpose.length))
           .Status("DELETED")
-          .save()
+          .save
       case _ => false
     }
   }

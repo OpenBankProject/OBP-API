@@ -35,7 +35,7 @@ object TableAccountAccess {
               .user_fk(permission.user.get)
               .view_id(viewId)
               .view_fk(viewFk)
-              .save()
+              .save
           }
         val isSuccessful = insertedRows.forall(_ == true)
         val accountAccess = AccountAccess.findAll()

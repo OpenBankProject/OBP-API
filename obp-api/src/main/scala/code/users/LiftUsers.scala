@@ -305,12 +305,12 @@ object LiftUsers extends Users with MdcLoggable{
             .name_("DELETED-" + Helpers.randomString(16))
             .email(Helpers.randomString(10) + "@example.com")
             .providerId(Helpers.randomString(16))
-            .save()
+            .save
         case _ =>
           u
             .Company(Helpers.randomString(16))
             .IsDeleted(true)
-            .save()
+            .save
       }
     }
   }

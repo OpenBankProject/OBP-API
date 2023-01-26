@@ -17,7 +17,6 @@
 
 #which data connector to use
 
-#connector=mongodb
 #connector=rest
 #connector=kafka
 #connector=obpjvm

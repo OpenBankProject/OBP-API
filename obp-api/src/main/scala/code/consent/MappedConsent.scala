@@ -223,7 +223,7 @@ object MappedConsentProvider extends ConsentProvider {
   }
 }
 
-class MappedConsent extends Consent with LongKeyedMapper[MappedConsent] with IdPK with CreatedUpdated {
+class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedConsent
 
