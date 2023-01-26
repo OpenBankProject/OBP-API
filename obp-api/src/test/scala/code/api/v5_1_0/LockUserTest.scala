@@ -59,7 +59,7 @@ class LockUserTest extends V510ServerSetup {
   feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, version $VersionOfApi - Missing roles") {
     scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
-      val request = (v5_1_0_Request / "users" / "USERNAME" / "locks").POST <@(user1)
+      val request = (v5_1_0_Request /"users" /"PROVIDER" / "USERNAME" / "locks").POST <@(user1)
       val response = makePostRequest(request, "")
       Then("error should be " + UserHasMissingRoles + CanLockUser)
       response.code should equal(403)
