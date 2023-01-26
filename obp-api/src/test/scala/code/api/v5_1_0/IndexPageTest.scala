@@ -30,7 +30,7 @@ import okhttp3.{OkHttpClient, Request}
 
 class IndexPageTest extends V510ServerSetup {
 
-  /**
+  /**d
    * Test tags
    * Example: To run tests with tag "getPermissions":
    * 	mvn test -D tagsToInclude
