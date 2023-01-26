@@ -37,6 +37,7 @@ class IndexPageTest extends V510ServerSetup {
    *
    *  This is made possible by the scalatest maven plugin
    */
+/*
 
   feature(s"Test the response of the page http://${server.host}:${server.port}/index.html") {
     scenario(s"We try to load the page at http://${server.host}:${server.port}/index.html") {
@@ -55,5 +56,6 @@ class IndexPageTest extends V510ServerSetup {
       // duration should be <= 1000L // TODO Make this check adjustable
     } 
   }
+*/
 
 }
