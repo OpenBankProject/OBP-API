@@ -31,7 +31,7 @@ object ApiShortVersions extends Enumeration {
 
 object ApiVersionStatus extends Enumeration {
   type Status = Value
-  val STABLE, `BLEEDING-EDGE`,DRAFT  = Value
+  val STABLE, BLEEDING_EDGE,DRAFT  = Value
 }
 
 sealed trait ApiVersion {
