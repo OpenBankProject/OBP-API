@@ -346,7 +346,8 @@ class OAuthTest extends ServerSetup {
       verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked) should equal (true)
       
       Then("We unlock the username")
-      LoginAttempt.resetBadLoginAttempts(user1.username.get)
+      LoginAttempt.resetBadLoginAttempts(user1.getProvider(), user1.username.get)
+
       setPropsValues("max.bad.login.attempts"-> "5")
     }
   }

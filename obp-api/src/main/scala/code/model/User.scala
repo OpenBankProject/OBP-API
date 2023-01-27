@@ -142,8 +142,8 @@ object UserX {
     usr
   }
 
-  def findByUserName(userName: String) = {
-    Users.users.vend.getUserByUserName(userName)
+  def findByUserName(provider: String, userName: String) = {
+    Users.users.vend.getUserByUserName(provider, userName)
   }
 
   def findByEmail(email: String) = {
@@ -165,8 +165,8 @@ object UserX {
     Users.users.vend.saveResourceUser(ru)
   }
   
-  def getOrCreateDauthResourceUser(username: String, provider: String) = {
-    findByUserName(username).or( //first try to find the user by userId
+  def getOrCreateDauthResourceUser(provider: String, username: String) = {
+    findByUserName(provider, username).or( //first try to find the user by userId
       Users.users.vend.createResourceUser( // Otherwise create a new user
         provider = provider,
         providerId = Some(username),

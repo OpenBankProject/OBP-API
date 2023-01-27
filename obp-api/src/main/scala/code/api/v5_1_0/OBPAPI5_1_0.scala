@@ -40,6 +40,7 @@ import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
 import code.api.v5_0_0.{APIMethods500, OBPAPI5_0_0}
 import code.util.Helper.MdcLoggable
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.http.{LiftResponse, PlainTextResponse}
@@ -71,11 +72,18 @@ object OBPAPI5_1_0 extends OBPRestHelper
   // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
   val endpointsOf5_1_0 = getEndpoints(Implementations5_1_0)
 
+  lazy val bugEndpoints = // these endpoints miss Provider parameter in the URL, we introduce new ones in V510.
+    nameOf(Implementations3_0_0.getUserByUsername) :: 
+      nameOf(Implementations3_1_0.getBadLoginStatus) ::
+      nameOf(Implementations3_1_0.unlockUser) ::
+      nameOf(Implementations4_0_0.lockUser) ::
+      Nil
+      
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(
     OBPAPI5_0_0.allResourceDocs,
     Implementations5_1_0.resourceDocs
-  )
+  ).filterNot(it => it.partialFunctionName.matches(bugEndpoints.mkString("|")))
 
   // all endpoints
   private val endpoints: List[OBPEndpoint] = OBPAPI5_0_0.routes ++ endpointsOf5_1_0

@@ -43,8 +43,8 @@ trait Users {
   def getUsersByUserIdsFuture(userIds : List[String]) : Future[List[User]]
 
   // find ResourceUser by Resourceuser user name 
-  def getUserByUserName(userName: String) : Box[User]
-  def getUserByUserNameFuture(userName: String) : Future[Box[User]]
+  def getUserByUserName(provider: String, userName: String) : Box[User]
+  def getUserByProviderAndUsernameFuture(provider: String, username: String): Future[Box[User]]
 
   def getUserByEmail(email: String) : Box[List[ResourceUser]]
   def getUserByEmailFuture(email: String) : Future[List[(ResourceUser, Box[List[Entitlement]])]]
@@ -87,8 +87,8 @@ class RemotedataUsersCaseClasses {
   case class getUserByUserId(userId : String)
   case class getUserByUserIdFuture(userId : String)
   case class getUsersByUserIdsFuture(userId : List[String])
-  case class getUserByUserName(userName : String)
-  case class getUserByUserNameFuture(userName : String)
+  case class getUserByUserName(provider : String, userName : String)
+  case class getUserByUserNameFuture(provider : String, userName : String)
   case class getUserByEmail(email : String)
   case class getUserByEmailFuture(email : String)
   case class getUsersByEmail(email : String)

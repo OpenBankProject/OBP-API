@@ -338,7 +338,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   final def revokeAllAccountAccess(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     if(canRevokeAccessToViewCommon(bankId, accountId, user))
       for{
-        otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByUsername
+        otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByProviderAndUsername
         isRevoked <- Views.views.vend.revokeAllAccountAccess(bankId, accountId, otherUser)
       } yield isRevoked
     else
