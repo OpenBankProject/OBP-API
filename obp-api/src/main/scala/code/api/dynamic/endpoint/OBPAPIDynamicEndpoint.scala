@@ -45,7 +45,7 @@ object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable with Version
 
   val version : ApiVersion = ApiVersion.`dynamic-endpoint`
 
-  val versionStatus = ApiVersionStatus.`BLEEDING-EDGE`.toString
+  val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
 
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(ImplementationsDynamicEndpoint.resourceDocs)
