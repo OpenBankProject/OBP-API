@@ -2,7 +2,7 @@ package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanLockUser
-import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotFoundByUsername, UserNotLoggedIn}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNotFoundByProviderAndUsername, UserNotLoggedIn}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -51,7 +51,7 @@ class LockUserTest extends V400ServerSetup {
       val response400 = makePostRequest(request400, "")
       Then("We should get a 404")
       response400.code should equal(404)
-      response400.body.extract[ErrorMessage].message should be (s"$UserNotFoundByUsername($username)")
+      response400.body.extract[ErrorMessage].message should be (s"$UserNotFoundByProviderAndUsername($username)")
     }
   }
   

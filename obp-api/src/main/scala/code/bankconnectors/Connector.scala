@@ -4,6 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
+import code.api.Constant.localIdentityProvider
 import code.api.attributedefinition.AttributeDefinition
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
@@ -1558,7 +1559,7 @@ trait Connector extends MdcLoggable {
   @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this","11 September 2018")
   def setAccountHolder(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
     //    if (account_owners.contains(owner)) { // No need for now, fix it later
-    val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
+    val resourceUserOwner = Users.users.vend.getUserByUserName(localIdentityProvider, owner)
     resourceUserOwner match {
       case Full(owner) => {
         if ( ! accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {

@@ -28,8 +28,8 @@ package code.snippet
 
 import java.time.{Duration, ZoneId, ZoneOffset, ZonedDateTime}
 import java.util.Date
-
 import code.api.Constant
+import code.api.Constant.localIdentityProvider
 import code.api.util.{APIUtil, SecureRandomUtil}
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.users
@@ -99,7 +99,7 @@ class UserInvitation extends MdcLoggable {
       else if(userInvitation.map(_.status != "CREATED").getOrElse(false)) showErrorsForStatus()
       else if(timeDifference.abs.getSeconds > ttl) showErrorsForTtl()
       else if(AuthUser.currentUser.isDefined) showErrorYouMustBeLoggedOff()
-      else if(Users.users.vend.getUserByUserName(usernameVar.is).isDefined) showErrorsForUsername()
+      else if(Users.users.vend.getUserByUserName(localIdentityProvider, usernameVar.is).isDefined) showErrorsForUsername()
       else if(privacyCheckboxVar.is == false) showErrorsForPrivacyConditions()
       else if(termsCheckboxVar.is == false) showErrorsForTermsAndConditions()
       else if(personalDataCollectionConsentCountryWaiverList.exists(_.toLowerCase == countryVar.is.toLowerCase) == false && consentForCollectingCheckboxVar.is == false) showErrorsForConsentForCollectingPersonalData()

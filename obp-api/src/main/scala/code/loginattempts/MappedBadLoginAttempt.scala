@@ -21,7 +21,7 @@ class MappedBadLoginAttempt extends BadLoginAttempt with LongKeyedMapper[MappedB
 }
 
 object MappedBadLoginAttempt extends MappedBadLoginAttempt with LongKeyedMetaMapper[MappedBadLoginAttempt] {
-  override def dbIndexes = UniqueIndex(mUsername) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(Provider,mUsername) :: super.dbIndexes
 }
 
 trait BadLoginAttempt {

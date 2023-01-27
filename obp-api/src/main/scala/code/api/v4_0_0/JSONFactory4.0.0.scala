@@ -1125,7 +1125,7 @@ object JSONFactory400 {
           t._1, 
           t._2.getOrElse(Nil),
           t._3,
-          LoginAttempt.userIsLocked(t._1.name)
+          LoginAttempt.userIsLocked(t._1.provider, t._1.name)
         )
       )
     )

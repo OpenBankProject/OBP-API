@@ -123,7 +123,7 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
           JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get(identityProvider).jwks_uri) match {
             case Full(_) =>
               getOrCreateResourceUser(idToken) match {
-                case Full(user) if LoginAttempt.userIsLocked(user.name) => // User is locked
+                case Full(user) if LoginAttempt.userIsLocked(user.provider, user.name) => // User is locked
                   (401, ErrorMessages.UsernameHasBeenLocked, None)
                 case Full(user) => // All good
                   getOrCreateAuthUser(user) match {
