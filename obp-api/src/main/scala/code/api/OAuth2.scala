@@ -166,9 +166,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         }
       }
 
-      //check the method, code.api.OAuth2Login.OAuth2Util.getOrCreateResourceUserFuture, we create user there. 
-      val provider = JwtUtil.getIssuer(value).getOrElse("") 
-      val user = Users.users.vend.getUserByUserName(provider, introspectOAuth2Token.getSub)
+      val user = Users.users.vend.getUserByUserName(hydraPublicUrl, introspectOAuth2Token.getSub)
       user match {
         case Full(u) =>
           LoginAttempt.userIsLocked(u.provider, u.name) match {
