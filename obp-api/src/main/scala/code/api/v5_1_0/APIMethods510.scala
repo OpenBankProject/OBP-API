@@ -43,7 +43,7 @@ trait APIMethods510 {
 
 
     staticResourceDocs += ResourceDoc(
-      root,
+      root(OBPAPI5_1_0.version, OBPAPI5_1_0.versionStatus),
       implementedInApiVersion,
       "root",
       "GET",
@@ -61,10 +61,10 @@ trait APIMethods510 {
       List(UnknownError, "no connector set"),
       apiTagApi :: apiTagNewStyle :: Nil)
 
-    lazy val root : OBPEndpoint = {
+    def root (apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
         cc => Future {
-          JSONFactory510.getApiInfoJSON(implementedInApiVersion) -> HttpCode.`200`(cc.callContext)
+          JSONFactory510.getApiInfoJSON(apiVersion,apiVersionStatus) -> HttpCode.`200`(cc.callContext)
         }
       }
     }

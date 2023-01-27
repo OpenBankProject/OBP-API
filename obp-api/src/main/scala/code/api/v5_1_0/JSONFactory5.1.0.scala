@@ -30,7 +30,7 @@ import code.api.Constant
 import code.api.util.APIUtil
 import code.api.util.APIUtil.gitCommit
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
-import com.openbankproject.commons.util.ScannedApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 
 case class APIInfoJsonV510(
@@ -48,8 +48,7 @@ case class APIInfoJsonV510(
                          )
 
 object JSONFactory510 {
-  def getApiInfoJSON(implementedInApiVersion: ScannedApiVersion) = {
-    val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI5_1_0.versionStatus)
+  def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {
     val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
     val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
     val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")

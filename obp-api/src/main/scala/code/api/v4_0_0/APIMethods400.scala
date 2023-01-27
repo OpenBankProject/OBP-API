@@ -2637,8 +2637,7 @@ trait APIMethods400 {
 
 
 
-    private def getApiInfoJSON() = {
-      val (apiVersion, apiVersionStatus) = (implementedInApiVersion, OBPAPI4_0_0.versionStatus)
+    private def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus : String) = {
       val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
       val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")
       val phone = APIUtil.getPropsValue("hosted_by.phone", "+49 (0)30 8145 3994")
@@ -2672,7 +2671,7 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
-      root,
+      root(OBPAPI4_0_0.version, OBPAPI4_0_0.versionStatus),
       implementedInApiVersion,
       "root",
       "GET",
@@ -2690,10 +2689,10 @@ trait APIMethods400 {
       List(UnknownError, "no connector set"),
       apiTagApi :: apiTagNewStyle :: Nil)
 
-    lazy val root : OBPEndpoint = {
+    def root (apiVersion : ApiVersion, apiVersionStatus: String): OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
         cc => Future {
-          getApiInfoJSON() -> HttpCode.`200`(cc.callContext)
+          getApiInfoJSON(apiVersion, apiVersionStatus) -> HttpCode.`200`(cc.callContext)
         }
       }
     }
