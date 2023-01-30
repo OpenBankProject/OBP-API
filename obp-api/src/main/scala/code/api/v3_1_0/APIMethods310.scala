@@ -513,7 +513,7 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus, callContext)
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(localIdentityProvider, username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404) }
+            badLoginStatus <- Future { LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }
@@ -550,7 +550,7 @@ trait APIMethods310 {
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser, callContext)
             _ <- Future { LoginAttempt.resetBadLoginAttempts(localIdentityProvider,username) } 
             _ <- Future { UserLocksProvider.unlockUser(localIdentityProvider,username) } 
-            badLoginStatus <- Future { LoginAttempt.getBadLoginStatus(localIdentityProvider, username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404) }
+            badLoginStatus <- Future { LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
           }

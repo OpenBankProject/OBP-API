@@ -266,7 +266,7 @@ trait APIMethods510 {
             (Full(u), callContext) <- SS.user
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus, callContext)
             badLoginStatus <- Future {
-              LoginAttempt.getBadLoginStatus(provider, username)
+              LoginAttempt.getOrCreateBadLoginStatus(provider, username)
             } map {
               unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404)
             }
@@ -310,7 +310,7 @@ trait APIMethods510 {
               UserLocksProvider.unlockUser(provider, username)
             }
             badLoginStatus <- Future {
-              LoginAttempt.getBadLoginStatus(provider, username)
+              LoginAttempt.getOrCreateBadLoginStatus(provider, username)
             } map {
               unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404)
             }
