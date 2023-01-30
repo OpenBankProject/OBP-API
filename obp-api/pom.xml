@@ -592,28 +592,6 @@
             </execution>
           </executions>
         </plugin>
-
-      <plugin>
-          <groupId>net.alchim31.maven</groupId>
-          <artifactId>yuicompressor-maven-plugin</artifactId>
-          <version>1.5.1</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>compress</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <nosuffix>true</nosuffix>
-            <encoding>${project.build.sourceEncoding}</encoding>
-            <excludes>
-              <!-- yuicompressor fails to compile patterns library, hence stopping full build -->
-              <!-- We won't be modifying this library so will exclude it for now -->
-              <exclude>**/*.min.*</exclude>
-            </excludes>
-          </configuration>
-        </plugin>
         <plugin>
           <groupId>org.mortbay.jetty</groupId>
           <artifactId>maven-jetty-plugin</artifactId>

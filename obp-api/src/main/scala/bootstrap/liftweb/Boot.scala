@@ -83,7 +83,7 @@ import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
-import code.loginattempts.MappedBadLoginAttempt
+import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
 import code.management.ImporterAPI
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.comments.MappedComment
@@ -685,7 +685,24 @@ class Boot extends MdcLoggable {
       case _ => // Do not start it
     }
     MetricsArchiveScheduler.start(intervalInSeconds = 86400)
-    
+
+
+    object UsernameLockedChecker  {
+      def beginServicing(session: LiftSession, req: Req){
+        AuthUser.currentUser match {
+          case Full(user) =>
+            LoginAttempt.userIsLocked(localIdentityProvider, user.username.get) match {
+              case true => 
+                AuthUser.logoutCurrentUser
+                logger.warn(s"User ${user.username.get} has been logged out due to it has been locked.")
+              case false => // Do nothing
+            }
+          case _ => // Do nothing
+        }
+      }
+    }
+    LiftSession.onBeginServicing = UsernameLockedChecker.beginServicing _ ::
+      LiftSession.onBeginServicing
 
     APIUtil.akkaSanityCheck() match {
       case Full(c) if c == true => logger.info(s"remotedata.secret matched = $c")
