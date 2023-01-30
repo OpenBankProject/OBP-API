@@ -1,5 +1,6 @@
 package code.api.v3_1_0
 
+import code.api.Constant
 import code.api.Constant.localIdentityProvider
 
 import java.text.SimpleDateFormat
@@ -513,6 +514,9 @@ trait APIMethods310 {
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus, callContext)
+            _ <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, username) map {
+              x => unboxFullOrFail(x, callContext, UserNotFoundByProviderAndUsername, 404)
+            }
             badLoginStatus <- Future { LoginAttempt.getOrCreateBadLoginStatus(localIdentityProvider, username) } map { unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername($username)", 404) }
           } yield {
             (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
@@ -547,6 +551,9 @@ trait APIMethods310 {
         cc =>
           for {
             (Full(u), callContext) <-  authenticatedAccess(cc)
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, username) map {
+              x => unboxFullOrFail(x, callContext, UserNotFoundByProviderAndUsername, 404)
+            }
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser, callContext)
             _ <- Future { LoginAttempt.resetBadLoginAttempts(localIdentityProvider,username) } 
             _ <- Future { UserLocksProvider.unlockUser(localIdentityProvider,username) } 
