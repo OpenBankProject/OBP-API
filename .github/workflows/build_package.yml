@@ -77,7 +77,7 @@ jobs:
           output: 'trivy-results.sarif'
           security-checks: 'vuln'
           severity: 'CRITICAL,HIGH'
-          timeout: '10m'
+          timeout: '30m'
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
         with:
