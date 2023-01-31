@@ -123,10 +123,11 @@ class WebUI extends MdcLoggable{
   if (firstKnownIPAddress.isEmpty)
     firstKnownIPAddress(getRemoteIpAddress())
 
+  val showIpAddressChangeWarning = APIUtil.getPropsAsBoolValue("show_ip_address_change_warning",false)
   def concurrentLoginsCookiesCheck = {
     updateIPaddressEachtime(getRemoteIpAddress())
 
-    if(!firstKnownIPAddress.isEmpty & !firstKnownIPAddress.get.equals(updateIPaddressEachtime.get)) {
+    if(showIpAddressChangeWarning && !firstKnownIPAddress.isEmpty && !firstKnownIPAddress.get.equals(updateIPaddressEachtime.get)) {
       log.warn("Warning! The Session ID is used in another IP address, it maybe be stolen or you change the network. Please check it first ! ")
       S.error("Warning! Another IP address is also using your Session ID. Did you change your network? ")
     }
@@ -464,7 +465,10 @@ class WebUI extends MdcLoggable{
     "@for-banks [style]" #> s"display: $displayForBanks"
   }
   def userIsLoggedIn: CssSel = {
-    "#register-link [href]" #> scala.xml.Unparsed(s"/already-logged-in")
+    if(AuthUser.loggedIn_?)
+      "#register-link [href]" #> scala.xml.Unparsed(s"/already-logged-in")
+    else
+      "#register-link [href]" #> scala.xml.Unparsed(s"/user_mgt/sign_up")
   }
 
   def alreadyLoggedIn: CssSel = {

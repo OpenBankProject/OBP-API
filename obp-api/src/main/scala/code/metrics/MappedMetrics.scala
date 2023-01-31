@@ -65,7 +65,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     metric.save
   }
   override def saveMetricsArchive(primaryKey: Long, userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String): Unit = {
-    val metric = MetricsArchive.find(By(MetricsArchive.id, primaryKey)).getOrElse(MetricsArchive.create)
+    val metric = MetricArchive.find(By(MetricArchive.id, primaryKey)).getOrElse(MetricArchive.create)
     metric
       .metricId(primaryKey)
       .userId(userId)
@@ -295,7 +295,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val result = scalikeDB readOnly { implicit session =>
         val sqlResult =
           sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
-                FROM mappedmetric
+                FROM metric
                 WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
                 AND date_c <= ${new Timestamp(toDate.get.getTime)}
                 AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
@@ -378,8 +378,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         // TODO Make it work in case of Oracle database
         val otherDbLimit = if (dbUrl.contains("sqlserver")) sqls"" else sqls"LIMIT $limit"
         val sqlResult =
-          sql"""SELECT ${msSqlLimit} count(*), mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
-                FROM mappedmetric 
+          sql"""SELECT ${msSqlLimit} count(*), metric.implementedbypartialfunction, metric.implementedinversion 
+                FROM metric 
                 WHERE 
                 date_c >= ${new Timestamp(fromDate.get.getTime)} AND
                 date_c <= ${new Timestamp(toDate.get.getTime)}
@@ -395,7 +395,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                 AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
                 AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExclueAppNameQueries))
                 AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries))
-                GROUP BY mappedmetric.implementedbypartialfunction, mappedmetric.implementedinversion 
+                GROUP BY metric.implementedbypartialfunction, metric.implementedinversion 
                 ORDER BY count(*) DESC
                 ${otherDbLimit}
                 """.stripMargin
@@ -457,10 +457,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
       val result: List[TopConsumer] = scalikeDB readOnly { implicit session =>
         val sqlResult =
-          sql"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, mappedmetric.appname as appname, 
+          sql"""SELECT ${msSqlLimit} count(*) as count, consumer.id as consumerprimaryid, metric.appname as appname, 
                 consumer.developeremail as email, consumer.consumerid as consumerid  
-                FROM mappedmetric, consumer 
-                WHERE mappedmetric.appname = consumer.name  
+                FROM metric, consumer 
+                WHERE metric.appname = consumer.name  
                 AND date_c >= ${new Timestamp(fromDate.get.getTime)}
                 AND date_c <= ${new Timestamp(toDate.get.getTime)}
                 AND (${trueOrFalse(consumerId.isEmpty)} or consumer.consumerid = ${consumerId.getOrElse("")})
@@ -548,8 +548,8 @@ object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] 
 }
 
 
-class MetricsArchive extends APIMetric with LongKeyedMapper[MetricsArchive] with IdPK {
-  override def getSingleton = MetricsArchive
+class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with IdPK {
+  override def getSingleton = MetricArchive
 
   object metricId extends MappedLong(this)
   object userId extends UUIDString(this)
@@ -589,7 +589,7 @@ class MetricsArchive extends APIMetric with LongKeyedMapper[MetricsArchive] with
   override def getHttpCode(): Int = httpCode.get
   override def getCorrelationId(): String = correlationId.get
 }
-object MetricsArchive extends MetricsArchive with LongKeyedMetaMapper[MetricsArchive] {
+object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
   override def dbIndexes = 
     Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) :: 
       Index(appName) :: Index(developerEmail) :: super.dbIndexes

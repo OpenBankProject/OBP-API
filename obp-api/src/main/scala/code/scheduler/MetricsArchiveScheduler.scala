@@ -5,7 +5,7 @@ import java.util.{Calendar, Date}
 
 import code.actorsystem.ObpLookupSystem
 import code.api.util.{APIUtil, OBPToDate}
-import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricsArchive}
+import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
 import net.liftweb.mapper.{By, By_<=}
@@ -42,7 +42,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
     }
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Delete the outdated rows from the table "MetricsArchive"
-    MetricsArchive.bulkDelete_!!(By_<=(MetricsArchive.date, someYearsAgo))
+    MetricArchive.bulkDelete_!!(By_<=(MetricArchive.date, someYearsAgo))
   }
 
   def conditionalDeleteMetricsRow() = {
@@ -60,7 +60,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
     }
     val maybeDeletedRows: List[(Boolean, Long)] = canditateMetricRowsToMove map { i =>
       // and delete it after successful coping
-      MetricsArchive.find(By(MetricsArchive.metricId, i.getMetricId())) match {
+      MetricArchive.find(By(MetricArchive.metricId, i.getMetricId())) match {
         case Full(_) => (MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getMetricId())), i.getMetricId())
         case _ => (false, i.getMetricId())
       }

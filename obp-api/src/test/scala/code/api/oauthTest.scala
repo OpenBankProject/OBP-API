@@ -31,12 +31,11 @@ import java.util.ResourceBundle
 
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
-import code.api.util.{APIUtil, ErrorMessages}
 import code.consumer.Consumers
 import code.loginattempts.LoginAttempt
 import code.model.dataAccess.{AuthUser, ResourceUser}
-import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import code.setup.ServerSetup
 import code.util.Helper.MdcLoggable
 import dispatch.Defaults._
@@ -322,35 +321,34 @@ class OAuthTest extends ServerSetup {
     }
   }
 
-  feature("Login in locked") {
+  feature("Login is locked") {
     scenario("valid Username, invalid password, login in too many times. The username will be locked", Verifier, Oauth) {
       Given("we will use a valid request token to get the valid username and password")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       
-      Then("we set the valid username, invalid password and try more than 5 times")
+      Then("we set the valid username, invalid password and try more than 2 times")
+      setPropsValues("max.bad.login.attempts"-> "2")
       val invalidPassword = "wrongpassword"
       var verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
       verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
       verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
       verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
-      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
       
       Then("we should get a locked account verifier")
-      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
+      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked) should equal (true)
 
 
       Then("We login in with valid username and password, it will still be failed")
       verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
 
       Then("we should get a locked account verifier")
-      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
+      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked) should equal (true)
       
       Then("We unlock the username")
-      LoginAttempt.resetBadLoginAttempts(user1.username.get)
+      LoginAttempt.resetBadLoginAttempts(user1.getProvider(), user1.username.get)
 
+      setPropsValues("max.bad.login.attempts"-> "5")
     }
   }
 

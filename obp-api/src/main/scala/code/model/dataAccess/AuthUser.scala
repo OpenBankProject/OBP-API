@@ -82,7 +82,7 @@ import scala.concurrent.Future
   *  
   * 
   * 3 RelationShips:
-  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save() --> create ResourceUser user.
+  *   1)When `Sign up` new user --> create AuthUser --> call AuthUser.save --> create ResourceUser user.
   *      They share the same username and email.
   *   2)AuthUser `user` field as the Foreign Key to link to Resource User. 
   *      one AuthUser <---> one ResourceUser 
@@ -348,8 +348,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     }
   }
 
-  def getResourceUserByUsername(username: String) : Box[User] = {
-    Users.users.vend.getUserByUserName(username)
+  def getResourceUserByUsername(provider: String, username: String) : Box[User] = {
+    Users.users.vend.getUserByUserName(provider, username)
   }
 
   override def save(): Boolean = {
@@ -370,7 +370,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
         }
       }
     }
-    super.save()
+    super.save
   }
 
   override def delete_!(): Boolean = {
@@ -469,10 +469,11 @@ import net.liftweb.util.Helpers._
     val authorization: Box[String] = S.request.map(_.header("Authorization")).flatten
     val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
     for {
-      resourceUser <- if (AuthUser.currentUser.isDefined)
-        //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side
-        Users.users.vend.getUserByUserName(AuthUser.currentUser.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox).username.get)
-      else if (directLogin.isDefined) // Direct Login
+      resourceUser <- if (AuthUser.currentUser.isDefined){
+        //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side {
+        val user = AuthUser.currentUser.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox)
+        Users.users.vend.getUserByUserName(user.provider.get, user.username.get)
+      }else if (directLogin.isDefined) // Direct Login
         DirectLogin.getUser
       else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
         DirectLogin.getUser
@@ -619,7 +620,7 @@ import net.liftweb.util.Helpers._
   }
   
    def grantDefaultEntitlementsToAuthUser(user: TheUserType) = {
-     tryo{getResourceUserByUsername(user.username.get).head.userId} match {
+     tryo{getResourceUserByUsername(user.getProvider(), user.username.get).head.userId} match {
        case Full(userId)=>APIUtil.grantDefaultEntitlementsToNewUser(userId)
        case _ => logger.error("Can not getResourceUserByUsername here, so it breaks the grantDefaultEntitlementsToNewUser process.")
      }
@@ -810,39 +811,39 @@ import net.liftweb.util.Helpers._
         if (
           user.validated_? &&
           // User is NOT locked AND the password is good
-          ! LoginAttempt.userIsLocked(username) &&
+          ! LoginAttempt.userIsLocked(user.getProvider(), username) &&
           user.testPassword(Full(password)))
             {
               // We logged in correctly, so reset badLoginAttempts counter (if it exists)
-              LoginAttempt.resetBadLoginAttempts(username)
+              LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
               Full(user.user.get) // Return the user.
             }
         // User is unlocked AND password is bad
         else if (
           user.validated_? &&
-          ! LoginAttempt.userIsLocked(username) &&
+          ! LoginAttempt.userIsLocked(user.getProvider(), username) &&
           ! user.testPassword(Full(password))
         ) {
-          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
+          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
           Empty
         }
         // User is locked
-        else if (LoginAttempt.userIsLocked(username))
+        else if (LoginAttempt.userIsLocked(user.getProvider(), username))
         {
-          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
+          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
           logger.info(ErrorMessages.UsernameHasBeenLocked)
           //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode)
         }
         else {
           // Nothing worked, so just increment bad login attempts
-          LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
+          LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
           Empty
         }
       // We have a user from an external provider.
       case Full(user) if (user.getProvider() != Constant.localIdentityProvider) =>
         APIUtil.getPropsAsBoolValue("connector.user.authentication", false) match {
-            case true if !LoginAttempt.userIsLocked(username) =>
+            case true if !LoginAttempt.userIsLocked(user.getProvider(), username) =>
               val userId =
                 for {
                   authUser <- checkExternalUserViaConnector(username, password)
@@ -850,22 +851,22 @@ import net.liftweb.util.Helpers._
                     authUser.user
                   }
                 } yield {
-                  LoginAttempt.resetBadLoginAttempts(username)
+                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), username)
                   resourceUser.get
                 }
               userId match {
                 case Full(l: Long) => Full(l)
                 case _ =>
-                  LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
+                  LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
                   Empty
               }
             case false =>
-              LoginAttempt.incrementBadLoginAttempts(username, user.getProvider())
+              LoginAttempt.incrementBadLoginAttempts(user.getProvider(), username)
               Empty
           }
       // Everything else.
       case _ =>
-        LoginAttempt.incrementBadLoginAttempts(username, user.foreign.map(_.provider).getOrElse(Constant.HostName))
+        LoginAttempt.incrementBadLoginAttempts(user.foreign.map(_.provider).getOrElse(Constant.HostName), username)
         Empty
     }
   }
@@ -1059,12 +1060,12 @@ def restoreSomeSessions(): Unit = {
     }
 
     def obpUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
-      user.validated_? && !LoginAttempt.userIsLocked(usernameFromGui) &&
+      user.validated_? && !LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) &&
         isObpProvider(user)
     }
 
     def externalUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
-      user.validated_? && !LoginAttempt.userIsLocked(usernameFromGui) &&
+      user.validated_? && !LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) &&
         !isObpProvider(user)
     }
     
@@ -1090,7 +1091,7 @@ def restoreSomeSessions(): Unit = {
               case Full(user) if obpUserIsValidatedAndNotLocked(usernameFromGui, user) =>
                 if(user.testPassword(Full(passwordFromGui))) { // if User is NOT locked and password is good
                   // Reset any bad attempt
-                  LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
                   val preLoginState = capturePreLoginState()
                   // User init actions
                   AfterApiAuth.innerLoginUserInitAction(Full(user))
@@ -1098,13 +1099,13 @@ def restoreSomeSessions(): Unit = {
                   val redirect = redirectUri()
                   checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                 } else { // If user is NOT locked AND password is wrong => increment bad login attempt counter.
-                  LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.getProvider())
+                  LoginAttempt.incrementBadLoginAttempts(user.getProvider(),usernameFromGui)
                   S.error(Helper.i18n("invalid.login.credentials"))
                 }
 
               // If user is locked, send the error to GUI
-              case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
-                LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.getProvider())
+              case Full(user) if LoginAttempt.userIsLocked(user.getProvider(), usernameFromGui) =>
+                LoginAttempt.incrementBadLoginAttempts(user.getProvider(),usernameFromGui)
                 S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
     
               // Check if user came from kafka/obpjvm/stored_procedure and
@@ -1112,13 +1113,13 @@ def restoreSomeSessions(): Unit = {
               // from connector in case they changed on the south-side
               case Full(user) if externalUserIsValidatedAndNotLocked(usernameFromGui, user) && testExternalPassword(usernameFromGui, passwordFromGui) =>
                   // Reset any bad attempts
-                  LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                  LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
                   val preLoginState = capturePreLoginState()
                   logger.info("login redirect: " + loginRedirect.get)
                   val redirect = redirectUri()
                   //This method is used for connector = kafka* || obpjvm*
                   //It will update the views and createAccountHolder ....
-                  registeredUserHelper(user.username.get)
+                  registeredUserHelper(user.getProvider(),user.username.get)
                   // User init actions
                   AfterApiAuth.innerLoginUserInitAction(Full(user))
                   checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
@@ -1132,12 +1133,12 @@ def restoreSomeSessions(): Unit = {
                 val redirect = redirectUri()
                 externalUserHelper(usernameFromGui, passwordFromGui) match {
                     case Full(user: AuthUser) =>
-                      LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                      LoginAttempt.resetBadLoginAttempts(user.getProvider(), usernameFromGui)
                       // User init actions
                       AfterApiAuth.innerLoginUserInitAction(Full(user))
                       checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
                     case _ =>
-                      LoginAttempt.incrementBadLoginAttempts(username.get, user.foreign.map(_.provider).getOrElse(Constant.HostName))
+                      LoginAttempt.incrementBadLoginAttempts(user.foreign.map(_.provider).getOrElse(Constant.HostName), username.get)
                       Empty
                       S.error(Helper.i18n("invalid.login.credentials"))
                 }
@@ -1146,7 +1147,7 @@ def restoreSomeSessions(): Unit = {
               case Empty => 
                 S.error(Helper.i18n("invalid.login.credentials"))
               case _ =>
-                LoginAttempt.incrementBadLoginAttempts(usernameFromGui, user.foreign.map(_.provider).getOrElse(Constant.HostName))
+                LoginAttempt.incrementBadLoginAttempts(user.foreign.map(_.provider).getOrElse(Constant.HostName), usernameFromGui)
                 S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin)) // Note we hit this if user has not clicked email validation link
             }
         }
@@ -1203,14 +1204,14 @@ def restoreSomeSessions(): Unit = {
     if (connector.startsWith("kafka") ) {
       for {
        user <- getUserFromConnector(name, password)
-       u <- Users.users.vend.getUserByUserName(name)
+       u <- Users.users.vend.getUserByUserName(user.getProvider(), name)
       } yield {
         user
       }
     } else {
       for {
         user <- checkExternalUserViaConnector(name, password)
-        u <- Users.users.vend.getUserByUserName(name)
+        u <- Users.users.vend.getUserByUserName(user.getProvider(), name)
       } yield {
         user
       }
@@ -1221,10 +1222,10 @@ def restoreSomeSessions(): Unit = {
   /**
     * This method will update the views and createAccountHolder ....
     */
-  def registeredUserHelper(username: String) = {
+  def registeredUserHelper(provider: String,  username: String) = {
     if (connector.startsWith("kafka")) {
       for {
-       u <- Users.users.vend.getUserByUserName(username)
+       u <- Users.users.vend.getUserByUserName(provider, username)
       } yield {
         refreshUser(u, None)
       }
@@ -1581,7 +1582,7 @@ def restoreSomeSessions(): Unit = {
           .lastName(Helpers.randomString(16))
           .password(Helpers.randomString(40))
           .validated(false)
-        scrambledUser.save()
+        scrambledUser.save
       case Empty => true // There is a resource user but no the correlated Auth user 
       case _ => false // Error case
     }

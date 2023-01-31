@@ -151,7 +151,7 @@ object ErrorMessages {
   val ScopeNotFound = "OBP-20025: Scope not found. Please specify a valid value for SCOPE_ID."
   val ConsumerDoesNotHaveScope = "OBP-20026: CONSUMER_ID does not have the SCOPE_ID "
 
-  val UserNotFoundByUsername = "OBP-20027: User not found by username."
+  val UserNotFoundByProviderAndUsername = "OBP-20027: User not found by provider and username."
   val GatewayLoginMissingParameters = "OBP-20028: These GatewayLogin parameters are missing:"
   val GatewayLoginUnknownError = "OBP-20029: Unknown Gateway login error."
   val GatewayLoginHostPropertyMissing = "OBP-20030: Property gateway.host is not defined."
@@ -213,7 +213,7 @@ object ErrorMessages {
   val Oauth2JOSEException = "OBP-20207: Bad JSON Object Signing and Encryption (JOSE) exception. An internal JOSE exception was encountered. "
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
   val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
-  val Oauth2TokenMatchCertificateFail = "OBP-20210: The token linked with a different client certificate. "
+  val Oauth2TokenMatchCertificateFail = "OBP-20210: The token is linked with a different client certificate. "
 
   val OneTimePasswordExpired = "OBP-20211: The One Time Password (OTP) has expired. "
   
@@ -721,7 +721,7 @@ object ErrorMessages {
     UserNoPermissionAccessView -> 403,
     UserNotSuperAdminOrMissRole -> 403,
     ConsumerHasMissingRoles -> 403,
-    UserNotFoundByUsername -> 404,
+    UserNotFoundByProviderAndUsername -> 404,
     ApplicationNotIdentified -> 401,
     CouldNotExchangeAuthorizationCodeForTokens -> 401,
     CouldNotSaveOpenIDConnectUser -> 401,

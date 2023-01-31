@@ -352,7 +352,7 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
           if(u.isDeleted.getOrElse(false)) {
             Failure(UserIsDeleted) // The user is DELETED.
           } else {
-            LoginAttempt.userIsLocked(u.name) match {
+            LoginAttempt.userIsLocked(u.provider, u.name) match {
               case true => Failure(UsernameHasBeenLocked) // The user is LOCKED.
               case false => function(callContext) // All good
             }

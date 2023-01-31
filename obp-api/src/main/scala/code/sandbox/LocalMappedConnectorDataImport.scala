@@ -18,7 +18,7 @@ import net.liftweb.mapper.Mapper
 import net.liftweb.util.Helpers._
 
 case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
-  def save() = value.save()
+  def save() = value.save
 }
 
 object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {

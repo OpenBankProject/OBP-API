@@ -232,6 +232,10 @@ apiPathZero=obp
 ## Not need in dev mode, but important for production
 mail.api.consumer.registered.sender.address=no-reply@example.com
 mail.api.consumer.registered.notification.addresses=you@example.com
+## Not need in dev mode, but important for production
+## We send an email after any exception
+# mail.exception.sender.address=no-reply@example.com
+# mail.exception.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
 # This property allows sending API registration data to developer's email.
 #mail.api.consumer.registered.notification.send=false
 We only send consumer keys and secret if this is true
@@ -447,9 +451,6 @@ webui_oauth_1_documentation_url =
 
 # Link to OAuth 2.0 glossary on api explorer
 webui_oauth_2_documentation_url =
-
-# URL of OAuth2.0 server
-oauth2_server_url =
 
 # Link to Privacy Policy on signup page
 #webui_signup_form_submit_button_value=
@@ -1212,3 +1213,6 @@ retain_archive_metrics_days = 1095
 
 # Defines the number of days we keep rows in the table "Metric" former "MappedMetric"
 retain_metrics_days = 60
+
+#if same session used for different ip address, we can show this warning, default is false.
+show_ip_address_change_warning=false

@@ -334,6 +334,8 @@ object Consent {
                 case _ =>
                   (Failure(ErrorMessages.UnknownError), Some(cc))
               }
+            case _ =>
+              (Failure("Cannot add entitlements based on: " + consentAsJwt), Some(cc))
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentAsJwt), Some(cc))
@@ -421,13 +423,15 @@ object Consent {
                 case _ =>
                   (Failure(ErrorMessages.UnknownError), Some(cc))
               }
+            case _ =>
+              (Failure("Cannot add entitlements based on: " + consentId), Some(cc))
           }
         case _ =>
           (Failure("Cannot create or get the user based on: " + consentId), Some(cc))
       }
     }
     
-    def checkFrequencyPerDay(storedConsent: consent.Consent) = {
+    def checkFrequencyPerDay(storedConsent: consent.ConsentTrait) = {
       def isSameDay(date1: Date, date2: Date): Boolean = {
         val fmt = new SimpleDateFormat("yyyyMMdd")
         fmt.format(date1).equals(fmt.format(date2))

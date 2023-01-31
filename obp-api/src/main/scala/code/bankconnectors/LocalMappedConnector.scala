@@ -10,7 +10,7 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant
-import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID}
+import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
@@ -114,8 +114,7 @@ import scala.util.{Random, Try}
 object LocalMappedConnector extends Connector with MdcLoggable {
 
   //  override type AccountType = MappedBankAccount
-  val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "10"
-
+  
   val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(10000L).build[String, Object]
   implicit val scalaCache = ScalaCache(GuavaCache(underlyingGuavaCache))
   val getTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
@@ -1892,7 +1891,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         newAccountBalance <- Full(Helper.convertToSmallestCurrencyUnits(fromAccount.balance, currency) + Helper.convertToSmallestCurrencyUnits(amount, currency))
 
         //Here is the `LocalMappedConnector`, once get this point, fromAccount must be a mappedBankAccount. So can use asInstanceOf.... 
-        _ <- tryo(fromAccount.asInstanceOf[MappedBankAccount].accountBalance(newAccountBalance).save()) ?~! UpdateBankAccountException
+        _ <- tryo(fromAccount.asInstanceOf[MappedBankAccount].accountBalance(newAccountBalance).save) ?~! UpdateBankAccountException
 
         mappedTransaction <- tryo(MappedTransaction.create
           .bank(fromAccount.bankId.value)
@@ -2047,7 +2046,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       newAccountBalance <- Full(Helper.convertToSmallestCurrencyUnits(fromAccount.balance, currency) + Helper.convertToSmallestCurrencyUnits(amount, currency))
 
       //Here is the `LocalMappedConnector`, once get this point, fromAccount must be a mappedBankAccount. So can use asInstanceOf.... 
-      _ <- tryo(fromAccount.asInstanceOf[MappedBankAccount].accountBalance(newAccountBalance).save()) ?~! UpdateBankAccountException
+      _ <- tryo(fromAccount.asInstanceOf[MappedBankAccount].accountBalance(newAccountBalance).save) ?~! UpdateBankAccountException
 
       mappedTransaction <- tryo(MappedTransaction.create
         //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
@@ -5070,7 +5069,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         .Currency(reason.currency.getOrElse(""))
         .DocumentNumber(reason.documentNumber.getOrElse(""))
         .Description(reason.description.getOrElse(""))
-        .save()
+        .save
     }
   }
 
@@ -5513,7 +5512,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   @deprecated("we create new code.model.dataAccess.AuthUser.updateUserAccountViews for June2017 connector, try to use new instead of this", "11 September 2018")
   override def setAccountHolder(owner: String, bankId: BankId, accountId: AccountId, account_owners: List[String]): Unit = {
     //    if (account_owners.contains(owner)) { // No need for now, fix it later
-    val resourceUserOwner = Users.users.vend.getUserByUserName(owner)
+    val resourceUserOwner = Users.users.vend.getUserByUserName(localIdentityProvider, owner)
     resourceUserOwner match {
       case Full(owner) => {
         if (!accountOwnerExists(owner, bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox)) {

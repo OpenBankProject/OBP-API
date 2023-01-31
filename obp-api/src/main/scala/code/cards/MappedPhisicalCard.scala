@@ -110,7 +110,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
                 .card(v)
                 .saveMe()
               v.mPinResets += pin
-              v.save()
+              v.save
           }
         }
       case _ => // There is no enough information to set foreign key
@@ -217,7 +217,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
               .card(v)
               .saveMe()
               v.mPinResets += pin
-              v.save()
+              v.save
           }
         }
       case _ => // There is no enough information to set foreign key

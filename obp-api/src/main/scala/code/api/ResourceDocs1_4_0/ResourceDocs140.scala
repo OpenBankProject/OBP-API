@@ -131,7 +131,7 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
   
   object ResourceDocs510 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
     val version: ApiVersion = ApiVersion.v5_1_0 
-    val versionStatus = ApiVersionStatus.`BLEEDING-EDGE`.toString
+    val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
     val routes = List(
       ImplementationsResourceDocs.getResourceDocsObpV400,
       ImplementationsResourceDocs.getResourceDocsSwagger,

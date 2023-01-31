@@ -1,22 +1,27 @@
 package code.api.v5_1_0
 
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, postApiCollectionJson400, revokedConsentJsonV310}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310}
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
-import code.api.util.NewStyle
+import code.api.util.{ApiRole, NewStyle}
 import code.api.util.NewStyle.HttpCode
 import code.api.v3_1_0.ConsentJsonV310
+import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
 import code.consent.Consents
+import code.loginattempts.LoginAttempt
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
+import code.userlocks.UserLocksProvider
+import code.users.Users
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
-import com.openbankproject.commons.util.ApiVersion
+import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
 
@@ -32,7 +37,7 @@ trait APIMethods510 {
 
   class Implementations510 {
 
-    val implementedInApiVersion = ApiVersion.v5_1_0
+    val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_1_0
 
     private val staticResourceDocs = ArrayBuffer[ResourceDoc]()
     def resourceDocs = staticResourceDocs 
@@ -41,6 +46,34 @@ trait APIMethods510 {
     val codeContext = CodeContext(staticResourceDocs, apiRelations)
 
 
+
+    staticResourceDocs += ResourceDoc(
+      root(OBPAPI5_1_0.version, OBPAPI5_1_0.versionStatus),
+      implementedInApiVersion,
+      "root",
+      "GET",
+      "/root",
+      "Get API Info (root)",
+      """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Hosted at information
+        |* Energy source information
+        |* Git Commit""",
+      EmptyBody,
+      apiInfoJson400,
+      List(UnknownError, "no connector set"),
+      apiTagApi :: apiTagNewStyle :: Nil)
+
+    def root (apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
+      case (Nil | "root" :: Nil) JsonGet _ => {
+        cc => Future {
+          JSONFactory510.getApiInfoJSON(apiVersion,apiVersionStatus) -> HttpCode.`200`(cc.callContext)
+        }
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       getAllApiCollections,
       implementedInApiVersion,
@@ -171,7 +204,155 @@ trait APIMethods510 {
     }
 
 
+    staticResourceDocs += ResourceDoc(
+      getUserByProviderAndUsername,
+      implementedInApiVersion,
+      nameOf(getUserByProviderAndUsername),
+      "GET",
+      "/users/provider/PROVIDER/username/USERNAME",
+      "Get User by USERNAME",
+      s"""Get user by PROVIDER and USERNAME
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,
+         |
+      """.stripMargin,
+      EmptyBody,
+      userJsonV400,
+      List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetAnyUser))
+    )
+    
+    lazy val getUserByProviderAndUsername: OBPEndpoint = {
+      case "users" :: "provider" :: provider :: "username" :: username :: Nil JsonGet _ => {
+        cc =>
+          for {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username) map {
+              x => unboxFullOrFail(x, cc.callContext, UserNotFoundByProviderAndUsername, 404)
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, cc.callContext)
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+          } yield {
+            (JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
 
+    resourceDocs += ResourceDoc(
+      getUserLockStatus,
+      implementedInApiVersion,
+      nameOf(getUserLockStatus),
+      "GET",
+      "/users/PROVIDER/USERNAME/lock-status",
+      "Get User Lock Status",
+      s"""
+         |Get User Login Status.
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      badLoginStatusJson,
+      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canReadUserLockedStatus))
+    )
+    lazy val getUserLockStatus: OBPEndpoint = {
+      //get private accounts for all banks
+      case "users" ::provider :: username :: "lock-status" :: Nil JsonGet req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus, callContext)
+            badLoginStatus <- Future {
+              LoginAttempt.getBadLoginStatus(provider, username)
+            } map {
+              unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404)
+            }
+          } yield {
+            (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      unlockUserByProviderAndUsername,
+      implementedInApiVersion,
+      nameOf(unlockUserByProviderAndUsername),
+      "PUT",
+      "/users/PROVIDER/USERNAME/lock-status",
+      "Unlock the user",
+      s"""
+         |Unlock a User.
+         |
+         |(Perhaps the user was locked due to multiple failed login attempts)
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      badLoginStatusJson,
+      List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canUnlockUser)))
+    lazy val unlockUserByProviderAndUsername: OBPEndpoint = {
+      //get private accounts for all banks
+      case "users" ::  provider :: username :: "lock-status" :: Nil JsonPut req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser, callContext)
+            _ <- Future {
+              LoginAttempt.resetBadLoginAttempts(provider, username)
+            }
+            _ <- Future {
+              UserLocksProvider.unlockUser(provider, username)
+            }
+            badLoginStatus <- Future {
+              LoginAttempt.getBadLoginStatus(provider, username)
+            } map {
+              unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404)
+            }
+          } yield {
+            (createBadLoginStatusJson(badLoginStatus), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      lockUserByProviderAndUsername,
+      implementedInApiVersion,
+      nameOf(lockUserByProviderAndUsername),
+      "POST",
+      "/users/PROVIDER/USERNAME/locks",
+      "Lock the user",
+      s"""
+         |Lock a User.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody,
+      userLockStatusJson,
+      List($UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canLockUser)))
+    lazy val lockUserByProviderAndUsername: OBPEndpoint = {
+      case "users" :: provider :: username :: "locks" :: Nil JsonPost req => {
+        cc =>
+          for {
+            (Full(u), callContext) <- SS.user
+            userLocks <- Future {
+              UserLocksProvider.lockUser(provider, username)
+            } map {
+              unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404)
+            }
+          } yield {
+            (JSONFactory400.createUserLockStatusJson(userLocks), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
   }
 }

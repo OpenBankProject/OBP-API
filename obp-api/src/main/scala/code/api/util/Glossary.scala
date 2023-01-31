@@ -1,12 +1,15 @@
 package code.api.util
 
+import java.io.File
+
 import code.api.Constant.PARAM_LOCALE
-import code.api.util.APIUtil.{getOAuth2ServerUrl, getObpApiRoot, getServerUrl}
+import code.api.util.APIUtil.{getObpApiRoot, getServerUrl}
 import code.api.util.ExampleValue.{accountIdExample, bankIdExample, customerIdExample, userIdExample}
 import code.util.Helper.MdcLoggable
+import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import net.liftweb.http.LiftRules
 
 import scala.collection.mutable.ArrayBuffer
-import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 
 
 object Glossary extends MdcLoggable  {
@@ -3061,28 +3064,6 @@ object Glossary extends MdcLoggable  {
 		  |
 		  |""".stripMargin)
 
-
-
-	glossaryItems += GlossaryItem(
-		title = "Dynamic Resource Doc",
-		description =
-			s"""
-		  | In OBP we largely define our endpoints using an internal case class or model called ResourceDoc
-|
-|  Using this endpoint, developers can create their own Resource Docs at run time thus creating fully featured
-|  Open Bank Project style endpoints dynamically.
-|
-|
-			| In order to do this you need to prepare your desired Resource Doc as JSON.
-			| The business logic code can be written in the *method_body* field as encoded Scala code.
-			|  
-			| This feature is somewhat work in progress (WIP).
-			|
-			|The following videos are available:
-			|* [Introduction to Dynamic Resource Docs] (https://vimeo.com/623381607)
-		  |
-		  |""".stripMargin)
-
 	glossaryItems += GlossaryItem(
 		title = "Dynamic Message Doc",
 		description =
@@ -3106,7 +3087,38 @@ object Glossary extends MdcLoggable  {
 		  |""".stripMargin)
 
 
+	private def getContentFromMarkdownFile(path: String): String = {
+		val source = scala.io.Source.fromFile(path)
+		val lines: String = try source.mkString finally source.close()
+		lines
+			.replaceAll("getServerUrl", getServerUrl)
+			.replaceAll("getObpApiRoot", getObpApiRoot)
+	}
 
+	private def getListOfFiles():List[File] = {
+		val dir= LiftRules.getResource("/")
+			.map(_.toURI.getPath
+				.replace("obp-api/src/main/webapp", "docs/glossary"))
+		val d = new File(dir.getOrElse(""))
+		if (d.exists && d.isDirectory) {
+			d.listFiles.filter(_.isFile).filter(_.getName.endsWith(".md")).toList
+		} else {
+			List[File]()
+		}
+	}
+	
+	// Append all files from /OBP-API/docs/glossary as items
+	// File name is used as a title
+	// File content is used as a description
+	glossaryItems.appendAll(
+		getListOfFiles().map(file =>
+			GlossaryItem(
+				title = file.getName.replace(".md", "").replace("_", " "),
+				description = getContentFromMarkdownFile(file.getPath)
+			)
+		)
+	)
+	
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////

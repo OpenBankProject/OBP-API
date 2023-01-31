@@ -96,6 +96,7 @@ object Migration extends MdcLoggable {
       alterMappedExpectedChallengeAnswerChallengeTypeLength()
       alterTransactionRequestChallengeChallengeTypeLength()
       alterMappedCustomerAttribute(startedBeforeSchemifier)
+      dropMappedBadLoginAttemptIndex()
     }
     
     private def dummyScript(): Boolean = {
@@ -429,6 +430,13 @@ object Migration extends MdcLoggable {
         runOnce(name) {
           MigrationOfCustomerAttributes.alterColumnValue(name)
         }
+      }
+    }
+
+    private def dropMappedBadLoginAttemptIndex(): Boolean = {
+      val name = nameOf(dropMappedBadLoginAttemptIndex)
+      runOnce(name) {
+        MigrationOfMappedBadLoginAttemptDropIndex.dropUniqueIndex(name)
       }
     }
   }

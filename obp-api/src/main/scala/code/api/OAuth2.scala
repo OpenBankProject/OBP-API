@@ -128,11 +128,14 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         if(consumer.isEmpty) {
           return (Failure(Oauth2TokenHaveNoConsumer), Some(cc.copy(consumer = Failure(Oauth2TokenHaveNoConsumer))))
         }
-        val clientCert = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
+        val clientCert: Option[String] = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
         clientCert.filter(StringUtils.isNotBlank).foreach {cert =>
           val foundConsumer = consumer.orNull
           val certInConsumer = foundConsumer.clientCertificate.get
           if(StringUtils.isBlank(certInConsumer)) {
+            // In case that the certificate of a consumer is not populated in a database
+            // we use the value at PSD2-CERT header in order to populate it for the first time.
+            // Please note that every next call MUST match that value.
             foundConsumer.clientCertificate.set(cert)
             consumer = Full(foundConsumer.saveMe())
             val clientId = foundConsumer.key.get
@@ -147,19 +150,26 @@ object OAuth2Login extends RestHelper with MdcLoggable {
             // hydra update client endpoint have bug, So here delete and create to do update
             hydraAdmin.deleteOAuth2Client(clientId)
             hydraAdmin.createOAuth2Client(oAuth2Client)
-          } else if(stringNotEq(certInConsumer, cert)) {
+          } else if(stringNotEq(certInConsumer, cert)) { 
+            // Cannot match the value from PSD2-CERT header and the database value Consumer.clientCertificate
             logger.debug("Cert in Consumer: " + certInConsumer)
             logger.debug("Cert in Request: " + cert)
+            logger.debug(s"Token: $value")
+            logger.debug(s"Client ID: ${introspectOAuth2Token.getClientId}")
             return (Failure(Oauth2TokenMatchCertificateFail), Some(cc.copy(consumer = Failure(Oauth2TokenMatchCertificateFail))))
+          } else {
+            // Certificate is matched. Just make some debug logging.
+            logger.debug("The token is linked with a proper client certificate.")
+            logger.debug(s"Token: $value")
+            logger.debug(s"Client Key: ${introspectOAuth2Token.getClientId}")
           }
         }
       }
 
-      
-      val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getSub)
+      val user = Users.users.vend.getUserByUserName(hydraPublicUrl, introspectOAuth2Token.getSub)
       user match {
         case Full(u) =>
-          LoginAttempt.userIsLocked(u.name) match {
+          LoginAttempt.userIsLocked(u.provider, u.name) match {
             case true => (Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer)))
             case false => (Full(u), Some(cc.copy(consumer = consumer)))
           }
@@ -338,7 +348,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
         case Full(_) =>
           val user = IdentityProviderCommon.getOrCreateResourceUser(value)
           val consumer = IdentityProviderCommon.getOrCreateConsumer(value, user.map(_.userId))
-          LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
+          LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
             case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
             case false => (user, Some(cc.copy(consumer = consumer)))
           }
@@ -357,7 +367,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
             user <-  IdentityProviderCommon.getOrCreateResourceUserFuture(value)
             consumer <-  Future{IdentityProviderCommon.getOrCreateConsumer(value, user.map(_.userId))}
           } yield {
-            LoginAttempt.userIsLocked(user.map(_.name).getOrElse("")) match {
+            LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
               case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
               case false => (user, Some(cc.copy(consumer = consumer)))
             }

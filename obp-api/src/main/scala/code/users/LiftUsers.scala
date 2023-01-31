@@ -92,13 +92,16 @@ object LiftUsers extends Users with MdcLoggable{
     Future(getUsersByUserIds(userIds))
   }
 
-  override def getUserByUserName(userName: String): Box[User] = {
-    ResourceUser.find(By(ResourceUser.name_, userName))
+  override def getUserByUserName(provider : String, userName: String): Box[User] = {
+    ResourceUser.find(
+      By(ResourceUser.provider_, provider),
+      By(ResourceUser.name_, userName)
+    )
   }
 
-  override def getUserByUserNameFuture(userName: String): Future[Box[User]] = {
+  override def getUserByProviderAndUsernameFuture(provider: String, username: String): Future[Box[User]] = {
     Future {
-      getUserByUserName(userName)
+      getUserByUserName(provider, username)
     }
   }
 
@@ -302,12 +305,12 @@ object LiftUsers extends Users with MdcLoggable{
             .name_("DELETED-" + Helpers.randomString(16))
             .email(Helpers.randomString(10) + "@example.com")
             .providerId(Helpers.randomString(16))
-            .save()
+            .save
         case _ =>
           u
             .Company(Helpers.randomString(16))
             .IsDeleted(true)
-            .save()
+            .save
       }
     }
   }

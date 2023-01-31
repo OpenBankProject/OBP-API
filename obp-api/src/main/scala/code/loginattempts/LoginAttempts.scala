@@ -10,9 +10,9 @@ import net.liftweb.util.Helpers._
 
 object LoginAttempt extends MdcLoggable {
 
-  val maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "5"
+  def maxBadLoginAttempts = APIUtil.getPropsValue("max.bad.login.attempts") openOr "5"
   
-  def incrementBadLoginAttempts(username: String, provider: String): Unit = {
+  def incrementBadLoginAttempts(provider: String, username: String): Unit = {
     username.isEmpty() match {
       case true => // Not a valid case. GitLab issue 389
         logger.warn(s"Username is empty: incrementBadLoginAttempts(username=$username, provider=$provider")
@@ -20,7 +20,10 @@ object LoginAttempt extends MdcLoggable {
         logger.debug(s"Hello from incrementBadLoginAttempts with $username")
 
         // Find badLoginAttempt record if one exists for a user
-        MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
+        MappedBadLoginAttempt.find(
+          By(MappedBadLoginAttempt.Provider, provider),
+          By(MappedBadLoginAttempt.mUsername, username)
+        ) match {
           // If it exits update the date and increment
           case Full(loginAttempt) =>
 
@@ -37,24 +40,30 @@ object LoginAttempt extends MdcLoggable {
               .Provider(provider)
               .mLastFailureDate(now)
               .mBadAttemptsSinceLastSuccessOrReset(1) // Start with 1
-              .save()
+              .save
 
             logger.debug(s"incrementBadLoginAttempts created loginAttempt")
         }
     }
   }
   
-  def getBadLoginStatus(username: String): Box[BadLoginAttempt] = {
-    MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) 
+  def getBadLoginStatus(provider: String, username: String): Box[BadLoginAttempt] = {
+    MappedBadLoginAttempt.find(
+      By(MappedBadLoginAttempt.Provider, provider),
+      By(MappedBadLoginAttempt.mUsername, username)
+    ) 
   }
 
   /**
     * check the bad login attempts, if it exceed the "max.bad.login.attempts"(in default.props), it return false.
     */
-  def userIsLocked(username: String): Boolean = {
+  def userIsLocked(provider: String, username: String): Boolean = {
 
-    val result : Boolean = MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
-      case Empty => UserLocksProvider.isLocked(username)
+    val result : Boolean = MappedBadLoginAttempt.find(
+      By(MappedBadLoginAttempt.Provider, provider),
+      By(MappedBadLoginAttempt.mUsername, username)
+    ) match {
+      case Empty => UserLocksProvider.isLocked(provider, username)
       case Full(loginAttempt)  => loginAttempt.badAttemptsSinceLastSuccessOrReset > maxBadLoginAttempts.toInt match {
         case true => true
         case false => false
@@ -67,9 +76,12 @@ object LoginAttempt extends MdcLoggable {
 
   }
 
-  def resetBadLoginAttempts(username: String): Unit = {
+  def resetBadLoginAttempts(provider: String, username: String): Unit = {
 
-    MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
+    MappedBadLoginAttempt.find(
+      By(MappedBadLoginAttempt.Provider, provider),
+      By(MappedBadLoginAttempt.mUsername, username)
+    ) match {
       case Full(loginAttempt) =>
         loginAttempt.mLastFailureDate(now).mBadAttemptsSinceLastSuccessOrReset(0).save
       case _ =>

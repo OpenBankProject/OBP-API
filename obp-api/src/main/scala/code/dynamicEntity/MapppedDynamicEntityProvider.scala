@@ -69,7 +69,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .HasPersonalEntity(dynamicEntity.hasPersonalEntity)
           .saveMe()
       } catch {
-        case e =>
+        case e : Throwable =>
           logger.error("Create or Update DynamicEntity fail.", e)
           throw e
       }

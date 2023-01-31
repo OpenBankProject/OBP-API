@@ -1134,8 +1134,8 @@ object NewStyle extends MdcLoggable{
       }
     }
   
-    def getOrCreateResourceUser(username: String, provider: String, callContext: Option[CallContext]): OBPReturnType[User] = {
-      Future { UserX.getOrCreateDauthResourceUser(username, provider).map(user =>(user, callContext))} map {
+    def getOrCreateResourceUser(provider: String, username: String, callContext: Option[CallContext]): OBPReturnType[User] = {
+      Future { UserX.getOrCreateDauthResourceUser(provider, username).map(user =>(user, callContext))} map {
         unboxFullOrFail(_, callContext, s"$CannotGetOrCreateUser Current USERName($username) PROVIDER ($provider)", 404)
       }
     }
