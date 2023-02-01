@@ -2,7 +2,7 @@ name: build and publish container
 
 on:
   workflow_run:
-    workflows: ["build and publish container"]
+    workflows: [build and publish container]
     types:
       - completed
 env:
