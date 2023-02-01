@@ -47,11 +47,17 @@ object LoginAttempt extends MdcLoggable {
     }
   }
   
-  def getBadLoginStatus(provider: String, username: String): Box[BadLoginAttempt] = {
+  def getOrCreateBadLoginStatus(provider: String, username: String): Box[BadLoginAttempt] = {
     MappedBadLoginAttempt.find(
       By(MappedBadLoginAttempt.Provider, provider),
       By(MappedBadLoginAttempt.mUsername, username)
-    ) 
+    ).or(Full(MappedBadLoginAttempt.create
+      .mUsername(username)
+      .Provider(provider)
+      .mLastFailureDate(now)
+      .mBadAttemptsSinceLastSuccessOrReset(0)
+      .saveMe()
+    ))
   }
 
   /**
