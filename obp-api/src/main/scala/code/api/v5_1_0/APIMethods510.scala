@@ -265,8 +265,11 @@ trait APIMethods510 {
           for {
             (Full(u), callContext) <- SS.user
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadUserLockedStatus, callContext)
+            _ <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username) map {
+              x => unboxFullOrFail(x, callContext, UserNotFoundByProviderAndUsername, 404)
+            }
             badLoginStatus <- Future {
-              LoginAttempt.getBadLoginStatus(provider, username)
+              LoginAttempt.getOrCreateBadLoginStatus(provider, username)
             } map {
               unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404)
             }
@@ -303,6 +306,9 @@ trait APIMethods510 {
           for {
             (Full(u), callContext) <- SS.user
             _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canUnlockUser, callContext)
+            _ <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username) map {
+              x => unboxFullOrFail(x, callContext, UserNotFoundByProviderAndUsername, 404)
+            }
             _ <- Future {
               LoginAttempt.resetBadLoginAttempts(provider, username)
             }
@@ -310,7 +316,7 @@ trait APIMethods510 {
               UserLocksProvider.unlockUser(provider, username)
             }
             badLoginStatus <- Future {
-              LoginAttempt.getBadLoginStatus(provider, username)
+              LoginAttempt.getOrCreateBadLoginStatus(provider, username)
             } map {
               unboxFullOrFail(_, callContext, s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404)
             }
