@@ -410,6 +410,7 @@ class ConsumerRegistration extends MdcLoggable {
         s"App name: ${registered.name.get} \n" +
         s"App type: ${registered.appType.get} \n" +
         s"App description: ${registered.description.get} \n" +
+        s"App Redirect Url : ${registered.redirectURL} \n" +
         s"Consumer Key: ${consumerKeyOrMessage} \n" +
         s"Consumer Secret : ${consumerSecretOrMessage} \n" +
         s"OAuth Endpoint: ${oauthEndpointUrl} \n" +
@@ -454,7 +455,8 @@ class ConsumerRegistration extends MdcLoggable {
       		s"Email: ${registered.developerEmail.get} \n" +
       		s"App name: ${registered.name.get} \n" +
       		s"App type: ${registered.appType.get} \n" +
-      		s"App description: ${registered.description.get}"
+      		s"App description: ${registered.description.get} \n" +
+          s"App Redirect Url : ${registered.redirectURL}"
 
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
       val to = toAddressesString.split(",").toList
