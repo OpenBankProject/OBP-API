@@ -1212,7 +1212,7 @@ user_account_is_validated = false
 retain_archive_metrics_days = 1095
 
 # Defines the number of days we keep rows in the table "Metric" former "MappedMetric"
-retain_metrics_days = 200
+retain_metrics_days = 367
 
 #if same session used for different ip address, we can show this warning, default is false.
 show_ip_address_change_warning=false
