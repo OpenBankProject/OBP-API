@@ -165,8 +165,12 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           }
         }
       }
-
-      val user = Users.users.vend.getUserByUserName(hydraPublicUrl, introspectOAuth2Token.getSub)
+      
+      // In case a user is created via OpenID Connect flow implies provider = hydraPublicUrl
+      // In case a user is created via GUI of OBP-API implies provider = Constant.localIdentityProvider
+      val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getIss, introspectOAuth2Token.getSub).or(
+        Users.users.vend.getUserByUserName(Constant.localIdentityProvider, introspectOAuth2Token.getSub)
+      )
       user match {
         case Full(u) =>
           LoginAttempt.userIsLocked(u.provider, u.name) match {
