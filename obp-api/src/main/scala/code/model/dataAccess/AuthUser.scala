@@ -472,7 +472,9 @@ import net.liftweb.util.Helpers._
       resourceUser <- if (AuthUser.currentUser.isDefined){
         //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side {
         val user = AuthUser.currentUser.openOrThrowException(ErrorMessages.attemptedToOpenAnEmptyBox)
-        Users.users.vend.getUserByUserName(user.provider.get, user.username.get)
+        // In case that the provider is empty field we default to "local_identity_provider" or "hostname"
+        val provider = if(user.provider.get.isEmpty) Constant.localIdentityProvider else user.provider.get
+        Users.users.vend.getUserByUserName(provider, user.username.get)
       }else if (directLogin.isDefined) // Direct Login
         DirectLogin.getUser
       else if (hasDirectLoginHeader(authorization)) // Direct Login Deprecated
