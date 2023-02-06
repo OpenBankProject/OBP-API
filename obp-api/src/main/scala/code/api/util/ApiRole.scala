@@ -65,15 +65,6 @@ object RoleCombination {
 
 object ApiRole {
 
-  case class CanSearchAllTransactions(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canSearchAllTransactions = CanSearchAllTransactions()
-
-  case class CanSearchAllAccounts(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canSearchAllAccounts = CanSearchAllAccounts()
-
-  case class CanQueryOtherUser(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canQueryOtherUser = CanQueryOtherUser()
-
   case class CanSearchWarehouse(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSearchWarehouse = CanSearchWarehouse()
 
@@ -320,9 +311,6 @@ object ApiRole {
   case class CanGetCounterparties(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetCounterparties = CanGetCounterparties()
 
-  case class CanGetApiCollection(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetApiCollection = CanGetApiCollection()
-
   case class CanGetApiCollectionsForUser(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetApiCollectionsForUser = CanGetApiCollectionsForUser()
 
@@ -377,17 +365,8 @@ object ApiRole {
   case class CanGetConnectorMetrics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConnectorMetrics = CanGetConnectorMetrics()
 
-  case class CanGetOtherAccountsAtBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetOtherAccountsAtBank = CanGetOtherAccountsAtBank()
-
-  case class CanDeleteEntitlementRequestsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteEntitlementRequestsAtOneBank = CanDeleteEntitlementRequestsAtOneBank()
-
   case class CanDeleteEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEntitlementRequestsAtAnyBank = CanDeleteEntitlementRequestsAtAnyBank()
-
-  case class CanGetEntitlementRequestsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetEntitlementRequestsAtOneBank = CanGetEntitlementRequestsAtOneBank()
 
   case class CanGetEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetEntitlementRequestsAtAnyBank = CanGetEntitlementRequestsAtAnyBank()
@@ -412,9 +391,6 @@ object ApiRole {
 
   case class CanDeleteScopeAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteScopeAtAnyBank = CanDeleteScopeAtAnyBank()
-
-  case class CanDeleteScopeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteScopeAtOneBank = CanDeleteScopeAtOneBank()
 
   case class CanUnlockUser (requiresBankId: Boolean = false) extends ApiRole
   lazy val canUnlockUser = CanUnlockUser()
@@ -463,9 +439,6 @@ object ApiRole {
 
   case class CanCreateUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateUserAuthContext = CanCreateUserAuthContext()
-
-  case class CanUpdateUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUpdateUserAuthContext = CanUpdateUserAuthContext()
 
   case class CanGetUserAuthContext(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetUserAuthContext = CanGetUserAuthContext()
@@ -693,9 +666,6 @@ object ApiRole {
   case class CanUpdateTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateTransactionAttributeAtOneBank = CanUpdateTransactionAttributeAtOneBank()
 
-  case class CanDeleteTransactionAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteTransactionAttributeAtOneBank = CanDeleteTransactionAttributeAtOneBank()
-
   case class CanGetTransactionAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTransactionAttributesAtOneBank = CanGetTransactionAttributesAtOneBank()
 
@@ -707,9 +677,6 @@ object ApiRole {
 
   case class CanUpdateTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateTransactionRequestAttributeAtOneBank = CanUpdateTransactionRequestAttributeAtOneBank()
-
-  case class CanDeleteTransactionRequestAttributeAtOneBank(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteTransactionRequestAttributeAtOneBank = CanDeleteTransactionRequestAttributeAtOneBank()
 
   case class CanGetTransactionRequestAttributesAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetTransactionRequestAttributesAtOneBank = CanGetTransactionRequestAttributesAtOneBank()
