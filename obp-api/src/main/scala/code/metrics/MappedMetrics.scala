@@ -205,24 +205,24 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
   
   
-  private def extendCurrentQuery (length: Int) ={
+  private def extendCurrentQuery (params: List[String]) ={
       // --> "?,?,"
-      val a = for(i <- 1 to (length-1) ) yield {"?,"}
+      val a = for(i <- 0 to (params.length-2) ) yield {s"${params(i)},"}
       //"?,?,--> "?,?,?"
-      a.mkString("").concat("?")
+      a.mkString("").concat(s"${params.last}")
     }
   
   
-  private def extendNotLikeQuery(length: Int) = {
-    if (length == 1)
-      "? ))"
+  private def extendNotLikeQuery(params:  List[String]) = {
+    if (params.length == 1)
+      s"${params.head} ))"
     else
     {
-      val a = for (i <- 1 to (length - 2)) yield
+      val a = for (i <- 1 to (params.length - 2)) yield
         {
-          " and url NOT LIKE (?)"
+          s" and url NOT LIKE (${params(i)})"
         }
-      "? )" + a.mkString("").concat(" and url NOT LIKE (?))")
+      s"${params.head})" + a.mkString("").concat(s" and url NOT LIKE (${params.last}))")
     }
   }
   
@@ -284,13 +284,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
       val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
 
-      val excludeUrlPatternsSet= excludeUrlPatterns.getOrElse(List("")).toSet
-      val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
-      val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
+      val excludeUrlPatternsList= excludeUrlPatterns.getOrElse(List(""))
+      val excludeAppNamesNumberList = excludeAppNames.getOrElse(List(""))
+      val excludeImplementedByPartialFunctionsNumberList = excludeImplementedByPartialFunctions.getOrElse(List(""))
 
-      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
-      val extendedExcludeAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsList)
+      val extendedExcludeAppNameQueries = extendCurrentQuery(excludeAppNamesNumberList)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberList)
 
       val result = scalikeDB readOnly { implicit session =>
         val sqlResult =
@@ -362,13 +362,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
       val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(10)
       
-      val excludeUrlPatternsSet= excludeUrlPatterns.getOrElse(List("")).toSet
-      val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
-      val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
+      val excludeUrlPatternsList= excludeUrlPatterns.getOrElse(List(""))
+      val excludeAppNamesNumberList = excludeAppNames.getOrElse(List(""))
+      val excludeImplementedByPartialFunctionsNumberList = excludeImplementedByPartialFunctions.getOrElse(List(""))
 
-      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
-      val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsList)
+      val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberList)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberList)
       
       val (dbUrl, _, _) = getDbConnectionParameters
 
@@ -440,13 +440,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
       val limit = queryParams.collect { case OBPLimit(value) => value }.headOption
 
-      val excludeUrlPatternsSet = excludeUrlPatterns.getOrElse(List("")).toSet
-      val excludeAppNamesNumberSet = excludeAppNames.getOrElse(List("")).toSet
-      val excludeImplementedByPartialFunctionsNumberSet = excludeImplementedByPartialFunctions.getOrElse(List("")).toSet
+      val excludeUrlPatternsList = excludeUrlPatterns.getOrElse(List(""))
+      val excludeAppNamesNumberList = excludeAppNames.getOrElse(List(""))
+      val excludeImplementedByPartialFunctionsNumberList = excludeImplementedByPartialFunctions.getOrElse(List(""))
 
-      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsSet.size)
-      val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberSet.size)
-      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberSet.size)
+      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsList)
+      val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberList)
+      val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberList)
 
       val (dbUrl, _, _) = getDbConnectionParameters
 
