@@ -9,11 +9,13 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
 import code.api.util.{ApiRole, NewStyle}
 import code.api.util.NewStyle.HttpCode
+import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
+import code.metrics.APIMetrics
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -357,6 +359,85 @@ trait APIMethods510 {
           } yield {
             (JSONFactory400.createUserLockStatusJson(userLocks), HttpCode.`200`(callContext))
           }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getAggregateMetrics,
+      implementedInApiVersion,
+      nameOf(getAggregateMetrics),
+      "GET",
+      "/management/aggregate-metrics",
+      "Get Aggregate Metrics",
+      s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
+         |
+         |Should be able to filter on the following fields
+         |
+         |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
+         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+         |&verb=GET&anon=false&app_name=MapperPostman
+         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         |
+         |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 consumer_id  (if null ignore)
+         |
+         |4 user_id (if null ignore)
+         |
+         |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         |
+         |6 url (if null ignore), note: can not contain '&'.
+         |
+         |7 app_name (if null ignore)
+         |
+         |8 implemented_by_partial_function (if null ignore),
+         |
+         |9 implemented_in_version (if null ignore)
+         |
+         |10 verb (if null ignore)
+         |
+         |11 correlation_id (if null ignore)
+         |
+         |12 duration (if null ignore) non digit chars will be silently omitted
+         |
+         |13 include_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         |
+         |14 include_url_patterns (if null ignore).you can design you own SQL LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
+         |
+         |15 include_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      aggregateMetricsJSONV300,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagMetric, apiTagAggregateMetrics, apiTagNewStyle),
+      Some(List(canReadAggregateMetrics)))
+
+    lazy val getAggregateMetrics: OBPEndpoint = {
+      case "management" :: "aggregate-metrics" :: Nil JsonGet _ => {
+        cc => {
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics, callContext)
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
+            aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams,OBPAPI5_1_0.version) map {
+              x => unboxFullOrFail(x, callContext, GetAggregateMetricsError)
+            }
+          } yield {
+            (createAggregateMetricJson(aggregateMetrics), HttpCode.`200`(callContext))
+          }
+        }
+
       }
     }
 

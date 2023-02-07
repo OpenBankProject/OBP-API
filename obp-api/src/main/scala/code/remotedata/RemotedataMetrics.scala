@@ -6,6 +6,7 @@ import akka.pattern.ask
 import code.actorsystem.ObpActorInit
 import code.api.util.OBPQueryParam
 import code.metrics._
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 
 import scala.concurrent.Future
@@ -36,9 +37,9 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
     (actor ? cc.getAllMetrics(queryParams)).mapTo[List[APIMetric]]
   )
   
-  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] ={
-    logger.debug(s"RemotedataMetrics.getAllAggregateMetrics($queryParams)")
-    (actor ? cc.getAllAggregateMetricsFuture(queryParams)).mapTo[Box[List[AggregateMetrics]]]
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], apiVersion: ApiVersion): Future[Box[List[AggregateMetrics]]] ={
+    logger.debug(s"RemotedataMetrics.getAllAggregateMetrics($queryParams, $apiVersion)")
+    (actor ? cc.getAllAggregateMetricsFuture(queryParams,apiVersion)).mapTo[Box[List[AggregateMetrics]]]
   }
   
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = {

@@ -1,15 +1,14 @@
 package code.remotedata
 
 import java.util.Date
-
 import akka.actor.Actor
 import code.actorsystem.ObpActorHelper
 import code.metrics.{MappedMetrics, RemotedataMetricsCaseClasses}
 import code.util.Helper.MdcLoggable
 import akka.pattern.pipe
 import code.api.util.OBPQueryParam
-
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
 
 class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable {
 
@@ -41,9 +40,9 @@ class RemotedataMetricsActor extends Actor with ObpActorHelper with MdcLoggable 
       logger.debug("getAllMetrics()")
       sender ! (mapper.getAllMetrics(queryParams))
 
-    case cc.getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]) =>
-      logger.debug(s"RemotedataMetricsActor.getAllAggregateMetricsFuture($queryParams)")
-      sender ! (mapper.getAllAggregateMetricsBox(queryParams))
+    case cc.getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], apiVersion: ApiVersion) =>
+      logger.debug(s"RemotedataMetricsActor.getAllAggregateMetricsFuture($queryParams, $apiVersion)")
+      sender ! (mapper.getAllAggregateMetricsBox(queryParams,apiVersion))
       
     case cc.getTopApisFuture(queryParams: List[OBPQueryParam]) =>
       logger.debug(s"getTopApisFuture($queryParams)")

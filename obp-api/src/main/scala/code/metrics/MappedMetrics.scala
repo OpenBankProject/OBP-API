@@ -11,6 +11,7 @@ import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.util.ApiVersion
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
 import net.liftweb.mapper.{Index, _}
@@ -213,16 +214,20 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }
   
   
-  private def extendNotLikeQuery(params:  List[String]) = {
+  private def extendLikeQuery(params:  List[String], isLike: Boolean) = {
+    val isLikeQuery = if (isLike) "" else  "NOT"
+    
     if (params.length == 1)
-      s"${params.head} ))"
+      s"${params.head}"
     else
     {
       val a = for (i <- 1 to (params.length - 2)) yield
         {
-          s" and url NOT LIKE (${params(i)})"
+          s" and url ${isLikeQuery} LIKE ('${params(i)}')"
         }
-      s"${params.head})" + a.mkString("").concat(s" and url NOT LIKE (${params.last}))")
+//     OR (url NOT LIKE ( '%management/metrics%' ) AND url NOT LIKE ( '%management/metrics%' ) ')))
+//     or (url NOT LIKE ($excludeUrlPatternsQueries)))
+      s"${params.head}')" + a.mkString("").concat(s" and url  ${isLikeQuery} LIKE ('${params.last} ")
     }
   }
   
@@ -259,7 +264,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
  }
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
-  def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam]): Box[List[AggregateMetrics]] = {
+  def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], apiVersion: ApiVersion): Box[List[AggregateMetrics]] = {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -275,6 +280,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val url = queryParams.collect { case OBPUrl(value) => value }.headOption
       val appName = queryParams.collect { case OBPAppName(value) => value }.headOption
       val excludeAppNames = queryParams.collect { case OBPExcludeAppNames(value) => value }.headOption
+      val includeAppNames = queryParams.collect { case OBPIncludeAppNames(value) => value }.headOption
       val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption
       val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption
       val verb = queryParams.collect { case OBPVerb(value) => value }.headOption
@@ -282,36 +288,65 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption
       val duration = queryParams.collect { case OBPDuration(value) => value }.headOption
       val excludeUrlPatterns = queryParams.collect { case OBPExcludeUrlPatterns(value) => value }.headOption
+      val includeUrlPatterns = queryParams.collect { case OBPIncludeUrlPatterns(value) => value }.headOption
       val excludeImplementedByPartialFunctions = queryParams.collect { case OBPExcludeImplementedByPartialFunctions(value) => value }.headOption
+      val includeImplementedByPartialFunctions = queryParams.collect { case OBPIncludeImplementedByPartialFunctions(value) => value }.headOption
 
       val excludeUrlPatternsList= excludeUrlPatterns.getOrElse(List(""))
       val excludeAppNamesNumberList = excludeAppNames.getOrElse(List(""))
       val excludeImplementedByPartialFunctionsNumberList = excludeImplementedByPartialFunctions.getOrElse(List(""))
 
-      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsList)
+      val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
       val extendedExcludeAppNameQueries = extendCurrentQuery(excludeAppNamesNumberList)
       val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberList)
+      
+      val includeUrlPatternsList= includeUrlPatterns.getOrElse(List(""))
+      val includeAppNamesNumberList = includeAppNames.getOrElse(List(""))
+      val includeImplementedByPartialFunctionsNumberList = includeImplementedByPartialFunctions.getOrElse(List(""))
+
+      val includeUrlPatternsQueries = extendLikeQuery(includeUrlPatternsList, true)
+      val extendedIncludeAppNameQueries = extendCurrentQuery(includeAppNamesNumberList)
+      val extendedIncludeImplementedByPartialFunctionsQueries = extendCurrentQuery(includeImplementedByPartialFunctionsNumberList)
 
       val result = scalikeDB readOnly { implicit session =>
-        val sqlResult =
+        val sqlQuery = if(apiVersion.equals(ApiVersion.v5_1_0))
           sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
-                FROM metric
-                WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
-                AND date_c <= ${new Timestamp(toDate.get.getTime)}
-                AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
-                AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
-                AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
-                AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
-                AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
-                AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
-                AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null') 
-                AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
-                AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
-                AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExcludeAppNameQueries))
-                AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries))
-                """.stripMargin
-            .map(
+              FROM metric
+              WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
+              AND date_c <= ${new Timestamp(toDate.get.getTime)}
+              AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
+              AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
+              AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
+              AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
+              AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
+              AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
+              AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
+              AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
+              AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+              AND (${trueOrFalse(includeUrlPatterns.isEmpty) } or (url LIKE ($includeUrlPatternsQueries)))
+              AND (${trueOrFalse(includeAppNames.isEmpty) } or appname in ($extendedIncludeAppNameQueries))
+              AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($extendedIncludeImplementedByPartialFunctionsQueries))
+              """.stripMargin
+        else
+          sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
+            FROM metric
+            WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
+            AND date_c <= ${new Timestamp(toDate.get.getTime)}
+            AND (${trueOrFalse(consumerId.isEmpty)} or consumerid = ${consumerId.getOrElse("")})
+            AND (${trueOrFalse(userId.isEmpty)} or userid = ${userId.getOrElse("")})
+            AND (${trueOrFalse(implementedByPartialFunction.isEmpty)} or implementedbypartialfunction = ${implementedByPartialFunction.getOrElse("")})
+            AND (${trueOrFalse(implementedInVersion.isEmpty)} or implementedinversion = ${implementedInVersion.getOrElse("")})
+            AND (${trueOrFalse(url.isEmpty)} or url = ${url.getOrElse("")})
+            AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
+            AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
+            AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
+            AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+            AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
+            AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($extendedExcludeAppNameQueries))
+            AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($extendedExcludeImplementedByPartialFunctionsQueries))
+            """.stripMargin
+        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlQuery --:  " +sqlQuery.statement)
+        val sqlResult = sqlQuery.map(
               rs => // Map result to case class
                 AggregateMetrics(
                   rs.stringOpt(1).map(_.toInt).getOrElse(0), 
@@ -320,14 +355,15 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                   rs.stringOpt(4).map(_.toDouble).getOrElse(0)
                 )
             ).list().apply()
+        logger.debug("code.metrics.MappedMetrics.getAllAggregateMetricsBox.sqlResult --:  "+sqlResult.toString)
         sqlResult
       }
       tryo(result)
     }}
   }
   
-  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = Future{
-    getAllAggregateMetricsBox(queryParams: List[OBPQueryParam])
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], apiVersion: ApiVersion): Future[Box[List[AggregateMetrics]]] = Future{
+    getAllAggregateMetricsBox(queryParams: List[OBPQueryParam],apiVersion)
   }
   
   override def bulkDeleteMetrics(): Boolean = {
@@ -366,7 +402,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeAppNamesNumberList = excludeAppNames.getOrElse(List(""))
       val excludeImplementedByPartialFunctionsNumberList = excludeImplementedByPartialFunctions.getOrElse(List(""))
 
-      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsList)
+      val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberList)
       val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberList)
       
@@ -444,7 +480,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val excludeAppNamesNumberList = excludeAppNames.getOrElse(List(""))
       val excludeImplementedByPartialFunctionsNumberList = excludeImplementedByPartialFunctions.getOrElse(List(""))
 
-      val excludeUrlPatternsQueries = extendNotLikeQuery(excludeUrlPatternsList)
+      val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
       val extendedExclueAppNameQueries = extendCurrentQuery(excludeAppNamesNumberList)
       val extendedExcludeImplementedByPartialFunctionsQueries = extendCurrentQuery(excludeImplementedByPartialFunctionsNumberList)
 

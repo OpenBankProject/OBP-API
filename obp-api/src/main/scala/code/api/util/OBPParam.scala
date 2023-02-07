@@ -32,6 +32,7 @@ case class OBPAccountId(value: String) extends OBPQueryParam
 case class OBPUrl(value: String) extends OBPQueryParam
 case class OBPAppName(value: String) extends OBPQueryParam
 case class OBPExcludeAppNames(values: List[String]) extends OBPQueryParam
+case class OBPIncludeAppNames(values: List[String]) extends OBPQueryParam
 case class OBPImplementedByPartialFunction(value: String) extends OBPQueryParam
 case class OBPImplementedInVersion(value: String) extends OBPQueryParam
 case class OBPVerb(value: String) extends OBPQueryParam
@@ -39,7 +40,9 @@ case class OBPAnon(value: Boolean) extends OBPQueryParam
 case class OBPCorrelationId(value: String) extends OBPQueryParam
 case class OBPDuration(value: Long) extends OBPQueryParam
 case class OBPExcludeUrlPatterns(values: List[String]) extends OBPQueryParam
+case class OBPIncludeUrlPatterns(values: List[String]) extends OBPQueryParam
 case class OBPExcludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam
+case class OBPIncludeImplementedByPartialFunctions(value: List[String]) extends OBPQueryParam
 case class OBPFunctionName(value: String) extends OBPQueryParam
 case class OBPConnectorName(value: String) extends OBPQueryParam
 case class OBPEmpty() extends OBPQueryParam

@@ -996,6 +996,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "exclude_app_names" => Full(OBPExcludeAppNames(values)) //This will return a string list.
         case "exclude_url_patterns" => Full(OBPExcludeUrlPatterns(values))//This will return a string list.
         case "exclude_implemented_by_partial_functions" => Full(OBPExcludeImplementedByPartialFunctions(values)) //This will return a string list.
+        case "include_app_names" => Full(OBPIncludeAppNames(values)) //This will return a string list.
+        case "include_url_patterns" => Full(OBPIncludeUrlPatterns(values))//This will return a string list.
+        case "include_implemented_by_partial_functions" => Full(OBPIncludeImplementedByPartialFunctions(values)) //This will return a string list.
         case "function_name" => Full(OBPFunctionName(values.head))
         case "connector_name" => Full(OBPConnectorName(values.head))
         case "customer_id" => Full(OBPCustomerId(values.head))
@@ -1033,8 +1036,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       correlationId <- getHttpParamValuesByName(httpParams, "correlation_id")
       duration <- getHttpParamValuesByName(httpParams, "duration")
       excludeAppNames <- getHttpParamValuesByName(httpParams, "exclude_app_names")
+      includeAppNames <- getHttpParamValuesByName(httpParams, "include_app_names")
       excludeUrlPattern <- getHttpParamValuesByName(httpParams, "exclude_url_patterns")
+      includeUrlPattern <- getHttpParamValuesByName(httpParams, "include_url_patterns")
       excludeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "exclude_implemented_by_partial_functions")
+      includeImplementedByPartialfunctions <- getHttpParamValuesByName(httpParams, "include_implemented_by_partial_functions")
       connectorName <- getHttpParamValuesByName(httpParams, "connector_name")
       functionName <- getHttpParamValuesByName(httpParams, "function_name")
       customerId <- getHttpParamValuesByName(httpParams, "customer_id")
@@ -1058,6 +1064,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       List(limit, offset, ordering, fromDate, toDate,
         anon, consumerId, userId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
+        includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions, 
         connectorName,functionName, bankId, accountId, customerId, lockedStatus, deletedStatus
       ).filter(_ != OBPEmpty())
     }
@@ -1111,6 +1118,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val excludeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "exclude_app_names").split(",").toList
     val excludeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "exclude_url_patterns").split(",").toList
     val excludeImplementedByPartialfunctions =  getHttpRequestUrlParam(httpRequestUrl, "exclude_implemented_by_partial_functions").split(",").toList
+    
+    val includeAppNames =  getHttpRequestUrlParam(httpRequestUrl, "include_app_names").split(",").toList
+    val includeUrlPattern =  getHttpRequestUrlParam(httpRequestUrl, "include_url_patterns").split(",").toList
+    val includeImplementedByPartialfunctions = getHttpRequestUrlParam(httpRequestUrl, "include_implemented_by_partial_functions").split(",").toList
 
     val functionName =  getHttpRequestUrlParam(httpRequestUrl, "function_name")
     val connectorName =  getHttpRequestUrlParam(httpRequestUrl, "connector_name")
@@ -1120,7 +1131,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("anon", anon), HTTPParam("consumer_id", consumerId), HTTPParam("user_id", userId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
-      HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions),
+      HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions), 
+      HTTPParam("include_app_names", includeAppNames),
+      HTTPParam("include_url_patterns", includeUrlPattern),
+      HTTPParam("include_implemented_by_partial_functions", includeImplementedByPartialfunctions),
       HTTPParam("function_name", functionName),
       HTTPParam("currency", currency),
       HTTPParam("amount", amount),
