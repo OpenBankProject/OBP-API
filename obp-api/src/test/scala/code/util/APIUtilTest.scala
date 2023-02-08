@@ -492,7 +492,9 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
                   OBPAppName("PlaneApp"), OBPImplementedByPartialFunction("getBanks"),
                   OBPImplementedInVersion("v1.2.1"), OBPVerb("GET"), OBPCorrelationId("123"), OBPDuration(1000),
                   OBPExcludeAppNames(List("TrainApp", "BusApp")), OBPExcludeUrlPatterns(List("%/obp/v1.2.1%")),
-                  OBPExcludeImplementedByPartialFunctions(List("getBank", "getAccounts"))))
+                  OBPExcludeImplementedByPartialFunctions(List("getBank", "getAccounts")),
+                  OBPIncludeAppNames(List("TrainApp", "BusApp")), OBPIncludeUrlPatterns(List("%/obp/v1.2.1%")),
+                  OBPIncludeImplementedByPartialFunctions(List("getBank", "getAccounts"))))
       val httpParams: List[HTTPParam] = List(
         HTTPParam("from_date",List(s"$DefaultFromDateString")),
         HTTPParam("to_date",List(s"$DefaultToDateString")),
@@ -508,7 +510,10 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
         HTTPParam("duration","1000"),
         HTTPParam("exclude_app_names",List("TrainApp","BusApp")),
         HTTPParam("exclude_url_patterns","%/obp/v1.2.1%"),
-        HTTPParam("exclude_implemented_by_partial_functions",List("getBank","getAccounts"))
+        HTTPParam("exclude_implemented_by_partial_functions",List("getBank","getAccounts")),
+        HTTPParam("include_app_names",List("TrainApp","BusApp")),
+        HTTPParam("include_url_patterns","%/obp/v1.2.1%"),
+        HTTPParam("include_implemented_by_partial_functions",List("getBank","getAccounts"))
       )
       val returnValue = createQueriesByHttpParams(httpParams)
       returnValue should be (ExpectResult)
@@ -588,7 +593,10 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
                                    HTTPParam("duration",List("100")), 
                                    HTTPParam("exclude_app_names",List("API-EXPLORER","API-Manager","SOFI","null","SOFIT")), 
                                    HTTPParam("exclude_url_patterns",List("%25management/metrics%25","%management/aggregate-metrics%")), 
-                                   HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics","getConnectorMetrics","getAggregateMetrics")))) 
+                                   HTTPParam("exclude_implemented_by_partial_functions",List("getMetrics","getConnectorMetrics","getAggregateMetrics")),
+                                   HTTPParam("include_app_names",List("API-EXPLORER","API-Manager","SOFI","SOFIT")), 
+                                   HTTPParam("include_url_patterns",List("%25management/metrics%25","%management/aggregate-metrics%")), 
+                                   HTTPParam("include_implemented_by_partial_functions",List("getMetrics","getConnectorMetrics","getAggregateMetrics")))) 
       
       val httpRequestUrl = "/obp/v3.0.0/management/aggregate-metrics?" +
         s"offset=3&" +
@@ -606,7 +614,11 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
         "exclude_app_names=API-EXPLORER,API-Manager,SOFI,null,SOFIT&" +
         "exclude_url_patterns=%25management/metrics%25,%management/aggregate-metrics%&" +
         "exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics&"+ 
-        "correlation_id=123&duration=100"
+        "correlation_id=123&duration=100&"+
+        "include_app_names=API-EXPLORER,API-Manager,SOFI,SOFIT&" +
+        "include_url_patterns=%25management/metrics%25,%management/aggregate-metrics%&" +
+        "include_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics&"
+      
       val returnValue = createHttpParamsByUrl(httpRequestUrl)
       returnValue should be (ExpectResult)
     }
@@ -637,6 +649,17 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     {
       val ExpectResult = Full(List())
       val httpRequestUrl = s"/obp/v3.0.0/management/aggregate-metrics?from_date="
+      val returnValue = createHttpParamsByUrl(httpRequestUrl)
+      returnValue should be (ExpectResult)
+    }
+    
+    scenario(s"test the correct case4: include_app_names,include_url_patterns,include_implemented_by_partial_functions") 
+    {
+      val ExpectResult = Full(List(
+        HTTPParam("include_app_names",List("API-EXPLORER","API-Manager")),
+        HTTPParam("include_url_patterns", List("%25management/metrics%25", "%management/aggregate-metrics%")),
+        HTTPParam("include_implemented_by_partial_functions", List("getMetrics"))))
+      val httpRequestUrl = s"/obp/v3.0.0/management/aggregate-metrics?include_app_names=API-EXPLORER,API-Manager&include_url_patterns=%25management/metrics%25,%management/aggregate-metrics%&include_implemented_by_partial_functions=getMetrics"
       val returnValue = createHttpParamsByUrl(httpRequestUrl)
       returnValue should be (ExpectResult)
     }

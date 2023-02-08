@@ -1,9 +1,9 @@
 package code.metrics
 
 import java.util.{Calendar, Date}
-
 import code.api.util.{APIUtil, OBPQueryParam}
 import code.remotedata.RemotedataMetrics
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -84,8 +84,14 @@ trait APIMetrics {
 //  def getAllGroupedByUserId() : Map[String, List[APIMetric]]
 
   def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric]
-  
-  def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]]
+
+  /**
+   * 
+   * @param queryParams
+   * @param isNewVersion from V510, we change the queryParams, use includeXxx instead of excludeXxxx, so add this flag 
+   * @return
+   */
+  def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Future[Box[List[AggregateMetrics]]]
   
   def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]]
   
@@ -102,7 +108,7 @@ class RemotedataMetricsCaseClasses {
 //  case class getAllGroupedByDay()
 //  case class getAllGroupedByUserId()
   case class getAllMetrics(queryParams: List[OBPQueryParam])
-  case class getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam])
+  case class getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean)
   case class getTopApisFuture(queryParams: List[OBPQueryParam])
   case class getTopConsumersFuture(queryParams: List[OBPQueryParam])
   case class bulkDeleteMetrics()

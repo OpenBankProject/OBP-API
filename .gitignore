@@ -22,3 +22,4 @@ obp-api/src/main/scala/code/api/v3_0_0/custom/
 /obp-commons/src/main/resources/git.properties
 /obp-api2/
 /.java-version
+.scannerwork

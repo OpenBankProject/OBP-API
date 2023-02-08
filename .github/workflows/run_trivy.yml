@@ -1,0 +1,52 @@
+name: scan container image
+
+on:
+  workflow_run:
+    workflows: [build and publish container]
+    types:
+      - completed
+env:
+  ## Sets environment variable
+  DOCKER_HUB_ORGANIZATION: openbankproject
+  DOCKER_HUB_REPOSITORY: obp-api
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - id: trivy-db
+        name: Check trivy db sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          endpoint='/orgs/aquasecurity/packages/container/trivy-db/versions'
+          headers='Accept: application/vnd.github+json'
+          jqFilter='.[] | select(.metadata.container.tags[] | contains("latest")) | .name | sub("sha256:";"")'
+          sha=$(gh api -H "${headers}" "${endpoint}" | jq --raw-output "${jqFilter}")
+          echo "Trivy DB sha256:${sha}"
+          echo "::set-output name=sha::${sha}"
+      - uses: actions/cache@v3
+        with:
+          path: .trivy
+          key: ${{ runner.os }}-trivy-db-${{ steps.trivy-db.outputs.sha }}
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}'
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
+          output: 'trivy-results.sarif'
+          security-checks: 'vuln'
+          severity: 'CRITICAL,HIGH'
+          timeout: '30m'
+          cache-dir: .trivy
+      - name: Fix .trivy permissions
+        run: sudo chown -R $(stat . -c %u:%g) .trivy
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: 'trivy-results.sarif'
