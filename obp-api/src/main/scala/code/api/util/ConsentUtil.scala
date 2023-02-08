@@ -215,7 +215,8 @@ object Consent {
               val bankId = if (role.requiresBankId) entitlement.bank_id else ""
               Entitlement.entitlement.vend.addEntitlement(bankId, user.userId, entitlement.role_name) match {
                 case Full(_) => (entitlement, "AddedOrExisted")
-                case _ => (entitlement, "Cannot add the entitlement: " + entitlement)
+                case _ => 
+                  (entitlement, "Cannot add the entitlement: " + entitlement)
               }
             case true =>
               (entitlement, "AddedOrExisted")
@@ -237,7 +238,8 @@ object Consent {
         val failedToAdd: List[(Role, String)] = triedToAdd.filter(_._2 != "AddedOrExisted")
         failedToAdd match {
           case Nil => Full(user)
-          case _ => Failure("The entitlements cannot be added. " + failedToAdd.map(_._1).mkString(", "))
+          case _ => 
+            Failure("The entitlements cannot be added. " + failedToAdd.map(i => (i._1, i._2)).mkString(", "))
         }
       case _ =>
         Failure("Cannot get entitlements for user id: " + user.userId)
@@ -334,6 +336,8 @@ object Consent {
                 case _ =>
                   (Failure(ErrorMessages.UnknownError), Some(cc))
               }
+            case failure@Failure(msg, exp, chain) => // Handled errors
+              (Failure(msg), Some(cc))
             case _ =>
               (Failure("Cannot add entitlements based on: " + consentAsJwt), Some(cc))
           }
@@ -423,6 +427,8 @@ object Consent {
                 case _ =>
                   (Failure(ErrorMessages.UnknownError), Some(cc))
               }
+            case failure@Failure(msg, exp, chain) => // Handled errors
+              (Failure(msg), Some(cc))
             case _ =>
               (Failure("Cannot add entitlements based on: " + consentId), Some(cc))
           }
