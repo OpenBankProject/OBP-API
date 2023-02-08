@@ -403,11 +403,11 @@ trait APIMethods510 {
          |
          |12 duration (if null ignore) non digit chars will be silently omitted
          |
-         |13 include_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         |13 include_app_names (if null ignore).eg: &include_app_names=API-EXPLORER,API-Manager,SOFI,null
          |
-         |14 include_url_patterns (if null ignore).you can design you own SQL LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
+         |14 include_url_patterns (if null ignore).you can design you own SQL LIKE pattern. eg: &include_url_patterns=%management/metrics%,%management/aggregate-metrics%
          |
-         |15 include_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+         |15 include_implemented_by_partial_functions (if null ignore).eg: &include_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
          |
          |${authenticationRequiredMessage(true)}
          |
