@@ -37,9 +37,9 @@ object RemotedataMetrics extends ObpActorInit with APIMetrics {
     (actor ? cc.getAllMetrics(queryParams)).mapTo[List[APIMetric]]
   )
   
-  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], apiVersion: ApiVersion): Future[Box[List[AggregateMetrics]]] ={
-    logger.debug(s"RemotedataMetrics.getAllAggregateMetrics($queryParams, $apiVersion)")
-    (actor ? cc.getAllAggregateMetricsFuture(queryParams,apiVersion)).mapTo[Box[List[AggregateMetrics]]]
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Future[Box[List[AggregateMetrics]]] ={
+    logger.debug(s"RemotedataMetrics.getAllAggregateMetrics($queryParams, $isNewVersion)")
+    (actor ? cc.getAllAggregateMetricsFuture(queryParams,isNewVersion)).mapTo[Box[List[AggregateMetrics]]]
   }
   
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = {

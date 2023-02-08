@@ -264,7 +264,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
  }
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
-  def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], apiVersion: ApiVersion): Box[List[AggregateMetrics]] = {
+  def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Box[List[AggregateMetrics]] = {
     /**
       * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
       * is just a temporary value field with UUID values in order to prevent any ambiguity.
@@ -309,7 +309,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val extendedIncludeImplementedByPartialFunctionsQueries = extendCurrentQuery(includeImplementedByPartialFunctionsNumberList)
 
       val result = scalikeDB readOnly { implicit session =>
-        val sqlQuery = if(apiVersion.equals(ApiVersion.v5_1_0))
+        val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better. 
           sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
               FROM metric
               WHERE date_c >= ${new Timestamp(fromDate.get.getTime)} 
@@ -362,8 +362,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     }}
   }
   
-  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], apiVersion: ApiVersion): Future[Box[List[AggregateMetrics]]] = Future{
-    getAllAggregateMetricsBox(queryParams: List[OBPQueryParam],apiVersion)
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Future[Box[List[AggregateMetrics]]] = Future{
+    getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], isNewVersion)
   }
   
   override def bulkDeleteMetrics(): Boolean = {

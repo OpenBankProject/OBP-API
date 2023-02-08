@@ -2164,7 +2164,7 @@ trait APIMethods300 {
               _ <- NewStyle.function.hasEntitlement("", u.userId, ApiRole.canReadAggregateMetrics, callContext)
               httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
               (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, callContext)
-              aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, ApiVersion.v3_0_0) map {
+              aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, false) map {
                 x => unboxFullOrFail(x, callContext, GetAggregateMetricsError)
               }
             } yield {
