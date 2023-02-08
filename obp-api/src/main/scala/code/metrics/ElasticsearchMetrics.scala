@@ -1,9 +1,9 @@
 package code.metrics
 
 import java.util.Date
-
 import code.api.util._
 import code.search.elasticsearchMetrics
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -55,7 +55,7 @@ object ElasticsearchMetrics extends APIMetrics {
     MappedMetric.findAll(optionalParams: _*)
   }
   
-  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam]): Future[Box[List[AggregateMetrics]]] = ???
+  override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Future[Box[List[AggregateMetrics]]] = ???
   
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = ???
   
