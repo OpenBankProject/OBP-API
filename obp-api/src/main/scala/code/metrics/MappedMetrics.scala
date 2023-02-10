@@ -21,6 +21,7 @@ import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPo
 import scalikejdbc.DB.CPContext
 import scalikejdbc.{DB => scalikeDB, _}
 
+import scala.collection.immutable
 import scala.collection.immutable.List
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -206,17 +207,23 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   private def extendLikeQuery(params:  List[String], isLike: Boolean) = {
-    val isLikeQuery = if (isLike) "" else  "NOT"
+    val isLikeQuery = if (isLike) sqls"" else sqls"NOT"
     
     if (params.length == 1)
-      s"${params.head}"
+      sqls"${params.head}"
     else
     {
-      val a = for (i <- 1 to (params.length - 2)) yield
+      val sqlList: immutable.Seq[SQLSyntax] = for (i <- 1 to (params.length - 2)) yield
         {
-          s" and url ${isLikeQuery} LIKE ('${params(i)}')"
+          sqls" and url ${isLikeQuery} LIKE ('${params(i)}')"
         }
-      s"${params.head}')" + a.mkString("").concat(s" and url  ${isLikeQuery} LIKE ('${params.last}")
+        
+      val sqlSingleLine = if (sqlList.length>1)
+        sqlList.reduce(_+_)
+      else
+        sqls""
+        
+      sqls"${params.head})"+ sqlSingleLine + sqls" and url  ${isLikeQuery} LIKE (${params.last}"
     }
   }
   
@@ -292,7 +299,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val includeImplementedByPartialFunctionsList = includeImplementedByPartialFunctions.getOrElse(List(""))
 
       val includeUrlPatternsQueries = extendLikeQuery(includeUrlPatternsList, true)
-
+      val ordering = sqls"$includeUrlPatternsQueries" 
+      
       val result = scalikeDB readOnly { implicit session =>
         val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better. 
           sql"""SELECT count(*), avg(duration), min(duration), max(duration)  
@@ -308,7 +316,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
               AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
               AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
-              AND (${trueOrFalse(includeUrlPatterns.isEmpty) } or (url LIKE ($includeUrlPatternsQueries)))
+              AND (${trueOrFalse(includeUrlPatterns.isEmpty) } or (url LIKE ($ordering)))
               AND (${trueOrFalse(includeAppNames.isEmpty) } or (appname in ($includeAppNamesList)))
               AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($includeImplementedByPartialFunctionsList))
               """.stripMargin
