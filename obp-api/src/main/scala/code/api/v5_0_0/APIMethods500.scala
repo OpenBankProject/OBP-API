@@ -17,7 +17,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0._
 import code.api.v4_0_0.JSONFactory400.createCustomersMinimalJson
 import code.api.v4_0_0.{JSONFactory400, PutProductJsonV400}
-import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsJsonV500, createViewsIdsJsonV500}
+import code.api.v5_0_0.JSONFactory500.{createPhysicalCardJson, createViewJsonV500, createViewsIdsJsonV500, createViewsJsonV500}
 import code.bankconnectors.Connector
 import code.consent.{ConsentRequests, Consents}
 import code.entitlement.Entitlement
@@ -44,6 +44,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
 import code.util.Helper.booleanToFuture
+import code.views.system.AccountAccess
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -905,7 +906,7 @@ trait APIMethods500 {
             _ <- scaMethod match {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
                 for{
-                  failMsg <- Future {s"$InvalidJsonFormat The Json body should be the $PostConsentEmailJsonV310"}
+                  failMsg <- Future {s"$InvalidJsonFormat The Json body must contain the field email"}
                   consentScaEmail <- NewStyle.function.tryons(failMsg, 400, callContext) {
                     consentRequestJson.email.head
                   }
@@ -920,7 +921,7 @@ trait APIMethods500 {
               case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
                 for {
                   failMsg <- Future {
-                    s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310"
+                    s"$InvalidJsonFormat The Json body must contain the field phone_number"
                   }
                   consentScaPhoneNumber <- NewStyle.function.tryons(failMsg, 400, callContext) {
                     consentRequestJson.phone_number.head

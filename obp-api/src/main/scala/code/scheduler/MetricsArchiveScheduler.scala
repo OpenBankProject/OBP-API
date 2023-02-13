@@ -47,7 +47,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
 
   def conditionalDeleteMetricsRow() = {
     val currentTime = new Date()
-    val days = APIUtil.getPropsAsLongValue("retain_metrics_days", 200) match {
+    val days = APIUtil.getPropsAsLongValue("retain_metrics_days", 367) match {
       case days if days > 59 => days
       case _ => 60
     }

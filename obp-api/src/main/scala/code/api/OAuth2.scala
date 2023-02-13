@@ -117,7 +117,13 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       // It implies the access token can be revoked at any time.
       val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null);
       var consumer: Box[Consumer] = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
-
+      logger.debug("introspectOAuth2Token.getIss: " + introspectOAuth2Token.getIss)
+      logger.debug("introspectOAuth2Token.getActive: " + introspectOAuth2Token.getActive)
+      logger.debug("introspectOAuth2Token.getClientId: " + introspectOAuth2Token.getClientId)
+      logger.debug("introspectOAuth2Token.getAud: " + introspectOAuth2Token.getAud)
+      logger.debug("introspectOAuth2Token.getUsername: " + introspectOAuth2Token.getUsername)
+      logger.debug("introspectOAuth2Token.getExp: " + introspectOAuth2Token.getExp)
+      logger.debug("introspectOAuth2Token.getNbf: " + introspectOAuth2Token.getNbf)
       // The access token can be disabled at any time due to fact it is NOT self-encoded/self-contained.
       if (!introspectOAuth2Token.getActive) {
         return (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
@@ -165,8 +171,12 @@ object OAuth2Login extends RestHelper with MdcLoggable {
           }
         }
       }
-
-      val user = Users.users.vend.getUserByUserName(hydraPublicUrl, introspectOAuth2Token.getSub)
+      
+      // In case a user is created via OpenID Connect flow implies provider = hydraPublicUrl
+      // In case a user is created via GUI of OBP-API implies provider = Constant.localIdentityProvider
+      val user = Users.users.vend.getUserByUserName(introspectOAuth2Token.getIss, introspectOAuth2Token.getSub).or(
+        Users.users.vend.getUserByUserName(Constant.localIdentityProvider, introspectOAuth2Token.getSub)
+      )
       user match {
         case Full(u) =>
           LoginAttempt.userIsLocked(u.provider, u.name) match {
