@@ -5,6 +5,7 @@ import java.security.PublicKey
 import java.security.cert.{CertificateExpiredException, CertificateNotYetValidException, X509Certificate}
 import java.security.interfaces.{ECPublicKey, RSAPublicKey}
 
+import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.util.X509CertUtils
@@ -13,7 +14,7 @@ import org.bouncycastle.asn1._
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.qualified.QCStatement
 
-object X509 {
+object X509 extends MdcLoggable {
 
   object OID {
     lazy val role = "2.5.4.72"
@@ -76,7 +77,7 @@ object X509 {
         psd2Roles += (psd2RoleSequence.getObjectAt(1).toASN1Primitive.toString)
       }
     }
-    org.scalameta.logger.elem(psd2Roles.toList)
+    logger.debug(psd2Roles.toList)
     psd2Roles.toList
   }
 
