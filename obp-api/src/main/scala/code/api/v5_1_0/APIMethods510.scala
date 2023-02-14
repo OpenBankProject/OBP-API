@@ -112,7 +112,7 @@ trait APIMethods510 {
       revokeConsentAtBank,
       implementedInApiVersion,
       nameOf(revokeConsentAtBank),
-      "GET",
+      "DELETE",
       "/banks/BANK_ID/consents/CONSENT_ID/revoke",
       "Revoke Consent at Bank",
       s"""
@@ -141,7 +141,7 @@ trait APIMethods510 {
     )
 
     lazy val revokeConsentAtBank: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "consents" :: consentId :: "revoke" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "consents" :: consentId :: "revoke" :: Nil JsonDelete _ => {
         cc =>
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
