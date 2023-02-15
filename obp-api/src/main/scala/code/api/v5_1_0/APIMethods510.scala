@@ -160,6 +160,54 @@ trait APIMethods510 {
           }
       }
     }
+    
+   staticResourceDocs += ResourceDoc(
+     selfRevokeConsent,
+      implementedInApiVersion,
+      nameOf(selfRevokeConsent),
+      "DELETE",
+      "/my/consent/revoke",
+      "Revoke Consent at Current Call",
+      s"""
+         |Revoke Consent specified by Consent-Id at Request Header
+         |
+         |There are a few reasons you might need to revoke an application’s access to a user’s account:
+         |  - The user explicitly wishes to revoke the application’s access
+         |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+         |  - etc.
+         ||
+         |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+         |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      revokedConsentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+    )
+    lazy val selfRevokeConsent: OBPEndpoint = {
+      case "my" :: "consent" :: "revoke" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            consentId = getConsentIdRequestHeaderValue(cc.requestHeaders).getOrElse("")
+            _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+              unboxFullOrFail(_, callContext, ConsentNotFound)
+            }
+            consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
 
 
     staticResourceDocs += ResourceDoc(

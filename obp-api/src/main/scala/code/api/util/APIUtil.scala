@@ -244,6 +244,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
   }
+
+  /**
+   * Purpose of this helper function is to get the Consent-JWT value from a Request Headers.
+   * @return the Consent-JWT value from a Request Header as a String
+   */
+  def getConsentIdRequestHeaderValue(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+      case x :: Nil => Some(x.values.mkString(", "))
+      case _ => None
+    }
+  }
   /**
    * Purpose of this helper function is to get the PSD2-CERT value from a Request Headers.
    * @return the PSD2-CERT value from a Request Header as a String
