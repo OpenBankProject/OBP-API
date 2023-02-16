@@ -41,6 +41,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
 
+import java.net.URLDecoder
 import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Await
@@ -146,7 +147,7 @@ trait SendServerRequests {
   // generate the requestData from input values, such as request, body, encoding and headers.
   def extractParamsAndHeaders(req: Req, body: String, encoding: String, extra_headers:Map[String,String] = Map.empty): ReqData= {
     val r = req.toRequest
-    val query_params:Map[String,String] = r.getQueryParams.asScala.map(qp => qp.getName -> qp.getValue).toMap[String,String]
+    val query_params:Map[String,String] = r.getQueryParams.asScala.map(qp => qp.getName -> URLDecoder.decode(qp.getValue,"UTF-8")).toMap[String,String]
     val form_params: Map[String,String] = r.getFormParams.asScala.map( fp => fp.getName -> fp.getValue).toMap[String,String]
     var headers:Map[String,String] = r.getHeaders.entries().asScala.map (h => h.getKey -> h.getValue).toMap[String,String]
     val url:String = r.getUrl

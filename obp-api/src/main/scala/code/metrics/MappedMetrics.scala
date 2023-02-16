@@ -299,7 +299,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val includeImplementedByPartialFunctionsList = includeImplementedByPartialFunctions.getOrElse(List(""))
 
       val includeUrlPatternsQueries = extendLikeQuery(includeUrlPatternsList, true)
-      val ordering = sqls"$includeUrlPatternsQueries" 
+      val includeUrlPatternsQueriesSql = sqls"$includeUrlPatternsQueries" 
       
       val result = scalikeDB readOnly { implicit session =>
         val sqlQuery = if(isNewVersion) // in the version, we use includeXxx instead of excludeXxx, the performance should be better. 
@@ -316,7 +316,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
               AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
               AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
               AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
-              AND (${trueOrFalse(includeUrlPatterns.isEmpty) } or (url LIKE ($ordering)))
+              AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${correlationId.getOrElse("")})
+              AND (${trueOrFalse(includeUrlPatterns.isEmpty) } or (url LIKE ($includeUrlPatternsQueriesSql)))
               AND (${trueOrFalse(includeAppNames.isEmpty) } or (appname in ($includeAppNamesList)))
               AND (${trueOrFalse(includeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction in ($includeImplementedByPartialFunctionsList))
               """.stripMargin
@@ -333,7 +334,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
             AND (${trueOrFalse(appName.isEmpty)} or appname = ${appName.getOrElse("")})
             AND (${trueOrFalse(verb.isEmpty)} or verb = ${verb.getOrElse("")})
             AND (${falseOrTrue(anon.isDefined && anon.equals(Some(true)))} or userid = 'null')
-            AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null') 
+            AND (${falseOrTrue(anon.isDefined && anon.equals(Some(false)))} or userid != 'null')
+            AND (${trueOrFalse(correlationId.isEmpty)} or correlationId = ${correlationId.getOrElse("")})
             AND (${trueOrFalse(excludeUrlPatterns.isEmpty) } or (url NOT LIKE ($excludeUrlPatternsQueries)))
             AND (${trueOrFalse(excludeAppNames.isEmpty) } or appname not in ($excludeAppNamesList))
             AND (${trueOrFalse(excludeImplementedByPartialFunctions.isEmpty) } or implementedbypartialfunction not in ($excludeImplementedByPartialFunctionsList))

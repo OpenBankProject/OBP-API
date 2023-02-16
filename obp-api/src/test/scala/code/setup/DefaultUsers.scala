@@ -39,14 +39,53 @@ trait DefaultUsers {
     key = Some(randomString(40).toLowerCase),
     secret = Some(randomString(40).toLowerCase),
     isActive = Some(true),
-    name = Some("test application"),
+    name = Some("test1"),
     appType = None,
-    description = Some("description"),
+    description = Some("test1 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
     createdByUserId = userId1
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   lazy val consumer = Consumer(testConsumer.key.get, testConsumer.secret.get)
+
+  lazy val testConsumer2 = Consumers.consumers.vend.createConsumer(
+    key = Some(randomString(40).toLowerCase),
+    secret = Some(randomString(40).toLowerCase),
+    isActive = Some(true),
+    name = Some("test2"),
+    appType = None,
+    description = Some("test2 description"),
+    developerEmail = Some("eveline@example.com"),
+    redirectURL = None,
+    createdByUserId = userId2
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val consumer2 = Consumer(testConsumer2.key.get, testConsumer2.secret.get)
+
+  lazy val testConsumer3 = Consumers.consumers.vend.createConsumer(
+    key = Some(randomString(40).toLowerCase),
+    secret = Some(randomString(40).toLowerCase),
+    isActive = Some(true),
+    name = Some("test3"),
+    appType = None,
+    description = Some("test3 description"),
+    developerEmail = Some("eveline@example.com"),
+    redirectURL = None,
+    createdByUserId = userId3
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val consumer3 = Consumer(testConsumer3.key.get, testConsumer3.secret.get)
+
+  lazy val testConsumer4 = Consumers.consumers.vend.createConsumer(
+    key = Some(randomString(40).toLowerCase),
+    secret = Some(randomString(40).toLowerCase),
+    isActive = Some(true),
+    name = Some("test4"),
+    appType = None,
+    description = Some("test4 description"),
+    developerEmail = Some("eveline@example.com"),
+    redirectURL = None,
+    createdByUserId = userId4
+  ).openOrThrowException(attemptedToOpenAnEmptyBox)
+  lazy val consumer4 = Consumer(testConsumer4.key.get, testConsumer4.secret.get)
   
   // create the access token
   val expiration = APIUtil.getPropsAsIntValue("token_expiration_weeks", 4)
@@ -93,7 +132,7 @@ trait DefaultUsers {
   
   lazy val testToken2 = Tokens.tokens.vend.createToken(
     Access,
-    Some(testConsumer.id.get),
+    Some(testConsumer2.id.get),
     Some(resourceUser2.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
@@ -104,7 +143,7 @@ trait DefaultUsers {
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
   
   lazy val testToken3 = Tokens.tokens.vend.createToken(Access,
-    Some(testConsumer.id.get),
+    Some(testConsumer3.id.get),
     Some(resourceUser3.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
@@ -115,7 +154,7 @@ trait DefaultUsers {
   ).openOrThrowException(attemptedToOpenAnEmptyBox)
 
   lazy val testToken4 = Tokens.tokens.vend.createToken(Access,
-    Some(testConsumer.id.get),
+    Some(testConsumer4.id.get),
     Some(resourceUser4.id.get),
     Some(randomString(40).toLowerCase),
     Some(randomString(40).toLowerCase),
@@ -133,8 +172,8 @@ trait DefaultUsers {
 
   // prepare the OAuth users to login 
   lazy val user1 = Some(consumer, token1)
-  lazy val user2 = Some(consumer, token2)
-  lazy val user3 = Some(consumer, token3)
-  lazy val userGatewayLogin = Some(consumer, token4)
+  lazy val user2 = Some(consumer2, token2)
+  lazy val user3 = Some(consumer3, token3)
+  lazy val userGatewayLogin = Some(consumer4, token4)
 
 }
