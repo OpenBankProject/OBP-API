@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
-import code.api.util.{ApiRole, NewStyle}
+import code.api.util.{APIUtil, ApiRole, NewStyle, X509}
 import code.api.util.NewStyle.HttpCode
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
@@ -205,6 +205,43 @@ trait APIMethods510 {
             }
           } yield {
             (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+   staticResourceDocs += ResourceDoc(
+     mtlsClientCertificateInfo,
+      implementedInApiVersion,
+      nameOf(mtlsClientCertificateInfo),
+      "GET",
+      "/my/mtls/certificate/info",
+      "Provide client's certificate info of a current call",
+      s"""
+         |Provide client's certificate info of a current call specified by PSD2-CERT value at Request Header
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      certificateInfoJsonV510,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+    )
+    lazy val mtlsClientCertificateInfo: OBPEndpoint = {
+      case "my" :: "mtls" :: "certificate" :: "info" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(_), callContext) <- authenticatedAccess(cc)
+            info <- Future(X509.getCertificateInfo(APIUtil.`getPSD2-CERT`(cc.requestHeaders))) map {
+              unboxFullOrFail(_, callContext, X509GeneralError)
+            }
+          } yield {
+            (info, HttpCode.`200`(callContext))
           }
       }
     }

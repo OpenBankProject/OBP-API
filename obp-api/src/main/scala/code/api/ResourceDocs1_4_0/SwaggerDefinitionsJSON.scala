@@ -11,7 +11,7 @@ import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.ExampleValue._
-import code.api.util.{ApiTrigger, ExampleValue}
+import code.api.util.{APIUtil, ApiTrigger, ExampleValue}
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
@@ -36,6 +36,7 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
+import code.api.v5_1_0.CertificateInfoJsonV510
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -4154,6 +4155,15 @@ object SwaggerDefinitionsJSON {
   val oAuth2ServerJWKURIJson = OAuth2ServerJWKURIJson("https://www.googleapis.com/oauth2/v3/certs")
   
   val oAuth2ServerJwksUrisJson = OAuth2ServerJwksUrisJson(List(oAuth2ServerJWKURIJson))
+
+  val certificateInfoJsonV510 = CertificateInfoJsonV510(
+    subject_dn = "OID.2.5.4.41=VPN, EMAILADDRESS=admin@tesobe.com, CN=TESOBE CA, OU=TESOBE Operations, O=TESOBE, L=Berlin, ST=Berlin, C=DE",
+    issuer_dn = "CN=localhost, O=TESOBE GmbH, ST=Berlin, C=DE",
+    not_before = "2022-04-01T10:13:00.000Z",
+    not_after = "2032-04-01T10:13:00.000Z",
+    roles = None,
+    roles_info = Some("PEM Encoded Certificate does not contain PSD2 roles.")
+  )
   
   val updateAccountRequestJsonV310 = UpdateAccountRequestJsonV310(
     label = "Label",

@@ -5,6 +5,7 @@ import java.security.PublicKey
 import java.security.cert.{CertificateExpiredException, CertificateNotYetValidException, X509Certificate}
 import java.security.interfaces.{ECPublicKey, RSAPublicKey}
 
+import code.api.v5_1_0.CertificateInfoJsonV510
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf
 import com.nimbusds.jose.jwk.RSAKey
@@ -201,6 +202,49 @@ object X509 extends MdcLoggable {
     // Retrieve public key as RSA JWK
     val rsaJWK = RSAKey.parse(cert)
     rsaJWK
+  }
+
+
+  private def extractCertificateInfo(pem: String): Box[CertificateInfoJsonV510] = {
+    // Parse X.509 certificate
+    val cert: X509Certificate = X509CertUtils.parse(pem)
+    if (cert == null) {
+      // Parsing failed
+      Failure(ErrorMessages.X509ParsingFailed)
+    } else {
+      val subjectDN = cert.getSubjectDN().getName()
+      val issuerDN = cert.getIssuerDN().getName()
+      val notBefore = cert.getNotBefore()
+      val notAfter = cert.getNotAfter()
+      var roles: Option[List[String]] = None
+      var rolesInfo: Option[String] = None
+      try {
+        val qcstatements = extractQcStatements(cert)
+        val asn1encodable = extractPsd2QcStatements(qcstatements)
+        roles = Some(getPsd2Roles(asn1encodable: Array[ASN1Encodable]))
+      }
+      catch {
+        case _: Throwable => 
+          Failure(ErrorMessages.X509ThereAreNoPsd2Roles)
+          rolesInfo = Some("PEM Encoded Certificate does not contain PSD2 roles.")
+      }
+      val result = CertificateInfoJsonV510(
+        subject_dn = subjectDN, 
+        issuer_dn = issuerDN, 
+        not_before = APIUtil.formatDate(notBefore), 
+        not_after = APIUtil.formatDate(notAfter), 
+        roles = roles,
+        roles_info = rolesInfo
+      )
+      Full(result)
+    }
+  }
+  
+  def getCertificateInfo(pem: Option[String]): Box[CertificateInfoJsonV510] = {
+    pem match {
+      case Some(value) => extractCertificateInfo(value)
+      case None => Failure(ErrorMessages.X509CannotGetCertificate)
+    }
   }
   
 }

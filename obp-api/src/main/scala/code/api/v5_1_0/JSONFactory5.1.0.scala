@@ -47,6 +47,15 @@ case class APIInfoJsonV510(
                            resource_docs_requires_role: Boolean
                          )
 
+case class CertificateInfoJsonV510(
+                                    subject_dn: String,
+                                    issuer_dn: String,
+                                    not_before: String,
+                                    not_after: String,
+                                    roles: Option[List[String]],
+                                    roles_info: Option[String] = None
+                                  )
+
 object JSONFactory510 {
   def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {
     val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
