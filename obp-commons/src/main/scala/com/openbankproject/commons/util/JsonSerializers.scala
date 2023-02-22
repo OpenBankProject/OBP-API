@@ -42,7 +42,7 @@ object JsonSerializers {
       BigDecimalSerializer :: StringDeserializer ::
       FiledRenameSerializer :: EnumValueSerializer ::
       JsonAbleSerializer :: ListResultSerializer.asInstanceOf[Serializer[_]] :: // here must do class cast, or it cause compile error, looks like a bug of scala.
-      MapperSerializer :: Nil
+      MapperSerializer :: JavaMathBigDecimalSerializer :: Nil
 
   implicit val commonFormats =  CustomFormats ++ serializers
 
@@ -128,6 +128,20 @@ object BigDecimalSerializer extends Serializer[BigDecimal] {
 
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case x: BigDecimal => JString(x.toString())
+  }
+}
+object JavaMathBigDecimalSerializer extends Serializer[java.math.BigDecimal] {
+  private val IntervalClass = classOf[java.math.BigDecimal]
+
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), java.math.BigDecimal] = {
+    case (TypeInfo(IntervalClass, _), json) => json match {
+      case JString(s) => BigDecimal(s).bigDecimal
+      case x => throw new MappingException("Can't convert " + x + " to BigDecimal")
+    }
+  }
+
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case x: java.math.BigDecimal => JString(x.toString())
   }
 }
 
