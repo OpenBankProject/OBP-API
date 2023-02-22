@@ -964,7 +964,7 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
           Some(resourceDocTags)
         }
       }
-    logger.info(s"tagsOption is $tags")
+    logger.debug(s"tagsOption is $tags")
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
     val rawPartialFunctionNames = S.param("functions")
@@ -987,31 +987,31 @@ object ResourceDocsAPIMethodsUtil extends MdcLoggable{
           Some(pfns)
         }
       }
-    logger.info(s"partialFunctionNames is $partialFunctionNames")
+    logger.debug(s"partialFunctionNames is $partialFunctionNames")
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
     val languageParam = for {
       x <- S.param("language").or(S.param(PARAM_LOCALE))
       y <- stringToLanguageParam(x)
     } yield y
-    logger.info(s"languageParam is $languageParam")
+    logger.debug(s"languageParam is $languageParam")
 
     // So we can produce a reduced list of resource docs to prevent manual editing of swagger files.
     val contentParam = for {
       x <- S.param("content")
       y <- stringToContentParam(x)
     } yield y
-    logger.info(s"content is $contentParam")
+    logger.debug(s"content is $contentParam")
 
     val apiCollectionIdParam = for {
       x <- S.param("api-collection-id")
     } yield x
-    logger.info(s"apiCollectionIdParam is $apiCollectionIdParam")
+    logger.debug(s"apiCollectionIdParam is $apiCollectionIdParam")
     
     val cacheModifierParam = for {
       x <- S.param("cache-modifier")
     } yield x
-    logger.info(s"cacheModifierParam is $cacheModifierParam")
+    logger.debug(s"cacheModifierParam is $cacheModifierParam")
 
     (tags, partialFunctionNames, languageParam, contentParam, apiCollectionIdParam, cacheModifierParam)
   }
@@ -1080,7 +1080,7 @@ so the caller must specify any required filtering by catalog explicitly.
 
 
     if (filteredResources4.length > 0 && resourcesToUse.length == 0) {
-      logger.info("tags filter reduced the list of resource docs to zero")
+      logger.debug("tags filter reduced the list of resource docs to zero")
     }
 
     resourcesToUse
