@@ -229,8 +229,8 @@ object X509 extends MdcLoggable {
           rolesInfo = Some("PEM Encoded Certificate does not contain PSD2 roles.")
       }
       val result = CertificateInfoJsonV510(
-        subject_dn = subjectDN, 
-        issuer_dn = issuerDN, 
+        subject_domain_name = subjectDN, 
+        issuer_domain_name = issuerDN, 
         not_before = APIUtil.formatDate(notBefore), 
         not_after = APIUtil.formatDate(notAfter), 
         roles = roles,

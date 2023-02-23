@@ -48,8 +48,8 @@ case class APIInfoJsonV510(
                          )
 
 case class CertificateInfoJsonV510(
-                                    subject_dn: String,
-                                    issuer_dn: String,
+                                    subject_domain_name: String,
+                                    issuer_domain_name: String,
                                     not_before: String,
                                     not_after: String,
                                     roles: Option[List[String]],

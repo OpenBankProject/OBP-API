@@ -4157,8 +4157,8 @@ object SwaggerDefinitionsJSON {
   val oAuth2ServerJwksUrisJson = OAuth2ServerJwksUrisJson(List(oAuth2ServerJWKURIJson))
 
   val certificateInfoJsonV510 = CertificateInfoJsonV510(
-    subject_dn = "OID.2.5.4.41=VPN, EMAILADDRESS=admin@tesobe.com, CN=TESOBE CA, OU=TESOBE Operations, O=TESOBE, L=Berlin, ST=Berlin, C=DE",
-    issuer_dn = "CN=localhost, O=TESOBE GmbH, ST=Berlin, C=DE",
+    subject_domain_name = "OID.2.5.4.41=VPN, EMAILADDRESS=admin@tesobe.com, CN=TESOBE CA, OU=TESOBE Operations, O=TESOBE, L=Berlin, ST=Berlin, C=DE",
+    issuer_domain_name = "CN=localhost, O=TESOBE GmbH, ST=Berlin, C=DE",
     not_before = "2022-04-01T10:13:00.000Z",
     not_after = "2032-04-01T10:13:00.000Z",
     roles = None,
