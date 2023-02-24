@@ -80,12 +80,12 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   def getConsentRequestUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
   def createConsentByConsentRequestIdEmail(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
-  def revokeConsentUrl(consentId: String) = v5_1_0_Request / "banks" / bankId / "consents" / consentId / "revoke"
+  def revokeConsentUrl(consentId: String) = (v5_1_0_Request / "banks" / bankId / "consents" / consentId).DELETE
 
   feature(s"test $ApiEndpoint6 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
       When(s"We make a request $ApiEndpoint6")
-      val response510 = makeGetRequest(revokeConsentUrl("whatever"))
+      val response510 = makeDeleteRequest(revokeConsentUrl("whatever"))
       Then("We should get a 401")
       response510.code should equal(401)
       response510.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
@@ -94,7 +94,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   feature(s"test $ApiEndpoint6 version $VersionOfApi - Authorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
-      val response510 = makeGetRequest(revokeConsentUrl("whatever")<@(user1))
+      val response510 = makeDeleteRequest(revokeConsentUrl("whatever")<@(user1))
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanRevokeConsentAtBank) should be (true)
@@ -177,7 +177,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       
       // Revoke consent
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanRevokeConsentAtBank.toString)
-      val response510 = makeGetRequest(revokeConsentUrl(getConsentByRequestResponseJson.consent_id)<@(user1))
+      val response510 = makeDeleteRequest(revokeConsentUrl(getConsentByRequestResponseJson.consent_id)<@(user1))
       Then("We should get a 200")
       response510.code should equal(200)
       

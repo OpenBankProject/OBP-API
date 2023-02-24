@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
-import code.api.util.{ApiRole, NewStyle}
+import code.api.util.{APIUtil, ApiRole, NewStyle, X509}
 import code.api.util.NewStyle.HttpCode
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
@@ -112,8 +112,8 @@ trait APIMethods510 {
       revokeConsentAtBank,
       implementedInApiVersion,
       nameOf(revokeConsentAtBank),
-      "GET",
-      "/banks/BANK_ID/consents/CONSENT_ID/revoke",
+      "DELETE",
+      "/banks/BANK_ID/consents/CONSENT_ID",
       "Revoke Consent at Bank",
       s"""
          |Revoke Consent specified by CONSENT_ID
@@ -141,7 +141,7 @@ trait APIMethods510 {
     )
 
     lazy val revokeConsentAtBank: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "consents" :: consentId :: "revoke" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "consents" :: consentId :: Nil JsonDelete _ => {
         cc =>
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
@@ -157,6 +157,91 @@ trait APIMethods510 {
             }
           } yield {
             (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+   staticResourceDocs += ResourceDoc(
+     selfRevokeConsent,
+      implementedInApiVersion,
+      nameOf(selfRevokeConsent),
+      "DELETE",
+      "/my/consent/current",
+      "Revoke Consent used in the Current Call",
+      s"""
+         |Revoke Consent specified by Consent-Id at Request Header
+         |
+         |There are a few reasons you might need to revoke an application’s access to a user’s account:
+         |  - The user explicitly wishes to revoke the application’s access
+         |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+         |  - etc.
+         ||
+         |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+         |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      revokedConsentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+    )
+    lazy val selfRevokeConsent: OBPEndpoint = {
+      case "my" :: "consent" :: "current" :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            consentId = getConsentIdRequestHeaderValue(cc.requestHeaders).getOrElse("")
+            _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+              unboxFullOrFail(_, callContext, ConsentNotFound)
+            }
+            consent <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+              i => connectorEmptyResponse(i, callContext)
+            }
+          } yield {
+            (ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status), HttpCode.`200`(callContext))
+          }
+      }
+    }
+    
+    
+   staticResourceDocs += ResourceDoc(
+     mtlsClientCertificateInfo,
+      implementedInApiVersion,
+      nameOf(mtlsClientCertificateInfo),
+      "GET",
+      "/my/mtls/certificate/current",
+      "Provide client's certificate info of a current call",
+      s"""
+         |Provide client's certificate info of a current call specified by PSD2-CERT value at Request Header
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      certificateInfoJsonV510,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+    )
+    lazy val mtlsClientCertificateInfo: OBPEndpoint = {
+      case "my" :: "mtls" :: "certificate" :: "current" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (Full(_), callContext) <- authenticatedAccess(cc)
+            info <- Future(X509.getCertificateInfo(APIUtil.`getPSD2-CERT`(cc.requestHeaders))) map {
+              unboxFullOrFail(_, callContext, X509GeneralError)
+            }
+          } yield {
+            (info, HttpCode.`200`(callContext))
           }
       }
     }

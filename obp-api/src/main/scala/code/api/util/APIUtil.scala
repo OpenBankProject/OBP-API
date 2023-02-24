@@ -244,6 +244,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
   }
+
+  /**
+   * Purpose of this helper function is to get the Consent-JWT value from a Request Headers.
+   * @return the Consent-JWT value from a Request Header as a String
+   */
+  def getConsentIdRequestHeaderValue(requestHeaders: List[HTTPParam]): Option[String] = {
+    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
+      case x :: Nil => Some(x.values.mkString(", "))
+      case _ => None
+    }
+  }
   /**
    * Purpose of this helper function is to get the PSD2-CERT value from a Request Headers.
    * @return the PSD2-CERT value from a Request Header as a String
@@ -3648,12 +3659,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
           case Some(pem) =>
             logger.debug("PSD2-CERT pem: " + pem)
-            val decodedPem = URLDecoder.decode(pem,"UTF-8")
-            val validatedPem = X509.validate(decodedPem)
+            val validatedPem = X509.validate(pem)
             logger.debug("validatedPem: " + validatedPem)
             validatedPem match {
               case Full(true) =>
-                val hasServiceProvider = X509.extractPsd2Roles(decodedPem).map(_.exists(_ == serviceProvider))
+                val hasServiceProvider = X509.extractPsd2Roles(pem).map(_.exists(_ == serviceProvider))
                 logger.debug("hasServiceProvider: " + hasServiceProvider)
                 hasServiceProvider match {
                   case Full(true) => Full(true)
