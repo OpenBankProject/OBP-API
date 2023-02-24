@@ -166,8 +166,8 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(selfRevokeConsent),
       "DELETE",
-      "/my/consent/revoke",
-      "Revoke Consent at Current Call",
+      "/my/consent/current",
+      "Revoke Consent used in the Current Call",
       s"""
          |Revoke Consent specified by Consent-Id at Request Header
          |
@@ -192,7 +192,7 @@ trait APIMethods510 {
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
     )
     lazy val selfRevokeConsent: OBPEndpoint = {
-      case "my" :: "consent" :: "revoke" :: Nil JsonDelete _ => {
+      case "my" :: "consent" :: "current" :: Nil JsonDelete _ => {
         cc =>
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
