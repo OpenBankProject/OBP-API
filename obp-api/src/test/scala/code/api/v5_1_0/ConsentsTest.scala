@@ -80,7 +80,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   def getConsentRequestUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
   def createConsentByConsentRequestIdEmail(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
-  def revokeConsentUrl(consentId: String) = (v5_1_0_Request / "banks" / bankId / "consents" / consentId / "revoke").DELETE
+  def revokeConsentUrl(consentId: String) = (v5_1_0_Request / "banks" / bankId / "consents" / consentId).DELETE
 
   feature(s"test $ApiEndpoint6 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
