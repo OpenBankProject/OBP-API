@@ -21,11 +21,13 @@ object MetricsArchiveScheduler extends MdcLoggable {
   private val oneDayInMillis: Long = 86400000
 
   def start(intervalInSeconds: Long): Unit = {
+    logger.info("Hello from MetricsArchiveScheduler.start")
     scheduler.schedule(
       initialDelay = Duration(getMillisTillMidnight(), TimeUnit.MILLISECONDS),
       interval = Duration(intervalInSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
         def run(): Unit = {
+          logger.info("Hello from MetricsArchiveScheduler.start.run")
           conditionalDeleteMetricsRow()
           deleteOutdatedRowsFromMetricsArchive()
         } 
@@ -34,6 +36,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   }
 
   def deleteOutdatedRowsFromMetricsArchive() = {
+    logger.info("Hello from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
     val currentTime = new Date()
     val defaultValue : Int = 365 * 3
     val days = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", defaultValue) match {
@@ -43,9 +46,11 @@ object MetricsArchiveScheduler extends MdcLoggable {
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Delete the outdated rows from the table "MetricsArchive"
     MetricArchive.bulkDelete_!!(By_<=(MetricArchive.date, someYearsAgo))
+    logger.info("Bye from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
   }
 
   def conditionalDeleteMetricsRow() = {
+    logger.info("Hello from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
     val currentTime = new Date()
     val days = APIUtil.getPropsAsLongValue("retain_metrics_days", 367) match {
       case days if days > 59 => days
@@ -53,11 +58,16 @@ object MetricsArchiveScheduler extends MdcLoggable {
     }
     val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Get the data from the table "Metric" older than specified by retain_metrics_days
+    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says before candidateMetricRowsToMove val")
     val candidateMetricRowsToMove = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPToDate(someDaysAgo)))
+    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after candidateMetricRowsToMove val")
+    logger.info(s"Number of rows: ${candidateMetricRowsToMove.length}")
     candidateMetricRowsToMove map { i =>
-      // and copy it to the table "MetricsArchive"
+      // and copy it to the table "MetricArchive"
       copyRowToMetricsArchive(i)
     }
+    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after coping all rows")
+    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says before maybeDeletedRows val")
     val maybeDeletedRows: List[(Boolean, Long)] = candidateMetricRowsToMove map { i =>
       // and delete it after successful coping
       MetricArchive.find(By(MetricArchive.metricId, i.getMetricId())) match {
@@ -65,6 +75,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
         case _ => (false, i.getMetricId())
       }
     }
+    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after maybeDeletedRows val")
     maybeDeletedRows.filter(_._1 == false).map { i => 
       logger.warn(s"Row with primary key ${i._2} of the table Metric is not successfully copied.")
     }
