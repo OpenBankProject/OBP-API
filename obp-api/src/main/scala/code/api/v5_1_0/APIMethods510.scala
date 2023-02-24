@@ -215,7 +215,7 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(mtlsClientCertificateInfo),
       "GET",
-      "/my/mtls/certificate/info",
+      "/my/mtls/certificate/current",
       "Provide client's certificate info of a current call",
       s"""
          |Provide client's certificate info of a current call specified by PSD2-CERT value at Request Header
@@ -233,7 +233,7 @@ trait APIMethods510 {
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
     )
     lazy val mtlsClientCertificateInfo: OBPEndpoint = {
-      case "my" :: "mtls" :: "certificate" :: "info" :: Nil JsonGet _ => {
+      case "my" :: "mtls" :: "certificate" :: "current" :: Nil JsonGet _ => {
         cc =>
           for {
             (Full(_), callContext) <- authenticatedAccess(cc)
