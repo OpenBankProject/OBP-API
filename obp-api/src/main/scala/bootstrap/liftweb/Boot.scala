@@ -594,7 +594,7 @@ class Boot extends MdcLoggable {
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
     val locale = I18NUtil.getDefaultLocale()
-    Locale.setDefault(locale)
+    // Locale.setDefault(locale) // TODO Explain why this line of code introduce weird side effects
     logger.info("Default Project Locale is :" + locale)
     
     // Cookie name
