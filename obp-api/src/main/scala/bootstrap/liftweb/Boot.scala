@@ -684,10 +684,14 @@ class Boot extends MdcLoggable {
       case Full(i) => DatabaseDriverScheduler.start(i)
       case _ => // Do not start it
     }
-    val interval = 
-      APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
-    MetricsArchiveScheduler.start(intervalInSeconds = interval)
-
+    
+    APIUtil.getPropsAsBoolValue("disable_metrics_scheduler", false) match {
+      case false =>
+        val interval =
+          APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
+        MetricsArchiveScheduler.start(intervalInSeconds = interval)
+      case true => // Do not start it
+    }
 
     object UsernameLockedChecker  {
       def beginServicing(session: LiftSession, req: Req){
