@@ -176,7 +176,7 @@ trait APIMethods300 {
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {
               for {
-                view <- account createView (u, createViewJson)
+                view <- account createCustomView (u, createViewJson)
               } yield {
                 (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
               }

@@ -346,11 +346,11 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
 
-  final def createView(userDoingTheCreate : User,v: CreateViewJson): Box[View] = {
+  final def createCustomView(userDoingTheCreate : User,v: CreateViewJson): Box[View] = {
     if(!userDoingTheCreate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.createView(BankIdAccountId(bankId,accountId), v)
+      val view = Views.views.vend.createCustomView(BankIdAccountId(bankId,accountId), v)
 
       //if(view.isDefined) {
       //  logger.debug("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +

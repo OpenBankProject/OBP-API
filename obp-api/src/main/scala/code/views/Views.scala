@@ -60,7 +60,7 @@ trait Views {
   //always return a view id String, not error here. 
   def getMetadataViewId(bankAccountId: BankIdAccountId, viewId : ViewId) = Views.views.vend.customView(viewId, bankAccountId).map(_.metadataView).openOr(viewId.value)
   
-  def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
+  def createCustomView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View]
   def createSystemView(view: CreateViewJson): Future[Box[View]]
   def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean]
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]]

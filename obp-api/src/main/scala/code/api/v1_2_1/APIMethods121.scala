@@ -605,7 +605,7 @@ trait APIMethods121 {
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
             )
-            view <- account createView (u, createViewJson)
+            view <- account createCustomView (u, createViewJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
