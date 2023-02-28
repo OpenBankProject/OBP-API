@@ -23,9 +23,6 @@ import code.util.Helper.MdcLoggable
 import org.apache.commons.lang3.StringUtils
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
-
-import com.openbankproject.commons.model.enums.LanguageParam
-
 import java.lang.reflect.Field
 
 object JSONFactory1_4_0 extends MdcLoggable{
@@ -519,7 +516,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
   private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
 
-  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, languageParam: Option[LanguageParam]) : ResourceDocJson = {
+  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocJson = {
     // We MUST recompute all resource doc values due to translation via Web UI props
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocUpdatedTags: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
@@ -558,12 +555,12 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
       val resourceDocDescription = I18NUtil.ResourceDocTranslation.description(
         resourceDocUpdatedTags.operationId, 
-        languageParam, 
+        locale, 
         resourceDocUpdatedTags.description.stripMargin.trim
       )
       val description = resourceDocDescription ++ fieldsDescription
       val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
-      val translatedSummary = I18NUtil.ResourceDocTranslation.summary(resourceDocUpdatedTags.operationId, languageParam, summary)
+      val translatedSummary = I18NUtil.ResourceDocTranslation.summary(resourceDocUpdatedTags.operationId, locale, summary)
       
       ResourceDocJson(
         operation_id = resourceDocUpdatedTags.operationId,
@@ -590,14 +587,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }) 
   }
 
-  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, languageParam: Option[LanguageParam]) : ResourceDocsJson = {
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocsJson = {
     if(isVersion4OrHigher){
       ResourceDocsJson(
-        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher, languageParam)),
+        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher, locale)),
         meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
       )
     } else {
-      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false, languageParam)))
+      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false, locale)))
     }
   }
   
