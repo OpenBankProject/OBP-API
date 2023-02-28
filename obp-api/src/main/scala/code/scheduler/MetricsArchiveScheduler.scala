@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 import java.util.{Calendar, Date}
 
 import code.actorsystem.ObpLookupSystem
-import code.api.util.{APIUtil, OBPToDate}
+import code.api.util.{APIUtil, OBPLimit, OBPToDate}
 import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
@@ -23,7 +23,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   def start(intervalInSeconds: Long): Unit = {
     logger.info("Hello from MetricsArchiveScheduler.start")
     scheduler.schedule(
-      initialDelay = Duration(getMillisTillMidnight(), TimeUnit.MILLISECONDS),
+      initialDelay = Duration(intervalInSeconds, TimeUnit.SECONDS),
       interval = Duration(intervalInSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
         def run(): Unit = {
@@ -57,9 +57,10 @@ object MetricsArchiveScheduler extends MdcLoggable {
       case _ => 60
     }
     val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
+    val limit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 50000)
     // Get the data from the table "Metric" older than specified by retain_metrics_days
     logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says before candidateMetricRowsToMove val")
-    val candidateMetricRowsToMove = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPToDate(someDaysAgo)))
+    val candidateMetricRowsToMove = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPToDate(someDaysAgo), OBPLimit(limit)))
     logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after candidateMetricRowsToMove val")
     logger.info(s"Number of rows: ${candidateMetricRowsToMove.length}")
     candidateMetricRowsToMove map { i =>
