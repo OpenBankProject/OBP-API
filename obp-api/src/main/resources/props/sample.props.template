@@ -1208,7 +1208,7 @@ user_account_validated_redirect_url =
 user_account_is_validated = false
 
 # Disable/Enable Metric Scheduler
-disable_metrics_scheduler = false
+enable_metrics_scheduler = true
 # Defines the number of days we keep rows in the table "MetricArchive"
 # default value is 3 years
 retain_archive_metrics_days = 1095

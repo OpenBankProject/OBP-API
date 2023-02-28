@@ -685,12 +685,12 @@ class Boot extends MdcLoggable {
       case _ => // Do not start it
     }
     
-    APIUtil.getPropsAsBoolValue("disable_metrics_scheduler", false) match {
-      case false =>
+    APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true) match {
+      case true =>
         val interval =
           APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
         MetricsArchiveScheduler.start(intervalInSeconds = interval)
-      case true => // Do not start it
+      case false => // Do not start it
     }
 
     object UsernameLockedChecker  {
