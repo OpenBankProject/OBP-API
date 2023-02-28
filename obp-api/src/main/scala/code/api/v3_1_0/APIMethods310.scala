@@ -3921,6 +3921,10 @@ trait APIMethods310 {
             createViewJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[CreateViewJsonV300]
             }
+            //System views can not startwith '_'
+            _ <- Helper.booleanToFuture(failMsg = InvalidSystemViewFormat, cc = callContext) {
+              checkSystemViewName(createViewJson.name)
+            }
             _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=callContext) {
               createViewJson.is_public == false
             }
