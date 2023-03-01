@@ -799,6 +799,8 @@ class Boot extends MdcLoggable {
     }
 
     ApiWarnings.logWarningsRegardingProperties()
+    ApiWarnings.incorrectCustomViewNames()
+    ApiWarnings.incorrectSystemViewNames()
 
     //see the notes for this method:
     createDefaultBankAndDefaultAccountsIfNotExisting()
