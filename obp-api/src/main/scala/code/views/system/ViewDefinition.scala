@@ -544,6 +544,11 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
       By(ViewDefinition.view_id, viewId),
     )
   }
+  def getSystemViews(): List[ViewDefinition] = {
+    ViewDefinition.findAll(
+      By(ViewDefinition.isSystem_, true)
+    )
+  }
 
   def findCustomView(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] = {
     ViewDefinition.find(
@@ -551,6 +556,11 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
       By(ViewDefinition.account_id, accountId),
       By(ViewDefinition.isSystem_, false),
       By(ViewDefinition.view_id, viewId),
+    )
+  }
+  def getCustomViews(): List[ViewDefinition] = {
+    ViewDefinition.findAll(
+      By(ViewDefinition.isSystem_, false)
     )
   }
   
