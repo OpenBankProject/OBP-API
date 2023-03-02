@@ -562,16 +562,7 @@ object MapperViews extends Views with MdcLoggable {
     accountAccess.map(_.view_fk.obj).flatten.filter(view => view.isPrivate == true).distinct
   }
 
-  /**
-    * @param bankIdAccountId the IncomingAccount from Kafka
-    * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support
-    * these four values.
-    * @return  This will insert a View (e.g. the owner view) for an Account (BankAccount), and return the view
-    * Note:
-    * updateUserAccountViews would call createAccountView once per View specified in the IncomingAccount from Kafka.
-    * We should cache this function because the available views on an account will change rarely.
-    *
-    */
+  
   def getOrCreateAccountView(bankIdAccountId: BankIdAccountId, viewId: String): Box[View] = {
 
     val bankId = bankIdAccountId.bankId
@@ -606,31 +597,15 @@ object MapperViews extends Views with MdcLoggable {
     theView
   }
   
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, SYSTEM_OWNER_VIEW_ID) match {
-      case Empty => createDefaultOwnerView(bankId, accountId, description)
-      case Full(v) => Full(v)
-      case Failure(msg, t, c) => Failure(msg, t, c)
-      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
-    }
-  }  
-  def getOrCreateSystemView(name: String) : Box[View] = {
-    getExistingSystemView(name) match {
-      case Empty => createDefaultSystemView(name)
+  def getOrCreateSystemView(viewId: String) : Box[View] = {
+    getExistingSystemView(viewId) match {
+      case Empty => createDefaultSystemView(viewId)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
   
-  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String = "Firehose View") : Box[View] = {
-    getExistingView(bankId, accountId, "firehose") match {
-      case Empty => createDefaultFirehoseView(bankId, accountId, description)
-      case Full(v) => Full(v)
-      case Failure(msg, t, c) => Failure(msg, t, c)
-      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
-    }
-  }
 
   def getOwners(view: View) : Set[User] = {
     val id: Long = ViewDefinition.findCustomView(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value)
@@ -642,7 +617,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
-    getExistingView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
+    getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -651,7 +626,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
-    getExistingView(bankId, accountId, "accountant") match {
+    getExistingCustomView(bankId, accountId, "accountant") match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -660,7 +635,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
-    getExistingView(bankId, accountId, "auditor") match {
+    getExistingCustomView(bankId, accountId, "auditor") match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -761,11 +736,6 @@ object MapperViews extends Views with MdcLoggable {
     Full(entity)
   }
   
-
-  def createDefaultFirehoseView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveFirehoseView(bankId, accountId, "Firehose View")
-  }
-  
   def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     createAndSaveOwnerView(bankId, accountId, "Owner View")
   }  
@@ -788,13 +758,13 @@ object MapperViews extends Views with MdcLoggable {
     createAndSaveDefaultAuditorsView(bankId, accountId, "Auditors View")
   }
 
-  def getExistingView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    val res = ViewDefinition.findCustomView(bankId.value, accountId.value, name)
+  def getExistingCustomView(bankId: BankId, accountId: AccountId, viewId: String): Box[View] = {
+    val res = ViewDefinition.findCustomView(bankId.value, accountId.value, viewId)
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
-  def getExistingSystemView(name: String): Box[View] = {
-    val res = ViewDefinition.findSystemView(name)
+  def getExistingSystemView(viewId: String): Box[View] = {
+    val res = ViewDefinition.findSystemView(viewId)
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
@@ -913,15 +883,15 @@ object MapperViews extends Views with MdcLoggable {
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
   }
-  def unsavedSystemView(name: String) : ViewDefinition = {
+  def unsavedSystemView(viewId: String) : ViewDefinition = {
     val entity = create
       .isSystem_(true)
       .isFirehose_(false)
       .bank_id(null)
       .account_id(null)
-      .name_(StringHelpers.capify(name))
-      .view_id(name)
-      .description_(name)
+      .name_(StringHelpers.capify(viewId))
+      .view_id(viewId)
+      .description_(viewId)
       .isPublic_(false) //(default is false anyways)
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)
       .usePublicAliasIfOneExists_(false) //(default is false anyways)
@@ -1000,7 +970,7 @@ object MapperViews extends Views with MdcLoggable {
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
     
-    name match {
+    viewId match {
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)

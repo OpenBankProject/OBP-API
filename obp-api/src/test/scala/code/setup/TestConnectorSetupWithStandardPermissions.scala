@@ -2,6 +2,7 @@ package code.setup
 
 import bootstrap.liftweb.ToSchemify
 import code.accountholders.AccountHolders
+import code.api.Constant.{CUSTOM_PUBLIC_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
 import code.api.util.ErrorMessages._
 import code.model._
 import code.model.dataAccess._
@@ -24,11 +25,11 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     Views.views.vend.getOrCreateSystemView(name).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
   protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.getOrCreateOwnerView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.getOrCreateCustomPublicView(bankId, accountId, randomString(3)).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Views.views.vend.getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, CUSTOM_PUBLIC_VIEW_ID).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   protected def createCustomRandomView(bankId: BankId, accountId: AccountId) : View = {

@@ -97,20 +97,22 @@ trait Views {
   final def getPrivateBankAccountsFuture(user : User, viewIds: List[ViewId]) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, viewIds)}
   final def getPrivateBankAccounts(user : User, bankId : BankId) : List[BankIdAccountId] = getPrivateBankAccounts(user).filter(_.bankId == bankId).distinct
   final def getPrivateBankAccountsFuture(user : User, bankId : BankId) : Future[List[BankIdAccountId]] = Future {getPrivateBankAccounts(user, bankId)}
-  
+
+  /**
+   * @param bankIdAccountId the IncomingAccount from Kafka
+   * @param viewId          This field should be selected one from Owner/Public/Accountant/Auditor, only support
+   *                        these four values.
+   * @return This will insert a View (e.g. the owner view) for an Account (BankAccount), and return the view
+   *         Note:
+   *         updateUserAccountViews would call createAccountView once per View specified in the IncomingAccount from Kafka.
+   *         We should cache this function because the available views on an account will change rarely.
+   *
+   */
   def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
-  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   
-  def getOrCreateSystemView(name: String) : Box[View]
+  def getOrCreateSystemView(viewId: String) : Box[View]
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View]
-
-  @deprecated("There is no custom `Accountant` view, only support system owner view now","2020-01-13")
-  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  @deprecated("There is no custom `Auditor` view, only support system owner view now","2020-01-13")
-  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
-  @deprecated("There is no custom `owner` view, only support system owner view now","2020-01-13")
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
 
   def getOwners(view: View): Set[User]
   
@@ -158,10 +160,8 @@ class RemotedataViewsCaseClasses {
   case class getSystemViews()
   case class customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class systemViewFuture(viewId : ViewId)
-  case class getOrCreateAccountView(account: BankIdAccountId, viewName: String)
-  case class getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String)
-  case class getOrCreateSystemView(name: String)
-  case class getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String)
+  case class getOrCreateAccountView(account: BankIdAccountId, viewId: String)
+  case class getOrCreateSystemView(viewId: String)
   case class getOrCreatePublicView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)
   case class getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String)

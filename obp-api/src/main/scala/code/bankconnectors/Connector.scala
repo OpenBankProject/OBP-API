@@ -4,7 +4,7 @@ import java.util.Date
 import java.util.UUID.randomUUID
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
-import code.api.Constant.localIdentityProvider
+import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import code.api.attributedefinition.AttributeDefinition
 import code.api.cache.Caching
 import code.api.util.APIUtil.{OBPReturnType, _}
@@ -1767,7 +1767,7 @@ trait Connector extends MdcLoggable {
 
     val ownerView: Box[View] =
       if(owner_view)
-        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+        Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
       else Empty
 
     val publicView: Box[View]  =
@@ -1777,12 +1777,12 @@ trait Connector extends MdcLoggable {
 
     val accountantsView: Box[View]  =
       if(accountants_view)
-        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+        Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else Empty
 
     val auditorsView: Box[View] =
       if(auditors_view)
-        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+        Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
       else Empty
 
     List(ownerView, publicView, accountantsView, auditorsView).flatten
