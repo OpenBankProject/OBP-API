@@ -328,9 +328,9 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
 
   def getProvider() = {
     if(provider.get == null) {
-      Constant.HostName
-    } else if ( provider.get == "" || provider.get == Constant.HostName ) {
-      Constant.HostName
+      Constant.localIdentityProvider
+    } else if ( provider.get == "" || provider.get == Constant.localIdentityProvider ) {
+      Constant.localIdentityProvider
     } else {
       provider.get
     }
