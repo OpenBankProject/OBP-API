@@ -355,7 +355,7 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   
-  def getNewViewPermalink(name: String) = {
+  def createViewIdByName(name: String) = {
     name.replaceAllLiterally(" ", "").toLowerCase
   }
   /*
@@ -364,26 +364,26 @@ object MapperViews extends Views with MdcLoggable {
   def createSystemView(view: CreateViewJson) : Future[Box[View]] = Future {
     if(view.is_public) {
       Failure(SystemViewCannotBePublicError)
-    }else if (!checkSystemViewName(view.name)) {
-      Failure(InvalidSystemViewFormat)
+    }else if (!checkSystemViewIdOrName(view.name)) {
+      Failure(InvalidSystemViewFormat+s"Current view_name (${view.name})")
     } else {
       view.name.contentEquals("") match {
         case true => 
           Failure(EmptyNameOfSystemViewError)
         case false =>
           //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
-          val newViewPermalink = getNewViewPermalink(view.name)
+          val viewId = createViewIdByName(view.name)
           val existing = ViewDefinition.count(
-            By(ViewDefinition.view_id, newViewPermalink), 
+            By(ViewDefinition.view_id, viewId), 
             NullRef(ViewDefinition.bank_id),
             NullRef(ViewDefinition.account_id)
           ) == 1
 
           existing match {
             case true =>
-              Failure(s"$ExistingSystemViewError $newViewPermalink")
+              Failure(s"$ExistingSystemViewError $viewId")
             case false =>
-              val createdView = ViewDefinition.create.name_(view.name).view_id(newViewPermalink)
+              val createdView = ViewDefinition.create.name_(view.name).view_id(viewId)
               createdView.setFromViewData(view)
               createdView.isSystem_(true)
               createdView.isPublic_(false)
@@ -398,7 +398,7 @@ object MapperViews extends Views with MdcLoggable {
   * */
   def createCustomView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = {
 
-    if(!checkCustomViewName(view.name)) {
+    if(!checkCustomViewIdOrName(view.name)) {
       return Failure(InvalidCustomViewFormat)
     }
     
@@ -410,19 +410,19 @@ object MapperViews extends Views with MdcLoggable {
       return Failure("You cannot create a View with an empty Name")
     }
     //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
-    val newViewPermalink = getNewViewPermalink(view.name)
+    val viewId = createViewIdByName(view.name)
 
     val existing = ViewDefinition.count(
-      By(ViewDefinition.view_id, newViewPermalink) ::
+      By(ViewDefinition.view_id, viewId) ::
         ViewDefinition.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*
     ) == 1
 
     if (existing)
-      Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
+      Failure(s"There is already a view with permalink $viewId on this bank account")
     else {
       val createdView = ViewDefinition.create.
         name_(view.name).
-        view_id(newViewPermalink).
+        view_id(viewId).
         bank_id(bankAccountId.bankId.value).
         account_id(bankAccountId.accountId.value)
 

@@ -142,8 +142,8 @@ object ErrorMessages {
 
   val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
   val UserNoOwnerView = "OBP-20019: User does not have access to owner view. "
-  val InvalidCustomViewFormat = s"OBP-20020: Custom view name must start with `_`. eg: _work, _life. "
-  val InvalidSystemViewFormat = s"OBP-20020: System view name can not start with '_'. eg: owner, standard. "
+  val InvalidCustomViewFormat = s"OBP-20020: Custom view name/view_id must start with `_`. eg: _work, _life. "
+  val InvalidSystemViewFormat = s"OBP-20020: System view name/view_id can not start with '_'. eg: owner, standard. "
   val SystemViewsCanNotBeModified = "OBP-20021: System Views can not be modified. Only the created views can be modified."
   val ViewDoesNotPermitAccess = "OBP-20022: View does not permit the access."
 

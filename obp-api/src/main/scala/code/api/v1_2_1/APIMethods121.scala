@@ -594,7 +594,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~ InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(checkCustomViewName(createViewJsonV121.name), InvalidCustomViewFormat)
+            _<- booleanToBox(checkCustomViewIdOrName(createViewJsonV121.name), InvalidCustomViewFormat+s"Current view_name (${createViewJsonV121.name})")
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             createViewJson = CreateViewJson(
               createViewJsonV121.name,
@@ -649,7 +649,7 @@ trait APIMethods121 {
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             u <- cc.user ?~  UserNotLoggedIn
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
+            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat +s"Current view_id (${viewId.value})")
             view <- Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)) ?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             updateViewJson = UpdateViewJSON(
@@ -697,7 +697,7 @@ trait APIMethods121 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
-            _ <- Helper.booleanToFuture(InvalidCustomViewFormat, cc=callContext) { viewId.value.startsWith("_") }
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat+s"Current view_name (${viewId.value})", cc=callContext) { viewId.value.startsWith("_") }
             _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
             deleted <- NewStyle.function.removeView(account, u, viewId)
           } yield {

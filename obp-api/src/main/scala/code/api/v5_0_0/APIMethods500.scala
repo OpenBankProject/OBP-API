@@ -1773,8 +1773,8 @@ trait APIMethods500 {
               createViewJson.is_public == false
             }
             // custom views are started with `_`,eg _ life, _ work, and System views can not, eg: owner.
-            _ <- Helper.booleanToFuture(failMsg = InvalidSystemViewFormat, cc = cc.callContext) {
-              checkSystemViewName(createViewJson.name)
+            _ <- Helper.booleanToFuture(failMsg = InvalidSystemViewFormat +s"Current view_name (${createViewJson.name})", cc = cc.callContext) {
+              checkSystemViewIdOrName(createViewJson.name)
             }
             view <- NewStyle.function.createSystemView(createViewJson.toCreateViewJson, cc.callContext)
           } yield {
