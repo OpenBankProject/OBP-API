@@ -1060,7 +1060,7 @@ def restoreSomeSessions(): Unit = {
     }
 
     def isObpProvider(user: AuthUser) = {
-      user.getProvider() == Constant.HostName
+      user.getProvider() == Constant.localIdentityProvider
     }
 
     def obpUserIsValidatedAndNotLocked(usernameFromGui: String, user: AuthUser) = {
