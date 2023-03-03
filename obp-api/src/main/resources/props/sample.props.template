@@ -1132,7 +1132,7 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 
 # Local identity provider url
 # it defaults to the hostname props value
-# local_identity_provider=this is the hostname of the local obp server including scheme
+# local_identity_provider=strongly recomended to use top level domain name so that all nodes in the cluster share same provider name
 
 
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
