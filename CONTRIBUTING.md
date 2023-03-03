@@ -22,6 +22,7 @@ Please structure git commit messages in a way as shown below:
 5. performance/Something
 6. test/Something
 7. enhancement/Something
+8. security/Something
 
 Please also check if it also needs to be tagged (see below)
 

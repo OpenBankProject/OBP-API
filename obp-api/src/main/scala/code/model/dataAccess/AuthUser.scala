@@ -322,15 +322,13 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     override def displayName = S.?("provider")
     override val fieldId = Some(Text("txtProvider"))
     override def validations = validUri(this) _ :: super.validations
-    override def defaultValue: String = Constant.HostName
+    override def defaultValue: String = Constant.localIdentityProvider
   }
 
 
   def getProvider() = {
-    if(provider.get == null) {
-      Constant.HostName
-    } else if ( provider.get == "" || provider.get == Constant.HostName ) {
-      Constant.HostName
+    if(provider.get == null || provider.get == "") {
+      Constant.localIdentityProvider
     } else {
       provider.get
     }
