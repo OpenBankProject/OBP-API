@@ -141,7 +141,7 @@ object RemotedataViews extends ObpActorInit with Views {
   )
   
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
-    (actor ? cc.getOrCreatePublicView(bankId, accountId, description)).mapTo[Box[View]]
+    (actor ? cc.getOrCreatePublicPublicView(bankId, accountId, description)).mapTo[Box[View]]
   )
 
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
