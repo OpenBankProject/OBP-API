@@ -626,7 +626,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
-    getExistingCustomView(bankId, accountId, "accountant") match {
+    getExistingCustomView(bankId, accountId, SYSTEM_ACCOUNTANT_VIEW_ID) match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -635,7 +635,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
-    getExistingCustomView(bankId, accountId, "auditor") match {
+    getExistingCustomView(bankId, accountId, SYSTEM_AUDITOR_VIEW_ID) match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
