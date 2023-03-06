@@ -12,6 +12,7 @@ import com.openbankproject.commons.model.ListResult
 import code.crm.CrmEvent.CrmEvent
 import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import com.openbankproject.commons.model.{Product, _}
+import com.openbankproject.commons.model.enums.I18NResourceDocField
 import com.openbankproject.commons.util.{EnumValue, JsonUtils, OBPEnumeration, ReflectUtils}
 import net.liftweb.common.Full
 import net.liftweb.json
@@ -423,7 +424,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
    *         **URL Parameters**:
    *         [BANK_ID](/glossary#Bank.bank_id):gh.29.uk
    */
-  def prepareUrlParameterDescription(requestUrl: String): String = {
+  def prepareUrlParameterDescription(requestUrl: String, urlParametersI18n: String): String = {
     val noQueryParamUrl = StringUtils.substringBefore(requestUrl, "?")
     //1rd: get the parameters from URL:
     val findMatches = StringUtils.split(noQueryParamUrl, "/")
@@ -432,7 +433,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     if(findMatches.nonEmpty) {
       val urlParameters: List[String] = findMatches.toList.sorted
       val parametersDescription: List[String] = urlParameters.map(i => prepareDescription(i, Nil))
-      parametersDescription.mkString("\n\n\n**URL Parameters:**", "", "\n")
+      parametersDescription.mkString(s"\n\n\n**$urlParametersI18n**", "", "\n")
     } else {
       ""
     }
@@ -497,7 +498,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
   }
   
     
-  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String): String = {
+  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String, jsonRequestBodyFieldsI18n: String, jsonResponseBodyFieldsI18n: String): String = {
     val allFields = getAllFields(jsonBody)
     val (jsonBodyJValue: json.JValue, allFieldsAndOptionStatus) = checkFieldOption(jsonBody, allFields)
     // Group by is mandatory criteria and sort those 2 groups by name of the field
@@ -509,14 +510,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
 
     val jsonFieldsDescription = jsonBodyFields.map(i => prepareDescription(i, allFieldsAndOptionStatus))
     
-    val jsonTitleType = if (jsonType.contains("request")) "\n\n\n**JSON request body fields:**\n\n" else  "\n\n\n**JSON response body fields:**\n\n"
+    val jsonTitleType = if (jsonType.contains("request")) s"\n\n\n**$jsonRequestBodyFieldsI18n**\n\n" else  s"\n\n\n**$jsonResponseBodyFieldsI18n**\n\n"
 
     jsonFieldsDescription.mkString(jsonTitleType,"","\n")
   }
 
   private val createResourceDocJsonMemo = new ConcurrentHashMap[ResourceDoc, ResourceDocJson]
 
-  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocJson = {
+  def createResourceDocJson(rd: ResourceDoc, isVersion4OrHigher:Boolean, locale: Option[String], urlParametersI18n:String ,jsonRequestBodyFieldsI18n:String, jsonResponseBodyFieldsI18n:String) : ResourceDocJson = {
     // We MUST recompute all resource doc values due to translation via Web UI props
     val endpointTags = getAllEndpointTagsBox(rd.operationId).map(endpointTag =>ResourceDocTag(endpointTag.tagName))
     val resourceDocUpdatedTags: ResourceDoc = rd.copy(tags = endpointTags++ rd.tags)
@@ -539,28 +540,29 @@ object JSONFactory1_4_0 extends MdcLoggable{
         ""
       } else{
         //1st: prepare the description from URL
-        val urlParametersDescription: String = prepareUrlParameterDescription(resourceDocUpdatedTags.requestUrl)
+        val urlParametersDescription: String = prepareUrlParameterDescription(resourceDocUpdatedTags.requestUrl, urlParametersI18n)
         //2rd: get the fields description from the post json body:
         val exampleRequestBodyFieldsDescription =
           if (resourceDocUpdatedTags.requestVerb=="POST" ){
-            prepareJsonFieldDescription(resourceDocUpdatedTags.exampleRequestBody,"request")
+            prepareJsonFieldDescription(resourceDocUpdatedTags.exampleRequestBody,"request", jsonRequestBodyFieldsI18n, jsonResponseBodyFieldsI18n)
           } else {
             ""
           }
         //3rd: get the fields description from the response body:
         //response body can be a nest class, need to loop all the fields.
-        val responseFieldsDescription = prepareJsonFieldDescription(resourceDocUpdatedTags.successResponseBody,"response")
+        val responseFieldsDescription = prepareJsonFieldDescription(resourceDocUpdatedTags.successResponseBody,"response", jsonRequestBodyFieldsI18n, jsonResponseBodyFieldsI18n)
         urlParametersDescription ++ exampleRequestBodyFieldsDescription ++ responseFieldsDescription
       }
 
-      val resourceDocDescription = I18NUtil.ResourceDocTranslation.description(
+      val resourceDocDescription = I18NUtil.ResourceDocTranslation.translate(
+        I18NResourceDocField.DESCRIPTION,
         resourceDocUpdatedTags.operationId, 
         locale, 
         resourceDocUpdatedTags.description.stripMargin.trim
       )
       val description = resourceDocDescription ++ fieldsDescription
       val summary = resourceDocUpdatedTags.summary.replaceFirst("""\.(\s*)$""", "$1") // remove the ending dot in summary
-      val translatedSummary = I18NUtil.ResourceDocTranslation.summary(resourceDocUpdatedTags.operationId, locale, summary)
+      val translatedSummary = I18NUtil.ResourceDocTranslation.translate(I18NResourceDocField.SUMMARY, resourceDocUpdatedTags.operationId, locale, summary)
       
       ResourceDocJson(
         operation_id = resourceDocUpdatedTags.operationId,
@@ -588,13 +590,33 @@ object JSONFactory1_4_0 extends MdcLoggable{
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc], isVersion4OrHigher:Boolean, locale: Option[String]) : ResourceDocsJson = {
+    val urlParametersI18n = I18NUtil.ResourceDocTranslation.translate(
+      I18NResourceDocField.URL_PARAMETERS,
+      "resourceDocUrlParametersString_i180n",
+      locale,
+      "URL Parameters:"
+    )
+
+    val jsonRequestBodyFields = I18NUtil.ResourceDocTranslation.translate(
+      I18NResourceDocField.JSON_REQUEST_BODY_FIELDS,
+      "resourceDocJsonRequestBodyFieldsString_i180n",
+      locale,
+      "JSON request body fields:"
+    )
+    val jsonResponseBodyFields = I18NUtil.ResourceDocTranslation.translate(
+      I18NResourceDocField.JSON_RESPONSE_BODY_FIELDS,
+      "resourceDocJsonResponseBodyFieldsString_i180n",
+      locale,
+      "JSON response body fields:"
+    )
+    
     if(isVersion4OrHigher){
       ResourceDocsJson(
-        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher, locale)),
+        resourceDocList.map(createResourceDocJson(_,isVersion4OrHigher, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)),
         meta=Some(ResourceDocMeta(new Date(), resourceDocList.length))
       )
     } else {
-      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false, locale)))
+      ResourceDocsJson(resourceDocList.map(createResourceDocJson(_,false, locale, urlParametersI18n, jsonRequestBodyFields, jsonResponseBodyFields)))
     }
   }
   
