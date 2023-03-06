@@ -57,6 +57,7 @@ trait User {
   def userPrimaryKey : UserPrimaryKey
   /** This will be a UUID for Resource User Document */
   def userId: String
+  //this used same as username now
   def idGivenByProvider: String
   def provider : String
   def emailAddress : String

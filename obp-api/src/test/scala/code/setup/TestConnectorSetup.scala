@@ -3,6 +3,7 @@ package code.setup
 import java.util.{Calendar, Date}
 import code.accountholders.AccountHolders
 import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_FIREHOSE_VIEW_ID, SYSTEM_OWNER_VIEW_ID}
+import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.util.{APIUtil, OBPLimit, OBPOffset}
 import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.model._
@@ -14,7 +15,6 @@ trait TestConnectorSetup {
 
   //TODO: implement these right here using Connector.connector.vend and get rid of specific connector setup files
   protected def createBank(id : String) : Bank
-  @deprecated("Please use `createAccountAndOwnerView` instead, we need owner view for each account! ","2018-02-23")
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
   protected def createTransactionRequest(account: BankAccount): List[MappedTransactionRequest]
@@ -25,8 +25,8 @@ trait TestConnectorSetup {
   /**
     * This method, will do 4 things:
     * 1 create account
-    * 2 create the `owner-view`
-    * 3 grant the `owner-view` access to the User. 
+    * 2 get or create system the `owner` view
+    * 3 grant the `owner` view access to the User. 
     * 4 create the accountHolder for this account. 
     * @param accountOwner it is just a random user here, the user will have the access to the `owner view`
     * @param bankId one bankId
@@ -36,9 +36,9 @@ trait TestConnectorSetup {
     */
   final protected def createAccountRelevantResource(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     val account = createAccount(bankId, accountId, currency) 
-    val ownerView = createOwnerView(bankId, accountId)
+    val ownerView = Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).openOrThrowException(attemptedToOpenAnEmptyBox)
     accountOwner.foreach(AccountHolders.accountHolders.vend.getOrCreateAccountHolder(_, BankIdAccountId(account.bankId, account.accountId)))
-    accountOwner.foreach(Views.views.vend.grantAccessToCustomView(ViewIdBankIdAccountId(ViewId(ownerView.viewId.value), BankId(ownerView.bankId.value), AccountId(ownerView.accountId.value)), _))
+    accountOwner.foreach(Views.views.vend.grantAccessToSystemView(bankId, accountId, ownerView, _))
     account
   }
 
@@ -147,8 +147,6 @@ trait TestConnectorSetup {
     createBank("payment-test-bank")
 
   protected def getOrCreateSystemView(name: String): View
-
-  protected def createOwnerView(bankId: BankId, accountId: AccountId) : View
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View
   protected def createCustomRandomView(bankId: BankId, accountId: AccountId) : View
 

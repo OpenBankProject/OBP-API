@@ -284,30 +284,31 @@ object MapperViews extends Views with MdcLoggable {
   }
 
 
-  /*
-  This removes the link between a User and a View (Account Access)
+  /**
+   * remove all the accountAccess for one user and linked account.
+   * If the user has `owner` view accountAccess and also the accountHolder, we can not revoke, just return `false`.
+   * all the other case, we can revoke all the account access for that user.
    */
 
   def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    //TODO: make this more efficient by using one query (with a join)
-    val allUserPrivs = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
-
-    val relevantAccountPrivs = allUserPrivs.filter(p => p.bank_id == bankId.value && p.account_id == accountId.value)
-
-    val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => p.view_fk.obj match {
-      case Full(v) => canRevokeAccess(v, user)
-      case _ => false
-    })
-
-
-    if(allRelevantPrivsRevokable) {
-      relevantAccountPrivs.foreach(_.delete_!)
+    val userIsAccountHolder_? = MapperAccountHolders.getAccountHolders(bankId, accountId).map(h => h.userPrimaryKey).contains(user.userPrimaryKey)
+    val userHasOwnerViewAccess_? = AccountAccess.find(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value),
+      By(AccountAccess.view_id, SYSTEM_OWNER_VIEW_ID),
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+    ).isDefined
+ 
+    if(userIsAccountHolder_? && userHasOwnerViewAccess_?){
+      Full(false)
+    }else{
+      AccountAccess.find(
+        By(AccountAccess.bank_id, bankId.value),
+        By(AccountAccess.account_id, accountId.value),
+        By(AccountAccess.user_fk, user.userPrimaryKey.value)
+      ).foreach(_.delete_!)
       Full(true)
-    } else {
-      Failure("One of the views this user has access to is the owner view, and there would be no one with access" +
-        " to this owner view if access to the user was revoked. No permissions to any views on the account have been revoked.")
     }
-
   }
 
   def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
@@ -607,6 +608,11 @@ object MapperViews extends Views with MdcLoggable {
   }
   
 
+  /**
+   * if return the system view owner, it may return all the users, all the user if have own acccount, it will have the `owner` view access.
+   * @param view
+   * @return
+   */
   def getOwners(view: View) : Set[User] = {
     val id: Long = ViewDefinition.findCustomView(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value)
       .or(ViewDefinition.findSystemView(view.viewId.value))
