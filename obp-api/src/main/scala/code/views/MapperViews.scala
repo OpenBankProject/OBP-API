@@ -51,6 +51,7 @@ object MapperViews extends Views with MdcLoggable {
     val views: List[ViewDefinition] = accountAccessList.flatMap(
       accountAccess => if(checkSystemViewIdOrName(accountAccess.view_id.get)) {
         ViewDefinition.findSystemView(accountAccess.view_id.get)
+          .map(v => v.bank_id(accountAccess.bank_id.get).account_id(accountAccess.account_id.get)) // in case system view do not contains the bankId, and accountId.
       } else{
         ViewDefinition.findCustomView(accountAccess.bank_id.get, accountAccess.account_id.get, accountAccess.view_id.get)
       }
@@ -92,7 +93,7 @@ object MapperViews extends Views with MdcLoggable {
       By(AccountAccess.user_fk, user.userPrimaryKey.value), 
       By(AccountAccess.bank_id, bankId), 
       By(AccountAccess.account_id, accountId), 
-      By(AccountAccess.view_fk, viewDefinition.id)) == 0) {
+      By(AccountAccess.view_id, viewDefinition.viewId.value)) == 0) {
       //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
       // SQL Insert ViewPrivileges
       val saved = AccountAccess.create.

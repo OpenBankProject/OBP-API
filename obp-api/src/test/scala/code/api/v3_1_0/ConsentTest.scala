@@ -78,7 +78,7 @@ class ConsentTest extends V310ServerSetup {
       response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
     }
-    
+
     scenario("We will call the endpoint with user credentials but wrong SCA method", ApiEndpoint1, VersionOfApi) {
       When("We make a request")
       val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "NOT_EMAIL_NEITHER_SMS" ).POST <@(user1)
@@ -87,7 +87,7 @@ class ConsentTest extends V310ServerSetup {
       response400.code should equal(400)
       response400.body.extract[ErrorMessage].message should equal(ConsentAllowedScaMethods)
     }
-    
+
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
       wholeFunctionality(RequestHeader.`Consent-JWT`)
     }
