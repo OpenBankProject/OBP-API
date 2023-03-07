@@ -31,6 +31,10 @@ object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAcces
   def findAllBySystemViewId( systemViewId:ViewId)= AccountAccess.findAll(
     By(AccountAccess.view_id, systemViewId.value)
   )
+  def findAllByUserPrimaryKey( userPrimaryKey:UserPrimaryKey)= AccountAccess.findAll(
+    By(AccountAccess.user_fk, userPrimaryKey.value),
+    PreCache(AccountAccess.view_fk)
+  )
   def findAllByBankIdAccountIdViewId(bankId:BankId, accountId:AccountId, viewId:ViewId)= AccountAccess.findAll(
     By(AccountAccess.bank_id, bankId.value),
     By(AccountAccess.account_id, accountId.value),

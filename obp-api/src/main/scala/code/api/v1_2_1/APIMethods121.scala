@@ -56,7 +56,7 @@ trait APIMethods121 {
           .map(JSONFactory.createViewJSON(_))
           .distinct) ++ 
         (privateViewsUserCanAccess
-            .filter(v =>v.accountId.value==null && v.bankId.value == null && v.isSystem && v.isPrivate)//plus the system views.
+            .filter(v =>v.isSystem && v.isPrivate)//plus the system views.
             .map(JSONFactory.createViewJSON(_))
             .distinct)
       JSONFactory.createAccountJSON(account,viewsAvailable)
