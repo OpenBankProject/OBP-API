@@ -94,8 +94,8 @@ object MapperViews extends Views with MdcLoggable {
       By(AccountAccess.bank_id, bankId), 
       By(AccountAccess.account_id, accountId), 
       By(AccountAccess.view_id, viewDefinition.viewId.value)) == 0) {
-      //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
-      // SQL Insert ViewPrivileges
+      //logger.debug(s"saving AccountAccessList for user ${user.resourceUserId.value} for view ${vImpl.id}")
+      // SQL Insert AccountAccessList
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
         bank_id(bankId).
@@ -104,10 +104,10 @@ object MapperViews extends Views with MdcLoggable {
         view_fk(viewDefinition.id).
         save
       if (saved) {
-        //logger.debug("saved ViewPrivileges")
+        //logger.debug("saved AccountAccessList")
         Full(viewDefinition)
       } else {
-        //logger.debug("failed to save ViewPrivileges")
+        //logger.debug("failed to save AccountAccessList")
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
     } else Full(viewDefinition) //privilege already exists, no need to create one
@@ -127,7 +127,7 @@ object MapperViews extends Views with MdcLoggable {
     viewDefinition match {
       case Full(v) => {
         if(v.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
-        // SQL Select Count ViewPrivileges where
+        // SQL Select Count AccountAccessList where
         // This is idempotent
         getOrGrantAccessToCustomView(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //privilege already exists, no need to create one
       }
