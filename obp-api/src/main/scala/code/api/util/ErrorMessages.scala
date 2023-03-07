@@ -193,6 +193,8 @@ object ErrorMessages {
   val DAuthJwtTokenIsNotValid = "OBP-20071: The DAuth JWT is corrupted/changed during a transport."
   val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
   
+  val InvalidProviderUrl = "OBP-20079: Cannot match the local identity provider."
+  
   val InvalidAuthorizationHeader = "OBP-20080: Authorization Header format is not supported at this instance."
   
   val UserAttributeNotFound = "OBP-20081: User Attribute not found by USER_ATTRIBUTE_ID."
