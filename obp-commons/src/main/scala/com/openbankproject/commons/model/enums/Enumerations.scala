@@ -227,6 +227,11 @@ object AccountRoutingScheme extends Enumeration {
 }
 
 
+object I18NResourceDocField extends Enumeration {
+  type I18NResourceDocsField = Value
+  val SUMMARY, DESCRIPTION, URL_PARAMETERS, JSON_REQUEST_BODY_FIELDS, JSON_RESPONSE_BODY_FIELDS = Value
+}
+
 //-------------------simple enum definition, just some sealed trait way, start-------------
 trait SimpleEnum extends JsonAble {
   override def toJValue(implicit format: Formats): JValue = {

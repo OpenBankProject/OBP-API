@@ -54,7 +54,7 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
     
     scenario("prepareJsonFieldDescription should work well - users object") {
       val usersJson = usersJsonV400
-      val description = JSONFactory1_4_0.prepareJsonFieldDescription(usersJson, "response")
+      val description = JSONFactory1_4_0.prepareJsonFieldDescription(usersJson, "response", "JSON request body fields:", "JSON response body fields:")
       description.contains(
         """
           |JSON response body fields:
@@ -85,19 +85,20 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
       ) should be (false)
       println(description)
     }
-    
+
+    val urlParameters = "URL Parameters:"
     scenario("PrepareUrlParameterDescription should work well, extract the parameters from URL") {
       val requestUrl1 = "/obp/v4.0.0/banks/BANK_ID/accounts/account_ids/private"
-      val requestUrl1Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl1)
+      val requestUrl1Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl1,urlParameters)
       requestUrl1Description contains ("[BANK_ID]") should be (true)
       val requestUrl2 = "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID"
-      val requestUrl2Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl2)
+      val requestUrl2Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl2, urlParameters)
       requestUrl2Description contains ("[BANK_ID]") should be (true)
       requestUrl2Description contains ("[ACCOUNT_ID]") should be (true)
       requestUrl2Description contains ("[VIEW_ID]") should be (true)
 
       val requestUrl3 = "/obp/v4.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID?date=2020-11-11"
-      val requestUrl3Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl3)
+      val requestUrl3Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl3, urlParameters)
 
       requestUrl2Description shouldEqual(requestUrl3Description)
     }
@@ -114,7 +115,8 @@ class JSONFactory1_4_0Test  extends V140ServerSetup with DefaultUsers {
     
     scenario("createResourceDocJson should work well,  no exception is good enough") {
       val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)
-      val result: ResourceDocJson = JSONFactory1_4_0.createResourceDocJson(resourceDoc,false, None)
+      val result: ResourceDocJson = JSONFactory1_4_0.createResourceDocJson(resourceDoc,false, None, 
+        urlParameters, "JSON request body fields:", "JSON response body fields:")
     }
 
     scenario("createResourceDocsJson should work well, no exception is good enough") {

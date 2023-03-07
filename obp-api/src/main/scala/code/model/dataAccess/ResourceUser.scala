@@ -69,7 +69,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     override def defaultValue = ""
   }
   object provider_ extends MappedString(this, 100){
-    override def defaultValue = Constant.HostName
+    override def defaultValue: String = Constant.localIdentityProvider
   }
 
   /**

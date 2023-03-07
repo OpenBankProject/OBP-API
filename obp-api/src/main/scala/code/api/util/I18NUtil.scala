@@ -5,6 +5,7 @@ import code.api.Constant.PARAM_LOCALE
 import java.util.{Date, Locale}
 
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
+import com.openbankproject.commons.model.enums.I18NResourceDocField
 import net.liftweb.common.Full
 import net.liftweb.http.S
 import net.liftweb.http.provider.HTTPCookie
@@ -48,19 +49,11 @@ object I18NUtil {
   }
   
   object ResourceDocTranslation {
-    def summary(operationId: String, locale: Option[String], default: String): String = {
+    def translate(fieldName: I18NResourceDocField.Value, operationId: String, locale: Option[String], default: String): String = {
       locale match {
-        case Some(locale) =>
-          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_summary_${locale}"
-          getWebUiPropsValue(webUiKey, default)
-        case None =>
-          default
-      }
-    }
-    def description(operationId: String, language: Option[String], default: String): String = {
-      language match {
-        case Some(locale) =>
-          val webUiKey = s"webui_resource_doc_operation_id_${operationId}_description_${locale}"
+        case Some(locale)=>
+          val webUiKeyString = "webui_resource_doc_operation_id_"
+          val webUiKey = s"$webUiKeyString${operationId}_${fieldName.toString.toLowerCase}_${locale}"
           getWebUiPropsValue(webUiKey, default)
         case None =>
           default
