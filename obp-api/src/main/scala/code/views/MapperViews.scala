@@ -518,10 +518,23 @@ object MapperViews extends Views with MdcLoggable {
        By(ViewDefinition.isSystem_, true)) // Sandbox specific System views
   }
   
+  private def getAccountAccessFromPublicViews(publicViews: List[ViewDefinition])={
+    val publicSystemViews = publicViews.filter(_.isSystem)
+    val publicCustomViews = publicViews.filter(!_.isSystem)
+    val publicSystemViewAccountAccess = AccountAccess.findAll(
+      ByList(AccountAccess.view_id, publicSystemViews.map(_.viewId.value)),
+    )
+    val publicCustomViewAccountAccess = AccountAccess.findAll(
+      ByList(AccountAccess.bank_id, publicCustomViews.map(_.bankId.value)),
+      ByList(AccountAccess.account_id, publicCustomViews.map(_.accountId.value)),
+      ByList(AccountAccess.view_id, publicCustomViews.map(_.viewId.value)),
+    )
+    publicCustomViewAccountAccess++publicSystemViewAccountAccess
+  }
   def publicViews: (List[View], List[AccountAccess]) = {
     if (APIUtil.allowPublicViews) {
-      val publicViews = ViewDefinition.findAll(By(ViewDefinition.isPublic_, true)) // Custom and System views
-      val publicAccountAccess = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      val publicViews = ViewDefinition.findAll(By(ViewDefinition.isPublic_, true)) //Both Custom and System views
+      val publicAccountAccess = getAccountAccessFromPublicViews(publicViews)
       (publicViews, publicAccountAccess)
     } else {
       (Nil, Nil)
@@ -534,7 +547,7 @@ object MapperViews extends Views with MdcLoggable {
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, false)) ::: // Custom views
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.isSystem_, true)) ::: // System views
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, true)) // System views
-      val publicAccountAccess = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      val publicAccountAccess = getAccountAccessFromPublicViews(publicViews)
       (publicViews.distinct, publicAccountAccess)
     } else {
       (Nil, Nil)
