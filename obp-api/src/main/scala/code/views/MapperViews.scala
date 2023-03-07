@@ -110,7 +110,7 @@ object MapperViews extends Views with MdcLoggable {
         //logger.debug("failed to save AccountAccessList")
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
-    } else Full(viewDefinition) //privilege already exists, no need to create one
+    } else Full(viewDefinition) //accountAccess already exists, no need to create one
   }
   // This is an idempotent function 
   private def getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
@@ -129,7 +129,7 @@ object MapperViews extends Views with MdcLoggable {
         if(v.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
         // SQL Select Count AccountAccessList where
         // This is idempotent
-        getOrGrantAccessToCustomView(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //privilege already exists, no need to create one
+        getOrGrantAccessToCustomView(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //accountAccess already exists, no need to create one
       }
       case _ => {
         Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
@@ -628,8 +628,8 @@ object MapperViews extends Views with MdcLoggable {
     val id: Long = ViewDefinition.findCustomView(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value)
       .or(ViewDefinition.findSystemView(view.viewId.value))
       .map(_.id).openOr(0)
-    val privileges = AccountAccess.findAll(By(AccountAccess.view_fk, id))
-    val users: List[User] = privileges.flatMap(_.user_fk.obj)
+    val accountAccessList = AccountAccess.findAll(By(AccountAccess.view_fk, id))
+    val users: List[User] = accountAccessList.flatMap(_.user_fk.obj)
     users.toSet
   }
 
@@ -791,11 +791,11 @@ object MapperViews extends Views with MdcLoggable {
       By(ViewDefinition.bank_id, bankId.value),
       By(ViewDefinition.account_id, accountId.value)
     )
-    var privilegesDeleted = true
+    var accountAccessListDeleted = true
     views.map (x => {
-      privilegesDeleted &&= AccountAccess.bulkDelete_!!(By(AccountAccess.view_fk, x.id_.get))
+      accountAccessListDeleted &&= AccountAccess.bulkDelete_!!(By(AccountAccess.view_fk, x.id_.get))
     } )
-      privilegesDeleted
+      accountAccessListDeleted
   }
 
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean = {
