@@ -28,20 +28,23 @@ class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with Create
 }
 object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAccess] {
   override def dbIndexes: List[BaseIndex[AccountAccess]] = UniqueIndex(bank_id, account_id, view_fk, user_fk, consumer_id) :: super.dbIndexes
-  def findViewBybankIdAccountIdViewId(bankId:BankId, accountId:AccountId, viewId:ViewId)= AccountAccess.find(
+  def findAllBySystemViewId( systemViewId:ViewId)= AccountAccess.findAll(
+    By(AccountAccess.view_id, systemViewId.value)
+  )
+  def findAllByBankIdAccountIdViewId(bankId:BankId, accountId:AccountId, viewId:ViewId)= AccountAccess.findAll(
     By(AccountAccess.bank_id, bankId.value),
     By(AccountAccess.account_id, accountId.value),
     By(AccountAccess.view_id, viewId.value)
   )
 
-  def findViewBybankIdAccountIdViewIdUserPrimaryKey(bankId: BankId, accountId: AccountId, viewId: ViewId, userPrimaryKey: UserPrimaryKey) = AccountAccess.find(
+  def findByBankIdAccountIdViewIdUserPrimaryKey(bankId: BankId, accountId: AccountId, viewId: ViewId, userPrimaryKey: UserPrimaryKey) = AccountAccess.find(
     By(AccountAccess.bank_id, bankId.value),
     By(AccountAccess.account_id, accountId.value),
     By(AccountAccess.view_id, viewId.value),
     By(AccountAccess.user_fk, userPrimaryKey.value)
   )
 
-  def findViewBybankIdAccountIdViewIdConsumerId(bankId: BankId, accountId: AccountId, viewId: ViewId, consumerId:String ) = AccountAccess.find(
+  def findByBankIdAccountIdViewIdConsumerId(bankId: BankId, accountId: AccountId, viewId: ViewId, consumerId:String ) = AccountAccess.find(
     By(AccountAccess.bank_id, bankId.value),
     By(AccountAccess.account_id, accountId.value),
     By(AccountAccess.view_id, viewId.value),

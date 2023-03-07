@@ -192,14 +192,12 @@ object MapperViews extends Views with MdcLoggable {
     val isRevokedCustomViewAccess =
     for {
       customViewDefinition <- ViewDefinition.findCustomView(viewUID.bankId.value, viewUID.accountId.value, viewUID.viewId.value)
-      accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdUserPrimaryKey(
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
         viewUID.bankId,
         viewUID.accountId,
         viewUID.viewId,
         user.userPrimaryKey
       ) ?~! CannotFindAccountAccess
-      // Check if we are allowed to remove the View from the User
-      _ <- canRevokeAccessAsBox(customViewDefinition, user)
     } yield {
       accountAccess.delete_!
     }
@@ -207,14 +205,14 @@ object MapperViews extends Views with MdcLoggable {
     val isRevokedSystemViewAccess =
       for {
         systemViewDefinition <- ViewDefinition.findSystemView(viewUID.viewId.value)
-        accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdUserPrimaryKey(
+        accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
           viewUID.bankId,
           viewUID.accountId,
           viewUID.viewId,
           user.userPrimaryKey
         ) ?~! CannotFindAccountAccess
         // Check if we are allowed to remove the View from the User
-        _ <- canRevokeAccessAsBox(systemViewDefinition, user)
+        _ <- canRevokeOwnerAccessAsBox(viewUID.bankId, viewUID.accountId,systemViewDefinition, user)
       } yield {
         accountAccess.delete_!
       }
@@ -226,17 +224,17 @@ object MapperViews extends Views with MdcLoggable {
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] = {
     val res =
     for {
-      viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id)) 
-      aa  <- AccountAccess.findViewBybankIdAccountIdViewIdUserPrimaryKey(
+      systemViewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
         bankId,
         accountId,
         view.viewId,
         user.userPrimaryKey
       ) ?~! CannotFindAccountAccess
       // Check if we are allowed to remove the View from the User
-      _ <- canRevokeAccessAsBox(viewDefinition, user)
+      _ <- canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, systemViewDefinition, user)
     } yield {
-      aa.delete_!
+      accountAccess.delete_!
     }
     res
   }
@@ -245,7 +243,7 @@ object MapperViews extends Views with MdcLoggable {
   def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean] = {
     for {
       customViewDefinition <- ViewDefinition.findCustomView(view.bankId.value, view.accountId.value, view.viewId.value)
-      accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdConsumerId(
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdConsumerId(
         customViewDefinition.bankId,
         customViewDefinition.accountId,
         customViewDefinition.viewId,
@@ -260,7 +258,7 @@ object MapperViews extends Views with MdcLoggable {
   def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean] = {
     for {
       systemViewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
-      accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdConsumerId(
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdConsumerId(
         bankId,
         accountId,
         systemViewDefinition.viewId,
@@ -272,13 +270,13 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   //returns Full if deletable, Failure if not
-  def canRevokeAccessAsBox(viewImpl : ViewDefinition, user : User) : Box[Unit] = {
-    if(canRevokeAccess(viewImpl, user)) Full(Unit)
+  def canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, viewImpl : ViewDefinition, user : User) : Box[Unit] = {
+    if(canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewImpl, user)) Full(Unit)
     else Failure("access cannot be revoked")
   }
 
 
-  def canRevokeAccess(viewDefinition: ViewDefinition, user : User) : Boolean = {
+  def canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewDefinition: ViewDefinition, user : User) : Boolean = {
     if(viewDefinition.viewId == ViewId(SYSTEM_OWNER_VIEW_ID)) {
       //if the user is an account holder, we can't revoke access to the owner view
       val accountHolders = MapperAccountHolders.getAccountHolders(viewDefinition.bankId, viewDefinition.accountId)
@@ -287,7 +285,11 @@ object MapperViews extends Views with MdcLoggable {
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
         // with access
-        AccountAccess.findAll(By(AccountAccess.view_fk, viewDefinition.id)).length > 1
+        AccountAccess.findAllByBankIdAccountIdViewId(
+          bankId: BankId, 
+          accountId: AccountId,
+          viewDefinition.viewId
+        ).length > 1
       }
     } else {
       true
@@ -466,19 +468,23 @@ object MapperViews extends Views with MdcLoggable {
 
   def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean] = {
     for {
-      view <- ViewDefinition.findCustomView(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
-      _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
+      customView <- ViewDefinition.findCustomView(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
+      _ <- AccountAccess.findAllByBankIdAccountIdViewId(
+        bankAccountId.bankId,
+        bankAccountId.accountId,
+        viewId
+      ).length > 0 match {
         case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
         case false => Full()
       }
     } yield {
-      view.delete_!
+      customView.delete_!
     }
   }
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = Future {
     for {
       view <- ViewDefinition.findSystemView(viewId.value)
-      _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
+      _ <- AccountAccess.findAllBySystemViewId(viewId).length > 0 match {
         case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
         case false => Full()
       }
