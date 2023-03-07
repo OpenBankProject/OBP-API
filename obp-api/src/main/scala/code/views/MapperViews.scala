@@ -46,16 +46,18 @@ object MapperViews extends Views with MdcLoggable {
     getViewsCommonPart(accountAccessList)
   }
 
+  private def getViewFromAccountAccess(accountAccess: AccountAccess) = {
+    if (checkSystemViewIdOrName(accountAccess.view_id.get)) {
+      ViewDefinition.findSystemView(accountAccess.view_id.get)
+        .map(v => v.bank_id(accountAccess.bank_id.get).account_id(accountAccess.account_id.get)) // in case system view do not contains the bankId, and accountId.
+    } else {
+      ViewDefinition.findCustomView(accountAccess.bank_id.get, accountAccess.account_id.get, accountAccess.view_id.get)
+    }
+  }
+  
   private def getViewsCommonPart(accountAccessList: List[AccountAccess]): List[View] = {
     //we need to get views from accountAccess
-    val views: List[ViewDefinition] = accountAccessList.flatMap(
-      accountAccess => if(checkSystemViewIdOrName(accountAccess.view_id.get)) {
-        ViewDefinition.findSystemView(accountAccess.view_id.get)
-          .map(v => v.bank_id(accountAccess.bank_id.get).account_id(accountAccess.account_id.get)) // in case system view do not contains the bankId, and accountId.
-      } else{
-        ViewDefinition.findCustomView(accountAccess.bank_id.get, accountAccess.account_id.get, accountAccess.view_id.get)
-      }
-    ).filter(
+    val views: List[ViewDefinition] = accountAccessList.flatMap(getViewFromAccountAccess).filter(
         v =>
           if (allowPublicViews) {
             true // All views
@@ -498,7 +500,7 @@ object MapperViews extends Views with MdcLoggable {
       By(AccountAccess.bank_id, bankAccountId.bankId.value),
       By(AccountAccess.account_id, bankAccountId.accountId.value),
       PreCache(AccountAccess.view_fk)
-    ).map(_.view_fk.obj).flatten.distinct
+    ).map(getViewFromAccountAccess).flatten.distinct
   }
   
   //this is more like possible views, it contains the system views+custom views
