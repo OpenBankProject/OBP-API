@@ -30,27 +30,30 @@ object MapperViews extends Views with MdcLoggable {
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
   private def getViewsForUser(user: User): List[View] = {
-    val privileges = AccountAccess.findAll(
+    val accountAccessList = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       OrderBy(AccountAccess.bank_id, Ascending),
       OrderBy(AccountAccess.account_id, Ascending)
     )
-    getViewsCommonPart(privileges)
+    getViewsCommonPart(accountAccessList)
   }  
   private def getViewsForUserAndAccount(user: User, account : BankIdAccountId): List[View] = {
-    val privileges = AccountAccess.findAll(
+    val accountAccessList = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, account.bankId.value),
       By(AccountAccess.account_id, account.accountId.value)
     )
-    getViewsCommonPart(privileges)
+    getViewsCommonPart(accountAccessList)
   }
 
-  private def getViewsCommonPart(privileges: List[AccountAccess]): List[View] = {
-    val views: List[ViewDefinition] = privileges.flatMap(
-      a => 
-        ViewDefinition.find(By(ViewDefinition.id_, a.view_fk.get))
-        .map(v => v.bank_id(a.bank_id.get).account_id(a.account_id.get))
+  private def getViewsCommonPart(accountAccessList: List[AccountAccess]): List[View] = {
+    //we need to get views from accountAccess
+    val views: List[ViewDefinition] = accountAccessList.flatMap(
+      accountAccess => if(checkSystemViewIdOrName(accountAccess.view_id.get)) {
+        ViewDefinition.findSystemView(accountAccess.view_id.get)
+      } else{
+        ViewDefinition.findCustomView(accountAccess.bank_id.get, accountAccess.account_id.get, accountAccess.view_id.get)
+      }
     ).filter(
         v =>
           if (allowPublicViews) {

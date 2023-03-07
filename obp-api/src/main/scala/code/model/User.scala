@@ -69,7 +69,7 @@ case class UserExtended(val user: User) extends MdcLoggable {
         AccountAccess.find(
           By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
           By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-          By(AccountAccess.view_fk, viewDefinition.id),
+          By(AccountAccess.view_id, viewDefinition.viewId.value),
           By(AccountAccess.user_fk, this.userPrimaryKey.value),
           By(AccountAccess.consumer_id, consumerId.get)).isDefined
       } else {
@@ -83,7 +83,7 @@ case class UserExtended(val user: User) extends MdcLoggable {
         AccountAccess.find(
           By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
           By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-          By(AccountAccess.view_fk, viewDefinition.id),
+          By(AccountAccess.view_id, viewDefinition.viewId.value),
           By(AccountAccess.user_fk, this.userPrimaryKey.value),
           By(AccountAccess.consumer_id, ALL_CONSUMERS)
         ).isDefined
