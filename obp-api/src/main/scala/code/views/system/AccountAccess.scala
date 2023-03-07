@@ -3,7 +3,7 @@ package code.views.system
 import code.api.Constant.ALL_CONSUMERS
 import code.model.dataAccess.ResourceUser
 import code.util.UUIDString
-import com.openbankproject.commons.model.{AccountId, BankId, UserPrimaryKey, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankId, UserPrimaryKey, View, ViewId}
 import net.liftweb.mapper._
 /*
 This stores the link between A User and a View
@@ -30,12 +30,18 @@ object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAcces
   override def dbIndexes: List[BaseIndex[AccountAccess]] = UniqueIndex(bank_id, account_id, view_fk, user_fk, consumer_id) :: super.dbIndexes
   def findAllBySystemViewId(systemViewId:ViewId)= AccountAccess.findAll(
     By(AccountAccess.view_id, systemViewId.value)
-  )
-  def findAllByUserPrimaryKey( userPrimaryKey:UserPrimaryKey)= AccountAccess.findAll(
+  ) 
+  def findAllByView(view: View)=
+    if(view.isSystem) {
+      findAllBySystemViewId(view.viewId)
+    }else{
+      AccountAccess.findAllByBankIdAccountIdViewId(view.bankId, view.accountId, view.viewId)
+    }
+  def findAllByUserPrimaryKey(userPrimaryKey:UserPrimaryKey)= AccountAccess.findAll(
     By(AccountAccess.user_fk, userPrimaryKey.value),
     PreCache(AccountAccess.view_fk)
   )
-  def findAllByBankIdAccountId(bankId:BankId, accountId:AccountId)= AccountAccess.findAll(
+  def findAllByBankIdAccountId(bankId:BankId, accountId:AccountId) = AccountAccess.findAll(
     By(AccountAccess.bank_id, bankId.value),
     By(AccountAccess.account_id, accountId.value),
     PreCache(AccountAccess.view_fk)

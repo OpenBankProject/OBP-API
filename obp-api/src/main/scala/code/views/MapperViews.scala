@@ -648,15 +648,12 @@ object MapperViews extends Views with MdcLoggable {
   
 
   /**
-   * if return the system view owner, it may return all the users, all the user if have own acccount, it will have the `owner` view access.
+   * if return the system view owner, it may return all the users, all the user if have its own account, it should have the `owner` view access.
    * @param view
    * @return
    */
   def getOwners(view: View) : Set[User] = {
-    val id: Long = ViewDefinition.findCustomView(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value)
-      .or(ViewDefinition.findSystemView(view.viewId.value))
-      .map(_.id).openOr(0)
-    val accountAccessList = AccountAccess.findAll(By(AccountAccess.view_fk, id))
+    val accountAccessList = AccountAccess.findAllByView(view)
     val users: List[User] = accountAccessList.flatMap(_.user_fk.obj)
     users.toSet
   }
@@ -815,15 +812,10 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
-    val views = ViewDefinition.findAll(
-      By(ViewDefinition.bank_id, bankId.value),
-      By(ViewDefinition.account_id, accountId.value)
+    AccountAccess.bulkDelete_!!(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value)
     )
-    var accountAccessListDeleted = true
-    views.map (x => {
-      accountAccessListDeleted &&= AccountAccess.bulkDelete_!!(By(AccountAccess.view_fk, x.id_.get))
-    } )
-      accountAccessListDeleted
   }
 
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean = {
