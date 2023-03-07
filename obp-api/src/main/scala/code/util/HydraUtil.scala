@@ -79,6 +79,7 @@ object HydraUtil extends MdcLoggable{
     val oAuth2Client = new OAuth2Client()
     oAuth2Client.setClientId(consumer.key.get)
     oAuth2Client.setClientSecret(consumer.secret.get)
+    oAuth2Client.setClientName(consumer.name.get)
 
     oAuth2Client.setScope(allConsents)
 
