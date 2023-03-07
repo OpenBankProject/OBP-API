@@ -12,14 +12,17 @@ class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with Create
   def getSingleton = AccountAccess
   object user_fk extends MappedLongForeignKey(this, ResourceUser)
   object bank_id extends MappedString(this, 255)
-  
-  //If consumer_id is `ALL-CONSUMERS`, any consumers can use this record
-  //If consumer_id is consumerId (obp UUID), only same consumer can use this record
-  object consumer_id extends MappedString(this, 255){
-    override def defaultValue = ALL_CONSUMERS
-  }
   object account_id extends MappedString(this, 255)
   object view_id extends UUIDString(this)
+
+  //If consumer_id is `ALL-CONSUMERS`, any consumers can use this record
+  //If consumer_id is consumerId (obp UUID), only same consumer can use this record
+  object consumer_id extends MappedString(this, 255) {
+    override def defaultValue = ALL_CONSUMERS
+  }
+  
+  
+  @deprecated("we should use bank_id, account_id and view_id instead of the view_fk","07-03-2023")
   object view_fk extends MappedLongForeignKey(this, ViewDefinition)
 }
 object AccountAccess extends AccountAccess with LongKeyedMetaMapper[AccountAccess] {
