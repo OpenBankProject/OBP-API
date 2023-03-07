@@ -191,25 +191,30 @@ object MapperViews extends Views with MdcLoggable {
   def revokeAccess(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
     val isRevokedCustomViewAccess =
     for {
-      viewDefinition <- ViewDefinition.findCustomView(viewUID.bankId.value, viewUID.accountId.value, viewUID.viewId.value)
-      accountAccess  <- AccountAccess.find(
-        By(AccountAccess.user_fk, user.userPrimaryKey.value),
-        By(AccountAccess.view_fk, viewDefinition.id)
+      customViewDefinition <- ViewDefinition.findCustomView(viewUID.bankId.value, viewUID.accountId.value, viewUID.viewId.value)
+      accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdUserPrimaryKey(
+        viewUID.bankId,
+        viewUID.accountId,
+        viewUID.viewId,
+        user.userPrimaryKey
       ) ?~! CannotFindAccountAccess
       // Check if we are allowed to remove the View from the User
-      _ <- canRevokeAccessAsBox(viewDefinition, user)
+      _ <- canRevokeAccessAsBox(customViewDefinition, user)
     } yield {
       accountAccess.delete_!
     }
+    
     val isRevokedSystemViewAccess =
       for {
-        viewDefinition <- ViewDefinition.findSystemView(viewUID.viewId.value)
-        accountAccess  <- AccountAccess.find(
-          By(AccountAccess.user_fk, user.userPrimaryKey.value),
-          By(AccountAccess.view_fk, viewDefinition.id)
+        systemViewDefinition <- ViewDefinition.findSystemView(viewUID.viewId.value)
+        accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdUserPrimaryKey(
+          viewUID.bankId,
+          viewUID.accountId,
+          viewUID.viewId,
+          user.userPrimaryKey
         ) ?~! CannotFindAccountAccess
         // Check if we are allowed to remove the View from the User
-        _ <- canRevokeAccessAsBox(viewDefinition, user)
+        _ <- canRevokeAccessAsBox(systemViewDefinition, user)
       } yield {
         accountAccess.delete_!
       }
@@ -222,11 +227,12 @@ object MapperViews extends Views with MdcLoggable {
     val res =
     for {
       viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id)) 
-      aa  <- AccountAccess.find(
-        By(AccountAccess.user_fk, user.userPrimaryKey.value),
-        By(AccountAccess.bank_id, bankId.value),
-        By(AccountAccess.account_id, accountId.value),
-        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
+      aa  <- AccountAccess.findViewBybankIdAccountIdViewIdUserPrimaryKey(
+        bankId,
+        accountId,
+        view.viewId,
+        user.userPrimaryKey
+      ) ?~! CannotFindAccountAccess
       // Check if we are allowed to remove the View from the User
       _ <- canRevokeAccessAsBox(viewDefinition, user)
     } yield {
@@ -238,12 +244,12 @@ object MapperViews extends Views with MdcLoggable {
   //Custom View will have bankId and accountId inside the `View`, so no need both in the parameters
   def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean] = {
     for {
-      viewDefinition <- ViewDefinition.findCustomView(view.bankId.value, view.accountId.value, view.viewId.value)
-      accountAccess  <- AccountAccess.find(
-        By(AccountAccess.consumer_id, consumerId),
-        By(AccountAccess.view_fk, viewDefinition.id),
-        By(AccountAccess.bank_id, view.bankId.value),
-        By(AccountAccess.account_id, view.accountId.value)
+      customViewDefinition <- ViewDefinition.findCustomView(view.bankId.value, view.accountId.value, view.viewId.value)
+      accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdConsumerId(
+        customViewDefinition.bankId,
+        customViewDefinition.accountId,
+        customViewDefinition.viewId,
+        consumerId
       ) ?~! CannotFindAccountAccess
     } yield {
       accountAccess.delete_!
@@ -253,12 +259,13 @@ object MapperViews extends Views with MdcLoggable {
   //System View only have the viewId in inside the `View`, both bankId and accountId are empty in the `View`. So we need both in the parameters
   def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean] = {
     for {
-      viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
-      accountAccess  <- AccountAccess.find(
-        By(AccountAccess.consumer_id, consumerId),
-        By(AccountAccess.bank_id, bankId.value),
-        By(AccountAccess.account_id, accountId.value),
-        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
+      systemViewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
+      accountAccess  <- AccountAccess.findViewBybankIdAccountIdViewIdConsumerId(
+        bankId,
+        accountId,
+        systemViewDefinition.viewId,
+        consumerId
+      ) ?~! CannotFindAccountAccess
     } yield {
       accountAccess.delete_!
     }
