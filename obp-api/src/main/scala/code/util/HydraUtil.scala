@@ -77,8 +77,10 @@ object HydraUtil extends MdcLoggable{
       return None
     }
     val oAuth2Client = new OAuth2Client()
-    oAuth2Client.setClientId(consumer.key.get)
+    // Hydra ORA: It is no longer possible to set an OAuth2 Client ID as a user. The system will generate a unique ID for you.
+    // oAuth2Client.setClientId(consumer.key.get)
     oAuth2Client.setClientSecret(consumer.secret.get)
+    oAuth2Client.setClientName(consumer.name.get)
 
     oAuth2Client.setScope(allConsents)
 

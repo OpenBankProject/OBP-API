@@ -1127,7 +1127,18 @@ def restoreSomeSessions(): Unit = {
                   // User init actions
                   AfterApiAuth.innerLoginUserInitAction(Full(user))
                   checkInternalRedirectAndLogUserIn(preLoginState, redirect, user)
-    
+
+                
+              // Error case:
+              // the username exist but provider cannot be matched
+              // It can happen via next scenario:
+              //   - sign up user at some obp-api cluster
+              //   - change a url of the cluster
+              //   - try to log on user at the cluster  
+              case Full(user) if !isObpProvider(user) =>
+                S.error(S.?(s"${ErrorMessages.InvalidProviderUrl} Actual: ${Constant.localIdentityProvider}, Expected: ${user.provider}"))
+              
+                
               // If user cannot be found locally, try to authenticate user via connector
               case Empty if (APIUtil.getPropsAsBoolValue("connector.user.authentication", false) || 
                 APIUtil.getPropsAsBoolValue("kafka.user.authentication", false) ) =>
