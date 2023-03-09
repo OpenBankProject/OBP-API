@@ -1005,7 +1005,7 @@ def restoreSomeSessions(): Unit = {
     *  case5: UnKnow error     --> UnexpectedErrorDuringLogin
     */
   override def login: NodeSeq = {
-    // This query parameter is specific to Hydra ORA login request
+    // This query parameter is specific to ORY Hydra login request
     val loginChallenge: Box[String] = S.param("login_challenge").or(S.getSessionAttribute("login_challenge"))
     def redirectUri(): String = {
       loginRedirect.get match {
