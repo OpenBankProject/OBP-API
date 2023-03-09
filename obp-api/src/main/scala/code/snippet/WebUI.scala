@@ -219,28 +219,27 @@ class WebUI extends MdcLoggable{
 
 
 
-  def apiExplorerLink: CssSel = {
+  
+  private def getBaseUrlWithQ = {
     val tags = S.attr("tags") openOr ""
     val locale = S.locale.toString
     // Note the Props value might contain a query parameter e.g. ?psd2=true
     val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
     // hack (we should use url operators instead) so we can add further query parameters if one is already included in the the baseUrl
-    val baseUrlWithQ =  baseUrl.contains("?") match {
-      case true => baseUrl +  s"&tags=$tags${brandString}&locale=${locale}" // ? found so add & instead
+    val baseUrlWithQ = baseUrl.contains("?") match {
+      case true => baseUrl + s"&tags=$tags${brandString}&locale=${locale}" // ? found so add & instead
       case false => baseUrl + s"?tags=$tags${brandString}&locale=${locale}" // ? not found so add it.
     }
+    baseUrlWithQ
+  }
+
+  def apiExplorerLink: CssSel = {
+    val baseUrlWithQ: String = getBaseUrlWithQ
     ".api-explorer-link a [href]" #> scala.xml.Unparsed(baseUrlWithQ)
   }
+
   def dynamicEntityApiExplorerLink: CssSel = {
-    val tags = S.attr("tags") openOr ""
-    val locale = S.locale.toString
-    // Note the Props value might contain a query parameter e.g. ?psd2=true
-    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
-    // hack (we should use url operators instead) so we can add further query parameters if one is already included in the the baseUrl
-    val baseUrlWithQ =  baseUrl.contains("?") match {
-      case true => baseUrl +  s"&tags=$tags${brandString}&locale=${locale}#group-Dynamic-Entity-Manage" // ? found so add & instead
-      case false => baseUrl + s"?tags=$tags${brandString}&locale=${locale}#group-Dynamic-Entity-Manage" // ? not found so add it.
-    }
+    val baseUrlWithQ: String = s"$getBaseUrlWithQ#group-Dynamic-Entity-Manage"
     ".api-explorer-link-dynamic-entity a [href]" #> scala.xml.Unparsed(baseUrlWithQ)
   }
   
