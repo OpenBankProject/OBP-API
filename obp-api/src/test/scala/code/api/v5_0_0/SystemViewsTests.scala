@@ -75,7 +75,7 @@ class SystemViewsTests extends V500ServerSetup {
   val postBodySystemViewJson = createSystemViewJsonV500
     .copy(name=randomSystemViewId)
     .copy(metadata_view = randomSystemViewId).toCreateViewJson
-  val systemViewId = MapperViews.getNewViewPermalink(postBodySystemViewJson.name)
+  val systemViewId = MapperViews.createViewIdByName(postBodySystemViewJson.name)
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = v5_0_0_Request / "system-views" / viewId <@(consumerAndToken)

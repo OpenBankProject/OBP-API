@@ -341,29 +341,29 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makeGetRequest(request)
   }
 
-  def getUserAccountPermission(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / userId <@(consumerAndToken)
+  def getUserAccountPermission(bankId : String, accountId : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken)
     makeGetRequest(request)
   }
 
-  def grantUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(consumerAndToken)
+  def grantUserAccessToView(bankId : String, accountId : String, providerId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / providerId / "views" / viewId).POST <@(consumerAndToken)
     makePostRequest(request, "")
   }
 
-  def grantUserAccessToViews(bankId : String, accountId : String, userId : String, viewIds : List[String], consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").POST <@(consumerAndToken)
+  def grantUserAccessToViews(bankId : String, accountId : String, providerId : String, viewIds : List[String], consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / providerId / "views").POST <@(consumerAndToken)
     val viewsJson = ViewIdsJson(viewIds)
     makePostRequest(request, write(viewsJson))
   }
 
-  def revokeUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).DELETE <@(consumerAndToken)
+  def revokeUserAccessToView(bankId : String, accountId : String, providerId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / providerId / "views" / viewId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
-  def revokeUserAccessToAllViews(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").DELETE <@(consumerAndToken)
+  def revokeUserAccessToAllViews(bankId : String, accountId : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
+    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / providerId / "views").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -2053,7 +2053,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.code should equal (204)
 
       And("The account holder do not have access to the owner view")
-      val view = Views.views.vend.customView(ownerViewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val view = Views.views.vend.systemView(ownerViewId).openOrThrowException(attemptedToOpenAnEmptyBox)
       Views.views.vend.getOwners(view).toList should not contain (resourceUser3)
     }
 
@@ -2135,7 +2135,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId(SYSTEM_OWNER_VIEW_ID)
-      val view = Views.views.vend.customView(viewId, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
+      val view = Views.views.vend.systemView(viewId).openOrThrowException(attemptedToOpenAnEmptyBox)
       val userId = resourceUser1.idGivenByProvider
 
       Views.views.vend.getOwners(view).toList.length should equal(1)
@@ -2143,8 +2143,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 204 code")
+      reply.code should equal (204)
 
       And("The user should not have had his access revoked")
       Views.views.vend.getOwners(view).toList.length should equal(1)
@@ -2168,9 +2168,9 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Then("we should get a 204 code")
       reply.code should equal (204)
 
-      And("The user should have had his access revoked")
-      val view = Views.views.vend.customView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(BankId(bankId), AccountId(bankAccount.id))).openOrThrowException(attemptedToOpenAnEmptyBox)
-      Views.views.vend.getOwners(view).toList should not contain (resourceUser3)
+      And("The user should not have had his access revoked")
+      val view = Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)).openOrThrowException(attemptedToOpenAnEmptyBox)
+      Views.views.vend.getOwners(view).toList should contain (resourceUser3)
     }
   }
 

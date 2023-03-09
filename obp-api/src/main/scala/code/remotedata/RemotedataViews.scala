@@ -73,7 +73,7 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.getSystemViews()).mapTo[List[View]]
   
 
-  def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = getValueFromFuture(
+  def createCustomView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = getValueFromFuture(
     (actor ? cc.createView(bankAccountId, view)).mapTo[Box[View]]
   )
   def createSystemView(view: CreateViewJson): Future[Box[View]] = 
@@ -136,20 +136,12 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String)).mapTo[Box[View]]
   )
   
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
-    (actor ? cc.getOrCreateOwnerView(bankId, accountId, description)).mapTo[Box[View]]
-  )
-  
-  def getOrCreateSystemView(name: String) : Box[View] = getValueFromFuture(
-    (actor ? cc.getOrCreateSystemView(name)).mapTo[Box[View]]
-  )
-  
-  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
-    (actor ? cc.getOrCreateFirehoseView(bankId, accountId, description)).mapTo[Box[View]]
+  def getOrCreateSystemView(viewId: String) : Box[View] = getValueFromFuture(
+    (actor ? cc.getOrCreateSystemView(viewId)).mapTo[Box[View]]
   )
   
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
-    (actor ? cc.getOrCreatePublicView(bankId, accountId, description)).mapTo[Box[View]]
+    (actor ? cc.getOrCreatePublicPublicView(bankId, accountId, description)).mapTo[Box[View]]
   )
 
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(

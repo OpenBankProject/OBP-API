@@ -83,7 +83,7 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
 
     case cc.createView(bankAccountId : BankIdAccountId, view: CreateViewJson) =>
       logger.debug("createView(" + bankAccountId +","+ view +")")
-      sender ! (mapper.createView(bankAccountId, view))
+      sender ! (mapper.createCustomView(bankAccountId, view))
       
     case cc.createSystemView(view: CreateViewJson) =>
       logger.debug("createSystemView(" + view +")")
@@ -140,21 +140,13 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
     case cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String) =>
       logger.debug("getOrCreateAccountView(" + BankIdAccountId +", "+ viewId +")")
       sender ! (mapper.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String))
-    
-    case cc.getOrCreateOwnerView(bankId, accountId, description) =>
-      logger.debug("getOrCreateOwnerView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! (mapper.getOrCreateOwnerView(bankId, accountId, description))  
       
     case cc.getOrCreateSystemView(name) =>
       logger.debug("getOrCreateSystemOwnerView(" + name +")")
       sender ! (mapper.getOrCreateSystemView(name))
 
-    case cc.getOrCreateFirehoseView(bankId, accountId, description) =>
-      logger.debug("getOrCreateFirehoseView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! (mapper.getOrCreateFirehoseView(bankId, accountId, description))
-
-    case cc.getOrCreatePublicView(bankId, accountId, description) =>
-      logger.debug("getOrCreatePublicView(" + bankId +", "+ accountId +", "+ description +")")
+    case cc.getOrCreatePublicPublicView(bankId, accountId, description) =>
+      logger.debug("getOrCreatePublicPublicView(" + bankId +", "+ accountId +", "+ description +")")
       sender ! (mapper.getOrCreateCustomPublicView(bankId, accountId, description))
 
     case cc.getOrCreateAccountantsView(bankId, accountId, description) =>

@@ -151,7 +151,7 @@ trait APIMethods220 {
           for {
             createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(checkCustomViewName(createViewJsonV121.name), InvalidCustomViewFormat)
+            _<- booleanToBox(checkCustomViewIdOrName(createViewJsonV121.name), InvalidCustomViewFormat+s"Current view_name (${createViewJsonV121.name})")
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             createViewJson = CreateViewJson(
@@ -163,7 +163,7 @@ trait APIMethods220 {
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
             )
-            view <- account createView (u, createViewJson)
+            view <- account createCustomView (u, createViewJson)
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -203,7 +203,7 @@ trait APIMethods220 {
           for {
             updateJsonV121 <- tryo{json.extract[UpdateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
+            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat+s"Current view_name (${viewId.value})")
             view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user)
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             u <- cc.user ?~!UserNotLoggedIn

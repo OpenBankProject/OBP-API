@@ -56,7 +56,7 @@ trait APIMethods121 {
           .map(JSONFactory.createViewJSON(_))
           .distinct) ++ 
         (privateViewsUserCanAccess
-            .filter(v =>v.accountId.value==null && v.bankId.value == null && v.isSystem && v.isPrivate)//plus the system views.
+            .filter(v =>v.isSystem && v.isPrivate)//plus the system views.
             .map(JSONFactory.createViewJSON(_))
             .distinct)
       JSONFactory.createAccountJSON(account,viewsAvailable)
@@ -594,7 +594,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             createViewJsonV121 <- tryo{json.extract[CreateViewJsonV121]} ?~ InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _<- booleanToBox(checkCustomViewName(createViewJsonV121.name), InvalidCustomViewFormat)
+            _<- booleanToBox(checkCustomViewIdOrName(createViewJsonV121.name), InvalidCustomViewFormat+s"Current view_name (${createViewJsonV121.name})")
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             createViewJson = CreateViewJson(
               createViewJsonV121.name,
@@ -605,7 +605,7 @@ trait APIMethods121 {
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
             )
-            view <- account createView (u, createViewJson)
+            view <- account createCustomView (u, createViewJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -649,7 +649,7 @@ trait APIMethods121 {
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             u <- cc.user ?~  UserNotLoggedIn
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat)
+            _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat +s"Current view_id (${viewId.value})")
             view <- Views.views.vend.customView(viewId, BankIdAccountId(bankId, accountId)) ?~! ViewNotFound
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             updateViewJson = UpdateViewJSON(
@@ -697,7 +697,7 @@ trait APIMethods121 {
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
-            _ <- Helper.booleanToFuture(InvalidCustomViewFormat, cc=callContext) { viewId.value.startsWith("_") }
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat+s"Current view_name (${viewId.value})", cc=callContext) { viewId.value.startsWith("_") }
             _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
             deleted <- NewStyle.function.removeView(account, u, viewId)
           } yield {

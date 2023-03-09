@@ -170,13 +170,13 @@ trait APIMethods300 {
                 x => unboxFullOrFail(x, callContext, msg)
               }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat, cc=callContext) {
-                checkCustomViewName(createViewJson.name)
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat+s"Current view_name (${createViewJson.name})", cc=callContext) {
+                checkCustomViewIdOrName(createViewJson.name)
               }
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {
               for {
-                view <- account createView (u, createViewJson)
+                view <- account createCustomView (u, createViewJson)
               } yield {
                 (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
               }
@@ -256,7 +256,7 @@ trait APIMethods300 {
                 x => unboxFullOrFail(x, callContext, msg)
               }
               //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
-              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat, cc=callContext) {
+              _ <- Helper.booleanToFuture(failMsg = InvalidCustomViewFormat+s"Current view_name (${viewId.value})", cc=callContext) {
                 updateJson.metadata_view.startsWith("_")
               }
               _ <- Views.views.vend.customViewFuture(ViewId(viewId.value), BankIdAccountId(bankId, accountId)) map {

@@ -30,28 +30,34 @@ object MapperViews extends Views with MdcLoggable {
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
   
   private def getViewsForUser(user: User): List[View] = {
-    val privileges = AccountAccess.findAll(
+    val accountAccessList = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       OrderBy(AccountAccess.bank_id, Ascending),
       OrderBy(AccountAccess.account_id, Ascending)
     )
-    getViewsCommonPart(privileges)
+    getViewsCommonPart(accountAccessList)
   }  
   private def getViewsForUserAndAccount(user: User, account : BankIdAccountId): List[View] = {
-    val privileges = AccountAccess.findAll(
+    val accountAccessList = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, account.bankId.value),
       By(AccountAccess.account_id, account.accountId.value)
     )
-    getViewsCommonPart(privileges)
+    getViewsCommonPart(accountAccessList)
   }
 
-  private def getViewsCommonPart(privileges: List[AccountAccess]): List[View] = {
-    val views: List[ViewDefinition] = privileges.flatMap(
-      a => 
-        ViewDefinition.find(By(ViewDefinition.id_, a.view_fk.get))
-        .map(v => v.bank_id(a.bank_id.get).account_id(a.account_id.get))
-    ).filter(
+  private def getViewFromAccountAccess(accountAccess: AccountAccess) = {
+    if (checkSystemViewIdOrName(accountAccess.view_id.get)) {
+      ViewDefinition.findSystemView(accountAccess.view_id.get)
+        .map(v => v.bank_id(accountAccess.bank_id.get).account_id(accountAccess.account_id.get)) // in case system view do not contains the bankId, and accountId.
+    } else {
+      ViewDefinition.findCustomView(accountAccess.bank_id.get, accountAccess.account_id.get, accountAccess.view_id.get)
+    }
+  }
+  
+  private def getViewsCommonPart(accountAccessList: List[AccountAccess]): List[View] = {
+    //we need to get views from accountAccess
+    val views: List[ViewDefinition] = accountAccessList.flatMap(getViewFromAccountAccess).filter(
         v =>
           if (allowPublicViews) {
             true // All views
@@ -89,9 +95,9 @@ object MapperViews extends Views with MdcLoggable {
       By(AccountAccess.user_fk, user.userPrimaryKey.value), 
       By(AccountAccess.bank_id, bankId), 
       By(AccountAccess.account_id, accountId), 
-      By(AccountAccess.view_fk, viewDefinition.id)) == 0) {
-      //logger.debug(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
-      // SQL Insert ViewPrivileges
+      By(AccountAccess.view_id, viewDefinition.viewId.value)) == 0) {
+      //logger.debug(s"saving AccountAccessList for user ${user.resourceUserId.value} for view ${vImpl.id}")
+      // SQL Insert AccountAccessList
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
         bank_id(bankId).
@@ -100,13 +106,13 @@ object MapperViews extends Views with MdcLoggable {
         view_fk(viewDefinition.id).
         save
       if (saved) {
-        //logger.debug("saved ViewPrivileges")
+        //logger.debug("saved AccountAccessList")
         Full(viewDefinition)
       } else {
-        //logger.debug("failed to save ViewPrivileges")
+        //logger.debug("failed to save AccountAccessList")
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
-    } else Full(viewDefinition) //privilege already exists, no need to create one
+    } else Full(viewDefinition) //accountAccess already exists, no need to create one
   }
   // This is an idempotent function 
   private def getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
@@ -123,9 +129,9 @@ object MapperViews extends Views with MdcLoggable {
     viewDefinition match {
       case Full(v) => {
         if(v.isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
-        // SQL Select Count ViewPrivileges where
+        // SQL Select Count AccountAccessList where
         // This is idempotent
-        getOrGrantAccessToCustomView(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //privilege already exists, no need to create one
+        getOrGrantAccessToCustomView(user, v, viewIdBankIdAccountId.bankId.value, viewIdBankIdAccountId.accountId.value) //accountAccess already exists, no need to create one
       }
       case _ => {
         Empty ~> APIFailure(s"View $viewIdBankIdAccountId. not found", 404) //TODO: move message + code logic to api level
@@ -187,25 +193,28 @@ object MapperViews extends Views with MdcLoggable {
   def revokeAccess(viewUID : ViewIdBankIdAccountId, user : User) : Box[Boolean] = {
     val isRevokedCustomViewAccess =
     for {
-      viewDefinition <- ViewDefinition.findCustomView(viewUID.bankId.value, viewUID.accountId.value, viewUID.viewId.value)
-      accountAccess  <- AccountAccess.find(
-        By(AccountAccess.user_fk, user.userPrimaryKey.value),
-        By(AccountAccess.view_fk, viewDefinition.id)
+      customViewDefinition <- ViewDefinition.findCustomView(viewUID.bankId.value, viewUID.accountId.value, viewUID.viewId.value)
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+        viewUID.bankId,
+        viewUID.accountId,
+        viewUID.viewId,
+        user.userPrimaryKey
       ) ?~! CannotFindAccountAccess
-      // Check if we are allowed to remove the View from the User
-      _ <- canRevokeAccessAsBox(viewDefinition, user)
     } yield {
       accountAccess.delete_!
     }
+    
     val isRevokedSystemViewAccess =
       for {
-        viewDefinition <- ViewDefinition.findSystemView(viewUID.viewId.value)
-        accountAccess  <- AccountAccess.find(
-          By(AccountAccess.user_fk, user.userPrimaryKey.value),
-          By(AccountAccess.view_fk, viewDefinition.id)
+        systemViewDefinition <- ViewDefinition.findSystemView(viewUID.viewId.value)
+        accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+          viewUID.bankId,
+          viewUID.accountId,
+          viewUID.viewId,
+          user.userPrimaryKey
         ) ?~! CannotFindAccountAccess
         // Check if we are allowed to remove the View from the User
-        _ <- canRevokeAccessAsBox(viewDefinition, user)
+        _ <- canRevokeOwnerAccessAsBox(viewUID.bankId, viewUID.accountId,systemViewDefinition, user)
       } yield {
         accountAccess.delete_!
       }
@@ -217,16 +226,17 @@ object MapperViews extends Views with MdcLoggable {
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] = {
     val res =
     for {
-      viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id)) 
-      aa  <- AccountAccess.find(
-        By(AccountAccess.user_fk, user.userPrimaryKey.value),
-        By(AccountAccess.bank_id, bankId.value),
-        By(AccountAccess.account_id, accountId.value),
-        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
+      systemViewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+        bankId,
+        accountId,
+        view.viewId,
+        user.userPrimaryKey
+      ) ?~! CannotFindAccountAccess
       // Check if we are allowed to remove the View from the User
-      _ <- canRevokeAccessAsBox(viewDefinition, user)
+      _ <- canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, systemViewDefinition, user)
     } yield {
-      aa.delete_!
+      accountAccess.delete_!
     }
     res
   }
@@ -234,12 +244,12 @@ object MapperViews extends Views with MdcLoggable {
   //Custom View will have bankId and accountId inside the `View`, so no need both in the parameters
   def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean] = {
     for {
-      viewDefinition <- ViewDefinition.findCustomView(view.bankId.value, view.accountId.value, view.viewId.value)
-      accountAccess  <- AccountAccess.find(
-        By(AccountAccess.consumer_id, consumerId),
-        By(AccountAccess.view_fk, viewDefinition.id),
-        By(AccountAccess.bank_id, view.bankId.value),
-        By(AccountAccess.account_id, view.accountId.value)
+      customViewDefinition <- ViewDefinition.findCustomView(view.bankId.value, view.accountId.value, view.viewId.value)
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdConsumerId(
+        customViewDefinition.bankId,
+        customViewDefinition.accountId,
+        customViewDefinition.viewId,
+        consumerId
       ) ?~! CannotFindAccountAccess
     } yield {
       accountAccess.delete_!
@@ -249,25 +259,26 @@ object MapperViews extends Views with MdcLoggable {
   //System View only have the viewId in inside the `View`, both bankId and accountId are empty in the `View`. So we need both in the parameters
   def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean] = {
     for {
-      viewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
-      accountAccess  <- AccountAccess.find(
-        By(AccountAccess.consumer_id, consumerId),
-        By(AccountAccess.bank_id, bankId.value),
-        By(AccountAccess.account_id, accountId.value),
-        By(AccountAccess.view_fk, viewDefinition.id)) ?~! CannotFindAccountAccess
+      systemViewDefinition <- ViewDefinition.find(By(ViewDefinition.id_, view.id))
+      accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdConsumerId(
+        bankId,
+        accountId,
+        systemViewDefinition.viewId,
+        consumerId
+      ) ?~! CannotFindAccountAccess
     } yield {
       accountAccess.delete_!
     }
   }
 
   //returns Full if deletable, Failure if not
-  def canRevokeAccessAsBox(viewImpl : ViewDefinition, user : User) : Box[Unit] = {
-    if(canRevokeAccess(viewImpl, user)) Full(Unit)
+  def canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, viewImpl : ViewDefinition, user : User) : Box[Unit] = {
+    if(canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewImpl, user)) Full(Unit)
     else Failure("access cannot be revoked")
   }
 
 
-  def canRevokeAccess(viewDefinition: ViewDefinition, user : User) : Boolean = {
+  def canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewDefinition: ViewDefinition, user : User) : Boolean = {
     if(viewDefinition.viewId == ViewId(SYSTEM_OWNER_VIEW_ID)) {
       //if the user is an account holder, we can't revoke access to the owner view
       val accountHolders = MapperAccountHolders.getAccountHolders(viewDefinition.bankId, viewDefinition.accountId)
@@ -276,7 +287,11 @@ object MapperViews extends Views with MdcLoggable {
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
         // with access
-        AccountAccess.findAll(By(AccountAccess.view_fk, viewDefinition.id)).length > 1
+        AccountAccess.findAllByBankIdAccountIdViewId(
+          bankId: BankId, 
+          accountId: AccountId,
+          viewDefinition.viewId
+        ).length > 1
       }
     } else {
       true
@@ -284,30 +299,31 @@ object MapperViews extends Views with MdcLoggable {
   }
 
 
-  /*
-  This removes the link between a User and a View (Account Access)
+  /**
+   * remove all the accountAccess for one user and linked account.
+   * If the user has `owner` view accountAccess and also the accountHolder, we can not revoke, just return `false`.
+   * all the other case, we can revoke all the account access for that user.
    */
 
   def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    //TODO: make this more efficient by using one query (with a join)
-    val allUserPrivs = AccountAccess.findAll(By(AccountAccess.user_fk, user.userPrimaryKey.value))
-
-    val relevantAccountPrivs = allUserPrivs.filter(p => p.bank_id == bankId.value && p.account_id == accountId.value)
-
-    val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => p.view_fk.obj match {
-      case Full(v) => canRevokeAccess(v, user)
-      case _ => false
-    })
-
-
-    if(allRelevantPrivsRevokable) {
-      relevantAccountPrivs.foreach(_.delete_!)
+    val userIsAccountHolder_? = MapperAccountHolders.getAccountHolders(bankId, accountId).map(h => h.userPrimaryKey).contains(user.userPrimaryKey)
+    val userHasOwnerViewAccess_? = AccountAccess.find(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value),
+      By(AccountAccess.view_id, SYSTEM_OWNER_VIEW_ID),
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+    ).isDefined
+ 
+    if(userIsAccountHolder_? && userHasOwnerViewAccess_?){
+      Full(false)
+    }else{
+      AccountAccess.find(
+        By(AccountAccess.bank_id, bankId.value),
+        By(AccountAccess.account_id, accountId.value),
+        By(AccountAccess.user_fk, user.userPrimaryKey.value)
+      ).foreach(_.delete_!)
       Full(true)
-    } else {
-      Failure("One of the views this user has access to is the owner view, and there would be no one with access" +
-        " to this owner view if access to the user was revoked. No permissions to any views on the account have been revoked.")
     }
-
   }
 
   def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
@@ -355,7 +371,7 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   
-  def getNewViewPermalink(name: String) = {
+  def createViewIdByName(name: String) = {
     name.replaceAllLiterally(" ", "").toLowerCase
   }
   /*
@@ -364,24 +380,26 @@ object MapperViews extends Views with MdcLoggable {
   def createSystemView(view: CreateViewJson) : Future[Box[View]] = Future {
     if(view.is_public) {
       Failure(SystemViewCannotBePublicError)
+    }else if (!checkSystemViewIdOrName(view.name)) {
+      Failure(InvalidSystemViewFormat+s"Current view_name (${view.name})")
     } else {
       view.name.contentEquals("") match {
         case true => 
           Failure(EmptyNameOfSystemViewError)
         case false =>
           //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
-          val newViewPermalink = getNewViewPermalink(view.name)
+          val viewId = createViewIdByName(view.name)
           val existing = ViewDefinition.count(
-            By(ViewDefinition.view_id, newViewPermalink), 
+            By(ViewDefinition.view_id, viewId), 
             NullRef(ViewDefinition.bank_id),
             NullRef(ViewDefinition.account_id)
           ) == 1
 
           existing match {
             case true =>
-              Failure(s"$ExistingSystemViewError $newViewPermalink")
+              Failure(s"$ExistingSystemViewError $viewId")
             case false =>
-              val createdView = ViewDefinition.create.name_(view.name).view_id(newViewPermalink)
+              val createdView = ViewDefinition.create.name_(view.name).view_id(viewId)
               createdView.setFromViewData(view)
               createdView.isSystem_(true)
               createdView.isPublic_(false)
@@ -394,8 +412,12 @@ object MapperViews extends Views with MdcLoggable {
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
-  def createView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = {
+  def createCustomView(bankAccountId: BankIdAccountId, view: CreateViewJson): Box[View] = {
 
+    if(!checkCustomViewIdOrName(view.name)) {
+      return Failure(InvalidCustomViewFormat)
+    }
+    
     if(view.is_public && !allowPublicViews) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
@@ -404,19 +426,19 @@ object MapperViews extends Views with MdcLoggable {
       return Failure("You cannot create a View with an empty Name")
     }
     //view-permalink is view.name without spaces and lowerCase.  (view.name = my life) <---> (view-permalink = mylife)
-    val newViewPermalink = getNewViewPermalink(view.name)
+    val viewId = createViewIdByName(view.name)
 
     val existing = ViewDefinition.count(
-      By(ViewDefinition.view_id, newViewPermalink) ::
+      By(ViewDefinition.view_id, viewId) ::
         ViewDefinition.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*
     ) == 1
 
     if (existing)
-      Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
+      Failure(s"There is already a view with permalink $viewId on this bank account")
     else {
       val createdView = ViewDefinition.create.
         name_(view.name).
-        view_id(newViewPermalink).
+        view_id(viewId).
         bank_id(bankAccountId.bankId.value).
         account_id(bankAccountId.accountId.value)
 
@@ -448,19 +470,23 @@ object MapperViews extends Views with MdcLoggable {
 
   def removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId): Box[Boolean] = {
     for {
-      view <- ViewDefinition.findCustomView(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
-      _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
+      customView <- ViewDefinition.findCustomView(bankAccountId.bankId.value, bankAccountId.accountId.value, viewId.value)
+      _ <- AccountAccess.findAllByBankIdAccountIdViewId(
+        bankAccountId.bankId,
+        bankAccountId.accountId,
+        viewId
+      ).length > 0 match {
         case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
         case false => Full()
       }
     } yield {
-      view.delete_!
+      customView.delete_!
     }
   }
   def removeSystemView(viewId: ViewId): Future[Box[Boolean]] = Future {
     for {
       view <- ViewDefinition.findSystemView(viewId.value)
-      _ <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).isDefined match {
+      _ <- AccountAccess.findAllBySystemViewId(viewId).length > 0 match {
         case true => Failure("Account Access record uses this View.") // We want to prevent account access orphans
         case false => Full()
       }
@@ -470,11 +496,10 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def assignedViewsForAccount(bankAccountId : BankIdAccountId) : List[View] = {
-    AccountAccess.findAll(
-      By(AccountAccess.bank_id, bankAccountId.bankId.value),
-      By(AccountAccess.account_id, bankAccountId.accountId.value),
-      PreCache(AccountAccess.view_fk)
-    ).map(_.view_fk.obj).flatten.distinct
+    AccountAccess.findAllByBankIdAccountId(
+      bankAccountId.bankId,
+      bankAccountId.accountId
+    ).map(getViewFromAccountAccess).flatten.distinct
   }
   
   //this is more like possible views, it contains the system views+custom views
@@ -492,10 +517,23 @@ object MapperViews extends Views with MdcLoggable {
        By(ViewDefinition.isSystem_, true)) // Sandbox specific System views
   }
   
+  private def getAccountAccessFromPublicViews(publicViews: List[ViewDefinition])={
+    val publicSystemViews = publicViews.filter(_.isSystem)
+    val publicCustomViews = publicViews.filter(!_.isSystem)
+    val publicSystemViewAccountAccess = AccountAccess.findAll(
+      ByList(AccountAccess.view_id, publicSystemViews.map(_.viewId.value)),
+    )
+    val publicCustomViewAccountAccess = AccountAccess.findAll(
+      ByList(AccountAccess.bank_id, publicCustomViews.map(_.bankId.value)),
+      ByList(AccountAccess.account_id, publicCustomViews.map(_.accountId.value)),
+      ByList(AccountAccess.view_id, publicCustomViews.map(_.viewId.value)),
+    )
+    publicCustomViewAccountAccess++publicSystemViewAccountAccess
+  }
   def publicViews: (List[View], List[AccountAccess]) = {
     if (APIUtil.allowPublicViews) {
-      val publicViews = ViewDefinition.findAll(By(ViewDefinition.isPublic_, true)) // Custom and System views
-      val publicAccountAccess = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      val publicViews = ViewDefinition.findAll(By(ViewDefinition.isPublic_, true)) //Both Custom and System views
+      val publicAccountAccess = getAccountAccessFromPublicViews(publicViews)
       (publicViews, publicAccountAccess)
     } else {
       (Nil, Nil)
@@ -508,7 +546,7 @@ object MapperViews extends Views with MdcLoggable {
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, false)) ::: // Custom views
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.isSystem_, true)) ::: // System views
         ViewDefinition.findAll(By(ViewDefinition.isPublic_, true), By(ViewDefinition.bank_id, bankId.value), By(ViewDefinition.isSystem_, true)) // System views
-      val publicAccountAccess = AccountAccess.findAll(ByList(AccountAccess.view_fk, publicViews.map(_.id)))
+      val publicAccountAccess = getAccountAccessFromPublicViews(publicViews)
       (publicViews.distinct, publicAccountAccess)
     } else {
       (Nil, Nil)
@@ -516,30 +554,39 @@ object MapperViews extends Views with MdcLoggable {
   }
   
   def privateViewsUserCanAccess(user: User): (List[View], List[AccountAccess]) ={
-    val accountAccess = AccountAccess.findAll(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      PreCache(AccountAccess.view_fk)
-    ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
-    val privateViews  = accountAccess.map(_.view_fk.obj).flatten.distinct
+    val accountAccess = AccountAccess.findAllByUserPrimaryKey(user.userPrimaryKey)
+    .filter(accountAccess => {
+      val view = getViewFromAccountAccess(accountAccess)
+      view.isDefined && view.map(_.isPrivate)==Full(true)
+    })
+    val privateViews = accountAccess.map(getViewFromAccountAccess).flatten.distinct
     (privateViews, accountAccess)
   }
   def privateViewsUserCanAccess(user: User, viewIds: List[ViewId]): (List[View], List[AccountAccess]) ={
     val accountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       ByList(AccountAccess.view_id, viewIds.map(_.value))
-    ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
+    ).filter(accountAccess => {
+      val view = getViewFromAccountAccess(accountAccess)
+      view.isDefined && view.map(_.isPrivate) == Full(true)
+    })
     PrivateViewsUserCanAccessCommon(accountAccess)
   }
   def privateViewsUserCanAccessAtBank(user: User, bankId: BankId): (List[View], List[AccountAccess]) ={
     val accountAccess = AccountAccess.findAll(
       By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, bankId.value)
-    ).filter(r => r.view_fk.obj.isDefined && r.view_fk.obj.map(_.isPrivate).getOrElse(false) == true)
+    ).filter(accountAccess => {
+      val view = getViewFromAccountAccess(accountAccess)
+      view.isDefined && view.map(_.isPrivate) == Full(true)
+    })
     PrivateViewsUserCanAccessCommon(accountAccess)
   }
 
   private def PrivateViewsUserCanAccessCommon(accountAccess: List[AccountAccess]): (List[ViewDefinition], List[AccountAccess]) = {
-    val listOfTuples: List[(AccountAccess, Box[ViewDefinition])] = accountAccess.map(x => (x, x.view_fk.obj))
+    val listOfTuples: List[(AccountAccess, Box[ViewDefinition])] = accountAccess.map(
+      accountAccess => (accountAccess, getViewFromAccountAccess(accountAccess))
+    )
     val privateViews = listOfTuples.flatMap(
       tuple => tuple._2.map(v => v.bank_id(tuple._1.bank_id.get).account_id(tuple._1.account_id.get))
     )
@@ -547,25 +594,15 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def privateViewsUserCanAccessForAccount(user: User, bankIdAccountId : BankIdAccountId) : List[View] =   {
-    val accountAccess = AccountAccess.findAll(
-      By(AccountAccess.user_fk, user.userPrimaryKey.value),
-      By(AccountAccess.bank_id, bankIdAccountId.bankId.value),
-      By(AccountAccess.account_id, bankIdAccountId.accountId.value),
-      PreCache(AccountAccess.view_fk)
+    val accountAccess = AccountAccess.findByBankIdAccountIdUserPrimaryKey(
+      bankIdAccountId.bankId,
+      bankIdAccountId.accountId,
+      user.userPrimaryKey
     )
-    accountAccess.map(_.view_fk.obj).flatten.filter(view => view.isPrivate == true).distinct
+    accountAccess.map(getViewFromAccountAccess).flatten.filter(view => view.isPrivate == true).distinct
   }
 
-  /**
-    * @param bankIdAccountId the IncomingAccount from Kafka
-    * @param viewId This field should be selected one from Owner/Public/Accountant/Auditor, only support
-    * these four values.
-    * @return  This will insert a View (e.g. the owner view) for an Account (BankAccount), and return the view
-    * Note:
-    * updateUserAccountViews would call createAccountView once per View specified in the IncomingAccount from Kafka.
-    * We should cache this function because the available views on an account will change rarely.
-    *
-    */
+  
   def getOrCreateAccountView(bankIdAccountId: BankIdAccountId, viewId: String): Box[View] = {
 
     val bankId = bankIdAccountId.bankId
@@ -600,43 +637,29 @@ object MapperViews extends Views with MdcLoggable {
     theView
   }
   
-  def getOrCreateOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
-    getExistingView(bankId, accountId, SYSTEM_OWNER_VIEW_ID) match {
-      case Empty => createDefaultOwnerView(bankId, accountId, description)
-      case Full(v) => Full(v)
-      case Failure(msg, t, c) => Failure(msg, t, c)
-      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
-    }
-  }  
-  def getOrCreateSystemView(name: String) : Box[View] = {
-    getExistingSystemView(name) match {
-      case Empty => createDefaultSystemView(name)
+  def getOrCreateSystemView(viewId: String) : Box[View] = {
+    getExistingSystemView(viewId) match {
+      case Empty => createDefaultSystemView(viewId)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
   }
   
-  def getOrCreateFirehoseView(bankId: BankId, accountId: AccountId, description: String = "Firehose View") : Box[View] = {
-    getExistingView(bankId, accountId, "firehose") match {
-      case Empty => createDefaultFirehoseView(bankId, accountId, description)
-      case Full(v) => Full(v)
-      case Failure(msg, t, c) => Failure(msg, t, c)
-      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
-    }
-  }
 
+  /**
+   * if return the system view owner, it may return all the users, all the user if have its own account, it should have the `owner` view access.
+   * @param view
+   * @return
+   */
   def getOwners(view: View) : Set[User] = {
-    val id: Long = ViewDefinition.findCustomView(view.uid.bankId.value, view.uid.accountId.value, view.uid.viewId.value)
-      .or(ViewDefinition.findSystemView(view.viewId.value))
-      .map(_.id).openOr(0)
-    val privileges = AccountAccess.findAll(By(AccountAccess.view_fk, id))
-    val users: List[User] = privileges.flatMap(_.user_fk.obj)
+    val accountAccessList = AccountAccess.findAllByView(view)
+    val users: List[User] = accountAccessList.flatMap(_.user_fk.obj)
     users.toSet
   }
 
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
-    getExistingView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
+    getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
       case Empty=> createDefaultPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -645,7 +668,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
-    getExistingView(bankId, accountId, "accountant") match {
+    getExistingCustomView(bankId, accountId, SYSTEM_ACCOUNTANT_VIEW_ID) match {
       case Empty => createDefaultAccountantsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -654,7 +677,7 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
-    getExistingView(bankId, accountId, "auditor") match {
+    getExistingCustomView(bankId, accountId, SYSTEM_AUDITOR_VIEW_ID) match {
       case Empty => createDefaultAuditorsView(bankId, accountId, description)
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
@@ -755,11 +778,6 @@ object MapperViews extends Views with MdcLoggable {
     Full(entity)
   }
   
-
-  def createDefaultFirehoseView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveFirehoseView(bankId, accountId, "Firehose View")
-  }
-  
   def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     createAndSaveOwnerView(bankId, accountId, "Owner View")
   }  
@@ -782,27 +800,22 @@ object MapperViews extends Views with MdcLoggable {
     createAndSaveDefaultAuditorsView(bankId, accountId, "Auditors View")
   }
 
-  def getExistingView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    val res = ViewDefinition.findCustomView(bankId.value, accountId.value, name)
+  def getExistingCustomView(bankId: BankId, accountId: AccountId, viewId: String): Box[View] = {
+    val res = ViewDefinition.findCustomView(bankId.value, accountId.value, viewId)
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
-  def getExistingSystemView(name: String): Box[View] = {
-    val res = ViewDefinition.findSystemView(name)
+  def getExistingSystemView(viewId: String): Box[View] = {
+    val res = ViewDefinition.findSystemView(viewId)
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
 
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
-    val views = ViewDefinition.findAll(
-      By(ViewDefinition.bank_id, bankId.value),
-      By(ViewDefinition.account_id, accountId.value)
+    AccountAccess.bulkDelete_!!(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value)
     )
-    var privilegesDeleted = true
-    views.map (x => {
-      privilegesDeleted &&= AccountAccess.bulkDelete_!!(By(AccountAccess.view_fk, x.id_.get))
-    } )
-      privilegesDeleted
   }
 
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean = {
@@ -907,15 +920,15 @@ object MapperViews extends Views with MdcLoggable {
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
   }
-  def unsavedSystemView(name: String) : ViewDefinition = {
+  def unsavedSystemView(viewId: String) : ViewDefinition = {
     val entity = create
       .isSystem_(true)
       .isFirehose_(false)
       .bank_id(null)
       .account_id(null)
-      .name_(StringHelpers.capify(name))
-      .view_id(name)
-      .description_(name)
+      .name_(StringHelpers.capify(viewId))
+      .view_id(viewId)
+      .description_(viewId)
       .isPublic_(false) //(default is false anyways)
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)
       .usePublicAliasIfOneExists_(false) //(default is false anyways)
@@ -994,7 +1007,7 @@ object MapperViews extends Views with MdcLoggable {
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
     
-    name match {
+    viewId match {
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)

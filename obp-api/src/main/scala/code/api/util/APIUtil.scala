@@ -3851,8 +3851,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if(range1.end.before(range2.start) || range1.start.after(range2.end)) false else true
   }
 
-  def checkCustomViewName(name: String): Boolean = name match {
-    case x if x == "_" + SYSTEM_OWNER_VIEW_ID => false // Reserved name
+  //we need set guard to easily distinguish the system view and custom view,
+  // customer view must start with '_', system can not 
+  // viewName and viewId are the same value, just with different format, eg: createViewIdByName(view.name)
+  def checkSystemViewIdOrName(viewId: String): Boolean = !checkCustomViewIdOrName(viewId: String)
+  
+  //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
+  // viewName and viewId are the same value, just with different format, eg: createViewIdByName(view.name)
+  def checkCustomViewIdOrName(name: String): Boolean = name match {
     case x if x.startsWith("_") => true // Allowed case
     case _ => false
   }

@@ -1,5 +1,7 @@
 package code.views.system
 
+import code.api.util.APIUtil.{checkCustomViewIdOrName, checkSystemViewIdOrName}
+import code.api.util.ErrorMessages.{InvalidCustomViewFormat, InvalidSystemViewFormat}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
@@ -529,11 +531,19 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {
   override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(composite_unique_key) :: super.dbIndexes
   override def beforeSave = List(
-    t =>
+    t =>{
       tryo {
         val viewId = getUniqueKey(t.bank_id.get, t.account_id.get, t.view_id.get)
         t.composite_unique_key(viewId)
       }
+
+      if (t.isSystem && !checkSystemViewIdOrName(t.view_id.get)) {
+        throw new RuntimeException(InvalidSystemViewFormat+s"Current view_id (${t.view_id.get})")
+      }
+      if (!t.isSystem && !checkCustomViewIdOrName(t.view_id.get)) {
+        throw new RuntimeException(InvalidCustomViewFormat+s"Current view_id (${t.view_id.get})")
+      }
+    }
   )
 
   def findSystemView(viewId: String): Box[ViewDefinition] = {

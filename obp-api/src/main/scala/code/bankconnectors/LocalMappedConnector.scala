@@ -10,7 +10,7 @@ import code.accountattribute.AccountAttributeX
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.BerlinGroup.{AuthenticationType, ScaStatus}
 import code.api.Constant
-import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, localIdentityProvider}
+import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID, SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.attributedefinition.{AttributeDefinition, AttributeDefinitionDI}
 import code.api.cache.Caching
@@ -5550,7 +5550,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     val ownerView: Box[View] =
       if (owner_view)
-        Views.views.vend.getOrCreateOwnerView(bankId, accountId, "Owner View")
+        Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
       else Empty
 
     val publicView: Box[View] =
@@ -5560,12 +5560,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     val accountantsView: Box[View] =
       if (accountants_view)
-        Views.views.vend.getOrCreateAccountantsView(bankId, accountId, "Accountants View")
+        Views.views.vend.getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else Empty
 
     val auditorsView: Box[View] =
       if (auditors_view)
-        Views.views.vend.getOrCreateAuditorsView(bankId, accountId, "Auditors View")
+        Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
       else Empty
 
     List(ownerView, publicView, accountantsView, auditorsView).flatten

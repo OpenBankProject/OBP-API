@@ -1772,6 +1772,10 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode=400, cc=cc.callContext) {
               createViewJson.is_public == false
             }
+            // custom views are started with `_`,eg _ life, _ work, and System views can not, eg: owner.
+            _ <- Helper.booleanToFuture(failMsg = InvalidSystemViewFormat +s"Current view_name (${createViewJson.name})", cc = cc.callContext) {
+              checkSystemViewIdOrName(createViewJson.name)
+            }
             view <- NewStyle.function.createSystemView(createViewJson.toCreateViewJson, cc.callContext)
           } yield {
             (createViewJsonV500(view),  HttpCode.`201`(cc.callContext))
