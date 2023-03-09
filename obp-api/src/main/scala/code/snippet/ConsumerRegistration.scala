@@ -249,7 +249,7 @@ class ConsumerRegistration extends MdcLoggable {
     }
 
     def showRegistrationResults(consumer : Consumer) = {
-      // Create client at Hydra ORA side and update our consumer with a new Client ID
+      // Create client at ORY Hydra side and update our consumer with a new Client ID
       val updatedConsumer = createHydraClient(consumer).flatMap { c =>
         Consumers.consumers.vend
           .updateConsumer(consumer.id.get,Some(c.getClientId),None,None,None,None,None,None,None,None)
