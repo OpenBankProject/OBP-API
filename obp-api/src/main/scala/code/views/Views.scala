@@ -112,6 +112,10 @@ trait Views {
   
   def getOrCreateSystemView(viewId: String) : Box[View]
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+
+  /**
+   * this is only used for the scala test
+   */
   def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View]
 
   def getOwners(view: View): Set[User]

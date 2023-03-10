@@ -685,97 +685,111 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  //Note: this method is only for scala-test,
+  /**
+   * This is only for scala tests.
+   */
   def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
-    val entity = ViewDefinition.create.
-      isSystem_(false).
-      isFirehose_(false).
-      name_("_" + randomString(5)).
-      metadataView_(SYSTEM_OWNER_VIEW_ID).
-      description_(randomString(3)).
-      view_id("_" + randomString(3)).
-      isPublic_(false).
-      bank_id(bankId.value).
-      account_id(accountId.value).
-      usePrivateAliasIfOneExists_(false).
-      usePublicAliasIfOneExists_(false).
-      hideOtherAccountMetadataIfAlias_(false).
-      canSeeTransactionThisBankAccount_(true).
-      canSeeTransactionOtherBankAccount_(true).
-      canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(true).
-      canSeeTransactionAmount_(true).
-      canSeeTransactionType_(true).
-      canSeeTransactionCurrency_(true).
-      canSeeTransactionStartDate_(true).
-      canSeeTransactionFinishDate_(true).
-      canSeeTransactionBalance_(true).
-      canSeeComments_(true).
-      canSeeOwnerComment_(true).
-      canSeeTags_(true).
-      canSeeImages_(true).
-      canSeeBankAccountOwners_(true).
-      canSeeBankAccountType_(true).
-      canSeeBankAccountBalance_(true).
-      canSeeBankAccountCurrency_(true).
-      canSeeBankAccountLabel_(true).
-      canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountSwift_bic_(true).
-      canSeeBankAccountIban_(true).
-      canSeeBankAccountNumber_(true).
-      canSeeBankAccountBankName_(true).
-      canSeeBankAccountBankPermalink_(true).
-      canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountSWIFT_BIC_(true).
-      canSeeOtherAccountIBAN_(true).
-      canSeeOtherAccountBankName_(true).
-      canSeeOtherAccountNumber_(true)
+    //we set the length is to 40, try to be difficult for scala tests create the same viewName.
+    val viewName = "_" + randomString(40)
+    val viewId =  MapperViews.createViewIdByName(viewName)
+    val description = randomString(40)
+    
+    if (!checkCustomViewIdOrName(viewName)) {
+      return Failure(InvalidCustomViewFormat)
+    }
 
-    entity.
-      canSeeOtherAccountMetadata_(true).
-      canSeeOtherAccountKind_(true).
-      canSeeMoreInfo_(true).
-      canSeeUrl_(true).
-      canSeeImageUrl_(true).
-      canSeeOpenCorporatesUrl_(true).
-      canSeeCorporateLocation_(true).
-      canSeePhysicalLocation_(true).
-      canSeePublicAlias_(true).
-      canSeePrivateAlias_(true).
-      canAddMoreInfo_(true).
-      canAddURL_(true).
-      canAddImageURL_(true).
-      canAddOpenCorporatesUrl_(true).
-      canAddCorporateLocation_(true).
-      canAddPhysicalLocation_(true).
-      canAddPublicAlias_(true).
-      canAddPrivateAlias_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
-      canEditOwnerComment_(true).
-      canAddComment_(true).
-      canDeleteComment_(true).
-      canAddTag_(true).
-      canDeleteTag_(true).
-      canAddImage_(true).
-      canDeleteImage_(true).
-      canAddWhereTag_(true).
-      canSeeWhereTag_(true).
-      canDeleteWhereTag_(true).
-      canSeeBankRoutingScheme_(true). //added following in V300
-      canSeeBankRoutingAddress_(true).
-      canSeeBankAccountRoutingScheme_(true).
-      canSeeBankAccountRoutingAddress_(true).
-      canSeeOtherBankRoutingScheme_(true).
-      canSeeOtherBankRoutingAddress_(true).
-      canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true).
-      canAddTransactionRequestToOwnAccount_(false).//added following two for payments
-      canAddTransactionRequestToAnyAccount_(false).
-      canSeeBankAccountCreditLimit_(true).
-      saveMe
-
-    Full(entity)
+    getExistingCustomView(bankId, accountId, viewId) match {
+      case Empty => {
+        tryo{ViewDefinition.create.
+          isSystem_(false).
+          isFirehose_(false).
+          name_(viewName).
+          metadataView_(SYSTEM_OWNER_VIEW_ID).
+          description_(description).
+          view_id(viewId).
+          isPublic_(false).
+          bank_id(bankId.value).
+          account_id(accountId.value).
+          usePrivateAliasIfOneExists_(false).
+          usePublicAliasIfOneExists_(false).
+          hideOtherAccountMetadataIfAlias_(false).
+          canSeeTransactionThisBankAccount_(true).
+          canSeeTransactionOtherBankAccount_(true).
+          canSeeTransactionMetadata_(true).
+          canSeeTransactionDescription_(true).
+          canSeeTransactionAmount_(true).
+          canSeeTransactionType_(true).
+          canSeeTransactionCurrency_(true).
+          canSeeTransactionStartDate_(true).
+          canSeeTransactionFinishDate_(true).
+          canSeeTransactionBalance_(true).
+          canSeeComments_(true).
+          canSeeOwnerComment_(true).
+          canSeeTags_(true).
+          canSeeImages_(true).
+          canSeeBankAccountOwners_(true).
+          canSeeBankAccountType_(true).
+          canSeeBankAccountBalance_(true).
+          canSeeBankAccountCurrency_(true).
+          canSeeBankAccountLabel_(true).
+          canSeeBankAccountNationalIdentifier_(true).
+          canSeeBankAccountSwift_bic_(true).
+          canSeeBankAccountIban_(true).
+          canSeeBankAccountNumber_(true).
+          canSeeBankAccountBankName_(true).
+          canSeeBankAccountBankPermalink_(true).
+          canSeeOtherAccountNationalIdentifier_(true).
+          canSeeOtherAccountSWIFT_BIC_(true).
+          canSeeOtherAccountIBAN_(true).
+          canSeeOtherAccountBankName_(true).
+          canSeeOtherAccountNumber_(true).
+          canSeeOtherAccountMetadata_(true).
+          canSeeOtherAccountKind_(true).
+          canSeeMoreInfo_(true).
+          canSeeUrl_(true).
+          canSeeImageUrl_(true).
+          canSeeOpenCorporatesUrl_(true).
+          canSeeCorporateLocation_(true).
+          canSeePhysicalLocation_(true).
+          canSeePublicAlias_(true).
+          canSeePrivateAlias_(true).
+          canAddMoreInfo_(true).
+          canAddURL_(true).
+          canAddImageURL_(true).
+          canAddOpenCorporatesUrl_(true).
+          canAddCorporateLocation_(true).
+          canAddPhysicalLocation_(true).
+          canAddPublicAlias_(true).
+          canAddPrivateAlias_(true).
+          canDeleteCorporateLocation_(true).
+          canDeletePhysicalLocation_(true).
+          canEditOwnerComment_(true).
+          canAddComment_(true).
+          canDeleteComment_(true).
+          canAddTag_(true).
+          canDeleteTag_(true).
+          canAddImage_(true).
+          canDeleteImage_(true).
+          canAddWhereTag_(true).
+          canSeeWhereTag_(true).
+          canDeleteWhereTag_(true).
+          canSeeBankRoutingScheme_(true). //added following in V300
+          canSeeBankRoutingAddress_(true).
+          canSeeBankAccountRoutingScheme_(true).
+          canSeeBankAccountRoutingAddress_(true).
+          canSeeOtherBankRoutingScheme_(true).
+          canSeeOtherBankRoutingAddress_(true).
+          canSeeOtherAccountRoutingScheme_(true).
+          canSeeOtherAccountRoutingAddress_(true).
+          canAddTransactionRequestToOwnAccount_(false). //added following two for payments
+          canAddTransactionRequestToAnyAccount_(false).
+          canSeeBankAccountCreditLimit_(true).
+          saveMe}
+      }
+      case Full(v) => Full(v)
+      case Failure(msg, t, c) => Failure(msg, t, c)
+      case ParamFailure(x, y, z, q) => ParamFailure(x, y, z, q)
+    }
   }
   
   def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
