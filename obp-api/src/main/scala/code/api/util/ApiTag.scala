@@ -65,6 +65,7 @@ object ApiTag {
   val apiTagApiBuilder = ResourceDocTag("API-Builder")
   val apiTagAggregateMetrics = ResourceDocTag("Aggregate-Metrics")
   val apiTagNewStyle = ResourceDocTag("New-Style")
+  val apiTagSystemIntegrity = ResourceDocTag("System-Integrity")
   val apiTagWebhook = ResourceDocTag("Webhook")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
   val apiTagConsent = ResourceDocTag("Consent")

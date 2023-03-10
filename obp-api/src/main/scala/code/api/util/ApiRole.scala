@@ -934,6 +934,10 @@ object ApiRole {
   
   case class CanRevokeConsentAtBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canRevokeConsentAtBank = CanRevokeConsentAtBank()
+
+
+  case class CanGetSystemIntegrity(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSystemIntegrity = CanGetSystemIntegrity()
   
   private val dynamicApiRoles = new ConcurrentHashMap[String, ApiRole]
 

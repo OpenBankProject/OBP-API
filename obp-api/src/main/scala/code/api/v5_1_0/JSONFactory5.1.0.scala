@@ -30,7 +30,10 @@ import code.api.Constant
 import code.api.util.APIUtil
 import code.api.util.APIUtil.gitCommit
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
+import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+
+import scala.collection.immutable.List
 
 
 case class APIInfoJsonV510(
@@ -56,7 +59,39 @@ case class CertificateInfoJsonV510(
                                     roles_info: Option[String] = None
                                   )
 
+case class CheckSystemIntegrityJsonV510(
+  success: Boolean,
+  debug_info: Option[String] = None
+)
+
+
 object JSONFactory510 {
+  
+  def getCustomViewNamesCheck(views: List[ViewDefinition]): CheckSystemIntegrityJsonV510 = {
+    val success = views.size == 0
+    val debugInfo = if(success) None else Some(s"Incorrect custom views: ${views.map(_.viewId.value).mkString(",")}")
+    CheckSystemIntegrityJsonV510(
+      success = success,
+      debug_info = debugInfo
+    )
+  }  
+  def getSystemViewNamesCheck(views: List[ViewDefinition]): CheckSystemIntegrityJsonV510 = {
+    val success = views.size == 0
+    val debugInfo = if(success) None else Some(s"Incorrect system views: ${views.map(_.viewId.value).mkString(",")}")
+    CheckSystemIntegrityJsonV510(
+      success = success,
+      debug_info = debugInfo
+    )
+  }  
+  def getAccountAccessUniqueIndexCheck(groupedRows: Map[String, List[AccountAccess]]): CheckSystemIntegrityJsonV510 = {
+    val success = groupedRows.size == 0
+    val debugInfo = if(success) None else Some(s"Incorrect system views: ${groupedRows.map(_._1).mkString(",")}")
+    CheckSystemIntegrityJsonV510(
+      success = success,
+      debug_info = debugInfo
+    )
+  }
+  
   def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {
     val organisation = APIUtil.getPropsValue("hosted_by.organisation", "TESOBE")
     val email = APIUtil.getPropsValue("hosted_by.email", "contact@tesobe.com")

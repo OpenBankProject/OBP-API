@@ -20,6 +20,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
+import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
@@ -104,6 +105,117 @@ trait APIMethods510 {
             (apiCollections, callContext) <- NewStyle.function.getAllApiCollections(cc.callContext)
           } yield {
             (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }   
+    
+    
+    staticResourceDocs += ResourceDoc(
+      customViewNamesCheck,
+      implementedInApiVersion,
+      nameOf(customViewNamesCheck),
+      "GET",
+      "/management/system/integrity/custom-view-names-check",
+      "Check Custom View Names",
+      s"""Check custom view names.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val customViewNamesCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "custom-view-names-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            incorrectViews: List[ViewDefinition] <- Future {
+              ViewDefinition.getCustomViews().filter { view =>
+                view.viewId.value.startsWith("_") == false
+              }
+            }
+          } yield {
+            (JSONFactory510.getCustomViewNamesCheck(incorrectViews), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }    
+    staticResourceDocs += ResourceDoc(
+      systemViewNamesCheck,
+      implementedInApiVersion,
+      nameOf(systemViewNamesCheck),
+      "GET",
+      "/management/system/integrity/system-view-names-check",
+      "Check System View Names",
+      s"""Check system view names.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val systemViewNamesCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "system-view-names-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            incorrectViews: List[ViewDefinition] <- Future {
+              ViewDefinition.getSystemViews().filter { view =>
+                view.viewId.value.startsWith("_") == true
+              }
+            }
+          } yield {
+            (JSONFactory510.getSystemViewNamesCheck(incorrectViews), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      accountAccessUniqueIndexCheck,
+      implementedInApiVersion,
+      nameOf(accountAccessUniqueIndexCheck),
+      "GET",
+      "/management/system/integrity/account-access-unique-index-1-check",
+      "Check Unique Index at Account Access",
+      s"""Check unique index at account access table.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val accountAccessUniqueIndexCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "account-access-unique-index-1-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            groupedRows: Map[String, List[AccountAccess]] <- Future {
+              AccountAccess.findAll().groupBy { a => 
+                s"${a.bank_id.get}-${a.account_id.get}-${a.view_id.get}-${a.user_fk.get}-${a.consumer_id.get}"
+              }.filter(_._2.size > 1) // Extract only duplicated rows
+            }
+          } yield {
+            (JSONFactory510.getAccountAccessUniqueIndexCheck(groupedRows), HttpCode.`200`(cc.callContext))
           }
       }
     }
