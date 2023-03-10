@@ -603,12 +603,9 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   
-  def getOrCreateAccountView(bankIdAccountId: BankIdAccountId, viewId: String): Box[View] = {
+  def getOrCreateSystemViewFromCbs(viewId: String): Box[View] = {
 
-    val bankId = bankIdAccountId.bankId
-    val accountId = bankIdAccountId.accountId
     val ownerView = SYSTEM_OWNER_VIEW_ID.equals(viewId.toLowerCase)
-    val publicView = CUSTOM_PUBLIC_VIEW_ID.equals(viewId.toLowerCase)
     val accountantsView = SYSTEM_ACCOUNTANT_VIEW_ID.equals(viewId.toLowerCase)
     val auditorsView = SYSTEM_AUDITOR_VIEW_ID.equals(viewId.toLowerCase)
     val standardView = SYSTEM_STANDARD_VIEW_ID.equals(viewId.toLowerCase)
@@ -617,8 +614,6 @@ object MapperViews extends Views with MdcLoggable {
     val theView =
       if (ownerView)
         getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID)
-      else if (publicView)
-        getOrCreateCustomPublicView(bankId, accountId, "Public View")
       else if (accountantsView)
         getOrCreateSystemView(SYSTEM_ACCOUNTANT_VIEW_ID)
       else if (auditorsView)
@@ -660,26 +655,8 @@ object MapperViews extends Views with MdcLoggable {
 
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
     getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
-      case Empty=> createDefaultPublicView(bankId, accountId, description)
+      case Empty=> createDefaultCustomPublicView(bankId, accountId, description)
       case Full(v)=> Full(v)
-      case Failure(msg, t, c) => Failure(msg, t, c)
-      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
-    }
-  }
-
-  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
-    getExistingCustomView(bankId, accountId, SYSTEM_ACCOUNTANT_VIEW_ID) match {
-      case Empty => createDefaultAccountantsView(bankId, accountId, description)
-      case Full(v) => Full(v)
-      case Failure(msg, t, c) => Failure(msg, t, c)
-      case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
-    }
-  }
-
-  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
-    getExistingCustomView(bankId, accountId, SYSTEM_AUDITOR_VIEW_ID) match {
-      case Empty => createDefaultAuditorsView(bankId, accountId, description)
-      case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
@@ -791,27 +768,16 @@ object MapperViews extends Views with MdcLoggable {
       case ParamFailure(x, y, z, q) => ParamFailure(x, y, z, q)
     }
   }
-  
-  def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveOwnerView(bankId, accountId, "Owner View")
-  }  
+
   def createDefaultSystemView(name: String): Box[View] = {
     createAndSaveSystemView(name)
   }
 
-  def createDefaultPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+  def createDefaultCustomPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
     if(!allowPublicViews) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
-    createAndSaveDefaultPublicView(bankId, accountId, "Public View")
-  }
-
-  def createDefaultAccountantsView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveDefaultAccountantsView(bankId, accountId, "Accountants View")
-  }
-
-  def createDefaultAuditorsView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
-    createAndSaveDefaultAuditorsView(bankId, accountId, "Auditors View")
+    createAndSaveDefaultPublicCustomView(bankId, accountId, "Public View")
   }
 
   def getExistingCustomView(bankId: BankId, accountId: AccountId, viewId: String): Box[View] = {
@@ -845,96 +811,7 @@ object MapperViews extends Views with MdcLoggable {
     true
   }
 
-  def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
-    val entity = create
-      .isSystem_(false)
-      .isFirehose_(true) // TODO This should be set to false. i.e. Firehose views should be separate
-      .bank_id(bankId.value)
-      .account_id(accountId.value)
-      .name_("Owner")
-      .view_id(SYSTEM_OWNER_VIEW_ID)
-      .description_(description)
-      .isPublic_(false) //(default is false anyways)
-      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
-      .usePublicAliasIfOneExists_(false) //(default is false anyways)
-      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
-      .canSeeTransactionThisBankAccount_(true)
-      .canSeeTransactionOtherBankAccount_(true)
-      .canSeeTransactionMetadata_(true)
-      .canSeeTransactionDescription_(true)
-      .canSeeTransactionAmount_(true)
-      .canSeeTransactionType_(true)
-      .canSeeTransactionCurrency_(true)
-      .canSeeTransactionStartDate_(true)
-      .canSeeTransactionFinishDate_(true)
-      .canSeeTransactionBalance_(true)
-      .canSeeComments_(true)
-      .canSeeOwnerComment_(true)
-      .canSeeTags_(true)
-      .canSeeImages_(true)
-      .canSeeBankAccountOwners_(true)
-      .canSeeBankAccountType_(true)
-      .canSeeBankAccountBalance_(true)
-      .canSeeBankAccountCurrency_(true)
-      .canSeeBankAccountLabel_(true)
-      .canSeeBankAccountNationalIdentifier_(true)
-      .canSeeBankAccountSwift_bic_(true)
-      .canSeeBankAccountIban_(true)
-      .canSeeBankAccountNumber_(true)
-      .canSeeBankAccountBankName_(true)
-      .canSeeBankAccountBankPermalink_(true)
-      .canSeeOtherAccountNationalIdentifier_(true)
-      .canSeeOtherAccountSWIFT_BIC_(true)
-      .canSeeOtherAccountIBAN_(true)
-      .canSeeOtherAccountBankName_(true)
-
-    entity
-      .canSeeOtherAccountNumber_(true)
-      .canSeeOtherAccountMetadata_(true)
-      .canSeeOtherAccountKind_(true)
-      .canSeeMoreInfo_(true)
-      .canSeeUrl_(true)
-      .canSeeImageUrl_(true)
-      .canSeeOpenCorporatesUrl_(true)
-      .canSeeCorporateLocation_(true)
-      .canSeePhysicalLocation_(true)
-      .canSeePublicAlias_(true)
-      .canSeePrivateAlias_(true)
-      .canAddMoreInfo_(true)
-      .canAddURL_(true)
-      .canAddImageURL_(true)
-      .canAddOpenCorporatesUrl_(true)
-      .canAddCorporateLocation_(true)
-      .canAddPhysicalLocation_(true)
-      .canAddPublicAlias_(true)
-      .canAddPrivateAlias_(true)
-      .canAddCounterparty_(true)
-      .canGetCounterparty_(true)
-      .canDeleteCounterparty_(true)
-      .canDeleteCorporateLocation_(true)
-      .canDeletePhysicalLocation_(true)
-      .canEditOwnerComment_(true)
-      .canAddComment_(true)
-      .canDeleteComment_(true)
-      .canAddTag_(true)
-      .canDeleteTag_(true)
-      .canAddImage_(true)
-      .canDeleteImage_(true)
-      .canAddWhereTag_(true)
-      .canSeeWhereTag_(true)
-      .canDeleteWhereTag_(true)
-      .canSeeBankRoutingScheme_(true) //added following in V300
-      .canSeeBankRoutingAddress_(true)
-      .canSeeBankAccountRoutingScheme_(true)
-      .canSeeBankAccountRoutingAddress_(true)
-      .canSeeOtherBankRoutingScheme_(true)
-      .canSeeOtherBankRoutingAddress_(true)
-      .canSeeOtherAccountRoutingScheme_(true)
-      .canSeeOtherAccountRoutingAddress_(true)
-      .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
-      .canAddTransactionRequestToAnyAccount_(true)
-  }
-  def unsavedSystemView(viewId: String) : ViewDefinition = {
+  def unsavedSystemView(viewId: String): ViewDefinition = {
     val entity = create
       .isSystem_(true)
       .isFirehose_(false)
@@ -1020,7 +897,7 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeOtherAccountRoutingAddress_(true)
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
-    
+
     viewId match {
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
@@ -1034,107 +911,8 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
   
-  def unsavedFirehoseView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
-    val entity = create
-      .isSystem_(true)
-      .isFirehose_(true) // Of the autogenerated views, only firehose should be firehose (except public)
-      .bank_id(bankId.value)
-      .account_id(accountId.value)
-      .name_("Firehose")
-      .view_id("firehose")
-      .description_(description)
-      .isPublic_(false) //(default is false anyways)
-      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
-      .usePublicAliasIfOneExists_(false) //(default is false anyways)
-      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
-      .canSeeTransactionThisBankAccount_(true)
-      .canSeeTransactionOtherBankAccount_(true)
-      .canSeeTransactionMetadata_(true)
-      .canSeeTransactionDescription_(true)
-      .canSeeTransactionAmount_(true)
-      .canSeeTransactionType_(true)
-      .canSeeTransactionCurrency_(true)
-      .canSeeTransactionStartDate_(true)
-      .canSeeTransactionFinishDate_(true)
-      .canSeeTransactionBalance_(true)
-      .canSeeComments_(true)
-      .canSeeOwnerComment_(true)
-      .canSeeTags_(true)
-      .canSeeImages_(true)
-      .canSeeBankAccountOwners_(true)
-      .canSeeBankAccountType_(true)
-      .canSeeBankAccountBalance_(true)
-      .canSeeBankAccountCurrency_(true)
-      .canSeeBankAccountLabel_(true)
-      .canSeeBankAccountNationalIdentifier_(true)
-      .canSeeBankAccountSwift_bic_(true)
-      .canSeeBankAccountIban_(true)
-      .canSeeBankAccountNumber_(true)
-      .canSeeBankAccountBankName_(true)
-      .canSeeBankAccountBankPermalink_(true)
-      .canSeeOtherAccountNationalIdentifier_(true)
-      .canSeeOtherAccountSWIFT_BIC_(true)
-      .canSeeOtherAccountIBAN_(true)
-      .canSeeOtherAccountBankName_(true)
-
-    entity
-      .canSeeOtherAccountNumber_(true)
-      .canSeeOtherAccountMetadata_(true)
-      .canSeeOtherAccountKind_(true)
-      .canSeeMoreInfo_(true)
-      .canSeeUrl_(true)
-      .canSeeImageUrl_(true)
-      .canSeeOpenCorporatesUrl_(true)
-      .canSeeCorporateLocation_(true)
-      .canSeePhysicalLocation_(true)
-      .canSeePublicAlias_(true)
-      .canSeePrivateAlias_(true)
-      .canAddMoreInfo_(true)
-      .canAddURL_(true)
-      .canAddImageURL_(true)
-      .canAddOpenCorporatesUrl_(true)
-      .canAddCorporateLocation_(true)
-      .canAddPhysicalLocation_(true)
-      .canAddPublicAlias_(true)
-      .canAddPrivateAlias_(true)
-      .canAddCounterparty_(true)
-      .canGetCounterparty_(true)
-      .canDeleteCounterparty_(true)
-      .canDeleteCorporateLocation_(true)
-      .canDeletePhysicalLocation_(true)
-      .canEditOwnerComment_(true)
-      .canAddComment_(true)
-      .canDeleteComment_(true)
-      .canAddTag_(true)
-      .canDeleteTag_(true)
-      .canAddImage_(true)
-      .canDeleteImage_(true)
-      .canAddWhereTag_(true)
-      .canSeeWhereTag_(true)
-      .canDeleteWhereTag_(true)
-      .canSeeBankRoutingScheme_(true) //added following in V300
-      .canSeeBankRoutingAddress_(true)
-      .canSeeBankAccountRoutingScheme_(true)
-      .canSeeBankAccountRoutingAddress_(true)
-      .canSeeOtherBankRoutingScheme_(true)
-      .canSeeOtherBankRoutingAddress_(true)
-      .canSeeOtherAccountRoutingScheme_(true)
-      .canSeeOtherAccountRoutingAddress_(true)
-      .canAddTransactionRequestToOwnAccount_(false) //added following two for payments
-      .canAddTransactionRequestToAnyAccount_(false)
-  }
-  
-  def createAndSaveFirehoseView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedFirehoseView(bankId, accountId, description).saveMe
-    Full(res)
-  }
-  
-  def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedOwnerView(bankId, accountId, description).saveMe
-    Full(res)
-  }  
-  def createAndSaveSystemView(name: String) : Box[View] = {
-    val res = unsavedSystemView(name).saveMe
+  def createAndSaveSystemView(viewId: String) : Box[View] = {
+    val res = unsavedSystemView(viewId).saveMe
     Full(res)
   }
 
@@ -1224,204 +1002,11 @@ object MapperViews extends Views with MdcLoggable {
       canAddTransactionRequestToAnyAccount_(false)
   }
 
-  def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+  def createAndSaveDefaultPublicCustomView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
     if(!allowPublicViews) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
     val res = unsavedDefaultPublicView(bankId, accountId, description).saveMe
-    Full(res)
-  }
-
-  /*
- Accountants
-   */
-
-  def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
-    val entityt = create.
-      isSystem_(false).
-      isFirehose_(true). // TODO This should be set to false. i.e. Firehose views should be separate
-      name_("Accountant"). // Use the singular form
-      description_(description).
-      view_id("accountant"). // Use the singular form
-      isPublic_(false).
-      bank_id(bankId.value).
-      account_id(accountId.value).
-      usePrivateAliasIfOneExists_(false).
-      usePublicAliasIfOneExists_(true).
-      hideOtherAccountMetadataIfAlias_(true).
-      canSeeTransactionThisBankAccount_(true).
-      canSeeTransactionOtherBankAccount_(true).
-      canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(false).
-      canSeeTransactionAmount_(true).
-      canSeeTransactionType_(true).
-      canSeeTransactionCurrency_(true).
-      canSeeTransactionStartDate_(true).
-      canSeeTransactionFinishDate_(true).
-      canSeeTransactionBalance_(true).
-      canSeeComments_(true).
-      canSeeOwnerComment_(true).
-      canSeeTags_(true).
-      canSeeImages_(true).
-      canSeeBankAccountOwners_(true).
-      canSeeBankAccountType_(true).
-      canSeeBankAccountBalance_(true).
-      canSeeBankAccountCurrency_(true).
-      canSeeBankAccountLabel_(true).
-      canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountIban_(true).
-      canSeeBankAccountNumber_(true).
-      canSeeBankAccountBankName_(true).
-      canSeeBankAccountBankPermalink_(true).
-      canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountIBAN_(true).
-      canSeeOtherAccountBankName_(true).
-      canSeeOtherAccountNumber_(true).
-      canSeeOtherAccountMetadata_(true).
-      canSeeOtherAccountKind_(true)
-    entityt.
-      canSeeMoreInfo_(true).
-      canSeeUrl_(true).
-      canSeeImageUrl_(true).
-      canSeeOpenCorporatesUrl_(true).
-      canSeeCorporateLocation_(true).
-      canSeePhysicalLocation_(true).
-      canSeePublicAlias_(true).
-      canSeePrivateAlias_(true).
-      canAddMoreInfo_(true).
-      canAddURL_(true).
-      canAddImageURL_(true).
-      canAddOpenCorporatesUrl_(true).
-      canAddCorporateLocation_(true).
-      canAddPhysicalLocation_(true).
-      canAddPublicAlias_(true).
-      canAddPrivateAlias_(true).
-      canAddCounterparty_(true).
-      canGetCounterparty_(true).
-      canDeleteCounterparty_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
-      canEditOwnerComment_(true).
-      canAddComment_(true).
-      canDeleteComment_(true).
-      canAddTag_(true).
-      canDeleteTag_(true).
-      canAddImage_(true).
-      canDeleteImage_(true).
-      canAddWhereTag_(true).
-      canSeeWhereTag_(true).
-      canDeleteWhereTag_(true).
-      canSeeBankRoutingScheme_(true). //added following in V300
-      canSeeBankRoutingAddress_(true).
-      canSeeBankAccountRoutingScheme_(true).
-      canSeeBankAccountRoutingAddress_(true).
-      canSeeOtherBankRoutingScheme_(true).
-      canSeeOtherBankRoutingAddress_(true).
-      canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true).
-      canAddTransactionRequestToOwnAccount_(true). //added following two for payments
-      canAddTransactionRequestToAnyAccount_(false)
-  }
-
-  def createAndSaveDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedDefaultAccountantsView(bankId, accountId, description).saveMe
-    Full(res)
-  }
-
-
-  /*
-Auditors
- */
-
-  def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewDefinition = {
-    val entity = create.
-      isSystem_(false).
-      isFirehose_(true). // TODO This should be set to false. i.e. Firehose views should be separate
-      name_("Auditor"). // Use the singular form
-      description_(description).
-      view_id("auditor"). // Use the singular form
-      isPublic_(false).
-      bank_id(bankId.value).
-      account_id(accountId.value).
-      usePrivateAliasIfOneExists_(false).
-      usePublicAliasIfOneExists_(true).
-      hideOtherAccountMetadataIfAlias_(true).
-      canSeeTransactionThisBankAccount_(true).
-      canSeeTransactionOtherBankAccount_(true).
-      canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(false).
-      canSeeTransactionAmount_(true).
-      canSeeTransactionType_(true).
-      canSeeTransactionCurrency_(true).
-      canSeeTransactionStartDate_(true).
-      canSeeTransactionFinishDate_(true).
-      canSeeTransactionBalance_(true).
-      canSeeComments_(true).
-      canSeeOwnerComment_(true).
-      canSeeTags_(true).
-      canSeeImages_(true).
-      canSeeBankAccountOwners_(true).
-      canSeeBankAccountType_(true).
-      canSeeBankAccountBalance_(true).
-      canSeeBankAccountCurrency_(true).
-      canSeeBankAccountLabel_(true).
-      canSeeBankAccountNationalIdentifier_(true).
-      canSeeBankAccountIban_(true).
-      canSeeBankAccountNumber_(true).
-      canSeeBankAccountBankName_(true).
-      canSeeBankAccountBankPermalink_(true).
-      canSeeOtherAccountNationalIdentifier_(true).
-      canSeeOtherAccountIBAN_(true).
-      canSeeOtherAccountBankName_(true).
-      canSeeOtherAccountNumber_(true).
-      canSeeOtherAccountMetadata_(true)
-    entity.
-      canSeeOtherAccountKind_(true).
-      canSeeMoreInfo_(true).
-      canSeeUrl_(true).
-      canSeeImageUrl_(true).
-      canSeeOpenCorporatesUrl_(true).
-      canSeeCorporateLocation_(true).
-      canSeePhysicalLocation_(true).
-      canSeePublicAlias_(true).
-      canSeePrivateAlias_(true).
-      canAddMoreInfo_(true).
-      canAddURL_(true).
-      canAddImageURL_(true).
-      canAddOpenCorporatesUrl_(true).
-      canAddCorporateLocation_(true).
-      canAddPhysicalLocation_(true).
-      canAddPublicAlias_(true).
-      canAddPrivateAlias_(true).
-      canAddCounterparty_(true).
-      canGetCounterparty_(true).
-      canDeleteCounterparty_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
-      canEditOwnerComment_(true).
-      canAddComment_(true).
-      canDeleteComment_(true).
-      canAddTag_(true).
-      canDeleteTag_(true).
-      canAddImage_(true).
-      canDeleteImage_(true).
-      canAddWhereTag_(true).
-      canSeeWhereTag_(true).
-      canDeleteWhereTag_(true).
-      canSeeBankRoutingScheme_(true). //added following in V300
-      canSeeBankRoutingAddress_(true).
-      canSeeBankAccountRoutingScheme_(true).
-      canSeeBankAccountRoutingAddress_(true).
-      canSeeOtherBankRoutingScheme_(true).
-      canSeeOtherBankRoutingAddress_(true).
-      canSeeOtherAccountRoutingScheme_(true).
-      canSeeOtherAccountRoutingAddress_(true).
-      canAddTransactionRequestToOwnAccount_(false).//added following two for payments
-      canAddTransactionRequestToAnyAccount_(false)
-  }
-
-  def createAndSaveDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
-    val res = unsavedDefaultAuditorsView(bankId, accountId, description).saveMe
     Full(res)
   }
 
