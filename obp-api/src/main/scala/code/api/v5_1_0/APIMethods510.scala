@@ -20,7 +20,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
-import code.views.system.ViewDefinition
+import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
@@ -179,6 +179,43 @@ trait APIMethods510 {
             }
           } yield {
             (JSONFactory510.getSystemViewNamesCheck(incorrectViews), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      accountAccessUniqueIndexCheck,
+      implementedInApiVersion,
+      nameOf(accountAccessUniqueIndexCheck),
+      "GET",
+      "/management/system/integrity/account-access-unique-index-1-check",
+      "Check Unique Index at Account Access",
+      s"""Check unique index at account access table.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val accountAccessUniqueIndexCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "account-access-unique-index-1-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            groupedRows: Map[String, List[AccountAccess]] <- Future {
+              AccountAccess.findAll().groupBy { a => 
+                s"${a.bank_id.get}-${a.account_id.get}-${a.view_id.get}-${a.user_fk.get}-${a.consumer_id.get}"
+              }.filter(_._2.size > 1) // Extract only duplicated rows
+            }
+          } yield {
+            (JSONFactory510.getAccountAccessUniqueIndexCheck(groupedRows), HttpCode.`200`(cc.callContext))
           }
       }
     }

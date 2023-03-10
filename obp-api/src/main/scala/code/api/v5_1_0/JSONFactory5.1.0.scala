@@ -30,7 +30,7 @@ import code.api.Constant
 import code.api.util.APIUtil
 import code.api.util.APIUtil.gitCommit
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
-import code.views.system.ViewDefinition
+import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
 import scala.collection.immutable.List
@@ -78,6 +78,14 @@ object JSONFactory510 {
   def getSystemViewNamesCheck(views: List[ViewDefinition]): CheckSystemIntegrityJsonV510 = {
     val success = views.size == 0
     val debugInfo = if(success) None else Some(s"Incorrect system views: ${views.map(_.viewId.value).mkString(",")}")
+    CheckSystemIntegrityJsonV510(
+      success = success,
+      debug_info = debugInfo
+    )
+  }  
+  def getAccountAccessUniqueIndexCheck(groupedRows: Map[String, List[AccountAccess]]): CheckSystemIntegrityJsonV510 = {
+    val success = groupedRows.size == 0
+    val debugInfo = if(success) None else Some(s"Incorrect system views: ${groupedRows.map(_._1).mkString(",")}")
     CheckSystemIntegrityJsonV510(
       success = success,
       debug_info = debugInfo
