@@ -2054,11 +2054,11 @@ object Glossary extends MdcLoggable  {
         |
         |Once you have registered your App you should initiate the OAuth2 / OIDC flow using the following URL
         |
-        |${HydraUtil.hydraPublicUrl}/oauth2/auth
+        |${APIUtil.getHydraPublicServerUrl}/oauth2/auth
         |
         |WITH THE following parameters:
         |
-        |${HydraUtil.hydraPublicUrl}/oauth2/auth?client_id=YOUR-CLIENT-ID&response_type=code&state=GENERATED_BY_YOUR_APP&scope=openid+offline+ReadAccountsBasic+ReadAccountsDetail+ReadBalances+ReadTransactionsBasic+ReadTransactionsDebits+ReadTransactionsDetail&redirect_uri=https%3A%2F%2FYOUR-APP.com%2Fmain.html
+        |${APIUtil.getHydraPublicServerUrl}/oauth2/auth?client_id=YOUR-CLIENT-ID&response_type=code&state=GENERATED_BY_YOUR_APP&scope=openid+offline+ReadAccountsBasic+ReadAccountsDetail+ReadBalances+ReadTransactionsBasic+ReadTransactionsDebits+ReadTransactionsDetail&redirect_uri=https%3A%2F%2FYOUR-APP.com%2Fmain.html
         |
         |
         |For further information please see [here](https://www.ory.sh/hydra/docs/concepts/login#initiating-the-oauth-20--openid-connect-flow)
