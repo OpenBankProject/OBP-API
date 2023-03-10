@@ -40,7 +40,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       viewOwner.head.viewId.value should equal("owner".toLowerCase())
       viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
       viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
-      allExistingViewsForOneAccount.length should equal(4)
+      allExistingViewsForOneAccount.length should equal(3)
       
       Then("We set the four normal views again")
       viewOwner = MapperViews.getOrCreateSystemViewFromCbs(viewIdOwner)
@@ -52,7 +52,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       viewOwner.head.viewId.value should equal("owner".toLowerCase())
       viewAccountant.head.viewId.value should equal("accountant".toLowerCase())
       viewAuditor.head.viewId.value should equal("auditor".toLowerCase())
-      allExistingViewsForOneAccount.length should equal(4)
+      allExistingViewsForOneAccount.length should equal(3)
   
   
       Then("set up four wrong View name, do not support this viewId")
