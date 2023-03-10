@@ -74,6 +74,14 @@ object JSONFactory510 {
       success = success,
       debug_info = debugInfo
     )
+  }  
+  def getSystemViewNamesCheck(views: List[ViewDefinition]): CheckSystemIntegrityJsonV510 = {
+    val success = views.size == 0
+    val debugInfo = if(success) None else Some(s"Incorrect system views: ${views.map(_.viewId.value).mkString(",")}")
+    CheckSystemIntegrityJsonV510(
+      success = success,
+      debug_info = debugInfo
+    )
   }
   
   def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {

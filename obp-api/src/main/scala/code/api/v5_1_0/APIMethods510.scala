@@ -116,7 +116,7 @@ trait APIMethods510 {
       nameOf(customViewNamesCheck),
       "GET",
       "/management/system/integrity/custom-view-names-check",
-      "Check custom view names",
+      "Check Custom View Names",
       s"""Check custom view names.
          |
          |${authenticationRequiredMessage(true)}
@@ -143,6 +143,42 @@ trait APIMethods510 {
             }
           } yield {
             (JSONFactory510.getCustomViewNamesCheck(incorrectViews), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }    
+    staticResourceDocs += ResourceDoc(
+      systemViewNamesCheck,
+      implementedInApiVersion,
+      nameOf(systemViewNamesCheck),
+      "GET",
+      "/management/system/integrity/system-view-names-check",
+      "Check System View Names",
+      s"""Check system view names.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val systemViewNamesCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "system-view-names-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            incorrectViews: List[ViewDefinition] <- Future {
+              ViewDefinition.getSystemViews().filter { view =>
+                view.viewId.value.startsWith("_") == true
+              }
+            }
+          } yield {
+            (JSONFactory510.getSystemViewNamesCheck(incorrectViews), HttpCode.`200`(cc.callContext))
           }
       }
     }
