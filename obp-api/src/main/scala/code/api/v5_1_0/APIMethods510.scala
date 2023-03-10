@@ -20,6 +20,7 @@ import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{app
 import code.userlocks.UserLocksProvider
 import code.users.Users
 import code.util.Helper
+import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.BankId
@@ -104,6 +105,44 @@ trait APIMethods510 {
             (apiCollections, callContext) <- NewStyle.function.getAllApiCollections(cc.callContext)
           } yield {
             (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
+          }
+      }
+    }   
+    
+    
+    staticResourceDocs += ResourceDoc(
+      customViewNamesCheck,
+      implementedInApiVersion,
+      nameOf(customViewNamesCheck),
+      "GET",
+      "/management/system/integrity/custom-view-names-check",
+      "Check custom view names",
+      s"""Check custom view names.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val customViewNamesCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "custom-view-names-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            incorrectViews: List[ViewDefinition] <- Future {
+              ViewDefinition.getCustomViews().filter { view =>
+                view.viewId.value.startsWith("_") == false
+              }
+            }
+          } yield {
+            (JSONFactory510.getCustomViewNamesCheck(incorrectViews), HttpCode.`200`(cc.callContext))
           }
       }
     }
