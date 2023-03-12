@@ -6,8 +6,6 @@ import code.views.system.AccountAccess
 import code.views.{RemotedataViewsCaseClasses, Views}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common.Box
-
-import scala.collection.immutable.List
 import scala.concurrent.Future
 
 
@@ -132,8 +130,8 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.getOwners(view)).mapTo[Set[User]]
   )
   
-  def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View] = getValueFromFuture(
-    (actor ? cc.getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String)).mapTo[Box[View]]
+  def getOrCreateSystemViewFromCbs(viewId: String): Box[View] = getValueFromFuture(
+    (actor ? cc.getOrCreateSystemViewFromCbs(viewId: String)).mapTo[Box[View]]
   )
   
   def getOrCreateSystemView(viewId: String) : Box[View] = getValueFromFuture(
@@ -142,14 +140,6 @@ object RemotedataViews extends ObpActorInit with Views {
   
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
     (actor ? cc.getOrCreatePublicPublicView(bankId, accountId, description)).mapTo[Box[View]]
-  )
-
-  def getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
-   (actor ? cc.getOrCreateAccountantsView(bankId, accountId, description)).mapTo[Box[View]]
-  )
-
-  def getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = getValueFromFuture(
-   (actor ? cc.getOrCreateAuditorsView(bankId, accountId, description)).mapTo[Box[View]]
   )
 
   def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View] = getValueFromFuture(

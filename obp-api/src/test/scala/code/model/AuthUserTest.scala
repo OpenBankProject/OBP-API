@@ -2,7 +2,7 @@ package code.model
 
 import code.UserRefreshes.MappedUserRefreshes
 import code.accountholders.MapperAccountHolders
-import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, SYSTEM_STAGE_ONE_VIEW_ID, SYSTEM_STANDARD_VIEW_ID}
+import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, SYSTEM_STAGE_ONE_VIEW_ID, SYSTEM_STANDARD_VIEW_ID}
 import code.bankconnectors.Connector
 import code.connector.MockedCbsConnector
 import code.model.dataAccess.AuthUser
@@ -235,18 +235,16 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       val allViews = ViewDefinition.findAll()
       allViewsForAccount1.toString().contains(SYSTEM_STANDARD_VIEW_ID) should equal(true)
       allViewsForAccount1.toString().contains(SYSTEM_OWNER_VIEW_ID) should equal(true)
-      allViewsForAccount1.toString().contains("_public") should equal(true)
-      allViewsForAccount1.toString().contains("accountant") should equal(true)
-      allViewsForAccount1.toString().contains("auditor") should equal(true)
+      allViewsForAccount1.toString().contains(SYSTEM_ACCOUNTANT_VIEW_ID) should equal(true)
+      allViewsForAccount1.toString().contains(SYSTEM_AUDITOR_VIEW_ID) should equal(true)
       allViewsForAccount2.toString().contains(SYSTEM_STANDARD_VIEW_ID) should equal(true)
-      allViewsForAccount2.toString().contains("_public") should equal(true)
-      allViewsForAccount2.toString().contains("accountant") should equal(true)
-      allViewsForAccount2.toString().contains("auditor") should equal(true)
-      allViews.length should equal(6) // 3 system views + 2 custom views
+      allViewsForAccount2.toString().contains(SYSTEM_ACCOUNTANT_VIEW_ID) should equal(true)
+      allViewsForAccount2.toString().contains(SYSTEM_AUDITOR_VIEW_ID) should equal(true)
+      allViews.length should equal(4) // 3 system views + 1 custom views
 
       Then("We check the AccountAccess")
       val numberOfAccountAccess = AccountAccess.findAll().length
-      numberOfAccountAccess should equal(10) 
+      numberOfAccountAccess should equal(8) 
 
     }
   }

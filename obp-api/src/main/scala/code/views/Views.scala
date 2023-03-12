@@ -108,10 +108,14 @@ trait Views {
    *         We should cache this function because the available views on an account will change rarely.
    *
    */
-  def getOrCreateAccountView(bankAccountUID: BankIdAccountId, viewId: String): Box[View]
+  def getOrCreateSystemViewFromCbs(viewId: String): Box[View]
   
   def getOrCreateSystemView(viewId: String) : Box[View]
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
+
+  /**
+   * this is only used for the scala test
+   */
   def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View]
 
   def getOwners(view: View): Set[User]
@@ -160,11 +164,9 @@ class RemotedataViewsCaseClasses {
   case class getSystemViews()
   case class customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId)
   case class systemViewFuture(viewId : ViewId)
-  case class getOrCreateAccountView(account: BankIdAccountId, viewId: String)
+  case class getOrCreateSystemViewFromCbs(viewId: String)
   case class getOrCreateSystemView(viewId: String)
   case class getOrCreatePublicPublicView(bankId: BankId, accountId: AccountId, description: String)
-  case class getOrCreateAccountantsView(bankId: BankId, accountId: AccountId, description: String)
-  case class getOrCreateAuditorsView(bankId: BankId, accountId: AccountId, description: String)
   case class createRandomView(bankId: BankId, accountId: AccountId)
 
   case class getOwners(view: View)

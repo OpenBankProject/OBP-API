@@ -1428,7 +1428,7 @@ def restoreSomeSessions(): Unit = {
           accountId = newBankAccountId.accountId
           newBankAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- newBankAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
-          view <- Views.views.vend.getOrCreateAccountView(newBankAccountId, viewId)//this method will return both system views and custom views back.
+          view <- Views.views.vend.getOrCreateSystemViewFromCbs(viewId)//this method will return both system views and custom views back.
         } yield {
           UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
           if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
@@ -1460,7 +1460,7 @@ def restoreSomeSessions(): Unit = {
             _ = if(csbNewViewsForAccount.nonEmpty){
               for{
                 newViewForAccount <- csbNewViewsForAccount
-                view <- Views.views.vend.getOrCreateAccountView(bankAccountId, newViewForAccount) //this method will return both system views and custom views back.
+                view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount) //this method will return both system views and custom views back.
               }yield{
                 if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
                   Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
