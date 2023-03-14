@@ -90,6 +90,18 @@ object JSONFactory510 {
       success = success,
       debug_info = debugInfo
     )
+  }  
+  def getProviderCheck(distinctRows: List[String]): CheckSystemIntegrityJsonV510 = {
+    val allowedProviders: List[String] = APIUtil.getPropsValue(nameOfProperty = "allowed_providers")
+      .or(APIUtil.getPropsValue(nameOfProperty = "hostname"))
+      .toList.map(_.toLowerCase()).map(_.split(",").toList).flatten
+    val invalidRows = distinctRows.filter(!allowedProviders.contains(_))
+    val success = distinctRows.forall(Nil.contains(_))
+    val debugInfo = if(success) None else Some(s"Invalid provider values: ${invalidRows.mkString(",")}")
+    CheckSystemIntegrityJsonV510(
+      success = success,
+      debug_info = debugInfo
+    )
   }
   
   def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {

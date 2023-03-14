@@ -16,6 +16,7 @@ import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
+import code.model.dataAccess.AuthUser
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -216,6 +217,40 @@ trait APIMethods510 {
             }
           } yield {
             (JSONFactory510.getAccountAccessUniqueIndexCheck(groupedRows), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }    
+    staticResourceDocs += ResourceDoc(
+      providerCheck,
+      implementedInApiVersion,
+      nameOf(providerCheck),
+      "GET",
+      "/management/system/integrity/provider",
+      "Check Providers",
+      s"""Check providers.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val providerCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "provider" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            distinctRows: List[String] <- Future {
+              AuthUser.findAll().map(_.provider.get).distinct
+            }
+          } yield {
+            (JSONFactory510.getProviderCheck(distinctRows), HttpCode.`200`(cc.callContext))
           }
       }
     }

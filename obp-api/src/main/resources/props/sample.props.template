@@ -1221,3 +1221,7 @@ retain_metrics_scheduler_interval_in_seconds = 3600
 
 #if same session used for different ip address, we can show this warning, default is false.
 show_ip_address_change_warning=false
+
+# List of provider considered as a valid ones at an instance
+# We specify the list as a comma separeted list
+valid_providers="Hostname props value" 
