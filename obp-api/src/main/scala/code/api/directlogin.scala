@@ -264,11 +264,11 @@ object DirectLogin extends RestHelper with MdcLoggable {
           if (header.contains("DirectLogin"))
             toMap(header)
           else
-            Map("error" -> "header incorrect")
+            Map("error" -> ErrorMessages.InvalidDirectLoginHeader)
         }
-        case _ => Map("error" -> "missing header")
+        case _ => Map("error" -> ErrorMessages.MissingDirectLoginHeader)
       }
-      case _ => Map("error" -> "request incorrect")
+      case _ => Map("error" -> ErrorMessages.MissingDirectLoginHeader)
     }
   }
 
@@ -380,7 +380,11 @@ object DirectLogin extends RestHelper with MdcLoggable {
     for {
       valid <- validF
     } yield {
-      if (missingParams.nonEmpty) {
+      if (parameters.get("error").isDefined) {
+        message = parameters.get("error").getOrElse("")
+        httpCode = 400
+      }
+      else if (missingParams.nonEmpty) {
         message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
         httpCode = 400
       }

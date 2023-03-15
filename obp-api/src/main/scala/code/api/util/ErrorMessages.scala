@@ -199,7 +199,8 @@ object ErrorMessages {
   val InvalidAuthorizationHeader = "OBP-20080: Authorization Header format is not supported at this instance."
   
   val UserAttributeNotFound = "OBP-20081: User Attribute not found by USER_ATTRIBUTE_ID."
-  
+  val MissingDirectLoginHeader = "OBP-20082: Missing DirectLogin or Authorization header."
+  val InvalidDirectLoginHeader = "OBP-20083: Missing DirectLogin word at the value of Authorization header."
 
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements:"
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
