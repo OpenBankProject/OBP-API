@@ -18,6 +18,7 @@ import java.math.{BigDecimal => JBigDecimal}
 import code.api.AUOpenBanking.v1_0_0.ApiCollector
 import code.api.Constant
 import code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{NotSupportedYet, notSupportedYet}
 import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
@@ -152,7 +153,8 @@ object SwaggerJSONFactory extends MdcLoggable {
         case example: ListResult[_] =>
           val listResult = example.asInstanceOf[ListResult[List[_]]]
           Some(ResponseObjectSchemaJson(listResult))
-        case s:scala.Product => Some(ResponseObjectSchemaJson(s"#/definitions/${s.getClass.getSimpleName}"))
+          //TODO if value is List, need to be modified to Array later.
+        case s:scala.Product if(!value.isInstanceOf[List[scala.Product]])  => Some(ResponseObjectSchemaJson(s"#/definitions/${s.getClass.getSimpleName}"))
         case _ => Some(ResponseObjectSchemaJson(s"#/definitions/NotSupportedYet"))
       }
     }
@@ -824,9 +826,10 @@ object SwaggerJSONFactory extends MdcLoggable {
     */
   private def getAllEntities(entities: List[AnyRef]) = {
     val notNullEntities = entities.filter(null !=)
+    val notSupportYetEntity = entities.filter(_.getClass.getSimpleName.equals(NotSupportedYet.getClass.getSimpleName.replace("$","")))
     val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
 
-    (notNullEntities ::: notNullEntities.flatMap(getNestedRefEntities(_, existsEntityTypes)))
+    (notSupportYetEntity ::: notNullEntities ::: notNullEntities.flatMap(getNestedRefEntities(_, existsEntityTypes)))
       .distinctBy(_.getClass)
   }
 
@@ -919,7 +922,8 @@ object SwaggerJSONFactory extends MdcLoggable {
       any => any != null && !excludeTypes.exists(_.isInstance(any))
     }
 
-    val docEntityExamples: List[AnyRef] = (resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
+    val docEntityExamples: List[AnyRef] = (List(notSupportedYet):::
+                                           resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
                                            resourceDocList.map(_.successResponseBody.asInstanceOf[AnyRef])
                                           ).filter(predicate)
 
