@@ -95,7 +95,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     resourceDocs += ResourceDoc(
       getCustomersMessages,
       apiVersion,
-      "createCustomerMessage",
+      "getCustomersMessages",
       "GET",
       "/banks/BANK_ID/customer/messages",
       "Get Customer Messages for all Customers",
