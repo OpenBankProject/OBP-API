@@ -93,12 +93,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
     resourceDocs += ResourceDoc(
-      getCustomerMessages,
+      getCustomersMessages,
       apiVersion,
-      "getCustomerMessages",
+      "createCustomerMessage",
       "GET",
       "/banks/BANK_ID/customer/messages",
-      "Get Customer Messages for a Customer",
+      "Get Customer Messages for all Customers",
       """Get messages for the logged in customer
       |Messages sent to the currently authenticated user.
       |
@@ -108,7 +108,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(UserNotLoggedIn, UnknownError),
       List(apiTagMessage, apiTagCustomer))
 
-    lazy val getCustomerMessages  : OBPEndpoint = {
+    lazy val getCustomersMessages  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
         cc =>{
           for {

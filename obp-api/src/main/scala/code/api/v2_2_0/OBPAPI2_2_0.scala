@@ -94,7 +94,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // Possible Endpoints 1.4.0
-  val endpointsOf1_4_0 = Implementations1_4_0.getCustomerMessages ::
+  val endpointsOf1_4_0 = Implementations1_4_0.getCustomersMessages ::
                           Implementations1_4_0.addCustomerMessage ::
                           Implementations1_4_0.getBranches ::
                           Implementations1_4_0.getAtms ::
