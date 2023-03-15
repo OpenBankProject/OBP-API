@@ -11762,7 +11762,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canCreateSystemLevelEndpointTag)))
     lazy val createSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
@@ -11803,7 +11803,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canUpdateSystemLevelEndpointTag)))
     lazy val updateSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
@@ -11843,7 +11843,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canGetSystemLevelEndpointTag)))
     lazy val getSystemLevelEndpointTags: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
@@ -11875,7 +11875,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canDeleteSystemLevelEndpointTag)))
     lazy val deleteSystemLevelEndpointTag: OBPEndpoint = {
       case "management" :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
@@ -11907,7 +11907,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canCreateBankLevelEndpointTag)))
     lazy val createBankLevelEndpointTag: OBPEndpoint = {
       case "management" :: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: Nil JsonPost json -> _ => {
@@ -11950,7 +11950,7 @@ trait APIMethods400 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canUpdateBankLevelEndpointTag)))
     lazy val updateBankLevelEndpointTag: OBPEndpoint = {
       case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonPut json -> _ => {
@@ -11992,7 +11992,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canGetBankLevelEndpointTag)))
     lazy val getBankLevelEndpointTags: OBPEndpoint = {
       case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" ::  Nil JsonGet _ => {
@@ -12026,7 +12026,7 @@ trait APIMethods400 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagApi, apiTagApi, apiTagNewStyle),
+      List(apiTagApi, apiTagNewStyle),
       Some(List(canDeleteBankLevelEndpointTag)))
     lazy val deleteBankLevelEndpointTag: OBPEndpoint = {
       case "management":: "banks" :: bankId :: "endpoints" :: operationId :: "tags" :: endpointTagId :: Nil JsonDelete _ => {
