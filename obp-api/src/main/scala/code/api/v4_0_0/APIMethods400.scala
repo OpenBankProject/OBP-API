@@ -8891,7 +8891,7 @@ trait APIMethods400 {
       EmptyBody,
       ListResult(
         "scanned_api_versions",
-        List(ApiVersion.v3_1_0)
+        List(Extraction.decompose(ApiVersion.v3_1_0))
       ),
       List(
         UnknownError
