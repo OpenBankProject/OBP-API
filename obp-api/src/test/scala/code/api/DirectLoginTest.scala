@@ -132,7 +132,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
       Then("We should get a 400 - Bad Request")
       response.code should equal(400)
-      assertResponse(response, ErrorMessages.DirectLoginMissingParameters)
+      assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
     scenario("Invalid credentials") {
@@ -212,7 +212,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
       Then("We should get a 400 - Bad Request")
       response.code should equal(400)
-      assertResponse(response, ErrorMessages.DirectLoginMissingParameters)
+      assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
     scenario("Login without consumer key") {

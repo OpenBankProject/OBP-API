@@ -443,6 +443,19 @@ class WebUI extends MdcLoggable{
   }
 
 
+  def directLoginDocLink: CssSel = {
+    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
+    val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_direct_login_documentation_url", s"${baseUrl}/glossary#Direct-Login"))
+    "#direct-login-doc-link a [href]" #> supportplatformlink
+  }
+
+  def oauth1aLoginDocLink: CssSel = {
+    val baseUrl = getWebUiPropsValue("webui_api_explorer_url", "")
+    val supportplatformlink = scala.xml.Unparsed(getWebUiPropsValue("webui_oauth_1_documentation_url", s"${baseUrl}/glossary#OAuth-1.0a"))
+    "#oauth1a-doc-link a [href]" #> supportplatformlink
+  }
+
+
   // Page title
   def pageTitle = {
     val prefix = getWebUiPropsValue("webui_page_title_prefix", "Open Bank Project: ")
