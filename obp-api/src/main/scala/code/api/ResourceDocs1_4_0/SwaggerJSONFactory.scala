@@ -751,7 +751,11 @@ object SwaggerJSONFactory extends MdcLoggable {
 
         val requiredFields = if (jFields.isEmpty) "[]" else  jFields.map(_.name).map(name => s""" "$name" """).mkString("[", ",", "]")
 
-        s""" {"type":"object", "properties": { ${allFields.mkString(",")} }, "required": $requiredFields }"""
+        if(requiredFields.equals("[]")) {
+          s""" {"type":"object", "properties": { ${allFields.mkString(",")} } }"""
+        } else{
+          s""" {"type":"object", "properties": { ${allFields.mkString(",")} }, "required": $requiredFields }"""
+        }
 
       case _ if isTypeOf[JValue] =>
         Objects.nonNull(exampleValue)
