@@ -49,7 +49,7 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
         }
         
         // In case there is a translation we must use it
-        val language = I18NUtil.currentLocale().getLanguage().toLowerCase()
+        val language = I18NUtil.currentLocale().toString()
         val webUiPropsPropertyName = s"${brandSpecificPropertyName}_${language}"
         val translatedAndOrBrandPropertyName = WebUiProps.find(By(WebUiProps.Name, webUiPropsPropertyName)).isDefined match {
           case true => webUiPropsPropertyName
