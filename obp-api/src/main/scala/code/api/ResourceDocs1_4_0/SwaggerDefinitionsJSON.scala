@@ -3267,7 +3267,7 @@ object SwaggerDefinitionsJSON {
     log_level = "Debug",
     remote_data_secret_matched = Some(true)
   )
-  val metricsJSON = MetricsJSON(
+  val metricsJSON = MetricsJsonV220(
     property = "String",
     value = "Mapper"
   )
