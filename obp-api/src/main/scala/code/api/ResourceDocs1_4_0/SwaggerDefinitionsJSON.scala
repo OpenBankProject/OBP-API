@@ -1924,6 +1924,11 @@ object SwaggerDefinitionsJSON {
     entitlements = entitlementJSONs
   )
   
+  val userAgreementJson = UserAgreementJson(
+    ExampleValue.typeExample.value,
+    ExampleValue.textExample.value,
+  )
+  
   val userJsonV400 = UserJsonV400(
     user_id = ExampleValue.userIdExample.value,
     email = ExampleValue.emailExample.value,
@@ -1932,7 +1937,7 @@ object SwaggerDefinitionsJSON {
     username = usernameExample.value,
     entitlements = entitlementJSONs,
     views = None,
-    agreements = None,
+    agreements = Some(List(userAgreementJson)),
     is_deleted = false,
     last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
     is_locked = false
