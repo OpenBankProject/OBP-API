@@ -867,15 +867,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext])
     }
   }
-
-  private lazy val getDbConnectionParameters: (String, String, String) = {
-    val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
-    val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
-    val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
-    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
-    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
-    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
-  }
   
   /**
    * this connection pool context corresponding db.url in default.props
@@ -888,7 +879,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       validationQuery = "select 1",
       connectionPoolFactoryName = "commons-dbcp2"
     )
-    val (dbUrl, user, password) = getDbConnectionParameters
+    val (dbUrl, user, password) = DBUtil.getDbConnectionParameters
     val dbName = "DB_NAME" // corresponding props db.url DB
     ConnectionPool.add(dbName, dbUrl, user, password, settings)
     val connectionPool = ConnectionPool.get(dbName)

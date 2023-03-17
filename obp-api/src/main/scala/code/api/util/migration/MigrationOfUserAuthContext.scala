@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.Constant
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, DBUtil}
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.context.MappedUserAuthContext
 import code.views.system.AccountAccess
@@ -19,15 +19,6 @@ object MigrationOfUserAuthContext {
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
-
-  private lazy val getDbConnectionParameters: (String, String, String) = {
-    val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
-    val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
-    val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
-    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
-    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
-    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
-  }
   
   /**
    * this connection pool context corresponding db.url in default.props
@@ -40,7 +31,7 @@ object MigrationOfUserAuthContext {
       validationQuery = "select 1",
       connectionPoolFactoryName = "commons-dbcp2"
     )
-    val (dbUrl, user, password) = getDbConnectionParameters
+    val (dbUrl, user, password) = DBUtil.getDbConnectionParameters
     val dbName = "DB_NAME" // corresponding props db.url DB
     ConnectionPool.add(dbName, dbUrl, user, password, settings)
     val connectionPool = ConnectionPool.get(dbName)
