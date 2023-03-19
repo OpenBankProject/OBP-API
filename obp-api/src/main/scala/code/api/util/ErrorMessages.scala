@@ -2,8 +2,10 @@ package code.api.util
 
 import java.util.Objects
 import java.util.regex.Pattern
+
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
 import code.api.Constant._
+import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 
 object ErrorMessages {
   import code.api.util.APIUtil._
@@ -532,7 +534,7 @@ object ErrorMessages {
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. " +
     "The Transaction Request could not be created " +
     "because the login user doesn't have access to the view of the from account " +
-    "or the view don't have the `canAddTransactionRequestToAnyAccount` permission " +
+    s"or the view don't have the `${CanCreateAnyTransactionRequest.toString()}` permission " +
     "or your consumer doesn't not have the access to the view of the from account " +
     "or you don't have the role CanCreateAnyTransactionRequest."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
