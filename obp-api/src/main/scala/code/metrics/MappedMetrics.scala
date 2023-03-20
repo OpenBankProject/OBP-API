@@ -90,15 +90,6 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     metric.save
   }
 
-  private lazy val getDbConnectionParameters: (String, String, String) = {
-    val dbUrl = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
-    val username = dbUrl.split(";").filter(_.contains("user")).toList.headOption.map(_.split("=")(1))
-    val password = dbUrl.split(";").filter(_.contains("password")).toList.headOption.map(_.split("=")(1))
-    val dbUser = APIUtil.getPropsValue("db.user").orElse(username)
-    val dbPassword = APIUtil.getPropsValue("db.password").orElse(password)
-    (dbUrl, dbUser.getOrElse(""), dbPassword.getOrElse(""))
-  }
-
   private def trueOrFalse(condition: Boolean) = if (condition) sqls"1=1" else sqls"0=1"
   private def falseOrTrue(condition: Boolean) = if (condition) sqls"0=1" else sqls"1=1"
 
@@ -252,7 +243,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       validationQuery = "select 1",
       connectionPoolFactoryName = "commons-dbcp2"
     )
-   val (dbUrl, user, password) = getDbConnectionParameters
+   val (dbUrl, user, password) = DBUtil.getDbConnectionParameters
     val dbName = "DB_NAME" // corresponding props db.url DB
     ConnectionPool.add(dbName, dbUrl, user, password, settings)
     val connectionPool = ConnectionPool.get(dbName)
@@ -399,7 +390,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
       val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
       
-      val (dbUrl, _, _) = getDbConnectionParameters
+      val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
 
       val result: List[TopApi] = scalikeDB readOnly { implicit session =>
         // MS SQL server has the specific syntax for limiting number of rows
@@ -475,7 +466,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
       val excludeUrlPatternsQueries = extendLikeQuery(excludeUrlPatternsList, false)
 
-      val (dbUrl, _, _) = getDbConnectionParameters
+      val (dbUrl, _, _) = DBUtil.getDbConnectionParameters
 
       // MS SQL server has the specific syntax for limiting number of rows
       val msSqlLimit = if (dbUrl.contains("sqlserver")) sqls"TOP ($limit)" else sqls""
