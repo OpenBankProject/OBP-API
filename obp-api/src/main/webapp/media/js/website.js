@@ -404,7 +404,8 @@ function copyConsumerRegistrationResultToClipboard(element) {
   r.selectNode(document.getElementById(id));
   window.getSelection().removeAllRanges();
   window.getSelection().addRange(r);
-  document.execCommand('copy');
+  let copiedText = window.getSelection().toString()
+  navigator.clipboard.writeText(copiedText.replace(/:\n/g, ": ")); // replace ": + new line" with ": + space"
   window.getSelection().removeAllRanges();
   // Store original values
   var titleText = document.getElementById(element.id).title;
