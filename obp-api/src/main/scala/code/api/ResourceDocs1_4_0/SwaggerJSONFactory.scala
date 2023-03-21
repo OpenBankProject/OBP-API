@@ -607,7 +607,6 @@ object SwaggerJSONFactory extends MdcLoggable {
 
       val exampleValue = paramValue match {
         case Some(v) => v
-        case None => ""
         case _ => paramValue
       }
 
@@ -640,7 +639,7 @@ object SwaggerJSONFactory extends MdcLoggable {
       OBPEnumeration.getValuesByType(enumType).map(it => s""""$it"""").mkString(",")
     }
     def example = exampleValue match {
-        case null => ""
+        case null | None => ""
         case v: JValue => s""", "example": "${JsonUtils.toString(v)}" """
         case v => s""", "example": "$v" """
       }
