@@ -606,7 +606,7 @@ object SwaggerJSONFactory extends MdcLoggable {
       val paramValue = it._2
 
       val exampleValue = paramValue match {
-        case Some(v) => v
+        case Some(v) => v // Here it will get the value from Option/Box,
         case _ => paramValue
       }
 
@@ -652,6 +652,7 @@ object SwaggerJSONFactory extends MdcLoggable {
 
       //Boolean - 4 kinds
       case _ if isAnyOfType[Boolean, JBool, XBoolean]                                         => s""" {"type":"boolean" $example}"""
+      case _ if exampleValue.isInstanceOf[Boolean]                                            => s""" {"type":"boolean" $example}""" //TODO. Here need to be enhanced.
       case _ if isAnyOfType[Option[Boolean], Option[JBool], Option[XBoolean]]                 => s""" {"type":"boolean" $example}"""
       case _ if isAnyOfType[Coll[Boolean], Coll[JBool], Coll[XBoolean]]                       => s""" {"type":"array", "items":{"type": "boolean"}}"""
       case _ if isAnyOfType[Option[Coll[Boolean]],Option[Coll[JBool]],Option[Coll[XBoolean]]] => s""" {"type":"array", "items":{"type": "boolean"}}"""
@@ -707,6 +708,8 @@ object SwaggerJSONFactory extends MdcLoggable {
         val value = exampleValue match {
           case Some(v: Array[_]) if v.nonEmpty => v.head
           case Some(coll :Coll[_]) if coll.nonEmpty  => coll.head
+          case (v: Array[_]) if v.nonEmpty => v.head
+          case (coll: Coll[_]) if coll.nonEmpty => coll.head
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""

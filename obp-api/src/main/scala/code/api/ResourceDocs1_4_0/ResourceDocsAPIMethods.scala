@@ -4,6 +4,7 @@ import code.api.Constant.PARAM_LOCALE
 
 import java.util.UUID.randomUUID
 import code.api.OBPRestHelper
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.canGetCustomers
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
@@ -24,7 +25,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{BankId, ListResult, User}
 import com.openbankproject.commons.model.enums.ContentParam.{ALL, DYNAMIC, STATIC}
-import com.openbankproject.commons.model.enums.{ContentParam}
+import com.openbankproject.commons.model.enums.ContentParam
 import com.openbankproject.commons.util.ApiStandards._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.tesobe.CacheKeyFromArguments
@@ -176,11 +177,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       {
         // only `obp` standard show the `localResourceDocs`
         case version: ScannedApiVersion 
-          if(version.apiStandard == obp.toString && version==ApiVersion.v4_0_0) =>  
-            activePlusLocalResourceDocs ++= localResourceDocs.filterNot(_.partialFunctionName == nameOf(getResourceDocsObp))
-        case version: ScannedApiVersion 
-          if(version.apiStandard == obp.toString && version!=ApiVersion.v4_0_0) => 
-            activePlusLocalResourceDocs ++= localResourceDocs.filterNot(_.partialFunctionName == nameOf(getResourceDocsObpV400))
+          if(version.apiStandard == obp.toString) => 
+            activePlusLocalResourceDocs ++= localResourceDocs
         case _ => ; // all other standards only show their own apis.
       }
 
@@ -410,7 +408,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       emptyObjectJson,
       UnknownError :: Nil,
-      List(apiTagDocumentation))
+      List(apiTagDocumentation),
+      Some(List(canGetCustomers))
+    )
 
 
     val exampleResourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(List(exampleResourceDoc), false, None)

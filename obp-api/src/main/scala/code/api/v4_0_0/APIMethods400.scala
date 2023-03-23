@@ -3615,7 +3615,7 @@ trait APIMethods400 {
          |
       """.stripMargin,
       EmptyBody,
-      userJsonWithAgreementsV400,
+      userJsonV400,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser, apiTagNewStyle),
       Some(List(canGetAnyUser)))
@@ -10600,7 +10600,7 @@ trait APIMethods400 {
          |auto compilation and debug
          |""",
       jsonResourceDocFragment,
-      jsonCodeTemplate,
+      jsonCodeTemplateJson,
       List(
         $UserNotLoggedIn,
         InvalidJsonFormat,
@@ -10633,7 +10633,7 @@ trait APIMethods400 {
             code = DynamicEndpointCodeGenerator.buildTemplate(resourceDocFragment)
 
           } yield {
-            ("code" -> URLEncoder.encode(code, "UTF-8"), HttpCode.`201`(cc.callContext))
+            (JsonCodeTemplateJson(URLEncoder.encode(code, "UTF-8")), HttpCode.`201`(cc.callContext))
           }
       }
     }
