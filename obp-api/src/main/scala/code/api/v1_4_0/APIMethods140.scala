@@ -12,6 +12,7 @@ import code.branches.Branches
 import code.customer.CustomerX
 import code.usercustomerlinks.UserCustomerLink
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
@@ -128,7 +129,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     resourceDocs += ResourceDoc(
       addCustomerMessage,
       apiVersion,
-      "createCustomerMessage",
+      nameOf(addCustomerMessage),
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_ID/messages",
       "Create Customer Message",
