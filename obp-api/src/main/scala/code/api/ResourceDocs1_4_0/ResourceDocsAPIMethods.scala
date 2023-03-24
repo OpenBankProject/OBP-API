@@ -4,7 +4,7 @@ import code.api.Constant.PARAM_LOCALE
 
 import java.util.UUID.randomUUID
 import code.api.OBPRestHelper
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.canGetCustomers
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.canGetCustomersJson
 import code.api.builder.OBP_APIBuilder
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
@@ -409,7 +409,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       emptyObjectJson,
       UnknownError :: Nil,
       List(apiTagDocumentation),
-      Some(List(canGetCustomers))
+      Some(List(canGetCustomersJson))
     )
 
 

@@ -4372,7 +4372,7 @@ object SwaggerDefinitionsJSON {
     bank_id =  bankIdExample.value
   )
 
-  val canGetCustomers = ApiRole.canGetCustomers
+  val canGetCustomersJson = ApiRole.canGetCustomers
   
   val cardAttributeCommons = CardAttributeCommons(
     bankId = Some(BankId(bankIdExample.value)),
