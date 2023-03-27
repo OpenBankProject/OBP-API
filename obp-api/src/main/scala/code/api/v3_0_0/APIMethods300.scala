@@ -1591,7 +1591,7 @@ trait APIMethods300 {
         |${authenticationRequiredMessage(true)}
       """.stripMargin,
       EmptyBody,
-      userJsonV200,
+      userJsonV300,
       List(UserNotLoggedIn, UnknownError),
       List(apiTagUser, apiTagNewStyle))
 

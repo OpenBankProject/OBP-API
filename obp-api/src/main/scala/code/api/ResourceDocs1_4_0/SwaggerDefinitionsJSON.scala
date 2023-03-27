@@ -11,7 +11,7 @@ import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
 import code.api.util.ExampleValue._
-import code.api.util.{APIUtil, ApiTrigger, ExampleValue}
+import code.api.util.{APIUtil, ApiRole, ApiTrigger, ExampleValue}
 import code.api.v2_2_0.JSONFactory220.{AdapterImplementationJson, MessageDocJson, MessageDocsJson}
 import code.api.v3_0_0.JSONFactory300.createBranchJsonV300
 import code.api.v3_0_0.custom.JSONFactoryCustom300
@@ -31,7 +31,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model
 import com.openbankproject.commons.model.PinResetReason.{FORGOT, GOOD_SECURITY_PRACTICE}
 import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType, ChallengeType}
-import com.openbankproject.commons.model.{UserAuthContextUpdateStatus, ViewBasic, _}
+import com.openbankproject.commons.model.{TransactionRequestSimple, UserAuthContextUpdateStatus, ViewBasic, _}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils, RequiredArgs, RequiredInfo}
 import net.liftweb.json
 import java.net.URLEncoder
@@ -582,17 +582,29 @@ object SwaggerDefinitionsJSON {
       creditorAccount = PaymentAccount(iban = "DE75512108001245126199"),
       creditorName = "John Miles"
     )
+  
+  val transactionRequestSimple= TransactionRequestSimple(
+    otherBankRoutingScheme = bankRoutingSchemeExample.value,
+    otherBankRoutingAddress = bankRoutingAddressExample.value,
+    otherBranchRoutingScheme = branchRoutingSchemeExample.value,
+    otherBranchRoutingAddress = branchRoutingAddressExample.value,
+    otherAccountRoutingScheme = accountRoutingSchemeExample.value,
+    otherAccountRoutingAddress = accountRoutingAddressExample.value,
+    otherAccountSecondaryRoutingScheme = accountRoutingSchemeExample.value,
+    otherAccountSecondaryRoutingAddress = accountRoutingAddressExample.value
+  )
 
   val transactionRequestBodyAllTypes = TransactionRequestBodyAllTypes (
     to_sandbox_tan = Some(transactionRequestAccount),
     to_sepa = Some(transactionRequestIban),
     to_counterparty = Some(transactionRequestCounterpartyId),
+    to_simple = Some(transactionRequestSimple),
     to_transfer_to_phone = Some(transactionRequestTransferToPhone),
     to_transfer_to_atm = Some(transactionRequestTransferToAtm),
     to_transfer_to_account = Some(transactionRequestTransferToAccount),
     to_sepa_credit_transfers = Some(sepaCreditTransfers),
     value = amountOfMoney,
-    description = "String"
+    description = descriptionExample.value
   )
 
   val transactionRequest = TransactionRequest(
@@ -1924,6 +1936,30 @@ object SwaggerDefinitionsJSON {
     entitlements = entitlementJSONs
   )
   
+  val userAgreementJson = UserAgreementJson(
+    ExampleValue.typeExample.value,
+    ExampleValue.textExample.value,
+  )
+  val viewJSON300 = ViewJSON300(
+    bank_id = bankIdExample.value,
+    account_id = accountIdExample.value,
+    view_id = viewIdExample.value
+  )
+
+  val viewsJSON300 = ViewsJSON300(
+    list = List(viewJSON300)
+  )
+
+  val userJsonV300 = UserJsonV300(
+    user_id = ExampleValue.userIdExample.value,
+    email = ExampleValue.emailExample.value,
+    provider_id = providerIdValueExample.value,
+    provider = providerValueExample.value,
+    username = usernameExample.value,
+    entitlements = entitlementJSONs,
+    views = Some(viewsJSON300)
+  )
+  
   val userJsonV400 = UserJsonV400(
     user_id = ExampleValue.userIdExample.value,
     email = ExampleValue.emailExample.value,
@@ -1931,21 +1967,8 @@ object SwaggerDefinitionsJSON {
     provider = providerValueExample.value,
     username = usernameExample.value,
     entitlements = entitlementJSONs,
-    views = None,
-    agreements = None,
-    is_deleted = false,
-    last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
-    is_locked = false
-  )  
-  val userJsonWithAgreementsV400 = UserJsonV400(
-    user_id = ExampleValue.userIdExample.value,
-    email = ExampleValue.emailExample.value,
-    provider_id = providerIdValueExample.value,
-    provider = providerValueExample.value,
-    username = usernameExample.value,
-    entitlements = entitlementJSONs,
-    views = None,
-    agreements = Some(Nil),
+    views = Some(viewsJSON300),
+    agreements = Some(List(userAgreementJson)),
     is_deleted = false,
     last_marketing_agreement_signed_date = Some(DateWithDayExampleObject),
     is_locked = false
@@ -3244,7 +3267,7 @@ object SwaggerDefinitionsJSON {
     log_level = "Debug",
     remote_data_secret_matched = Some(true)
   )
-  val metricsJSON = MetricsJSON(
+  val metricsJSON = MetricsJsonV220(
     property = "String",
     value = "Mapper"
   )
@@ -4348,6 +4371,8 @@ object SwaggerDefinitionsJSON {
     views_available = List(viewBasicCommons),
     bank_id =  bankIdExample.value
   )
+
+  val canGetCustomersJson = ApiRole.canGetCustomers
   
   val cardAttributeCommons = CardAttributeCommons(
     bankId = Some(BankId(bankIdExample.value)),
@@ -4838,7 +4863,9 @@ object SwaggerDefinitionsJSON {
     successResponseBody = Option(json.parse(successResponseBodyExample.value))
   )
 
-  val jsonCodeTemplate = "code" -> URLEncoder.encode("""println("hello")""", "UTF-8")
+  val jsonCodeTemplateJson = JsonCodeTemplateJson(
+    URLEncoder.encode("""println("hello")""", "UTF-8")
+  )
 
   val supportedCurrenciesJson = SupportedCurrenciesJson(
     supportedCurrenciesExample.value

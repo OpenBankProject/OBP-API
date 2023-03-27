@@ -12,6 +12,7 @@ import code.branches.Branches
 import code.customer.CustomerX
 import code.usercustomerlinks.UserCustomerLink
 import code.views.Views
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
@@ -93,12 +94,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     }
 
     resourceDocs += ResourceDoc(
-      getCustomerMessages,
+      getCustomersMessages,
       apiVersion,
-      "getCustomerMessages",
+      "getCustomersMessages",
       "GET",
       "/banks/BANK_ID/customer/messages",
-      "Get Customer Messages for a Customer",
+      "Get Customer Messages for all Customers",
       """Get messages for the logged in customer
       |Messages sent to the currently authenticated user.
       |
@@ -108,7 +109,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
       List(UserNotLoggedIn, UnknownError),
       List(apiTagMessage, apiTagCustomer))
 
-    lazy val getCustomerMessages  : OBPEndpoint = {
+    lazy val getCustomersMessages  : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
         cc =>{
           for {
@@ -128,7 +129,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
     resourceDocs += ResourceDoc(
       addCustomerMessage,
       apiVersion,
-      "createCustomerMessage",
+      nameOf(addCustomerMessage),
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_ID/messages",
       "Create Customer Message",

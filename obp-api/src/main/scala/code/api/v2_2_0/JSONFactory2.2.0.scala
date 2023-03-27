@@ -273,9 +273,9 @@ case class CreateAccountJSONV220(
 case class CachedFunctionJSON(function_name: String, ttl_in_seconds: Int)
 case class PortJSON(property: String, value: String)
 case class AkkaJSON(ports: List[PortJSON], log_level: String, remote_data_secret_matched: Option[Boolean])
-case class MetricsJSON(property: String, value: String)
+case class MetricsJsonV220(property: String, value: String)
 case class WarehouseJSON(property: String, value: String)
-case class ElasticSearchJSON(metrics: List[MetricsJSON], warehouse: List[WarehouseJSON])
+case class ElasticSearchJSON(metrics: List[MetricsJsonV220], warehouse: List[WarehouseJSON])
 case class ScopesJSON(require_scopes_for_all_roles: Boolean, require_scopes_for_listed_roles: List[String])
 case class ConfigurationJSON(akka: AkkaJSON, elastic_search: ElasticSearchJSON, cache: List[CachedFunctionJSON], scopes: ScopesJSON)
 
@@ -797,8 +797,8 @@ object JSONFactory220 {
     val akka = AkkaJSON(akkaPorts, ObpActorConfig.akka_loglevel, APIUtil.akkaSanityCheck())
     val cache = f1::f2::f3::f4::f5::f6::f7::f8::Nil
 
-    val metrics = MetricsJSON("es.metrics.port.tcp", APIUtil.getPropsValue("es.metrics.port.tcp", "9300")) ::
-                  MetricsJSON("es.metrics.port.http", APIUtil.getPropsValue("es.metrics.port.tcp", "9200")) ::
+    val metrics = MetricsJsonV220("es.metrics.port.tcp", APIUtil.getPropsValue("es.metrics.port.tcp", "9300")) ::
+                  MetricsJsonV220("es.metrics.port.http", APIUtil.getPropsValue("es.metrics.port.tcp", "9200")) ::
                   Nil
     val warehouse = WarehouseJSON("es.warehouse.port.tcp", APIUtil.getPropsValue("es.warehouse.port.tcp", "9300")) ::
                     WarehouseJSON("es.warehouse.port.http", APIUtil.getPropsValue("es.warehouse.port.http", "9200")) ::

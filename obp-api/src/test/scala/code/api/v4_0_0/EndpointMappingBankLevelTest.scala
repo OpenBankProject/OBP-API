@@ -1,6 +1,6 @@
 package code.api.v4_0_0
 
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.jsonCodeTemplate
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.jsonCodeTemplateJson
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{UserNotLoggedIn, _}
@@ -30,7 +30,7 @@ class EndpointMappingBankLevelTest extends V400ServerSetup {
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.deleteBankLevelEndpointMapping))
 
   val rightEntity = endpointMappingRequestBodyExample
-  val wrongEntity = jsonCodeTemplate
+  val wrongEntity = jsonCodeTemplateJson
   
   feature("Add a EndpointMapping v4.0.0- Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {

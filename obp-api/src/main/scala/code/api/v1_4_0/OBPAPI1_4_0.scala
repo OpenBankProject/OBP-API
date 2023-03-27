@@ -97,7 +97,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
     val endpointsOf1_4_0 = List(
     Implementations1_4_0.getCustomer,
     Implementations1_4_0.addCustomer,
-    Implementations1_4_0.getCustomerMessages,
+    Implementations1_4_0.getCustomersMessages,
     Implementations1_4_0.addCustomerMessage,
     Implementations1_4_0.getBranches,
     Implementations1_4_0.getAtms,
