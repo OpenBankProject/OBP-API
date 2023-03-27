@@ -565,7 +565,7 @@ object JSONFactory500 {
       stringOrNull(bank.fullName),
       stringOrNull(bank.logoUrl),
       stringOrNull(bank.websiteUrl),
-      routings.filter(a => stringOrNull(a.address) != null),
+      routings,
       Option(
         attributes.filter(_.isActive == Some(true)).map(a => BankAttributeBankResponseJsonV400(
           name = a.name,

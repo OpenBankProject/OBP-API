@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
-import code.api.util.{APIUtil, ApiRole, NewStyle, X509}
+import code.api.util.{APIUtil, ApiRole, CurrencyUtil, NewStyle, X509}
 import code.api.util.NewStyle.HttpCode
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
@@ -16,6 +16,7 @@ import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
+import code.model.dataAccess.MappedBankAccount
 import code.transactionrequests.TransactionRequests.TransactionRequestTypes.{apply => _}
 import code.userlocks.UserLocksProvider
 import code.users.Users
@@ -216,6 +217,41 @@ trait APIMethods510 {
             }
           } yield {
             (JSONFactory510.getAccountAccessUniqueIndexCheck(groupedRows), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }    
+    staticResourceDocs += ResourceDoc(
+      accountCurrencyCheck,
+      implementedInApiVersion,
+      nameOf(accountCurrencyCheck),
+      "GET",
+      "/management/system/integrity/account-currency-check",
+      "Check for Sensible Currencies",
+      s"""Check for sensible currencies at account access table.
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
+
+    lazy val accountCurrencyCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity" :: "account-currency-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            currenciess: List[String] <- Future {
+              MappedBankAccount.findAll().map(_.accountCurrency.get).distinct
+            }
+            currentCurrencies: List[String] <- Future { CurrencyUtil.getCurrencyCodes() }
+          } yield {
+            (JSONFactory510.getSensibleCurrenciesCheck(currenciess, currentCurrencies), HttpCode.`200`(cc.callContext))
           }
       }
     }

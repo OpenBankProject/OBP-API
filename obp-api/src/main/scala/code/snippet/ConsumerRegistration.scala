@@ -208,7 +208,7 @@ class ConsumerRegistration extends MdcLoggable {
       "#post-consumer-registration-more-info-link a *" #> registrationMoreInfoText &
       "#post-consumer-registration-more-info-link a [href]" #> registrationMoreInfoUrl & {
         if(HydraUtil.integrateWithHydra) {
-          "#hydra-client-info-title *" #>"OAuth2" &
+          "#hydra-client-info-title *" #>"OAuth2: " &
           "#admin_url *" #> HydraUtil.hydraAdminUrl &
             "#client_id *" #> {consumer.key.get} &
             "#redirect_uri *" #> consumer.redirectURL.get &
