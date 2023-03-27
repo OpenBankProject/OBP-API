@@ -227,7 +227,7 @@ trait APIMethods510 {
       "GET",
       "/management/system/integrity/account-currency-check",
       "Check for Sensible Currencies",
-      s"""Check for sensible currencies at account access table.
+      s"""Check for sensible currencies at Bank Account model
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
