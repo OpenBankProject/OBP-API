@@ -18,6 +18,7 @@ import java.math.{BigDecimal => JBigDecimal}
 import code.api.AUOpenBanking.v1_0_0.ApiCollector
 import code.api.Constant
 import code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{NotSupportedYet, notSupportedYet}
 import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
@@ -152,7 +153,8 @@ object SwaggerJSONFactory extends MdcLoggable {
         case example: ListResult[_] =>
           val listResult = example.asInstanceOf[ListResult[List[_]]]
           Some(ResponseObjectSchemaJson(listResult))
-        case s:scala.Product => Some(ResponseObjectSchemaJson(s"#/definitions/${s.getClass.getSimpleName}"))
+          //TODO if value is List, need to be modified to Array later.
+        case s:scala.Product if(!value.isInstanceOf[List[scala.Product]])  => Some(ResponseObjectSchemaJson(s"#/definitions/${s.getClass.getSimpleName}"))
         case _ => Some(ResponseObjectSchemaJson(s"#/definitions/NotSupportedYet"))
       }
     }
@@ -495,7 +497,7 @@ object SwaggerJSONFactory extends MdcLoggable {
             tags = rd.tags.map(_.tag),
             summary = rd.summary,
             description = PegdownOptions.convertPegdownToHtmlTweaked(rd.description.stripMargin).replaceAll("\n", ""),
-            operationId =s"${rd.implementedInApiVersion.fullyQualifiedVersion }-${rd.partialFunctionName.toString }",
+            operationId = s"${rd.partialFunctionName}",
             parameters ={
               val description = rd.exampleRequestBody match {
                 case EmptyBody => ""
@@ -604,8 +606,7 @@ object SwaggerJSONFactory extends MdcLoggable {
       val paramValue = it._2
 
       val exampleValue = paramValue match {
-        case Some(v) => v
-        case None => ""
+        case Some(v) => v // Here it will get the value from Option/Box,
         case _ => paramValue
       }
 
@@ -638,7 +639,7 @@ object SwaggerJSONFactory extends MdcLoggable {
       OBPEnumeration.getValuesByType(enumType).map(it => s""""$it"""").mkString(",")
     }
     def example = exampleValue match {
-        case null => ""
+        case null | None => ""
         case v: JValue => s""", "example": "${JsonUtils.toString(v)}" """
         case v => s""", "example": "$v" """
       }
@@ -651,6 +652,7 @@ object SwaggerJSONFactory extends MdcLoggable {
 
       //Boolean - 4 kinds
       case _ if isAnyOfType[Boolean, JBool, XBoolean]                                         => s""" {"type":"boolean" $example}"""
+      case _ if exampleValue.isInstanceOf[Boolean]                                            => s""" {"type":"boolean" $example}""" //TODO. Here need to be enhanced.
       case _ if isAnyOfType[Option[Boolean], Option[JBool], Option[XBoolean]]                 => s""" {"type":"boolean" $example}"""
       case _ if isAnyOfType[Coll[Boolean], Coll[JBool], Coll[XBoolean]]                       => s""" {"type":"array", "items":{"type": "boolean"}}"""
       case _ if isAnyOfType[Option[Coll[Boolean]],Option[Coll[JBool]],Option[Coll[XBoolean]]] => s""" {"type":"array", "items":{"type": "boolean"}}"""
@@ -706,6 +708,8 @@ object SwaggerJSONFactory extends MdcLoggable {
         val value = exampleValue match {
           case Some(v: Array[_]) if v.nonEmpty => v.head
           case Some(coll :Coll[_]) if coll.nonEmpty  => coll.head
+          case (v: Array[_]) if v.nonEmpty => v.head
+          case (coll: Coll[_]) if coll.nonEmpty => coll.head
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
@@ -749,7 +753,11 @@ object SwaggerJSONFactory extends MdcLoggable {
 
         val requiredFields = if (jFields.isEmpty) "[]" else  jFields.map(_.name).map(name => s""" "$name" """).mkString("[", ",", "]")
 
-        s""" {"type":"object", "properties": { ${allFields.mkString(",")} }, "required": $requiredFields }"""
+        if(requiredFields.equals("[]")) {
+          s""" {"type":"object", "properties": { ${allFields.mkString(",")} } }"""
+        } else{
+          s""" {"type":"object", "properties": { ${allFields.mkString(",")} }, "required": $requiredFields }"""
+        }
 
       case _ if isTypeOf[JValue] =>
         Objects.nonNull(exampleValue)
@@ -824,9 +832,10 @@ object SwaggerJSONFactory extends MdcLoggable {
     */
   private def getAllEntities(entities: List[AnyRef]) = {
     val notNullEntities = entities.filter(null !=)
+    val notSupportYetEntity = entities.filter(_.getClass.getSimpleName.equals(NotSupportedYet.getClass.getSimpleName.replace("$","")))
     val existsEntityTypes: Set[universe.Type] = notNullEntities.map(ReflectUtils.getType).toSet
 
-    (notNullEntities ::: notNullEntities.flatMap(getNestedRefEntities(_, existsEntityTypes)))
+    (notSupportYetEntity ::: notNullEntities ::: notNullEntities.flatMap(getNestedRefEntities(_, existsEntityTypes)))
       .distinctBy(_.getClass)
   }
 
@@ -919,7 +928,8 @@ object SwaggerJSONFactory extends MdcLoggable {
       any => any != null && !excludeTypes.exists(_.isInstance(any))
     }
 
-    val docEntityExamples: List[AnyRef] = (resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
+    val docEntityExamples: List[AnyRef] = (List(notSupportedYet):::
+                                           resourceDocList.map(_.exampleRequestBody.asInstanceOf[AnyRef]) :::
                                            resourceDocList.map(_.successResponseBody.asInstanceOf[AnyRef])
                                           ).filter(predicate)
 

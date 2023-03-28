@@ -1342,7 +1342,7 @@ trait APIMethods500 {
           for {
             (Full(u), callContext) <- SS.user
             _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(bankId.value, u.userId, createProductEntitlements, callContext)
-            failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductJsonV400 "
+            failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductJsonV500 "
             product <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[PutProductJsonV500]
             }

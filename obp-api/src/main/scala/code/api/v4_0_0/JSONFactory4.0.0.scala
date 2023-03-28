@@ -1083,6 +1083,10 @@ case class CustomerMessageJsonV400(
   from_person: String
 )
 
+case class JsonCodeTemplateJson(
+  code: String
+)
+
 object JSONFactory400 {
 
   def createCustomerMessageJson(cMessage : CustomerMessage) : CustomerMessageJsonV400 = {
