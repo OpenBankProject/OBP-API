@@ -2177,7 +2177,13 @@ object NewStyle extends MdcLoggable{
         }
       }
     }
-      
+
+
+    def getCurrentCurrencies(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[List[String]] = {
+      Connector.connector.vend.getCurrentCurrencies(bankId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponse", 400), i._2)
+      }
+    }
     
     def getExchangeRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Future[FXRate] =
       Future(Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode)) map {

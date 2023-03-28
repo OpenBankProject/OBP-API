@@ -63,6 +63,8 @@ case class CheckSystemIntegrityJsonV510(
   success: Boolean,
   debug_info: Option[String] = None
 )
+case class CurrencyJsonV510(alphanumeric_code: String)
+case class CurrenciesJsonV510(currencies: List[CurrencyJsonV510])
 
 
 object JSONFactory510 {

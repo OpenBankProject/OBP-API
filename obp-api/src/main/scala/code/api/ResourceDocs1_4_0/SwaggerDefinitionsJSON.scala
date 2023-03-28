@@ -36,7 +36,7 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
-import code.api.v5_1_0.CertificateInfoJsonV510
+import code.api.v5_1_0.{CertificateInfoJsonV510, CurrenciesJsonV510, CurrencyJsonV510}
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -3027,6 +3027,8 @@ object SwaggerDefinitionsJSON {
     inverse_conversion_value = 0.998,
     effective_date = DateWithDayExampleObject
   )
+  
+  val currenciesJsonV510 = CurrenciesJsonV510(currencies = List(CurrencyJsonV510(alphanumeric_code = "EUR")))
 
   val counterpartyJsonV220 = CounterpartyJsonV220(
     name = postCounterpartyJSON.name,

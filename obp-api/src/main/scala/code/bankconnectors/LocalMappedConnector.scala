@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -3214,6 +3215,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+
+  override def getCurrentCurrencies(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = Future {
+    val rates = MappedFXRate.findAll(By(MappedFXRate.mBankId, bankId.value))
+    val result = rates.map(_.fromCurrencyCode) ::: rates.map(_.toCurrencyCode)
+    Some(result.distinct)
+  } map {
+    (_, callContext)
+  }
+  
+  
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
     * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .

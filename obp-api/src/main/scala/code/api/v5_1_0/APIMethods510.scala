@@ -7,7 +7,7 @@ import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
-import code.api.util.{APIUtil, ApiRole, CurrencyUtil, NewStyle, X509}
+import code.api.util.{APIUtil, ApiRole, CallContext, CurrencyUtil, NewStyle, X509}
 import code.api.util.NewStyle.HttpCode
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
@@ -255,6 +255,44 @@ trait APIMethods510 {
           }
       }
     }
+
+
+    staticResourceDocs += ResourceDoc(
+      getCurrenciesAtBank,
+      implementedInApiVersion,
+      nameOf(getCurrenciesAtBank),
+      "GET",
+      "/banks/BANK_ID/currencies",
+      "Get Currencies at a Bank",
+      """Get Currencies specified by BANK_ID
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      currenciesJsonV510,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagFx, apiTagNewStyle)
+    )
+
+    lazy val getCurrenciesAtBank: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "currencies" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanReadFx, cc=cc.callContext) {
+              checkScope(bankId.value, getConsumerPrimaryKey(cc.callContext), ApiRole.canReadFx)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, cc.callContext)
+            (currencies, callContext) <- NewStyle.function.getCurrentCurrencies(bankId, callContext)
+          } yield {
+            val json = CurrenciesJsonV510(currencies.map(CurrencyJsonV510(_)))
+            (json, HttpCode.`200`(callContext))
+          }
+
+      }
+    }
+    
 
     staticResourceDocs += ResourceDoc(
       revokeConsentAtBank,
