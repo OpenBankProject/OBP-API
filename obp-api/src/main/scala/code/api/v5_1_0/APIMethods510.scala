@@ -225,7 +225,7 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(accountCurrencyCheck),
       "GET",
-      "/management/system/integrity/account-currency-check",
+      "/management/system/integrity/banks/BANK_ID/account-currency-check",
       "Check for Sensible Currencies",
       s"""Check for sensible currencies at Bank Account model
          |
@@ -243,15 +243,15 @@ trait APIMethods510 {
     )
 
     lazy val accountCurrencyCheck: OBPEndpoint = {
-      case "management" :: "system" :: "integrity" :: "account-currency-check" :: Nil JsonGet _ => {
+      case "management" :: "system" :: "integrity"  :: "banks" :: BankId(bankId) :: "account-currency-check" :: Nil JsonGet _ => {
         cc =>
           for {
-            currenciess: List[String] <- Future {
+            currencies: List[String] <- Future {
               MappedBankAccount.findAll().map(_.accountCurrency.get).distinct
             }
-            currentCurrencies: List[String] <- Future { CurrencyUtil.getCurrencyCodes() }
+            (bankCurrencies, callContext) <- NewStyle.function.getCurrentCurrencies(bankId, cc.callContext)
           } yield {
-            (JSONFactory510.getSensibleCurrenciesCheck(currenciess, currentCurrencies), HttpCode.`200`(cc.callContext))
+            (JSONFactory510.getSensibleCurrenciesCheck(bankCurrencies, currencies), HttpCode.`200`(callContext))
           }
       }
     }

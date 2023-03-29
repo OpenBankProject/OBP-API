@@ -93,8 +93,8 @@ object JSONFactory510 {
       debug_info = debugInfo
     )
   }  
-  def getSensibleCurrenciesCheck(currencies: List[String], currentCurrencies: List[String]): CheckSystemIntegrityJsonV510 = {
-    val incorrectCurrencies: List[String] = currencies.filterNot(c => currentCurrencies.contains(c))
+  def getSensibleCurrenciesCheck(bankCurrencies: List[String], accountCurrencies: List[String]): CheckSystemIntegrityJsonV510 = {
+    val incorrectCurrencies: List[String] = bankCurrencies.filterNot(c => accountCurrencies.contains(c))
     val success = incorrectCurrencies.size == 0
     val debugInfo = if(success) None else Some(s"Incorrect currencies: ${incorrectCurrencies.mkString(",")}")
     CheckSystemIntegrityJsonV510(
