@@ -838,6 +838,13 @@ featured_apis=elasticSearchWarehouseV300
 # i.e. instead of asking every user to have a Role, you can give the Role(s) to a Consumer in the form of a Scope
 # allow_entitlements_or_scopes=false
 # ---------------------------------------------------------------
+ 
+# -- Just in Time Entitlements -------------------------------
+create_just_in_time_entitlements=false
+# if create_just_in_time_entitlements==true then do the following:
+# If a user is trying to use a Role and the user could grant them selves the required Role(s), 
+# then just automatically grant the Role(s)!
+# -------------------------------------------------------------
 
 # -- Database scheduler -----------------------------
 # Database scheduler interval in seconds.

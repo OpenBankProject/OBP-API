@@ -2213,21 +2213,48 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
   def handleEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
-    // Consumer AND User has the Role
+    
     val requireScopesForListedRoles: List[String] = getPropsValue("require_scopes_for_listed_roles", "").split(",").toList
     val requireScopesForRoles: immutable.Seq[String] = roles.map(_.toString()) intersect requireScopesForListedRoles
+
+    def userHasTheRoles: Boolean = {
+      val userHasTheRole: Boolean = roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+      userHasTheRole match {
+        case true => userHasTheRole // Just forward
+        case false =>
+          // If a user is trying to use a Role and the user could grant them selves the required Role(s),
+          // then just automatically grant the Role(s)!
+          getPropsAsBoolValue("create_just_in_time_entitlements", false) match {
+            case false => userHasTheRole // Just forward
+            case true => // Try to add missing roles
+              if (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
+                hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) {
+                // Add missing roles
+                roles.map {
+                  role => 
+                    val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString())
+                    logger.info(s"Just in Time Entitlements: $addedEntitlement")
+                    addedEntitlement
+                }.forall(_.isDefined)
+              } else {
+                userHasTheRole // Just forward
+              }
+          }
+      }
+    }
+    // Consumer AND User has the Role
     if(ApiPropsWithAlias.requireScopesForAllRoles || !requireScopesForRoles.isEmpty) {
-      roles.isEmpty || (roles.exists(hasEntitlement(bankId, userId, _)) && roles.exists(hasScope(bankId, consumerId, _)))
+      roles.isEmpty || (userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _)))
     } 
     // Consumer OR User has the Role
     else if(getPropsAsBoolValue("allow_entitlements_or_scopes", false)) {
-      roles.isEmpty || 
-        roles.exists(hasEntitlement(bankId, userId, _)) || 
+      roles.isEmpty ||
+        userHasTheRoles || 
         roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
     }
     // User has the Role
     else {
-      roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+      userHasTheRoles
     }
     
   }
