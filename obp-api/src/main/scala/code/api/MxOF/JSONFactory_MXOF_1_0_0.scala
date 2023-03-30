@@ -10,11 +10,11 @@ import com.openbankproject.commons.model._
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 case class MetaBis(
-  LastUpdated: String = "2021-05-25T17:59:24.297Z",
+  LastUpdated: String = "",
   TotalResults: Double=0,
-  Agreement: String ="To be confirmed",
-  License: String="To be confirmed",
-  TermsOfUse: String="To be confirmed"
+  Agreement: String ="",
+  License: String="",
+  TermsOfUse: String=""
 )
 case class OtherAccessibility(
   Code: String,
