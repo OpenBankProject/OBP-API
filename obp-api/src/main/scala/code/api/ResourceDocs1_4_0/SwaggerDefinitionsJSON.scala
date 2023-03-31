@@ -2667,7 +2667,7 @@ object SwaggerDefinitionsJSON {
     roles = List(availableRoleJSON)
   )
 
-  val consumerJSON = ConsumerJSON(
+  val consumerJSON = ConsumerJsonV210(
     consumer_id = 1213,
     app_name = "SOFI",
     app_type = "Web",
