@@ -4013,6 +4013,8 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23",
     is_active = Some(true)
   )
+  val bankAttributesResponseJsonV400 = BankAttributesResponseJsonV400(List(bankAttributeResponseJsonV400))
+  
   val atmAttributeResponseJsonV510 = AtmAttributeResponseJsonV510(
     bank_id = bankIdExample.value,
     atm_id = atmIdExample.value,
