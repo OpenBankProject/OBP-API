@@ -100,23 +100,23 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
          ATM = bankAtms.map{ bankAtm =>
            MxofATMV100(
              Identification = bankAtm.atmId.value,
-             SupportedLanguages = Some(List("")),//TODO provide dummy data firstly, need to prepare obp data and map it.
-             ATMServices = List(""),  //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Accessibility = List(""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Access24HoursIndicator = true,//TODO 6 
-             SupportedCurrencies = List(""), //TODO provide dummy data firstly, need to prepare obp data and map it.
-             MinimumPossibleAmount = "", //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Note = List(""),//TODO provide dummy data firstly, need to prepare obp data and map it. 
-             OtherAccessibility = List(OtherAccessibility("","","")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
-             OtherATMServices = List(OtherAccessibility("","","")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
-             Branch = MxofBranchV100(""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             SupportedLanguages = bankAtm.supportedLanguages,
+             ATMServices = bankAtm.services.getOrElse(Nil),  
+             Accessibility = bankAtm.accessibilityFeatures.getOrElse(Nil),
+             Access24HoursIndicator = true, //TODO this can be caculated from all 7 days bankAtm.OpeningTimes
+             SupportedCurrencies = bankAtm.supportedCurrencies.getOrElse(Nil),
+             MinimumPossibleAmount = bankAtm.minimumWithdrawal.getOrElse(""),   
+             Note = bankAtm.notes.getOrElse(Nil),
+             OtherAccessibility = List(OtherAccessibility("","","")), //TODO 1 from attributes?
+             OtherATMServices = List(OtherAccessibility("","","")), //TODO 2 from attributes?
+             Branch = MxofBranchV100(bankAtm.branchIdentification.getOrElse("")), 
              Location = Location(
-               LocationCategory = List("",""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
-               OtherLocationCategory = List(OtherAccessibility("","","")), //TODO 12 Add Table atm_other_location_category with atm_id and the following fields and a PUT endpoint /atms/ATM_ID/other-location-categories
+               LocationCategory = bankAtm.locationCategories.getOrElse(Nil),
+               OtherLocationCategory = List(OtherAccessibility("","","")), //TODO 3 from attributes?
                Site = Site(
-                 Identification = "",
-                 Name= ""
-               ),//TODO provide dummy data firstly, need to prepare obp data and map it. 
+                 Identification = bankAtm.siteIdentification.getOrElse(""),
+                 Name= bankAtm.siteName.getOrElse("")
+               ),
                PostalAddress = PostalAddress(
                  AddressLine= bankAtm.address.line1,
                  BuildingNumber= bankAtm.address.line2,
@@ -135,9 +135,9 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
                )
              ),
              FeeSurcharges = FeeSurcharges(
-               CashWithdrawalNational = "",
-               CashWithdrawalInternational = "",
-               BalanceInquiry = "") //TODO provide dummy data firstly, need to prepare obp data and map it. 
+               CashWithdrawalNational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
+               CashWithdrawalInternational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
+               BalanceInquiry = bankAtm.balanceInquiryFee.getOrElse(""))
            )
          }
        )
