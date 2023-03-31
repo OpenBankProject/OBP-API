@@ -474,10 +474,16 @@ object ApiRole {
   lazy val canUpdateProductAttribute = CanUpdateProductAttribute()
   
   case class CanUpdateBankAttribute(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canUpdateBankAttribute = CanUpdateBankAttribute()
+  lazy val canUpdateBankAttribute = CanUpdateBankAttribute()  
+  
+  case class CanUpdateAtmAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateAtmAttribute = CanUpdateAtmAttribute()
   
   case class CanGetBankAttribute(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canGetBankAttribute = CanGetBankAttribute()
+  lazy val canGetBankAttribute = CanGetBankAttribute() 
+  
+  case class CanGetAtmAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetAtmAttribute = CanGetAtmAttribute()
 
   case class CanGetProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetProductAttribute = CanGetProductAttribute()
@@ -486,13 +492,19 @@ object ApiRole {
   lazy val canDeleteProductAttribute = CanDeleteProductAttribute()
   
   case class CanDeleteBankAttribute(requiresBankId: Boolean = true) extends ApiRole
-  lazy val canDeleteBankAttribute = CanDeleteBankAttribute()
+  lazy val canDeleteBankAttribute = CanDeleteBankAttribute() 
+  
+  case class CanDeleteAtmAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteAtmAttribute = CanDeleteAtmAttribute()
 
   case class CanCreateProductAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateProductAttribute = CanCreateProductAttribute()
   
   case class CanCreateBankAttribute(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateBankAttribute = CanCreateBankAttribute()
+  
+  case class CanCreateAtmAttribute(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAtmAttribute = CanCreateAtmAttribute()
 
   case class CanUpdateProductFee(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateProductFee = CanUpdateProductFee()

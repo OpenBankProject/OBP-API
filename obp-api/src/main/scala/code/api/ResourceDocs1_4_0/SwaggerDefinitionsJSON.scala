@@ -36,7 +36,7 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
-import code.api.v5_1_0.{CertificateInfoJsonV510, CurrenciesJsonV510, CurrencyJsonV510}
+import code.api.v5_1_0.{AtmAttributeJsonV510, AtmAttributeResponseJsonV510, CertificateInfoJsonV510, CurrenciesJsonV510, CurrencyJsonV510}
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -3999,9 +3999,24 @@ object SwaggerDefinitionsJSON {
     value = "12345678",
     is_active = Some(true)
   )
+  val atmAttributeJsonV510 = AtmAttributeJsonV510(
+    name = "TAX_ID",
+    `type` = "INTEGER",
+    value = "12345678",
+    is_active = Some(true)
+  )
   val bankAttributeResponseJsonV400 = BankAttributeResponseJsonV400(
     bank_id = bankIdExample.value,
     bank_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
+    name = "OVERDRAFT_START_DATE",
+    `type` = "DATE_WITH_DAY",
+    value = "2012-04-23",
+    is_active = Some(true)
+  )
+  val atmAttributeResponseJsonV510 = AtmAttributeResponseJsonV510(
+    bank_id = bankIdExample.value,
+    atm_id = atmIdExample.value,
+    atm_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
     name = "OVERDRAFT_START_DATE",
     `type` = "DATE_WITH_DAY",
     value = "2012-04-23",

@@ -469,6 +469,16 @@ trait CustomerMessage {
   def transport : Option[String] = None //TODO, introduced from V400, may set mandatory later, need to check V140.
 }
 
+trait AtmAttributeTrait {
+  def bankId: BankId
+  def atmId: AtmId
+  def atmAttributeId: String
+  def attributeType: AtmAttributeType.Value
+  def name: String
+  def value: String
+  def isActive: Option[Boolean]
+}
+
 trait BankAttributeTrait {
   def bankId: BankId
   def bankAttributeId: String

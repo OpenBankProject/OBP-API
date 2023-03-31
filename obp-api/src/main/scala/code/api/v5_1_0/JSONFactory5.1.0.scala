@@ -30,6 +30,7 @@ import code.api.Constant
 import code.api.util.APIUtil
 import code.api.util.APIUtil.gitCommit
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
+import code.atmattribute.AtmAttribute
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
@@ -65,6 +66,53 @@ case class CheckSystemIntegrityJsonV510(
 )
 case class CurrencyJsonV510(alphanumeric_code: String)
 case class CurrenciesJsonV510(currencies: List[CurrencyJsonV510])
+
+
+
+case class ProductAttributeJsonV510(
+                                     name: String,
+                                     `type`: String,
+                                     value: String,
+                                     is_active: Option[Boolean]
+                                   )
+case class ProductAttributeResponseJsonV510(
+                                             bank_id: String,
+                                             product_code: String,
+                                             product_attribute_id: String,
+                                             name: String,
+                                             `type`: String,
+                                             value: String,
+                                             is_active: Option[Boolean]
+                                           )
+case class ProductAttributeResponseWithoutBankIdJsonV510(
+                                                          product_code: String,
+                                                          product_attribute_id: String,
+                                                          name: String,
+                                                          `type`: String,
+                                                          value: String,
+                                                          is_active: Option[Boolean]
+                                                        )
+
+case class AtmAttributeJsonV510(
+                                name: String,
+                                `type`: String,
+                                value: String,
+                                is_active: Option[Boolean])
+
+case class AtmAttributeResponseJsonV510(
+                                        bank_id: String,
+                                        atm_id: String,
+                                        atm_attribute_id: String,
+                                        name: String,
+                                        `type`: String,
+                                        value: String,
+                                        is_active: Option[Boolean]
+                                      )
+case class AtmAttributesResponseJsonV510(bank_attributes: List[AtmAttributeResponseJsonV510])
+case class AtmAttributeBankResponseJsonV510(name: String,
+                                             value: String)
+case class AtmAttributesResponseJson(list: List[AtmAttributeBankResponseJsonV510])
+
 
 
 object JSONFactory510 {
@@ -135,6 +183,20 @@ object JSONFactory510 {
       resource_docs_requires_role = resourceDocsRequiresRole
     )
   }
+
+  def createAtmAttributeJson(atmAttribute: AtmAttribute): AtmAttributeResponseJsonV510 =
+    AtmAttributeResponseJsonV510(
+      bank_id = atmAttribute.bankId.value,
+      atm_id = atmAttribute.atmId.value,
+      atm_attribute_id = atmAttribute.atmAttributeId,
+      name = atmAttribute.name,
+      `type` = atmAttribute.attributeType.toString,
+      value = atmAttribute.value,
+      is_active = atmAttribute.isActive
+    )
+  
+  def createAtmAttributesJson(bankAttributes: List[AtmAttribute]): AtmAttributesResponseJsonV510 =
+    AtmAttributesResponseJsonV510(bankAttributes.map(createAtmAttributeJson))
 
   
 }

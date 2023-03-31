@@ -24,7 +24,8 @@ import code.util.Helper
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.{AtmId, BankId}
+import com.openbankproject.commons.model.enums.AtmAttributeType
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.rest.RestHelper
@@ -292,6 +293,242 @@ trait APIMethods510 {
 
       }
     }
+
+
+
+
+
+
+
+
+
+
+
+    staticResourceDocs += ResourceDoc(
+      createAtmAttribute,
+      implementedInApiVersion,
+      nameOf(createAtmAttribute),
+      "POST",
+      "/banks/BANK_ID/atms/ATM_ID/attributes",
+      "Create ATM Attribute",
+      s""" Create ATM Attribute
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      atmAttributeJsonV510,
+      atmAttributeResponseJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canCreateAtmAttribute))
+    )
+
+    lazy val createAtmAttribute : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "attributes" :: Nil JsonPost json -> _=> {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AtmAttributeJsonV510 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AtmAttributeJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            bankAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              AtmAttributeType.withName(postedData.`type`)
+            }
+            (atmAttribute, callContext) <- NewStyle.function.createOrUpdateAtmAttribute(
+              bankId,
+              atmId,
+              None,
+              postedData.name,
+              bankAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (JSONFactory510.createAtmAttributeJson(atmAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAtmAttributes,
+      implementedInApiVersion,
+      nameOf(getAtmAttributes),
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID/attributes",
+      "Get ATM Attributes",
+      s""" Get ATM Attributes
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      transactionAttributesResponseJson,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canGetAtmAttribute))
+    )
+
+    lazy val getAtmAttributes : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getAtmAttributesByAtm(bankId, atmId, callContext)
+          } yield {
+            (JSONFactory510.createAtmAttributesJson(attributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAtmAttribute,
+      implementedInApiVersion,
+      nameOf(getAtmAttribute),
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID",
+      "Get ATM Attribute By ATM_ATTRIBUTE_ID",
+      s""" Get ATM Attribute By ATM_ATTRIBUTE_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      atmAttributeResponseJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canGetAtmAttribute))
+    )
+
+    lazy val getAtmAttribute : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "attributes" :: atmAttributeId :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (attribute, callContext) <- NewStyle.function.getAtmAttributeById(atmAttributeId, callContext)
+          } yield {
+            (JSONFactory510.createAtmAttributeJson(attribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      updateAtmAttribute,
+      implementedInApiVersion,
+      nameOf(updateAtmAttribute),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID",
+      "Update ATM Attribute",
+      s""" Update ATM Attribute. 
+         |
+         |Update an ATM Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      atmAttributeJsonV510,
+      atmAttributeResponseJsonV510,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canUpdateAtmAttribute))
+    )
+
+    lazy val updateAtmAttribute : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "attributes" :: atmAttributeId :: Nil JsonPut json -> _ =>{
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            failMsg = s"$InvalidJsonFormat The Json body should be the $AtmAttributeJsonV510 "
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[AtmAttributeJsonV510]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            atmAttributeType <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+              AtmAttributeType.withName(postedData.`type`)
+            }
+            (_, callContext) <- NewStyle.function.getAtmAttributeById(atmAttributeId, cc.callContext)
+            (atmAttribute, callContext) <- NewStyle.function.createOrUpdateAtmAttribute(
+              bankId,
+              atmId,
+              Some(atmAttributeId),
+              postedData.name,
+              atmAttributeType,
+              postedData.value,
+              postedData.is_active,
+              callContext: Option[CallContext]
+            )
+          } yield {
+            (JSONFactory510.createAtmAttributeJson(atmAttribute), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+
+    staticResourceDocs += ResourceDoc(
+      deleteAtmAttribute,
+      implementedInApiVersion,
+      nameOf(deleteAtmAttribute),
+      "DELETE",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID",
+      "Delete ATM Attribute",
+      s""" Delete ATM Attribute
+         |
+         |Delete a Atm Attribute by its id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $UserNotLoggedIn,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagATM, apiTagNewStyle),
+      Some(List(canDeleteAtmAttribute))
+    )
+
+    lazy val deleteAtmAttribute : OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: "attributes" :: atmAttributeId ::  Nil JsonDelete _=> {
+        cc =>
+          for {
+            (_, callContext) <- NewStyle.function.getAtm(bankId, atmId, cc.callContext)
+            (atmAttribute, callContext) <- NewStyle.function.deleteAtmAttribute(atmAttributeId, callContext)
+          } yield {
+            (Full(atmAttribute), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
     
 
     staticResourceDocs += ResourceDoc(
