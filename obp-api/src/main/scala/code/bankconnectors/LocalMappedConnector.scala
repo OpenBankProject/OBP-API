@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -21,6 +22,7 @@ import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.v4_0_0.{PostSimpleCounterpartyJson400, TransactionRequestBodySimpleJsonV400}
+import code.atmattribute.{AtmAttribute, AtmAttributeX}
 import code.atms.Atms.Atm
 import code.atms.{Atms, MappedAtm}
 import code.bankattribute.{BankAttribute, BankAttributeX}
@@ -3214,6 +3216,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+
+  override def getCurrentCurrencies(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = Future {
+    val rates = MappedFXRate.findAll(By(MappedFXRate.mBankId, bankId.value))
+    val result = rates.map(_.fromCurrencyCode) ::: rates.map(_.toCurrencyCode)
+    Some(result.distinct)
+  } map {
+    (_, callContext)
+  }
+  
+  
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
     * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
@@ -3822,10 +3834,34 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       value: String, isActive: Option[Boolean]) map {
       (_, callContext)
     }
+  
+  override def createOrUpdateAtmAttribute(bankId: BankId,
+                                          atmId: AtmId,
+                                          atmAttributeId: Option[String],
+                                          name: String,
+                                          atmAttributeType: AtmAttributeType.Value,
+                                          value: String,
+                                          isActive: Option[Boolean],
+                                          callContext: Option[CallContext]
+                                          ): OBPReturnType[Box[AtmAttribute]] =
+    AtmAttributeX.atmAttributeProvider.vend.createOrUpdateAtmAttribute(
+      bankId: BankId,
+      atmId: AtmId,
+      atmAttributeId: Option[String],
+      name: String,
+      atmAttributeType: AtmAttributeType.Value,
+      value: String, isActive: Option[Boolean]) map {
+      (_, callContext)
+    }
 
 
   override def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
     BankAttributeX.bankAttributeProvider.vend.getBankAttributesFromProvider(bank: BankId) map {
+      (_, callContext)
+    }
+  
+  override def getAtmAttributesByAtm(bank: BankId, atm: AtmId, callContext: Option[CallContext]): OBPReturnType[Box[List[AtmAttribute]]] =
+    AtmAttributeX.atmAttributeProvider.vend.getAtmAttributesFromProvider(bank: BankId, atm: AtmId) map {
       (_, callContext)
     }
 
@@ -3843,6 +3879,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   
+  override def getAtmAttributeById(atmAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[AtmAttribute]] =
+    AtmAttributeX.atmAttributeProvider.vend.getAtmAttributeById(atmAttributeId: String) map {
+      (_, callContext)
+    }
+  
   override def getProductAttributeById(
                                         productAttributeId: String,
                                         callContext: Option[CallContext]
@@ -3854,6 +3895,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def deleteBankAttribute(bankAttributeId: String, 
                                    callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
     BankAttributeX.bankAttributeProvider.vend.deleteBankAttribute(bankAttributeId: String) map {
+      (_, callContext)
+    }
+  override def deleteAtmAttribute(atmAttributeId: String, 
+                                  callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    AtmAttributeX.atmAttributeProvider.vend.deleteAtmAttribute(atmAttributeId: String) map {
       (_, callContext)
     }
   
