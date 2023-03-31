@@ -3,9 +3,10 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages
-import code.api.util.ErrorMessages.UserHasMissingRoles
+import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.ErrorMessages.{AtmNotFoundByAtmId, UserHasMissingRoles}
 import code.api.v5_1_0.APIMethods510.Implementations5_1_0
+import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -59,6 +60,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.code should equal(403)
       responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanCreateAtmAttribute)
     }
+    scenario(s"We try to consume endpoint $ApiEndpoint1 with proper role but invalid ATM - Authorized access", ApiEndpoint1, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAtmAttribute.toString)
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").POST <@ (user1)
+      val responseGet = makePostRequest(requestGet, write(atmAttributeJsonV510))
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      responseGet.code should equal(404)
+      responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
   }
 
 
@@ -80,6 +92,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       And("We should get a message: " + s"$CanUpdateAtmAttribute entitlement required")
       responseGet.code should equal(403)
       responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanUpdateAtmAttribute)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint2 with proper role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanUpdateAtmAttribute.toString)
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").PUT <@ (user1)
+      val responseGet = makePutRequest(requestGet, write(atmAttributeJsonV510))
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      responseGet.code should equal(404)
+      responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
   }
 
@@ -104,6 +127,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanDeleteAtmAttribute)
     }
+    scenario(s"We try to consume endpoint $ApiEndpoint3 with proper role but invalid ATM - Authorized access", ApiEndpoint3, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanDeleteAtmAttribute.toString)
+      val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
   }
 
   
@@ -126,6 +160,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetAtmAttribute)
     }
+    scenario(s"We try to consume endpoint $ApiEndpoint4 with proper role but invalid ATM - Authorized access", ApiEndpoint4, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanGetAtmAttribute.toString)
+      val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
   }
   
   feature(s"Assuring that endpoint $ApiEndpoint5 works as expected - $VersionOfApi") {
@@ -146,6 +191,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       And("We should get a message: " + s"$CanGetAtmAttribute entitlement required")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetAtmAttribute)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint5 with proper role but invalid ATM - Authorized access", ApiEndpoint5, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanGetAtmAttribute.toString)
+      val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
   }
 
