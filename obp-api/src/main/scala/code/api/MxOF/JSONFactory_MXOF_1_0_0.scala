@@ -10,11 +10,11 @@ import com.openbankproject.commons.model._
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 case class MetaBis(
-  LastUpdated: String = "2021-05-25T17:59:24.297Z",
+  LastUpdated: String = "",
   TotalResults: Double=0,
-  Agreement: String ="To be confirmed",
-  License: String="To be confirmed",
-  TermsOfUse: String="To be confirmed"
+  Agreement: String ="",
+  License: String="",
+  TermsOfUse: String=""
 )
 case class OtherAccessibility(
   Code: String,
@@ -97,22 +97,22 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
          ATM = bankAtms.map{ bankAtm =>
            MxofATMV100(
              Identification = bankAtm.atmId.value,
-             SupportedLanguages = Some(List("es","en")),//TODO provide dummy data firstly, need to prepare obp data and map it.
-             ATMServices = List("ATBA","ATBP"),  //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Accessibility = List("ATAD","ATAC"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             SupportedLanguages = Some(List("")),//TODO provide dummy data firstly, need to prepare obp data and map it.
+             ATMServices = List(""),  //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             Accessibility = List(""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
              Access24HoursIndicator = true,//TODO 6 
-             SupportedCurrencies = List("USD","MXN"), //TODO provide dummy data firstly, need to prepare obp data and map it.
-             MinimumPossibleAmount = "5", //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Note = List("String1","Sting2"),//TODO provide dummy data firstly, need to prepare obp data and map it. 
-             OtherAccessibility = List(OtherAccessibility("string","string","string")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
-             OtherATMServices = List(OtherAccessibility("string","string","string")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
-             Branch = MxofBranchV100("N/A"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             SupportedCurrencies = List(""), //TODO provide dummy data firstly, need to prepare obp data and map it.
+             MinimumPossibleAmount = "", //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             Note = List(""),//TODO provide dummy data firstly, need to prepare obp data and map it. 
+             OtherAccessibility = List(OtherAccessibility("","","")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
+             OtherATMServices = List(OtherAccessibility("","","")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
+             Branch = MxofBranchV100(""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
              Location = Location(
-               LocationCategory = List("ATBI","ATBE"), //TODO provide dummy data firstly, need to prepare obp data and map it. 
-               OtherLocationCategory = List(OtherAccessibility("string","string","string")), //TODO 12 Add Table atm_other_location_category with atm_id and the following fields and a PUT endpoint /atms/ATM_ID/other-location-categories
+               LocationCategory = List("",""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
+               OtherLocationCategory = List(OtherAccessibility("","","")), //TODO 12 Add Table atm_other_location_category with atm_id and the following fields and a PUT endpoint /atms/ATM_ID/other-location-categories
                Site = Site(
-                 Identification = "String",
-                 Name= "String"
+                 Identification = "",
+                 Name= ""
                ),//TODO provide dummy data firstly, need to prepare obp data and map it. 
                PostalAddress = PostalAddress(
                  AddressLine= bankAtm.address.line1,
@@ -132,9 +132,9 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
                )
              ),
              FeeSurcharges = FeeSurcharges(
-               CashWithdrawalNational = "String",
-               CashWithdrawalInternational = "String",
-               BalanceInquiry = "String") //TODO provide dummy data firstly, need to prepare obp data and map it. 
+               CashWithdrawalNational = "",
+               CashWithdrawalInternational = "",
+               BalanceInquiry = "") //TODO provide dummy data firstly, need to prepare obp data and map it. 
            )
          }
        )
