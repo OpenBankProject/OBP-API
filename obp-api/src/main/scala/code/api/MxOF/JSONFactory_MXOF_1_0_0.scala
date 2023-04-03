@@ -90,6 +90,15 @@ case class GetAtmsResponseJson(
 )
 object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
    def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
+     def access24HoursIndicator (atm: AtmT) = {
+       atm.OpeningTimeOnMonday.equals(Some("00:00")) && atm.ClosingTimeOnMonday.equals(Some("23:59"))
+       atm.OpeningTimeOnTuesday.equals(Some("00:00")) && atm.ClosingTimeOnTuesday.equals(Some("23:59"))
+       atm.OpeningTimeOnWednesday.equals(Some("00:00")) && atm.ClosingTimeOnWednesday.equals(Some("23:59"))
+       atm.OpeningTimeOnThursday.equals(Some("00:00")) && atm.ClosingTimeOnThursday.equals(Some("23:59"))
+       atm.OpeningTimeOnFriday.equals(Some("00:00")) && atm.ClosingTimeOnFriday.equals(Some("23:59"))
+       atm.OpeningTimeOnSaturday.equals(Some("00:00")) && atm.ClosingTimeOnSaturday.equals(Some("23:59"))
+       atm.OpeningTimeOnSunday.equals(Some("00:00")) && atm.ClosingTimeOnSunday.equals(Some("23:59"))
+     }
      val brandList = banks
        //first filter out the banks without the atms
        .filter(bank =>atms.map(_.bankId).contains(bank.bankId))
@@ -103,7 +112,7 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
              SupportedLanguages = bankAtm.supportedLanguages,
              ATMServices = bankAtm.services.getOrElse(Nil),  
              Accessibility = bankAtm.accessibilityFeatures.getOrElse(Nil),
-             Access24HoursIndicator = true, //TODO this can be caculated from all 7 days bankAtm.OpeningTimes
+             Access24HoursIndicator = access24HoursIndicator(bankAtm), 
              SupportedCurrencies = bankAtm.supportedCurrencies.getOrElse(Nil),
              MinimumPossibleAmount = bankAtm.minimumWithdrawal.getOrElse(""),   
              Note = bankAtm.notes.getOrElse(Nil),
