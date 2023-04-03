@@ -6624,7 +6624,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      transactionAttributesResponseJson,
+      bankAttributesResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6659,7 +6659,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      transactionAttributesResponseJson,
+      bankAttributeResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,

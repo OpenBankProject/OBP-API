@@ -108,7 +108,7 @@ case class AtmAttributeResponseJsonV510(
                                         value: String,
                                         is_active: Option[Boolean]
                                       )
-case class AtmAttributesResponseJsonV510(bank_attributes: List[AtmAttributeResponseJsonV510])
+case class AtmAttributesResponseJsonV510(atm_attributes: List[AtmAttributeResponseJsonV510])
 case class AtmAttributeBankResponseJsonV510(name: String,
                                              value: String)
 case class AtmAttributesResponseJson(list: List[AtmAttributeBankResponseJsonV510])
