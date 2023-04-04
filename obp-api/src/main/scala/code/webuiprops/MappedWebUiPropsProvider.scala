@@ -37,7 +37,7 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
   // 2) Get requested + language if any
   // 3) Get requested if any
   // 4) Get default value
-  override def getWebUiPropsValue(requestedPropertyName: String, defaultValue: String): String = saveConnectorMetric {
+  override def getWebUiPropsValue(requestedPropertyName: String, defaultValue: String, language: String = I18NUtil.currentLocale().toString()): String = saveConnectorMetric {
     import scala.concurrent.duration._
     var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
     CacheKeyFromArguments.buildCacheKey {
@@ -49,7 +49,6 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
         }
         
         // In case there is a translation we must use it
-        val language = I18NUtil.currentLocale().toString()
         val webUiPropsPropertyName = s"${brandSpecificPropertyName}_${language}"
         val translatedAndOrBrandPropertyName = WebUiProps.find(By(WebUiProps.Name, webUiPropsPropertyName)).isDefined match {
           case true => webUiPropsPropertyName

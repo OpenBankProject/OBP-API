@@ -147,52 +147,52 @@ trait APIMethods500 {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostBankJson500 "
           for {
-            bank <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
+            postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostBankJson500]
             }
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.InvalidConsumerCredentials, cc=cc.callContext) {
               cc.callContext.map(_.consumer.isDefined == true).isDefined
             }
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be greater than 3 characters.", cc=cc.callContext) {
-              bank.id.forall(_.length > 3)
+              postJson.id.forall(_.length > 3)
             }
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters", cc=cc.callContext) {
-              !bank.id.contains(" ")
+              !postJson.id.contains(" ")
             }
             _ <- Helper.booleanToFuture(failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters", cc=cc.callContext) {
-              !`checkIfContains::::`(bank.id.getOrElse(""))
+              !`checkIfContains::::`(postJson.id.getOrElse(""))
             }
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
             _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, cc=cc.callContext) {
-              !banks.exists { b => Some(b.bankId.value) == bank.id }
+              !banks.exists { b => Some(b.bankId.value) == postJson.id }
             }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
-              bank.id.getOrElse(APIUtil.generateUUID()),
-              bank.full_name.getOrElse(""),
-              bank.bank_code,
-              bank.logo.getOrElse(""),
-              bank.website.getOrElse(""),
-              bank.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
+              postJson.id.getOrElse(APIUtil.generateUUID()),
+              postJson.full_name.getOrElse(""),
+              postJson.bank_code,
+              postJson.logo.getOrElse(""),
+              postJson.website.getOrElse(""),
+              postJson.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
               "",
-              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
+              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
+              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
               callContext
             )
             entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, callContext)
-            entitlementsByBank = entitlements.filter(_.bankId==bank.id.getOrElse(""))
+            entitlementsByBank = entitlements.filter(_.bankId==postJson.id.getOrElse(""))
             _ <- entitlementsByBank.filter(_.roleName == CanCreateEntitlementAtOneBank.toString()).size > 0 match {
               case true =>
                 // Already has entitlement
                 Future()
               case false =>
-                Future(Entitlement.entitlement.vend.addEntitlement(bank.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString()))
+                Future(Entitlement.entitlement.vend.addEntitlement(postJson.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString()))
             }
             _ <- entitlementsByBank.filter(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()).size > 0 match {
               case true =>
                 // Already has entitlement
                 Future()
               case false =>
-                Future(Entitlement.entitlement.vend.addEntitlement(bank.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+                Future(Entitlement.entitlement.vend.addEntitlement(postJson.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
             }
           } yield {
             (JSONFactory500.createBankJSON500(success), HttpCode.`201`(callContext))
