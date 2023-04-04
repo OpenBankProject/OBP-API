@@ -14,6 +14,7 @@ import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
+import code.atmattribute.AtmAttribute
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
@@ -25,7 +26,7 @@ import code.util.Helper
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{AtmId, BankId}
+import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
 import com.openbankproject.commons.model.enums.AtmAttributeType
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
@@ -984,8 +985,9 @@ trait APIMethods510 {
               JSONFactory510.transformToAtmFromV510(atmJsonV510)
             }
             (atm, callContext) <- NewStyle.function.createOrUpdateAtm(atm, cc.callContext)
+            (atmAttributes, callContext) <- NewStyle.function.getAtmAttributesByAtm(bankId, atm.atmId, callContext)
           } yield {
-            (JSONFactory510.createAtmJsonV510(atm), HttpCode.`201`(callContext))
+            (JSONFactory510.createAtmJsonV510(atm, atmAttributes), HttpCode.`201`(callContext))
           }
       }
     }
@@ -998,7 +1000,7 @@ trait APIMethods510 {
       "/banks/BANK_ID/atms/ATM_ID",
       "UPDATE ATM",
       s"""Update ATM.""",
-      atmJsonV510.copy(id = None),
+      atmJsonV510.copy(id = None, attributes = None),
       atmJsonV510,
       List(
         $UserNotLoggedIn,
@@ -1023,8 +1025,9 @@ trait APIMethods510 {
               JSONFactory510.transformToAtmFromV510(atmJsonV510.copy(id = Some(atmId.value)))
             }
             (atm, callContext) <- NewStyle.function.createOrUpdateAtm(atm, callContext)
+            (atmAttributes, callContext) <- NewStyle.function.getAtmAttributesByAtm(bankId, atm.atmId, callContext)
           } yield {
-            (JSONFactory510.createAtmJsonV510(atm), HttpCode.`201`(callContext))
+            (JSONFactory510.createAtmJsonV510(atm, atmAttributes), HttpCode.`201`(callContext))
           }
       }
     }
@@ -1068,11 +1071,60 @@ trait APIMethods510 {
               }
             }
             (atms, callContext) <- NewStyle.function.getAtmsByBankId(bankId, offset, limit, callContext)
+
+            atmAndAttributesTupleList: List[(AtmT, List[AtmAttribute])] <-  Future.sequence(atms.map(
+              atm => NewStyle.function.getAtmAttributesByAtm(bankId, atm.atmId, callContext).map(_._1).map(
+                attributes =>{
+                   (atm-> attributes)
+                }
+              )))
+            
           } yield {
-            (JSONFactory510.createAtmsJsonV510(atms), HttpCode.`200`(callContext))
+            (JSONFactory510.createAtmsJsonV510(atmAndAttributesTupleList), HttpCode.`200`(callContext))
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getAtm,
+      implementedInApiVersion,
+      nameOf(getAtm),
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Get Bank ATM",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |* ATM Attributes
+         |
+         |
+         |
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
+      EmptyBody,
+      atmJsonV510,
+      List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      List(apiTagATM, apiTagNewStyle)
+    )
+    lazy val getAtm: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
+        cc =>
+          for {
+            (_, callContext) <- getAtmsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (atm, callContext) <- NewStyle.function.getAtm(bankId, atmId, callContext)
+            (atmAttributes, callContext) <- NewStyle.function.getAtmAttributesByAtm(bankId, atmId, callContext)
+          } yield {
+            (JSONFactory510.createAtmJsonV510(atm, atmAttributes), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
 
   }
 }

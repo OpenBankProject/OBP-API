@@ -36,80 +36,81 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.createAtm))
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.updateAtm))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.getAtms))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations5_1_0.getAtm))
 
   lazy val bankId = randomBankId
 
-//  feature(s"Test$ApiEndpoint1 test the error cases - $VersionOfApi") {
-//    scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
-//      When("We make the request")
-//      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms").POST
-//      val responseGet = makePostRequest(requestGet, write(atmJsonV510))
-//      Then("We should get a 401")
-//      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-//      responseGet.code should equal(401)
-//      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
-//    }
-//
-//    scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
-//      When("We make the request")
-//      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms").POST <@ (user1)
-//      val responseGet = makePostRequest(requestGet, write(atmJsonV510))
-//      Then("We should get a 403")
-//      And("We should get a message: " + s"$canCreateAtmAtAnyBank or $canCreateAtm entitlement required")
-//      responseGet.code should equal(403)
-//      responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
-//      responseGet.body.extract[ErrorMessage].message contains (canCreateAtmAtAnyBank.toString()) shouldBe (true)
-//      responseGet.body.extract[ErrorMessage].message contains (canCreateAtm.toString()) shouldBe (true)
-//    }
-//  }
-//    
-//
-//  feature(s"Test$ApiEndpoint2 test the error cases - $VersionOfApi") {
-//    scenario(s"We try to consume endpoint $ApiEndpoint2 - Anonymous access", ApiEndpoint2, VersionOfApi) {
-//      When("We make the request")
-//      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId" ).PUT
-//      val responseGet = makePutRequest(requestGet, write(atmJsonV510))
-//      Then("We should get a 401")
-//      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
-//      responseGet.code should equal(401)
-//      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
-//    }
-//    scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
-//      When("We make the request")
-//      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId" ).PUT <@ (user1)
-//      val responseGet = makePutRequest(requestGet, write(atmJsonV510))
-//      Then("We should get a 403")
-//      And("We should get a message: " + s"$canCreateAtmAtAnyBank or $canCreateAtm entitlement required")
-//      responseGet.code should equal(403)
-//      responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
-//      responseGet.body.extract[ErrorMessage].message contains (canUpdateAtmAtAnyBank.toString()) shouldBe (true)
-//      responseGet.body.extract[ErrorMessage].message contains (canUpdateAtm.toString()) shouldBe (true)
-//    }
-//    scenario(s"We try to consume endpoint $ApiEndpoint2 with proper role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
-//      When("We make the request")
-//      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateAtmAtAnyBank.toString)
-//      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" ).PUT <@ (user1)
-//      val responseGet = makePutRequest(requestGet, write(atmJsonV510))
-//      Then("We should get a 404")
-//      And("We should get a message: " + s"$AtmNotFoundByAtmId")
-//      responseGet.code should equal(404)
-//      responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
-//      responseGet.body.extract[ErrorMessage].message contains (AtmNotFoundByAtmId) shouldBe (true)
-//      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
-//    }
-//  }
-//  
-//  feature(s"Test$ApiEndpoint3 test the error cases - $VersionOfApi") {
-//    scenario(s"We try to consume endpoint $ApiEndpoint3 - Anonymous access", ApiEndpoint3, VersionOfApi) {
-//      When("We make the request")
-//      val request = (v5_1_0_Request / "banks" / bankId / "atms").GET
-//      val response = makeGetRequest(request)
-//      Then("We should get a 200")
-//      response.code should equal(200)
-//    }
-//  }
+  feature(s"Test$ApiEndpoint1 test the error cases - $VersionOfApi") {
+    scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
+      When("We make the request")
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms").POST
+      val responseGet = makePostRequest(requestGet, write(atmJsonV510))
+      Then("We should get a 401")
+      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      responseGet.code should equal(401)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+    }
+
+    scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+      When("We make the request")
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms").POST <@ (user1)
+      val responseGet = makePostRequest(requestGet, write(atmJsonV510))
+      Then("We should get a 403")
+      And("We should get a message: " + s"$canCreateAtmAtAnyBank or $canCreateAtm entitlement required")
+      responseGet.code should equal(403)
+      responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
+      responseGet.body.extract[ErrorMessage].message contains (canCreateAtmAtAnyBank.toString()) shouldBe (true)
+      responseGet.body.extract[ErrorMessage].message contains (canCreateAtm.toString()) shouldBe (true)
+    }
+  }
+
+
+  feature(s"Test$ApiEndpoint2 test the error cases - $VersionOfApi") {
+    scenario(s"We try to consume endpoint $ApiEndpoint2 - Anonymous access", ApiEndpoint2, VersionOfApi) {
+      When("We make the request")
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId" ).PUT
+      val responseGet = makePutRequest(requestGet, write(atmJsonV510))
+      Then("We should get a 401")
+      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      responseGet.code should equal(401)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
+      When("We make the request")
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId" ).PUT <@ (user1)
+      val responseGet = makePutRequest(requestGet, write(atmJsonV510))
+      Then("We should get a 403")
+      And("We should get a message: " + s"$canCreateAtmAtAnyBank or $canCreateAtm entitlement required")
+      responseGet.code should equal(403)
+      responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
+      responseGet.body.extract[ErrorMessage].message contains (canUpdateAtmAtAnyBank.toString()) shouldBe (true)
+      responseGet.body.extract[ErrorMessage].message contains (canUpdateAtm.toString()) shouldBe (true)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint2 with proper role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateAtmAtAnyBank.toString)
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" ).PUT <@ (user1)
+      val responseGet = makePutRequest(requestGet, write(atmJsonV510))
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      responseGet.code should equal(404)
+      responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      responseGet.body.extract[ErrorMessage].message contains (AtmNotFoundByAtmId) shouldBe (true)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
+  }
+
+  feature(s"Test$ApiEndpoint3 test the error cases - $VersionOfApi") {
+    scenario(s"We try to consume endpoint $ApiEndpoint3 - Anonymous access", ApiEndpoint3, VersionOfApi) {
+      When("We make the request")
+      val request = (v5_1_0_Request / "banks" / bankId / "atms").GET
+      val response = makeGetRequest(request)
+      Then("We should get a 200")
+      response.code should equal(200)
+    }
+  }
   
-  feature(s"Test$ApiEndpoint1 $ApiEndpoint2  $ApiEndpoint3  - $VersionOfApi") {
+  feature(s"Test$ApiEndpoint1 $ApiEndpoint2  $ApiEndpoint3  $ApiEndpoint4 - $VersionOfApi") {
     scenario(s"Test the CUR methods", ApiEndpoint1, VersionOfApi) {
       When("We make the CREATE ATMs")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
@@ -123,6 +124,13 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
       responseCreate.body.extract[AtmJsonV510].atm_type shouldBe("atm_type1")
       responseCreate.body.extract[AtmJsonV510].phone shouldBe("12345")
       val atmId = responseCreate.body.extract[AtmJsonV510].id.getOrElse("")
+
+      Then("We create three ATM attributes")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAtmAttribute.toString)
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes").POST <@ (user1)
+      makePostRequest(requestGet, write(atmAttributeJsonV510.copy(name = "1")))
+      makePostRequest(requestGet, write(atmAttributeJsonV510.copy(name = "2")))
+      makePostRequest(requestGet, write(atmAttributeJsonV510.copy(name = "3")))
       
       
       Then("We Update the ATMs")
@@ -152,12 +160,34 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
       Then("We Get the ATMs")
       val request = (v5_1_0_Request / "banks" / bankId / "atms").GET
       Then("We should get a 200")
-      makeGetRequest(request).code should equal(200)
-      val atms = makeGetRequest(request).body.extract[AtmsJsonV510].atms
+      val responseGet = makeGetRequest(request)
+      responseGet.code should equal(200)
+      val atms = responseGet.body.extract[AtmsJsonV510].atms
       atms.length should be (3)
       atms(0).atm_type equals ("atm_type_111")
       atms(1).atm_type equals ("atm_type2")
       atms(2).atm_type equals ("atm_type3")
+      val attibutes = atms.find(_.id == Some(atmId)).get.attributes.get
+      attibutes.length shouldBe(3)
+      attibutes(0).name equals ("1")
+      attibutes(1).name equals ("2")
+      attibutes(2).name equals ("3")
+
+
+      Then("We Get the ATM")
+      val requestOne = (v5_1_0_Request / "banks" / bankId / "atms" /atmId ).GET
+      Then("We should get a 200")
+      val responseOne = makeGetRequest(requestOne)
+      
+      responseOne.code should equal(200)
+      val atm = responseOne.body.extract[AtmJsonV510]
+      atm.atm_type equals ("atm_type_111")
+      val atmAttributes = atm.attributes.get
+      atmAttributes.length shouldBe(3)
+      atmAttributes(0).name equals ("1")
+      atmAttributes(1).name equals ("2")
+      atmAttributes(2).name equals ("3")
+      
     }
   }
 }

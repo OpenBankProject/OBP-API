@@ -108,7 +108,8 @@ case class AtmJsonV510 (
   cash_withdrawal_international_fee: String,
   balance_inquiry_fee: String,
   atm_type: String,
-  phone: String
+  phone: String,
+  attributes: Option[List[AtmAttributeResponseJsonV510]]
 )
 
 case class AtmsJsonV510(atms : List[AtmJsonV510])
@@ -153,19 +154,18 @@ case class AtmAttributeResponseJsonV510(
                                         is_active: Option[Boolean]
                                       )
 case class AtmAttributesResponseJsonV510(atm_attributes: List[AtmAttributeResponseJsonV510])
-case class AtmAttributeBankResponseJsonV510(name: String,
-                                             value: String)
-case class AtmAttributesResponseJson(list: List[AtmAttributeBankResponseJsonV510])
-
 
 
 object JSONFactory510 {
 
-  def createAtmsJsonV510(atmList: List[AtmT]): AtmsJsonV510 = {
-    AtmsJsonV510(atmList.map(createAtmJsonV510))
+  def createAtmsJsonV510(atmAndAttributesTupleList: List[(AtmT, List[AtmAttribute])] ): AtmsJsonV510 = {
+    AtmsJsonV510(atmAndAttributesTupleList.map(
+      atmAndAttributesTuple =>
+        createAtmJsonV510(atmAndAttributesTuple._1,atmAndAttributesTuple._2)
+    ))
   }
   
-  def createAtmJsonV510(atm: AtmT): AtmJsonV510 = {
+  def createAtmJsonV510(atm: AtmT, atmAttributes:List[AtmAttribute]): AtmJsonV510 = {
     AtmJsonV510(
       id = Some(atm.atmId.value),
       bank_id = atm.bankId.value,
@@ -220,6 +220,7 @@ object JSONFactory510 {
       balance_inquiry_fee = atm.balanceInquiryFee.getOrElse(""),
       atm_type = atm.atmType.getOrElse(""),
       phone = atm.phone.getOrElse(""),
+      attributes = Some(atmAttributes.map(createAtmAttributeJson))
     )
   }
 

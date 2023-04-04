@@ -5322,6 +5322,8 @@ object SwaggerDefinitionsJSON {
     balance_inquiry_fee = balanceInquiryFeeExample.value,
     atm_type = atmTypeExample.value,
     phone = phoneExample.value,
+
+    attributes = Some(List(atmAttributeResponseJsonV510))
   )
   
   val atmsJsonV510 = AtmsJsonV510(
