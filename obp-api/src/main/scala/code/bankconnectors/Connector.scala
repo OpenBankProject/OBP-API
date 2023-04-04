@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.accountholders.{AccountHolders, MapperAccountHolders}
 import code.api.Constant.{SYSTEM_ACCOUNTANT_VIEW_ID, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
@@ -15,6 +16,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.v4_0_0.ModeratedFirehoseAccountsJsonV400
 import code.api.{APIFailure, APIFailureNewStyle}
+import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.bankconnectors.LocalMappedConnector.setUnimplementedError
 import code.bankconnectors.akka.AkkaConnector_vDec2018
@@ -1795,6 +1797,8 @@ trait Connector extends MdcLoggable {
   //  def resetBadLoginAttempts(username:String):Unit
 
 
+  def getCurrentCurrencies(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = Future{Failure(setUnimplementedError)}
+  
   def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Failure(setUnimplementedError)
   def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     /**
@@ -2119,13 +2123,30 @@ trait Connector extends MdcLoggable {
                                   isActive: Option[Boolean],
                                   callContext: Option[CallContext]
                                  ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def createOrUpdateAtmAttribute(bankId: BankId,
+                                 atmId: AtmId,
+                                 atmAttributeId: Option[String],
+                                 name: String,
+                                 atmAttributeType: AtmAttributeType.Value,
+                                 value: String,
+                                 isActive: Option[Boolean],
+                                 callContext: Option[CallContext]
+                                ): OBPReturnType[Box[AtmAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def getBankAttributesByBank(bank: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAttribute]]] =
+    Future{(Failure(setUnimplementedError), callContext)}
+
+  def getAtmAttributesByAtm(bank: BankId, atm: AtmId, callContext: Option[CallContext]): OBPReturnType[Box[List[AtmAttribute]]] =
     Future{(Failure(setUnimplementedError), callContext)}
 
   def getBankAttributeById(bankAttributeId: String,
                            callContext: Option[CallContext]
                           ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError), callContext)}
+
+  def getAtmAttributeById(atmAttributeId: String, 
+                          callContext: Option[CallContext]): OBPReturnType[Box[AtmAttribute]] = 
+    Future{(Failure(setUnimplementedError), callContext)}
   
   def getProductAttributeById(
                                productAttributeId: String,
@@ -2141,6 +2162,10 @@ trait Connector extends MdcLoggable {
 
   def deleteBankAttribute(bankAttributeId: String,
                           callContext: Option[CallContext]
+                         ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+  
+  def deleteAtmAttribute(atmAttributeId: String,
+                         callContext: Option[CallContext]
                          ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
   
   def deleteProductAttribute(
