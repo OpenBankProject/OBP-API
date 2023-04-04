@@ -349,7 +349,6 @@ class WebUI extends MdcLoggable{
 
 
   def apiDocumentation: CssSel = {
-    val title = "Sandbox Introduction"
     val propsValue = getWebUiPropsValue("webui_sandbox_introduction", "")
     val htmlDescription =  if (APIUtil.glossaryDocsRequireRole){
       val userId = AuthUser.getCurrentResourceUserUserId
