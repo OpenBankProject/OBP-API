@@ -11695,9 +11695,9 @@ trait APIMethods400 {
               case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
               case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
             } map { unboxFull(_) } map {
-              branch =>
+              atm =>
                 // Before we slice we need to sort in order to keep consistent results
-                (branch.sortWith(_.atmId.value < _.atmId.value)
+                (atm.sortWith(_.atmId.value < _.atmId.value)
                   // Slice the result in next way: from=offset and until=offset + limit
                   .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
                   ,callContext)
