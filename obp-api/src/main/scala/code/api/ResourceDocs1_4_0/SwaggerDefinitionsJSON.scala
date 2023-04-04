@@ -4018,13 +4018,16 @@ object SwaggerDefinitionsJSON {
   val atmAttributeResponseJsonV510 = AtmAttributeResponseJsonV510(
     bank_id = bankIdExample.value,
     atm_id = atmIdExample.value,
-    atm_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
-    name = "OVERDRAFT_START_DATE",
-    `type` = "DATE_WITH_DAY",
-    value = "2012-04-23",
-    is_active = Some(true)
+    atm_attribute_id = atmAttributeIdExample.value,
+    name = nameExample.value,
+    `type` = typeExample.value,
+    value = valueExample.value,
+    is_active = Some(activeExample.value.toBoolean)
   )
-  
+
+  val atmAttributesResponseJsonV510 = AtmAttributesResponseJsonV510(
+    List(atmAttributeResponseJsonV510)
+  )
 
   val accountAttributeJson = AccountAttributeJson(
     name = "OVERDRAFT_START_DATE",

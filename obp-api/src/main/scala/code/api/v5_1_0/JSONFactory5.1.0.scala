@@ -360,8 +360,8 @@ object JSONFactory510 {
       is_active = atmAttribute.isActive
     )
   
-  def createAtmAttributesJson(bankAttributes: List[AtmAttribute]): AtmAttributesResponseJsonV510 =
-    AtmAttributesResponseJsonV510(bankAttributes.map(createAtmAttributeJson))
+  def createAtmAttributesJson(atmAttributes: List[AtmAttribute]): AtmAttributesResponseJsonV510 =
+    AtmAttributesResponseJsonV510(atmAttributes.map(createAtmAttributeJson))
 
   
 }
