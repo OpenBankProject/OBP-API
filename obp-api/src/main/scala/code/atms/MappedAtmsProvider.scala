@@ -92,6 +92,8 @@ object MappedAtmsProvider extends AtmsProvider {
             .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
             .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
             .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
+            .mAtmType(atm.atmType.orNull)
+            .mPhone(atm.phone.orNull)
             .saveMe()
         }
       case _ =>
@@ -149,6 +151,9 @@ object MappedAtmsProvider extends AtmsProvider {
             .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
             .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
             .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
+
+            .mAtmType(atm.atmType.orNull)
+            .mPhone(atm.phone.orNull)
             .saveMe()
         }
     }

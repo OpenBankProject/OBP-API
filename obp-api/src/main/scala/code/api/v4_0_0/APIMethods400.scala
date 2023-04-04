@@ -11686,22 +11686,7 @@ trait APIMethods400 {
                 case _ => true
               }
             }
-            (atms, callContext) <- Connector.connector.vend.getAtms(bankId, callContext) map {
-              case Empty =>
-                fullBoxOrException(Empty ?~! atmsNotFound)
-              case Full((List(), callContext)) =>
-                Full(List())
-              case Full((list, _)) =>Full(list)
-              case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
-              case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
-            } map { unboxFull(_) } map {
-              atm =>
-                // Before we slice we need to sort in order to keep consistent results
-                (atm.sortWith(_.atmId.value < _.atmId.value)
-                  // Slice the result in next way: from=offset and until=offset + limit
-                  .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
-                  ,callContext)
-            }
+            (atms, callContext) <- NewStyle.function.getAtmsByBankId(bankId, offset, limit, cc.callContext)
           } yield {
             (JSONFactory400.createAtmsJsonV400(atms), HttpCode.`200`(callContext))
           }

@@ -897,6 +897,9 @@ object ExampleValue {
   
   lazy val balanceInquiryFeeExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("ATM.balance_inquiry_fee", balanceInquiryFeeExample)
+   
+  lazy val atmTypeExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.atm_type", atmTypeExample)
   
   lazy val accessibilityFeaturesExample = ConnectorField("""["ATAC","ATAD"]""", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("accessibility_features", accessibilityFeaturesExample)

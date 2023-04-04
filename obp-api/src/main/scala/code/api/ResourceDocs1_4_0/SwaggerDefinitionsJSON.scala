@@ -36,7 +36,7 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
-import code.api.v5_1_0.{AtmAttributeJsonV510, AtmAttributeResponseJsonV510, CertificateInfoJsonV510, CurrenciesJsonV510, CurrencyJsonV510}
+import code.api.v5_1_0.{AtmsJsonV510, _}
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -5284,7 +5284,46 @@ object SwaggerDefinitionsJSON {
     total_duration = BigDecimal(durationExample.value),
     backend_messages= List(inboundStatusMessage),
   )
+
+
+  val atmJsonV510 = AtmJsonV510(
+    id = Some(atmIdExample.value),
+    bank_id = bankIdExample.value,
+    name = atmNameExample.value,
+    address = addressJsonV300,
+    location = locationJson,
+    meta = metaJson,
+    monday = openingTimesV300,
+    tuesday = openingTimesV300,
+    wednesday = openingTimesV300,
+    thursday = openingTimesV300,
+    friday = openingTimesV300,
+    saturday = openingTimesV300,
+    sunday = openingTimesV300,
+    is_accessible = isAccessibleExample.value,
+    located_at = locatedAtExample.value,
+    more_info = moreInfoExample.value,
+    has_deposit_capability = hasDepositCapabilityExample.value,
+    supported_languages = supportedLanguagesJson.supported_languages,
+    services = atmServicesJson.services,
+    accessibility_features = accessibilityFeaturesJson.accessibility_features,
+    supported_currencies = supportedCurrenciesJson.supported_currencies,
+    notes = atmNotesJson.notes,
+    location_categories = atmLocationCategoriesJsonV400.location_categories,
+    minimum_withdrawal = atmMinimumWithdrawalExample.value,
+    branch_identification = atmBranchIdentificationExample.value,
+    site_identification = siteIdentification.value,
+    site_name = atmSiteNameExample.value,
+    cash_withdrawal_national_fee = cashWithdrawalNationalFeeExample.value,
+    cash_withdrawal_international_fee = cashWithdrawalInternationalFeeExample.value,
+    balance_inquiry_fee = balanceInquiryFeeExample.value,
+    atm_type = atmTypeExample.value,
+    phone = phoneExample.value,
+  )
   
+  val atmsJsonV510 = AtmsJsonV510(
+    atms = List(atmJsonV510)
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()
