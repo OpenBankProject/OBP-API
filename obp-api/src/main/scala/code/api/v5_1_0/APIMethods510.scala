@@ -327,7 +327,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canCreateAtmAttribute))
+      Some(List(canCreateAtmAttribute, canCreateAtmAttributeAtAnyBank))
     )
 
     lazy val createAtmAttribute : OBPEndpoint = {
@@ -381,7 +381,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canGetAtmAttribute))
+      Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
     lazy val getAtmAttributes : OBPEndpoint = {
@@ -417,7 +417,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canGetAtmAttribute))
+      Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
     lazy val getAtmAttribute : OBPEndpoint = {
@@ -456,7 +456,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canUpdateAtmAttribute))
+      Some(List(canUpdateAtmAttribute, canUpdateAtmAttributeAtAnyBank))
     )
 
     lazy val updateAtmAttribute : OBPEndpoint = {
@@ -514,7 +514,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canDeleteAtmAttribute))
+      Some(List(canDeleteAtmAttribute, canDeleteAtmAttributeAtAnyBank))
     )
 
     lazy val deleteAtmAttribute : OBPEndpoint = {
