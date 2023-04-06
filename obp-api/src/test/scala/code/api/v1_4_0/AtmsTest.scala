@@ -62,6 +62,8 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
                       cashWithdrawalNationalFee: Option[String] = None,
                       cashWithdrawalInternationalFee: Option[String] = None,
                       balanceInquiryFee: Option[String] = None,
+                      atmType: Option[String] = None,
+                      phone: Option[String] = None,
                     ) extends AtmT
 
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : Option[String],

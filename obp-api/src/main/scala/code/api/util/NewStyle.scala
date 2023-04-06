@@ -3904,6 +3904,26 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String, callContext: Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerAccountLinkError), i._2)
       }
+    
+    def getAtmsByBankId(bankId: BankId, offset: Box[String], limit: Box[String],  callContext: Option[CallContext]): OBPReturnType[List[AtmT]] =
+      Connector.connector.vend.getAtms(bankId, callContext) map {
+        case Empty =>
+          fullBoxOrException(Empty ?~! atmsNotFound)
+        case Full((List(), callContext)) =>
+          Full(List())
+        case Full((list, _)) => Full(list)
+        case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
+        case ParamFailure(msg, _, _, _) => fullBoxOrException(Empty ?~! msg)
+      } map {
+        unboxFull(_)
+      } map {
+        atm =>
+          // Before we slice we need to sort in order to keep consistent results
+          (atm.sortWith(_.atmId.value < _.atmId.value)
+            // Slice the result in next way: from=offset and until=offset + limit
+            .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+            , callContext)
+      }
   }
 
 }

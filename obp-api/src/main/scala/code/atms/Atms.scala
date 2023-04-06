@@ -60,7 +60,9 @@ object Atms extends SimpleInjector {
     cashWithdrawalNationalFee: Option[String] = None,
     cashWithdrawalInternationalFee: Option[String] = None,
     balanceInquiryFee: Option[String] = None,
-    
+    atmType: Option[String] = None,
+    phone: Option[String] = None,
+      
   ) extends AtmT
 
   val atmsProvider = new Inject(buildOne _) {}

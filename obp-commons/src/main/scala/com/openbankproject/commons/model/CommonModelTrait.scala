@@ -182,6 +182,8 @@ trait AtmT {
   def cashWithdrawalNationalFee: Option[String]
   def cashWithdrawalInternationalFee: Option[String]
   def balanceInquiryFee: Option[String]
+  def atmType: Option[String]
+  def phone: Option[String]
 }
 
 // MappedBranch will implement this.

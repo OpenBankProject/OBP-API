@@ -858,6 +858,9 @@ object ExampleValue {
 
   lazy val atmIdExample = ConnectorField("atme0352a-9a0f-4bfa-b30b-9003aa467f51","A string that MUST uniquely identify the ATM on this OBP instance.")
   glossaryItems += makeGlossaryItem("atm_id", atmIdExample)
+  
+  lazy val atmAttributeIdExample = ConnectorField("xxaf2a-9a0f-4bfa-b30b-9003aa467f51","A string that MUST uniquely identify the ATM Attribute on this OBP instance.")
+  glossaryItems += makeGlossaryItem("ATM.attribute_id", atmIdExample)
 
   lazy val atmNameExample = ConnectorField("Atm by the Lake","The name of the ATM")
   glossaryItems += makeGlossaryItem("ATM.name", atmNameExample)
@@ -897,6 +900,9 @@ object ExampleValue {
   
   lazy val balanceInquiryFeeExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("ATM.balance_inquiry_fee", balanceInquiryFeeExample)
+   
+  lazy val atmTypeExample = ConnectorField(NoExampleProvided, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("ATM.atm_type", atmTypeExample)
   
   lazy val accessibilityFeaturesExample = ConnectorField("""["ATAC","ATAD"]""", NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("accessibility_features", accessibilityFeaturesExample)
