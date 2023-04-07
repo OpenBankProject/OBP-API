@@ -65,16 +65,15 @@ object LoginAttempt extends MdcLoggable {
     */
   def userIsLocked(provider: String, username: String): Boolean = {
 
-    val result : Boolean = MappedBadLoginAttempt.find(
+    val result : Boolean = MappedBadLoginAttempt.find( // Check the table MappedBadLoginAttempt
       By(MappedBadLoginAttempt.Provider, provider),
       By(MappedBadLoginAttempt.mUsername, username)
     ) match {
-      case Empty => UserLocksProvider.isLocked(provider, username)
       case Full(loginAttempt)  => loginAttempt.badAttemptsSinceLastSuccessOrReset > maxBadLoginAttempts.toInt match {
         case true => true
-        case false => false
+        case false => UserLocksProvider.isLocked(provider, username) // Check the table UserLocks
       }
-      case _ => false
+      case _ => UserLocksProvider.isLocked(provider, username) // Check the table UserLocks
     }
 
     logger.debug(s"userIsLocked result for $username is $result")
