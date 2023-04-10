@@ -315,6 +315,14 @@ object JSONFactory510 {
       success = success,
       debug_info = debugInfo
     )
+  }  
+  def getOrphanedAccountsCheck(orphanedAccounts: List[String]): CheckSystemIntegrityJsonV510 = {
+    val success = orphanedAccounts.size == 0
+    val debugInfo = if(success) None else Some(s"Orphaned account's ids: ${orphanedAccounts.mkString(",")}")
+    CheckSystemIntegrityJsonV510(
+      success = success,
+      debug_info = debugInfo
+    )
   }
   
   def getApiInfoJSON(apiVersion : ApiVersion, apiVersionStatus: String) = {
