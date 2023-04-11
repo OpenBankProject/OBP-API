@@ -2981,17 +2981,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
 
   /**
-   * This method will be executed only when user is defined and needToRefreshUser return true.
-   * Better also check the logic for needToRefreshUser method.
-   */
-  def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
-    if(user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
-      user.map(AuthUser.refreshUser(_, callContext))
-    else
-      None
-  }
-
-  /**
    * This function is used to factor out common code at endpoints regarding Authorized access
    * @param emptyUserErrorMsg is a message which will be provided as a response in case that Box[User] = Empty
    */
