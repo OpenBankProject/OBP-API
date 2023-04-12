@@ -2709,7 +2709,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val errorResponse = getFilteredOrFullErrorMessage(e)
           Full(reply.apply(errorResponse))
         case Failure(msg, e, _) =>
-          e.foreach(logger.error("", _))
+          logger.error(s"+-${StringUtils.repeat("-", msg.length)}-+")
+          logger.error(s"| $msg |")
+          logger.error(s"+-${StringUtils.repeat("-", msg.length)}-+")
+          e.foreach(logger.debug("", _))
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
