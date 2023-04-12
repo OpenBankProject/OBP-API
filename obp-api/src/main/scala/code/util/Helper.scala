@@ -332,8 +332,23 @@ object Helper{
   }
 
   trait MdcLoggable extends Loggable {
-    protected def initiate(): Unit = ()
-
+    protected def initiate(): Unit = () // The type is Unit and the only value this type can take is the literal ()
+    protected def surroundWarnMessage(msg: String, title: String = ""): Unit = {
+      
+      logger.warn(s"+-${title}${StringUtils.repeat("-", msg.length - title.length)}-+")
+      logger.warn(s"| $msg |")
+      logger.warn(s"+-${StringUtils.repeat("-", msg.length)}-+")
+    }
+    protected def surroundInfoMessage(msg: String, title: String = ""): Unit = {
+      logger.info(s"+-${title}${StringUtils.repeat("-", msg.length - title.length)}-+")
+      logger.info(s"| $msg |")
+      logger.info(s"+-${StringUtils.repeat("-", msg.length)}-+")
+    }
+    protected def surroundErrorMessage(msg: String, title: String = ""): Unit = {
+      logger.error(s"+-${title}${StringUtils.repeat("-", msg.length - title.length)}-+")
+      logger.error(s"| $msg |")
+      logger.error(s"+-${StringUtils.repeat("-", msg.length)}-+")
+    }
     initiate()
     MDC.put("host" -> getHostname)
   }
