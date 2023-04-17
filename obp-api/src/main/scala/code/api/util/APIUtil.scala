@@ -2709,7 +2709,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val errorResponse = getFilteredOrFullErrorMessage(e)
           Full(reply.apply(errorResponse))
         case Failure(msg, e, _) =>
-          e.foreach(logger.error("", _))
+          surroundErrorMessage(msg)
+          e.foreach(logger.debug("", _))
           extractAPIFailureNewStyle(msg) match {
             case Some(af) =>
               val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
@@ -2979,17 +2980,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def unboxOptionFuture[T](option: Option[Future[T]]): Future[Box[T]] = unboxFuture(Box(option))
 
   def unboxOptionOBPReturnType[T](option: Option[OBPReturnType[T]]): Future[Box[T]] = unboxOBPReturnType(Box(option))
-
-  /**
-   * This method will be executed only when user is defined and needToRefreshUser return true.
-   * Better also check the logic for needToRefreshUser method.
-   */
-  def refreshUserIfRequired(user: Box[User], callContext: Option[CallContext]) = {
-    if(user.isDefined && UserRefreshes.UserRefreshes.vend.needToRefreshUser(user.head.userId))
-      user.map(AuthUser.refreshUser(_, callContext))
-    else
-      None
-  }
 
   /**
    * This function is used to factor out common code at endpoints regarding Authorized access

@@ -32,6 +32,7 @@ import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.mapper.By
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -298,7 +299,46 @@ trait APIMethods510 {
     }
 
 
+    staticResourceDocs += ResourceDoc(
+      orphanedAccountCheck,
+      implementedInApiVersion,
+      nameOf(orphanedAccountCheck),
+      "GET",
+      "/management/system/integrity/banks/BANK_ID/orphaned-account-check",
+      "Check for Orphaned Accounts",
+      s"""Check for orphaned accounts at Bank Account model
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
+      List(
+        $UserNotLoggedIn,
+        UserHasMissingRoles,
+        UnknownError
+      ),
+      List(apiTagSystemIntegrity, apiTagNewStyle),
+      Some(canGetSystemIntegrity :: Nil)
+    )
 
+    lazy val orphanedAccountCheck: OBPEndpoint = {
+      case "management" :: "system" :: "integrity"  :: "banks" :: BankId(bankId) :: "orphaned-account-check" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            accountAccesses: List[String] <- Future {
+              AccountAccess.findAll(By(AccountAccess.bank_id, bankId.value)).map(_.account_id.get)
+            }
+            bankAccounts <- Future {
+              MappedBankAccount.findAll(By(MappedBankAccount.bank, bankId.value)).map(_.accountId.value)
+            }
+          } yield {
+            val orphanedAccounts: List[String] = accountAccesses.filterNot { accountAccess =>
+              bankAccounts.contains(accountAccess)
+            }
+            (JSONFactory510.getOrphanedAccountsCheck(orphanedAccounts), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
 
 
 
@@ -330,7 +370,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canCreateAtmAttribute))
+      Some(List(canCreateAtmAttribute, canCreateAtmAttributeAtAnyBank))
     )
 
     lazy val createAtmAttribute : OBPEndpoint = {
@@ -384,7 +424,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canGetAtmAttribute))
+      Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
     lazy val getAtmAttributes : OBPEndpoint = {
@@ -420,7 +460,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canGetAtmAttribute))
+      Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
     lazy val getAtmAttribute : OBPEndpoint = {
@@ -459,7 +499,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canUpdateAtmAttribute))
+      Some(List(canUpdateAtmAttribute, canUpdateAtmAttributeAtAnyBank))
     )
 
     lazy val updateAtmAttribute : OBPEndpoint = {
@@ -517,7 +557,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagATM, apiTagNewStyle),
-      Some(List(canDeleteAtmAttribute))
+      Some(List(canDeleteAtmAttribute, canDeleteAtmAttributeAtAnyBank))
     )
 
     lazy val deleteAtmAttribute : OBPEndpoint = {
@@ -1039,7 +1079,19 @@ trait APIMethods510 {
       "GET",
       "/banks/BANK_ID/atms",
       "Get Bank ATMS",
-      s"""Get Bank ATMS.""",
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |
+         |Pagination:
+         |
+         |By default, 100 records are returned.
+         |
+         |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmsJsonV510,
       List(

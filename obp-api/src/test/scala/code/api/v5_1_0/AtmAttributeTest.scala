@@ -71,6 +71,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
+    scenario(s"We try to consume endpoint $ApiEndpoint1 with proper systemm role but invalid ATM - Authorized access", ApiEndpoint1, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAttributeAtAnyBank.toString)
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").POST <@ (user1)
+      val responseGet = makePostRequest(requestGet, write(atmAttributeJsonV510))
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      responseGet.code should equal(404)
+      responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
   }
 
 
@@ -96,6 +107,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
     scenario(s"We try to consume endpoint $ApiEndpoint2 with proper role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanUpdateAtmAttribute.toString)
+      val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").PUT <@ (user1)
+      val responseGet = makePutRequest(requestGet, write(atmAttributeJsonV510))
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      responseGet.code should equal(404)
+      responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint2 with proper system role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateAtmAttributeAtAnyBank.toString)
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").PUT <@ (user1)
       val responseGet = makePutRequest(requestGet, write(atmAttributeJsonV510))
       Then("We should get a 404")
@@ -138,6 +160,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
+    scenario(s"We try to consume endpoint $ApiEndpoint3 with proper system role but invalid ATM - Authorized access", ApiEndpoint3, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteAtmAttributeAtAnyBank.toString)
+      val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
   }
 
   
@@ -171,6 +204,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
+    scenario(s"We try to consume endpoint $ApiEndpoint4 with proper system role but invalid ATM - Authorized access", ApiEndpoint4, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAtmAttributeAtAnyBank.toString)
+      val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
   }
   
   feature(s"Assuring that endpoint $ApiEndpoint5 works as expected - $VersionOfApi") {
@@ -195,6 +239,17 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
     scenario(s"We try to consume endpoint $ApiEndpoint5 with proper role but invalid ATM - Authorized access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanGetAtmAttribute.toString)
+      val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)
+      val response = makeGetRequest(request)
+      Then("We should get a 404")
+      And("We should get a message: " + s"$AtmNotFoundByAtmId")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
+      Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+    }
+    scenario(s"We try to consume endpoint $ApiEndpoint5 with proper system role but invalid ATM - Authorized access", ApiEndpoint5, VersionOfApi) {
+      When("We make the request")
+      val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAtmAttributeAtAnyBank.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)
       val response = makeGetRequest(request)
       Then("We should get a 404")

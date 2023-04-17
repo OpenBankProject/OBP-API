@@ -11655,7 +11655,19 @@ trait APIMethods400 {
       "GET",
       "/banks/BANK_ID/atms",
       "Get Bank ATMS",
-      s"""Get Bank ATMS.""",
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |
+         |Pagination:
+         |
+         |By default, 100 records are returned.
+         |
+         |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmsJsonV400,
       List(
