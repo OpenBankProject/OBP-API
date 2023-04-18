@@ -182,6 +182,8 @@ trait AtmT {
   def cashWithdrawalNationalFee: Option[String]
   def cashWithdrawalInternationalFee: Option[String]
   def balanceInquiryFee: Option[String]
+  def atmType: Option[String]
+  def phone: Option[String]
 }
 
 // MappedBranch will implement this.
@@ -467,6 +469,16 @@ trait CustomerMessage {
   def fromDepartment : String
   def fromPerson : String
   def transport : Option[String] = None //TODO, introduced from V400, may set mandatory later, need to check V140.
+}
+
+trait AtmAttributeTrait {
+  def bankId: BankId
+  def atmId: AtmId
+  def atmAttributeId: String
+  def attributeType: AtmAttributeType.Value
+  def name: String
+  def value: String
+  def isActive: Option[Boolean]
 }
 
 trait BankAttributeTrait {

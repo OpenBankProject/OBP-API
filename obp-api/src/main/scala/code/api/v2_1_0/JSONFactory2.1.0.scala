@@ -131,7 +131,7 @@ case class ResourceUserJSON(user_id: String,
                             username: String
                            )
 
-case class ConsumerJSON(consumer_id: Long,
+case class ConsumerJsonV210(consumer_id: Long,
                         app_name: String,
                         app_type: String,
                         description: String,
@@ -154,7 +154,7 @@ case class ConsumerPostJSON(app_name: String,
                             clientCertificate: String
                            )
 
-case class ConsumersJson(list: List[ConsumerJSON])
+case class ConsumersJson(list: List[ConsumerJsonV210])
 
 case class PostCounterpartyBespokeJson(
   key: String,
@@ -492,7 +492,7 @@ object JSONFactory210{
     TransactionRequestWithChargeJSONs210(trs.map(createTransactionRequestWithChargeJSON))
   }
 
-  def createConsumerJSON(c: Consumer): ConsumerJSON = {
+  def createConsumerJSON(c: Consumer): ConsumerJsonV210 = {
 
     val resourceUserJSON =  Users.users.vend.getUserByUserId(c.createdByUserId.toString()) match {
       case Full(resourceUser) => ResourceUserJSON(
@@ -505,7 +505,7 @@ object JSONFactory210{
       case _ => null
     }
 
-    ConsumerJSON(consumer_id=c.id.get,
+    ConsumerJsonV210(consumer_id=c.id.get,
       app_name=c.name.get,
       app_type=c.appType.toString(),
       description=c.description.get,

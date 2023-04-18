@@ -6624,7 +6624,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      transactionAttributesResponseJson,
+      bankAttributesResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -6659,7 +6659,7 @@ trait APIMethods400 {
          |
          |""",
       EmptyBody,
-      transactionAttributesResponseJson,
+      bankAttributeResponseJsonV400,
       List(
         $UserNotLoggedIn,
         $BankNotFound,
@@ -11655,7 +11655,19 @@ trait APIMethods400 {
       "GET",
       "/banks/BANK_ID/atms",
       "Get Bank ATMS",
-      s"""Get Bank ATMS.""",
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |
+         |Pagination:
+         |
+         |By default, 100 records are returned.
+         |
+         |You can use the url query parameters *limit* and *offset* for pagination
+         |
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmsJsonV400,
       List(
@@ -11686,22 +11698,7 @@ trait APIMethods400 {
                 case _ => true
               }
             }
-            (atms, callContext) <- Connector.connector.vend.getAtms(bankId, callContext) map {
-              case Empty =>
-                fullBoxOrException(Empty ?~! atmsNotFound)
-              case Full((List(), callContext)) =>
-                Full(List())
-              case Full((list, _)) =>Full(list)
-              case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
-              case ParamFailure(msg,_,_,_) => fullBoxOrException(Empty ?~! msg)
-            } map { unboxFull(_) } map {
-              branch =>
-                // Before we slice we need to sort in order to keep consistent results
-                (branch.sortWith(_.atmId.value < _.atmId.value)
-                  // Slice the result in next way: from=offset and until=offset + limit
-                  .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
-                  ,callContext)
-            }
+            (atms, callContext) <- NewStyle.function.getAtmsByBankId(bankId, offset, limit, cc.callContext)
           } yield {
             (JSONFactory400.createAtmsJsonV400(atms), HttpCode.`200`(callContext))
           }

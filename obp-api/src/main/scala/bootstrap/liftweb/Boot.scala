@@ -50,6 +50,7 @@ import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apicollection.ApiCollection
 import code.apicollectionendpoint.ApiCollectionEndpoint
+import code.atmattribute.AtmAttribute
 import code.atms.MappedAtm
 import code.authtypevalidation.AuthenticationTypeValidation
 import code.bankattribute.BankAttribute
@@ -1010,6 +1011,7 @@ object ToSchemify {
   // The following tables are accessed directly via Mapper / JDBC
   val models: List[MetaMapper[_]] = List(
     AuthUser,
+    AtmAttribute,
     Admin,
     MappedBank,
     MappedBankAccount,

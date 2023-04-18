@@ -92,6 +92,8 @@ object MappedAtmsProvider extends AtmsProvider {
             .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
             .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
             .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
+            .mAtmType(atm.atmType.orNull)
+            .mPhone(atm.phone.orNull)
             .saveMe()
         }
       case _ =>
@@ -149,6 +151,9 @@ object MappedAtmsProvider extends AtmsProvider {
             .mCashWithdrawalNationalFee(atm.cashWithdrawalNationalFee.orNull)
             .mCashWithdrawalInternationalFee(atm.cashWithdrawalInternationalFee.orNull)
             .mBalanceInquiryFee(atm.balanceInquiryFee.orNull)
+
+            .mAtmType(atm.atmType.orNull)
+            .mPhone(atm.phone.orNull)
             .saveMe()
         }
     }
@@ -231,6 +236,8 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
   object mCashWithdrawalNationalFee extends MappedString(this, 255)
   object mCashWithdrawalInternationalFee extends MappedString(this, 255)
   object mBalanceInquiryFee extends MappedString(this, 255)
+  object mAtmType extends MappedString(this, 255)
+  object mPhone extends MappedString(this, 255)
 
 
   override def atmId: AtmId = AtmId(mAtmId.get)
@@ -357,6 +364,16 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
   }
   override def balanceInquiryFee: Option[String] = mBalanceInquiryFee.get match {
     case value: String => Some (value)
+    case _ => None
+  }
+
+  override def atmType: Option[String] = mAtmType.get match {
+    case value: String => Some(value)
+    case _ => None
+  }
+
+  override def phone: Option[String] = mPhone.get match {
+    case value: String => Some(value)
     case _ => None
   }
 

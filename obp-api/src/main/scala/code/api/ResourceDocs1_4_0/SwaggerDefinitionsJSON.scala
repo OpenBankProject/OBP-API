@@ -36,7 +36,7 @@ import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, Refle
 import net.liftweb.json
 import java.net.URLEncoder
 
-import code.api.v5_1_0.{CertificateInfoJsonV510, CurrenciesJsonV510, CurrencyJsonV510}
+import code.api.v5_1_0.{AtmsJsonV510, _}
 import code.endpointMapping.EndpointMappingCommons
 
 import scala.collection.immutable.List
@@ -2667,7 +2667,7 @@ object SwaggerDefinitionsJSON {
     roles = List(availableRoleJSON)
   )
 
-  val consumerJSON = ConsumerJSON(
+  val consumerJSON = ConsumerJsonV210(
     consumer_id = 1213,
     app_name = "SOFI",
     app_type = "Web",
@@ -3999,6 +3999,12 @@ object SwaggerDefinitionsJSON {
     value = "12345678",
     is_active = Some(true)
   )
+  val atmAttributeJsonV510 = AtmAttributeJsonV510(
+    name = "TAX_ID",
+    `type` = "INTEGER",
+    value = "12345678",
+    is_active = Some(true)
+  )
   val bankAttributeResponseJsonV400 = BankAttributeResponseJsonV400(
     bank_id = bankIdExample.value,
     bank_attribute_id = "613c83ea-80f9-4560-8404-b9cd4ec42a7f",
@@ -4007,7 +4013,21 @@ object SwaggerDefinitionsJSON {
     value = "2012-04-23",
     is_active = Some(true)
   )
+  val bankAttributesResponseJsonV400 = BankAttributesResponseJsonV400(List(bankAttributeResponseJsonV400))
   
+  val atmAttributeResponseJsonV510 = AtmAttributeResponseJsonV510(
+    bank_id = bankIdExample.value,
+    atm_id = atmIdExample.value,
+    atm_attribute_id = atmAttributeIdExample.value,
+    name = nameExample.value,
+    `type` = typeExample.value,
+    value = valueExample.value,
+    is_active = Some(activeExample.value.toBoolean)
+  )
+
+  val atmAttributesResponseJsonV510 = AtmAttributesResponseJsonV510(
+    List(atmAttributeResponseJsonV510)
+  )
 
   val accountAttributeJson = AccountAttributeJson(
     name = "OVERDRAFT_START_DATE",
@@ -5267,7 +5287,48 @@ object SwaggerDefinitionsJSON {
     total_duration = BigDecimal(durationExample.value),
     backend_messages= List(inboundStatusMessage),
   )
+
+
+  val atmJsonV510 = AtmJsonV510(
+    id = Some(atmIdExample.value),
+    bank_id = bankIdExample.value,
+    name = atmNameExample.value,
+    address = addressJsonV300,
+    location = locationJson,
+    meta = metaJson,
+    monday = openingTimesV300,
+    tuesday = openingTimesV300,
+    wednesday = openingTimesV300,
+    thursday = openingTimesV300,
+    friday = openingTimesV300,
+    saturday = openingTimesV300,
+    sunday = openingTimesV300,
+    is_accessible = isAccessibleExample.value,
+    located_at = locatedAtExample.value,
+    more_info = moreInfoExample.value,
+    has_deposit_capability = hasDepositCapabilityExample.value,
+    supported_languages = supportedLanguagesJson.supported_languages,
+    services = atmServicesJson.services,
+    accessibility_features = accessibilityFeaturesJson.accessibility_features,
+    supported_currencies = supportedCurrenciesJson.supported_currencies,
+    notes = atmNotesJson.notes,
+    location_categories = atmLocationCategoriesJsonV400.location_categories,
+    minimum_withdrawal = atmMinimumWithdrawalExample.value,
+    branch_identification = atmBranchIdentificationExample.value,
+    site_identification = siteIdentification.value,
+    site_name = atmSiteNameExample.value,
+    cash_withdrawal_national_fee = cashWithdrawalNationalFeeExample.value,
+    cash_withdrawal_international_fee = cashWithdrawalInternationalFeeExample.value,
+    balance_inquiry_fee = balanceInquiryFeeExample.value,
+    atm_type = atmTypeExample.value,
+    phone = phoneExample.value,
+
+    attributes = Some(List(atmAttributeResponseJsonV510))
+  )
   
+  val atmsJsonV510 = AtmsJsonV510(
+    atms = List(atmJsonV510)
+  )
   //The common error or success format.
   //Just some helper format to use in Json 
   case class NotSupportedYet()

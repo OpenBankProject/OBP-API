@@ -23,7 +23,7 @@ trait WebUiPropsProvider {
 
   def delete(webUiPropsId: String):Box[Boolean]
 
-  def getWebUiPropsValue(nameOfProperty: String, defaultValue: String): String
+  def getWebUiPropsValue(nameOfProperty: String, defaultValue: String, language: String): String
 }
 
 

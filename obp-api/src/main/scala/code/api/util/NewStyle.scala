@@ -3,6 +3,7 @@ package code.api.util
 
 import java.util.Date
 import java.util.UUID.randomUUID
+
 import akka.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
@@ -67,6 +68,7 @@ import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.v4_0_0.JSONFactory400
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
+import code.atmattribute.AtmAttribute
 import code.bankattribute.BankAttribute
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.customeraccountlinks.CustomerAccountLinkTrait
@@ -1660,10 +1662,43 @@ object NewStyle extends MdcLoggable{
           i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+    
+    def createOrUpdateAtmAttribute(
+      bankId: BankId,
+      atmId: AtmId,
+      atmAttributeId: Option[String],
+      name: String,
+      attributeType: AtmAttributeType.Value,
+      value: String,
+      isActive: Option[Boolean],
+      callContext: Option[CallContext]
+    ): OBPReturnType[AtmAttribute] = {
+      Connector.connector.vend.createOrUpdateAtmAttribute(
+        bankId: BankId,
+        atmId: AtmId,
+        atmAttributeId: Option[String],
+        name: String,
+        attributeType: AtmAttributeType.Value,
+        value: String,
+        isActive: Option[Boolean],
+        callContext: Option[CallContext]
+      ) map {
+          i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
 
     def getBankAttributesByBank(bank: BankId,callContext: Option[CallContext]): OBPReturnType[List[BankAttribute]] = {
       Connector.connector.vend.getBankAttributesByBank(
         bank: BankId,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    def getAtmAttributesByAtm(bank: BankId, atm: AtmId, callContext: Option[CallContext]): OBPReturnType[List[AtmAttribute]] = {
+      Connector.connector.vend.getAtmAttributesByAtm(
+        bank: BankId,
+        atm: AtmId,
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
@@ -1707,12 +1742,36 @@ object NewStyle extends MdcLoggable{
       }
     }
     
+    def getAtmAttributeById(
+      atmAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[AtmAttribute] = {
+      Connector.connector.vend.getAtmAttributeById(
+        atmAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
     def deleteBankAttribute(
       bankAttributeId: String,
       callContext: Option[CallContext]
     ): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteBankAttribute(
         bankAttributeId: String,
+        callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+    
+    def deleteAtmAttribute(
+      atmAttributeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteAtmAttribute(
+        atmAttributeId: String,
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
@@ -3844,6 +3903,26 @@ object NewStyle extends MdcLoggable{
     def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String, callContext: Option[CallContext]): OBPReturnType[CustomerAccountLinkTrait] =
       Connector.connector.vend.updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String, callContext: Option[CallContext]) map {
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerAccountLinkError), i._2)
+      }
+    
+    def getAtmsByBankId(bankId: BankId, offset: Box[String], limit: Box[String],  callContext: Option[CallContext]): OBPReturnType[List[AtmT]] =
+      Connector.connector.vend.getAtms(bankId, callContext) map {
+        case Empty =>
+          fullBoxOrException(Empty ?~! atmsNotFound)
+        case Full((List(), callContext)) =>
+          Full(List())
+        case Full((list, _)) => Full(list)
+        case Failure(msg, _, _) => fullBoxOrException(Empty ?~! msg)
+        case ParamFailure(msg, _, _, _) => fullBoxOrException(Empty ?~! msg)
+      } map {
+        unboxFull(_)
+      } map {
+        atm =>
+          // Before we slice we need to sort in order to keep consistent results
+          (atm.sortWith(_.atmId.value < _.atmId.value)
+            // Slice the result in next way: from=offset and until=offset + limit
+            .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+            , callContext)
       }
   }
 

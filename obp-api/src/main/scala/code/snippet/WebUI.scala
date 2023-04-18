@@ -286,6 +286,12 @@ class WebUI extends MdcLoggable{
     val hostname = scala.xml.Unparsed(Constant.HostName)
       ".api-link a [href]" #> hostname
   }
+  
+  // 
+  def commitIdLink: CssSel = {
+    val commitId = scala.xml.Unparsed(APIUtil.gitCommit)
+      ".commit-id-link a [href]" #> s"https://github.com/OpenBankProject/OBP-API/commit/$commitId"
+  }
 
 
 
@@ -349,7 +355,6 @@ class WebUI extends MdcLoggable{
 
 
   def apiDocumentation: CssSel = {
-    val title = "Sandbox Introduction"
     val propsValue = getWebUiPropsValue("webui_sandbox_introduction", "")
     val htmlDescription =  if (APIUtil.glossaryDocsRequireRole){
       val userId = AuthUser.getCurrentResourceUserUserId
