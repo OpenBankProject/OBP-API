@@ -473,6 +473,7 @@ object ErrorMessages {
   // ATM related messages
   val atmsNotFoundLicense = "OBP-33001: No ATMs available. License may not be set."
   val atmsNotFound = "OBP-33002: No ATMs available."
+  val DeleteAtmAttributeError = "OBP-33003: Could not delete Atm Attribute."
   
   // Bank related messages
   val bankIdAlreadyExists = "OBP-34000: Bank Id already exists. Please specify a different value."

@@ -3903,6 +3903,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   
+  override def deleteAtmAttributesByAtmId(atmId: AtmId, 
+                                  callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    AtmAttributeX.atmAttributeProvider.vend.deleteAtmAttributesByAtmId(atmId: AtmId) map {
+      (_, callContext)
+    }
+  
   override def deleteProductAttribute(
                                        productAttributeId: String,
                                        callContext: Option[CallContext]
