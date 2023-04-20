@@ -75,7 +75,6 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
     scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
-      setPropsValues("create_just_in_time_entitlements" -> "false")
       val response = getMetrics(user1, bankId)
       Then("We should get a 403")
       response.code should equal(403)
