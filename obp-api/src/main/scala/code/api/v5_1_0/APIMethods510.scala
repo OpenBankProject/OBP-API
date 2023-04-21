@@ -998,7 +998,7 @@ trait APIMethods510 {
       "/banks/BANK_ID/atms",
       "Create ATM",
       s"""Create ATM.""",
-      atmJsonV510,
+      postAtmJsonV510,
       atmJsonV510,
       List(
         $UserNotLoggedIn,
@@ -1013,7 +1013,7 @@ trait APIMethods510 {
         cc =>
           for {
             atmJsonV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
-              val atm = json.extract[AtmJsonV510]
+              val atm = json.extract[PostAtmJsonV510]
               //Make sure the Create contains proper ATM ID
               atm.id.get
               atm

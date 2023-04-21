@@ -73,6 +73,44 @@ case class CheckSystemIntegrityJsonV510(
 case class CurrencyJsonV510(alphanumeric_code: String)
 case class CurrenciesJsonV510(currencies: List[CurrencyJsonV510])
 
+case class PostAtmJsonV510 (
+  id : Option[String],
+  bank_id : String,
+  name : String,
+  address: AddressJsonV300,
+  location: LocationJsonV140,
+  meta: MetaJsonV140,
+
+  monday: OpeningTimesV300,
+  tuesday: OpeningTimesV300,
+  wednesday: OpeningTimesV300,
+  thursday: OpeningTimesV300,
+  friday: OpeningTimesV300,
+  saturday: OpeningTimesV300,
+  sunday: OpeningTimesV300,
+
+  is_accessible : String,
+  located_at : String,
+  more_info : String,
+  has_deposit_capability : String,
+
+  supported_languages: List[String],
+  services: List[String],
+  accessibility_features: List[String],
+  supported_currencies: List[String],
+  notes: List[String],
+  location_categories: List[String],
+  minimum_withdrawal: String,
+  branch_identification: String,
+  site_identification: String,
+  site_name: String,
+  cash_withdrawal_national_fee: String,
+  cash_withdrawal_international_fee: String,
+  balance_inquiry_fee: String,
+  atm_type: String,
+  phone: String
+)
+
 case class AtmJsonV510 (
   id : Option[String],
   bank_id : String,
@@ -224,7 +262,44 @@ object JSONFactory510 {
     )
   }
 
-
+  def transformToAtmFromV510(postAtmJsonV510: PostAtmJsonV510): Atm = {
+    val json = AtmJsonV510(
+      id = postAtmJsonV510.id,
+      bank_id = postAtmJsonV510.bank_id,
+      name = postAtmJsonV510.name,
+      address = postAtmJsonV510.address,
+      location = postAtmJsonV510.location,
+      meta = postAtmJsonV510.meta,
+      monday = postAtmJsonV510.monday,
+      tuesday = postAtmJsonV510.tuesday,
+      wednesday = postAtmJsonV510.wednesday,
+      thursday = postAtmJsonV510.thursday,
+      friday = postAtmJsonV510.friday,
+      saturday = postAtmJsonV510.saturday,
+      sunday = postAtmJsonV510.sunday,
+      is_accessible = postAtmJsonV510.is_accessible,
+      located_at = postAtmJsonV510.located_at,
+      more_info = postAtmJsonV510.more_info,
+      has_deposit_capability = postAtmJsonV510.has_deposit_capability,
+      supported_languages = postAtmJsonV510.supported_languages,
+      services = postAtmJsonV510.services,
+      accessibility_features =postAtmJsonV510.accessibility_features,
+      supported_currencies = postAtmJsonV510.supported_currencies,
+      notes = postAtmJsonV510.notes,
+      location_categories = postAtmJsonV510.location_categories,
+      minimum_withdrawal = postAtmJsonV510.minimum_withdrawal,
+      branch_identification = postAtmJsonV510.branch_identification,
+      site_identification = postAtmJsonV510.site_identification,
+      site_name = postAtmJsonV510.site_name,
+      cash_withdrawal_national_fee = postAtmJsonV510.cash_withdrawal_national_fee,
+      cash_withdrawal_international_fee = postAtmJsonV510.cash_withdrawal_international_fee,
+      balance_inquiry_fee = postAtmJsonV510.balance_inquiry_fee,
+      atm_type = postAtmJsonV510.atm_type,
+      phone = postAtmJsonV510.phone,
+      attributes = None
+    )
+    transformToAtmFromV510(json)
+  }
   def transformToAtmFromV510(atmJsonV510: AtmJsonV510): Atm = {
     val address: Address = transformToAddressFromV300(atmJsonV510.address) // Note the address in V220 is V140
     val location: Location = transformToLocationFromV140(atmJsonV510.location) // Note the location is V140
