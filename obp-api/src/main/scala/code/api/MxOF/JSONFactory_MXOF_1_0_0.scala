@@ -7,6 +7,9 @@ import net.liftweb.json.JValue
 import scala.collection.immutable.List
 import com.openbankproject.commons.model._
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 case class MetaBis(
@@ -138,7 +141,10 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
      }
      )
      GetAtmsResponseJson(
-       meta = MetaBis(),
+       meta = MetaBis(
+         LastUpdated = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")),
+         TotalResults = atms.size.toDouble
+       ),
        data = List(Data(brandList))
      )
    }
