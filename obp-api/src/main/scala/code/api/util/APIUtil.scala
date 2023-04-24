@@ -2232,7 +2232,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                 // Add missing roles
                 roles.map {
                   role => 
-                    val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(bankId, userId, role.toString())
+                    val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
+                      bankId, 
+                      userId, 
+                      role.toString(), 
+                      "create_just_in_time_entitlements"
+                    )
                     logger.info(s"Just in Time Entitlements: $addedEntitlement")
                     addedEntitlement
                 }.forall(_.isDefined)
