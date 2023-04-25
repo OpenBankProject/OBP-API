@@ -804,8 +804,8 @@ trait APIMethods200 {
       "addSocialMediaHandle",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
-      "Add Social Media Handle",
-      "Add a social media handle for the customer specified by CUSTOMER_ID",
+      "Create Customer Social Media Handle",
+      "Create a customer social media handle for the customer specified by CUSTOMER_ID",
       socialMediaJSON,
       successMessage,
       List(
