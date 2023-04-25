@@ -62,6 +62,8 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getUsers))
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
+  lazy val forbiddenEntitlementOneBank = List(PostConsentEntitlementJsonV310(testBankId1.value, CanCreateEntitlementAtOneBank.toString()))
+  lazy val forbiddenEntitlementAnyBank = List(PostConsentEntitlementJsonV310("", CanCreateEntitlementAtAnyBank.toString()))
   lazy val accountAccess = List(AccountAccessV500(
     account_routing = AccountRoutingJsonV121(
       scheme = "AccountId",
@@ -158,6 +160,40 @@ class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
       Then("We get successful response")
       responseGetUsersWrong.code should equal(401)
       responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
+    }
+
+    scenario(s"Check the forbidden roles ${CanCreateEntitlementAtAnyBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+      When(s"We try $ApiEndpoint1 v5.0.0")
+      val postJsonForbiddenEntitlementAtAnyBank = postConsentRequestJsonV310.copy(entitlements = Some(forbiddenEntitlementAnyBank))
+      val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postJsonForbiddenEntitlementAtAnyBank))
+      Then("We should get a 201")
+      createConsentResponse.code should equal(201)
+      val createConsentRequestResponseJson = createConsentResponse.body.extract[ConsentRequestResponseJson]
+      val consentRequestId = createConsentRequestResponseJson.consent_request_id
+
+      // Role CanCreateEntitlementAtAnyBank MUST be forbidden
+      val forbiddenRoleResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+      Then("We should get a 400")
+      forbiddenRoleResponse.code should equal(400)
+      forbiddenRoleResponse.code should equal(400)
+      forbiddenRoleResponse.body.extract[ErrorMessage].message should equal (RolesForbiddenInConsent)
+    }
+    
+    scenario(s"Check the forbidden roles ${CanCreateEntitlementAtOneBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+      When(s"We try $ApiEndpoint1 v5.0.0")
+      val postJsonForbiddenEntitlementAtOneBank = postConsentRequestJsonV310.copy(entitlements = Some(forbiddenEntitlementOneBank))
+      val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postJsonForbiddenEntitlementAtOneBank))
+      Then("We should get a 201")
+      createConsentResponse.code should equal(201)
+      val createConsentRequestResponseJson = createConsentResponse.body.extract[ConsentRequestResponseJson]
+      val consentRequestId = createConsentRequestResponseJson.consent_request_id
+
+      // Role CanCreateEntitlementAtOneBank MUST be forbidden
+      val forbiddenRoleResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+      Then("We should get a 400")
+      forbiddenRoleResponse.code should equal(400)
+      forbiddenRoleResponse.code should equal(400)
+      forbiddenRoleResponse.body.extract[ErrorMessage].message should equal (RolesForbiddenInConsent)
     }
 
   }
