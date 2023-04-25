@@ -165,7 +165,7 @@ object MappedAtmsProvider extends AtmsProvider {
 
 }
 
-class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK {
+class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with CreatedUpdated {
 
   override def getSingleton = MappedAtm
 
