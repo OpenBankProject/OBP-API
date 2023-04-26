@@ -1,14 +1,17 @@
 package code.api.MxOF
 
-import code.api.util.CustomJsonFormats
+import code.api.util.{APIUtil, CustomJsonFormats}
+import code.atms.MappedAtm
 import com.openbankproject.commons.model.Bank
 import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.model._
+import net.liftweb.mapper.{Descending, NotNullRef, OrderBy}
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Date
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
@@ -140,9 +143,14 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
        )
      }
      )
+     val lastUpdated: Date = MappedAtm.findAll(
+       NotNullRef(MappedAtm.updatedAt),
+       OrderBy(MappedAtm.updatedAt, Descending),
+     ).head.updatedAt.get
+     
      GetAtmsResponseJson(
        meta = MetaBis(
-         LastUpdated = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")),
+         LastUpdated = APIUtil.DateWithMsFormat.format(lastUpdated),
          TotalResults = atms.size.toDouble
        ),
        data = List(Data(brandList))
