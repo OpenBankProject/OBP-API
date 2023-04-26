@@ -16,11 +16,11 @@ import java.util.Date
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 case class MetaBis(
-  LastUpdated: String = "",
-  TotalResults: Double=0,
-  Agreement: String ="",
-  License: String="",
-  TermsOfUse: String=""
+  LastUpdated: String,
+  TotalResults: Double,
+  Agreement: String,
+  License: String,
+  TermsOfUse: String
 )
 case class OtherAccessibility(
   Code: String,
@@ -160,7 +160,10 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
      GetAtmsResponseJson(
        meta = MetaBis(
          LastUpdated = APIUtil.DateWithMsFormat.format(lastUpdated),
-         TotalResults = atms.size.toDouble
+         TotalResults = atms.size.toDouble,
+         Agreement ="",
+         License="PDDL",
+         TermsOfUse=""
        ),
        data = List(Data(brandList))
      )
