@@ -43,5 +43,7 @@ trait AtmAttributeProviderTrait {
                                  value: String, 
                                  isActive: Option[Boolean]): Future[Box[AtmAttribute]]
   def deleteAtmAttribute(AtmAttributeId: String): Future[Box[Boolean]]
+  
+  def deleteAtmAttributesByAtmId(atmId: AtmId): Future[Box[Boolean]]
   // End of Trait
 }

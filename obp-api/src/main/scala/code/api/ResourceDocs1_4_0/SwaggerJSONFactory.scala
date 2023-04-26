@@ -365,6 +365,7 @@ object SwaggerJSONFactory extends MdcLoggable {
         .replaceAll("/METHOD_ROUTING_ID", "/{METHOD_ROUTING_ID}")
         .replaceAll("/WEB_UI_PROPS_ID", "/{WEB_UI_PROPS_ID}")
         .replaceAll("/ATM_ID", "/{ATM_ID}")
+        .replaceAll("/ATM_ATTRIBUTE_ID", "/{ATM_ATTRIBUTE_ID}")
         .replaceAll("/CONSENT_ID", "/{CONSENT_ID}")
         .replaceAll("/PRODUCT_ATTRIBUTE_ID", "/{PRODUCT_ATTRIBUTE_ID}")
         .replaceAll("/SCA_METHOD", "/{SCA_METHOD}")
@@ -454,6 +455,8 @@ object SwaggerJSONFactory extends MdcLoggable {
         pathParameters = OperationParameterPathJson(name="WEB_UI_PROPS_ID", description= "the web ui props id") :: pathParameters
       if(path.contains("/{ATM_ID}"))
         pathParameters = OperationParameterPathJson(name="ATM_ID", description= "the atm id") :: pathParameters
+      if(path.contains("/{ATM_ATTRIBUTE_ID}"))
+        pathParameters = OperationParameterPathJson(name="ATM_ATTRIBUTE_ID", description= "the atm attribute id") :: pathParameters
       if(path.contains("/{CONSENT_ID}"))
         pathParameters = OperationParameterPathJson(name="CONSENT_ID", description= "the consent id") :: pathParameters
       if(path.contains("/{PRODUCT_ATTRIBUTE_ID}"))

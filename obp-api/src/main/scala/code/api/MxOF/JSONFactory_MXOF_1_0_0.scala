@@ -1,20 +1,26 @@
 package code.api.MxOF
 
-import code.api.util.CustomJsonFormats
+import code.api.util.{APIUtil, CustomJsonFormats}
+import code.atms.MappedAtm
 import com.openbankproject.commons.model.Bank
 import net.liftweb.json.JValue
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.model._
+import net.liftweb.mapper.{Descending, NotNullRef, OrderBy}
+
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
 
 case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 case class MetaBis(
-  LastUpdated: String = "",
-  TotalResults: Double=0,
-  Agreement: String ="",
-  License: String="",
-  TermsOfUse: String=""
+  LastUpdated: String,
+  TotalResults: Double,
+  Agreement: String,
+  License: String,
+  TermsOfUse: String
 )
 case class OtherAccessibility(
   Code: String,
@@ -81,12 +87,18 @@ case class Data(
 case class GetAtmsResponseJson(
   meta: MetaBis,
   data: List[Data],
-  additionalProp1: String ="string",
-  additionalProp2: String ="string",
-  additionalProp3: String ="string"
 )
 object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
    def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
+     def access24HoursIndicator (atm: AtmT) = {
+       atm.OpeningTimeOnMonday.equals(Some("00:00")) && atm.ClosingTimeOnMonday.equals(Some("23:59"))
+       atm.OpeningTimeOnTuesday.equals(Some("00:00")) && atm.ClosingTimeOnTuesday.equals(Some("23:59"))
+       atm.OpeningTimeOnWednesday.equals(Some("00:00")) && atm.ClosingTimeOnWednesday.equals(Some("23:59"))
+       atm.OpeningTimeOnThursday.equals(Some("00:00")) && atm.ClosingTimeOnThursday.equals(Some("23:59"))
+       atm.OpeningTimeOnFriday.equals(Some("00:00")) && atm.ClosingTimeOnFriday.equals(Some("23:59"))
+       atm.OpeningTimeOnSaturday.equals(Some("00:00")) && atm.ClosingTimeOnSaturday.equals(Some("23:59"))
+       atm.OpeningTimeOnSunday.equals(Some("00:00")) && atm.ClosingTimeOnSunday.equals(Some("23:59"))
+     }
      val brandList = banks
        //first filter out the banks without the atms
        .filter(bank =>atms.map(_.bankId).contains(bank.bankId))
@@ -97,23 +109,23 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
          ATM = bankAtms.map{ bankAtm =>
            MxofATMV100(
              Identification = bankAtm.atmId.value,
-             SupportedLanguages = Some(List("")),//TODO provide dummy data firstly, need to prepare obp data and map it.
-             ATMServices = List(""),  //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Accessibility = List(""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Access24HoursIndicator = true,//TODO 6 
-             SupportedCurrencies = List(""), //TODO provide dummy data firstly, need to prepare obp data and map it.
-             MinimumPossibleAmount = "", //TODO provide dummy data firstly, need to prepare obp data and map it. 
-             Note = List(""),//TODO provide dummy data firstly, need to prepare obp data and map it. 
-             OtherAccessibility = List(OtherAccessibility("","","")), //TODO8 Add table atm_other_accessibility_features with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-accessibility-features
-             OtherATMServices = List(OtherAccessibility("","","")), //TODO 9 Add table atm_other_services with atm_id and the fields below and add OBP PUT endpoint to set /atms/ATM_ID/other-services              
-             Branch = MxofBranchV100(""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
+             SupportedLanguages = bankAtm.supportedLanguages,
+             ATMServices = bankAtm.services.getOrElse(Nil),  
+             Accessibility = bankAtm.accessibilityFeatures.getOrElse(Nil),
+             Access24HoursIndicator = access24HoursIndicator(bankAtm), 
+             SupportedCurrencies = bankAtm.supportedCurrencies.getOrElse(Nil),
+             MinimumPossibleAmount = bankAtm.minimumWithdrawal.getOrElse(""),   
+             Note = bankAtm.notes.getOrElse(Nil),
+             OtherAccessibility = List(OtherAccessibility("","","")), //TODO 1 from attributes?
+             OtherATMServices = List(OtherAccessibility("","","")), //TODO 2 from attributes?
+             Branch = MxofBranchV100(bankAtm.branchIdentification.getOrElse("")), 
              Location = Location(
-               LocationCategory = List("",""), //TODO provide dummy data firstly, need to prepare obp data and map it. 
-               OtherLocationCategory = List(OtherAccessibility("","","")), //TODO 12 Add Table atm_other_location_category with atm_id and the following fields and a PUT endpoint /atms/ATM_ID/other-location-categories
+               LocationCategory = bankAtm.locationCategories.getOrElse(Nil),
+               OtherLocationCategory = List(OtherAccessibility("","","")), //TODO 3 from attributes?
                Site = Site(
-                 Identification = "",
-                 Name= ""
-               ),//TODO provide dummy data firstly, need to prepare obp data and map it. 
+                 Identification = bankAtm.siteIdentification.getOrElse(""),
+                 Name= bankAtm.siteName.getOrElse("")
+               ),
                PostalAddress = PostalAddress(
                  AddressLine= bankAtm.address.line1,
                  BuildingNumber= bankAtm.address.line2,
@@ -132,16 +144,27 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
                )
              ),
              FeeSurcharges = FeeSurcharges(
-               CashWithdrawalNational = "",
-               CashWithdrawalInternational = "",
-               BalanceInquiry = "") //TODO provide dummy data firstly, need to prepare obp data and map it. 
+               CashWithdrawalNational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
+               CashWithdrawalInternational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
+               BalanceInquiry = bankAtm.balanceInquiryFee.getOrElse(""))
            )
          }
        )
      }
      )
+     val lastUpdated: Date = MappedAtm.findAll(
+       NotNullRef(MappedAtm.updatedAt),
+       OrderBy(MappedAtm.updatedAt, Descending),
+     ).head.updatedAt.get
+     
      GetAtmsResponseJson(
-       meta = MetaBis(),
+       meta = MetaBis(
+         LastUpdated = APIUtil.DateWithMsFormat.format(lastUpdated),
+         TotalResults = atms.size.toDouble,
+         Agreement ="",
+         License="PDDL",
+         TermsOfUse=""
+       ),
        data = List(Data(brandList))
      )
    }
