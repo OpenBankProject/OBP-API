@@ -1774,7 +1774,19 @@ object NewStyle extends MdcLoggable{
         atmAttributeId: String,
         callContext: Option[CallContext]
       ) map {
-        i => (connectorEmptyResponse(i._1, callContext), i._2)
+        x => (unboxFullOrFail(x._1, callContext, DeleteAtmAttributeError + s"Current ATM_ATTRIBUTE_ID is ${atmAttributeId}", 400), x._2)
+      }
+    } 
+    
+    def deleteAtmAttributesByAtmId(
+      atmId: AtmId,
+      callContext: Option[CallContext]
+    ): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteAtmAttributesByAtmId(
+        atmId: AtmId,
+        callContext: Option[CallContext]
+      ) map {
+        x => (unboxFullOrFail(x._1, callContext, DeleteAtmAttributeError+ s"Current ATM_ID is ${atmId}", 400), x._2)
       }
     } 
     

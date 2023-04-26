@@ -2168,6 +2168,10 @@ trait Connector extends MdcLoggable {
                          callContext: Option[CallContext]
                          ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
   
+  def deleteAtmAttributesByAtmId(atmId: AtmId,
+                                 callContext: Option[CallContext]
+                                ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)}
+  
   def deleteProductAttribute(
                               productAttributeId: String,
                               callContext: Option[CallContext]

@@ -7,6 +7,7 @@ import code.api.util.ErrorMessages.{AtmNotFoundByAtmId, UserHasMissingRoles}
 import code.api.util.ExampleValue.atmTypeExample
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v5_1_0.APIMethods510.Implementations5_1_0
+import code.atmattribute.AtmAttribute
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
@@ -37,6 +38,7 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.updateAtm))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.getAtms))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_1_0.getAtm))
+  object ApiEndpoint5 extends Tag(nameOf(Implementations5_1_0.deleteAtm))
 
   lazy val bankId = randomBankId
 
@@ -109,11 +111,36 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(200)
     }
   }
+
+  feature(s"Test$ApiEndpoint5 test the error cases - $VersionOfApi") {
+    scenario(s"We try to consume endpoint $ApiEndpoint5 - Anonymous access", ApiEndpoint5, VersionOfApi) {
+      When("We make the request")
+      val requestDelete = (v5_1_0_Request / "banks" / bankId / "atms"/ "amtId").DELETE
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("We should get a 401")
+      And("We should get a message: " + ErrorMessages.UserNotLoggedIn)
+      responseDelete.code should equal(401)
+      responseDelete.body.extract[ErrorMessage].message should equal(ErrorMessages.UserNotLoggedIn)
+    }
+
+    scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {
+      When("We make the request")
+      val requestDelete = (v5_1_0_Request / "banks" / bankId / "atms"/"atm1").DELETE <@ (user1)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("We should get a 403")
+      And("We should get a message: " + s"$canDeleteAtmAtAnyBank or $canDeleteAtm entitlement required")
+      responseDelete.code should equal(403)
+      responseDelete.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
+      responseDelete.body.extract[ErrorMessage].message contains (canDeleteAtmAtAnyBank.toString()) shouldBe (true)
+      responseDelete.body.extract[ErrorMessage].message contains (canDeleteAtm.toString()) shouldBe (true)
+    }
+  }
   
-  feature(s"Test$ApiEndpoint1 $ApiEndpoint2  $ApiEndpoint3  $ApiEndpoint4 - $VersionOfApi") {
+  feature(s"Test$ApiEndpoint1 $ApiEndpoint2  $ApiEndpoint3  $ApiEndpoint4 $ApiEndpoint5 - $VersionOfApi") {
     scenario(s"Test the CUR methods", ApiEndpoint1, VersionOfApi) {
       When("We make the CREATE ATMs")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteAtmAtAnyBank.toString)
       val requestCreate = (v5_1_0_Request / "banks" / bankId / "atms").POST <@ (user1)
       val responseCreate = makePostRequest(requestCreate, write(atmJsonV510.copy(
         bank_id = bankId,
@@ -181,12 +208,33 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
       
       responseOne.code should equal(200)
       val atm = responseOne.body.extract[AtmJsonV510]
-      atm.atm_type equals ("atm_type_111")
+      atm.atm_type shouldBe ("atm_type_111")
       val atmAttributes = atm.attributes.get
       atmAttributes.length shouldBe(3)
       atmAttributes(0).name equals ("1")
       atmAttributes(1).name equals ("2")
       atmAttributes(2).name equals ("3")
+
+
+      Then("We Delete the ATM")
+      val requestOneDelete = (v5_1_0_Request / "banks" / bankId / "atms" / atmId).DELETE<@ (user1)
+      Then("We should get a 204")
+      val responseOneDelete = makeDeleteRequest(requestOneDelete)
+      responseOneDelete.code should equal(204)
+      
+      {
+        Then("We Get the ATM again")
+        val requestOne = (v5_1_0_Request / "banks" / bankId / "atms" / atmId).GET
+        Then("We should get a 200")
+        val responseOne = makeGetRequest(requestOne)
+
+        responseOne.code should equal(404)
+      }
+
+      {
+        Then("We check the atmAttributes")
+        AtmAttribute.findAll().length shouldBe(0)
+      }
       
     }
   }

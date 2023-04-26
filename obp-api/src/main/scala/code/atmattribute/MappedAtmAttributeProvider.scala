@@ -64,8 +64,14 @@ object AtmAttributeProvider extends AtmAttributeProviderTrait {
   }
 
   override def deleteAtmAttribute(AtmAttributeId: String): Future[Box[Boolean]] = Future {
-    Some(
+    tryo (
       AtmAttribute.bulkDelete_!!(By(AtmAttribute.AtmAttributeId, AtmAttributeId))
+    )
+  }
+
+  override def deleteAtmAttributesByAtmId(atmId: AtmId): Future[Box[Boolean]]= Future {
+    tryo(
+      AtmAttribute.bulkDelete_!!(By(AtmAttribute.AtmId_, atmId.value))
     )
   }
 }

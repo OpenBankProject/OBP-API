@@ -11627,8 +11627,8 @@ trait APIMethods400 {
       "/banks/BANK_ID/atms/ATM_ID",
       "Delete ATM",
       s"""Delete ATM.""",
-      atmJsonV400.copy(id= None),
-      atmJsonV400,
+      EmptyBody,
+      EmptyBody,
       List(
         $UserNotLoggedIn,
         UnknownError
