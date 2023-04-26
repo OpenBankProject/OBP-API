@@ -62,7 +62,7 @@ In case that the above command fails try next one:
 
     export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 
-[Note: How to run via IntelliJ IDEA](docs/glossary/Run_via_IntelliJ_IDEA.md)
+[Note: How to run via IntelliJ IDEA](obp-api/src/main/docs/glossary/Run_via_IntelliJ_IDEA.md)
 
 ## Run some tests.
   
