@@ -1,8 +1,9 @@
 package code.api.MxOF
 
 import code.api.util.{APIUtil, CustomJsonFormats}
-import code.api.util.APIUtil.{stringOrNone,listOrNone}
+import code.api.util.APIUtil.{defaultBankId, listOrNone, stringOrNone}
 import code.atms.MappedAtm
+import code.bankattribute.BankAttribute
 import com.openbankproject.commons.model.Bank
 import net.liftweb.json.JValue
 
@@ -90,7 +91,13 @@ case class GetAtmsResponseJson(
   data: List[Data],
 )
 object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
-   def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
+
+  //get the following values from default bank Attributes:
+  final val BANK_ATTRIBUTE_AGREEMENT = "ATM_META_AGREEMENT"
+  final val BANK_ATTRIBUTE_LICENSE = "ATM_META_LICENCE"
+  final val BANK_ATTRIBUTE_TERMSOFUSE = "ATM_META_TERMS_OF_USE"
+  
+   def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT], attributes:List[BankAttribute]) :GetAtmsResponseJson = {
      def access24HoursIndicator (atm: AtmT) = {
        atm.OpeningTimeOnMonday.equals(Some("00:00")) && atm.ClosingTimeOnMonday.equals(Some("23:59"))
        atm.OpeningTimeOnTuesday.equals(Some("00:00")) && atm.ClosingTimeOnTuesday.equals(Some("23:59"))
@@ -168,13 +175,17 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
        OrderBy(MappedAtm.updatedAt, Descending),
      ).head.updatedAt.get
      
+     val agreement = attributes.find(_.name.equals(BANK_ATTRIBUTE_AGREEMENT)).map(_.value).getOrElse("")
+     val license = attributes.find(_.name.equals(BANK_ATTRIBUTE_LICENSE)).map(_.value).getOrElse("")
+     val termsOfUse = attributes.find(_.name.equals(BANK_ATTRIBUTE_TERMSOFUSE)).map(_.value).getOrElse("")
+       
      GetAtmsResponseJson(
        meta = MetaBis(
          LastUpdated = APIUtil.DateWithMsFormat.format(lastUpdated),
          TotalResults = atms.size.toDouble,
-         Agreement ="",
-         License="PDDL",
-         TermsOfUse=""
+         Agreement = agreement,
+         License = license,
+         TermsOfUse = termsOfUse
        ),
        data = List(Data(brandList))
      )
