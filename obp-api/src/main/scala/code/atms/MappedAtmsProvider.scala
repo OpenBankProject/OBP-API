@@ -250,7 +250,7 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with Crea
     line2 = mLine2.get,
     line3 = mLine3.get,
     city = mCity.get,
-    county = Some(mCounty.get),
+    county = if(mCounty == null || mCounty =="") None else Some(mCounty.get),
     state = mState.get,
     countryCode = mCountryCode.get,
     postCode = mPostCode.get
