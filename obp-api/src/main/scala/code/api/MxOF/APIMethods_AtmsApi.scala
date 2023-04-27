@@ -182,8 +182,9 @@ object APIMethods_AtmsApi extends RestHelper {
              (_, callContext) <- anonymousAccess(cc)
              (banks, callContext) <- NewStyle.function.getBanks(callContext)
              (atms, callContext) <- NewStyle.function.getAllAtms(callContext)
+             (attributes, callContext) <- NewStyle.function.getBankAttributesByBank(BankId(defaultBankId), callContext)
            } yield {
-             (createGetAtmsResponse(banks, atms), callContext)
+             (createGetAtmsResponse(banks, atms, attributes), callContext)
            }
          }
        }

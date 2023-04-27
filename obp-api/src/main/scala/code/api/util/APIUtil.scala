@@ -825,6 +825,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else
       text
   
+  def stringOrNone(text : String) =
+    if(text == null || text.isEmpty)
+      None
+    else
+      Some(text)
+  
+  def listOrNone(text : String) =
+    if(text == null || text.isEmpty)
+      None
+    else
+      Some(List(text))
+  
   def nullToString(text : String) =
     if(text == null)
       null
