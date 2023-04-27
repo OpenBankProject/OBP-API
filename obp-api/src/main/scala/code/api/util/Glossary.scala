@@ -3097,10 +3097,10 @@ object Glossary extends MdcLoggable  {
 	}
 
 	private def getListOfFiles():List[File] = {
-		val dir= LiftRules.getResource("/")
-			.map(_.toURI.getPath
-				.replace("webapp", "docs/glossary"))
-		val d = new File(dir.getOrElse(""))
+		val d = new File("src/main/docs/glossary").exists() match {
+			case true => new File("src/main/docs/glossary")
+			case false => new File("obp-api/src/main/docs/glossary")
+		}
 		if (d.exists && d.isDirectory) {
 			d.listFiles.filter(_.isFile).filter(_.getName.endsWith(".md")).toList
 		} else {
