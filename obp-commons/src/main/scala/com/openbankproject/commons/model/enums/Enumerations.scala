@@ -136,6 +136,12 @@ object PemCertificateRole extends OBPEnumeration[PemCertificateRole] {
   object PSP_AI extends Value
   object PSP_PI extends Value
 }
+
+sealed trait UserInvitationPurpose extends EnumValue
+object UserInvitationPurpose extends OBPEnumeration[UserInvitationPurpose] {
+  object DEVELOPER extends Value
+  object CUSTOMER extends Value
+}
 //------api enumerations end ----
 
 sealed trait DynamicEntityFieldType extends EnumValue {

@@ -1981,18 +1981,18 @@ object SwaggerDefinitionsJSON {
     first_name = ExampleValue.firstNameExample.value,
     last_name = ExampleValue.lastNameExample.value,
     email = ExampleValue.emailExample.value,
-    company = "Tesobe",
-    country = "Germany",
-    purpose = "Developer"
+    company = ExampleValue.companyExample.value,
+    country = ExampleValue.countryExample.value,
+    purpose = ExampleValue.purposeExample.value,
   ) 
   val userInvitationJsonV400 = UserInvitationJsonV400(
     first_name = ExampleValue.firstNameExample.value,
     last_name = ExampleValue.lastNameExample.value,
     email = ExampleValue.emailExample.value,
-    company = "TESOBE",
-    country = "Germany",
-    purpose = "Developer",
-    status = "CREATED"
+    company = ExampleValue.companyExample.value,
+    country = ExampleValue.countryExample.value,
+    purpose = ExampleValue.purposeExample.value,
+    status = ExampleValue.statusExample.value,
   )
 
   val entitlementRequestJSON =

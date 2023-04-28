@@ -3756,7 +3756,25 @@ trait APIMethods400 {
       "/banks/BANK_ID/user-invitation",
       "Create User Invitation",
       s"""Create User Invitation.
-         |
+         | 
+         | This endpoint will send an invitation email to the developers, then they can use the link to create the obp user.
+         | 
+         | purpose filed only support:${UserInvitationPurpose.values.toString()}.
+         | 
+         | You can customise the email details use the following webui props:
+         | 
+         | when purpose == ${UserInvitationPurpose.DEVELOPER.toString}
+         | webui_developer_user_invitation_email_subject
+         | webui_developer_user_invitation_email_from
+         | webui_developer_user_invitation_email_text
+         | webui_developer_user_invitation_email_html_text
+         | 
+         | when purpose = == ${UserInvitationPurpose.CUSTOMER.toString}
+         | webui_customer_user_invitation_email_subject
+         | webui_customer_user_invitation_email_from
+         | webui_customer_user_invitation_email_text
+         | webui_customer_user_invitation_email_html_text
+         | 
          |""",
       userInvitationPostJsonV400,
       userInvitationJsonV400,
@@ -3778,6 +3796,11 @@ trait APIMethods400 {
             postedData <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostUserInvitationJsonV400]
             }
+
+            _ <- NewStyle.function.tryons(s"$InvalidJsonValue postedData.purpose only support ${UserInvitationPurpose.values.toString()}", 400, cc.callContext) {
+              UserInvitationPurpose.withName(postedData.purpose)
+            }
+            
             (invitation, callContext) <- NewStyle.function.createUserInvitation(
               bankId, 
               postedData.first_name, 
@@ -3788,14 +3811,24 @@ trait APIMethods400 {
               postedData.purpose, 
               cc.callContext)
           } yield {
-            val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
-            val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
-            val link = s"${APIUtil.getPropsValue("portal_hostname",Constant.HostName)}/user-invitation?id=${invitation.secretKey}"
-            val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
-            val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
-              .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
-              .replace(WebUIPlaceholder.activateYourAccount, link)
-            Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
+            val link = s"${APIUtil.getPropsValue("portal_hostname", Constant.HostName)}/user-invitation?id=${invitation.secretKey}"
+            if (postedData.purpose == UserInvitationPurpose.DEVELOPER.toString){
+              val subject = getWebUiPropsValue("webui_developer_user_invitation_email_subject", "Welcome to the API Playground")
+              val from = getWebUiPropsValue("webui_developer_user_invitation_email_from", "do-not-reply@openbankproject.com")
+              val customText = getWebUiPropsValue("webui_developer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
+              val customHtmlText = getWebUiPropsValue("webui_developer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
+                .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
+                .replace(WebUIPlaceholder.activateYourAccount, link)
+              Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
+            } else {
+              val subject = getWebUiPropsValue("webui_customer_user_invitation_email_subject", "Welcome to the API Playground")
+              val from = getWebUiPropsValue("webui_customer_user_invitation_email_from", "do-not-reply@openbankproject.com")
+              val customText = getWebUiPropsValue("webui_customer_user_invitation_email_text", WebUITemplate.webUiDeveloperUserInvitationEmailText)
+              val customHtmlText = getWebUiPropsValue("webui_customer_user_invitation_email_html_text", WebUITemplate.webUiDeveloperUserInvitationEmailHtmlText)
+                .replace(WebUIPlaceholder.emailRecipient, invitation.firstName)
+                .replace(WebUIPlaceholder.activateYourAccount, link)
+              Mailer.sendMail(From(from), Subject(subject), To(invitation.email), PlainMailBodyType(customText), XHTMLMailBodyType(XML.loadString(customHtmlText)))
+            }
             (JSONFactory400.createUserInvitationJson(invitation), HttpCode.`201`(callContext))
           }
       }
