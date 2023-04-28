@@ -1978,16 +1978,16 @@ object SwaggerDefinitionsJSON {
   )
   
   val userInvitationPostJsonV400 = PostUserInvitationJsonV400(
-    first_name = ExampleValue.nameExample.value,
-    last_name = ExampleValue.nameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
     email = ExampleValue.emailExample.value,
     company = "Tesobe",
     country = "Germany",
     purpose = "Developer"
   ) 
   val userInvitationJsonV400 = UserInvitationJsonV400(
-    first_name = ExampleValue.nameExample.value,
-    last_name = ExampleValue.nameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
     email = ExampleValue.emailExample.value,
     company = "TESOBE",
     country = "Germany",
@@ -5281,7 +5281,7 @@ object SwaggerDefinitionsJSON {
   
   val adapterInfoJsonV500 = AdapterInfoJsonV500(
     name = nameExample.value,
-    version = nameExample.value,
+    version = versionExample.value,
     git_commit = gitCommitExample.value,
     date = dateExample.value,
     total_duration = BigDecimal(durationExample.value),
