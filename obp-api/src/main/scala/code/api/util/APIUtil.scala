@@ -504,6 +504,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }.getOrElse(CustomResponseHeaders(Nil))
   }
+  private def getRequestHeadersNewStyle(cc: Option[CallContext], httpBody: Box[String]): CustomResponseHeaders = {
+    cc.map { i =>
+      val hash = HashUtil.Sha256Hash(s"${i.url}${httpBody.getOrElse("")}")
+      CustomResponseHeaders(
+        List(
+          (ResponseHeader.ETag, hash), 
+          // TODO Add Cache-Control Header
+          // (ResponseHeader.`Cache-Control`, "No-Cache")
+        )
+      )
+    }.getOrElse(CustomResponseHeaders(Nil))
+  }
   private def getSignRequestHeadersError(cc: Option[CallContextLight], httpBody: String): CustomResponseHeaders = {
     cc.map { i =>
       if(JwsUtil.forceVerifyRequestSignResponse(i.url)) {
@@ -629,19 +641,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case Some(c) if c.httpCode.isDefined && c.httpCode.get == 204 =>
         val httpBody = None
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
+        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, 204)
       case Some(c) if c.httpCode.isDefined =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, c.httpCode.get)
+        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, c.httpCode.get)
       case Some(c) if c.verb.toUpperCase() == "DELETE" =>
         val httpBody = None
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
+        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, 204)
       case _ =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
         val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, httpCode)
+        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
+        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, httpCode)
     }
   }
 
