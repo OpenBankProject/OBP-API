@@ -1978,21 +1978,21 @@ object SwaggerDefinitionsJSON {
   )
   
   val userInvitationPostJsonV400 = PostUserInvitationJsonV400(
-    first_name = ExampleValue.nameExample.value,
-    last_name = ExampleValue.nameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
     email = ExampleValue.emailExample.value,
-    company = "Tesobe",
-    country = "Germany",
-    purpose = "Developer"
+    company = ExampleValue.companyExample.value,
+    country = ExampleValue.countryExample.value,
+    purpose = ExampleValue.purposeExample.value,
   ) 
   val userInvitationJsonV400 = UserInvitationJsonV400(
-    first_name = ExampleValue.nameExample.value,
-    last_name = ExampleValue.nameExample.value,
+    first_name = ExampleValue.firstNameExample.value,
+    last_name = ExampleValue.lastNameExample.value,
     email = ExampleValue.emailExample.value,
-    company = "TESOBE",
-    country = "Germany",
-    purpose = "Developer",
-    status = "CREATED"
+    company = ExampleValue.companyExample.value,
+    country = ExampleValue.countryExample.value,
+    purpose = ExampleValue.purposeExample.value,
+    status = ExampleValue.statusExample.value,
   )
 
   val entitlementRequestJSON =
@@ -5281,7 +5281,7 @@ object SwaggerDefinitionsJSON {
   
   val adapterInfoJsonV500 = AdapterInfoJsonV500(
     name = nameExample.value,
-    version = nameExample.value,
+    version = versionExample.value,
     git_commit = gitCommitExample.value,
     date = dateExample.value,
     total_duration = BigDecimal(durationExample.value),

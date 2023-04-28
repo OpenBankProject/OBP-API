@@ -1,14 +1,14 @@
 package code.api.util
 
 
-import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, oneYearAgoDate, formatDate, oneYearAgo, parseDate}
+import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, formatDate, oneYearAgo, oneYearAgoDate, parseDate}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, UserNotLoggedIn}
 import net.liftweb.json.JsonDSL._
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
 import code.apicollection.ApiCollection
 import code.dynamicEntity.{DynamicEntityDefinition, DynamicEntityFooBar, DynamicEntityFullBarFields, DynamicEntityIntTypeExample, DynamicEntityStringTypeExample}
 import com.openbankproject.commons.model.CardAction
-import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType}
+import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, UserInvitationPurpose}
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.json
 import net.liftweb.json.JObject
@@ -1746,10 +1746,10 @@ object ExampleValue {
   glossaryItems += makeGlossaryItem("name", nameExample)
 
   lazy val ageExample = ConnectorField("18", "The user age.")
-  glossaryItems += makeGlossaryItem("age", nameExample)
+  glossaryItems += makeGlossaryItem("age", ageExample)
 
   lazy val productFeeIdExample = ConnectorField("696hlAHLFKUHE37469287634",NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("product_fee_id", nameExample)
+  glossaryItems += makeGlossaryItem("product_fee_id", productFeeIdExample)
 
   lazy val emailAddressExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("email_address", emailAddressExample)
@@ -1757,8 +1757,17 @@ object ExampleValue {
   lazy val availableFundsRequestIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("available_funds_request_id", availableFundsRequestIdExample)
 
-  lazy val lastNameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val lastNameExample = ConnectorField("Smith","The Last name")
   glossaryItems += makeGlossaryItem("last_name", lastNameExample)
+  
+  lazy val companyExample = ConnectorField("Tesobe GmbH","The company name")
+  glossaryItems += makeGlossaryItem("company", companyExample)
+  
+  lazy val countryExample = ConnectorField("Germany"," The country name")
+  glossaryItems += makeGlossaryItem("country", countryExample)
+  
+  lazy val purposeExample = ConnectorField(UserInvitationPurpose.DEVELOPER.toString, NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("purpose", purposeExample)
 
   lazy val redirectUrlExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("redirect_url", redirectUrlExample)
@@ -1886,7 +1895,7 @@ object ExampleValue {
   lazy val canSeeBankAccountBankNameExample = ConnectorField(booleanTrue,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("can_see_bank_account_bank_name", canSeeBankAccountBankNameExample)
 
-  lazy val firstNameExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
+  lazy val firstNameExample = ConnectorField("Tom","The first name")
   glossaryItems += makeGlossaryItem("first_name", firstNameExample)
 
   lazy val contactDetailsExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
