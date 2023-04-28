@@ -40,14 +40,16 @@ import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json._
 import net.liftweb.util.Helpers._
-
 import java.net.URLDecoder
+
+import io.netty.handler.codec.http.HttpHeaders
+
 import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-case class APIResponse(code: Int, body: JValue)
+case class APIResponse(code: Int, body: JValue, headers: Option[HttpHeaders])
 
 /**
   * This trait simulate the Rest process, HTTP parameters --> Reset parameters
@@ -191,7 +193,7 @@ trait SendServerRequests {
           parse(body)
         }
         parsedBody match {
-          case Full(b) => APIResponse(response.getStatusCode, b)
+          case Full(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
           case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
         }
       }

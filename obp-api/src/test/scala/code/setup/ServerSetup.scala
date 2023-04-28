@@ -83,7 +83,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   val mockCustomerId = "cba6c9ef-73fa-4032-9546-c6f6496b354a"
   
   val emptyJSON : JObject = ("error" -> "empty List")
-  val errorAPIResponse = new APIResponse(400,emptyJSON)
+  val errorAPIResponse = new APIResponse(400,emptyJSON, None)
   
 }
 
