@@ -1,7 +1,9 @@
 package code.api.MxOF
 
 import code.api.util.{APIUtil, CustomJsonFormats}
+import code.api.util.APIUtil.{defaultBankId, listOrNone, stringOrNone}
 import code.atms.MappedAtm
+import code.bankattribute.BankAttribute
 import com.openbankproject.commons.model.Bank
 import net.liftweb.json.JValue
 
@@ -23,7 +25,7 @@ case class MetaBis(
   TermsOfUse: String
 )
 case class OtherAccessibility(
-  Code: String,
+  Code: Option[String],
   Description: String,
   Name: String
 )
@@ -42,19 +44,19 @@ case class GeoLocation(
   GeographicCoordinates: GeographicCoordinates
 )
 case class PostalAddress(
-  AddressLine: String,
-  BuildingNumber: String,
-  StreetName: String,
-  TownName: String,
-  CountrySubDivision: List[String],
-  Country: String,
-  PostCode: String,
-  GeoLocation: GeoLocation
+  AddressLine: Option[String],
+  BuildingNumber: Option[String],
+  StreetName: Option[String],
+  TownName: Option[String],
+  CountrySubDivision: Option[List[String]],
+  Country: Option[String],
+  PostCode: Option[String],
+  GeoLocation: Option[GeoLocation]
 )
 case class Location(
-  LocationCategory: List[String],
-  OtherLocationCategory: List[OtherAccessibility],
-  Site: Site,
+  LocationCategory: Option[List[String]],
+  OtherLocationCategory: Option[List[OtherAccessibility]],
+  Site: Option[Site],
   PostalAddress: PostalAddress
 )
 case class FeeSurcharges(
@@ -66,16 +68,16 @@ case class MxofATMV100(
   Identification: String,
   SupportedLanguages: Option[List[String]],
   ATMServices: List[String],
-  Accessibility: List[String],
-  Access24HoursIndicator: Boolean,
+  Accessibility: Option[List[String]],
+  Access24HoursIndicator: Option[Boolean],
   SupportedCurrencies: List[String],
-  MinimumPossibleAmount: String,
-  Note: List[String],
-  OtherAccessibility: List[OtherAccessibility],
-  OtherATMServices: List[OtherAccessibility],
-  Branch: MxofBranchV100,
+  MinimumPossibleAmount: Option[String],
+  Note: Option[List[String]],
+  OtherAccessibility: Option[List[OtherAccessibility]],
+  OtherATMServices: Option[List[OtherAccessibility]],
+  Branch: Option[MxofBranchV100],
   Location: Location,
-  FeeSurcharges: FeeSurcharges
+  FeeSurcharges: Option[FeeSurcharges]
 )
 case class Brand(
   BrandName: String,
@@ -89,7 +91,13 @@ case class GetAtmsResponseJson(
   data: List[Data],
 )
 object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
-   def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT]) :GetAtmsResponseJson = {
+
+  //get the following values from default bank Attributes:
+  final val BANK_ATTRIBUTE_AGREEMENT = "ATM_META_AGREEMENT"
+  final val BANK_ATTRIBUTE_LICENSE = "ATM_META_LICENCE"
+  final val BANK_ATTRIBUTE_TERMSOFUSE = "ATM_META_TERMS_OF_USE"
+  
+   def createGetAtmsResponse (banks: List[Bank], atms: List[AtmT], attributes:List[BankAttribute]) :GetAtmsResponseJson = {
      def access24HoursIndicator (atm: AtmT) = {
        atm.OpeningTimeOnMonday.equals(Some("00:00")) && atm.ClosingTimeOnMonday.equals(Some("23:59"))
        atm.OpeningTimeOnTuesday.equals(Some("00:00")) && atm.ClosingTimeOnTuesday.equals(Some("23:59"))
@@ -111,42 +119,52 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
              Identification = bankAtm.atmId.value,
              SupportedLanguages = bankAtm.supportedLanguages,
              ATMServices = bankAtm.services.getOrElse(Nil),  
-             Accessibility = bankAtm.accessibilityFeatures.getOrElse(Nil),
-             Access24HoursIndicator = access24HoursIndicator(bankAtm), 
+             Accessibility = bankAtm.accessibilityFeatures,
+             Access24HoursIndicator = Some(access24HoursIndicator(bankAtm)), 
              SupportedCurrencies = bankAtm.supportedCurrencies.getOrElse(Nil),
-             MinimumPossibleAmount = bankAtm.minimumWithdrawal.getOrElse(""),   
-             Note = bankAtm.notes.getOrElse(Nil),
-             OtherAccessibility = List(OtherAccessibility("","","")), //TODO 1 from attributes?
-             OtherATMServices = List(OtherAccessibility("","","")), //TODO 2 from attributes?
-             Branch = MxofBranchV100(bankAtm.branchIdentification.getOrElse("")), 
+             MinimumPossibleAmount = bankAtm.minimumWithdrawal,   
+             Note = bankAtm.notes,
+             OtherAccessibility = None, // List(OtherAccessibility("","","")), //TODO 1 from attributes?
+             OtherATMServices =  None, // List(OtherAccessibility("","","")), //TODO 2 from attributes?
+             Branch = if (bankAtm.branchIdentification.getOrElse("").isEmpty) 
+               None 
+             else 
+               Some(MxofBranchV100(bankAtm.branchIdentification.getOrElse(""))), 
              Location = Location(
-               LocationCategory = bankAtm.locationCategories.getOrElse(Nil),
-               OtherLocationCategory = List(OtherAccessibility("","","")), //TODO 3 from attributes?
-               Site = Site(
+               LocationCategory = bankAtm.locationCategories,
+               OtherLocationCategory = None, //List(OtherAccessibility(None,"","")), //TODO 3 from attributes?
+               Site = if(bankAtm.siteIdentification.getOrElse("").isEmpty && bankAtm.siteName.getOrElse("").isEmpty) 
+                 None 
+               else Some(Site(
                  Identification = bankAtm.siteIdentification.getOrElse(""),
                  Name= bankAtm.siteName.getOrElse("")
-               ),
+               )),
                PostalAddress = PostalAddress(
-                 AddressLine= bankAtm.address.line1,
-                 BuildingNumber= bankAtm.address.line2,
-                 StreetName= bankAtm.address.line3,
-                 TownName= bankAtm.address.city,
-                 CountrySubDivision = List(bankAtm.address.state), 
-                 Country = bankAtm.address.county.getOrElse(""),
-                 PostCode= bankAtm.address.postCode,
-                 GeoLocation = GeoLocation(
-                   GeographicCoordinates(
-                     bankAtm.location.latitude.toString,
-                     bankAtm.location.longitude.toString
-                     
-                   )
-                 )
-               )
+                 AddressLine = stringOrNone(bankAtm.address.line1),
+                 BuildingNumber = stringOrNone(bankAtm.address.line2),
+                 StreetName = stringOrNone(bankAtm.address.line3),
+                 TownName = stringOrNone(bankAtm.address.city),
+                 CountrySubDivision = listOrNone(bankAtm.address.state), 
+                 Country = bankAtm.address.county,
+                 PostCode = stringOrNone(bankAtm.address.postCode),
+                 GeoLocation = if (bankAtm.location.latitude.toString.isEmpty && bankAtm.location.longitude.toString.isEmpty)
+                   None
+                 else 
+                   Some(GeoLocation(
+                     GeographicCoordinates(
+                       bankAtm.location.latitude.toString,
+                       bankAtm.location.longitude.toString))))
              ),
-             FeeSurcharges = FeeSurcharges(
-               CashWithdrawalNational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
-               CashWithdrawalInternational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
-               BalanceInquiry = bankAtm.balanceInquiryFee.getOrElse(""))
+             FeeSurcharges = if (bankAtm.branchIdentification.getOrElse("").isEmpty && 
+               bankAtm.cashWithdrawalNationalFee.getOrElse("").isEmpty &&
+               bankAtm.balanceInquiryFee.getOrElse("").isEmpty
+             ) 
+               None 
+             else 
+               Some(FeeSurcharges(
+                 CashWithdrawalNational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
+                 CashWithdrawalInternational = bankAtm.cashWithdrawalNationalFee.getOrElse(""),
+                 BalanceInquiry = bankAtm.balanceInquiryFee.getOrElse("")))
            )
          }
        )
@@ -157,13 +175,17 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
        OrderBy(MappedAtm.updatedAt, Descending),
      ).head.updatedAt.get
      
+     val agreement = attributes.find(_.name.equals(BANK_ATTRIBUTE_AGREEMENT)).map(_.value).getOrElse("")
+     val license = attributes.find(_.name.equals(BANK_ATTRIBUTE_LICENSE)).map(_.value).getOrElse("")
+     val termsOfUse = attributes.find(_.name.equals(BANK_ATTRIBUTE_TERMSOFUSE)).map(_.value).getOrElse("")
+       
      GetAtmsResponseJson(
        meta = MetaBis(
          LastUpdated = APIUtil.DateWithMsFormat.format(lastUpdated),
          TotalResults = atms.size.toDouble,
-         Agreement ="",
-         License="PDDL",
-         TermsOfUse=""
+         Agreement = agreement,
+         License = license,
+         TermsOfUse = termsOfUse
        ),
        data = List(Data(brandList))
      )

@@ -47,7 +47,7 @@ object MappedAtmsProvider extends AtmsProvider {
             .mLine2(atm.address.line2)
             .mLine3(atm.address.line3)
             .mCity(atm.address.city)
-            .mCounty(atm.address.county.getOrElse(""))
+            .mCounty(atm.address.county.orNull)
             .mCountryCode(atm.address.countryCode)
             .mState(atm.address.state)
             .mPostCode(atm.address.postCode)
@@ -250,7 +250,7 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with Crea
     line2 = mLine2.get,
     line3 = mLine3.get,
     city = mCity.get,
-    county = Some(mCounty.get),
+    county = if(mCounty == null || mCounty =="") None else Some(mCounty.get),
     state = mState.get,
     countryCode = mCountryCode.get,
     postCode = mPostCode.get
@@ -310,70 +310,70 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with Crea
   }
 
   override def  supportedLanguages = mSupportedLanguages.get match {
-    case value: String => Some (value.split(",").toList)
+    case value: String if value.nonEmpty => Some (value.split(",").toList)
     case _ => None
   }
 
   override def services: Option[List[String]] = mServices.get match {
-    case value: String => Some (value.split(",").toList)
+    case value: String if value.nonEmpty => Some (value.split(",").toList)
     case _ => None
   }
   
   override def notes: Option[List[String]] = mNotes.get match {
-    case value: String => Some (value.split(",").toList)
+    case value: String if value.nonEmpty=> Some (value.split(",").toList)
     case _ => None
   }
   
   override def accessibilityFeatures: Option[List[String]] = mAccessibilityFeatures.get match {
-    case value: String => Some (value.split(",").toList)
+    case value: String if value.nonEmpty=> Some (value.split(",").toList)
     case _ => None
   }
   
   override def supportedCurrencies: Option[List[String]] = mSupportedCurrencies.get match {
-    case value: String => Some (value.split(",").toList)
+    case value: String if value.nonEmpty=> Some (value.split(",").toList)
     case _ => None
   }
   
   override def minimumWithdrawal: Option[String] = mMinimumWithdrawal.get match {
-    case value: String => Some (value)
+    case value: String if value.nonEmpty => Some (value)
     case _ => None
   }
   override def branchIdentification: Option[String] = mBranchIdentification.get match {
-    case value: String => Some (value)
+    case value: String if value.nonEmpty => Some (value)
     case _ => None
   }
   override def locationCategories: Option[List[String]] = mLocationCategories.get match {
-    case value: String => Some (value.split(",").toList)
+    case value: String if value.nonEmpty => Some (value.split(",").toList)
     case _ => None
   }
   override def siteIdentification: Option[String] = mSiteIdentification.get match {
-    case value: String => Some (value)
+    case value: String if value.nonEmpty => Some (value)
     case _ => None
   }
   override def siteName: Option[String] = mSiteName.get match {
-    case value: String => Some (value)
+    case value: String if value.nonEmpty => Some (value)
     case _ => None
   }
   override def cashWithdrawalNationalFee: Option[String] = mCashWithdrawalNationalFee.get match {
-    case value: String => Some (value)
+    case value: String if value.nonEmpty => Some (value)
     case _ => None
   }
   override def cashWithdrawalInternationalFee: Option[String] = mCashWithdrawalInternationalFee.get match {
-    case value: String => Some (value)
+    case value: String if value.nonEmpty => Some (value)
     case _ => None
   }
   override def balanceInquiryFee: Option[String] = mBalanceInquiryFee.get match {
-    case value: String => Some (value)
+    case value: String if value.nonEmpty => Some (value)
     case _ => None
   }
 
   override def atmType: Option[String] = mAtmType.get match {
-    case value: String => Some(value)
+    case value: String if value.nonEmpty => Some(value)
     case _ => None
   }
 
   override def phone: Option[String] = mPhone.get match {
-    case value: String => Some(value)
+    case value: String if value.nonEmpty => Some(value)
     case _ => None
   }
 
