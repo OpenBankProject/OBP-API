@@ -7,7 +7,7 @@ on:
       - completed
 env:
   ## Sets environment variable
-  DOCKER_HUB_ORGANIZATION: openbankproject
+  DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
   DOCKER_HUB_REPOSITORY: obp-api
 
 
