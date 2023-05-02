@@ -338,6 +338,29 @@ trait Connector extends MdcLoggable {
       callContext: Option[CallContext]
     )
 
+  def getPaymentLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    transactionRequestType: String,
+    currency: String,
+    userId: String,
+    username: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[AmountOfMoney]] = {
+    LocalMappedConnector.getPaymentLimit(
+      bankId: String,
+      accountId: String,
+      viewId: String,
+      transactionRequestType: String,
+      currency: String,
+      userId: String,
+      username: String,
+      callContext: Option[CallContext]
+    )
+  }
+
+
   //Gets current charge level for transaction request
   def getChargeLevel(bankId: BankId,
                      accountId: AccountId,
