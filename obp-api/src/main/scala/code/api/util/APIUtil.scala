@@ -461,6 +461,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     commit
   }
 
+
+  /**
+   * Caching of unchanged resources
+   *
+   * Another typical use of the ETag header is to cache resources that are unchanged. 
+   * If a user visits a given URL again (that has an ETag set), and it is stale (too old to be considered usable), 
+   * the client will send the value of its ETag along in an If-None-Match header field:
+   *
+   * If-None-Match: "33a64df551425fcc55e4d42a148795d9f25f89d4"
+   *
+   * The server compares the client's ETag (sent with If-None-Match) with the ETag for its current version of the resource, 
+   * and if both values match (that is, the resource has not changed), the server sends back a 304 Not Modified status, 
+   * without a body, which tells the client that the cached version of the response is still good to use (fresh).
+   */
+  private def checkIfNotMatchHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String]): Int = {
+    cc.map { i =>
+      val hash = HashUtil.Sha256Hash(s"${i.url}${httpBody.getOrElse("")}")
+      i.requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
+        case Some(value) if httpCode == 200 && hash == value.values.mkString("") => 
+          304
+        case None =>
+          httpCode
+      }
+    }.getOrElse(httpCode)
+  }
+
   private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
     CustomResponseHeaders(
       getGatewayLoginHeader(cc).list ::: 
@@ -640,24 +666,28 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     callContext match {
       case Some(c) if c.httpCode.isDefined && c.httpCode.get == 204 =>
         val httpBody = None
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, 204)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case Some(c) if c.httpCode.isDefined =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, c.httpCode.get)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        val code = checkIfNotMatchHeader(callContext, c.httpCode.get, httpBody)
+        if(code == 304)
+          JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
+        else
+          JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
       case Some(c) if c.verb.toUpperCase() == "DELETE" =>
         val httpBody = None
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, 204)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case _ =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        val headers: CustomResponseHeaders = getRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list ::: headers.list, Nil, httpCode)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, httpCode)
     }
   }
 

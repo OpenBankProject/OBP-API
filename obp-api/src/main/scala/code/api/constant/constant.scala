@@ -64,6 +64,7 @@ object RequestHeader {
   final lazy val `Consent-ID` = "Consent-ID" // Berlin Group
   final lazy val `Consent-JWT` = "Consent-JWT"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
+  final lazy val `If-None-Match` = "If-None-Match"
 }
 object ResponseHeader {
   final lazy val `Correlation-Id` = "Correlation-Id"

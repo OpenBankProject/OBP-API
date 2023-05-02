@@ -1,7 +1,7 @@
 package code.api.v5_1_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.ResponseHeader
+import code.api.{RequestHeader, ResponseHeader}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.v5_1_0.APIMethods510.Implementations5_1_0
@@ -42,6 +42,9 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
   def getAtms() = {
     makeGetRequest((v5_1_0_Request / "banks" / bankId / "atms").GET)
   }
+  def getAtmsWithIfNotMatchHeader(eTag: String) = {
+    makeGetRequest((v5_1_0_Request / "banks" / bankId / "atms").GET, List((RequestHeader.`If-None-Match`, eTag)))
+  }
   
   feature(s"Test ETag Header Response") {
     scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
@@ -79,6 +82,27 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
       // After we delete the atm responses MUST be different
       val ETag5 = getETagHeader(getAtms())
       ETag4 should not equal ETag5
+    }
+  }
+
+
+  /**
+   * Caching of unchanged resources
+   *
+   * Another typical use of the ETag header is to cache resources that are unchanged. 
+   * If a user visits a given URL again (that has an ETag set), and it is stale (too old to be considered usable), 
+   * the client will send the value of its ETag along in an If-None-Match header field:
+   *
+   * If-None-Match: "33a64df551425fcc55e4d42a148795d9f25f89d4"
+   *
+   * The server compares the client's ETag (sent with If-None-Match) with the ETag for its current version of the resource, 
+   * and if both values match (that is, the resource has not changed), the server sends back a 304 Not Modified status, 
+   * without a body, which tells the client that the cached version of the response is still good to use (fresh).
+   */
+  feature(s"Test ETag Header Response - If-Not-Match") {
+    scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      val ETag1 = getETagHeader(getAtms())
+      getAtmsWithIfNotMatchHeader(ETag1).code should equal(304)
     }
   }
 }
