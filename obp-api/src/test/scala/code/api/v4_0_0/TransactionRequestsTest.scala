@@ -520,7 +520,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
@@ -562,7 +562,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
@@ -602,7 +602,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -727,7 +727,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
@@ -775,7 +775,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -897,7 +897,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "EUR"
         val toCurrency = "EUR"
-        val amt = "50000.00"
+        val amt = "9000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
@@ -944,7 +944,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "EUR"
         val toCurrency = "EUR"
-        val amt = "50000.00"
+        val amt = "9000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -1066,7 +1066,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
@@ -1113,7 +1113,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -1163,7 +1163,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -1314,7 +1314,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
@@ -1361,7 +1361,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -1411,7 +1411,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -1573,7 +1573,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "AED"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
         helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
@@ -1623,7 +1623,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")
@@ -1676,7 +1676,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("We set the special conditions for different currencies")
         val fromCurrency = "AED"
         val toCurrency = "INR"
-        val amt = "50000.00"
+        val amt = "30000.00"
         helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
         And("We set the special input JSON values for 'V400 Create Transaction Request' endpoint")

@@ -155,7 +155,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            | },
            |"instructedAmount": {
            |  "currency": "EUR",
-           |  "amount": "123324"
+           |  "amount": "2001"
            |},
            |"creditorAccount": {
            |  "iban": "${acountRoutingIbanTo.accountRouting.address}"
@@ -240,7 +240,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            | },
            |"instructedAmount": {
            |  "currency": "EUR",
-           |  "amount": "123324"
+           |  "amount": "2001"
            |},
            |"creditorAccount": {
            |  "iban": "${ibanTo}"
@@ -297,7 +297,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
            | },
            |"instructedAmount": {
            |  "currency": "EUR",
-           |  "amount": "12355"
+           |  "amount": "2001"
            |},
            |"creditorAccount": {
            |  "iban": "${acountRoutingIbanTo.accountRouting.address}"
@@ -366,8 +366,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
         By(MappedBankAccount.theAccountId, acountRoutingIbanTo.accountId.value))
         .map(_.balance).openOrThrowException("Can not be empty here")
 
-      afterPaymentFromAccountBalance-beforePaymentFromAccountBalance should be (BigDecimal(-12355.00))
-      afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(12355.00))
+      afterPaymentFromAccountBalance-beforePaymentFromAccountBalance should be (BigDecimal(-2001.00))
+      afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(2001.00))
       
     }
     
