@@ -215,7 +215,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[AmountOfMoney]] = Future {
     //Get the limit from userAttribute, default is 10000 euros
-    val userAttributeName = "TRANSACTION_REQUESTS_PAYMENT_LIMITE_" + transactionRequestType.toUpperCase
+    val userAttributeName = "TRANSACTION_REQUESTS_PAYMENT_LIMIT_" + transactionRequestType.toUpperCase
     val userAttributes = UserAttribute.findAll(By(UserAttribute.UserId, userId))
     val userAttributeValue = userAttributes.find(_.name == userAttributeName).map(_.value)
     val paymentLimitBox = tryo (BigDecimal(userAttributeValue.getOrElse("10000")))
