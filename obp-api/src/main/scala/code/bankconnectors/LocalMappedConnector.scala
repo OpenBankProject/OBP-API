@@ -214,30 +214,25 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     username: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[AmountOfMoney]] = Future {
-    //Get the limit from userAttribute, default is 10000 euros
-    val userAttributeName = "TRANSACTION_REQUESTS_PAYMENT_LIMIT_" + transactionRequestType.toUpperCase
-    val userAttributes = UserAttribute.findAll(By(UserAttribute.UserId, userId))
+    
+    //Get the limit from userAttribute, default is 1 
+    val userAttributeName = s"TRANSACTION_REQUESTS_PAYMENT_LIMIT_${currency}_" + transactionRequestType.toUpperCase
+    val userAttributes = UserAttribute.findAll(
+      By(UserAttribute.UserId, userId),
+      OrderBy(UserAttribute.createdAt, Descending)
+    )
     val userAttributeValue = userAttributes.find(_.name == userAttributeName).map(_.value)
-    val paymentLimitBox = tryo (BigDecimal(userAttributeValue.getOrElse("10000")))
-    logger.debug(s"payment list is $paymentLimitBox")
-
-    val thresholdCurrency: String = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
-    logger.debug(s"thresholdCurrency is $thresholdCurrency")
+    val paymentLimit = APIUtil.getPropsAsIntValue("transactionRequests_payment_limit",100000)
+    val paymentLimitBox = tryo (BigDecimal(userAttributeValue.getOrElse(paymentLimit.toString)))
+    logger.debug(s"getPaymentLimit: paymentLimitBox is $paymentLimitBox")
+    logger.debug(s"getPaymentLimit: currency is $currency")
     paymentLimitBox match {
       case Full(paymentLimitValue)  =>
-        isValidCurrencyISOCode(thresholdCurrency) match {
+        isValidCurrencyISOCode(currency) match {
           case true =>
-            fx.exchangeRate(thresholdCurrency, currency, Some(bankId)) match {
-              case rate@Some(_) =>
-                val convertedThreshold = fx.convert(paymentLimitValue, rate)
-                logger.debug(s"getPaymentLimit for currency $currency is $convertedThreshold")
-                (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
-              case _ =>
-                val msg = s"$InvalidCurrency The requested currency conversion (${thresholdCurrency} to ${currency}) is not supported."
-                (Failure(msg), callContext)
-            }
+            (Full(AmountOfMoney(currency, paymentLimitValue.toString())), callContext)
           case false =>
-            val msg = s"$InvalidISOCurrencyCode ${thresholdCurrency}"
+            val msg = s"$InvalidISOCurrencyCode ${currency}"
             (Failure(msg), callContext)
         }
       case _ =>

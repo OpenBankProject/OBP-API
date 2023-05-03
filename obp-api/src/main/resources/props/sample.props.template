@@ -294,6 +294,9 @@ transactionRequests_challenge_threshold_SEPA=1000
 # To set a currency for the above value:
 #transactionRequests_challenge_currency=KRW
 
+# To set the payment limit, default is 100000
+#transactionRequests_payment_limit=100000
+
 ### Management modules
 
 ## RabbitMQ settings (used to communicate with HBCI project)
