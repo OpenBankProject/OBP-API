@@ -203,6 +203,46 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+
+  override def getPaymentLimit(
+    bankId: String,
+    accountId: String,
+    viewId: String,
+    transactionRequestType: String,
+    currency: String,
+    userId: String,
+    username: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[AmountOfMoney]] = Future {
+    
+    //Get the limit from userAttribute, default is 1 
+    val userAttributeName = s"TRANSACTION_REQUESTS_PAYMENT_LIMIT_${currency}_" + transactionRequestType.toUpperCase
+    val userAttributes = UserAttribute.findAll(
+      By(UserAttribute.UserId, userId),
+      OrderBy(UserAttribute.createdAt, Descending)
+    )
+    val userAttributeValue = userAttributes.find(_.name == userAttributeName).map(_.value)
+    val paymentLimit = APIUtil.getPropsAsIntValue("transactionRequests_payment_limit",100000)
+    val paymentLimitBox = tryo (BigDecimal(userAttributeValue.getOrElse(paymentLimit.toString)))
+    logger.debug(s"getPaymentLimit: paymentLimitBox is $paymentLimitBox")
+    logger.debug(s"getPaymentLimit: currency is $currency")
+    paymentLimitBox match {
+      case Full(paymentLimitValue)  =>
+        isValidCurrencyISOCode(currency) match {
+          case true =>
+            (Full(AmountOfMoney(currency, paymentLimitValue.toString())), callContext)
+          case false =>
+            val msg = s"$InvalidISOCurrencyCode ${currency}"
+            (Failure(msg), callContext)
+        }
+      case _ =>
+        val msg = s"$InvalidNumber Current user attribute ${userAttributeName}.value is (${userAttributeValue.getOrElse("")})"
+        (Failure(msg), callContext)
+    }
+    
+    
+  }
+  
   /**
     * Steps To Create, Store and Send Challenge
     * 1. Generate a random challenge
@@ -4846,15 +4886,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {
+
+      transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
+        BigDecimal(transactionRequestCommonBody.value.amount)
+      }
+
+      (paymentLimit, callContext) <- Connector.connector.vend.getPaymentLimit(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetPaymentLimit ", 400), i._2)
+      }
+
+      paymentLimitAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetPaymentLimit. payment limit amount ${paymentLimit.amount} not convertible to number", 400, callContext) {
+        BigDecimal(paymentLimit.amount)
+      }
+
+      _ <- Helper.booleanToFuture(s"$InvalidJsonValue the payment amount is over the payment limit($paymentLimit)", 400, callContext) {
+        transactionRequestCommonBodyAmount <= paymentLimitAmount
+      }
+      
       // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
       (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
       }
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)
-      }
-      transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
-        BigDecimal(transactionRequestCommonBody.value.amount)
       }
       status <- getStatus(challengeThresholdAmount, transactionRequestCommonBodyAmount, transactionRequestType: TransactionRequestType)
       (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId, initiator.name, transactionRequestType.value, fromAccount.currency, callContext) map { i =>
@@ -4961,6 +5015,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
 
     for {
+      transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
+        BigDecimal(transactionRequestCommonBody.value.amount)
+      }
+      
+      (paymentLimit, callContext) <- Connector.connector.vend.getPaymentLimit(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
+        (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetPaymentLimit ", 400), i._2)
+      }
+
+      paymentLimitAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetPaymentLimit. payment limit amount ${paymentLimit.amount} not convertible to number", 400, callContext) {
+        BigDecimal(paymentLimit.amount)
+      }
+      
+      _ <- Helper.booleanToFuture(s"$InvalidJsonValue the payment amount is over the payment limit($paymentLimit)", 400, callContext) {
+        transactionRequestCommonBodyAmount <= paymentLimitAmount
+      }
+      
       // Get the threshold for a challenge. i.e. over what value do we require an out of Band security challenge to be sent?
       (challengeThreshold, callContext) <- Connector.connector.vend.getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetChallengeThreshold ", 400), i._2)
@@ -4968,9 +5038,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       challengeThresholdAmount <- NewStyle.function.tryons(s"$InvalidConnectorResponseForGetChallengeThreshold. challengeThreshold amount ${challengeThreshold.amount} not convertible to number", 400, callContext) {
         BigDecimal(challengeThreshold.amount)
       }
-      transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
-        BigDecimal(transactionRequestCommonBody.value.amount)
-      }
+     
+      
       status <- getStatus(challengeThresholdAmount, transactionRequestCommonBodyAmount, transactionRequestType: TransactionRequestType)
       (chargeLevel, callContext) <- Connector.connector.vend.getChargeLevelC2(
         BankId(fromAccount.bankId.value), 
