@@ -65,6 +65,7 @@ object RequestHeader {
   final lazy val `Consent-JWT` = "Consent-JWT"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
   final lazy val `If-None-Match` = "If-None-Match"
+  final lazy val `If-Modified-Since` = "If-Modified-Since"
 }
 object ResponseHeader {
   final lazy val `Correlation-Id` = "Correlation-Id"

@@ -475,16 +475,39 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * and if both values match (that is, the resource has not changed), the server sends back a 304 Not Modified status, 
    * without a body, which tells the client that the cached version of the response is still good to use (fresh).
    */
-  private def checkIfNotMatchHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String]): Int = {
-    cc.map { i =>
-      val hash = HashUtil.Sha256Hash(s"${i.url}${httpBody.getOrElse("")}")
-      i.requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
-        case Some(value) if httpCode == 200 && hash == value.values.mkString("") => 
-          304
-        case None =>
-          httpCode
-      }
-    }.getOrElse(httpCode)
+  private def checkIfNotMatchHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
+    val url = cc.map(_.url).getOrElse("")
+    val hash = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
+    if (httpCode == 200 && hash == headerValue) 304 else httpCode
+  }
+
+  
+  // The If-Modified-Since request HTTP header makes the request conditional: the server sends back the requested resource, 
+  // with a 200 status, only if it has been last modified after the given date. 
+  // If the resource has not been modified since, the response is a 304 without any body; 
+  // the Last-Modified response header of a previous request contains the date of last modification
+  private def checkIfModifiedSinceHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
+    if(httpCode == 200) // If-Modified-Since can only be used with a GET or HEAD
+      httpCode // TODO Implement If-Modified-Since request HTTP header behaviour
+    else
+      httpCode
+  }
+  
+  private def checkConditionalRequest(cc: Option[CallContext], httpCode: Int, httpBody: Box[String]) = {
+    val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
+    requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
+      case Some(value) => 
+        checkIfNotMatchHeader(cc, httpCode, httpBody, value.values.mkString(""))
+      case None =>
+        // When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
+        // The most common use case is to update a cached entity that has no associated ETag
+        requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match { 
+          case Some(value) =>
+            checkIfModifiedSinceHeader(cc, httpCode, httpBody, value.values.mkString(""))
+          case None => 
+            httpCode
+        }
+    }
   }
 
   private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
@@ -673,7 +696,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val httpBody = Full(JsonAST.compactRender(jsonValue))
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
-        val code = checkIfNotMatchHeader(callContext, c.httpCode.get, httpBody)
+        val code = checkConditionalRequest(callContext, c.httpCode.get, httpBody)
         if(code == 304)
           JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
         else
