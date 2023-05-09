@@ -1,10 +1,12 @@
 package code.api.v5_1_0
 
+import java.util.Date
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.{RequestHeader, ResponseHeader}
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.v5_1_0.APIMethods510.Implementations5_1_0
+import code.api.{RequestHeader, ResponseHeader}
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -44,6 +46,12 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
   }
   def getAtmsWithIfNotMatchHeader(eTag: String) = {
     makeGetRequest((v5_1_0_Request / "banks" / bankId / "atms").GET, List((RequestHeader.`If-None-Match`, eTag)))
+  }
+  def getAtmsWithIfModifiedSinceHeader(sinceDate: String) = {
+    makeGetRequest((v5_1_0_Request / "banks" / bankId / "atms").GET, List((RequestHeader.`If-Modified-Since`, sinceDate)))
+  }
+  def getAtmsWithIfModifiedSinceHeader(sinceDate: String, consumerAndToken: Option[(Consumer, Token)]) = {
+    makeGetRequest((v5_1_0_Request / "banks" / bankId / "atms").GET <@(consumerAndToken), List((RequestHeader.`If-Modified-Since`, sinceDate)))
   }
   
   feature(s"Test ETag Header Response") {
@@ -103,6 +111,33 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
     scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       val ETag1 = getETagHeader(getAtms())
       getAtmsWithIfNotMatchHeader(ETag1).code should equal(304)
+    }
+  }
+
+  feature(s"Test Request Header - If-Modified-Since") {
+    scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      val sinceDateString = APIUtil.DateWithSecondsFormat.format(new Date())
+      val firstCall = getAtmsWithIfModifiedSinceHeader(sinceDateString)
+      firstCall.code should equal(200)
+
+      // Due to the async task regarding cache we must wait some time
+      Thread.sleep(1000)
+
+      val secondCall = getAtmsWithIfModifiedSinceHeader(APIUtil.DateWithSecondsFormat.format(new Date()))
+      secondCall.code should equal(304)
+    }
+  }
+  feature(s"Test Request Header - If-Modified-Since - Logged In User") {
+    scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      val sinceDateString = APIUtil.DateWithSecondsFormat.format(new Date())
+      val firstCall = getAtmsWithIfModifiedSinceHeader(sinceDateString, user1)
+      firstCall.code should equal(200)
+
+      // Due to the async task regarding cache we must wait some time
+      Thread.sleep(1000)
+
+      val secondCall = getAtmsWithIfModifiedSinceHeader(APIUtil.DateWithSecondsFormat.format(new Date()), user1)
+      secondCall.code should equal(304)
     }
   }
 }
