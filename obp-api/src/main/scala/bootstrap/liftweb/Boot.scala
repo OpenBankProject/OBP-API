@@ -57,6 +57,7 @@ import code.bankattribute.BankAttribute
 import code.bankconnectors.storedprocedure.StoredProceduresMockedData
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
+import code.etag.MappedCache
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.connectormethod.ConnectorMethod
@@ -1011,6 +1012,7 @@ object ToSchemify {
   // The following tables are accessed directly via Mapper / JDBC
   val models: List[MetaMapper[_]] = List(
     AuthUser,
+    MappedCache,
     AtmAttribute,
     Admin,
     MappedBank,

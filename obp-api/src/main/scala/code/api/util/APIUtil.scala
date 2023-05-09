@@ -32,7 +32,7 @@ import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
-import java.util.{Calendar, Date, UUID}
+import java.util.{Calendar, Date, TimeZone, UUID}
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
@@ -115,7 +115,9 @@ import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 import java.util.regex.Pattern
 
+import code.etag.MappedCache
 import code.users.Users
+import net.liftweb.mapper.By
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -487,22 +489,83 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // If the resource has not been modified since, the response is a 304 without any body; 
   // the Last-Modified response header of a previous request contains the date of last modification
   private def checkIfModifiedSinceHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
-    if(httpCode == 200) // If-Modified-Since can only be used with a GET or HEAD
-      httpCode // TODO Implement If-Modified-Since request HTTP header behaviour
-    else
-      httpCode
+    def headerValueToMillis(): Long = {
+      var epochTime = 0L
+      // Create a DateFormat and set the timezone to GMT.
+      val df: SimpleDateFormat = new SimpleDateFormat(DateWithSeconds)
+      // df.setTimeZone(TimeZone.getTimeZone("GMT"))
+      try { // Convert string into Date, for instance: "2023-05-19T02:31:05Z"
+        epochTime = df.parse(headerValue).getTime()
+      } catch {
+        case e: ParseException => e.printStackTrace
+      }
+      epochTime
+    }
+    
+    def asyncUpdate(row: MappedCache, hash: String): Future[Boolean] = {
+      Future { // Async update
+        row
+          .LastUpdatedEpochTime(System.currentTimeMillis)
+          .CacheValue(hash)
+          .save
+      }
+    }
+
+    def asyncCreate(cacheKey: String, hash: String): Future[Boolean] = {
+      Future { // Async create
+        tryo(MappedCache.create
+          .CacheKey(cacheKey)
+          .CacheValue(hash)
+          .LastUpdatedEpochTime(System.currentTimeMillis)
+          .CacheNamespace("ETag")
+          .save) match {
+          case Full(value) => value
+          case other => 
+            logger.debug(other)
+            false
+        }
+      }
+    }
+    
+    val url = cc.map(_.url).getOrElse("")
+    val hashedRequestPayload = HashUtil.Sha256Hash(url)
+    val cacheKey = cc.map(i => s"""${i.consumer.map(_.consumerId.get).getOrElse("")}::${i.userId}::${hashedRequestPayload}""")
+      .getOrElse(hashedRequestPayload)
+    val hash = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
+    
+    if(httpCode == 200) { // If-Modified-Since can only be used with a GET or HEAD
+      val validETag = MappedCache.find(By(MappedCache.CacheKey, cacheKey), By(MappedCache.CacheNamespace, ResponseHeader.ETag)) match {
+        case Full(row) if row.lastUpdatedEpochTime < headerValueToMillis() => 
+          val modified = row.cacheValue != hash 
+          if(modified) {
+            asyncUpdate(row, hash)
+            false // ETAg is outdated
+          } else {
+            true // ETAg is up to date
+          }
+        case Empty =>
+          asyncCreate(cacheKey, hash)
+          false // There is no ETAg at all
+        case _ => 
+          false // In case of any issue we consider ETAg as outdated
+      }
+      if (validETag) // Response has not been changed since our previous call
+        304 
+      else 
+        httpCode
+    } else httpCode
   }
   
   private def checkConditionalRequest(cc: Option[CallContext], httpCode: Int, httpBody: Box[String]) = {
     val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
     requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
-      case Some(value) => 
+      case Some(value) => // Handle the If-None-Match HTTP request header
         checkIfNotMatchHeader(cc, httpCode, httpBody, value.values.mkString(""))
       case None =>
         // When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
         // The most common use case is to update a cached entity that has no associated ETag
         requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match { 
-          case Some(value) =>
+          case Some(value) => // Handle the If-Modified-Since HTTP request header
             checkIfModifiedSinceHeader(cc, httpCode, httpBody, value.values.mkString(""))
           case None => 
             httpCode
