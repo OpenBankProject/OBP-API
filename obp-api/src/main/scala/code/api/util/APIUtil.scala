@@ -529,8 +529,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     
     val url = cc.map(_.url).getOrElse("")
     val hashedRequestPayload = HashUtil.Sha256Hash(url)
-    val cacheKey = cc.map(i => s"""${i.consumer.map(_.consumerId.get).getOrElse("")}::${i.userId}::${hashedRequestPayload}""")
-      .getOrElse(hashedRequestPayload)
+    val consumerId: Option[String] = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse(""))
+    val userId = tryo(cc.map(i => i.userId).toBox).flatten
+    val cacheKey = s"""${consumerId.getOrElse("")}::${userId}::${hashedRequestPayload}"""
     val hash = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
     
     if(httpCode == 200) { // If-Modified-Since can only be used with a GET or HEAD
