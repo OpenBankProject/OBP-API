@@ -1,0 +1,3 @@
+obp-api/src/main/resources/props/*
+!obp-api/src/main/resources/props/sample.props.template
+!obp-api/src/main/resources/props/test.default.props.template
