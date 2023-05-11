@@ -512,7 +512,7 @@ object ErrorMessages {
   val ConsumerKeyIsInvalid = "OBP-35030: The Consumer Key must be alphanumeric. (A-Z, a-z, 0-9)"
   val ConsumerKeyIsToLong = "OBP-35031: The Consumer Key max length <= 512"
   val ConsentHeaderValueInvalid = "OBP-35032: The Consent's Request Header value is not formatted as UUID or JWT."
-  val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain Roles: ${canCreateEntitlementAtOneBank} and ${canCreateEntitlementAtAnyBank}."
+  val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain the following Roles: ${canCreateEntitlementAtOneBank} and ${canCreateEntitlementAtAnyBank}."
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
