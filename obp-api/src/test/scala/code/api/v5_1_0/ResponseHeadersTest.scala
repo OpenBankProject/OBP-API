@@ -120,24 +120,58 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
       val firstCall = getAtmsWithIfModifiedSinceHeader(sinceDateString)
       firstCall.code should equal(200)
 
+      // We create an ATM in the meantime
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
+      val requestCreate = (v5_1_0_Request / "banks" / bankId / "atms").POST <@ (user1)
+      val responseCreate = makePostRequest(requestCreate, write(atmJsonV510.copy(
+        bank_id = bankId,
+        atm_type = "atm_type1",
+        phone = "12345")))
+      Then("We should get a 201")
+      responseCreate.code should equal(201)
+
       // Due to the async task regarding cache we must wait some time
       Thread.sleep(1000)
 
       val secondCall = getAtmsWithIfModifiedSinceHeader(APIUtil.DateWithSecondsFormat.format(new Date()))
-      secondCall.code should equal(304)
+      secondCall.code should equal(200)
+
+      // Due to the async task regarding cache we must wait some time
+      Thread.sleep(1000)
+
+      val thirdCall = getAtmsWithIfModifiedSinceHeader(APIUtil.DateWithSecondsFormat.format(new Date()))
+      thirdCall.code should equal(304)
     }
   }
+
+  
   feature(s"Test Request Header - If-Modified-Since - Logged In User") {
     scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       val sinceDateString = APIUtil.DateWithSecondsFormat.format(new Date())
       val firstCall = getAtmsWithIfModifiedSinceHeader(sinceDateString, user1)
       firstCall.code should equal(200)
 
+      // We create an ATM in the meantime
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
+      val requestCreate = (v5_1_0_Request / "banks" / bankId / "atms").POST <@ (user1)
+      val responseCreate = makePostRequest(requestCreate, write(atmJsonV510.copy(
+        bank_id = bankId,
+        atm_type = "atm_type1",
+        phone = "12345")))
+      Then("We should get a 201")
+      responseCreate.code should equal(201)
+
       // Due to the async task regarding cache we must wait some time
       Thread.sleep(1000)
 
       val secondCall = getAtmsWithIfModifiedSinceHeader(APIUtil.DateWithSecondsFormat.format(new Date()), user1)
-      secondCall.code should equal(304)
+      secondCall.code should equal(200)
+
+      // Due to the async task regarding cache we must wait some time
+      Thread.sleep(1000)
+
+      val thirdCall = getAtmsWithIfModifiedSinceHeader(APIUtil.DateWithSecondsFormat.format(new Date()), user1)
+      thirdCall.code should equal(304)
     }
   }
 }

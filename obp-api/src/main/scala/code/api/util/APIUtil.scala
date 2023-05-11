@@ -115,7 +115,7 @@ import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 import java.util.regex.Pattern
 
-import code.etag.MappedCache
+import code.etag.MappedETag
 import code.users.Users
 import net.liftweb.mapper.By
 
@@ -502,22 +502,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       epochTime
     }
     
-    def asyncUpdate(row: MappedCache, hash: String): Future[Boolean] = {
+    def asyncUpdate(row: MappedETag, hash: String): Future[Boolean] = {
       Future { // Async update
         row
-          .LastUpdatedEpochTime(System.currentTimeMillis)
-          .CacheValue(hash)
+          .LastUpdatedMSSinceEpoch(System.currentTimeMillis)
+          .ETagValue(hash)
           .save
       }
     }
 
     def asyncCreate(cacheKey: String, hash: String): Future[Boolean] = {
       Future { // Async create
-        tryo(MappedCache.create
-          .CacheKey(cacheKey)
-          .CacheValue(hash)
-          .LastUpdatedEpochTime(System.currentTimeMillis)
-          .CacheNamespace("ETag")
+        tryo(MappedETag.create
+          .ETagResource(cacheKey)
+          .ETagValue(hash)
+          .LastUpdatedMSSinceEpoch(System.currentTimeMillis)
           .save) match {
           case Full(value) => value
           case other => 
@@ -529,23 +528,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     
     val url = cc.map(_.url).getOrElse("")
     val hashedRequestPayload = HashUtil.Sha256Hash(url)
-    val consumerId: Option[String] = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse(""))
-    val userId = tryo(cc.map(i => i.userId).toBox).flatten
-    val cacheKey = s"""${consumerId.getOrElse("")}::${userId}::${hashedRequestPayload}"""
-    val hash = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
+    val consumerId = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
+    val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("")
+    val cacheKey = s"""consumerId${consumerId}::userId${userId}::${hashedRequestPayload}"""
+    val eTag = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
     
     if(httpCode == 200) { // If-Modified-Since can only be used with a GET or HEAD
-      val validETag = MappedCache.find(By(MappedCache.CacheKey, cacheKey), By(MappedCache.CacheNamespace, ResponseHeader.ETag)) match {
-        case Full(row) if row.lastUpdatedEpochTime < headerValueToMillis() => 
-          val modified = row.cacheValue != hash 
+      val validETag = MappedETag.find(By(MappedETag.ETagResource, cacheKey)) match {
+        case Full(row) if row.lastUpdatedMSSinceEpoch < headerValueToMillis() => 
+          val modified = row.eTagValue != eTag 
           if(modified) {
-            asyncUpdate(row, hash)
+            asyncUpdate(row, eTag)
             false // ETAg is outdated
           } else {
             true // ETAg is up to date
           }
         case Empty =>
-          asyncCreate(cacheKey, hash)
+          asyncCreate(cacheKey, eTag)
           false // There is no ETAg at all
         case _ => 
           false // In case of any issue we consider ETAg as outdated
