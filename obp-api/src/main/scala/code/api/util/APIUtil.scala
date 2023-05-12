@@ -527,10 +527,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
     
     val url = cc.map(_.url).getOrElse("")
-    val hashedRequestPayload = HashUtil.Sha256Hash(url)
-    val consumerId = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")
-    val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("")
-    val cacheKey = s"""consumerId${consumerId}::userId${userId}::${hashedRequestPayload}"""
+    val requestHeaders: List[HTTPParam] = 
+      cc.map(_.requestHeaders.filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)).getOrElse(Nil)
+    val hashedRequestPayload = HashUtil.Sha256Hash(url + requestHeaders)
+    val consumerId = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
+    val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("None")
+    val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
+    val compositeKey = 
+      if(consumerId == "None" && userId == "None") {
+        s"""correlationId${correlationId}""" // In case we cannot determine client app fail back to session info
+      } else {
+        s"""consumerId${consumerId}::userId${userId}"""
+      }
+    val cacheKey = s"""$compositeKey::${hashedRequestPayload}"""
     val eTag = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
     
     if(httpCode == 200) { // If-Modified-Since can only be used with a GET or HEAD
