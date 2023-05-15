@@ -6618,7 +6618,6 @@ trait APIMethods400 {
         cc =>
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- NewStyle.function.hasEntitlement(bankId, u.userId, canCreateProductAttribute, callContext)
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), callContext)
             failMsg = s"$InvalidJsonFormat The Json body should be the $BankAttributeJsonV400 "
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {

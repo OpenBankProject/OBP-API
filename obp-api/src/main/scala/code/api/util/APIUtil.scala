@@ -32,7 +32,7 @@ import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.text.{ParsePosition, SimpleDateFormat}
 import java.util.concurrent.ConcurrentHashMap
-import java.util.{Calendar, Date, UUID}
+import java.util.{Calendar, Date, TimeZone, UUID}
 
 import code.UserRefreshes.UserRefreshes
 import code.accountholders.AccountHolders
@@ -115,7 +115,9 @@ import org.apache.commons.lang3.StringUtils
 import java.security.AccessControlException
 import java.util.regex.Pattern
 
+import code.etag.MappedETag
 import code.users.Users
+import net.liftweb.mapper.By
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -461,6 +463,125 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     commit
   }
 
+
+  /**
+   * Caching of unchanged resources
+   *
+   * Another typical use of the ETag header is to cache resources that are unchanged. 
+   * If a user visits a given URL again (that has an ETag set), and it is stale (too old to be considered usable), 
+   * the client will send the value of its ETag along in an If-None-Match header field:
+   *
+   * If-None-Match: "33a64df551425fcc55e4d42a148795d9f25f89d4"
+   *
+   * The server compares the client's ETag (sent with If-None-Match) with the ETag for its current version of the resource, 
+   * and if both values match (that is, the resource has not changed), the server sends back a 304 Not Modified status, 
+   * without a body, which tells the client that the cached version of the response is still good to use (fresh).
+   */
+  private def checkIfNotMatchHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
+    val url = cc.map(_.url).getOrElse("")
+    val hash = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
+    if (httpCode == 200 && hash == headerValue) 304 else httpCode
+  }
+
+  
+  // The If-Modified-Since request HTTP header makes the request conditional: the server sends back the requested resource, 
+  // with a 200 status, only if it has been last modified after the given date. 
+  // If the resource has not been modified since, the response is a 304 without any body; 
+  // the Last-Modified response header of a previous request contains the date of last modification
+  private def checkIfModifiedSinceHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
+    def headerValueToMillis(): Long = {
+      var epochTime = 0L
+      // Create a DateFormat and set the timezone to GMT.
+      val df: SimpleDateFormat = new SimpleDateFormat(DateWithSeconds)
+      // df.setTimeZone(TimeZone.getTimeZone("GMT"))
+      try { // Convert string into Date, for instance: "2023-05-19T02:31:05Z"
+        epochTime = df.parse(headerValue).getTime()
+      } catch {
+        case e: ParseException => e.printStackTrace
+      }
+      epochTime
+    }
+    
+    def asyncUpdate(row: MappedETag, hash: String): Future[Boolean] = {
+      Future { // Async update
+        row
+          .LastUpdatedMSSinceEpoch(System.currentTimeMillis)
+          .ETagValue(hash)
+          .save
+      }
+    }
+
+    def asyncCreate(cacheKey: String, hash: String): Future[Boolean] = {
+      Future { // Async create
+        tryo(MappedETag.create
+          .ETagResource(cacheKey)
+          .ETagValue(hash)
+          .LastUpdatedMSSinceEpoch(System.currentTimeMillis)
+          .save) match {
+          case Full(value) => value
+          case other => 
+            logger.debug(other)
+            false
+        }
+      }
+    }
+    
+    val url = cc.map(_.url).getOrElse("")
+    val requestHeaders: List[HTTPParam] = 
+      cc.map(_.requestHeaders.filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)).getOrElse(Nil)
+    val hashedRequestPayload = HashUtil.Sha256Hash(url + requestHeaders)
+    val consumerId = cc.map(i => i.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
+    val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("None")
+    val correlationId: String = tryo(cc.map(i => i.correlationId).toBox).flatten.getOrElse("None")
+    val compositeKey = 
+      if(consumerId == "None" && userId == "None") {
+        s"""correlationId${correlationId}""" // In case we cannot determine client app fail back to session info
+      } else {
+        s"""consumerId${consumerId}::userId${userId}"""
+      }
+    val cacheKey = s"""$compositeKey::${hashedRequestPayload}"""
+    val eTag = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
+    
+    if(httpCode == 200) { // If-Modified-Since can only be used with a GET or HEAD
+      val validETag = MappedETag.find(By(MappedETag.ETagResource, cacheKey)) match {
+        case Full(row) if row.lastUpdatedMSSinceEpoch < headerValueToMillis() => 
+          val modified = row.eTagValue != eTag 
+          if(modified) {
+            asyncUpdate(row, eTag)
+            false // ETAg is outdated
+          } else {
+            true // ETAg is up to date
+          }
+        case Empty =>
+          asyncCreate(cacheKey, eTag)
+          false // There is no ETAg at all
+        case _ => 
+          false // In case of any issue we consider ETAg as outdated
+      }
+      if (validETag) // Response has not been changed since our previous call
+        304 
+      else 
+        httpCode
+    } else httpCode
+  }
+  
+  private def checkConditionalRequest(cc: Option[CallContext], httpCode: Int, httpBody: Box[String]) = {
+    val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
+    requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
+      case Some(value) => // Handle the If-None-Match HTTP request header
+        checkIfNotMatchHeader(cc, httpCode, httpBody, value.values.mkString(""))
+      case None =>
+        // When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
+        // The most common use case is to update a cached entity that has no associated ETag
+        requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match { 
+          case Some(value) => // Handle the If-Modified-Since HTTP request header
+            checkIfModifiedSinceHeader(cc, httpCode, httpBody, value.values.mkString(""))
+          case None => 
+            httpCode
+        }
+    }
+  }
+
   private def getHeadersNewStyle(cc: Option[CallContextLight]) = {
     CustomResponseHeaders(
       getGatewayLoginHeader(cc).list ::: 
@@ -502,6 +623,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       } else {
         CustomResponseHeaders(Nil)
       }
+    }.getOrElse(CustomResponseHeaders(Nil))
+  }
+  private def getRequestHeadersNewStyle(cc: Option[CallContext], httpBody: Box[String]): CustomResponseHeaders = {
+    cc.map { i =>
+      val hash = HashUtil.Sha256Hash(s"${i.url}${httpBody.getOrElse("")}")
+      CustomResponseHeaders(
+        List(
+          (ResponseHeader.ETag, hash), 
+          // TODO Add Cache-Control Header
+          // (ResponseHeader.`Cache-Control`, "No-Cache")
+        )
+      )
     }.getOrElse(CustomResponseHeaders(Nil))
   }
   private def getSignRequestHeadersError(cc: Option[CallContextLight], httpBody: String): CustomResponseHeaders = {
@@ -628,20 +761,28 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     callContext match {
       case Some(c) if c.httpCode.isDefined && c.httpCode.get == 204 =>
         val httpBody = None
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case Some(c) if c.httpCode.isDefined =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, c.httpCode.get)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        val code = checkConditionalRequest(callContext, c.httpCode.get, httpBody)
+        if(code == 304)
+          JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
+        else
+          JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
       case Some(c) if c.verb.toUpperCase() == "DELETE" =>
         val httpBody = None
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, 204)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case _ =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
-        val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersNewStyle(callContext,httpBody)
-        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders.list, Nil, httpCode)
+        val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
+        val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
+        JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, httpCode)
     }
   }
 
@@ -2225,21 +2366,53 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
   def handleEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
-    // Consumer AND User has the Role
+    
     val requireScopesForListedRoles: List[String] = getPropsValue("require_scopes_for_listed_roles", "").split(",").toList
     val requireScopesForRoles: immutable.Seq[String] = roles.map(_.toString()) intersect requireScopesForListedRoles
+
+    def userHasTheRoles: Boolean = {
+      val userHasTheRole: Boolean = roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+      userHasTheRole match {
+        case true => userHasTheRole // Just forward
+        case false =>
+          // If a user is trying to use a Role and the user could grant them selves the required Role(s),
+          // then just automatically grant the Role(s)!
+          getPropsAsBoolValue("create_just_in_time_entitlements", false) match {
+            case false => userHasTheRole // Just forward
+            case true => // Try to add missing roles
+              if (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
+                hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) {
+                // Add missing roles
+                roles.map {
+                  role => 
+                    val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
+                      bankId, 
+                      userId, 
+                      role.toString(), 
+                      "create_just_in_time_entitlements"
+                    )
+                    logger.info(s"Just in Time Entitlements: $addedEntitlement")
+                    addedEntitlement
+                }.forall(_.isDefined)
+              } else {
+                userHasTheRole // Just forward
+              }
+          }
+      }
+    }
+    // Consumer AND User has the Role
     if(ApiPropsWithAlias.requireScopesForAllRoles || !requireScopesForRoles.isEmpty) {
-      roles.isEmpty || (roles.exists(hasEntitlement(bankId, userId, _)) && roles.exists(hasScope(bankId, consumerId, _)))
+      roles.isEmpty || (userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _)))
     } 
     // Consumer OR User has the Role
     else if(getPropsAsBoolValue("allow_entitlements_or_scopes", false)) {
-      roles.isEmpty || 
-        roles.exists(hasEntitlement(bankId, userId, _)) || 
+      roles.isEmpty ||
+        userHasTheRoles || 
         roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
     }
     // User has the Role
     else {
-      roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+      userHasTheRoles
     }
     
   }

@@ -64,10 +64,14 @@ object RequestHeader {
   final lazy val `Consent-ID` = "Consent-ID" // Berlin Group
   final lazy val `Consent-JWT` = "Consent-JWT"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
+  final lazy val `If-None-Match` = "If-None-Match"
+  final lazy val `If-Modified-Since` = "If-Modified-Since"
 }
 object ResponseHeader {
   final lazy val `Correlation-Id` = "Correlation-Id"
   final lazy val `WWW-Authenticate` = "WWW-Authenticate"
+  final lazy val ETag = "ETag"
+  final lazy val `Cache-Control` = "Cache-Control"
 }
 
 object BerlinGroup extends Enumeration {

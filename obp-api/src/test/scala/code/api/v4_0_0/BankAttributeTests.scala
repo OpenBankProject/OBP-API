@@ -6,6 +6,7 @@ import code.api.util.ApiRole.{CanCreateBankAttribute, CanDeleteBankAttribute, Ca
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
+import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -145,6 +146,43 @@ class BankAttributeTests extends V400ServerSetup with DefaultUsers {
       And("We should get a message: " + s"$CanGetBankAttribute entitlement required")
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetBankAttribute)
+    }
+  }
+
+  feature(s"Assuring that endpoints $ApiEndpoint1, $ApiEndpoint2, $ApiEndpoint3, $ApiEndpoint5 work as expected - $VersionOfApi") {
+    scenario(s"Test successful CRUD operations", ApiEndpoint1, VersionOfApi) {
+      // Create
+      When("We make the request")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateBankAttribute.toString)
+      val requestPost = (v4_0_0_Request / "banks" / bankId / "attribute").POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(bankAttributeJsonV400))
+      Then("We should get a 201")
+      responsePost.code should equal(201)
+      val jsonPost = responsePost.body.extract[BankAttributeResponseJsonV400]
+      jsonPost.name should equal(bankAttributeJsonV400.name)
+      jsonPost.is_active should equal(Some(true))
+
+      // Update
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanUpdateBankAttribute.toString)
+      val requestPut = (v4_0_0_Request / "banks" / bankId / "attributes" / jsonPost.bank_attribute_id).PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(bankAttributeJsonV400.copy(is_active = Some(false))))
+      val jsonPut = responsePut.body.extract[BankAttributeResponseJsonV400]
+      jsonPut.is_active should equal(Some(false))
+
+      // Get
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetBankAttribute.toString)
+      val requestGet = (v4_0_0_Request / "banks" / bankId / "attributes" / jsonPost.bank_attribute_id).GET <@ (user1)
+      makeGetRequest(requestGet).code should equal(200)
+      
+      // Delete
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanDeleteBankAttribute.toString)
+      val requestDelete = (v4_0_0_Request / "banks" / bankId / "attributes" / jsonPost.bank_attribute_id).DELETE <@ (user1)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      responseDelete.code should equal(204)
+
+      // Get
+      val requestGet2 = (v4_0_0_Request / "banks" / bankId / "attributes" / jsonPost.bank_attribute_id).GET <@ (user1)
+      makeGetRequest(requestGet2).code should equal(400)
     }
   }
 
