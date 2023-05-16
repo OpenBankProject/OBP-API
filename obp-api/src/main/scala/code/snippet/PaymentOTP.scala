@@ -64,7 +64,7 @@ class PaymentOTP extends MdcLoggable with RestHelper with APIMethods400 {
 
     val form = "form" #> {
       "#otp_input" #> SHtml.textElem(otpVar) &
-        "type=submit" #> SHtml.submit("Send OTP", () => submitButtonDefense)
+        "type=submit" #> SHtml.submit("Submit OTP", () => submitButtonDefense)
     }
 
     def PaymentOTP = {
