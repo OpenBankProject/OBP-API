@@ -155,16 +155,16 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   /*
     * Delete this account (if connector allows it, e.g. local mirror of account data)
     * */
-  final def remove(user : User): Box[Boolean] = {
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))){
+  final def remove(user : User, callContext: Option[CallContext]): Box[Boolean] = {
+    if(user.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)){
       Full(Connector.connector.vend.removeAccount(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox))
     } else {
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
     }
   }
 
-  final def updateLabel(user : User, label : String): Box[Boolean] = {
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId))){
+  final def updateLabel(user : User, label : String, callContext: Option[CallContext]): Box[Boolean] = {
+    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext)){
       Connector.connector.vend.updateAccountLabel(bankId, accountId, label)
     } else {
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
@@ -236,9 +236,9 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param user a user requesting to see the other users' permissions
     * @return a Box of all the users' permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
     */
-  final def permissions(user : User) : Box[List[Permission]] = {
+  final def permissions(user : User, callContext: Option[CallContext]) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
+    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext))
       Full(Views.views.vend.permissions(BankIdAccountId(bankId, accountId)))
     else
       Failure("user " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
@@ -250,9 +250,9 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) whose permissions will be retrieved
     * @return a Box of the user permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
     */
-  final def permission(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Permission] = {
+  final def permission(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[Permission] = {
     //check if the user have access to the owner view in this the account
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)))
+    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext))
       for{
         u <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
         p <- Views.views.vend.permission(BankIdAccountId(bankId, accountId), u)
@@ -268,7 +268,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be granted
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
-  final def grantAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
+  final def grantAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[View] = {
     def grantAccessToCustomOrSystemView(user: User): Box[View] = {
       val ViewIdBankIdAccountId(viewId, bankId, accountId) = viewUID
       Views.views.vend.systemView(viewId) match {
@@ -276,7 +276,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
         case _ => Views.views.vend.grantAccessToCustomView(viewUID, user)
       }
     }
-    if(canGrantAccessToViewCommon(bankId, accountId, user))
+    if(canGrantAccessToViewCommon(bankId, accountId, user, callContext))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         savedView <- grantAccessToCustomOrSystemView(otherUser) ?~ "could not save the privilege"
@@ -292,11 +292,12 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the views will be granted
     * @return a the list of the granted views if everything is okay, a Failure otherwise
     */
-  final def grantAccessToMultipleViews(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
-    if(canGrantAccessToViewCommon(bankId, accountId, user))
+  final def grantAccessToMultipleViews(user : User, viewUIDs : List[ViewIdBankIdAccountId], otherUserProvider : String, otherUserIdGivenByProvider: String, 
+    callContext: Option[CallContext]) : Box[List[View]] = {
+    if(canGrantAccessToViewCommon(bankId, accountId, user, callContext))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        grantedViews <- Views.views.vend.grantAccessToMultipleViews(viewUIDs, otherUser) ?~ "could not save the privilege"
+        grantedViews <- Views.views.vend.grantAccessToMultipleViews(viewUIDs, otherUser, callContext) ?~ "could not save the privilege"
       } yield grantedViews
     else
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
@@ -309,7 +310,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be revoked
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
-  final def revokeAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  final def revokeAccessToView(user : User, viewUID : ViewIdBankIdAccountId, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[Boolean] = {
     def revokeAccessToCustomOrSystemView(user: User): Box[Boolean] = {
       val ViewIdBankIdAccountId(viewId, bankId, accountId) = viewUID
       Views.views.vend.systemView(viewId) match {
@@ -318,7 +319,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       }
     }
     //check if the user have access to the owner view in this the account
-    if(canRevokeAccessToViewCommon(bankId, accountId, user))
+    if(canRevokeAccessToViewCommon(bankId, accountId, user, callContext: Option[CallContext]))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- revokeAccessToCustomOrSystemView(otherUser: User) ?~ "could not revoke the privilege"
@@ -335,8 +336,8 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a Full(true) if everything is okay, a Failure otherwise
     */
 
-  final def revokeAllAccountAccess(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
-    if(canRevokeAccessToViewCommon(bankId, accountId, user))
+  final def revokeAllAccountAccess(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String, callContext: Option[CallContext]) : Box[Boolean] = {
+    if(canRevokeAccessToViewCommon(bankId, accountId, user, callContext))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByProviderAndUsername
         isRevoked <- Views.views.vend.revokeAllAccountAccess(bankId, accountId, otherUser)
@@ -346,8 +347,8 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
 
-  final def createCustomView(userDoingTheCreate : User,v: CreateViewJson): Box[View] = {
-    if(!userDoingTheCreate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))) {
+  final def createCustomView(userDoingTheCreate : User,v: CreateViewJson, callContext: Option[CallContext]): Box[View] = {
+    if(!userDoingTheCreate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.createCustomView(BankIdAccountId(bankId,accountId), v)
@@ -361,8 +362,8 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     }
   }
 
-  final def updateView(userDoingTheUpdate : User, viewId : ViewId, v: UpdateViewJSON) : Box[View] = {
-    if(!userDoingTheUpdate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))) {
+  final def updateView(userDoingTheUpdate : User, viewId : ViewId, v: UpdateViewJSON, callContext: Option[CallContext]) : Box[View] = {
+    if(!userDoingTheUpdate.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
       val view = Views.views.vend.updateCustomView(BankIdAccountId(bankId,accountId), viewId, v)
@@ -375,8 +376,8 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     }
   }
 
-  final def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Boolean] = {
-    if(!userDoingTheRemove.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))) {
+  final def removeView(userDoingTheRemove : User, viewId: ViewId, callContext: Option[CallContext]) : Box[Boolean] = {
+    if(!userDoingTheRemove.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)) {
       return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
       val deleted = Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId,accountId))
@@ -391,7 +392,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext] = None) : Box[(ModeratedTransaction, Option[CallContext])] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user))
+    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransactionLegacy(bankId, accountId, transactionId, callContext)
         moderatedTransaction<- view.moderateTransaction(transaction)
@@ -400,7 +401,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       viewNotAllowed(view)
   }
   final def moderatedTransactionFuture(transactionId: TransactionId, view: View, user: Box[User], callContext: Option[CallContext] = None) : Future[Box[(ModeratedTransaction, Option[CallContext])]] = {
-    if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user))
+    if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user, callContext))
       for{
         (transaction, callContext)<-Connector.connector.vend.getTransaction(bankId, accountId, transactionId, callContext) map {
           x => (unboxFullOrFail(x._1, callContext, TransactionNotFound, 400), x._2)
@@ -421,7 +422,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactions(bank: Bank, user : Box[User], view : View, bankIdAccountId: BankIdAccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Box[(List[ModeratedTransaction],Option[CallContext])] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user)) {
+    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactionsLegacy(bankId, accountId, callContext, queryParams)
         moderated <- view.moderateTransactionsWithSameAccount(bank, transactions) ?~! "Server error"
@@ -430,7 +431,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     else viewNotAllowed(view)
   }
   final def getModeratedTransactionsFuture(bank: Bank, user : Box[User], view : View, callContext: Option[CallContext], queryParams: List[OBPQueryParam] = Nil): Future[Box[(List[ModeratedTransaction],Option[CallContext])]] = {
-    if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user)) {
+    if(APIUtil.hasAccountAccess(view, BankIdAccountId(bankId, accountId), user, callContext)) {
       for {
         (transactions, callContext)  <- Connector.connector.vend.getTransactions(bankId, accountId, callContext, queryParams) map {
           x => (unboxFullOrFail(x._1, callContext, InvalidConnectorResponse, 400), x._2)
@@ -447,7 +448,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
 
   // TODO We should extract params (and their defaults) prior to this call, so this whole function can be cached.
   final def getModeratedTransactionsCore(bank: Bank, user : Box[User], view : View, bankIdAccountId: BankIdAccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext] ): OBPReturnType[Box[List[ModeratedTransactionCore]]] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId,user)) {
+    if(APIUtil.hasAccountAccess(view, bankIdAccountId,user, callContext)) {
       for {
         (transactions, callContext) <- NewStyle.function.getTransactionsCore(bankId, accountId, queryParams, callContext)
         moderated <- Future {view.moderateTransactionsWithSameAccountCore(bank, transactions)}
@@ -457,7 +458,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
   final def moderatedBankAccount(view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccount] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user))
+    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
     //implicit conversion from option to box
       view.moderateAccountLegacy(bankAccount)
     else
@@ -465,7 +466,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   }
 
   final def moderatedBankAccountCore(view: View, bankIdAccountId: BankIdAccountId, user: Box[User], callContext: Option[CallContext]) : Box[ModeratedBankAccountCore] = {
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user))
+    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
     //implicit conversion from option to box
       view.moderateAccountCore(bankAccount)
     else
@@ -479,8 +480,8 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     * @return a Box of a list ModeratedOtherBankAccounts, it the bank
     *  accounts that have at least one transaction in common with this bank account
     */
-  final def moderatedOtherBankAccounts(view : View, bankIdAccountId: BankIdAccountId, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user)){
+  final def moderatedOtherBankAccounts(view : View, bankIdAccountId: BankIdAccountId, user : Box[User], callContext: Option[CallContext]) : Box[List[ModeratedOtherBankAccount]] =
+    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext)){
       val implicitModeratedOtherBankAccounts = Connector.connector.vend.getCounterpartiesFromTransaction(bankId, accountId).openOrThrowException(attemptedToOpenAnEmptyBox).map(oAcc => view.moderateOtherAccount(oAcc)).flatten
       val explictCounterpartiesBox = Connector.connector.vend.getCounterpartiesLegacy(view.bankId, view.accountId, view.viewId)
       explictCounterpartiesBox match {
@@ -501,7 +502,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     *  account that have at least one transaction in common with this bank account
     */
   final def moderatedOtherBankAccount(counterpartyID : String, view : View, bankIdAccountId: BankIdAccountId, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedOtherBankAccount] =
-    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user))
+    if(APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext))
       Connector.connector.vend.getCounterpartyByCounterpartyIdLegacy(CounterpartyId(counterpartyID), None).map(_._1).flatMap(BankAccountX.toInternalCounterparty).flatMap(view.moderateOtherAccount) match {
         //First check the explict counterparty
         case Full(moderatedOtherBankAccount) => Full(moderatedOtherBankAccount)

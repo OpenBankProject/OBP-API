@@ -120,8 +120,8 @@ object APIMethods_AccountsApi extends RestHelper {
                callContext: Option[CallContext])
            } yield {
              val allAccounts: List[Box[(BankAccount, View)]] = for (account: BankAccount <- accounts) yield {
-               APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u)).or(
-                 APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u))
+               APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), callContext).or(
+                 APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), callContext)
                ) match {
                  case Full(view) =>
                    Full(account, view)
@@ -229,8 +229,8 @@ object APIMethods_AccountsApi extends RestHelper {
               callContext: Option[CallContext])
            } yield {
              val allAccounts: List[Box[(BankAccount, View)]] = for (account: BankAccount <- accounts) yield {
-               APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u)).or(
-                 APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u))
+               APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), callContext).or(
+                 APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), callContext)
                ) match {
                  case Full(view) =>
                    Full(account, view)

@@ -29,7 +29,7 @@ package code.model
 
 import code.api.Constant._
 import code.api.UserNotFound
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext}
 import code.entitlement.Entitlement
 import code.model.dataAccess.ResourceUser
 import code.users.Users
@@ -60,8 +60,9 @@ case class UserExtended(val user: User) extends MdcLoggable {
     * @param consumerId the consumerId, we will check if any accountAccess contains this consumerId or not.
     * @return if has the input view access, return true, otherwise false.
     */ 
-  final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, consumerId:Option[String] = None): Boolean ={
+  final def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): Boolean ={
     val viewDefinition = view.asInstanceOf[ViewDefinition]
+    val consumerId = callContext.map(_.consumer.map(_.consumerId.get).toOption).flatten
     
     val consumerAccountAccess = {
       //If we find the AccountAccess by consumerId, this mean the accountAccess already assigned to some consumers
@@ -92,19 +93,21 @@ case class UserExtended(val user: User) extends MdcLoggable {
     consumerAccountAccess
   }
 
-  final def checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId: BankIdAccountId) = {
+  final def checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]) = {
     //Note: now SYSTEM_OWNER_VIEW_ID == SYSTEM_OWNER_VIEW_ID is the same `owner` so we only use one here. 
     //And in side the checkViewAccessAndReturnView, it will first check the customer view and then will check system view.
-    APIUtil.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), bankIdAccountId, Some(this.user))
+    APIUtil.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), bankIdAccountId, Some(this.user), callContext)
   }
 
-  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId): Boolean = {
-    checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId).isDefined
+  final def hasOwnerViewAccess(bankIdAccountId: BankIdAccountId, callContext: Option[CallContext]): Boolean = {
+    checkOwnerViewAccessAndReturnOwnerView(bankIdAccountId, callContext).isDefined
   }
-  final def hasViewAccess(bankIdAccountId: BankIdAccountId, viewId: ViewId): Boolean = {
+  final def hasViewAccess(bankIdAccountId: BankIdAccountId, viewId: ViewId, callContext: Option[CallContext]): Boolean = {
     APIUtil.checkViewAccessAndReturnView(
       viewId, 
-      bankIdAccountId, Some(this.user)
+      bankIdAccountId, 
+      Some(this.user),
+      callContext
     ).isDefined
   }
 

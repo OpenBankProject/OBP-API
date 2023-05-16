@@ -253,7 +253,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     scenario("Test one account views,account access and account holder") {
       
       When("1st Step: no accounts in the List")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(0)
@@ -271,7 +271,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (0)
 
       Then("2rd Step: there is 1st account in the List")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -290,7 +290,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("3rd: we remove the accounts ")
       val accountsHeld = List()
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeld)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeld, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(0)
@@ -312,7 +312,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     scenario("Test two accounts views,account access and account holder") {
 
       When("1rd Step: no accounts in the List")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(0)
@@ -330,7 +330,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (0)
       
       When("2rd block, we prepare one account")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -348,7 +348,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (1)
 
       Then("3rd:  we have two accounts in the accountsHeld")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, twoAccountsHeld)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, twoAccountsHeld, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -367,7 +367,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
         
 
       When("4th, we removed the 1rd account, only have 2rd account there.")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account2Held)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account2Held, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(0)
@@ -385,7 +385,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (1)
       
       When("5th, we do not have any accounts ")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(0)
@@ -407,7 +407,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     scenario("Test two users, account views,account access and account holder") {
 
       When("1st Step: no accounts in the List")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(0)
@@ -425,7 +425,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (0)
 
       Then("2rd Step: 1st user and  1st account in the List")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -446,7 +446,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
 
       Then("3rd Step: 2rd user and 1st account in the List")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser2, account1Held)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser2, account1Held, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(2)
@@ -466,7 +466,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (2)
 
       When("4th, User1 we do not have any accounts ")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -490,7 +490,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     scenario("Test one user, but change the `viewsToGenerate` from `StageOne` to `Owner`, and check all the view accesses. ") {
 
       When("1st Step: we create the `StageOneView` ")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithStageOneView)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithStageOneView, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -506,7 +506,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (1)
 
       Then("2rd Step: we create the `Owner` and remove the `StageOne` view")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1Held, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -524,7 +524,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (1)
 
       Then("3rd Step: we removed the all the views ")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView, None)
 
       Then("We check the AccountAccess, we can only remove the StageOne access, not owner view, if use is the account holder, we can not revoke the access")
       account1Access.length should equal(0)
@@ -533,7 +533,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
       MappedUserRefreshes.findAll().length should be (1)
 
       Then("4th Step: we create both the views: owner and StageOne ")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithBothViews)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithBothViews, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)
@@ -553,7 +553,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       
       Then("5th Step: we removed all the  views  ")
-      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView)
+      AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, account1HeldWithEmptyView, None)
 
       Then("We check the accountHolders")
       accountholder1.size should be(1)

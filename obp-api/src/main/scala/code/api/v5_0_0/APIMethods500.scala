@@ -1525,7 +1525,7 @@ trait APIMethods500 {
           val res =
             for {
               _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + cc.userId + ". account : " + accountId, cc=cc.callContext){
-                cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId))
+                cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), Some(cc))
               }
             } yield {
               for {

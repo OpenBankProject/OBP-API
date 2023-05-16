@@ -100,7 +100,7 @@ trait APIMethods220 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
+              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), callContext)
             }
             views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
@@ -163,7 +163,7 @@ trait APIMethods220 {
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
             )
-            view <- account createCustomView (u, createViewJson)
+            view <- account.createCustomView(u, createViewJson, Some(cc))
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -204,7 +204,7 @@ trait APIMethods220 {
             updateJsonV121 <- tryo{json.extract[UpdateViewJsonV121]} ?~!InvalidJsonFormat
             //customer views are started ith `_`,eg _life, _work, and System views startWith letter, eg: owner
             _ <- booleanToBox(viewId.value.startsWith("_"), InvalidCustomViewFormat+s"Current view_name (${viewId.value})")
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user, Some(cc))
             _ <- booleanToBox(!view.isSystem, SystemViewsCanNotBeModified)
             u <- cc.user ?~!UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~!BankAccountNotFound
@@ -216,7 +216,7 @@ trait APIMethods220 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            updatedView <- account.updateView(u, viewId, updateViewJson)
+            updatedView <- account.updateView(u, viewId, updateViewJson, Some(cc))
           } yield {
             val viewJSON = JSONFactory220.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)

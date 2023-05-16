@@ -1,6 +1,6 @@
 package code.views
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext}
 import code.model.dataAccess.{MappedBankAccount, ViewImpl, ViewPrivileges}
 import code.remotedata.RemotedataViews
 import code.views.MapperViews.getPrivateBankAccounts
@@ -41,12 +41,12 @@ trait Views {
    */
   def grantAccessToCustomView(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[View]
   def grantAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[View]
-  def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
+  def grantAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User, callContext: Option[CallContext]) : Box[List[View]]
   def revokeAccessToMultipleViews(views : List[ViewIdBankIdAccountId], user : User) : Box[List[View]]
   def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean]
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean]
   def revokeAllAccountAccess(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
-  def revokeAccountAccessByUser(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
+  def revokeAccountAccessByUser(bankId : BankId, accountId : AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean]
 
   def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean]
   def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean]
@@ -135,12 +135,12 @@ class RemotedataViewsCaseClasses {
   case class permission(account: BankIdAccountId, user: User)
   case class addPermission(viewUID: ViewIdBankIdAccountId, user: User)
   case class addSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
-  case class addPermissions(views: List[ViewIdBankIdAccountId], user: User)
-  case class revokePermissions(views: List[ViewIdBankIdAccountId], user: User)
-  case class revokePermission(viewUID: ViewIdBankIdAccountId, user: User)
+  case class revokeAccess(viewIdBankIdAccountId: ViewIdBankIdAccountId, user : User)
+  case class grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User, callContext: Option[CallContext])
+  case class revokeAccessToMultipleViews(views: List[ViewIdBankIdAccountId],  user: User)
   case class revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User)
   case class revokeAllAccountAccess(bankId: BankId, accountId: AccountId, user: User)
-  case class revokeAccountAccessByUser(bankId: BankId, accountId: AccountId, user: User)
+  case class revokeAccountAccessByUser(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext])
   case class createView(bankAccountId: BankIdAccountId, view: CreateViewJson)
   case class createSystemView(view: CreateViewJson)
   case class removeCustomView(viewId: ViewId, bankAccountId: BankIdAccountId)
