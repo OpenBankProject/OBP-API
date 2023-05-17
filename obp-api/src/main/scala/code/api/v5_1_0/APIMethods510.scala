@@ -77,9 +77,12 @@ trait APIMethods510 {
 
     def root (apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
-        cc => Future {
-          JSONFactory510.getApiInfoJSON(apiVersion,apiVersionStatus) -> HttpCode.`200`(cc.callContext)
-        }
+        cc =>
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory510.getApiInfoJSON(apiVersion,apiVersionStatus), HttpCode.`200`(cc.callContext))
+          }
       }
     }
     
