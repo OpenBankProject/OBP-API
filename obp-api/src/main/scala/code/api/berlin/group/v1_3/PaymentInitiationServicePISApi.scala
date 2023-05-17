@@ -565,7 +565,7 @@ $additionalInstructions
              _ <- Helper.booleanToFuture(invalidIban, cc=callContext) { ibanChecker.isValid == true }
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
-             _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))) Future.successful(Full(Unit))
+             _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext)) Future.successful(Full(Unit))
                   else NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
                // Prevent default value for transaction request type (at least).

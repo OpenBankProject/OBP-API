@@ -1088,7 +1088,7 @@ trait APIMethods310 {
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
+              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)
             }
             (transactionRequests, callContext) <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
               unboxFullOrFail(_, callContext, GetTransactionRequestsException)

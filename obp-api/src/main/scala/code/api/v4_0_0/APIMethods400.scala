@@ -2776,7 +2776,7 @@ trait APIMethods400 {
               json.extract[UpdateAccountJsonV400]
             }
           } yield {
-            account.updateLabel(u, json.label)
+            account.updateLabel(u, json.label, callContext)
             (Extraction.decompose(successMessage), HttpCode.`200`(callContext))
           }
       }
@@ -4537,11 +4537,11 @@ trait APIMethods400 {
             }
             _ <- NewStyle.function.canRevokeAccessToView(bankId, accountId, cc.loggedInUser, cc.callContext)
             (user, callContext) <- NewStyle.function.findByUserId(cc.loggedInUser.userId, cc.callContext)
-           _ <- Future(Views.views.vend.revokeAccountAccessByUser(bankId, accountId, user)) map {
+           _ <- Future(Views.views.vend.revokeAccountAccessByUser(bankId, accountId, user, callContext)) map {
               unboxFullOrFail(_, callContext, s"Cannot revoke")
             }
             grantViews = for (viewId <- postJson.views) yield ViewIdBankIdAccountId(ViewId(viewId), bankId, accountId)
-            _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, user)) map {
+            _ <- Future(Views.views.vend.grantAccessToMultipleViews(grantViews, user, callContext)) map {
               unboxFullOrFail(_, callContext, s"Cannot grant the views: ${postJson.views.mkString(",")}")
             }
           } yield {
@@ -5148,7 +5148,7 @@ trait APIMethods400 {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId))
+              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)
             }
             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, callContext)
           } yield {

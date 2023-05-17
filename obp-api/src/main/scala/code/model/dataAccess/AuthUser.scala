@@ -1377,7 +1377,7 @@ def restoreSomeSessions(): Unit = {
       }
       _ = logger.debug(s"--> for user($user): AuthUser.refreshUserAccountAccess.accounts : ${accountsHeld}")
     }yield {
-      refreshViewsAccountAccessAndHolders(user, accountsHeld)
+      refreshViewsAccountAccessAndHolders(user, accountsHeld, callContext)
     }
   }
 
@@ -1387,7 +1387,7 @@ def restoreSomeSessions(): Unit = {
     * This method can only be used by the original user(account holder).
    *  InboundAccount return many fields, but in this method, we only need bankId, accountId and viewId so far. 
     */
-    def refreshViewsAccountAccessAndHolders(user: User, accountsHeld: List[InboundAccount]): Unit = {
+    def refreshViewsAccountAccessAndHolders(user: User, accountsHeld: List[InboundAccount], callContext: Option[CallContext]): Unit = {
       if(user.isOriginalUser){
         //first, we compare the accounts in obp  and the accounts in cbs,   
         val (_, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
@@ -1416,7 +1416,7 @@ def restoreSomeSessions(): Unit = {
           cbsRemovedBankAccountId <- cbsRemovedBankAccountIds
           bankId = cbsRemovedBankAccountId.bankId
           accountId = cbsRemovedBankAccountId.accountId
-          _ = Views.views.vend.revokeAccountAccessByUser(bankId, accountId, user)
+          _ = Views.views.vend.revokeAccountAccessByUser(bankId, accountId, user, callContext)
           _ = AccountHolders.accountHolders.vend.deleteAccountHolder(user,cbsRemovedBankAccountId)
           cbsAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- cbsAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])

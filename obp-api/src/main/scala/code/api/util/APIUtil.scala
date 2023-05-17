@@ -3565,14 +3565,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @param user Option User, can be Empty(No Authentication), or Login user.
    *
    */
-  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User]) : Boolean = {
+  def hasAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Boolean = {
     if(isPublicView(view: View))// No need for the Login user and public access
       true
     else
       user match {
         case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => true //Login User and Firehose access
         case Some(u) if hasAccountFirehoseAccess(view,u)  => true//Login User and Firehose access
-        case Some(u) if u.hasAccountAccess(view, bankIdAccountId)=> true     // Login User and check view access
+        case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> true     // Login User and check view access
         case _ =>
           false
       }
@@ -3582,7 +3582,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * to the account specified by parameter bankIdAccountId over the view specified by parameter viewId
    * Note: The public views means you can use anonymous access which implies that the user is an optional value
    */
-  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], consumerId: Option[String] = None): Box[View] = {
+  final def checkViewAccessAndReturnView(viewId : ViewId, bankIdAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]): Box[View] = {
+    
     val customView = MapperViews.customView(viewId, bankIdAccountId)
     customView match { // CHECK CUSTOM VIEWS
       // 1st: View is Pubic and Public views are NOT allowed on this instance.
@@ -3590,7 +3591,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       // 2nd: View is Pubic and Public views are allowed on this instance.
       case Full(v) if(isPublicView(v)) => customView
       // 3rd: The user has account access to this custom view
-      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => customView
+      case Full(v) if(user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => customView
       // The user has NO account access via custom view
       case _ =>
         val systemView = MapperViews.systemView(viewId)
@@ -3600,7 +3601,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           // 2nd: View is Pubic and Public views are allowed on this instance.
           case Full(v) if(isPublicView(v)) => systemView
           // 3rd: The user has account access to this system view
-          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, consumerId)) => systemView
+          case Full(v) if (user.isDefined && user.get.hasAccountAccess(v, bankIdAccountId, callContext: Option[CallContext])) => systemView
           // 4th: The user has firehose access to this system view
           case Full(v) if (user.isDefined && hasAccountFirehoseAccess(v, user.get)) => systemView
           // 5th: The user has firehose access at a bank to this system view
@@ -4043,12 +4044,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     case _ => false
   }
 
-  def canGrantAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User): Boolean = {
-    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+  def canGrantAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]): Boolean = {
+    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext) || // TODO Use an action instead of the owner view
       AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
   }
-  def canRevokeAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User): Boolean = {
-    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)) || // TODO Use an action instead of the owner view
+  def canRevokeAccessToViewCommon(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]): Boolean = {
+    user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext) || // TODO Use an action instead of the owner view
       AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).exists(_.userId == user.userId)
   }
 
