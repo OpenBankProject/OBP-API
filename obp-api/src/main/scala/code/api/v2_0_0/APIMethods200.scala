@@ -882,7 +882,7 @@ trait APIMethods200 {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~ BankAccountNotFound
             // Assume owner view was requested
-            view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(account.bankId, account.accountId))
+            view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(account.bankId, account.accountId), Some(cc))
             moderatedAccount <- account.moderatedBankAccount(view, BankIdAccountId(bankId, accountId), cc.user, Some(cc))
           } yield {
             val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount)
@@ -924,7 +924,7 @@ trait APIMethods200 {
             params <- createQueriesByHttpParams(req.request.headers)
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~ BankNotFound
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId,bankAccount.accountId))
+            view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId,bankAccount.accountId), Some(cc))
             (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, cc.user, view, BankIdAccountId(bankId, accountId), None, params)
           } yield {
             val json = JSONFactory200.createCoreTransactionsJSON(transactions)
@@ -974,7 +974,7 @@ trait APIMethods200 {
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~ BankNotFound // Check bank exists.
             account <- BankAccountX(bank.bankId, accountId) ?~ {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u))
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
             moderatedAccount <- account.moderatedBankAccount(view, BankIdAccountId(bankId, accountId), cc.user, callContext)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
@@ -1010,7 +1010,7 @@ trait APIMethods200 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            permissions <- NewStyle.function.permissions(account, u)
+            permissions <- NewStyle.function.permissions(account, u, callContext)
           } yield {
             val permissionsJSON = JSONFactory121.createPermissionsJSON(permissions.sortBy(_.user.emailAddress))
             (permissionsJSON, HttpCode.`200`(callContext))
@@ -1044,7 +1044,7 @@ trait APIMethods200 {
             u <- cc.user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
             (bank, callContext) <- BankX(bankId, Some(cc)) ?~! BankNotFound // Check bank exists.
             account <- BankAccountX(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
-            permission <- account permission(u, provider, providerId)
+            permission <- account permission(u, provider, providerId, Some(cc))
           } yield {
             // TODO : Note this is using old createViewsJSON without can_add_counterparty etc.
             val views = JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))
@@ -1281,9 +1281,9 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              _ <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u)) match {
+              _ <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext) match {
                 case Full(_) =>
-                  booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)) == true)
+                  booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext) == true)
                 case _ =>
                   NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
               }
@@ -1297,7 +1297,7 @@ trait APIMethods200 {
               validTransactionRequestTypesList <- tryo{validTransactionRequestTypes.split(",")}
               _ <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesList.contains(transactionRequestType.value))) ?~! s"${InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypes}"
               _ <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! InvalidTransactionRequestCurrency
-              createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody)
+              createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody, callContext)
             } yield {
               // Explicitly format as v2.0.0 json
               val json = JSONFactory200.createTransactionRequestWithChargeJSON(createdTransactionRequest)
@@ -1349,8 +1349,8 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u))
-              _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId))) Full(Unit)
+              view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
+              _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext)) Full(Unit)
                   else NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
               // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
 
@@ -1433,8 +1433,8 @@ trait APIMethods200 {
               u <- cc.user ?~! UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u))
-              transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
+              view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
+              transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }
               yield {
                 // Format the data as V2.0.0 json

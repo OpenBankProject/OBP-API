@@ -2,10 +2,12 @@ package code.remotedata
 
 import akka.pattern.ask
 import code.actorsystem.ObpActorInit
+import code.api.util.CallContext
 import code.views.system.AccountAccess
 import code.views.{RemotedataViewsCaseClasses, Views}
 import com.openbankproject.commons.model.{UpdateViewJSON, _}
 import net.liftweb.common.Box
+
 import scala.concurrent.Future
 
 
@@ -13,12 +15,12 @@ object RemotedataViews extends ObpActorInit with Views {
 
   val cc = RemotedataViewsCaseClasses
 
-  def grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = getValueFromFuture(
-    (actor ? cc.addPermissions(views, user)).mapTo[Box[List[View]]]
+  def grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User, callContext: Option[CallContext]): Box[List[View]] = getValueFromFuture(
+    (actor ? cc.grantAccessToMultipleViews(views, user, callContext)).mapTo[Box[List[View]]]
   )
   
   def revokeAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = getValueFromFuture(
-    (actor ? cc.revokePermissions(views, user)).mapTo[Box[List[View]]]
+    (actor ? cc.revokeAccessToMultipleViews(views, user)).mapTo[Box[List[View]]]
   )
 
   def permission(account: BankIdAccountId, user: User): Box[Permission] = getValueFromFuture(
@@ -38,7 +40,7 @@ object RemotedataViews extends ObpActorInit with Views {
   )
   
   def revokeAccess(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) : Box[Boolean] =  getValueFromFuture(
-    (actor ? cc.revokePermission(viewIdBankIdAccountId, user)).mapTo[Box[Boolean]]
+    (actor ? cc.revokeAccess(viewIdBankIdAccountId, user)).mapTo[Box[Boolean]]
   ) 
   
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] =  getValueFromFuture(
@@ -49,8 +51,8 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.revokeAllAccountAccess(bankId, accountId, user)).mapTo[Box[Boolean]]
   )
   
-  def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = getValueFromFuture(
-    (actor ? cc.revokeAccountAccessByUser(bankId, accountId, user)).mapTo[Box[Boolean]]
+  def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean] = getValueFromFuture(
+    (actor ? cc.revokeAccountAccessByUser(bankId, accountId, user, callContext)).mapTo[Box[Boolean]]
   )
 
   def customView(viewId : ViewId, account: BankIdAccountId) : Box[View] = getValueFromFuture(

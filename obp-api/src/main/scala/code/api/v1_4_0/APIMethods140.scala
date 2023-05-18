@@ -421,7 +421,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             failMsg = ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
             _ <- NewStyle.function.isValidCurrencyISOCode(fromAccount.currency, failMsg, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
-            transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)) map {
+            transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount, callContext)) map {
               connectorEmptyResponse(_, callContext)
             }
             transactionRequestTypeCharges <- Future(Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)) map {
@@ -462,8 +462,8 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              _ <- booleanToBox( u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
-              transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
+              _ <- booleanToBox( u.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
+              transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }
             yield {
               // TODO return 1.4.0 version of Transaction Requests!
@@ -539,7 +539,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               _ <- tryo(assert(fromAccount.currency == toAccount.currency)) ?~! {"Counterparty and holder accounts have differing currencies."}
               _ <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
               _ <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
-              createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
+              createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody, callContext)
               oldTransactionRequest <- transforOldTransactionRequest(createdTransactionRequest)
             } yield {
               val json = Extraction.decompose(oldTransactionRequest)
@@ -594,12 +594,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u))
+              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), Some(cc))
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               _ <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //create transaction and insert its id into the transaction request
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallenge(u, transReqId)
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallenge(u, transReqId, callContext)
               oldTransactionRequest <- transforOldTransactionRequest(transactionRequest)
             } yield {
               val successJson = Extraction.decompose(oldTransactionRequest)

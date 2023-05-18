@@ -111,7 +111,7 @@ trait APIMethods300 {
               (Full(u), callContext) <-  authenticatedAccess(cc)
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
               _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext){
-                u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId))
+                u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), callContext)
               }
             } yield {
               for {
@@ -176,7 +176,7 @@ trait APIMethods300 {
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {
               for {
-                view <- account createCustomView (u, createViewJson)
+                view <- account.createCustomView (u, createViewJson, callContext)
               } yield {
                 (JSONFactory300.createViewJSON(view), callContext.map(_.copy(httpCode = Some(201))))
               }
@@ -211,7 +211,7 @@ trait APIMethods300 {
             (Full(u), callContext) <-  authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            permission <- Future { account permission(u, provider, providerId) } map {
+            permission <- Future { account.permission(u, provider, providerId, callContext) } map {
               x => fullBoxOrException(x ~> APIFailureNewStyle(UserNoOwnerView, 400, callContext.map(_.toLight)))
             } map { unboxFull(_) }
           } yield {
@@ -270,7 +270,7 @@ trait APIMethods300 {
               (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             } yield {
               for {
-                updatedView <- account.updateView(u, viewId, updateJson.toUpdateViewJson)
+                updatedView <- account.updateView(u, viewId, updateJson.toUpdateViewJson, callContext)
               } yield {
                 (JSONFactory300.createViewJSON(updatedView), HttpCode.`200`(callContext))
               }

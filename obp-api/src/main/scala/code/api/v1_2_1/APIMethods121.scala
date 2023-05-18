@@ -90,7 +90,7 @@ trait APIMethods121 {
   private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionID : TransactionId, user : Box[User], callContext: Option[CallContext]) : Box[ModeratedTransactionMetadata] ={
     for {
       (account, callContext) <- BankAccountX(bankId, accountId, callContext) ?~! BankAccountNotFound
-      view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), user)
+      view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), user, callContext)
       (moderatedTransaction, callContext) <- account.moderatedTransaction(transactionID, view, BankIdAccountId(bankId,accountId), user, callContext)
       metadata <- Box(moderatedTransaction.metadata) ?~ { s"$NoViewPermission can_see_transaction_metadata. Current ViewId($viewId)" }
     } yield metadata
@@ -456,7 +456,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             (account, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
             availableviews <- Full(Views.views.vend.privateViewsUserCanAccessForAccount(u, BankIdAccountId(account.bankId, account.accountId)))
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u))
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(u), callContext)
             moderatedAccount <- account.moderatedBankAccount(view, BankIdAccountId(bankId, accountId), cc.user, callContext)
           } yield {
             val viewsAvailable = availableviews.map(JSONFactory.createViewJSON)
@@ -495,7 +495,7 @@ trait APIMethods121 {
             json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { json.extract[UpdateAccountJSON] }
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
           } yield {
-            account.updateLabel(u, json.label)
+            account.updateLabel(u, json.label,callContext)
             (successMessage, HttpCode.`200`(callContext))
           }
       }
@@ -544,7 +544,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
+            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), Some(cc)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
             views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {
             // TODO Include system views as well
@@ -605,7 +605,7 @@ trait APIMethods121 {
               createViewJsonV121.hide_metadata_if_alias_used,
               createViewJsonV121.allowed_actions
             )
-            view <- account createCustomView (u, createViewJson)
+            view <- account createCustomView (u, createViewJson, Some(cc))
           } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
@@ -660,7 +660,7 @@ trait APIMethods121 {
               hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
               allowed_actions = updateJsonV121.allowed_actions
             )
-            updatedView <- account.updateView(u, viewId, updateViewJson)
+            updatedView <- account.updateView(u, viewId, updateViewJson, Some(cc))
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)
             successJsonResponse(Extraction.decompose(viewJSON), 200)
@@ -699,7 +699,7 @@ trait APIMethods121 {
             // custom views start with `_` eg _play, _work, and System views start with a letter, eg: owner
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat+s"Current view_name (${viewId.value})", cc=callContext) { viewId.value.startsWith("_") }
             _ <- NewStyle.function.customView(viewId, BankIdAccountId(bankId, accountId), callContext)
-            deleted <- NewStyle.function.removeView(account, u, viewId)
+            deleted <- NewStyle.function.removeView(account, u, viewId, callContext)
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
           }
@@ -729,7 +729,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            permissions <- account permissions u
+            permissions <- account.permissions(u, Some(cc))
           } yield {
             val permissionsJSON = JSONFactory.createPermissionsJSON(permissions)
             successJsonResponse(Extraction.decompose(permissionsJSON))
@@ -767,7 +767,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            permission <- account permission(u, providerId, userId)
+            permission <- account permission(u, providerId, userId, Some(cc))
           } yield {
             val views = JSONFactory.createViewsJSON(permission.views)
             successJsonResponse(Extraction.decompose(views))
@@ -811,7 +811,7 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
             failMsg = "wrong format JSON"
             viewIds <- NewStyle.function.tryons(failMsg, 400, callContext) { json.extract[ViewIdsJson] }
-            addedViews <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId)
+            addedViews <- NewStyle.function.grantAccessToMultipleViews(account, u, viewIds.views.map(viewIdString => ViewIdBankIdAccountId(ViewId(viewIdString), bankId, accountId)), provider, providerId,callContext)
           } yield {
             (JSONFactory.createViewsJSON(addedViews), HttpCode.`201`(callContext))
           }
@@ -851,7 +851,7 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            addedView <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+            addedView <- NewStyle.function.grantAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId, callContext)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
             (viewJson, HttpCode.`201`(callContext))
@@ -911,7 +911,7 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            _ <- NewStyle.function.revokeAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId)
+            _ <- NewStyle.function.revokeAccessToView(account, u, ViewIdBankIdAccountId(viewId, bankId, accountId), provider, providerId, callContext)
           } yield {
             (Full(""), HttpCode.`204`(callContext))
           }
@@ -948,7 +948,7 @@ trait APIMethods121 {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-            _ <- NewStyle.function.revokeAllAccountAccess(account, u, provider, providerId)
+            _ <- NewStyle.function.revokeAllAccountAccess(account, u, provider, providerId, callContext)
           } yield {
             (Full(""), HttpCode.`204`(callContext))
           }
@@ -979,8 +979,8 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user)
-            otherBankAccounts <- account.moderatedOtherBankAccounts(view, BankIdAccountId(bankId, accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), cc.user, None)
+            otherBankAccounts <- account.moderatedOtherBankAccounts(view, BankIdAccountId(bankId, accountId), cc.user, Some(cc))
           } yield {
             val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
             successJsonResponse(Extraction.decompose(otherBankAccountsJson))
@@ -1009,7 +1009,7 @@ trait APIMethods121 {
         cc =>
           for {
             account <- BankAccountX(bankId, accountId) ?~!BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user, None)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
           } yield {
             val otherBankAccountJson = JSONFactory.createOtherBankAccount(otherBankAccount)
@@ -2053,7 +2053,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user, None)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
             metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
@@ -2096,7 +2096,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user, None)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
             metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
@@ -2188,7 +2188,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user, None)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
             metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
@@ -2232,7 +2232,7 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user, None)
             otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, BankIdAccountId(account.bankId, account.accountId), cc.user, Some(cc))
             metadata <- Box(otherBankAccount.metadata) ?~ { s"$NoViewPermission can_see_other_account_metadata. Current ViewId($viewId)" }
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
@@ -2337,7 +2337,7 @@ trait APIMethods121 {
             params <- paramsBox
             bankAccount <- BankAccountX(bankId, accountId)
             (bank, callContext) <- BankX(bankId, None) ?~! BankNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), user, None)
             (transactions, callContext) <- bankAccount.getModeratedTransactions(bank, user, view, BankIdAccountId(bankId, accountId), None, params )
           } yield {
             val json = JSONFactory.createTransactionsJSON(transactions)
@@ -2386,7 +2386,7 @@ trait APIMethods121 {
         cc =>
           for {
             (account, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! BankAccountNotFound
-            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user)
+            view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), cc.user, None)
             (moderatedTransaction, callContext) <- account.moderatedTransaction(transactionId, view, BankIdAccountId(bankId,accountId), cc.user, Some(cc))
           } yield {
             val json = JSONFactory.createTransactionJSON(moderatedTransaction)
@@ -2661,7 +2661,7 @@ trait APIMethods121 {
             (user, callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
-            delete <- Future(metadata.deleteComment(commentId, user, account)) map {
+            delete <- Future(metadata.deleteComment(commentId, user, account, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -2780,7 +2780,7 @@ trait APIMethods121 {
             (user, callContext) <- authenticatedAccess(cc)
             metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            delete <- Future(metadata.deleteTag(tagId, user, bankAccount)) map {
+            delete <- Future(metadata.deleteTag(tagId, user, bankAccount, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -2903,7 +2903,7 @@ trait APIMethods121 {
             (user, callContext) <- authenticatedAccess(cc)
             metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
             (account, _) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            delete <- Future(metadata.deleteImage(imageId, user, account)) map {
+            delete <- Future(metadata.deleteImage(imageId, user, account, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -3076,7 +3076,7 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext)
             metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
-            delete <- Future(metadata.deleteWhereTag(viewId, user, account)) map {
+            delete <- Future(metadata.deleteWhereTag(viewId, user, account, callContext)) map {
               unboxFullOrFail(_, callContext, "Delete not completed")
             }
           } yield {

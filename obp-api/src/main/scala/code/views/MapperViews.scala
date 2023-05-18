@@ -4,7 +4,7 @@ import bootstrap.liftweb.ToSchemify
 import code.accountholders.MapperAccountHolders
 import code.api.APIFailure
 import code.api.Constant._
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
@@ -145,7 +145,7 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User): Box[List[View]] = {
+  def grantAccessToMultipleViews(views: List[ViewIdBankIdAccountId], user: User, callContext: Option[CallContext]): Box[List[View]] = {
     val viewDefinitions: List[(ViewDefinition, ViewIdBankIdAccountId)] = views.map {
       uid => ViewDefinition.findCustomView(uid.bankId.value,uid.accountId.value, uid.viewId.value).map((_, uid))
           .or(ViewDefinition.findSystemView(uid.viewId.value).map((_, uid)))
@@ -326,8 +326,8 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    canRevokeAccessToViewCommon(bankId, accountId, user) match {
+  def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean] = {
+    canRevokeAccessToViewCommon(bankId, accountId, user, callContext) match {
       case true =>
         val permissions = AccountAccess.findAll(
           By(AccountAccess.user_fk, user.userPrimaryKey.value),

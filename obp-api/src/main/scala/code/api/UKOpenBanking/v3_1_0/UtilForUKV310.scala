@@ -1,6 +1,7 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.util.APIUtil.{canGrantAccessToViewCommon, canRevokeAccessToViewCommon}
+import code.api.util.CallContext
 import code.api.util.ErrorMessages.UserNoOwnerView
 import code.views.Views
 import com.openbankproject.commons.model.{User, ViewIdBankIdAccountId}
@@ -9,12 +10,12 @@ import net.liftweb.common.{Empty, Failure, Full}
 import scala.collection.immutable.List
 
 object UtilForUKV310 {
-  def grantAccessToViews(user: User, views: List[ViewIdBankIdAccountId]): Full[Boolean] = {
+  def grantAccessToViews(user: User, views: List[ViewIdBankIdAccountId], callContext: Option[CallContext]): Full[Boolean] = {
     val result =
       for {
         view <- views
       } yield {
-        if (canGrantAccessToViewCommon(view.bankId, view.accountId, user)) {
+        if (canGrantAccessToViewCommon(view.bankId, view.accountId, user, callContext)) {
           val viewIdBankIdAccountId = ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId)
           Views.views.vend.systemView(view.viewId) match {
             case Full(systemView) =>
@@ -34,12 +35,12 @@ object UtilForUKV310 {
     }
   }
 
-  def revokeAccessToViews(user: User, views: List[ViewIdBankIdAccountId]): Full[Boolean] = {
+  def revokeAccessToViews(user: User, views: List[ViewIdBankIdAccountId], callContext: Option[CallContext]): Full[Boolean] = {
     val result =
       for {
         view <- views
       } yield {
-        if (canRevokeAccessToViewCommon(view.bankId, view.accountId, user)) {
+        if (canRevokeAccessToViewCommon(view.bankId, view.accountId, user, callContext)) {
           val viewIdBankIdAccountId = ViewIdBankIdAccountId(view.viewId, view.bankId, view.accountId)
           Views.views.vend.systemView(view.viewId) match {
             case Full(systemView) =>

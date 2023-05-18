@@ -3,6 +3,7 @@ package code.remotedata
 import akka.actor.Actor
 import akka.pattern.pipe
 import code.actorsystem.ObpActorHelper
+import code.api.util.CallContext
 import code.util.Helper.MdcLoggable
 import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import com.openbankproject.commons.model._
@@ -16,14 +17,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
   val cc = RemotedataViewsCaseClasses
 
   def receive: PartialFunction[Any, Unit] = {
-
-    case cc.addPermissions(views : List[ViewIdBankIdAccountId], user : User) =>
-      logger.debug("addPermissions(" + views +"," + user +")")
-      sender ! (mapper.grantAccessToMultipleViews(views, user))
-      
-    case cc.revokePermissions(views : List[ViewIdBankIdAccountId], user : User) =>
-      logger.debug("revokePermissions(" + views +"," + user +")")
-      sender ! (mapper.revokeAccessToMultipleViews(views, user))
 
     case cc.addPermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
       logger.debug("addPermission(" + viewIdBankIdAccountId +"," + user +")")
@@ -41,10 +34,6 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("permission(" +user +")")
       sender ! (mapper.getPermissionForUser(user))
       
-    case cc.revokePermission(viewIdBankIdAccountId : ViewIdBankIdAccountId, user : User) =>
-      logger.debug("revokePermission(" + viewIdBankIdAccountId +"," + user +")")
-      sender ! (mapper.revokeAccess(viewIdBankIdAccountId, user)) 
-      
     case cc.revokeSystemViewPermission(bankId: BankId, accountId: AccountId, view : View, user : User) =>
       logger.debug("revokeSystemViewPermission(" + bankId +"," + accountId +"," + view +"," + user +")")
       sender ! (mapper.revokeAccessToSystemView(bankId, accountId, view, user))
@@ -53,9 +42,9 @@ class RemotedataViewsActor extends Actor with ObpActorHelper with MdcLoggable {
       logger.debug("revokeAllAccountAccess(" + bankId +"," + accountId +","+ user +")")
       sender ! (mapper.revokeAllAccountAccess(bankId, accountId, user))
       
-    case cc.revokeAccountAccessByUser(bankId : BankId, accountId : AccountId, user : User) =>
-      logger.debug("revokeAccountAccessByUser(" + bankId +"," + accountId +","+ user +")")
-      sender ! (mapper.revokeAccountAccessByUser(bankId, accountId, user))
+    case cc.revokeAccountAccessByUser(bankId : BankId, accountId : AccountId, user : User, callContext: Option[CallContext]) =>
+      logger.debug("revokeAccountAccessByUser(" + bankId +"," + accountId +","+ user +","+ callContext+")")
+      sender ! (mapper.revokeAccountAccessByUser(bankId, accountId, user, callContext))
 
     case cc.customView(viewId: ViewId, bankAccountId: BankIdAccountId) =>
       logger.debug("customView(" + viewId +", "+ bankAccountId + ")")

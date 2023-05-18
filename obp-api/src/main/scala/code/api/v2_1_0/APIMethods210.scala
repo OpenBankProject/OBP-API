@@ -710,8 +710,8 @@ trait APIMethods210 {
               u <- cc.user ?~ UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
               (fromAccount, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
-              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u))
-              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId)), UserNoOwnerView)
+              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
+              _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext), UserNoOwnerView)
               (transactionRequests,callContext) <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)
             }
               yield {
