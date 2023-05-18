@@ -1254,6 +1254,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return List(HTTPParam("from_date","$DateWithMsExampleString"),HTTPParam("to_date","$DateWithMsExampleString"))
    */
   def createHttpParamsByUrl(httpRequestUrl: String): Box[List[HTTPParam]] = {
+    val sleep = getHttpRequestUrlParam(httpRequestUrl,"sleep")
     val sortDirection = getHttpRequestUrlParam(httpRequestUrl,"sort_direction")
     val fromDate =  getHttpRequestUrlParam(httpRequestUrl,"from_date")
     val toDate =  getHttpRequestUrlParam(httpRequestUrl,"to_date")
@@ -1300,6 +1301,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       HTTPParam("include_url_patterns", includeUrlPattern),
       HTTPParam("include_implemented_by_partial_functions", includeImplementedByPartialfunctions),
       HTTPParam("function_name", functionName),
+      HTTPParam("sleep", sleep),
       HTTPParam("currency", currency),
       HTTPParam("amount", amount),
       HTTPParam("bank_id", bankId),
