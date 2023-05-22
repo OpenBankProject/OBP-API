@@ -56,6 +56,7 @@ case class APIInfoJsonV510(
                            energy_source : EnergySource400,
                            resource_docs_requires_role: Boolean
                          )
+case class WaitingForGodotJsonV510(sleep_in_milliseconds: Long)
 
 case class CertificateInfoJsonV510(
                                     subject_domain_name: String,
@@ -195,6 +196,8 @@ case class AtmAttributesResponseJsonV510(atm_attributes: List[AtmAttributeRespon
 
 
 object JSONFactory510 {
+  
+  def waitingForGodot(sleep: Long): WaitingForGodotJsonV510 = WaitingForGodotJsonV510(sleep)
 
   def createAtmsJsonV510(atmAndAttributesTupleList: List[(AtmT, List[AtmAttribute])] ): AtmsJsonV510 = {
     AtmsJsonV510(atmAndAttributesTupleList.map(

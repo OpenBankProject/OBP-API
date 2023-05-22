@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.snippet
 
 import java.util
+
 import code.api.{Constant, DirectLogin}
 import code.api.util.{APIUtil, ErrorMessages, X509}
 import code.consumer.Consumers
@@ -41,7 +42,6 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, FieldError, Helpers}
 import org.apache.commons.lang3.StringUtils
 import org.codehaus.jackson.map.ObjectMapper
-import sh.ory.hydra.model.OAuth2Client
 
 import scala.collection.immutable.{List, ListMap}
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
@@ -127,17 +127,19 @@ class ConsumerRegistration extends MdcLoggable {
       "#register-consumer-success" #> ""
     }
 
-    def createHydraClient(consumer: Consumer): Option[OAuth2Client] = {
+    def showResults(consumer : Consumer) = {
+      val urlOAuthEndpoint = Constant.HostName + "/oauth/initiate"
+      val urlDirectLoginEndpoint = Constant.HostName + "/my/logins/direct"
       val jwksUri = jwksUriVar.is
       val jwks = jwksVar.is
-
-      var jwkPrivateKey: String = s"Please change this value to ${if (StringUtils.isNotBlank(jwksUri)) "jwks_uri" else "jwks"} corresponding private key"
+      val jwsAlg = signingAlgVar.is
+      var jwkPrivateKey: String = s"Please change this value to ${if(StringUtils.isNotBlank(jwksUri)) "jwks_uri" else "jwks"} corresponding private key"
       // In case we use Hydra ORY as Identity Provider we create corresponding client at Hydra side a well
-      if (HydraUtil.integrateWithHydra) {
+      if(HydraUtil.integrateWithHydra) {
         HydraUtil.createHydraClient(consumer, oAuth2Client => {
           val signingAlg = signingAlgVar.is
 
-          if (oidcCheckboxVar.is == false) {
+          if(oidcCheckboxVar.is == false) {
             // TODO Set token_endpoint_auth_method in accordance to the Consumer.AppType value
             // Consumer.AppType = Confidential => client_secret_post
             // Consumer.AppType = Public => private_key_jwt
@@ -146,8 +148,8 @@ class ConsumerRegistration extends MdcLoggable {
           } else {
             oAuth2Client.setTokenEndpointAuthMethod(HydraUtil.clientSecretPost)
           }
-
-
+          
+          
           oAuth2Client.setTokenEndpointAuthSigningAlg(signingAlg)
           oAuth2Client.setRequestObjectSigningAlg(signingAlg)
 
@@ -155,34 +157,25 @@ class ConsumerRegistration extends MdcLoggable {
             new ObjectMapper().readValue(jwksJson, classOf[util.Map[String, _]])
 
           val requestUri = requestUriVar.is
-          if (StringUtils.isAllBlank(jwksUri, jwks)) {
-            val (privateKey, publicKey) = HydraUtil.createJwk(signingAlg)
+          if(StringUtils.isAllBlank(jwksUri, jwks)) {
+            val(privateKey, publicKey) = HydraUtil.createJwk(signingAlg)
             jwkPrivateKey = privateKey
             val jwksJson = s"""{"keys": [$publicKey]}"""
             val jwksMap = toJson(jwksJson)
             oAuth2Client.setJwks(jwksMap)
-          } else if (StringUtils.isNotBlank(jwks)) {
+          } else if(StringUtils.isNotBlank(jwks)){
             val jwksMap = toJson(jwks)
             oAuth2Client.setJwks(jwksMap)
-          } else if (StringUtils.isNotBlank(jwksUri)) {
+          } else if(StringUtils.isNotBlank(jwksUri)){
             oAuth2Client.setJwksUri(jwksUri)
           }
 
-          if (StringUtils.isNotBlank(requestUri)) {
+          if(StringUtils.isNotBlank(requestUri)) {
             oAuth2Client.setRequestUris(List(requestUri).asJava)
           }
           oAuth2Client
         })
-      } else {
-        None
       }
-    }
-
-    def showResults(consumer : Consumer) = {
-      val urlOAuthEndpoint = Constant.HostName + "/oauth/initiate"
-      val urlDirectLoginEndpoint = Constant.HostName + "/my/logins/direct"
-      val jwsAlg = signingAlgVar.is
-      val (jwkPrivateKey, _) = HydraUtil.createJwk(signingAlgVar.is)
       val registerConsumerSuccessMessageWebpage = getWebUiPropsValue(
         "webui_register_consumer_success_message_webpage", 
         "Thanks for registering your consumer with the Open Bank Project API! Here is your developer information. Please save it in a secure location.")
@@ -248,16 +241,12 @@ class ConsumerRegistration extends MdcLoggable {
       }
     }
 
-    def showRegistrationResults(consumer : Consumer) = {
-      // Create client at ORY Hydra side and update our consumer with a new Client ID
-      val updatedConsumer = createHydraClient(consumer).flatMap { c =>
-        Consumers.consumers.vend
-          .updateConsumer(consumer.id.get,Some(c.getClientId),None,None,None,None,None,None,None,None)
-      }.getOrElse(consumer)
+    def showRegistrationResults(result : Consumer) = {
 
-      notifyRegistrationOccurred(updatedConsumer)
-      sendEmailToDeveloper(updatedConsumer)
-      showResults(updatedConsumer)
+      notifyRegistrationOccurred(result)
+      sendEmailToDeveloper(result)
+
+      showResults(result)
     }
 
     def showErrors(errors : List[FieldError]) = {

@@ -1047,7 +1047,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     scenario("we don't get the hosted bank information", API1_2_1, GetHostedBank){
       Given("We will not use an access token and request a random bankId")
       When("the request is sent")
-      val reply = getBankInfo(randomString(5))
+      val reply = getBankInfo(randomString(10))
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1454,7 +1454,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val view = randomView(true, "")
       When("the request is sent")
-      val reply = postView(bankId, randomString(3), view, user1)
+      val reply = postView(bankId, randomString(10), view, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1482,7 +1482,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
       val viewWithEmptyName = CreateViewJsonV121(
         name = "",
-        description = randomString(3),
+        description = randomString(10),
         is_public = true,
         which_alias_to_use="alias",
         hide_metadata_if_alias_used = false,
@@ -1503,7 +1503,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewWithSystemName = CreateViewJsonV121(
         name = SYSTEM_OWNER_VIEW_ID,
-        description = randomString(3),
+        description = randomString(10),
         is_public = true,
         which_alias_to_use="alias",
         hide_metadata_if_alias_used = false,
@@ -1720,7 +1720,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = deleteView(bankId, bankAccount.id, randomString(3), user1)
+      val reply = deleteView(bankId, bankAccount.id, randomString(10), user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1833,7 +1833,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = getUserAccountPermission(bankId, bankAccount.id, randomString(5), user1)
+      val reply = getUserAccountPermission(bankId, bankAccount.id, randomString(10), user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1864,7 +1864,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = grantUserAccessToView(bankId, bankAccount.id, randomString(5), randomCustomViewPermalink(bankId, bankAccount), user1)
+      val reply = grantUserAccessToView(bankId, bankAccount.id, randomString(10), randomCustomViewPermalink(bankId, bankAccount), user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1878,7 +1878,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val userId = resourceUser2.idGivenByProvider
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
-      val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
+      val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(10), user1)
       Then("we should get a 404 code")
       reply.code should equal (404)
       And("we should get an error message")
@@ -1931,7 +1931,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Given("We will use an access token with a random user Id")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = randomString(5)
+      val userId = randomString(10)
       val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id)
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1946,7 +1946,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser3.idGivenByProvider
-      val viewsIdsToGrant= List(randomString(3),randomString(3))
+      val viewsIdsToGrant= List(randomString(10),randomString(10))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 404 code")
@@ -1960,7 +1960,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser3.idGivenByProvider
-      val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
+      val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(10),randomString(10))
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1977,7 +1977,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser3.idGivenByProvider
-      val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
+      val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(10),randomString(10))
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user3)
@@ -2031,7 +2031,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, randomString(5), randomCustomViewPermalink(bankId, bankAccount), user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, randomString(10), randomCustomViewPermalink(bankId, bankAccount), user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
     }
@@ -2064,7 +2064,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val userId =resourceUser2.idGivenByProvider
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(10), user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
@@ -2107,7 +2107,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, randomString(5), user1)
+      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, randomString(510), user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
     }
@@ -2219,7 +2219,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = getTheCounterparties(bankId, bankAccount.id, randomString(5), user1)
+      val reply = getTheCounterparties(bankId, bankAccount.id, randomString(10), user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -2277,7 +2277,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val otherBankAccount = randomCounterparty(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount))
       When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
+      val reply = getTheCounterparty(bankId, bankAccount.id, randomString(10), otherBankAccount.id, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -2290,7 +2290,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val view = randomCustomViewPermalink(bankId, bankAccount)
       When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, view, randomString(5), user1)
+      val reply = getTheCounterparty(bankId, bankAccount.id, view, randomString(10), user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
