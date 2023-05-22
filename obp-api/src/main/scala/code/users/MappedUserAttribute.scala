@@ -65,7 +65,7 @@ class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribut
   override def getSingleton = UserAttribute
   object UserAttributeId extends MappedUUID(this)
   object UserId extends MappedUUID(this)
-  object Name extends MappedString(this, 50)
+  object Name extends MappedString(this, 255)
   object Type extends MappedString(this, 50)
   object `Value` extends MappedString(this, 255)
 

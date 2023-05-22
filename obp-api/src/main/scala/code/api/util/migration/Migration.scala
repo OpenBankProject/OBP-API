@@ -95,6 +95,7 @@ object Migration extends MdcLoggable {
       dropConsentAuthContextDropIndex()
       alterMappedExpectedChallengeAnswerChallengeTypeLength()
       alterTransactionRequestChallengeChallengeTypeLength()
+      alterUserAttributeNameLength()
       alterMappedCustomerAttribute(startedBeforeSchemifier)
       dropMappedBadLoginAttemptIndex()
     }
@@ -419,6 +420,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterTransactionRequestChallengeChallengeTypeLength)
       runOnce(name) {
         MigrationOfTransactionRequestChallengeChallengeTypeLength.alterColumnChallengeChallengeTypeLength(name)
+      }
+    }  
+  
+    private def alterUserAttributeNameLength(): Boolean = {
+      val name = nameOf(alterUserAttributeNameLength)
+      runOnce(name) {
+        MigrationOfUserAttributeNameFieldLength.alterNameLength(name)
       }
     }  
     private def alterMappedCustomerAttribute(startedBeforeSchemifier: Boolean): Boolean = {
