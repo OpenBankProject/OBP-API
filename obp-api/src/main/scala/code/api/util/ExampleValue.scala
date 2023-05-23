@@ -149,10 +149,13 @@ object ExampleValue {
   lazy val customerAttributeValueExample = ConnectorField("123456789", s"Customer attribute value.")
   glossaryItems += makeGlossaryItem("Customer.attributeValue", customerAttributeValueExample)
 
-  lazy val userAttributeValueExample = ConnectorField("90", s"Uset attribute value.")
+  lazy val userAttributeValueExample = ConnectorField("90", s"User attribute value.")
   glossaryItems += makeGlossaryItem("User.attributeValue", userAttributeValueExample)
   
-  lazy val labelExample = ConnectorField("My Account", s"A lable that describes the Account")
+  lazy val userAttributeIsPersonalExample = ConnectorField("false", s"User attribute is personal value.")
+  glossaryItems += makeGlossaryItem("User.isPersonal", userAttributeIsPersonalExample)
+  
+  lazy val labelExample = ConnectorField("My Account", s"A label that describes the Account")
   lazy val legalNameExample = ConnectorField("Eveline Tripman", s"The legal name of the Customer.")
   glossaryItems += makeGlossaryItem("Customer.legalName", legalNameExample)
   

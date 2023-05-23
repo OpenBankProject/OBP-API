@@ -129,8 +129,8 @@ trait APIMethods510 {
          |${authenticationRequiredMessage(true)}
          |
          |""",
-      userAttributeJsonV400,
-      userAttributeResponseJson,
+      userAttributeJsonV510,
+      userAttributeResponseJsonV510,
       List(
         $UserNotLoggedIn,
         UserHasMissingRoles,
@@ -144,11 +144,11 @@ trait APIMethods510 {
     lazy val createUserAttribute: OBPEndpoint = {
       case "users" :: userId :: "attributes" :: Nil JsonPost json -> _ => {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV510 "
           for {
             (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
-              json.extract[UserAttributeJsonV400]
+              json.extract[UserAttributeJsonV510]
             }
             failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
               s"${UserAttributeType.DOUBLE}(12.1234), ${UserAttributeType.STRING}(TAX_NUMBER), ${UserAttributeType.INTEGER} (123)and ${UserAttributeType.DATE_WITH_DAY}(2012-04-23)"
@@ -161,7 +161,7 @@ trait APIMethods510 {
               postedData.name,
               userAttributeType,
               postedData.value,
-              false,
+              postedData.is_personal,
               callContext
               )
           } yield {
@@ -206,6 +206,46 @@ trait APIMethods510 {
           }
           } yield {
             (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    resourceDocs += ResourceDoc(
+      getUserAttributes,
+      implementedInApiVersion,
+      nameOf(getUserAttributes),
+      "GET",
+      "/users/USER_ID/attributes",
+      "Get User Attributes",
+      s"""Get User Attribute for a user specified by USER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canGetUserAttributes)))
+
+    lazy val getUserAttributes: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            (_, callContext) <- authenticatedAccess(cc)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
+            (userAttributes,callContext) <- Connector.connector.vend.getUserAttributes(
+              user.userId,
+              callContext,
+            ) map {
+            i => (connectorEmptyResponse (i._1, callContext), i._2)
+          }
+          } yield {
+            (JSONFactory510.createUserAttributesJson(userAttributes), HttpCode.`200`(callContext))
           }
       }
     }

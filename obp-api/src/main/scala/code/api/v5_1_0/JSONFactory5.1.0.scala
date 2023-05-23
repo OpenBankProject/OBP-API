@@ -162,8 +162,19 @@ case class UserAttributeResponseJsonV510(
   name: String,
   `type`: String,
   value: String,
-  insert_date: Date,
+  is_personal: Boolean,
+  insert_date: Date
+)
+
+case class UserAttributeJsonV510(
+  name: String,
+  `type`: String,
+  value: String,
   is_personal: Boolean
+)
+
+case class UserAttributesResponseJsonV510(
+  user_attributes: List[UserAttributeResponseJsonV510]
 )
 
 
@@ -394,6 +405,9 @@ object JSONFactory510 {
       is_personal = userAttribute.isPersonal
     )
   }
-  
+
+  def createUserAttributesJson(userAttribute: List[UserAttribute]): UserAttributesResponseJsonV510 = {
+    UserAttributesResponseJsonV510(userAttribute.map(createUserAttributeJson))
+  }
 }
 

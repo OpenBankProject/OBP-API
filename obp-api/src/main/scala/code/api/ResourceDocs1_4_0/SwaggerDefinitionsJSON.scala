@@ -5325,6 +5325,22 @@ object SwaggerDefinitionsJSON {
 
     attributes = Some(List(atmAttributeResponseJsonV510))
   )
+
+  val userAttributeJsonV510 = UserAttributeJsonV510(
+    name = userAttributeNameExample.value,
+    `type` = userAttributeTypeExample.value,
+    value = userAttributeValueExample.value,
+    is_personal = userAttributeIsPersonalExample.value.toBoolean
+  )
+
+  val userAttributeResponseJsonV510 = UserAttributeResponseJsonV510(
+    user_attribute_id = userAttributeIdExample.value,
+    name = userAttributeNameExample.value,
+    `type` = userAttributeTypeExample.value,
+    value = userAttributeValueExample.value,
+    is_personal = userAttributeIsPersonalExample.value.toBoolean,
+    insert_date = new Date()
+  )
   
   val atmsJsonV510 = AtmsJsonV510(
     atms = List(atmJsonV510)

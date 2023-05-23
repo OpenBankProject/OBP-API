@@ -8762,7 +8762,7 @@ trait APIMethods400 {
       case "my" ::  "user" :: "attributes" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getMyPersonalUserAttributes(cc.userId, cc.callContext)
           } yield {
             (JSONFactory400.createUserAttributesJson(attributes), HttpCode.`200`(callContext))
           }
@@ -8776,7 +8776,7 @@ trait APIMethods400 {
       nameOf(getUserWithAttributes),
       "GET",
       "/users/USER_ID/attributes",
-      "Get User Attributes for the user",
+      "Get User with Attributes by USER_ID",
       s"""Get User Attributes for the user defined via USER_ID.
          |
          |${authenticationRequiredMessage(true)}
@@ -8796,7 +8796,7 @@ trait APIMethods400 {
         cc =>
           for {
             (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
-            (attributes, callContext) <- NewStyle.function.getUserAttributes(userId, callContext)
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(user.userId, callContext)
           } yield {
             (JSONFactory400.createUserWithAttributesJson(user, attributes), HttpCode.`200`(callContext))
           }
@@ -8857,9 +8857,9 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      updateCurrentUserAttribute,
+      updateMyPersonalUserAttribute,
       implementedInApiVersion,
-      nameOf(updateCurrentUserAttribute),
+      nameOf(updateMyPersonalUserAttribute),
       "PUT",
       "/my/user/attributes/USER_ATTRIBUTE_ID",
       "Update My Personal User Attribute",
@@ -8880,17 +8880,16 @@ trait APIMethods400 {
       List(apiTagUser, apiTagNewStyle),
       Some(List()))
 
-    lazy val updateCurrentUserAttribute : OBPEndpoint = {
+    lazy val updateMyPersonalUserAttribute : OBPEndpoint = {
       case "my" ::  "user" :: "attributes" :: userAttributeId :: Nil JsonPut json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 "
           for {
-            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getMyPersonalUserAttributes(cc.userId, cc.callContext)
             failMsg = s"$UserAttributeNotFound"
             _ <- NewStyle.function.tryons(failMsg, 400,  callContext) {
               attributes.exists(_.userAttributeId == userAttributeId)
             }
-            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 ", 400,  callContext) {
               json.extract[UserAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
