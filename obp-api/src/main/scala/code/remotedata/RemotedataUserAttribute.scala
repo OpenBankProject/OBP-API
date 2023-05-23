@@ -29,7 +29,8 @@ object RemotedataUserAttribute extends ObpActorInit with UserAttributeProvider {
                                            userAttributeId: Option[String],
                                            name: String,
                                            attributeType: UserAttributeType.Value,
-                                           value: String): Future[Box[UserAttribute]] = 
-    (actor ? cc.createOrUpdateUserAttribute(userId, userAttributeId, name, attributeType, value )).mapTo[Box[UserAttribute]]
+                                           value: String,
+                                           isPersonal: Boolean): Future[Box[UserAttribute]] = 
+    (actor ? cc.createOrUpdateUserAttribute(userId, userAttributeId, name, attributeType, value, isPersonal)).mapTo[Box[UserAttribute]]
   
 }

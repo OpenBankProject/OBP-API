@@ -41,7 +41,8 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
                                            userAttributeId: Option[String],
                                            name: String,
                                            attributeType: UserAttributeType.Value,
-                                           value: String): Future[Box[UserAttribute]] = {
+                                           value: String,
+                                           isPersonal: Boolean): Future[Box[UserAttribute]] = {
     userAttributeId match {
       case Some(id) => Future {
         UserAttribute.find(By(UserAttribute.UserAttributeId, id)) match {
@@ -51,6 +52,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
               .Name(name)
               .Type(attributeType.toString)
               .`Value`(value)
+//              .IsPersonal(isPersonal) //Can not update this field in update ne
               .saveMe()
           }
           case _ => Empty
@@ -63,6 +65,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
             .Name(name)
             .Type(attributeType.toString())
             .`Value`(value)
+            .IsPersonal(isPersonal)
             .saveMe()
         }
       }
@@ -79,6 +82,9 @@ class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribut
   object Name extends MappedString(this, 255)
   object Type extends MappedString(this, 50)
   object `Value` extends MappedString(this, 255)
+  object IsPersonal extends MappedBoolean(this) {
+    override def defaultValue = true
+  }
 
   override def userAttributeId: String = UserAttributeId.get
   override def userId: String = UserId.get
@@ -86,6 +92,7 @@ class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribut
   override def attributeType: UserAttributeType.Value = UserAttributeType.withName(Type.get)
   override def value: String = `Value`.get
   override def insertDate: Date = createdAt.get
+  override def isPersonal: Boolean = IsPersonal.get
 }
 
 object UserAttribute extends UserAttribute with LongKeyedMetaMapper[UserAttribute] {

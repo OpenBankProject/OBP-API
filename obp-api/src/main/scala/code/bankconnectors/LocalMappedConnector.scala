@@ -4089,6 +4089,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             name: String,
                                             attributeType: UserAttributeType.Value,
                                             value: String,
+                                            isPersonal: Boolean,
                                             callContext: Option[CallContext]
                                           ): OBPReturnType[Box[UserAttribute]] = {
     UserAttributeProvider.userAttributeProvider.vend.createOrUpdateUserAttribute(
@@ -4096,7 +4097,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       userAttributeId: Option[String],
       name: String,
       attributeType: UserAttributeType.Value,
-      value: String
+      value: String,
+      isPersonal: Boolean
     ) map {
       (_, callContext)
     }

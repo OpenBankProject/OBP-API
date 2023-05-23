@@ -44,7 +44,8 @@ trait UserAttributeProvider {
                                   userAttributeId: Option[String],
                                   name: String,
                                   attributeType: UserAttributeType.Value,
-                                  value: String): Future[Box[UserAttribute]]
+                                  value: String,
+                                  isPersonal: Boolean): Future[Box[UserAttribute]]
   // End of Trait
 }
 
@@ -56,7 +57,8 @@ class RemotedataUserAttributeCaseClasses {
                                          userAttributeId: Option[String],
                                          name: String,
                                          attributeType: UserAttributeType.Value,
-                                         value: String)
+                                         value: String,
+                                         isPersonal: Boolean)
 }
 
 object RemotedataUserAttributeCaseClasses extends RemotedataUserAttributeCaseClasses

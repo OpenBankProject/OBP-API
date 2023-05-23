@@ -3,9 +3,8 @@ package code.api.v5_1_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ApiRole.CanCreateUserAttribute
 import code.api.util.ErrorMessages._
-import code.api.v4_0_0.{UserAttributeResponseJsonV400, UsersJsonV400}
+import code.api.v4_0_0.UsersJsonV400
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -72,7 +71,9 @@ class UserAttributesTest extends V510ServerSetup {
       val response510 = makePostRequest(request510, write(postUserAttributeJsonV510))
       Then("We should get a 201")
       response510.code should equal(201)
-      val jsonResponse = response510.body.extract[UserAttributeResponseJsonV400]
+      val jsonResponse = response510.body.extract[UserAttributeResponseJsonV510]
+      jsonResponse.is_personal shouldBe(false)
+      jsonResponse.name shouldBe(batteryLevel)
       val userAttributeId = jsonResponse.user_attribute_id
 
 

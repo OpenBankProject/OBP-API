@@ -1901,6 +1901,7 @@ object NewStyle extends MdcLoggable{
       name: String,
       attributeType: UserAttributeType.Value,
       value: String,
+      isPersonal: Boolean,
       callContext: Option[CallContext]
     ): OBPReturnType[UserAttribute] = {
       Connector.connector.vend.createOrUpdateUserAttribute(
@@ -1909,6 +1910,7 @@ object NewStyle extends MdcLoggable{
         name: String,
         attributeType: UserAttributeType.Value,
         value: String,
+        isPersonal: Boolean,
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

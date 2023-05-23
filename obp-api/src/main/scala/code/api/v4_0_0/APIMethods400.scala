@@ -8739,13 +8739,13 @@ trait APIMethods400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      getCurrentUserAttributes,
+      getMyPersonalUserAttributes,
       implementedInApiVersion,
-      nameOf(getCurrentUserAttributes),
+      nameOf(getMyPersonalUserAttributes),
       "GET",
       "/my/user/attributes",
-      "Get User Attributes for current user",
-      s"""Get User Attributes for current user.
+      "Get My Personal User Attributes",
+      s"""Get My Personal User Attributes.
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -8758,7 +8758,7 @@ trait APIMethods400 {
       List(apiTagUser, apiTagNewStyle)
     )
 
-    lazy val getCurrentUserAttributes: OBPEndpoint = {
+    lazy val getMyPersonalUserAttributes: OBPEndpoint = {
       case "my" ::  "user" :: "attributes" :: Nil JsonGet _ => {
         cc =>
           for {
@@ -8805,15 +8805,15 @@ trait APIMethods400 {
 
 
     staticResourceDocs += ResourceDoc(
-      createCurrentUserAttribute,
+      createMyPersonalUserAttribute,
       implementedInApiVersion,
-      nameOf(createCurrentUserAttribute),
+      nameOf(createMyPersonalUserAttribute),
       "POST",
       "/my/user/attributes",
-      "Create User Attribute for current user",
-      s""" Create User Attribute for current user
+      "Create My Personal User Attribute",
+      s""" Create My Personal User Attribute
          |
-         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |The `type` field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
          |
          |${authenticationRequiredMessage(true)}
          |
@@ -8828,18 +8828,17 @@ trait APIMethods400 {
       List(apiTagUser, apiTagNewStyle),
       Some(List()))
 
-    lazy val createCurrentUserAttribute : OBPEndpoint = {
+    lazy val createMyPersonalUserAttribute : OBPEndpoint = {
       case "my" ::  "user" :: "attributes" :: Nil JsonPost json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 "
           for {
-            (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
-            postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
-              json.extract[TransactionAttributeJsonV400]
+            postedData <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
+              json.extract[UserAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
-            userAttributeType <- NewStyle.function.tryons(failMsg, 400,  callContext) {
+              s"${TransactionAttributeType.DOUBLE}(12.1234), ${UserAttributeType.STRING}(TAX_NUMBER), ${UserAttributeType.INTEGER} (123)and ${UserAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400,  cc.callContext) {
               UserAttributeType.withName(postedData.`type`)
             }
             (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
@@ -8848,7 +8847,8 @@ trait APIMethods400 {
               postedData.name,
               userAttributeType,
               postedData.value,
-              callContext
+              true,
+              cc.callContext
             )
           } yield {
             (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
@@ -8862,8 +8862,8 @@ trait APIMethods400 {
       nameOf(updateCurrentUserAttribute),
       "PUT",
       "/my/user/attributes/USER_ATTRIBUTE_ID",
-      "Update User Attribute for current user",
-      s"""Update User Attribute for current user by USER_ATTRIBUTE_ID
+      "Update My Personal User Attribute",
+      s"""Update My Personal User Attribute for current user by USER_ATTRIBUTE_ID
          |
          |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
          |
@@ -8883,7 +8883,7 @@ trait APIMethods400 {
     lazy val updateCurrentUserAttribute : OBPEndpoint = {
       case "my" ::  "user" :: "attributes" :: userAttributeId :: Nil JsonPut json -> _=> {
         cc =>
-          val failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAttributeJsonV400 "
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 "
           for {
             (attributes, callContext) <- NewStyle.function.getUserAttributes(cc.userId, cc.callContext)
             failMsg = s"$UserAttributeNotFound"
@@ -8891,10 +8891,10 @@ trait APIMethods400 {
               attributes.exists(_.userAttributeId == userAttributeId)
             }
             postedData <- NewStyle.function.tryons(failMsg, 400,  callContext) {
-              json.extract[TransactionAttributeJsonV400]
+              json.extract[UserAttributeJsonV400]
             }
             failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-              s"${TransactionAttributeType.DOUBLE}(12.1234), ${TransactionAttributeType.STRING}(TAX_NUMBER), ${TransactionAttributeType.INTEGER} (123)and ${TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)"
+              s"${UserAttributeType.DOUBLE}(12.1234), ${UserAttributeType.STRING}(TAX_NUMBER), ${UserAttributeType.INTEGER} (123)and ${UserAttributeType.DATE_WITH_DAY}(2012-04-23)"
             userAttributeType <- NewStyle.function.tryons(failMsg, 400,  callContext) {
               UserAttributeType.withName(postedData.`type`)
             }
@@ -8904,6 +8904,7 @@ trait APIMethods400 {
               postedData.name,
               userAttributeType,
               postedData.value,
+              true,
               callContext
             )
           } yield {

@@ -2269,6 +2269,7 @@ trait Connector extends MdcLoggable {
     name: String,
     attributeType: UserAttributeType.Value,
     value: String,
+    isPersonal: Boolean,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[UserAttribute]] = Future{(Failure(setUnimplementedError), callContext)} 
   

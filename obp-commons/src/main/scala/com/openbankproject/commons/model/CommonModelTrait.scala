@@ -103,6 +103,7 @@ trait UserAttributeTrait {
   def attributeType: UserAttributeType.Value
   def value: String
   def insertDate: Date
+  def isPersonal: Boolean
 }
 
 trait AccountAttribute {

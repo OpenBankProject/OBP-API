@@ -121,8 +121,8 @@ trait APIMethods510 {
       nameOf(createUserAttribute),
       "POST",
       "/users/USER_ID/attributes",
-      "Create User Attribute for the user",
-      s""" Create User Attribute for the user
+      "Create User Attribute",
+      s""" Create User Attribute
          |
          |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
          |
@@ -161,9 +161,11 @@ trait APIMethods510 {
               postedData.name,
               userAttributeType,
               postedData.value,
-              callContext)
+              false,
+              callContext
+              )
           } yield {
-            (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
+            (JSONFactory510.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
           }
       }
     }
