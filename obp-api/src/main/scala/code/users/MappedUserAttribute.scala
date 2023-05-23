@@ -1,7 +1,8 @@
 package code.users
 
-import java.util.Date
+import code.api.util.ErrorMessages
 
+import java.util.Date
 import code.util.MappedUUID
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.UserAttributeTrait
@@ -24,6 +25,16 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
     tryo(
       UserAttribute.findAll(ByList(UserAttribute.UserId, userIds))
     )
+  }
+  
+  override def deleteUserAttribute(userAttributeId: String): Future[Box[Boolean]] = {
+    Future {
+      UserAttribute.find(By(UserAttribute.UserAttributeId, userAttributeId)) match {
+        case Full(t) => Full(t.delete_!)
+        case Empty => Empty ?~! ErrorMessages.UserAttributeNotFound
+        case _ => Full(false)
+      }
+    }
   }
 
   override def createOrUpdateUserAttribute(userId: String,

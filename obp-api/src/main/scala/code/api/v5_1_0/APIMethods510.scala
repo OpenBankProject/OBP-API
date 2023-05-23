@@ -15,6 +15,7 @@ import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400, UserAttributeJsonV400}
 import code.atmattribute.AtmAttribute
+import code.bankconnectors.Connector
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
 import code.metrics.APIMetrics
@@ -132,6 +133,7 @@ trait APIMethods510 {
       userAttributeResponseJson,
       List(
         $UserNotLoggedIn,
+        UserHasMissingRoles,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -144,7 +146,7 @@ trait APIMethods510 {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 "
           for {
-            (attributes, callContext) <- NewStyle.function.getUserAttributes(userId, cc.callContext)
+            (user, callContext) <- NewStyle.function.getUserByUserId(userId, cc.callContext)
             postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[UserAttributeJsonV400]
             }
@@ -154,7 +156,7 @@ trait APIMethods510 {
               UserAttributeType.withName(postedData.`type`)
             }
             (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
-              userId,
+              user.userId,
               None,
               postedData.name,
               userAttributeType,
@@ -165,7 +167,48 @@ trait APIMethods510 {
           }
       }
     }
+    
+    resourceDocs += ResourceDoc(
+      deleteUserAttribute,
+      implementedInApiVersion,
+      nameOf(deleteUserAttribute),
+      "DELETE",
+      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
+      "Delete User Attribute",
+      s"""Delete the User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
+         |
+         |${authenticationRequiredMessage(true)}
+         |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        UserNotLoggedIn,
+        UserHasMissingRoles,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canDeleteUserAttribute)))
 
+    lazy val deleteUserAttribute: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: userAttributeId :: Nil JsonDelete _ => {
+        cc =>
+          for {
+            (_, callContext) <- authenticatedAccess(cc)
+            (_, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
+            (deleted,callContext) <- Connector.connector.vend.deleteUserAttribute(
+              userAttributeId: String,
+              callContext: Option[CallContext]
+            ) map {
+            i => (connectorEmptyResponse (i._1, callContext), i._2)
+          }
+          } yield {
+            (Full(deleted), HttpCode.`204`(callContext))
+          }
+      }
+    }
+    
+    
     staticResourceDocs += ResourceDoc(
       customViewNamesCheck,
       implementedInApiVersion,
