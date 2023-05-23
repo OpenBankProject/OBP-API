@@ -13,7 +13,7 @@ import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
-import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
+import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400, UserAttributeJsonV400}
 import code.atmattribute.AtmAttribute
 import code.consent.Consents
 import code.loginattempts.LoginAttempt
@@ -27,7 +27,7 @@ import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
-import com.openbankproject.commons.model.enums.AtmAttributeType
+import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.S
@@ -113,9 +113,59 @@ trait APIMethods510 {
             (JSONFactory400.createApiCollectionsJsonV400(apiCollections), HttpCode.`200`(callContext))
           }
       }
-    }   
-    
-    
+    }
+    staticResourceDocs += ResourceDoc(
+      createUserAttribute,
+      implementedInApiVersion,
+      nameOf(createUserAttribute),
+      "POST",
+      "/users/USER_ID/attributes",
+      "Create User Attribute for the user",
+      s""" Create User Attribute for the user
+         |
+         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |""",
+      userAttributeJsonV400,
+      userAttributeResponseJson,
+      List(
+        $UserNotLoggedIn,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagUser, apiTagNewStyle),
+      Some(List(canCreateUserAttribute))
+    )
+
+    lazy val createUserAttribute: OBPEndpoint = {
+      case "users" :: userId :: "attributes" :: Nil JsonPost json -> _ => {
+        cc =>
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV400 "
+          for {
+            (attributes, callContext) <- NewStyle.function.getUserAttributes(userId, cc.callContext)
+            postedData <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              json.extract[UserAttributeJsonV400]
+            }
+            failMsg = s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+              s"${UserAttributeType.DOUBLE}(12.1234), ${UserAttributeType.STRING}(TAX_NUMBER), ${UserAttributeType.INTEGER} (123)and ${UserAttributeType.DATE_WITH_DAY}(2012-04-23)"
+            userAttributeType <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, callContext) <- NewStyle.function.createOrUpdateUserAttribute(
+              userId,
+              None,
+              postedData.name,
+              userAttributeType,
+              postedData.value,
+              callContext)
+          } yield {
+            (JSONFactory400.createUserAttributeJson(userAttribute), HttpCode.`201`(callContext))
+          }
+      }
+    }
+
     staticResourceDocs += ResourceDoc(
       customViewNamesCheck,
       implementedInApiVersion,
