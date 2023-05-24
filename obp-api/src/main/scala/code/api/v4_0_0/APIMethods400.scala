@@ -1630,7 +1630,10 @@ trait APIMethods400 {
   
                   (challengeAnswerIsValidated, callContext) <- NewStyle.function.validateChallengeAnswer(challengeAnswerJson.id, challengeAnswerJson.answer, callContext)
 
-                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer.replace("answer may be expired.",s"answer may be expired, current expiration time is ${transactionRequestChallengeTtl} seconds .")} ", cc=callContext) {
+                  _ <- Helper.booleanToFuture(s"${InvalidChallengeAnswer
+                    .replace("answer may be expired.",s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+                    .replace("up your allowed attempts.",s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+                  }", cc=callContext) {
                     challengeAnswerIsValidated
                   }
 

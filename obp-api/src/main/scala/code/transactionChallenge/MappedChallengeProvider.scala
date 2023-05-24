@@ -1,6 +1,7 @@
 package code.transactionChallenge
 
-import code.api.util.APIUtil.transactionRequestChallengeTtl
+import code.api.util.APIUtil.{allowedAnswerTransactionRequestChallengeAttempts, transactionRequestChallengeTtl}
+import code.api.util.ErrorMessages.InvalidChallengeAnswer
 import code.api.util.{APIUtil, ErrorMessages}
 import com.openbankproject.commons.model.{ChallengeTrait, ErrorMessage}
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
@@ -77,13 +78,23 @@ object MappedChallengeProvider extends ChallengeProvider {
               if(currentHashedAnswer==expectedHashedAnswer) {
                 tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
               } else {
-                Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+                Failure(s"${
+                  s"${
+                    InvalidChallengeAnswer
+                      .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+                      .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+                  }"}")
               }
             case Some(id) =>
               if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
                 tryo{challenge.mSuccessful(true).mScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
               } else {
-                Failure(s"${ErrorMessages.InvalidChallengeAnswer}")
+                Failure(s"${
+                  s"${
+                    InvalidChallengeAnswer
+                      .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+                      .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+                  }"}")
               }
           }
         }else{

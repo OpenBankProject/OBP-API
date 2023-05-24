@@ -1356,7 +1356,11 @@ object NewStyle extends MdcLoggable{
 
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
-       (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+       (unboxFullOrFail(i._1, callContext, s"${
+         InvalidChallengeAnswer
+           .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+           .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+       }"), i._2)
       }
 
     def allChallengesSuccessfullyAnswered(
@@ -1399,7 +1403,11 @@ object NewStyle extends MdcLoggable{
           hashOfSuppliedAnswer: String,
           callContext: Option[CallContext]
         ) map { i =>
-          (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+          (unboxFullOrFail(i._1, callContext, s"${
+            InvalidChallengeAnswer
+              .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+              .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+          }"), i._2)
         }
       }
     }
