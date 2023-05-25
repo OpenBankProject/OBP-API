@@ -62,7 +62,7 @@ When naming variables use strict camel case e.g. use myUrl not myURL. This is so
         UnknownError
       ),
       Catalogs(notCore, notPSD2, notOBWG),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle))
+      List(apiTagCustomer, apiTagUser))
 
 
 

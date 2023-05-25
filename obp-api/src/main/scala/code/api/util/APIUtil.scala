@@ -48,7 +48,7 @@ import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
-import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
@@ -2737,9 +2737,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     // Endpoint Operation Ids
     val enabledEndpointOperationIds = getEnabledEndpointOperationIds
-
-    val onlyNewStyle = APIUtil.getPropsAsBoolValue("new_style_only", false)
-
+    
 
     val routes = for (
       item <- resourceDocs
@@ -2750,8 +2748,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         (enabledEndpointOperationIds.contains(item.operationId) || enabledEndpointOperationIds.isEmpty) &&
         // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
         // i.e. this function may receive more Resource Docs than version endpoints
-        endpoints.exists(_ == item.partialFunction) &&
-        (item.tags.exists(_ == apiTagNewStyle) || !onlyNewStyle)
+        endpoints.exists(_ == item.partialFunction)
     )
       yield item
     routes

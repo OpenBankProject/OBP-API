@@ -77,7 +77,7 @@ trait APIMethods510 {
       EmptyBody,
       apiInfoJson400,
       List(UnknownError, "no connector set"),
-      apiTagApi :: apiTagNewStyle :: Nil)
+      apiTagApi  :: Nil)
 
     def root (apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
@@ -105,7 +105,7 @@ trait APIMethods510 {
       EmptyBody,
       WaitingForGodotJsonV510(sleep_in_milliseconds = 50),
       List(UnknownError, "no connector set"),
-      apiTagApi :: apiTagNewStyle :: Nil)
+      apiTagApi  :: Nil)
 
     lazy val waitingForGodot: OBPEndpoint = {
       case "waiting-for-godot" :: Nil JsonGet _ => {
@@ -139,7 +139,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagApiCollection, apiTagNewStyle),
+      List(apiTagApiCollection),
       Some(canGetAllApiCollections :: Nil)
     )
 
@@ -173,7 +173,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSystemIntegrity, apiTagNewStyle),
+      List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil)
     )
 
@@ -209,7 +209,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSystemIntegrity, apiTagNewStyle),
+      List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil)
     )
 
@@ -246,7 +246,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSystemIntegrity, apiTagNewStyle),
+      List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil)
     )
 
@@ -282,7 +282,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSystemIntegrity, apiTagNewStyle),
+      List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil)
     )
 
@@ -317,7 +317,7 @@ trait APIMethods510 {
         $UserNotLoggedIn,
         UnknownError
       ),
-      List(apiTagFx, apiTagNewStyle)
+      List(apiTagFx)
     )
 
     lazy val getCurrenciesAtBank: OBPEndpoint = {
@@ -356,7 +356,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagSystemIntegrity, apiTagNewStyle),
+      List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil)
     )
 
@@ -408,7 +408,7 @@ trait APIMethods510 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canCreateAtmAttribute, canCreateAtmAttributeAtAnyBank))
     )
 
@@ -462,7 +462,7 @@ trait APIMethods510 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
@@ -498,7 +498,7 @@ trait APIMethods510 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank))
     )
 
@@ -537,7 +537,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canUpdateAtmAttribute, canUpdateAtmAttributeAtAnyBank))
     )
 
@@ -595,7 +595,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canDeleteAtmAttribute, canDeleteAtmAttributeAtAnyBank))
     )
 
@@ -641,7 +641,7 @@ trait APIMethods510 {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle), 
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2), 
       Some(List(canRevokeConsentAtBank))
     )
 
@@ -694,7 +694,7 @@ trait APIMethods510 {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)
     )
     lazy val selfRevokeConsent: OBPEndpoint = {
       case "my" :: "consent" :: "current" :: Nil JsonDelete _ => {
@@ -735,7 +735,7 @@ trait APIMethods510 {
         BankNotFound,
         UnknownError
       ),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2)
     )
     lazy val mtlsClientCertificateInfo: OBPEndpoint = {
       case "my" :: "mtls" :: "certificate" :: "current" :: Nil JsonGet _ => {
@@ -771,7 +771,7 @@ trait APIMethods510 {
         UserNotFoundByUserId,
         UnknownError
       ),
-      List(apiTagApiCollection, apiTagNewStyle)
+      List(apiTagApiCollection)
     )
 
     lazy val updateMyApiCollection: OBPEndpoint = {
@@ -813,7 +813,7 @@ trait APIMethods510 {
       EmptyBody,
       userJsonV400,
       List($UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canGetAnyUser))
     )
     
@@ -847,7 +847,7 @@ trait APIMethods510 {
       EmptyBody,
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canReadUserLockedStatus))
     )
     lazy val getUserLockStatus: OBPEndpoint = {
@@ -889,7 +889,7 @@ trait APIMethods510 {
       EmptyBody,
       badLoginStatusJson,
       List(UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canUnlockUser)))
     lazy val unlockUserByProviderAndUsername: OBPEndpoint = {
       //get private accounts for all banks
@@ -934,7 +934,7 @@ trait APIMethods510 {
       EmptyBody,
       userLockStatusJson,
       List($UserNotLoggedIn, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canLockUser)))
     lazy val lockUserByProviderAndUsername: OBPEndpoint = {
       case "users" :: provider :: username :: "locks" :: Nil JsonPost req => {
@@ -1007,7 +1007,7 @@ trait APIMethods510 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagMetric, apiTagAggregateMetrics, apiTagNewStyle),
+      List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)))
 
     lazy val getAggregateMetrics: OBPEndpoint = {
@@ -1044,7 +1044,7 @@ trait APIMethods510 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canCreateAtm, canCreateAtmAtAnyBank))
     )
     lazy val createAtm: OBPEndpoint = {
@@ -1086,7 +1086,7 @@ trait APIMethods510 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canUpdateAtm, canUpdateAtmAtAnyBank))
     )
     lazy val updateAtm: OBPEndpoint = {
@@ -1137,7 +1137,7 @@ trait APIMethods510 {
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle)
+      List(apiTagATM)
     )
     lazy val getAtms: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
@@ -1197,7 +1197,7 @@ trait APIMethods510 {
       EmptyBody,
       atmJsonV510,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
-      List(apiTagATM, apiTagNewStyle)
+      List(apiTagATM)
     )
     lazy val getAtm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
@@ -1234,7 +1234,7 @@ trait APIMethods510 {
         $UserNotLoggedIn,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle),
+      List(apiTagATM),
       Some(List(canDeleteAtmAtAnyBank, canDeleteAtm))
     )
     lazy val deleteAtm: OBPEndpoint = {

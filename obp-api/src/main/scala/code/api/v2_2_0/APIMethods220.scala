@@ -90,7 +90,7 @@ trait APIMethods220 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagView, apiTagAccount, apiTagNewStyle))
+      List(apiTagView, apiTagAccount))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
@@ -253,7 +253,7 @@ trait APIMethods220 {
       emptyObjectJson,
       fXRateJSON,
       List(InvalidISOCurrencyCode,UserNotLoggedIn,FXCurrencyCodeCombinationsNotSupported, UnknownError),
-      List(apiTagFx, apiTagNewStyle))
+      List(apiTagFx))
 
     val getCurrentFxRateIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getCurrentFxRateIsPublic", false)
 
@@ -303,7 +303,7 @@ trait APIMethods220 {
         UserNoPermissionAccessView,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2, apiTagNewStyle))
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2))
 
     lazy val getExplictCounterpartiesForAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet req => {
@@ -352,7 +352,7 @@ trait APIMethods220 {
       emptyObjectJson,
       counterpartyWithMetadataJson,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2, apiTagNewStyle)
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2)
     )
   
     lazy val getExplictCounterpartyById : OBPEndpoint = {
@@ -391,7 +391,7 @@ trait APIMethods220 {
       emptyObjectJson,
       messageDocsJson,
       List(UnknownError),
-      List(apiTagDocumentation, apiTagApi, apiTagNewStyle)
+      List(apiTagDocumentation, apiTagApi)
     )
 
     lazy val getMessageDocs: OBPEndpoint = {
@@ -746,7 +746,7 @@ trait APIMethods220 {
         AccountIdAlreadyExists,
         UnknownError
       ),
-      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
+      List(apiTagAccount,apiTagOnboarding),
       Some(List(canCreateAccount))
     )
 
@@ -841,7 +841,7 @@ trait APIMethods220 {
         UserHasMissingRoles,
         UnknownError
       ),
-      apiTagApi :: apiTagNewStyle :: Nil,
+      apiTagApi  :: Nil,
       Some(List(canGetConfig)))
 
     lazy val config: OBPEndpoint = {
@@ -899,7 +899,7 @@ trait APIMethods220 {
         InvalidDateFormat,
         UnknownError
       ),
-      List(apiTagMetric, apiTagApi, apiTagNewStyle),
+      List(apiTagMetric, apiTagApi),
       Some(List(canGetConnectorMetrics)))
 
     lazy val getConnectorMetrics : OBPEndpoint = {

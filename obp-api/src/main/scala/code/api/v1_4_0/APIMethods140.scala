@@ -407,7 +407,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "user does not have access to owner view",
         TransactionRequestsNotEnabled,
         UnknownError),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2))
 
     lazy val getTransactionRequestTypes: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -639,7 +639,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
         "Could not create customer",
         "Could not create user_customer_links",
         UnknownError),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer),
       Some(List(canCreateCustomer, canCreateUserCustomerLink)))
 
     lazy val addCustomer : OBPEndpoint = {
