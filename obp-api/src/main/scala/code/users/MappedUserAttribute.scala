@@ -20,11 +20,21 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
       UserAttribute.findAll(By(UserAttribute.UserId, userId))
     )
   }
-  override def getMyPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = Future {
+  override def getPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = Future {
     tryo(
       UserAttribute.findAll(
         By(UserAttribute.UserId, userId),
-        By(UserAttribute.IsPersonal, true)
+        By(UserAttribute.IsPersonal, true),
+        OrderBy(UserAttribute.createdAt, Descending)
+      )
+    )
+  }
+  override def getNotPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = Future {
+    tryo(
+      UserAttribute.findAll(
+        By(UserAttribute.UserId, userId),
+        By(UserAttribute.IsPersonal, false),
+        OrderBy(UserAttribute.createdAt, Descending)
       )
     )
   }

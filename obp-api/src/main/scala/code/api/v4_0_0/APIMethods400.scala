@@ -8765,7 +8765,7 @@ trait APIMethods400 {
       case "my" ::  "user" :: "attributes" :: Nil JsonGet _ => {
         cc =>
           for {
-            (attributes, callContext) <- NewStyle.function.getMyPersonalUserAttributes(cc.userId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(cc.userId, cc.callContext)
           } yield {
             (JSONFactory400.createUserAttributesJson(attributes), HttpCode.`200`(callContext))
           }
@@ -8887,7 +8887,7 @@ trait APIMethods400 {
       case "my" ::  "user" :: "attributes" :: userAttributeId :: Nil JsonPut json -> _=> {
         cc =>
           for {
-            (attributes, callContext) <- NewStyle.function.getMyPersonalUserAttributes(cc.userId, cc.callContext)
+            (attributes, callContext) <- NewStyle.function.getPersonalUserAttributes(cc.userId, cc.callContext)
             failMsg = s"$UserAttributeNotFound"
             _ <- NewStyle.function.tryons(failMsg, 400,  callContext) {
               attributes.exists(_.userAttributeId == userAttributeId)

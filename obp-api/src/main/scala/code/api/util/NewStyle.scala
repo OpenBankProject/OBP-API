@@ -1896,8 +1896,8 @@ object NewStyle extends MdcLoggable{
       }
     } 
     
-    def getMyPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
-      Connector.connector.vend.getMyPersonalUserAttributes(
+    def getPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
+      Connector.connector.vend.getPersonalUserAttributes(
         userId: String, callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

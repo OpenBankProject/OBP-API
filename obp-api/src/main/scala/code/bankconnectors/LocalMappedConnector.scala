@@ -219,6 +219,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val userAttributeName = s"TRANSACTION_REQUESTS_PAYMENT_LIMIT_${currency}_" + transactionRequestType.toUpperCase
     val userAttributes = UserAttribute.findAll(
       By(UserAttribute.UserId, userId),
+      By(UserAttribute.IsPersonal, false),
       OrderBy(UserAttribute.createdAt, Descending)
     )
     val userAttributeValue = userAttributes.find(_.name == userAttributeName).map(_.value)
@@ -4078,8 +4079,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUser(userId: String) map {(_, callContext)}
   }
   
-  override def getMyPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
-    UserAttributeProvider.userAttributeProvider.vend.getMyPersonalUserAttributes(userId: String) map {(_, callContext)}
+  override def getPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
+    UserAttributeProvider.userAttributeProvider.vend.getPersonalUserAttributes(userId: String) map {(_, callContext)}
   }
   override def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
     UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUsers(userIds) map {(_, callContext)}
