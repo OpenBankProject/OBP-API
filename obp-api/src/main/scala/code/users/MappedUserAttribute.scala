@@ -29,7 +29,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
       )
     )
   }
-  override def getNotPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = Future {
+  override def getNonePersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = Future {
     tryo(
       UserAttribute.findAll(
         By(UserAttribute.UserId, userId),
