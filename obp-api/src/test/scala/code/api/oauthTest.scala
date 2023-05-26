@@ -79,7 +79,7 @@ class OAuthTest extends ServerSetup {
   lazy val user1Password = randomString(10)
   lazy val user1 =
     AuthUser.create.
-      email(randomString(3)+"@example.com").
+      email(randomString(10)+"@example.com").
       username("username with_space").
       password(user1Password).
       validated(true).
@@ -90,7 +90,7 @@ class OAuthTest extends ServerSetup {
   lazy val user2Password = randomString(10)
   lazy val user2 =
     AuthUser.create.
-      email(randomString(3)+"@example.com").
+      email(randomString(10)+"@example.com").
       username("username with more than 1 space").
       password(user2Password).
       validated(false).
@@ -100,7 +100,7 @@ class OAuthTest extends ServerSetup {
 
   lazy val consumer = new Consumer (testConsumer.key.get,testConsumer.secret.get)
   lazy val disabledConsumer = new Consumer (disabledTestConsumer.key.get, disabledTestConsumer.secret.get)
-  lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
+  lazy val notRegisteredConsumer = new Consumer (randomString(10),randomString(10))
 
   private def getAPIResponse(req : Req) : OAuthResponse = {
     Await.result(
@@ -264,7 +264,7 @@ class OAuthTest extends ServerSetup {
     scenario("the user cannot login because the token does not exist", Verifier, Oauth){
       Given("we will use a random request token")
       When("the browser is launched to login")
-      val verifier = getVerifier(randomString(4), user1.username.get, user1Password)
+      val verifier = getVerifier(randomString(10), user1.username.get, user1Password)
       Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
@@ -295,7 +295,7 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
       When("when we ask for an access token")
-      val accessTokenReply = getAccessToken(consumer, requestToken, randomString(5))
+      val accessTokenReply = getAccessToken(consumer, requestToken, randomString(10))
       Then("we should get a 401")
       accessTokenReply.code should equal (401)
     }
@@ -305,7 +305,7 @@ class OAuthTest extends ServerSetup {
       val requestToken = extractToken(reply.body)
       val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token with a request token")
-      val randomRequestToken = Token(randomString(5), randomString(5))
+      val randomRequestToken = Token(randomString(10), randomString(10))
       val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.openOrThrowException(attemptedToOpenAnEmptyBox))
       Then("we should get a 401")
       accessTokenReply.code should equal (401)
@@ -314,8 +314,8 @@ class OAuthTest extends ServerSetup {
       Given("we will first get request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       When("when we ask for an access token with a request token")
-      val randomRequestToken = Token(randomString(5), randomString(5))
-      val accessTokenReply = getAccessToken(consumer, randomRequestToken, randomString(5))
+      val randomRequestToken = Token(randomString(10), randomString(10))
+      val accessTokenReply = getAccessToken(consumer, randomRequestToken, randomString(10))
       Then("we should get a 401")
       accessTokenReply.code should equal (401)
     }

@@ -70,6 +70,7 @@ class MappedClassNameTest extends FeatureSpec {
     "code.productcollection.MappedProductCollection") ++
     Set("code.model.dataAccess.MappedBankAccountData",
       "code.model.Consumer",
+      "code.etag.MappedETag",
       "code.metadata.wheretags.MappedWhereTag",
       "code.database.authorisation.Authorisation",
       "code.productAttributeattribute.MappedProductAttribute",

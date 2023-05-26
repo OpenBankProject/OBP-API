@@ -403,9 +403,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
       val (usr, callContext) = getUserAndCallContext(cc)
       usr match {
         case Full(u) => fn(callContext.copy(user = Full(u))) // Authentication is successful
+        case Empty => fn(cc.copy(user = Empty)) // Anonymous access
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
-        case _ => Failure("oauth error")
+        case unhandled =>
+          logger.debug(unhandled)
+          Failure("oauth error")
       }
     } else if (hasAnOAuth2Header(authorization)) {
       val (user, callContext) = OAuth2Login.getUser(cc)
@@ -413,9 +416,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case Full(u) =>
           AuthUser.refreshUser(u, callContext)
           fn(cc.copy(user = Full(u))) // Authentication is successful
+        case Empty => fn(cc.copy(user = Empty)) // Anonymous access
         case ParamFailure(a, b, c, apiFailure : APIFailure) => ParamFailure(a, b, c, apiFailure : APIFailure)
         case Failure(msg, t, c) => Failure(msg, t, c)
-        case _ => Failure("oauth error")
+        case unhandled =>
+          logger.debug(unhandled)
+          Failure("oauth error")
       }
     }
     // Direct Login Deprecated i.e Authorization: DirectLogin token=eyJhbGciOiJIUzI1NiJ9.eyIiOiIifQ.Y0jk1EQGB4XgdqmYZUHT6potmH3mKj5mEaA9qrIXXWQ

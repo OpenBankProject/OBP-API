@@ -62,7 +62,7 @@ In case that the above command fails try next one:
 
     export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons && mvn jetty:run -pl obp-api
 
-[Note: How to run via IntelliJ IDEA](docs/glossary/Run_via_IntelliJ_IDEA.md)
+[Note: How to run via IntelliJ IDEA](obp-api/src/main/docs/glossary/Run_via_IntelliJ_IDEA.md)
 
 ## Run some tests.
   
@@ -190,7 +190,9 @@ Note: Your Java environment may need to be setup correctly to use SSL
 
 Restart OBP-API, if you get an error, check your Java environment can connect to the host over SSL.
 
-Note you can change the log level in /obp-api/src/main/resources/logback.xml (try TRACE or DEBUG)
+Note you can change the log level in:
+ - /obp-api/src/main/resources/default.logback.xml (try TRACE or DEBUG)
+ - /obp-api/src/main/resources/logback-test.xml (try TRACE or DEBUG)
 
 There is a gist / tool which is useful for this. Search the web for SSLPoke. Note this is an external repository.
 

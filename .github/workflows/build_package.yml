@@ -3,7 +3,7 @@ name: build and publish container
 on: [push]
 env:
   ## Sets environment variable
-  DOCKER_HUB_ORGANIZATION: openbankproject
+  DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
   DOCKER_HUB_REPOSITORY: obp-api
 
 
@@ -75,15 +75,15 @@ jobs:
 
       - name: Sign container image
         run: |
-          cosign sign --key cosign.key \
+          cosign sign -y --key cosign.key \
             docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop
-          cosign sign --key cosign.key \
+          cosign sign -y --key cosign.key \
                       docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest
-          cosign sign --key cosign.key \
+          cosign sign -y --key cosign.key \
                       docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:$GITHUB_SHA
-          cosign sign --key cosign.key \
+          cosign sign -y --key cosign.key \
                       docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:develop-OC
-          cosign sign --key cosign.key \
+          cosign sign -y --key cosign.key \
                       docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:latest-OC
         env:
           COSIGN_PASSWORD: "${{secrets.COSIGN_PASSWORD}}"

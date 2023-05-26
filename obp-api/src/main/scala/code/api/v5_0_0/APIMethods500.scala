@@ -831,6 +831,14 @@ trait APIMethods500 {
             }
             requestedEntitlements = consentRequestJson.entitlements.getOrElse(Nil)
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ <- Helper.booleanToFuture(RolesForbiddenInConsent, cc=callContext){
+              requestedEntitlements.map(_.role_name)
+                .intersect(
+                  List(
+                    canCreateEntitlementAtOneBank.toString(), 
+                    canCreateEntitlementAtAnyBank.toString())
+                ).length == 0
+            }
             _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc=callContext){
               requestedEntitlements.forall(
                 re => myEntitlements.getOrElse(Nil).exists(
@@ -838,7 +846,6 @@ trait APIMethods500 {
                   )
                 )
             }
-
             postConsentViewJsons <- Future.sequence(
               consentRequestJson.account_access.map(
                 access => 

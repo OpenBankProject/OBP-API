@@ -1,6 +1,8 @@
 package code.api.v5_1_0
 
 
+import java.io
+
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -32,8 +34,10 @@ import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeT
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.S
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.tryo
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -78,9 +82,44 @@ trait APIMethods510 {
 
     def root (apiVersion : ApiVersion, apiVersionStatus: String) : OBPEndpoint = {
       case (Nil | "root" :: Nil) JsonGet _ => {
-        cc => Future {
-          JSONFactory510.getApiInfoJSON(apiVersion,apiVersionStatus) -> HttpCode.`200`(cc.callContext)
-        }
+        cc =>
+          for {
+            _ <- Future() // Just start async call
+          } yield {
+            (JSONFactory510.getApiInfoJSON(apiVersion,apiVersionStatus), HttpCode.`200`(cc.callContext))
+          }
+      }
+    }
+    
+    staticResourceDocs += ResourceDoc(
+      waitingForGodot,
+      implementedInApiVersion,
+      nameOf(waitingForGodot),
+      "GET",
+      "/waiting-for-godot",
+      "Waiting For Godot",
+      """Waiting For Godot
+        |
+        |Uses query parameter "sleep" in milliseconds.
+        |For instance: .../waiting-for-godot?sleep=50 means postpone response in 50 milliseconds.
+        |""".stripMargin,
+      EmptyBody,
+      WaitingForGodotJsonV510(sleep_in_milliseconds = 50),
+      List(UnknownError, "no connector set"),
+      apiTagApi :: apiTagNewStyle :: Nil)
+
+    lazy val waitingForGodot: OBPEndpoint = {
+      case "waiting-for-godot" :: Nil JsonGet _ => {
+        cc =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+          } yield {
+            val sleep: String = httpParams.filter(_.name == "sleep").headOption
+              .map(_.values.headOption.getOrElse("0")).getOrElse("0")
+            val sleepInMillis: Long = tryo(sleep.trim.toLong).getOrElse(0)
+            Thread.sleep(sleepInMillis)
+            (JSONFactory510.waitingForGodot(sleepInMillis), HttpCode.`200`(cc.callContext))
+          }
       }
     }
     
@@ -1133,7 +1172,7 @@ trait APIMethods510 {
       "/banks/BANK_ID/atms",
       "Create ATM",
       s"""Create ATM.""",
-      atmJsonV510,
+      postAtmJsonV510,
       atmJsonV510,
       List(
         $UserNotLoggedIn,
@@ -1148,7 +1187,7 @@ trait APIMethods510 {
         cc =>
           for {
             atmJsonV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, cc.callContext) {
-              val atm = json.extract[AtmJsonV510]
+              val atm = json.extract[PostAtmJsonV510]
               //Make sure the Create contains proper ATM ID
               atm.id.get
               atm
