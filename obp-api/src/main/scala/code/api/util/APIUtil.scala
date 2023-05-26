@@ -2761,14 +2761,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       Full(t)
     } catch {
       case m: ParseException =>
-        logger.error("String-->Jvalue parse error"+in,m)
-        Failure("String-->Jvalue parse error"+in+m.getMessage)
+        logger.error("String --> JValue parse error"+in,m)
+        Failure("String --> JValue parse error"+in+m.getMessage)
       case m: MappingException =>
-        logger.error("JValue-->CaseClass extract error"+in,m)
-        Failure("JValue-->CaseClass extract error"+in+m.getMessage)
+        logger.error("JValue --> CaseClass extract error"+in,m)
+        Failure("JValue --> CaseClass extract error"+in+m.getMessage)
       case m: Throwable =>
-        logger.error("extractToCaseClass unknow error"+in,m)
-        Failure("extractToCaseClass unknow error"+in+m.getMessage)
+        logger.error("extractToCaseClass unknown error"+in,m)
+        Failure("extractToCaseClass unknown error"+in+m.getMessage)
     }
   }
 
