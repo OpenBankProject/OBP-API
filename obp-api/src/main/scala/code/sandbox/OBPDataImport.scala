@@ -325,7 +325,7 @@ trait OBPDataImport extends MdcLoggable {
     val ibans = data.accounts.map(_.IBAN)
     val duplicateIbans = ibans diff ibans.distinct
     val existingIbans = data.accounts.flatMap(acc => {
-      Connector.connector.vend.getBankAccountByRouting(Some(BankId(acc.bank)), AccountRoutingScheme.IBAN.toString, acc.IBAN, None).map(_._1)
+      Connector.connector.vend.getBankAccountByRoutingLegacy(Some(BankId(acc.bank)), AccountRoutingScheme.IBAN.toString, acc.IBAN, None).map(_._1)
     })
 
     if(!banksNotSpecifiedInImport.isEmpty) {

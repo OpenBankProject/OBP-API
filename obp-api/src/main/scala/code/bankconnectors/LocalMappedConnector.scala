@@ -760,10 +760,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
-    getBankAccountByRouting(None, "IBAN", iban, callContext)
+    getBankAccountByRoutingLegacy(None, "IBAN", iban, callContext)
   }
 
-  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     bankId match {
       case Some(bankId) =>
         BankAccountRouting
@@ -775,6 +775,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
     }
   }
+
+  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
+    getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext])
+  }
+
 
   override def getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = {
     Future {
@@ -1786,7 +1791,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     for {
       toAccount <-
-        Connector.connector.vend.getBankAccountByRouting(None, toAccountRoutingScheme, toAccountRoutingAddress, None) match {
+        Connector.connector.vend.getBankAccountByRoutingLegacy(None, toAccountRoutingScheme, toAccountRoutingAddress, None) match {
           case Full(bankAccount) => Future.successful(bankAccount._1)
           case _: EmptyBox =>
             NewStyle.function.getCounterpartyByIban(toAccountRoutingAddress, callContext).flatMap(counterparty =>
