@@ -155,13 +155,13 @@ trait APIMethods510 {
       }
     }
     staticResourceDocs += ResourceDoc(
-      createUserAttribute,
+      createNonePersonalUserAttribute,
       implementedInApiVersion,
-      nameOf(createUserAttribute),
+      nameOf(createNonePersonalUserAttribute),
       "POST",
-      "/users/USER_ID/attributes",
-      "Create User Attribute",
-      s""" Create User Attribute
+      "/users/USER_ID/none-personal/attributes",
+      "Create None Personal User Attribute",
+      s""" Create None Personal User Attribute
          |
          |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
          |
@@ -177,11 +177,11 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagUser, apiTagNewStyle),
-      Some(List(canCreateUserAttribute))
+      Some(List(canCreateNonePersonalUserAttribute))
     )
 
-    lazy val createUserAttribute: OBPEndpoint = {
-      case "users" :: userId :: "attributes" :: Nil JsonPost json -> _ => {
+    lazy val createNonePersonalUserAttribute: OBPEndpoint = {
+      case "users" :: userId ::"none-personal":: "attributes" :: Nil JsonPost json -> _ => {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV510 "
           for {
@@ -200,7 +200,7 @@ trait APIMethods510 {
               postedData.name,
               userAttributeType,
               postedData.value,
-              postedData.is_personal,
+              false,
               callContext
               )
           } yield {
@@ -210,13 +210,13 @@ trait APIMethods510 {
     }
     
     resourceDocs += ResourceDoc(
-      deleteUserAttribute,
+      deleteNonePersonalUserAttribute,
       implementedInApiVersion,
-      nameOf(deleteUserAttribute),
+      nameOf(deleteNonePersonalUserAttribute),
       "DELETE",
-      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
-      "Delete User Attribute",
-      s"""Delete the User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
+      "/users/USER_ID/none-personal/attributes/USER_ATTRIBUTE_ID",
+      "Delete None Personal User Attribute",
+      s"""Delete the None Personal User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -229,10 +229,10 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagUser, apiTagNewStyle),
-      Some(List(canDeleteUserAttribute)))
+      Some(List(canDeleteNonePersonalUserAttribute)))
 
-    lazy val deleteUserAttribute: OBPEndpoint = {
-      case "users" :: userId :: "attributes" :: userAttributeId :: Nil JsonDelete _ => {
+    lazy val deleteNonePersonalUserAttribute: OBPEndpoint = {
+      case "users" :: userId :: "none-personal" :: "attributes" :: userAttributeId :: Nil JsonDelete _ => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
@@ -250,13 +250,13 @@ trait APIMethods510 {
     }
     
     resourceDocs += ResourceDoc(
-      getUserAttributes,
+      getNonePersonalUserAttributes,
       implementedInApiVersion,
-      nameOf(getUserAttributes),
+      nameOf(getNonePersonalUserAttributes),
       "GET",
-      "/users/USER_ID/attributes",
-      "Get User Attributes",
-      s"""Get User Attribute for a user specified by USER_ID
+      "/users/USER_ID/none-personal/attributes",
+      "Get None Personal User Attributes",
+      s"""Get None Personal User Attribute for a user specified by USER_ID
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -269,20 +269,18 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagUser, apiTagNewStyle),
-      Some(List(canGetUserAttributes)))
+      Some(List(canGetNonePersonalUserAttributes)))
 
-    lazy val getUserAttributes: OBPEndpoint = {
-      case "users" :: userId :: "attributes" :: Nil JsonGet _ => {
+    lazy val getNonePersonalUserAttributes: OBPEndpoint = {
+      case "users" :: userId :: "none-personal" ::"attributes" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
             (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
-            (userAttributes,callContext) <- Connector.connector.vend.getUserAttributes(
+            (userAttributes,callContext) <- NewStyle.function.getPersonalUserAttributes(
               user.userId,
               callContext,
-            ) map {
-            i => (connectorEmptyResponse (i._1, callContext), i._2)
-          }
+            ) 
           } yield {
             (JSONFactory510.createUserAttributesJson(userAttributes), HttpCode.`200`(callContext))
           }

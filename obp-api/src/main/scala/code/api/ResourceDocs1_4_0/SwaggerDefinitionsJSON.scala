@@ -5329,8 +5329,7 @@ object SwaggerDefinitionsJSON {
   val userAttributeJsonV510 = UserAttributeJsonV510(
     name = userAttributeNameExample.value,
     `type` = userAttributeTypeExample.value,
-    value = userAttributeValueExample.value,
-    is_personal = userAttributeIsPersonalExample.value.toBoolean
+    value = userAttributeValueExample.value
   )
 
   val userAttributeResponseJsonV510 = UserAttributeResponseJsonV510(

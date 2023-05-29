@@ -23,9 +23,9 @@ class UserAttributesTest extends V510ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.createUserAttribute))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.deleteUserAttribute))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.getUserAttributes))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.createNonePersonalUserAttribute))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.deleteNonePersonalUserAttribute))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.getNonePersonalUserAttributes))
 
 
   lazy val bankId = testBankId1.value
@@ -37,7 +37,7 @@ class UserAttributesTest extends V510ServerSetup {
   feature(s"test $ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
     scenario(s"We will call the end $ApiEndpoint1  without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
-      val request510 = (v5_1_0_Request / "users" /"testUserId"/ "attributes").POST
+      val request510 = (v5_1_0_Request / "users" /"testUserId"/ "none-personal" / "attributes").POST
       val response510 = makePostRequest(request510, write(postUserAttributeJsonV510))
       Then("We should get a 401")
       response510.code should equal(401)
@@ -46,7 +46,7 @@ class UserAttributesTest extends V510ServerSetup {
     
     scenario(s"We will call the  $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0")
-      val request510 = (v5_1_0_Request / "users" /"testUserId"/ "attributes"/"testUserAttributeId").DELETE
+      val request510 = (v5_1_0_Request / "users" /"testUserId" / "none-personal" /"attributes"/"testUserAttributeId").DELETE
       val response510 = makeDeleteRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
@@ -55,7 +55,7 @@ class UserAttributesTest extends V510ServerSetup {
     
     scenario(s"We will call the  $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.1.0")
-      val request510 = (v5_1_0_Request / "users" /"testUserId"/ "attributes").GET
+      val request510 = (v5_1_0_Request / "users" /"testUserId" / "none-personal" /"attributes").GET
       val response510 = makeGetRequest(request510)
       Then("We should get a 401")
       response510.code should equal(401)
@@ -68,16 +68,16 @@ class UserAttributesTest extends V510ServerSetup {
       ApiEndpoint2, ApiEndpoint3,VersionOfApi) {
       When("We make a request v5.1.0, we need to prepare the roles and users")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateUserAttribute.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteUserAttribute.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetUserAttributes.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateNonePersonalUserAttribute.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteNonePersonalUserAttribute.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetNonePersonalUserAttributes.toString)
       
       val requestGetUsers = (v5_1_0_Request / "users").GET <@ (user1)
       val responseGetUsers = makeGetRequest(requestGetUsers)
       val userIds = responseGetUsers.body.extract[UsersJsonV400].users.map(_.user_id)
       val userId = userIds(scala.util.Random.nextInt(userIds.size))
       
-      val request510 = (v5_1_0_Request / "users"/ userId / "attributes").POST <@ (user1)
+      val request510 = (v5_1_0_Request / "users"/ userId / "none-personal" /"attributes").POST <@ (user1)
       val response510 = makePostRequest(request510, write(postUserAttributeJsonV510))
       Then("We should get a 201")
       response510.code should equal(201)
@@ -87,7 +87,7 @@ class UserAttributesTest extends V510ServerSetup {
       val userAttributeId = jsonResponse.user_attribute_id
 
       {
-        val request510 = (v5_1_0_Request / "users" / userId / "attributes").GET <@ (user1)
+        val request510 = (v5_1_0_Request / "users" / userId / "none-personal" /"attributes").GET <@ (user1)
         val response510 = makeGetRequest(request510)
         Then("We should get a 200")
         response510.code should equal(200)
@@ -96,7 +96,7 @@ class UserAttributesTest extends V510ServerSetup {
         jsonResponse.user_attributes.head.name shouldBe (batteryLevel)
         jsonResponse.user_attributes.head.user_attribute_id shouldBe (userAttributeId)
       }
-      val requestDeleteUserAttribute = (v5_1_0_Request / "users"/ userId/"attributes"/userAttributeId).DELETE <@ (user1)
+      val requestDeleteUserAttribute = (v5_1_0_Request / "users"/ userId/"attributes"/"none-personal"/userAttributeId).DELETE <@ (user1)
       val responseDeleteUserAttribute = makeDeleteRequest(requestDeleteUserAttribute)
       Then("We should get a 204")
       responseDeleteUserAttribute.code should equal(204)
@@ -109,7 +109,7 @@ class UserAttributesTest extends V510ServerSetup {
 
 
       {
-        val request510 = (v5_1_0_Request / "users" / userId / "attributes").GET <@ (user1)
+        val request510 = (v5_1_0_Request / "users" / userId / "none-personal" /"attributes").GET <@ (user1)
         val response510 = makeGetRequest(request510)
         Then("We should get a 200")
         response510.code should equal(200)
@@ -128,12 +128,12 @@ class UserAttributesTest extends V510ServerSetup {
       val userIds = responseGetUsers.body.extract[UsersJsonV400].users.map(_.user_id)
       val userId = userIds(scala.util.Random.nextInt(userIds.size))
 
-      val request510 = (v5_1_0_Request / "users" / userId / "attributes").POST <@ (user1)
+      val request510 = (v5_1_0_Request / "users" / userId / "none-personal" /"attributes").POST <@ (user1)
       val response510 = makePostRequest(request510, write(postUserAttributeJsonV510))
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles) shouldBe (true)
-      response510.body.extract[ErrorMessage].message contains (ApiRole.CanCreateUserAttribute.toString()) shouldBe (true)
+      response510.body.extract[ErrorMessage].message contains (ApiRole.CanCreateNonePersonalUserAttribute.toString()) shouldBe (true)
     }
     
     scenario(s"We will call the $ApiEndpoint2 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
@@ -145,12 +145,12 @@ class UserAttributesTest extends V510ServerSetup {
       val userIds = responseGetUsers.body.extract[UsersJsonV400].users.map(_.user_id)
       val userId = userIds(scala.util.Random.nextInt(userIds.size))
 
-      val request510 = (v5_1_0_Request / "users" / userId / "attributes" / "attributeId").DELETE <@ (user1)
+      val request510 = (v5_1_0_Request / "users" / userId / "none-personal" /"attributes" / "attributeId").DELETE <@ (user1)
       val response510 = makeDeleteRequest(request510)
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles) shouldBe (true)
-      response510.body.extract[ErrorMessage].message contains (ApiRole.CanDeleteUserAttribute.toString()) shouldBe (true)
+      response510.body.extract[ErrorMessage].message contains (ApiRole.CanDeleteNonePersonalUserAttribute.toString()) shouldBe (true)
     }
   
     scenario(s"We will call the $ApiEndpoint3 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
@@ -162,12 +162,12 @@ class UserAttributesTest extends V510ServerSetup {
       val userIds = responseGetUsers.body.extract[UsersJsonV400].users.map(_.user_id)
       val userId = userIds(scala.util.Random.nextInt(userIds.size))
 
-      val request510 = (v5_1_0_Request / "users" / userId / "attributes" ).GET <@ (user1)
+      val request510 = (v5_1_0_Request / "users" / userId / "none-personal" /"attributes" ).GET <@ (user1)
       val response510 = makeGetRequest(request510)
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles) shouldBe (true)
-      response510.body.extract[ErrorMessage].message contains (ApiRole.CanGetUserAttributes.toString()) shouldBe (true)
+      response510.body.extract[ErrorMessage].message contains (ApiRole.CanGetNonePersonalUserAttributes.toString()) shouldBe (true)
     }
   }
   

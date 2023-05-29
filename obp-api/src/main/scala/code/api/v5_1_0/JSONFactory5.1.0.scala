@@ -208,8 +208,7 @@ case class UserAttributeResponseJsonV510(
 case class UserAttributeJsonV510(
   name: String,
   `type`: String,
-  value: String,
-  is_personal: Boolean
+  value: String
 )
 
 case class UserAttributesResponseJsonV510(

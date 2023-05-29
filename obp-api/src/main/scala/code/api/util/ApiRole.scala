@@ -404,14 +404,14 @@ object ApiRole {
   case class CanGetUsersWithAttributes (requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetUsersWithAttributes = CanGetUsersWithAttributes()
   
-  case class CanCreateUserAttribute (requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateUserAttribute = CanCreateUserAttribute()
+  case class CanCreateNonePersonalUserAttribute (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateNonePersonalUserAttribute = CanCreateNonePersonalUserAttribute()
   
-  case class CanGetUserAttributes (requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetUserAttributes = CanGetUserAttributes()
+  case class CanGetNonePersonalUserAttributes (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetNonePersonalUserAttributes = CanGetNonePersonalUserAttributes()
   
-  case class CanDeleteUserAttribute (requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteUserAttribute = CanDeleteUserAttribute()
+  case class CanDeleteNonePersonalUserAttribute (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteNonePersonalUserAttribute = CanDeleteNonePersonalUserAttribute()
 
   case class CanReadUserLockedStatus(requiresBankId: Boolean = false) extends ApiRole
   lazy val canReadUserLockedStatus = CanReadUserLockedStatus()
