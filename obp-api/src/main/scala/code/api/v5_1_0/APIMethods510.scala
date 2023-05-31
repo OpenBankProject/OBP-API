@@ -277,7 +277,7 @@ trait APIMethods510 {
           for {
             (_, callContext) <- authenticatedAccess(cc)
             (user, callContext) <- NewStyle.function.getUserByUserId(userId, callContext)
-            (userAttributes,callContext) <- NewStyle.function.getPersonalUserAttributes(
+            (userAttributes,callContext) <- NewStyle.function.getNonPersonalUserAttributes(
               user.userId,
               callContext,
             ) 

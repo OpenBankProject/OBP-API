@@ -4084,6 +4084,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUser(userId: String) map {(_, callContext)}
   }
   
+  override def getNonPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
+    UserAttributeProvider.userAttributeProvider.vend.getNonPersonalUserAttributes(userId: String) map {(_, callContext)}
+  }
   override def getPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
     UserAttributeProvider.userAttributeProvider.vend.getPersonalUserAttributes(userId: String) map {(_, callContext)}
   }
