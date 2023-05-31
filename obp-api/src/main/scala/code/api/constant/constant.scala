@@ -65,6 +65,16 @@ object RequestHeader {
   final lazy val `Consent-JWT` = "Consent-JWT"
   final lazy val `PSD2-CERT` = "PSD2-CERT"
   final lazy val `If-None-Match` = "If-None-Match"
+  /**
+   * The If-Modified-Since request HTTP header makes the request conditional: 
+   * the server sends back the requested resource, with a 200 status, 
+   * only if it has been last modified after the given date. 
+   * If the resource has not been modified since, the response is a 304 without any body; 
+   * the Last-Modified response header of a previous request contains the date of last modification. 
+   * Unlike If-Unmodified-Since, If-Modified-Since can only be used with a GET or HEAD.
+   *
+   * When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match. 
+   */
   final lazy val `If-Modified-Since` = "If-Modified-Since"
 }
 object ResponseHeader {
