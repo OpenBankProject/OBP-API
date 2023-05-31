@@ -159,9 +159,9 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(createNonPersonalUserAttribute),
       "POST",
-      "/users/USER_ID/none-personal/attributes",
-      "Create None Personal User Attribute",
-      s""" Create None Personal User Attribute
+      "/users/USER_ID/non-personal/attributes",
+      "Create Non Personal User Attribute",
+      s""" Create Non Personal User Attribute
          |
          |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
          |
@@ -181,7 +181,7 @@ trait APIMethods510 {
     )
 
     lazy val createNonPersonalUserAttribute: OBPEndpoint = {
-      case "users" :: userId ::"none-personal":: "attributes" :: Nil JsonPost json -> _ => {
+      case "users" :: userId ::"non-personal":: "attributes" :: Nil JsonPost json -> _ => {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV510 "
           for {
@@ -214,9 +214,9 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(deleteNonPersonalUserAttribute),
       "DELETE",
-      "/users/USER_ID/none-personal/attributes/USER_ATTRIBUTE_ID",
-      "Delete None Personal User Attribute",
-      s"""Delete the None Personal User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
+      "/users/USER_ID/non-personal/attributes/USER_ATTRIBUTE_ID",
+      "Delete Non Personal User Attribute",
+      s"""Delete the Non Personal User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -232,7 +232,7 @@ trait APIMethods510 {
       Some(List(canDeleteNonPersonalUserAttribute)))
 
     lazy val deleteNonPersonalUserAttribute: OBPEndpoint = {
-      case "users" :: userId :: "none-personal" :: "attributes" :: userAttributeId :: Nil JsonDelete _ => {
+      case "users" :: userId :: "non-personal" :: "attributes" :: userAttributeId :: Nil JsonDelete _ => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
@@ -254,9 +254,9 @@ trait APIMethods510 {
       implementedInApiVersion,
       nameOf(getNonPersonalUserAttributes),
       "GET",
-      "/users/USER_ID/none-personal/attributes",
-      "Get None Personal User Attributes",
-      s"""Get None Personal User Attribute for a user specified by USER_ID
+      "/users/USER_ID/non-personal/attributes",
+      "Get Non Personal User Attributes",
+      s"""Get Non Personal User Attribute for a user specified by USER_ID
          |
          |${authenticationRequiredMessage(true)}
          |""".stripMargin,
@@ -272,7 +272,7 @@ trait APIMethods510 {
       Some(List(canGetNonPersonalUserAttributes)))
 
     lazy val getNonPersonalUserAttributes: OBPEndpoint = {
-      case "users" :: userId :: "none-personal" ::"attributes" :: Nil JsonGet _ => {
+      case "users" :: userId :: "non-personal" ::"attributes" :: Nil JsonGet _ => {
         cc =>
           for {
             (_, callContext) <- authenticatedAccess(cc)
