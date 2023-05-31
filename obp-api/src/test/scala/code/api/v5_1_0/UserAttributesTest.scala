@@ -96,7 +96,7 @@ class UserAttributesTest extends V510ServerSetup {
         jsonResponse.user_attributes.head.name shouldBe (batteryLevel)
         jsonResponse.user_attributes.head.user_attribute_id shouldBe (userAttributeId)
       }
-      val requestDeleteUserAttribute = (v5_1_0_Request / "users"/ userId/"attributes"/"non-personal"/userAttributeId).DELETE <@ (user1)
+      val requestDeleteUserAttribute = (v5_1_0_Request / "users"/ userId/"non-personal"/"attributes"/userAttributeId).DELETE <@ (user1)
       val responseDeleteUserAttribute = makeDeleteRequest(requestDeleteUserAttribute)
       Then("We should get a 204")
       responseDeleteUserAttribute.code should equal(204)
