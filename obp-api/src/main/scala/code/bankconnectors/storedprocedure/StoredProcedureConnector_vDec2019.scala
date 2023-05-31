@@ -866,7 +866,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
         import com.openbankproject.commons.dto.{InBoundGetBankAccountByRouting => InBound, OutBoundGetBankAccountByRouting => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, scheme, address)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_by_routing", req, callContext)
