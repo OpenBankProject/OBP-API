@@ -22,8 +22,8 @@ object RemotedataUserAttribute extends ObpActorInit with UserAttributeProvider {
   override def getPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = 
     (actor ? cc.getPersonalUserAttributes(userId)).mapTo[Box[List[UserAttribute]]]
   
-  override def getNonePersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = 
-    (actor ? cc.getNonePersonalUserAttributes(userId)).mapTo[Box[List[UserAttribute]]]
+  override def getNonPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]] = 
+    (actor ? cc.getNonPersonalUserAttributes(userId)).mapTo[Box[List[UserAttribute]]]
   
   override def getUserAttributesByUsers(userIds: List[String]): Future[Box[List[UserAttribute]]] = 
     (actor ? cc.getUserAttributesByUsers(userIds)).mapTo[Box[List[UserAttribute]]]

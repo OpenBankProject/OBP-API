@@ -23,9 +23,9 @@ class UserAttributesTest extends V510ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.createNonePersonalUserAttribute))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.deleteNonePersonalUserAttribute))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.getNonePersonalUserAttributes))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.createNonPersonalUserAttribute))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.deleteNonPersonalUserAttribute))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.getNonPersonalUserAttributes))
 
 
   lazy val bankId = testBankId1.value
@@ -68,9 +68,9 @@ class UserAttributesTest extends V510ServerSetup {
       ApiEndpoint2, ApiEndpoint3,VersionOfApi) {
       When("We make a request v5.1.0, we need to prepare the roles and users")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateNonePersonalUserAttribute.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteNonePersonalUserAttribute.toString)
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetNonePersonalUserAttributes.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateNonPersonalUserAttribute.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteNonPersonalUserAttribute.toString)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetNonPersonalUserAttributes.toString)
       
       val requestGetUsers = (v5_1_0_Request / "users").GET <@ (user1)
       val responseGetUsers = makeGetRequest(requestGetUsers)
@@ -133,7 +133,7 @@ class UserAttributesTest extends V510ServerSetup {
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles) shouldBe (true)
-      response510.body.extract[ErrorMessage].message contains (ApiRole.CanCreateNonePersonalUserAttribute.toString()) shouldBe (true)
+      response510.body.extract[ErrorMessage].message contains (ApiRole.CanCreateNonPersonalUserAttribute.toString()) shouldBe (true)
     }
     
     scenario(s"We will call the $ApiEndpoint2 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
@@ -150,7 +150,7 @@ class UserAttributesTest extends V510ServerSetup {
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles) shouldBe (true)
-      response510.body.extract[ErrorMessage].message contains (ApiRole.CanDeleteNonePersonalUserAttribute.toString()) shouldBe (true)
+      response510.body.extract[ErrorMessage].message contains (ApiRole.CanDeleteNonPersonalUserAttribute.toString()) shouldBe (true)
     }
   
     scenario(s"We will call the $ApiEndpoint3 with user credentials, but missing roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
@@ -167,7 +167,7 @@ class UserAttributesTest extends V510ServerSetup {
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles) shouldBe (true)
-      response510.body.extract[ErrorMessage].message contains (ApiRole.CanGetNonePersonalUserAttributes.toString()) shouldBe (true)
+      response510.body.extract[ErrorMessage].message contains (ApiRole.CanGetNonPersonalUserAttributes.toString()) shouldBe (true)
     }
   }
   

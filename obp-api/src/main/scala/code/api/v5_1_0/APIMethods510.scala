@@ -155,9 +155,9 @@ trait APIMethods510 {
       }
     }
     staticResourceDocs += ResourceDoc(
-      createNonePersonalUserAttribute,
+      createNonPersonalUserAttribute,
       implementedInApiVersion,
-      nameOf(createNonePersonalUserAttribute),
+      nameOf(createNonPersonalUserAttribute),
       "POST",
       "/users/USER_ID/none-personal/attributes",
       "Create None Personal User Attribute",
@@ -177,10 +177,10 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagUser, apiTagNewStyle),
-      Some(List(canCreateNonePersonalUserAttribute))
+      Some(List(canCreateNonPersonalUserAttribute))
     )
 
-    lazy val createNonePersonalUserAttribute: OBPEndpoint = {
+    lazy val createNonPersonalUserAttribute: OBPEndpoint = {
       case "users" :: userId ::"none-personal":: "attributes" :: Nil JsonPost json -> _ => {
         cc =>
           val failMsg = s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV510 "
@@ -210,9 +210,9 @@ trait APIMethods510 {
     }
     
     resourceDocs += ResourceDoc(
-      deleteNonePersonalUserAttribute,
+      deleteNonPersonalUserAttribute,
       implementedInApiVersion,
-      nameOf(deleteNonePersonalUserAttribute),
+      nameOf(deleteNonPersonalUserAttribute),
       "DELETE",
       "/users/USER_ID/none-personal/attributes/USER_ATTRIBUTE_ID",
       "Delete None Personal User Attribute",
@@ -229,9 +229,9 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagUser, apiTagNewStyle),
-      Some(List(canDeleteNonePersonalUserAttribute)))
+      Some(List(canDeleteNonPersonalUserAttribute)))
 
-    lazy val deleteNonePersonalUserAttribute: OBPEndpoint = {
+    lazy val deleteNonPersonalUserAttribute: OBPEndpoint = {
       case "users" :: userId :: "none-personal" :: "attributes" :: userAttributeId :: Nil JsonDelete _ => {
         cc =>
           for {
@@ -250,9 +250,9 @@ trait APIMethods510 {
     }
     
     resourceDocs += ResourceDoc(
-      getNonePersonalUserAttributes,
+      getNonPersonalUserAttributes,
       implementedInApiVersion,
-      nameOf(getNonePersonalUserAttributes),
+      nameOf(getNonPersonalUserAttributes),
       "GET",
       "/users/USER_ID/none-personal/attributes",
       "Get None Personal User Attributes",
@@ -269,9 +269,9 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagUser, apiTagNewStyle),
-      Some(List(canGetNonePersonalUserAttributes)))
+      Some(List(canGetNonPersonalUserAttributes)))
 
-    lazy val getNonePersonalUserAttributes: OBPEndpoint = {
+    lazy val getNonPersonalUserAttributes: OBPEndpoint = {
       case "users" :: userId :: "none-personal" ::"attributes" :: Nil JsonGet _ => {
         cc =>
           for {
