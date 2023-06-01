@@ -1,4 +1,4 @@
--- auto generated MS sql server procedures script, create on 2020-12-14T14:30:55Z
+-- auto generated MS sql server procedures script, create on 2023-06-01T08:47:14Z
 
 -- drop procedure obp_get_adapter_info
 DROP PROCEDURE IF EXISTS obp_get_adapter_info;
@@ -97,10 +97,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -225,10 +226,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -236,12 +238,12 @@ this is example of parameter @outbound_json
          "isValid":true,
          "details":{
            "bic":"BUKBGB22",
-           "bank":"no-example-provided",
+           "bank":"",
            "branch":"string",
-           "address":"no-example-provided",
-           "city":"no-example-provided",
+           "address":"",
+           "city":"",
            "zip":"string",
-           "phone":"no-example-provided",
+           "phone":"",
            "country":"string",
            "countryIso":"string",
            "sepaCreditTransfer":"yes",
@@ -363,10 +365,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -492,10 +495,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -609,7 +613,7 @@ this is example of parameter @outbound_json
        ],
        "customAttributes":[
          {
-           "name":"no-example-provided",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "attributeType":"STRING",
            "value":"5987953"
          }
@@ -635,10 +639,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -763,10 +768,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -862,7 +868,7 @@ this is example of parameter @outbound_json
          "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
        },
        "userIds":[
-         "no-example-provided"
+         ""
        ],
        "transactionRequestType":{
          "value":"SEPA"
@@ -890,15 +896,16 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
-         "no-example-provided"
+         ""
        ]
      }'
 	);
@@ -985,13 +992,13 @@ this is example of parameter @outbound_json
          }
        },
        "userIds":[
-         "no-example-provided"
+         ""
        ],
-       "challengeType":"OBP_PAYMENT",
+       "challengeType":"OBP_TRANSACTION_REQUEST_CHALLENGE",
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
        "scaMethod":"SMS",
        "scaStatus":"received",
-       "consentId":"no-example-provided",
+       "consentId":"",
        "authenticationMethodId":"string"
      }'
 */
@@ -1014,10 +1021,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1029,11 +1037,12 @@ this is example of parameter @outbound_json
            "expectedUserId":"string",
            "salt":"string",
            "successful":true,
-           "challengeType":"no-example-provided",
-           "consentId":"no-example-provided",
+           "challengeType":"",
+           "consentId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
-           "authenticationMethodId":"string"
+           "authenticationMethodId":"string",
+           "attemptCounter":0
          }
        ]
      }'
@@ -1143,10 +1152,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1236,7 +1246,7 @@ this is example of parameter @outbound_json
          }
        },
        "transactionRequestId":"8138a7e4-6d02-40e3-a129-0b2bf89de9f1",
-       "consentId":"no-example-provided",
+       "consentId":"",
        "challengeId":"123chaneid13-6d02-40e3-a129-0b2bf89de9f0",
        "hashOfSuppliedAnswer":"a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
      }'
@@ -1260,10 +1270,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1274,11 +1285,12 @@ this is example of parameter @outbound_json
          "expectedUserId":"string",
          "salt":"string",
          "successful":true,
-         "challengeType":"no-example-provided",
-         "consentId":"no-example-provided",
+         "challengeType":"",
+         "consentId":"",
          "scaMethod":"SMS",
          "scaStatus":"received",
-         "authenticationMethodId":"string"
+         "authenticationMethodId":"string",
+         "attemptCounter":0
        }
      }'
 	);
@@ -1386,10 +1398,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1401,11 +1414,12 @@ this is example of parameter @outbound_json
            "expectedUserId":"string",
            "salt":"string",
            "successful":true,
-           "challengeType":"no-example-provided",
-           "consentId":"no-example-provided",
+           "challengeType":"",
+           "consentId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
-           "authenticationMethodId":"string"
+           "authenticationMethodId":"string",
+           "attemptCounter":0
          }
        ]
      }'
@@ -1492,7 +1506,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "consentId":"no-example-provided"
+       "consentId":""
      }'
 */
 
@@ -1514,10 +1528,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1529,11 +1544,12 @@ this is example of parameter @outbound_json
            "expectedUserId":"string",
            "salt":"string",
            "successful":true,
-           "challengeType":"no-example-provided",
-           "consentId":"no-example-provided",
+           "challengeType":"",
+           "consentId":"",
            "scaMethod":"SMS",
            "scaStatus":"received",
-           "authenticationMethodId":"string"
+           "authenticationMethodId":"string",
+           "attemptCounter":0
          }
        ]
      }'
@@ -1642,10 +1658,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1656,11 +1673,12 @@ this is example of parameter @outbound_json
          "expectedUserId":"string",
          "salt":"string",
          "successful":true,
-         "challengeType":"no-example-provided",
-         "consentId":"no-example-provided",
+         "challengeType":"",
+         "consentId":"",
          "scaMethod":"SMS",
          "scaStatus":"received",
-         "authenticationMethodId":"string"
+         "authenticationMethodId":"string",
+         "attemptCounter":0
        }
      }'
 	);
@@ -1770,10 +1788,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1893,10 +1912,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -1997,6 +2017,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
+       "provider":"ETHEREUM",
        "username":"felixsmith"
      }'
 */
@@ -2019,10 +2040,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -2072,17 +2094,18 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
          "email":"felixsmith@example.com",
          "password":"password",
-         "displayName":"no-example-provided"
+         "displayName":""
        }
      }'
 	);
@@ -2191,10 +2214,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -2207,7 +2231,13 @@ this is example of parameter @outbound_json
          "azp":"string",
          "email":"felixsmith@example.com",
          "emailVerified":"String",
-         "name":"felixsmith"
+         "name":"felixsmith",
+         "userAuthContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
        }
      }'
 	);
@@ -2315,10 +2345,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -2331,7 +2362,13 @@ this is example of parameter @outbound_json
          "azp":"string",
          "email":"felixsmith@example.com",
          "emailVerified":"String",
-         "name":"felixsmith"
+         "name":"felixsmith",
+         "userAuthContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ]
        }
      }'
 	);
@@ -2372,10 +2409,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -2513,10 +2551,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -2635,8 +2674,8 @@ this is example of parameter @outbound_json
        "bankId":{
          "value":"gh.29.uk"
        },
-       "scheme":"no-example-provided",
-       "address":"no-example-provided"
+       "scheme":"scheme value",
+       "address":""
      }'
 */
 
@@ -2658,10 +2697,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -2808,10 +2848,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -2960,17 +3001,18 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
          "accounts":[
            {
-             "id":"no-example-provided",
+             "id":"d8839721-ad8f-45dd-9f78-2080414b93f9",
              "label":"My Account",
              "bankId":"gh.29.uk",
              "accountRoutings":[
@@ -3106,10 +3148,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -3242,19 +3285,20 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "id":"no-example-provided",
+           "id":"d8839721-ad8f-45dd-9f78-2080414b93f9",
            "label":"My Account",
            "bankId":"gh.29.uk",
-           "number":"no-example-provided",
+           "number":"",
            "accountRoutings":[
              {
                "scheme":"IBAN",
@@ -3374,10 +3418,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -3521,30 +3566,31 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "createdByUserId":"no-example-provided",
-         "name":"no-example-provided",
-         "description":"no-example-provided",
+         "createdByUserId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
-         "thisBankId":"no-example-provided",
-         "thisAccountId":"no-example-provided",
-         "thisViewId":"no-example-provided",
+         "thisBankId":"",
+         "thisAccountId":"",
+         "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"no-example-provided",
-         "otherAccountRoutingAddress":"no-example-provided",
-         "otherAccountSecondaryRoutingScheme":"no-example-provided",
-         "otherAccountSecondaryRoutingAddress":"no-example-provided",
-         "otherBankRoutingScheme":"no-example-provided",
-         "otherBankRoutingAddress":"no-example-provided",
-         "otherBranchRoutingScheme":"no-example-provided",
-         "otherBranchRoutingAddress":"no-example-provided",
+         "otherAccountRoutingScheme":"",
+         "otherAccountRoutingAddress":"",
+         "otherAccountSecondaryRoutingScheme":"",
+         "otherAccountSecondaryRoutingAddress":"",
+         "otherBankRoutingScheme":"",
+         "otherBankRoutingAddress":"",
+         "otherBranchRoutingScheme":"",
+         "otherBranchRoutingAddress":"",
          "isBeneficiary":true,
          "bespoke":[
            {
@@ -3661,30 +3707,31 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "createdByUserId":"no-example-provided",
-         "name":"no-example-provided",
-         "description":"no-example-provided",
+         "createdByUserId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
-         "thisBankId":"no-example-provided",
-         "thisAccountId":"no-example-provided",
-         "thisViewId":"no-example-provided",
+         "thisBankId":"",
+         "thisAccountId":"",
+         "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"no-example-provided",
-         "otherAccountRoutingAddress":"no-example-provided",
-         "otherAccountSecondaryRoutingScheme":"no-example-provided",
-         "otherAccountSecondaryRoutingAddress":"no-example-provided",
-         "otherBankRoutingScheme":"no-example-provided",
-         "otherBankRoutingAddress":"no-example-provided",
-         "otherBranchRoutingScheme":"no-example-provided",
-         "otherBranchRoutingAddress":"no-example-provided",
+         "otherAccountRoutingScheme":"",
+         "otherAccountRoutingAddress":"",
+         "otherAccountSecondaryRoutingScheme":"",
+         "otherAccountSecondaryRoutingAddress":"",
+         "otherBankRoutingScheme":"",
+         "otherBankRoutingAddress":"",
+         "otherBranchRoutingScheme":"",
+         "otherBranchRoutingAddress":"",
          "isBeneficiary":true,
          "bespoke":[
            {
@@ -3799,30 +3846,31 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "createdByUserId":"no-example-provided",
-         "name":"no-example-provided",
-         "description":"no-example-provided",
+         "createdByUserId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
-         "thisBankId":"no-example-provided",
-         "thisAccountId":"no-example-provided",
-         "thisViewId":"no-example-provided",
+         "thisBankId":"",
+         "thisAccountId":"",
+         "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"no-example-provided",
-         "otherAccountRoutingAddress":"no-example-provided",
-         "otherAccountSecondaryRoutingScheme":"no-example-provided",
-         "otherAccountSecondaryRoutingAddress":"no-example-provided",
-         "otherBankRoutingScheme":"no-example-provided",
-         "otherBankRoutingAddress":"no-example-provided",
-         "otherBranchRoutingScheme":"no-example-provided",
-         "otherBranchRoutingAddress":"no-example-provided",
+         "otherAccountRoutingScheme":"",
+         "otherAccountRoutingAddress":"",
+         "otherAccountSecondaryRoutingScheme":"",
+         "otherAccountSecondaryRoutingAddress":"",
+         "otherBankRoutingScheme":"",
+         "otherBankRoutingAddress":"",
+         "otherBranchRoutingScheme":"",
+         "otherBranchRoutingAddress":"",
          "isBeneficiary":true,
          "bespoke":[
            {
@@ -3943,30 +3991,31 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "createdByUserId":"no-example-provided",
-         "name":"no-example-provided",
-         "description":"no-example-provided",
+         "createdByUserId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
-         "thisBankId":"no-example-provided",
-         "thisAccountId":"no-example-provided",
-         "thisViewId":"no-example-provided",
+         "thisBankId":"",
+         "thisAccountId":"",
+         "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"no-example-provided",
-         "otherAccountRoutingAddress":"no-example-provided",
-         "otherAccountSecondaryRoutingScheme":"no-example-provided",
-         "otherAccountSecondaryRoutingAddress":"no-example-provided",
-         "otherBankRoutingScheme":"no-example-provided",
-         "otherBankRoutingAddress":"no-example-provided",
-         "otherBranchRoutingScheme":"no-example-provided",
-         "otherBranchRoutingAddress":"no-example-provided",
+         "otherAccountRoutingScheme":"",
+         "otherAccountRoutingAddress":"",
+         "otherAccountSecondaryRoutingScheme":"",
+         "otherAccountSecondaryRoutingAddress":"",
+         "otherBankRoutingScheme":"",
+         "otherBankRoutingAddress":"",
+         "otherBranchRoutingScheme":"",
+         "otherBranchRoutingAddress":"",
          "isBeneficiary":true,
          "bespoke":[
            {
@@ -4060,10 +4109,10 @@ this is example of parameter @outbound_json
          }
        },
        "thisBankId":{
-         "value":"no-example-provided"
+         "value":""
        },
        "thisAccountId":{
-         "value":"no-example-provided"
+         "value":""
        },
        "viewId":{
          "value":"owner"
@@ -4089,31 +4138,32 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "createdByUserId":"no-example-provided",
-           "name":"no-example-provided",
-           "description":"no-example-provided",
+           "createdByUserId":"",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
            "currency":"EUR",
-           "thisBankId":"no-example-provided",
-           "thisAccountId":"no-example-provided",
-           "thisViewId":"no-example-provided",
+           "thisBankId":"",
+           "thisAccountId":"",
+           "thisViewId":"",
            "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-           "otherAccountRoutingScheme":"no-example-provided",
-           "otherAccountRoutingAddress":"no-example-provided",
-           "otherAccountSecondaryRoutingScheme":"no-example-provided",
-           "otherAccountSecondaryRoutingAddress":"no-example-provided",
-           "otherBankRoutingScheme":"no-example-provided",
-           "otherBankRoutingAddress":"no-example-provided",
-           "otherBranchRoutingScheme":"no-example-provided",
-           "otherBranchRoutingAddress":"no-example-provided",
+           "otherAccountRoutingScheme":"",
+           "otherAccountRoutingAddress":"",
+           "otherAccountSecondaryRoutingScheme":"",
+           "otherAccountSecondaryRoutingAddress":"",
+           "otherBankRoutingScheme":"",
+           "otherBankRoutingAddress":"",
+           "otherBranchRoutingScheme":"",
+           "otherBranchRoutingAddress":"",
            "isBeneficiary":true,
            "bespoke":[
              {
@@ -4238,10 +4288,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -4291,17 +4342,17 @@ this is example of parameter @outbound_json
              "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
              "counterpartyName":"John Smith Ltd.",
              "thisBankId":{
-               "value":"no-example-provided"
+               "value":""
              },
              "thisAccountId":{
-               "value":"no-example-provided"
+               "value":""
              },
              "isBeneficiary":true
            },
            "transactionType":"DEBIT",
            "amount":"19.64",
            "currency":"EUR",
-           "description":"For the piano lesson in June 2018 - Invoice No: 68",
+           "description":"The piano lession-Invoice No:68",
            "startDate":"2019-09-07T00:00:00Z",
            "finishDate":"2019-09-08T00:00:00Z",
            "balance":"10"
@@ -4399,8 +4450,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"no-example-provided",
-       "toDate":"no-example-provided"
+       "fromDate":"",
+       "toDate":""
      }'
 */
 
@@ -4422,17 +4473,18 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
            "id":{
-             "value":"no-example-provided"
+             "value":"d8839721-ad8f-45dd-9f78-2080414b93f9"
            },
            "thisAccount":{
              "accountId":{
@@ -4471,26 +4523,26 @@ this is example of parameter @outbound_json
              ]
            },
            "otherAccount":{
-             "kind":"no-example-provided",
+             "kind":"",
              "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
              "counterpartyName":"John Smith Ltd.",
              "thisBankId":{
-               "value":"no-example-provided"
+               "value":""
              },
              "thisAccountId":{
-               "value":"no-example-provided"
+               "value":""
              },
-             "otherBankRoutingScheme":"no-example-provided",
-             "otherBankRoutingAddress":"no-example-provided",
-             "otherAccountRoutingScheme":"no-example-provided",
-             "otherAccountRoutingAddress":"no-example-provided",
+             "otherBankRoutingScheme":"",
+             "otherBankRoutingAddress":"",
+             "otherAccountRoutingScheme":"",
+             "otherAccountRoutingAddress":"",
              "otherAccountProvider":"",
              "isBeneficiary":true
            },
            "transactionType":"DEBIT",
            "amount":"10.12",
            "currency":"EUR",
-           "description":"no-example-provided",
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
            "startDate":"2020-01-27T00:00:00Z",
            "finishDate":"2020-01-27T00:00:00Z",
            "balance":"10"
@@ -4610,10 +4662,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -4662,17 +4715,17 @@ this is example of parameter @outbound_json
            "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "counterpartyName":"John Smith Ltd.",
            "thisBankId":{
-             "value":"no-example-provided"
+             "value":""
            },
            "thisAccountId":{
-             "value":"no-example-provided"
+             "value":""
            },
            "isBeneficiary":true
          },
          "transactionType":"DEBIT",
          "amount":"19.64",
          "currency":"EUR",
-         "description":"For the piano lesson in June 2018 - Invoice No: 68",
+         "description":"The piano lession-Invoice No:68",
          "startDate":"2019-09-07T00:00:00Z",
          "finishDate":"2019-09-08T00:00:00Z",
          "balance":"10"
@@ -4699,15 +4752,81 @@ CREATE PROCEDURE obp_get_physical_cards_for_user
 /*
 this is example of parameter @outbound_json
      N'{
+       "outboundAdapterCallContext":{
+         "correlationId":"1flssoftxq0cr1nssr68u0mioj",
+         "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         "generalContext":[
+           {
+             "key":"CustomerNumber",
+             "value":"5987953"
+           }
+         ],
+         "outboundAdapterAuthInfo":{
+           "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+           "username":"felixsmith",
+           "linkedCustomers":[
+             {
+               "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+               "customerNumber":"5987953",
+               "legalName":"Eveline Tripman"
+             }
+           ],
+           "userAuthContext":[
+             {
+               "key":"CustomerNumber",
+               "value":"5987953"
+             }
+           ],
+           "authViews":[
+             {
+               "view":{
+                 "id":"owner",
+                 "name":"Owner",
+                 "description":"This view is for the owner for the account."
+               },
+               "account":{
+                 "id":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+                 "accountRoutings":[
+                   {
+                     "scheme":"IBAN",
+                     "address":"DE91 1000 0000 0123 4567 89"
+                   }
+                 ],
+                 "customerOwners":[
+                   {
+                     "bankId":"gh.29.uk",
+                     "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+                     "customerNumber":"5987953",
+                     "legalName":"Eveline Tripman",
+                     "dateOfBirth":"2018-03-09T00:00:00Z"
+                   }
+                 ],
+                 "userOwners":[
+                   {
+                     "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                     "emailAddress":"felixsmith@example.com",
+                     "name":"felixsmith"
+                   }
+                 ]
+               }
+             }
+           ]
+         }
+       },
        "user":{
          "userPrimaryKey":{
            "value":123
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        }
      }'
 */
@@ -4720,10 +4839,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -4741,9 +4861,9 @@ this is example of parameter @outbound_json
            "enabled":true,
            "cancelled":true,
            "onHotList":false,
-           "technology":"no-example-provided",
+           "technology":"technology1",
            "networks":[
-             "no-example-provided"
+             ""
            ],
            "allows":[
              "DEBIT"
@@ -4912,10 +5032,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -4932,9 +5053,9 @@ this is example of parameter @outbound_json
          "enabled":true,
          "cancelled":true,
          "onHotList":false,
-         "technology":"no-example-provided",
+         "technology":"technology1",
          "networks":[
-           "no-example-provided"
+           ""
          ],
          "allows":[
            "DEBIT"
@@ -5102,10 +5223,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -5213,14 +5335,18 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "limit":100,
        "offset":100,
-       "fromDate":"no-example-provided",
-       "toDate":"no-example-provided"
+       "fromDate":"",
+       "toDate":""
      }'
 */
 
@@ -5242,10 +5368,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -5263,9 +5390,9 @@ this is example of parameter @outbound_json
            "enabled":true,
            "cancelled":true,
            "onHotList":false,
-           "technology":"no-example-provided",
+           "technology":"technology1",
            "networks":[
-             "no-example-provided"
+             ""
            ],
            "allows":[
              "DEBIT"
@@ -5419,12 +5546,14 @@ this is example of parameter @outbound_json
        "enabled":true,
        "cancelled":true,
        "onHotList":false,
-       "technology":"no-example-provided",
+       "technology":"technology1",
        "networks":[
-         "no-example-provided"
+         ""
        ],
        "allows":[
-         "no-example-provided"
+         "[credit",
+         "debit",
+         "cash_withdrawal]"
        ],
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
        "bankId":"gh.29.uk",
@@ -5444,7 +5573,9 @@ this is example of parameter @outbound_json
        "posted":{
          "date":"2020-01-27T00:00:00Z"
        },
-       "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
+       "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+       "cvv":"123",
+       "brand":"Visa"
      }'
 */
 
@@ -5466,10 +5597,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -5486,9 +5618,9 @@ this is example of parameter @outbound_json
          "enabled":true,
          "cancelled":true,
          "onHotList":false,
-         "technology":"no-example-provided",
+         "technology":"technology1",
          "networks":[
-           "no-example-provided"
+           ""
          ],
          "allows":[
            "DEBIT"
@@ -5642,12 +5774,14 @@ this is example of parameter @outbound_json
        "enabled":true,
        "cancelled":true,
        "onHotList":false,
-       "technology":"no-example-provided",
+       "technology":"technology1",
        "networks":[
-         "no-example-provided"
+         ""
        ],
        "allows":[
-         "no-example-provided"
+         "[credit",
+         "debit",
+         "cash_withdrawal]"
        ],
        "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
        "bankId":"gh.29.uk",
@@ -5689,10 +5823,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -5709,9 +5844,9 @@ this is example of parameter @outbound_json
          "enabled":true,
          "cancelled":true,
          "onHotList":false,
-         "technology":"no-example-provided",
+         "technology":"technology1",
          "networks":[
-           "no-example-provided"
+           ""
          ],
          "allows":[
            "DEBIT"
@@ -5934,14 +6069,14 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"no-example-provided"
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
        },
        "amount":"10.12",
-       "description":"no-example-provided",
+       "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
        "transactionRequestType":{
          "value":"SEPA"
        },
-       "chargePolicy":"no-example-provided"
+       "chargePolicy":"SHARED"
      }'
 */
 
@@ -5963,10 +6098,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -6063,9 +6199,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "viewId":{
          "value":"owner"
@@ -6150,11 +6290,11 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"no-example-provided"
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
        },
        "detailsPlain":"string",
-       "chargePolicy":"no-example-provided",
-       "challengeType":"no-example-provided",
+       "chargePolicy":"SHARED",
+       "challengeType":"",
        "scaMethod":"SMS"
      }'
 */
@@ -6177,10 +6317,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -6198,10 +6339,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -6210,7 +6351,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -6307,9 +6448,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "viewId":{
          "value":"owner"
@@ -6394,19 +6539,19 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"no-example-provided"
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
        },
        "detailsPlain":"string",
-       "chargePolicy":"no-example-provided",
-       "challengeType":"no-example-provided",
+       "chargePolicy":"SHARED",
+       "challengeType":"",
        "scaMethod":"SMS",
        "reasons":[
          {
-           "code":"no-example-provided",
-           "documentNumber":"no-example-provided",
+           "code":"125",
+           "documentNumber":"",
            "amount":"10.12",
            "currency":"EUR",
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          }
        ],
        "berlinGroupPayments":{
@@ -6465,10 +6610,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -6486,10 +6632,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -6498,7 +6644,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -6595,9 +6741,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "fromAccount":{
          "accountId":{
@@ -6656,10 +6806,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -6678,10 +6829,10 @@ this is example of parameter @outbound_json
                "currency":"EUR",
                "amount":"10.12"
              },
-             "description":"no-example-provided"
+             "description":"This an optional field. Maximum length is 2000. It can be any characters here."
            },
            "transaction_ids":"string",
-           "status":"no-example-provided",
+           "status":"",
            "start_date":"2019-09-07T00:00:00Z",
            "end_date":"2019-09-08T00:00:00Z",
            "challenge":{
@@ -6690,7 +6841,7 @@ this is example of parameter @outbound_json
              "challenge_type":"string"
            },
            "charge":{
-             "summary":"no-example-provided",
+             "summary":"",
              "value":{
                "currency":"EUR",
                "amount":"10.12"
@@ -6806,10 +6957,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -6827,10 +6979,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -6839,7 +6991,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -6980,10 +7132,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -6992,7 +7144,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -7020,10 +7172,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7041,10 +7194,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -7053,7 +7206,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -7180,10 +7333,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7338,10 +7492,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7410,10 +7565,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7445,7 +7601,7 @@ this is example of parameter @outbound_json
        },
        "params":[
          {
-           "name":"no-example-provided",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "value":[
              "5987953"
            ]
@@ -7462,10 +7618,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7475,22 +7632,23 @@ this is example of parameter @outbound_json
              "value":"gh.29.uk"
            },
            "code":{
-             "value":"no-example-provided"
+             "value":"1234BW"
            },
            "parentProductCode":{
-             "value":"no-example-provided"
+             "value":"787LOW"
            },
-           "name":"no-example-provided",
-           "category":"no-example-provided",
-           "family":"no-example-provided",
-           "superFamily":"no-example-provided",
-           "moreInfoUrl":"no-example-provided",
-           "details":"no-example-provided",
-           "description":"no-example-provided",
+           "name":"Deposit Account 1",
+           "category":"",
+           "family":"",
+           "superFamily":"",
+           "moreInfoUrl":"www.example.com/abc",
+           "termsAndConditionsUrl":"www.example.com/xyz",
+           "details":"",
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
            "meta":{
              "license":{
-               "id":"no-example-provided",
-               "name":"no-example-provided"
+               "id":"ODbL-1.0",
+               "name":"Open Database License"
              }
            }
          }
@@ -7521,7 +7679,7 @@ this is example of parameter @outbound_json
          "value":"gh.29.uk"
        },
        "productCode":{
-         "value":"no-example-provided"
+         "value":"1234BW"
        }
      }'
 */
@@ -7534,10 +7692,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7546,22 +7705,23 @@ this is example of parameter @outbound_json
            "value":"gh.29.uk"
          },
          "code":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
          "parentProductCode":{
-           "value":"no-example-provided"
+           "value":"787LOW"
          },
-         "name":"no-example-provided",
-         "category":"no-example-provided",
-         "family":"no-example-provided",
-         "superFamily":"no-example-provided",
-         "moreInfoUrl":"no-example-provided",
-         "details":"no-example-provided",
-         "description":"no-example-provided",
+         "name":"Deposit Account 1",
+         "category":"",
+         "family":"",
+         "superFamily":"",
+         "moreInfoUrl":"www.example.com/abc",
+         "termsAndConditionsUrl":"www.example.com/xyz",
+         "details":"",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "meta":{
            "license":{
-             "id":"no-example-provided",
-             "name":"no-example-provided"
+             "id":"ODbL-1.0",
+             "name":"Open Database License"
            }
          }
        }
@@ -7676,10 +7836,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7690,16 +7851,16 @@ this is example of parameter @outbound_json
          "bankId":{
            "value":"gh.29.uk"
          },
-         "name":"no-example-provided",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
          "address":{
-           "line1":"no-example-provided",
-           "line2":"no-example-provided",
-           "line3":"no-example-provided",
-           "city":"no-example-provided",
-           "county":"no-example-provided",
-           "state":"no-example-provided",
-           "postCode":"no-example-provided",
-           "countryCode":"no-example-provided"
+           "line1":"",
+           "line2":"",
+           "line3":"",
+           "city":"",
+           "county":"",
+           "state":"",
+           "postCode":"789",
+           "countryCode":"1254"
          },
          "location":{
            "latitude":38.8951,
@@ -7707,7 +7868,7 @@ this is example of parameter @outbound_json
            "date":"2020-01-27T00:00:00Z",
            "user":{
              "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-             "provider":"no-example-provided",
+             "provider":"ETHEREUM",
              "username":"felixsmith"
            }
          },
@@ -7719,8 +7880,8 @@ this is example of parameter @outbound_json
          },
          "meta":{
            "license":{
-             "id":"no-example-provided",
-             "name":"no-example-provided"
+             "id":"ODbL-1.0",
+             "name":"Open Database License"
            }
          },
          "branchRouting":{
@@ -7730,82 +7891,82 @@ this is example of parameter @outbound_json
          "lobby":{
            "monday":[
              {
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            ],
            "tuesday":[
              {
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            ],
            "wednesday":[
              {
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            ],
            "thursday":[
              {
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            ],
            "friday":[
              {
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            ],
            "saturday":[
              {
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            ],
            "sunday":[
              {
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            ]
          },
          "driveUp":{
            "monday":{
-             "openingTime":"no-example-provided",
-             "closingTime":"no-example-provided"
+             "openingTime":"",
+             "closingTime":"2020-01-27"
            },
            "tuesday":{
-             "openingTime":"no-example-provided",
-             "closingTime":"no-example-provided"
+             "openingTime":"",
+             "closingTime":"2020-01-27"
            },
            "wednesday":{
-             "openingTime":"no-example-provided",
-             "closingTime":"no-example-provided"
+             "openingTime":"",
+             "closingTime":"2020-01-27"
            },
            "thursday":{
-             "openingTime":"no-example-provided",
-             "closingTime":"no-example-provided"
+             "openingTime":"",
+             "closingTime":"2020-01-27"
            },
            "friday":{
-             "openingTime":"no-example-provided",
-             "closingTime":"no-example-provided"
+             "openingTime":"",
+             "closingTime":"2020-01-27"
            },
            "saturday":{
-             "openingTime":"no-example-provided",
-             "closingTime":"no-example-provided"
+             "openingTime":"",
+             "closingTime":"2020-01-27"
            },
            "sunday":{
-             "openingTime":"no-example-provided",
-             "closingTime":"no-example-provided"
+             "openingTime":"",
+             "closingTime":"2020-01-27"
            }
          },
          "isAccessible":true,
          "accessibleFeatures":"string",
-         "branchType":"no-example-provided",
-         "moreInfo":"no-example-provided",
-         "phoneNumber":"no-example-provided",
+         "branchType":"",
+         "moreInfo":"More information about this fee",
+         "phoneNumber":"",
          "isDeleted":true
        }
      }'
@@ -7897,8 +8058,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"no-example-provided",
-       "toDate":"no-example-provided"
+       "fromDate":"",
+       "toDate":""
      }'
 */
 
@@ -7920,10 +8081,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -7935,16 +8097,16 @@ this is example of parameter @outbound_json
            "bankId":{
              "value":"gh.29.uk"
            },
-           "name":"no-example-provided",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "address":{
-             "line1":"no-example-provided",
-             "line2":"no-example-provided",
-             "line3":"no-example-provided",
-             "city":"no-example-provided",
-             "county":"no-example-provided",
-             "state":"no-example-provided",
-             "postCode":"no-example-provided",
-             "countryCode":"no-example-provided"
+             "line1":"",
+             "line2":"",
+             "line3":"",
+             "city":"",
+             "county":"",
+             "state":"",
+             "postCode":"789",
+             "countryCode":"1254"
            },
            "location":{
              "latitude":38.8951,
@@ -7952,7 +8114,7 @@ this is example of parameter @outbound_json
              "date":"2020-01-27T00:00:00Z",
              "user":{
                "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-               "provider":"no-example-provided",
+               "provider":"ETHEREUM",
                "username":"felixsmith"
              }
            },
@@ -7964,8 +8126,8 @@ this is example of parameter @outbound_json
            },
            "meta":{
              "license":{
-               "id":"no-example-provided",
-               "name":"no-example-provided"
+               "id":"ODbL-1.0",
+               "name":"Open Database License"
              }
            },
            "branchRouting":{
@@ -7975,82 +8137,82 @@ this is example of parameter @outbound_json
            "lobby":{
              "monday":[
                {
-                 "openingTime":"no-example-provided",
-                 "closingTime":"no-example-provided"
+                 "openingTime":"",
+                 "closingTime":"2020-01-27"
                }
              ],
              "tuesday":[
                {
-                 "openingTime":"no-example-provided",
-                 "closingTime":"no-example-provided"
+                 "openingTime":"",
+                 "closingTime":"2020-01-27"
                }
              ],
              "wednesday":[
                {
-                 "openingTime":"no-example-provided",
-                 "closingTime":"no-example-provided"
+                 "openingTime":"",
+                 "closingTime":"2020-01-27"
                }
              ],
              "thursday":[
                {
-                 "openingTime":"no-example-provided",
-                 "closingTime":"no-example-provided"
+                 "openingTime":"",
+                 "closingTime":"2020-01-27"
                }
              ],
              "friday":[
                {
-                 "openingTime":"no-example-provided",
-                 "closingTime":"no-example-provided"
+                 "openingTime":"",
+                 "closingTime":"2020-01-27"
                }
              ],
              "saturday":[
                {
-                 "openingTime":"no-example-provided",
-                 "closingTime":"no-example-provided"
+                 "openingTime":"",
+                 "closingTime":"2020-01-27"
                }
              ],
              "sunday":[
                {
-                 "openingTime":"no-example-provided",
-                 "closingTime":"no-example-provided"
+                 "openingTime":"",
+                 "closingTime":"2020-01-27"
                }
              ]
            },
            "driveUp":{
              "monday":{
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              },
              "tuesday":{
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              },
              "wednesday":{
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              },
              "thursday":{
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              },
              "friday":{
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              },
              "saturday":{
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              },
              "sunday":{
-               "openingTime":"no-example-provided",
-               "closingTime":"no-example-provided"
+               "openingTime":"",
+               "closingTime":"2020-01-27"
              }
            },
            "isAccessible":true,
            "accessibleFeatures":"string",
-           "branchType":"no-example-provided",
-           "moreInfo":"no-example-provided",
-           "phoneNumber":"no-example-provided",
+           "branchType":"",
+           "moreInfo":"More information about this fee",
+           "phoneNumber":"",
            "isDeleted":true
          }
        ]
@@ -8142,7 +8304,7 @@ this is example of parameter @outbound_json
          "value":"gh.29.uk"
        },
        "atmId":{
-         "value":"no-example-provided"
+         "value":"atme0352a-9a0f-4bfa-b30b-9003aa467f51"
        }
      }'
 */
@@ -8165,30 +8327,31 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
          "atmId":{
-           "value":"no-example-provided"
+           "value":"atme0352a-9a0f-4bfa-b30b-9003aa467f51"
          },
          "bankId":{
            "value":"gh.29.uk"
          },
-         "name":"no-example-provided",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
          "address":{
-           "line1":"no-example-provided",
-           "line2":"no-example-provided",
-           "line3":"no-example-provided",
-           "city":"no-example-provided",
-           "county":"no-example-provided",
-           "state":"no-example-provided",
-           "postCode":"no-example-provided",
-           "countryCode":"no-example-provided"
+           "line1":"",
+           "line2":"",
+           "line3":"",
+           "city":"",
+           "county":"",
+           "state":"",
+           "postCode":"789",
+           "countryCode":"1254"
          },
          "location":{
            "latitude":38.8951,
@@ -8196,14 +8359,14 @@ this is example of parameter @outbound_json
            "date":"2020-01-27T00:00:00Z",
            "user":{
              "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-             "provider":"no-example-provided",
+             "provider":"ETHEREUM",
              "username":"felixsmith"
            }
          },
          "meta":{
            "license":{
-             "id":"no-example-provided",
-             "name":"no-example-provided"
+             "id":"ODbL-1.0",
+             "name":"Open Database License"
            }
          },
          "OpeningTimeOnMonday":"string",
@@ -8221,9 +8384,39 @@ this is example of parameter @outbound_json
          "OpeningTimeOnSunday":"string",
          "ClosingTimeOnSunday":"string",
          "isAccessible":true,
-         "locatedAt":"no-example-provided",
-         "moreInfo":"no-example-provided",
-         "hasDepositCapability":true
+         "locatedAt":"",
+         "moreInfo":"More information about this fee",
+         "hasDepositCapability":true,
+         "supportedLanguages":[
+           "[\"es\"",
+           "\"fr\"",
+           "\"de\"]"
+         ],
+         "services":[
+           ""
+         ],
+         "accessibilityFeatures":[
+           "[\"ATAC\"",
+           "\"ATAD\"]"
+         ],
+         "supportedCurrencies":[
+           "[\"EUR\"",
+           "\"MXN\"",
+           "\"USD\"]"
+         ],
+         "notes":[
+           ""
+         ],
+         "locationCategories":[
+           ""
+         ],
+         "minimumWithdrawal":"string",
+         "branchIdentification":"string",
+         "siteIdentification":"",
+         "siteName":"string",
+         "cashWithdrawalNationalFee":"",
+         "cashWithdrawalInternationalFee":"",
+         "balanceInquiryFee":""
        }
      }'
 	);
@@ -8314,8 +8507,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"no-example-provided",
-       "toDate":"no-example-provided"
+       "fromDate":"",
+       "toDate":""
      }'
 */
 
@@ -8337,31 +8530,32 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
            "atmId":{
-             "value":"no-example-provided"
+             "value":"atme0352a-9a0f-4bfa-b30b-9003aa467f51"
            },
            "bankId":{
              "value":"gh.29.uk"
            },
-           "name":"no-example-provided",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "address":{
-             "line1":"no-example-provided",
-             "line2":"no-example-provided",
-             "line3":"no-example-provided",
-             "city":"no-example-provided",
-             "county":"no-example-provided",
-             "state":"no-example-provided",
-             "postCode":"no-example-provided",
-             "countryCode":"no-example-provided"
+             "line1":"",
+             "line2":"",
+             "line3":"",
+             "city":"",
+             "county":"",
+             "state":"",
+             "postCode":"789",
+             "countryCode":"1254"
            },
            "location":{
              "latitude":38.8951,
@@ -8369,14 +8563,14 @@ this is example of parameter @outbound_json
              "date":"2020-01-27T00:00:00Z",
              "user":{
                "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-               "provider":"no-example-provided",
+               "provider":"ETHEREUM",
                "username":"felixsmith"
              }
            },
            "meta":{
              "license":{
-               "id":"no-example-provided",
-               "name":"no-example-provided"
+               "id":"ODbL-1.0",
+               "name":"Open Database License"
              }
            },
            "OpeningTimeOnMonday":"string",
@@ -8394,9 +8588,39 @@ this is example of parameter @outbound_json
            "OpeningTimeOnSunday":"string",
            "ClosingTimeOnSunday":"string",
            "isAccessible":true,
-           "locatedAt":"no-example-provided",
-           "moreInfo":"no-example-provided",
-           "hasDepositCapability":true
+           "locatedAt":"",
+           "moreInfo":"More information about this fee",
+           "hasDepositCapability":true,
+           "supportedLanguages":[
+             "[\"es\"",
+             "\"fr\"",
+             "\"de\"]"
+           ],
+           "services":[
+             ""
+           ],
+           "accessibilityFeatures":[
+             "[\"ATAC\"",
+             "\"ATAD\"]"
+           ],
+           "supportedCurrencies":[
+             "[\"EUR\"",
+             "\"MXN\"",
+             "\"USD\"]"
+           ],
+           "notes":[
+             ""
+           ],
+           "locationCategories":[
+             ""
+           ],
+           "minimumWithdrawal":"string",
+           "branchIdentification":"string",
+           "siteIdentification":"",
+           "siteName":"string",
+           "cashWithdrawalNationalFee":"",
+           "cashWithdrawalInternationalFee":"",
+           "balanceInquiryFee":""
          }
        ]
      }'
@@ -8424,8 +8648,8 @@ this is example of parameter @outbound_json
        "bankId":{
          "value":"gh.29.uk"
        },
-       "fromCurrencyCode":"no-example-provided",
-       "toCurrencyCode":"no-example-provided"
+       "fromCurrencyCode":"",
+       "toCurrencyCode":"EUR"
      }'
 */
 
@@ -8437,10 +8661,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -8448,8 +8673,8 @@ this is example of parameter @outbound_json
          "bankId":{
            "value":"gh.29.uk"
          },
-         "fromCurrencyCode":"no-example-provided",
-         "toCurrencyCode":"no-example-provided",
+         "fromCurrencyCode":"",
+         "toCurrencyCode":"EUR",
          "conversionValue":100.0,
          "inverseConversionValue":50.0,
          "effectiveDate":"2020-01-27T00:00:00Z"
@@ -8544,9 +8769,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "fromAccount":{
          "accountId":{
@@ -8611,10 +8840,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -8632,10 +8862,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -8644,7 +8874,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -8741,9 +8971,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "fromAccount":{
          "accountId":{
@@ -8818,13 +9052,13 @@ this is example of parameter @outbound_json
          ]
        },
        "toCounterparty":{
-         "createdByUserId":"no-example-provided",
+         "createdByUserId":"",
          "name":"John Smith Ltd.",
-         "description":"no-example-provided",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
-         "thisBankId":"no-example-provided",
-         "thisAccountId":"no-example-provided",
-         "thisViewId":"no-example-provided",
+         "thisBankId":"",
+         "thisAccountId":"",
+         "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "otherAccountRoutingScheme":"OBP",
          "otherAccountRoutingAddress":"36f8a9e6-c2b1-407a-8bd0-421b7119307e",
@@ -8847,12 +9081,12 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"no-example-provided"
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
        },
        "transactionRequestType":{
          "value":"SEPA"
        },
-       "chargePolicy":"no-example-provided"
+       "chargePolicy":"SHARED"
      }'
 */
 
@@ -8874,10 +9108,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -8974,9 +9209,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "viewId":{
          "value":"owner"
@@ -9054,13 +9293,13 @@ this is example of parameter @outbound_json
          ]
        },
        "toCounterparty":{
-         "createdByUserId":"no-example-provided",
+         "createdByUserId":"",
          "name":"John Smith Ltd.",
-         "description":"no-example-provided",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
-         "thisBankId":"no-example-provided",
-         "thisAccountId":"no-example-provided",
-         "thisViewId":"no-example-provided",
+         "thisBankId":"",
+         "thisAccountId":"",
+         "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "otherAccountRoutingScheme":"OBP",
          "otherAccountRoutingAddress":"36f8a9e6-c2b1-407a-8bd0-421b7119307e",
@@ -9086,10 +9325,10 @@ this is example of parameter @outbound_json
            "currency":"EUR",
            "amount":"10.12"
          },
-         "description":"no-example-provided"
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here."
        },
        "detailsPlain":"string",
-       "chargePolicy":"no-example-provided"
+       "chargePolicy":"SHARED"
      }'
 */
 
@@ -9111,10 +9350,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -9132,10 +9372,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -9144,7 +9384,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -9249,10 +9489,10 @@ this is example of parameter @outbound_json
              "currency":"EUR",
              "amount":"10.12"
            },
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          },
          "transaction_ids":"string",
-         "status":"no-example-provided",
+         "status":"",
          "start_date":"2019-09-07T00:00:00Z",
          "end_date":"2019-09-08T00:00:00Z",
          "challenge":{
@@ -9261,7 +9501,7 @@ this is example of parameter @outbound_json
            "challenge_type":"string"
          },
          "charge":{
-           "summary":"no-example-provided",
+           "summary":"",
            "value":{
              "currency":"EUR",
              "amount":"10.12"
@@ -9270,11 +9510,11 @@ this is example of parameter @outbound_json
        },
        "reasons":[
          {
-           "code":"no-example-provided",
-           "documentNumber":"no-example-provided",
+           "code":"125",
+           "documentNumber":"",
            "amount":"10.12",
            "currency":"EUR",
-           "description":"no-example-provided"
+           "description":"This an optional field. Maximum length is 2000. It can be any characters here."
          }
        ]
      }'
@@ -9298,10 +9538,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -9416,10 +9657,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -9511,21 +9753,21 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "name":"no-example-provided",
-       "description":"no-example-provided",
+       "name":"ACCOUNT_MANAGEMENT_FEE",
+       "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
        "currency":"EUR",
-       "createdByUserId":"no-example-provided",
-       "thisBankId":"no-example-provided",
-       "thisAccountId":"no-example-provided",
-       "thisViewId":"no-example-provided",
-       "otherAccountRoutingScheme":"no-example-provided",
-       "otherAccountRoutingAddress":"no-example-provided",
-       "otherAccountSecondaryRoutingScheme":"no-example-provided",
-       "otherAccountSecondaryRoutingAddress":"no-example-provided",
-       "otherBankRoutingScheme":"no-example-provided",
-       "otherBankRoutingAddress":"no-example-provided",
-       "otherBranchRoutingScheme":"no-example-provided",
-       "otherBranchRoutingAddress":"no-example-provided",
+       "createdByUserId":"",
+       "thisBankId":"",
+       "thisAccountId":"",
+       "thisViewId":"",
+       "otherAccountRoutingScheme":"",
+       "otherAccountRoutingAddress":"",
+       "otherAccountSecondaryRoutingScheme":"",
+       "otherAccountSecondaryRoutingAddress":"",
+       "otherBankRoutingScheme":"",
+       "otherBankRoutingAddress":"",
+       "otherBranchRoutingScheme":"",
+       "otherBranchRoutingAddress":"",
        "isBeneficiary":true,
        "bespoke":[
          {
@@ -9554,30 +9796,31 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "createdByUserId":"no-example-provided",
-         "name":"no-example-provided",
-         "description":"no-example-provided",
+         "createdByUserId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
+         "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
          "currency":"EUR",
-         "thisBankId":"no-example-provided",
-         "thisAccountId":"no-example-provided",
-         "thisViewId":"no-example-provided",
+         "thisBankId":"",
+         "thisAccountId":"",
+         "thisViewId":"",
          "counterpartyId":"9fg8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "otherAccountRoutingScheme":"no-example-provided",
-         "otherAccountRoutingAddress":"no-example-provided",
-         "otherAccountSecondaryRoutingScheme":"no-example-provided",
-         "otherAccountSecondaryRoutingAddress":"no-example-provided",
-         "otherBankRoutingScheme":"no-example-provided",
-         "otherBankRoutingAddress":"no-example-provided",
-         "otherBranchRoutingScheme":"no-example-provided",
-         "otherBranchRoutingAddress":"no-example-provided",
+         "otherAccountRoutingScheme":"",
+         "otherAccountRoutingAddress":"",
+         "otherAccountSecondaryRoutingScheme":"",
+         "otherAccountSecondaryRoutingAddress":"",
+         "otherBankRoutingScheme":"",
+         "otherBankRoutingAddress":"",
+         "otherBranchRoutingScheme":"",
+         "otherBranchRoutingAddress":"",
          "isBeneficiary":true,
          "bespoke":[
            {
@@ -9695,10 +9938,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -9799,7 +10043,7 @@ this is example of parameter @outbound_json
        },
        "dateOfBirth":"2018-03-09T00:00:00Z",
        "relationshipStatus":"single",
-       "dependents":1,
+       "dependents":2,
        "dobOfDependents":[
          "2019-09-08T00:00:00Z",
          "2019-01-03T00:00:00Z"
@@ -9840,10 +10084,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -9860,7 +10105,7 @@ this is example of parameter @outbound_json
          },
          "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
-         "dependents":1,
+         "dependents":2,
          "dobOfDependents":[
            "2019-09-08T00:00:00Z",
            "2019-01-03T00:00:00Z"
@@ -9990,10 +10235,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -10010,7 +10256,7 @@ this is example of parameter @outbound_json
          },
          "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
-         "dependents":1,
+         "dependents":2,
          "dobOfDependents":[
            "2019-09-08T00:00:00Z",
            "2019-01-03T00:00:00Z"
@@ -10116,7 +10362,7 @@ this is example of parameter @outbound_json
          }
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "creditRating":"no-example-provided",
+       "creditRating":"",
        "creditSource":"string",
        "creditLimit":{
          "currency":"EUR",
@@ -10143,10 +10389,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -10163,7 +10410,7 @@ this is example of parameter @outbound_json
          },
          "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
-         "dependents":1,
+         "dependents":2,
          "dobOfDependents":[
            "2019-09-08T00:00:00Z",
            "2019-01-03T00:00:00Z"
@@ -10276,7 +10523,7 @@ this is example of parameter @outbound_json
        },
        "dateOfBirth":"2018-03-09T00:00:00Z",
        "relationshipStatus":"single",
-       "dependents":1,
+       "dependents":2,
        "highestEducationAttained":"Master",
        "employmentStatus":"worker",
        "title":"Dr.",
@@ -10303,10 +10550,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -10323,7 +10571,7 @@ this is example of parameter @outbound_json
          },
          "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
-         "dependents":1,
+         "dependents":2,
          "dobOfDependents":[
            "2019-09-08T00:00:00Z",
            "2019-01-03T00:00:00Z"
@@ -10450,10 +10698,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -10471,7 +10720,7 @@ this is example of parameter @outbound_json
            },
            "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
-           "dependents":1,
+           "dependents":2,
            "dobOfDependents":[
              "2019-09-08T00:00:00Z",
              "2019-01-03T00:00:00Z"
@@ -10599,10 +10848,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -10619,7 +10869,7 @@ this is example of parameter @outbound_json
          },
          "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
-         "dependents":1,
+         "dependents":2,
          "dobOfDependents":[
            "2019-09-08T00:00:00Z",
            "2019-01-03T00:00:00Z"
@@ -10749,10 +10999,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -10769,7 +11020,7 @@ this is example of parameter @outbound_json
          },
          "dateOfBirth":"2018-03-09T00:00:00Z",
          "relationshipStatus":"single",
-         "dependents":1,
+         "dependents":2,
          "dobOfDependents":[
            "2019-09-08T00:00:00Z",
            "2019-01-03T00:00:00Z"
@@ -10896,27 +11147,28 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-           "customerAddressId":"no-example-provided",
-           "line1":"no-example-provided",
-           "line2":"no-example-provided",
-           "line3":"no-example-provided",
-           "city":"no-example-provided",
-           "county":"no-example-provided",
-           "state":"no-example-provided",
-           "postcode":"no-example-provided",
-           "countryCode":"no-example-provided",
-           "status":"no-example-provided",
-           "tags":"no-example-provided",
+           "customerAddressId":"",
+           "line1":"",
+           "line2":"",
+           "line3":"",
+           "city":"",
+           "county":"",
+           "state":"",
+           "postcode":"",
+           "countryCode":"1254",
+           "status":"",
+           "tags":"Create-My-User",
            "insertDate":"2020-01-27T00:00:00Z"
          }
        ]
@@ -11005,16 +11257,16 @@ this is example of parameter @outbound_json
          }
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "line1":"no-example-provided",
-       "line2":"no-example-provided",
-       "line3":"no-example-provided",
-       "city":"no-example-provided",
-       "county":"no-example-provided",
-       "state":"no-example-provided",
-       "postcode":"no-example-provided",
-       "countryCode":"no-example-provided",
-       "tags":"no-example-provided",
-       "status":"no-example-provided"
+       "line1":"",
+       "line2":"",
+       "line3":"",
+       "city":"",
+       "county":"",
+       "state":"",
+       "postcode":"",
+       "countryCode":"1254",
+       "tags":"Create-My-User",
+       "status":""
      }'
 */
 
@@ -11036,26 +11288,27 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "customerAddressId":"no-example-provided",
-         "line1":"no-example-provided",
-         "line2":"no-example-provided",
-         "line3":"no-example-provided",
-         "city":"no-example-provided",
-         "county":"no-example-provided",
-         "state":"no-example-provided",
-         "postcode":"no-example-provided",
-         "countryCode":"no-example-provided",
-         "status":"no-example-provided",
-         "tags":"no-example-provided",
+         "customerAddressId":"",
+         "line1":"",
+         "line2":"",
+         "line3":"",
+         "city":"",
+         "county":"",
+         "state":"",
+         "postcode":"",
+         "countryCode":"1254",
+         "status":"",
+         "tags":"Create-My-User",
          "insertDate":"2020-01-27T00:00:00Z"
        }
      }'
@@ -11142,17 +11395,17 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "customerAddressId":"no-example-provided",
-       "line1":"no-example-provided",
-       "line2":"no-example-provided",
-       "line3":"no-example-provided",
-       "city":"no-example-provided",
-       "county":"no-example-provided",
-       "state":"no-example-provided",
-       "postcode":"no-example-provided",
-       "countryCode":"no-example-provided",
-       "tags":"no-example-provided",
-       "status":"no-example-provided"
+       "customerAddressId":"",
+       "line1":"",
+       "line2":"",
+       "line3":"",
+       "city":"",
+       "county":"",
+       "state":"",
+       "postcode":"",
+       "countryCode":"1254",
+       "tags":"Create-My-User",
+       "status":""
      }'
 */
 
@@ -11174,26 +11427,27 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "customerAddressId":"no-example-provided",
-         "line1":"no-example-provided",
-         "line2":"no-example-provided",
-         "line3":"no-example-provided",
-         "city":"no-example-provided",
-         "county":"no-example-provided",
-         "state":"no-example-provided",
-         "postcode":"no-example-provided",
-         "countryCode":"no-example-provided",
-         "status":"no-example-provided",
-         "tags":"no-example-provided",
+         "customerAddressId":"",
+         "line1":"",
+         "line2":"",
+         "line3":"",
+         "city":"",
+         "county":"",
+         "state":"",
+         "postcode":"",
+         "countryCode":"1254",
+         "status":"",
+         "tags":"Create-My-User",
          "insertDate":"2020-01-27T00:00:00Z"
        }
      }'
@@ -11280,7 +11534,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "customerAddressId":"no-example-provided"
+       "customerAddressId":""
      }'
 */
 
@@ -11302,10 +11556,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -11395,8 +11650,8 @@ this is example of parameter @outbound_json
          }
        },
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "domain":"no-example-provided",
-       "taxNumber":"no-example-provided"
+       "domain":"",
+       "taxNumber":"456"
      }'
 */
 
@@ -11418,18 +11673,19 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         "taxResidenceId":"no-example-provided",
-         "domain":"no-example-provided",
-         "taxNumber":"no-example-provided"
+         "taxResidenceId":"",
+         "domain":"",
+         "taxNumber":"456"
        }
      }'
 	);
@@ -11537,19 +11793,20 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-           "taxResidenceId":"no-example-provided",
-           "domain":"no-example-provided",
-           "taxNumber":"no-example-provided"
+           "taxResidenceId":"",
+           "domain":"",
+           "taxNumber":"456"
          }
        ]
      }'
@@ -11658,10 +11915,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -11755,8 +12013,8 @@ this is example of parameter @outbound_json
        },
        "limit":100,
        "offset":100,
-       "fromDate":"no-example-provided",
-       "toDate":"no-example-provided"
+       "fromDate":"",
+       "toDate":""
      }'
 */
 
@@ -11778,10 +12036,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -11799,7 +12058,7 @@ this is example of parameter @outbound_json
            },
            "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
-           "dependents":1,
+           "dependents":2,
            "dobOfDependents":[
              "2019-09-08T00:00:00Z",
              "2019-01-03T00:00:00Z"
@@ -11908,7 +12167,7 @@ this is example of parameter @outbound_json
        "bankId":{
          "value":"gh.29.uk"
        },
-       "phoneNumber":"no-example-provided"
+       "phoneNumber":""
      }'
 */
 
@@ -11930,10 +12189,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -11951,7 +12211,7 @@ this is example of parameter @outbound_json
            },
            "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
-           "dependents":1,
+           "dependents":2,
            "dobOfDependents":[
              "2019-09-08T00:00:00Z",
              "2019-01-03T00:00:00Z"
@@ -12080,10 +12340,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -12094,14 +12355,14 @@ this is example of parameter @outbound_json
            "account_type":"string",
            "account_routings":[
              {
-               "scheme":"no-example-provided",
-               "address":"no-example-provided"
+               "scheme":"scheme value",
+               "address":""
              }
            ],
            "branch_routings":[
              {
-               "scheme":"no-example-provided",
-               "address":"no-example-provided"
+               "scheme":"scheme value",
+               "address":""
              }
            ]
          },
@@ -12112,7 +12373,7 @@ this is example of parameter @outbound_json
                "order_date":"string",
                "number_of_checkbooks":"string",
                "distribution_channel":"string",
-               "status":"no-example-provided",
+               "status":"",
                "first_check_number":"string",
                "shipping_code":"string"
              }
@@ -12226,10 +12487,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -12348,18 +12610,21 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "userAuthContextId":"no-example-provided",
+         "userAuthContextId":"",
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "key":"CustomerNumber",
-         "value":"5987953"
+         "value":"5987953",
+         "timeStamp":"1100-01-01T00:00:00Z",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
      }'
 	);
@@ -12469,20 +12734,22 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "userAuthContextUpdateId":"no-example-provided",
+         "userAuthContextUpdateId":"",
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "key":"CustomerNumber",
          "value":"5987953",
-         "challenge":"no-example-provided",
-         "status":"no-example-provided"
+         "challenge":"",
+         "status":"",
+         "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        }
      }'
 	);
@@ -12590,10 +12857,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -12682,7 +12950,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "userAuthContextId":"no-example-provided"
+       "userAuthContextId":""
      }'
 */
 
@@ -12704,10 +12972,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -12818,19 +13087,22 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "userAuthContextId":"no-example-provided",
+           "userAuthContextId":"",
            "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
            "key":"CustomerNumber",
-           "value":"5987953"
+           "value":"5987953",
+           "timeStamp":"1100-01-01T00:00:00Z",
+           "consumerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
          }
        ]
      }'
@@ -12921,12 +13193,13 @@ this is example of parameter @outbound_json
          "value":"gh.29.uk"
        },
        "productCode":{
-         "value":"no-example-provided"
+         "value":"1234BW"
        },
-       "productAttributeId":"no-example-provided",
-       "name":"no-example-provided",
+       "productAttributeId":"",
+       "name":"ACCOUNT_MANAGEMENT_FEE",
        "productAttributeType":"STRING",
-       "value":"5987953"
+       "value":"5987953",
+       "isActive":true
      }'
 */
 
@@ -12948,10 +13221,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -12960,12 +13234,13 @@ this is example of parameter @outbound_json
            "value":"gh.29.uk"
          },
          "productCode":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
-         "productAttributeId":"no-example-provided",
-         "name":"no-example-provided",
+         "productAttributeId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
          "attributeType":"STRING",
-         "value":"5987953"
+         "value":"5987953",
+         "isActive":true
        }
      }'
 	);
@@ -13051,7 +13326,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "productAttributeId":"no-example-provided"
+       "productAttributeId":""
      }'
 */
 
@@ -13073,10 +13348,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -13085,12 +13361,13 @@ this is example of parameter @outbound_json
            "value":"gh.29.uk"
          },
          "productCode":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
-         "productAttributeId":"no-example-provided",
-         "name":"no-example-provided",
+         "productAttributeId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
          "attributeType":"STRING",
-         "value":"5987953"
+         "value":"5987953",
+         "isActive":true
        }
      }'
 	);
@@ -13177,10 +13454,10 @@ this is example of parameter @outbound_json
          }
        },
        "bank":{
-         "value":"no-example-provided"
+         "value":""
        },
        "productCode":{
-         "value":"no-example-provided"
+         "value":"1234BW"
        }
      }'
 */
@@ -13203,10 +13480,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -13216,12 +13494,13 @@ this is example of parameter @outbound_json
              "value":"gh.29.uk"
            },
            "productCode":{
-             "value":"no-example-provided"
+             "value":"1234BW"
            },
-           "productAttributeId":"no-example-provided",
-           "name":"no-example-provided",
+           "productAttributeId":"",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "attributeType":"STRING",
-           "value":"5987953"
+           "value":"5987953",
+           "isActive":true
          }
        ]
      }'
@@ -13308,7 +13587,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "productAttributeId":"no-example-provided"
+       "productAttributeId":""
      }'
 */
 
@@ -13330,10 +13609,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -13422,7 +13702,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "accountAttributeId":"no-example-provided"
+       "accountAttributeId":""
      }'
 */
 
@@ -13444,10 +13724,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -13459,10 +13740,10 @@ this is example of parameter @outbound_json
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "productCode":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
-         "accountAttributeId":"no-example-provided",
-         "name":"no-example-provided",
+         "accountAttributeId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
          "attributeType":"STRING",
          "value":"5987953"
        }
@@ -13572,10 +13853,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -13682,10 +13964,10 @@ this is example of parameter @outbound_json
          "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
        },
        "productCode":{
-         "value":"no-example-provided"
+         "value":"1234BW"
        },
-       "productAttributeId":"no-example-provided",
-       "name":"no-example-provided",
+       "productAttributeId":"",
+       "name":"ACCOUNT_MANAGEMENT_FEE",
        "accountAttributeType":"STRING",
        "value":"5987953"
      }'
@@ -13709,10 +13991,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -13724,10 +14007,10 @@ this is example of parameter @outbound_json
            "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
          },
          "productCode":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
-         "accountAttributeId":"no-example-provided",
-         "name":"no-example-provided",
+         "accountAttributeId":"",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
          "attributeType":"STRING",
          "value":"5987953"
        }
@@ -13822,7 +14105,7 @@ this is example of parameter @outbound_json
          "value":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
        },
        "customerAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "name":"no-example-provided",
+       "name":"ACCOUNT_MANAGEMENT_FEE",
        "attributeType":"STRING",
        "value":"5987953"
      }'
@@ -13846,10 +14129,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -13956,7 +14240,7 @@ this is example of parameter @outbound_json
          "value":"2fg8a7e4-6d02-40e3-a129-0b2bf89de8ub"
        },
        "transactionAttributeId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "name":"no-example-provided",
+       "name":"ACCOUNT_MANAGEMENT_FEE",
        "attributeType":"STRING",
        "value":"5987953"
      }'
@@ -13980,10 +14264,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -14090,7 +14375,7 @@ this is example of parameter @outbound_json
          "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
        },
        "productCode":{
-         "value":"no-example-provided"
+         "value":"1234BW"
        },
        "accountAttributes":[
          {
@@ -14098,12 +14383,13 @@ this is example of parameter @outbound_json
              "value":"gh.29.uk"
            },
            "productCode":{
-             "value":"no-example-provided"
+             "value":"1234BW"
            },
-           "productAttributeId":"no-example-provided",
-           "name":"no-example-provided",
+           "productAttributeId":"",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "attributeType":"STRING",
-           "value":"5987953"
+           "value":"5987953",
+           "isActive":true
          }
        ]
      }'
@@ -14127,10 +14413,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -14143,10 +14430,10 @@ this is example of parameter @outbound_json
              "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
            },
            "productCode":{
-             "value":"no-example-provided"
+             "value":"1234BW"
            },
-           "accountAttributeId":"no-example-provided",
-           "name":"no-example-provided",
+           "accountAttributeId":"",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "attributeType":"STRING",
            "value":"5987953"
          }
@@ -14262,10 +14549,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -14278,10 +14566,10 @@ this is example of parameter @outbound_json
              "value":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
            },
            "productCode":{
-             "value":"no-example-provided"
+             "value":"1234BW"
            },
-           "accountAttributeId":"no-example-provided",
-           "name":"no-example-provided",
+           "accountAttributeId":"",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
            "attributeType":"STRING",
            "value":"5987953"
          }
@@ -14397,10 +14685,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -14532,15 +14821,16 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
-         "no-example-provided"
+         ""
        ]
      }'
 	);
@@ -14640,7 +14930,7 @@ this is example of parameter @outbound_json
            },
            "dateOfBirth":"2018-03-09T00:00:00Z",
            "relationshipStatus":"single",
-           "dependents":1,
+           "dependents":2,
            "dobOfDependents":[
              "2019-09-08T00:00:00Z",
              "2019-01-03T00:00:00Z"
@@ -14683,10 +14973,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -14700,14 +14991,14 @@ this is example of parameter @outbound_json
              "mobileNumber":"+44 07972 444 876",
              "email":"felixsmith@example.com",
              "faceImage":{
-               "date":"2017-09-19T00:00:00Z",
+               "date":"1100-01-01T00:00:00Z",
                "url":"http://www.example.com/id-docs/123/image.png"
              },
-             "dateOfBirth":"2017-09-19T00:00:00Z",
+             "dateOfBirth":"1100-01-01T00:00:00Z",
              "relationshipStatus":"single",
-             "dependents":1,
+             "dependents":2,
              "dobOfDependents":[
-               "2017-09-19T00:00:00Z"
+               "1100-01-01T00:00:00Z"
              ],
              "highestEducationAttained":"Master",
              "employmentStatus":"worker",
@@ -14720,7 +15011,7 @@ this is example of parameter @outbound_json
                "amount":"50.89"
              },
              "kycStatus":true,
-             "lastOkDate":"2017-09-19T00:00:00Z",
+             "lastOkDate":"1100-01-01T00:00:00Z",
              "title":"Dr.",
              "branchId":"DERBY6",
              "nameSuffix":"Sr"
@@ -14855,15 +15146,16 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
-         "no-example-provided"
+         ""
        ]
      }'
 	);
@@ -14976,10 +15268,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -15103,10 +15396,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -15211,7 +15505,7 @@ this is example of parameter @outbound_json
        },
        "cardId":"36f8a9e6-c2b1-407a-8bd0-421b7119307e ",
        "cardAttributeId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-       "name":"no-example-provided",
+       "name":"ACCOUNT_MANAGEMENT_FEE",
        "cardAttributeType":"STRING",
        "value":"5987953"
      }'
@@ -15235,10 +15529,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -15358,10 +15653,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -15481,10 +15777,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -15585,7 +15882,7 @@ this is example of parameter @outbound_json
          }
        },
        "productCode":{
-         "value":"no-example-provided"
+         "value":"1234BW"
        },
        "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"
@@ -15610,22 +15907,23 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "accountApplicationId":"no-example-provided",
+         "accountApplicationId":"",
          "productCode":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "dateOfApplication":"2020-01-27T00:00:00Z",
-         "status":"no-example-provided"
+         "status":""
        }
      }'
 	);
@@ -15732,23 +16030,24 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "accountApplicationId":"no-example-provided",
+           "accountApplicationId":"",
            "productCode":{
-             "value":"no-example-provided"
+             "value":"1234BW"
            },
            "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "dateOfApplication":"2020-01-27T00:00:00Z",
-           "status":"no-example-provided"
+           "status":""
          }
        ]
      }'
@@ -15835,7 +16134,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "accountApplicationId":"no-example-provided"
+       "accountApplicationId":""
      }'
 */
 
@@ -15857,22 +16156,23 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "accountApplicationId":"no-example-provided",
+         "accountApplicationId":"",
          "productCode":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "dateOfApplication":"2020-01-27T00:00:00Z",
-         "status":"no-example-provided"
+         "status":""
        }
      }'
 	);
@@ -15958,8 +16258,8 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "accountApplicationId":"no-example-provided",
-       "status":"no-example-provided"
+       "accountApplicationId":"",
+       "status":""
      }'
 */
 
@@ -15981,22 +16281,23 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "accountApplicationId":"no-example-provided",
+         "accountApplicationId":"",
          "productCode":{
-           "value":"no-example-provided"
+           "value":"1234BW"
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "dateOfApplication":"2020-01-27T00:00:00Z",
-         "status":"no-example-provided"
+         "status":""
        }
      }'
 	);
@@ -16082,9 +16383,9 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "collectionCode":"no-example-provided",
+       "collectionCode":"",
        "productCodes":[
-         "no-example-provided"
+         ""
        ]
      }'
 */
@@ -16107,17 +16408,18 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "collectionCode":"no-example-provided",
-           "productCode":"no-example-provided"
+           "collectionCode":"",
+           "productCode":"1234BW"
          }
        ]
      }'
@@ -16204,7 +16506,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "collectionCode":"no-example-provided"
+       "collectionCode":""
      }'
 */
 
@@ -16226,17 +16528,18 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "collectionCode":"no-example-provided",
-           "productCode":"no-example-provided"
+           "collectionCode":"",
+           "productCode":"1234BW"
          }
        ]
      }'
@@ -16323,9 +16626,9 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "collectionCode":"no-example-provided",
+       "collectionCode":"",
        "memberProductCodes":[
-         "no-example-provided"
+         ""
        ]
      }'
 */
@@ -16348,17 +16651,18 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "collectionCode":"no-example-provided",
-           "memberProductCode":"no-example-provided"
+           "collectionCode":"",
+           "memberProductCode":""
          }
        ]
      }'
@@ -16445,7 +16749,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "collectionCode":"no-example-provided"
+       "collectionCode":""
      }'
 */
 
@@ -16467,17 +16771,18 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "collectionCode":"no-example-provided",
-           "memberProductCode":"no-example-provided"
+           "collectionCode":"",
+           "memberProductCode":""
          }
        ]
      }'
@@ -16564,7 +16869,7 @@ this is example of parameter @outbound_json
            ]
          }
        },
-       "collectionCode":"no-example-provided",
+       "collectionCode":"",
        "bankId":"gh.29.uk"
      }'
 */
@@ -16587,40 +16892,42 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
            "productCollectionItem":{
-             "collectionCode":"no-example-provided",
-             "memberProductCode":"no-example-provided"
+             "collectionCode":"",
+             "memberProductCode":""
            },
            "product":{
              "bankId":{
                "value":"gh.29.uk"
              },
              "code":{
-               "value":"no-example-provided"
+               "value":"1234BW"
              },
              "parentProductCode":{
-               "value":"no-example-provided"
+               "value":"787LOW"
              },
-             "name":"no-example-provided",
-             "category":"no-example-provided",
-             "family":"no-example-provided",
-             "superFamily":"no-example-provided",
-             "moreInfoUrl":"no-example-provided",
-             "details":"no-example-provided",
-             "description":"no-example-provided",
+             "name":"Deposit Account 1",
+             "category":"",
+             "family":"",
+             "superFamily":"",
+             "moreInfoUrl":"www.example.com/abc",
+             "termsAndConditionsUrl":"www.example.com/xyz",
+             "details":"",
+             "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
              "meta":{
                "license":{
-                 "id":"no-example-provided",
-                 "name":"no-example-provided"
+                 "id":"ODbL-1.0",
+                 "name":"Open Database License"
                }
              }
            },
@@ -16630,12 +16937,13 @@ this is example of parameter @outbound_json
                  "value":"gh.29.uk"
                },
                "productCode":{
-                 "value":"no-example-provided"
+                 "value":"1234BW"
                },
-               "productAttributeId":"no-example-provided",
-               "name":"no-example-provided",
+               "productAttributeId":"",
+               "name":"ACCOUNT_MANAGEMENT_FEE",
                "attributeType":"STRING",
-               "value":"5987953"
+               "value":"5987953",
+               "isActive":true
              }
            ]
          }
@@ -16733,9 +17041,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "customerUser":{
          "userPrimaryKey":{
@@ -16743,29 +17055,33 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
-       "providerId":"no-example-provided",
-       "purposeId":"no-example-provided",
+       "providerId":"",
+       "purposeId":"",
        "when":"2020-01-27T00:00:00Z",
        "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-       "customerToken":"no-example-provided",
-       "staffToken":"no-example-provided",
+       "customerToken":"",
+       "staffToken":"",
        "creator":{
-         "name":"no-example-provided",
-         "phone":"no-example-provided",
+         "name":"ACCOUNT_MANAGEMENT_FEE",
+         "phone":"",
          "email":"felixsmith@example.com"
        },
        "invitees":[
          {
            "contactDetails":{
-             "name":"no-example-provided",
-             "phone":"no-example-provided",
+             "name":"ACCOUNT_MANAGEMENT_FEE",
+             "phone":"",
              "email":"felixsmith@example.com"
            },
-           "status":"no-example-provided"
+           "status":""
          }
        ]
      }'
@@ -16789,41 +17105,42 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "meetingId":"no-example-provided",
-         "providerId":"no-example-provided",
-         "purposeId":"no-example-provided",
+         "meetingId":"",
+         "providerId":"",
+         "purposeId":"",
          "bankId":"gh.29.uk",
          "present":{
-           "staffUserId":"no-example-provided",
-           "customerUserId":"no-example-provided"
+           "staffUserId":"",
+           "customerUserId":""
          },
          "keys":{
            "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-           "customerToken":"no-example-provided",
-           "staffToken":"no-example-provided"
+           "customerToken":"",
+           "staffToken":""
          },
          "when":"2020-01-27T00:00:00Z",
          "creator":{
-           "name":"no-example-provided",
-           "phone":"no-example-provided",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
+           "phone":"",
            "email":"felixsmith@example.com"
          },
          "invitees":[
            {
              "contactDetails":{
-               "name":"no-example-provided",
-               "phone":"no-example-provided",
+               "name":"ACCOUNT_MANAGEMENT_FEE",
+               "phone":"",
                "email":"felixsmith@example.com"
              },
-             "status":"no-example-provided"
+             "status":""
            }
          ]
        }
@@ -16920,9 +17237,13 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        }
      }'
 */
@@ -16945,42 +17266,43 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":[
          {
-           "meetingId":"no-example-provided",
-           "providerId":"no-example-provided",
-           "purposeId":"no-example-provided",
+           "meetingId":"",
+           "providerId":"",
+           "purposeId":"",
            "bankId":"gh.29.uk",
            "present":{
-             "staffUserId":"no-example-provided",
-             "customerUserId":"no-example-provided"
+             "staffUserId":"",
+             "customerUserId":""
            },
            "keys":{
              "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-             "customerToken":"no-example-provided",
-             "staffToken":"no-example-provided"
+             "customerToken":"",
+             "staffToken":""
            },
            "when":"2020-01-27T00:00:00Z",
            "creator":{
-             "name":"no-example-provided",
-             "phone":"no-example-provided",
+             "name":"ACCOUNT_MANAGEMENT_FEE",
+             "phone":"",
              "email":"felixsmith@example.com"
            },
            "invitees":[
              {
                "contactDetails":{
-                 "name":"no-example-provided",
-                 "phone":"no-example-provided",
+                 "name":"ACCOUNT_MANAGEMENT_FEE",
+                 "phone":"",
                  "email":"felixsmith@example.com"
                },
-               "status":"no-example-provided"
+               "status":""
              }
            ]
          }
@@ -17078,11 +17400,15 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
-       "meetingId":"no-example-provided"
+       "meetingId":""
      }'
 */
 
@@ -17104,41 +17430,42 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "meetingId":"no-example-provided",
-         "providerId":"no-example-provided",
-         "purposeId":"no-example-provided",
+         "meetingId":"",
+         "providerId":"",
+         "purposeId":"",
          "bankId":"gh.29.uk",
          "present":{
-           "staffUserId":"no-example-provided",
-           "customerUserId":"no-example-provided"
+           "staffUserId":"",
+           "customerUserId":""
          },
          "keys":{
            "sessionId":"b4e0352a-9a0f-4bfa-b30b-9003aa467f50",
-           "customerToken":"no-example-provided",
-           "staffToken":"no-example-provided"
+           "customerToken":"",
+           "staffToken":""
          },
          "when":"2020-01-27T00:00:00Z",
          "creator":{
-           "name":"no-example-provided",
-           "phone":"no-example-provided",
+           "name":"ACCOUNT_MANAGEMENT_FEE",
+           "phone":"",
            "email":"felixsmith@example.com"
          },
          "invitees":[
            {
              "contactDetails":{
-               "name":"no-example-provided",
-               "phone":"no-example-provided",
+               "name":"ACCOUNT_MANAGEMENT_FEE",
+               "phone":"",
                "email":"felixsmith@example.com"
              },
-             "status":"no-example-provided"
+             "status":""
            }
          ]
        }
@@ -17228,14 +17555,14 @@ this is example of parameter @outbound_json
        },
        "bankId":"gh.29.uk",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "id":"no-example-provided",
+       "id":"d8839721-ad8f-45dd-9f78-2080414b93f9",
        "customerNumber":"5987953",
        "date":"2020-01-27T00:00:00Z",
-       "how":"no-example-provided",
-       "staffUserId":"no-example-provided",
+       "how":"",
+       "staffUserId":"",
        "mStaffName":"string",
        "mSatisfied":true,
-       "comments":"no-example-provided"
+       "comments":""
      }'
 */
 
@@ -17257,10 +17584,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -17270,11 +17598,11 @@ this is example of parameter @outbound_json
          "idKycCheck":"string",
          "customerNumber":"5987953",
          "date":"2020-01-27T00:00:00Z",
-         "how":"no-example-provided",
-         "staffUserId":"no-example-provided",
-         "staffName":"no-example-provided",
+         "how":"",
+         "staffUserId":"",
+         "staffName":"",
          "satisfied":true,
-         "comments":"no-example-provided"
+         "comments":""
        }
      }'
 	);
@@ -17362,12 +17690,12 @@ this is example of parameter @outbound_json
        },
        "bankId":"gh.29.uk",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "id":"no-example-provided",
+       "id":"d8839721-ad8f-45dd-9f78-2080414b93f9",
        "customerNumber":"5987953",
-       "type":"no-example-provided",
-       "number":"no-example-provided",
+       "type":"",
+       "number":"",
        "issueDate":"2020-01-27T00:00:00Z",
-       "issuePlace":"no-example-provided",
+       "issuePlace":"",
        "expiryDate":"2021-01-27T00:00:00Z"
      }'
 */
@@ -17390,10 +17718,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -17402,10 +17731,10 @@ this is example of parameter @outbound_json
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "idKycDocument":"string",
          "customerNumber":"5987953",
-         "type":"no-example-provided",
-         "number":"no-example-provided",
+         "type":"",
+         "number":"",
          "issueDate":"2020-01-27T00:00:00Z",
-         "issuePlace":"no-example-provided",
+         "issuePlace":"",
          "expiryDate":"2021-01-27T00:00:00Z"
        }
      }'
@@ -17494,13 +17823,13 @@ this is example of parameter @outbound_json
        },
        "bankId":"gh.29.uk",
        "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       "id":"no-example-provided",
+       "id":"d8839721-ad8f-45dd-9f78-2080414b93f9",
        "customerNumber":"5987953",
-       "type":"no-example-provided",
+       "type":"",
        "url":"http://www.example.com/id-docs/123/image.png",
        "date":"2020-01-27T00:00:00Z",
-       "relatesToKycDocumentId":"no-example-provided",
-       "relatesToKycCheckId":"no-example-provided"
+       "relatesToKycDocumentId":"",
+       "relatesToKycCheckId":""
      }'
 */
 
@@ -17522,10 +17851,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -17534,11 +17864,11 @@ this is example of parameter @outbound_json
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
          "idKycMedia":"string",
          "customerNumber":"5987953",
-         "type":"no-example-provided",
+         "type":"",
          "url":"http://www.example.com/id-docs/123/image.png",
          "date":"2020-01-27T00:00:00Z",
-         "relatesToKycDocumentId":"no-example-provided",
-         "relatesToKycCheckId":"no-example-provided"
+         "relatesToKycDocumentId":"",
+         "relatesToKycCheckId":""
        }
      }'
 	);
@@ -17650,10 +17980,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -17770,10 +18101,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -17784,11 +18116,11 @@ this is example of parameter @outbound_json
            "idKycCheck":"string",
            "customerNumber":"5987953",
            "date":"2020-01-27T00:00:00Z",
-           "how":"no-example-provided",
-           "staffUserId":"no-example-provided",
-           "staffName":"no-example-provided",
+           "how":"",
+           "staffUserId":"",
+           "staffName":"",
            "satisfied":true,
-           "comments":"no-example-provided"
+           "comments":""
          }
        ]
      }'
@@ -17897,10 +18229,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -17910,10 +18243,10 @@ this is example of parameter @outbound_json
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "idKycDocument":"string",
            "customerNumber":"5987953",
-           "type":"no-example-provided",
-           "number":"no-example-provided",
+           "type":"",
+           "number":"",
            "issueDate":"2020-01-27T00:00:00Z",
-           "issuePlace":"no-example-provided",
+           "issuePlace":"",
            "expiryDate":"2021-01-27T00:00:00Z"
          }
        ]
@@ -18023,10 +18356,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -18036,11 +18370,11 @@ this is example of parameter @outbound_json
            "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
            "idKycMedia":"string",
            "customerNumber":"5987953",
-           "type":"no-example-provided",
+           "type":"",
            "url":"http://www.example.com/id-docs/123/image.png",
            "date":"2020-01-27T00:00:00Z",
-           "relatesToKycDocumentId":"no-example-provided",
-           "relatesToKycCheckId":"no-example-provided"
+           "relatesToKycDocumentId":"",
+           "relatesToKycCheckId":""
          }
        ]
      }'
@@ -18149,10 +18483,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -18255,16 +18590,20 @@ this is example of parameter @outbound_json
          },
          "userId":"9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
          "idGivenByProvider":"string",
-         "provider":"no-example-provided",
-         "emailAddress":"no-example-provided",
-         "name":"felixsmith"
+         "provider":"ETHEREUM",
+         "emailAddress":"",
+         "name":"felixsmith",
+         "createdByConsentId":"string",
+         "createdByUserInvitationId":"string",
+         "isDeleted":true,
+         "lastMarketingAgreementSignedDate":"2020-01-27T00:00:00Z"
        },
        "bankId":{
          "value":"gh.29.uk"
        },
-       "message":"no-example-provided",
-       "fromDepartment":"no-example-provided",
-       "fromPerson":"no-example-provided"
+       "message":"123456",
+       "fromDepartment":"Open Bank",
+       "fromPerson":"Tom"
      }'
 */
 
@@ -18286,19 +18625,20 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
          "messageId":"string",
          "date":"2020-01-27T00:00:00Z",
-         "message":"no-example-provided",
-         "fromDepartment":"no-example-provided",
-         "fromPerson":"no-example-provided"
+         "message":"123456",
+         "fromDepartment":"Open Bank",
+         "fromPerson":"Tom"
        }
      }'
 	);
@@ -18460,9 +18800,9 @@ this is example of parameter @outbound_json
        "completed":"2020-01-27T00:00:00Z",
        "amount":"10.12",
        "currency":"EUR",
-       "description":"no-example-provided",
+       "description":"This an optional field. Maximum length is 2000. It can be any characters here.",
        "transactionRequestType":"SEPA",
-       "chargePolicy":"no-example-provided"
+       "chargePolicy":"SHARED"
      }'
 */
 
@@ -18484,10 +18824,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -18607,15 +18948,16 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
        "data":{
-         "directDebitId":"no-example-provided",
+         "directDebitId":"",
          "bankId":"gh.29.uk",
          "accountId":"8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
          "customerId":"7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
@@ -18733,10 +19075,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
@@ -18853,10 +19196,11 @@ this is example of parameter @outbound_json
          "errorCode":"",
          "backendMessages":[
            {
-             "source":"String",
-             "status":"String",
+             "source":"",
+             "status":"",
              "errorCode":"",
-             "text":"String"
+             "text":"",
+             "duration":"5.123"
            }
          ]
        },
