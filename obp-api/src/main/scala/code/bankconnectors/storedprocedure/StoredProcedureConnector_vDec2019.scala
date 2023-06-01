@@ -75,7 +75,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   val connectorName = "stored_procedure_vDec2019"
 
 //---------------- dynamic start -------------------please don't modify this line
-// ---------- created on 2022-03-11T18:45:01Z
+// ---------- created on 2023-06-01T16:47:09Z
 
   messageDocs += getAdapterInfoDoc
   def getAdapterInfoDoc = MessageDoc(
@@ -94,7 +94,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       backendMessages=List( InboundStatusMessage(source=sourceExample.value,
       status=inboundStatusMessageStatusExample.value,
       errorCode=inboundStatusMessageErrorCodeExample.value,
-      text=inboundStatusMessageTextExample.value)),
+      text=inboundStatusMessageTextExample.value,
+      duration=Some(BigDecimal(durationExample.value)))),
       name=inboundAdapterInfoInternalNameExample.value,
       version=inboundAdapterInfoInternalVersionExample.value,
       git_commit=inboundAdapterInfoInternalGit_commitExample.value,
@@ -132,7 +133,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       city=cityExample.value,
       zip="string",
       phone=phoneExample.value,
-      country="string",
+      country=countryExample.value,
       countryIso="string",
       sepaCreditTransfer=sepaCreditTransferExample.value,
       sepaDirectDebit=sepaDirectDebitExample.value,
@@ -347,7 +348,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       consentId=Some(consentIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string"))))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -413,7 +415,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       consentId=Some(consentIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string")))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -449,7 +452,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       consentId=Some(consentIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string"))))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -485,7 +489,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       consentId=Some(consentIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string"))))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -521,7 +526,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       consentId=Some(consentIdExample.value),
       scaMethod=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SMS),
       scaStatus=Some(com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.example),
-      authenticationMethodId=Some("string")))
+      authenticationMethodId=Some("string"),
+      attemptCounter=123))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -609,8 +615,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     inboundTopic = None,
     exampleOutboundMessage = (
      OutBoundGetBankAccountsForUser(outboundAdapterCallContext=MessageDocsSwaggerDefinitions.outboundAdapterCallContext,
-       provider=providerExample.value,
-       username=usernameExample.value)
+      provider=providerExample.value,
+      username=usernameExample.value)
     ),
     exampleInboundMessage = (
      InBoundGetBankAccountsForUser(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -634,9 +640,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getBankAccountsForUser(provider: String, username:String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
+  override def getBankAccountsForUser(provider: String, username: String, callContext: Option[CallContext]): Future[Box[(List[InboundAccount], Option[CallContext])]] = {
         import com.openbankproject.commons.dto.{InBoundGetBankAccountsForUser => InBound, OutBoundGetBankAccountsForUser => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, provider: String, username:String)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, provider, username)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_accounts_for_user", req, callContext)
         response.map(convertToTuple[List[InboundAccountCommons]](callContext))        
   }
@@ -866,7 +872,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = {
         import com.openbankproject.commons.dto.{InBoundGetBankAccountByRouting => InBound, OutBoundGetBankAccountByRouting => OutBound}  
         val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, scheme, address)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_get_bank_account_by_routing", req, callContext)
@@ -1550,7 +1556,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value)))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1616,8 +1624,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value
-      ))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1731,8 +1740,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value
-      )))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1775,8 +1785,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
       customerId=customerIdExample.value,
-      cvv = cvvExample.value,
-      brand = brandExample.value)
+      cvv=cvvExample.value,
+      brand=brandExample.value)
     ),
     exampleInboundMessage = (
      InBoundCreatePhysicalCard(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -1820,20 +1830,16 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value
-      ))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, 
-    validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], 
-    allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], 
-    collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, cvv: String,
-    brand: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
-    import com.openbankproject.commons.dto.{InBoundCreatePhysicalCard => InBound, OutBoundCreatePhysicalCard => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, 
-          serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId, cvv, brand)
+  override def createPhysicalCard(bankCardNumber: String, nameOnCard: String, cardType: String, issueNumber: String, serialNumber: String, validFrom: Date, expires: Date, enabled: Boolean, cancelled: Boolean, onHotList: Boolean, technology: String, networks: List[String], allows: List[String], accountId: String, bankId: String, replacement: Option[CardReplacementInfo], pinResets: List[PinResetInfo], collected: Option[CardCollectionInfo], posted: Option[CardPostedInfo], customerId: String, cvv: String, brand: String, callContext: Option[CallContext]): OBPReturnType[Box[PhysicalCard]] = {
+        import com.openbankproject.commons.dto.{InBoundCreatePhysicalCard => InBound, OutBoundCreatePhysicalCard => OutBound}  
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankCardNumber, nameOnCard, cardType, issueNumber, serialNumber, validFrom, expires, enabled, cancelled, onHotList, technology, networks, allows, accountId, bankId, replacement, pinResets, collected, posted, customerId, cvv, brand)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_physical_card", req, callContext)
         response.map(convertToTuple[PhysicalCard](callContext))        
   }
@@ -1913,7 +1919,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       reasonRequested=com.openbankproject.commons.model.PinResetReason.FORGOT)),
       collected=Some(CardCollectionInfo(toDate(collectedExample))),
       posted=Some(CardPostedInfo(toDate(postedExample))),
-      customerId=customerIdExample.value))
+      customerId=customerIdExample.value,
+      cvv=Some(cvvExample.value),
+      brand=Some(brandExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -2070,6 +2078,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2247,6 +2263,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2365,6 +2389,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2456,6 +2488,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2560,6 +2600,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -2630,6 +2678,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -3136,7 +3192,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       siteName=Some("string"),
       cashWithdrawalNationalFee=Some(cashWithdrawalNationalFeeExample.value),
       cashWithdrawalInternationalFee=Some(cashWithdrawalInternationalFeeExample.value),
-      balanceInquiryFee=Some(balanceInquiryFeeExample.value)))
+      balanceInquiryFee=Some(balanceInquiryFeeExample.value),
+      atmType=Some(atmTypeExample.value),
+      phone=Some(phoneExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3215,7 +3273,9 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       siteName=Some("string"),
       cashWithdrawalNationalFee=Some(cashWithdrawalNationalFeeExample.value),
       cashWithdrawalInternationalFee=Some(cashWithdrawalInternationalFeeExample.value),
-      balanceInquiryFee=Some(balanceInquiryFeeExample.value))))
+      balanceInquiryFee=Some(balanceInquiryFeeExample.value),
+      atmType=Some(atmTypeExample.value),
+      phone=Some(phoneExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -3310,6 +3370,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -3567,6 +3635,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -3653,6 +3729,14 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       account_id=account_idExample.value)),
       to_sepa=Some(TransactionRequestIban(transactionRequestIban.value)),
       to_counterparty=Some(TransactionRequestCounterpartyId(transactionRequestCounterpartyIdExample.value)),
+      to_simple=Some( TransactionRequestSimple(otherBankRoutingScheme=otherBankRoutingSchemeExample.value,
+      otherBankRoutingAddress=otherBankRoutingAddressExample.value,
+      otherBranchRoutingScheme=otherBranchRoutingSchemeExample.value,
+      otherBranchRoutingAddress=otherBranchRoutingAddressExample.value,
+      otherAccountRoutingScheme=otherAccountRoutingSchemeExample.value,
+      otherAccountRoutingAddress=otherAccountRoutingAddressExample.value,
+      otherAccountSecondaryRoutingScheme=otherAccountSecondaryRoutingSchemeExample.value,
+      otherAccountSecondaryRoutingAddress=otherAccountSecondaryRoutingAddressExample.value)),
       to_transfer_to_phone=Some( TransactionRequestTransferToPhone(value= AmountOfMoneyJsonV121(currency=currencyExample.value,
       amount=amountExample.value),
       description=descriptionExample.value,
@@ -4658,7 +4742,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample), 
+      timeStamp=toDate(timeStampExample),
       consumerId=consumerIdExample.value))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -4693,7 +4777,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       value=valueExample.value,
       challenge=challengeExample.value,
       status=statusExample.value,
-      consumerId=consumerIdExample.value))),
+      consumerId=consumerIdExample.value))
+    ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
@@ -4774,7 +4859,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       userId=userIdExample.value,
       key=keyExample.value,
       value=valueExample.value,
-      timeStamp=toDate(timeStampExample), 
+      timeStamp=toDate(timeStampExample),
       consumerId=consumerIdExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
@@ -4936,7 +5021,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value))
+      value=valueExample.value,
+      productInstanceCode=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -4994,7 +5080,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       productAttributeId=Some(productAttributeIdExample.value),
       name=nameExample.value,
       accountAttributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value)
+      value=valueExample.value,
+      productInstanceCode=Some("string"))
     ),
     exampleInboundMessage = (
      InBoundCreateOrUpdateAccountAttribute(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5005,15 +5092,15 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value))
+      value=valueExample.value,
+      productInstanceCode=Some("string")))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String,
-    productInstanceCode: Option[String],callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
+  override def createOrUpdateAccountAttribute(bankId: BankId, accountId: AccountId, productCode: ProductCode, productAttributeId: Option[String], name: String, accountAttributeType: AccountAttributeType.Value, value: String, productInstanceCode: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[AccountAttribute]] = {
         import com.openbankproject.commons.dto.{InBoundCreateOrUpdateAccountAttribute => InBound, OutBoundCreateOrUpdateAccountAttribute => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, productAttributeId, name, accountAttributeType, value, productInstanceCode)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_or_update_account_attribute", req, callContext)
         response.map(convertToTuple[AccountAttributeCommons](callContext))        
   }
@@ -5108,7 +5195,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.ProductAttributeType.example,
       value=valueExample.value,
-      isActive=Some(isActiveExample.value.toBoolean))))
+      isActive=Some(isActiveExample.value.toBoolean))),
+      productInstanceCode=Some("string"))
     ),
     exampleInboundMessage = (
      InBoundCreateAccountAttributes(inboundAdapterCallContext=MessageDocsSwaggerDefinitions.inboundAdapterCallContext,
@@ -5119,15 +5207,15 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value)))
+      value=valueExample.value,
+      productInstanceCode=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
 
-  override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute],
-    productInstanceCode: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
+  override def createAccountAttributes(bankId: BankId, accountId: AccountId, productCode: ProductCode, accountAttributes: List[ProductAttribute], productInstanceCode: Option[String], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountAttribute]]] = {
         import com.openbankproject.commons.dto.{InBoundCreateAccountAttributes => InBound, OutBoundCreateAccountAttributes => OutBound}  
-        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, accountAttributes)
+        val req = OutBound(callContext.map(_.toOutboundAdapterCallContext).orNull, bankId, accountId, productCode, accountAttributes, productInstanceCode)
         val response: Future[Box[InBound]] = sendRequest[InBound]("obp_create_account_attributes", req, callContext)
         response.map(convertToTuple[List[AccountAttributeCommons]](callContext))        
   }
@@ -5153,7 +5241,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       accountAttributeId=accountAttributeIdExample.value,
       name=nameExample.value,
       attributeType=com.openbankproject.commons.model.enums.AccountAttributeType.example,
-      value=valueExample.value)))
+      value=valueExample.value,
+      productInstanceCode=Some("string"))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -6256,7 +6345,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
       date=toDate(dateExample),
       message=messageExample.value,
       fromDepartment=fromDepartmentExample.value,
-      fromPerson=fromPersonExample.value))
+      fromPerson=fromPersonExample.value,
+      transport=Some(transportExample.value)))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -6405,8 +6495,8 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
         response.map(convertToTuple[Boolean](callContext))        
   }
           
-// ---------- created on 2022-03-11T18:45:01Z
-//---------------- dynamic end ---------------------please don't modify this line                          
+// ---------- created on 2023-06-01T16:47:09Z
+//---------------- dynamic end ---------------------please don't modify this line                           
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 
