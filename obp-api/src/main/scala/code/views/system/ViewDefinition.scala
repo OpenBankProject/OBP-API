@@ -533,8 +533,8 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
   override def beforeSave = List(
     t =>{
       tryo {
-        val viewId = getUniqueKey(t.bank_id.get, t.account_id.get, t.view_id.get)
-        t.composite_unique_key(viewId)
+        val compositeUniqueKey = getUniqueKey(t.bank_id.get, t.account_id.get, t.view_id.get)
+        t.composite_unique_key(compositeUniqueKey)
       }
 
       if (t.isSystem && !checkSystemViewIdOrName(t.view_id.get)) {
