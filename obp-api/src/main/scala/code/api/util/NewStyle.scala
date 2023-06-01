@@ -458,8 +458,8 @@ object NewStyle extends MdcLoggable{
     }
 
     def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]) : OBPReturnType[BankAccount] = {
-      Future(Connector.connector.vend.getBankAccountByRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext])) map { i =>
-        unboxFullOrFail(i, callContext,s"$BankAccountNotFoundByAccountRouting Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 )
+      Connector.connector.vend.getBankAccountByRouting(bankId: Option[BankId], scheme: String, address : String, callContext: Option[CallContext]) map { i =>
+        (unboxFullOrFail(i._1, callContext,s"$BankAccountNotFoundByAccountRouting Current scheme is $scheme, current address is $address, current bankId is $bankId", 404 ), i._2)
       }
     }
 
@@ -1356,7 +1356,11 @@ object NewStyle extends MdcLoggable{
 
     def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = 
      Connector.connector.vend.validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String, callContext: Option[CallContext]) map { i =>
-       (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+       (unboxFullOrFail(i._1, callContext, s"${
+         InvalidChallengeAnswer
+           .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+           .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+       }"), i._2)
       }
 
     def allChallengesSuccessfullyAnswered(
@@ -1399,7 +1403,11 @@ object NewStyle extends MdcLoggable{
           hashOfSuppliedAnswer: String,
           callContext: Option[CallContext]
         ) map { i =>
-          (unboxFullOrFail(i._1, callContext, s"$InvalidChallengeAnswer "), i._2)
+          (unboxFullOrFail(i._1, callContext, s"${
+            InvalidChallengeAnswer
+              .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+              .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+          }"), i._2)
         }
       }
     }
@@ -1888,6 +1896,23 @@ object NewStyle extends MdcLoggable{
       }
     } 
     
+    def getPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
+      Connector.connector.vend.getPersonalUserAttributes(
+        userId: String, callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    } 
+    
+    
+    def getNonPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
+      Connector.connector.vend.getNonPersonalUserAttributes(
+        userId: String, callContext: Option[CallContext]
+      ) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    } 
+    
     def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[List[UserAttribute]] = {
       Connector.connector.vend.getUserAttributesByUsers(
         userIds, callContext: Option[CallContext]
@@ -1901,6 +1926,7 @@ object NewStyle extends MdcLoggable{
       name: String,
       attributeType: UserAttributeType.Value,
       value: String,
+      isPersonal: Boolean,
       callContext: Option[CallContext]
     ): OBPReturnType[UserAttribute] = {
       Connector.connector.vend.createOrUpdateUserAttribute(
@@ -1909,6 +1935,7 @@ object NewStyle extends MdcLoggable{
         name: String,
         attributeType: UserAttributeType.Value,
         value: String,
+        isPersonal: Boolean,
         callContext: Option[CallContext]
       ) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)

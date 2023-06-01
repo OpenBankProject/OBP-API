@@ -35,10 +35,12 @@ import code.api.v3_0_0.{AddressJsonV300, OpeningTimesV300}
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
 import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
+import code.users.UserAttribute
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{Address, AtmId, AtmT, BankId, Location, Meta}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
+import java.util.Date
 import scala.collection.immutable.List
 import scala.util.Try
 
@@ -193,6 +195,26 @@ case class AtmAttributeResponseJsonV510(
                                         is_active: Option[Boolean]
                                       )
 case class AtmAttributesResponseJsonV510(atm_attributes: List[AtmAttributeResponseJsonV510])
+
+case class UserAttributeResponseJsonV510(
+  user_attribute_id: String,
+  name: String,
+  `type`: String,
+  value: String,
+  is_personal: Boolean,
+  insert_date: Date
+)
+
+case class UserAttributeJsonV510(
+  name: String,
+  `type`: String,
+  value: String
+)
+
+case class UserAttributesResponseJsonV510(
+  user_attributes: List[UserAttributeResponseJsonV510]
+)
+
 
 
 object JSONFactory510 {
@@ -450,6 +472,19 @@ object JSONFactory510 {
   def createAtmAttributesJson(atmAttributes: List[AtmAttribute]): AtmAttributesResponseJsonV510 =
     AtmAttributesResponseJsonV510(atmAttributes.map(createAtmAttributeJson))
 
-  
+  def createUserAttributeJson(userAttribute: UserAttribute): UserAttributeResponseJsonV510 = {
+    UserAttributeResponseJsonV510(
+      user_attribute_id = userAttribute.userAttributeId,
+      name = userAttribute.name,
+      `type` = userAttribute.attributeType.toString,
+      value = userAttribute.value,
+      insert_date = userAttribute.insertDate,
+      is_personal = userAttribute.isPersonal
+    )
+  }
+
+  def createUserAttributesJson(userAttribute: List[UserAttribute]): UserAttributesResponseJsonV510 = {
+    UserAttributesResponseJsonV510(userAttribute.map(createUserAttributeJson))
+  }
 }
 

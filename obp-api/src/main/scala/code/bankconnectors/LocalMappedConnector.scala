@@ -219,6 +219,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val userAttributeName = s"TRANSACTION_REQUESTS_PAYMENT_LIMIT_${currency}_" + transactionRequestType.toUpperCase
     val userAttributes = UserAttribute.findAll(
       By(UserAttribute.UserId, userId),
+      By(UserAttribute.IsPersonal, false),
       OrderBy(UserAttribute.createdAt, Descending)
     )
     val userAttributeValue = userAttributes.find(_.name == userAttributeName).map(_.value)
@@ -759,10 +760,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getBankAccountByIban(iban: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
-    getBankAccountByRouting(None, "IBAN", iban, callContext)
+    getBankAccountByRoutingLegacy(None, "IBAN", iban, callContext)
   }
 
-  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
+  override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
     bankId match {
       case Some(bankId) =>
         BankAccountRouting
@@ -774,6 +775,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           .flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
     }
   }
+
+  override def getBankAccountByRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAccount]] = Future {
+    getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext])
+  }
+
 
   override def getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = {
     Future {
@@ -1785,7 +1791,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     for {
       toAccount <-
-        Connector.connector.vend.getBankAccountByRouting(None, toAccountRoutingScheme, toAccountRoutingAddress, None) match {
+        Connector.connector.vend.getBankAccountByRoutingLegacy(None, toAccountRoutingScheme, toAccountRoutingAddress, None) match {
           case Full(bankAccount) => Future.successful(bankAccount._1)
           case _: EmptyBox =>
             NewStyle.function.getCounterpartyByIban(toAccountRoutingAddress, callContext).flatMap(counterparty =>
@@ -4077,8 +4083,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
     UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUser(userId: String) map {(_, callContext)}
   }
+  
+  override def getNonPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
+    UserAttributeProvider.userAttributeProvider.vend.getNonPersonalUserAttributes(userId: String) map {(_, callContext)}
+  }
+  override def getPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
+    UserAttributeProvider.userAttributeProvider.vend.getPersonalUserAttributes(userId: String) map {(_, callContext)}
+  }
   override def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = {
     UserAttributeProvider.userAttributeProvider.vend.getUserAttributesByUsers(userIds) map {(_, callContext)}
+  }
+  override def deleteUserAttribute(userAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = {
+    UserAttributeProvider.userAttributeProvider.vend.deleteUserAttribute(userAttributeId) map {(_, callContext)}
   }
   override def createOrUpdateUserAttribute(
                                             userId: String,
@@ -4086,6 +4102,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                             name: String,
                                             attributeType: UserAttributeType.Value,
                                             value: String,
+                                            isPersonal: Boolean,
                                             callContext: Option[CallContext]
                                           ): OBPReturnType[Box[UserAttribute]] = {
     UserAttributeProvider.userAttributeProvider.vend.createOrUpdateUserAttribute(
@@ -4093,7 +4110,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       userAttributeId: Option[String],
       name: String,
       attributeType: UserAttributeType.Value,
-      value: String
+      value: String,
+      isPersonal: Boolean
     ) map {
       (_, callContext)
     }

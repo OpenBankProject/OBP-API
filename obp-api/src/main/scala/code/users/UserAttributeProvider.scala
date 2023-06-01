@@ -38,23 +38,31 @@ trait UserAttributeProvider {
   private val logger = Logger(classOf[UserAttributeProvider])
 
   def getUserAttributesByUser(userId: String): Future[Box[List[UserAttribute]]]
+  def getPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]]
+  def getNonPersonalUserAttributes(userId: String): Future[Box[List[UserAttribute]]]
   def getUserAttributesByUsers(userIds: List[String]): Future[Box[List[UserAttribute]]]
+  def deleteUserAttribute(userAttributeId: String): Future[Box[Boolean]]
   def createOrUpdateUserAttribute(userId: String,
                                   userAttributeId: Option[String],
                                   name: String,
                                   attributeType: UserAttributeType.Value,
-                                  value: String): Future[Box[UserAttribute]]
+                                  value: String,
+                                  isPersonal: Boolean): Future[Box[UserAttribute]]
   // End of Trait
 }
 
 class RemotedataUserAttributeCaseClasses {
   case class getUserAttributesByUser(userId: String)
+  case class getPersonalUserAttributes(userId: String)
+  case class getNonPersonalUserAttributes(userId: String)
+  case class deleteUserAttribute(userAttributeId: String)
   case class getUserAttributesByUsers(userIds: List[String])
   case class createOrUpdateUserAttribute(userId: String,
                                          userAttributeId: Option[String],
                                          name: String,
                                          attributeType: UserAttributeType.Value,
-                                         value: String)
+                                         value: String,
+                                         isPersonal: Boolean)
 }
 
 object RemotedataUserAttributeCaseClasses extends RemotedataUserAttributeCaseClasses

@@ -23,9 +23,13 @@ class RemotedataUserAttributeActor extends Actor with ObpActorHelper with MdcLog
       logger.debug(s"getUserAttributesByUser(${userIds})")
       mapper.getUserAttributesByUsers(userIds) pipeTo sender
 
-    case cc.createOrUpdateUserAttribute(userId: String, userAttributeId: Option[String], name: String, attributeType: UserAttributeType.Value, value: String) =>
-      logger.debug(s"createOrUpdateUserAttribute(${userId}, ${userAttributeId}, ${name}, ${attributeType}, ${value})")
-      mapper.createOrUpdateUserAttribute(userId, userAttributeId, name, attributeType, value) pipeTo sender
+    case cc.createOrUpdateUserAttribute(
+      userId: String, userAttributeId: Option[String], name: String, 
+      attributeType: UserAttributeType.Value, value: String, 
+      isPersonal: Boolean
+    ) =>
+      logger.debug(s"createOrUpdateUserAttribute(${userId}, ${userAttributeId}, ${name}, ${attributeType}, ${value}, ${isPersonal})")
+      mapper.createOrUpdateUserAttribute(userId, userAttributeId, name, attributeType, value, isPersonal) pipeTo sender
 
     case message => logger.warn("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
   }

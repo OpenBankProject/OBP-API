@@ -23,9 +23,9 @@ class UserAttributesTest extends V400ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createCurrentUserAttribute))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCurrentUserAttributes))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.updateCurrentUserAttribute))
+  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createMyPersonalUserAttribute))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getMyPersonalUserAttributes))
+  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.updateMyPersonalUserAttribute))
 
 
   lazy val bankId = testBankId1.value

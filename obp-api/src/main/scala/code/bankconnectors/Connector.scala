@@ -523,7 +523,8 @@ trait Connector extends MdcLoggable {
   
   def getBankAccountByAccountId(accountId : AccountId, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError),callContext)}
-  def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
+  def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError)
+  def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError), callContext)}
   def getAccountRoutingsByScheme(bankId: Option[BankId], scheme : String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = Future{(Failure(setUnimplementedError),callContext)}
   def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRouting, Option[CallContext])]= Failure(setUnimplementedError)
 
@@ -2260,6 +2261,12 @@ trait Connector extends MdcLoggable {
   def getUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = 
     Future{(Failure(setUnimplementedError), callContext)}   
   
+  def getPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = 
+    Future{(Failure(setUnimplementedError), callContext)}  
+    
+  def getNonPersonalUserAttributes(userId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = 
+    Future{(Failure(setUnimplementedError), callContext)}   
+  
   def getUserAttributesByUsers(userIds: List[String], callContext: Option[CallContext]): OBPReturnType[Box[List[UserAttribute]]] = 
     Future{(Failure(setUnimplementedError), callContext)}  
   
@@ -2269,8 +2276,14 @@ trait Connector extends MdcLoggable {
     name: String,
     attributeType: UserAttributeType.Value,
     value: String,
+    isPersonal: Boolean,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[UserAttribute]] = Future{(Failure(setUnimplementedError), callContext)} 
+  
+  def deleteUserAttribute(
+    userAttributeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError), callContext)} 
   
   def createOrUpdateTransactionAttribute(
     bankId: BankId,
