@@ -1,21 +1,17 @@
 package code.api.v5_1_0
 
 
-import java.io
-
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310}
-import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{apiCollectionJson400, apiCollectionsJson400, apiInfoJson400, postApiCollectionJson400, revokedConsentJsonV310, _}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages.{$UserNotLoggedIn, BankNotFound, ConsentNotFound, InvalidJsonFormat, UnknownError, UserNotFoundByUserId, UserNotLoggedIn, _}
-import code.api.util.{APIUtil, ApiRole, CallContext, CurrencyUtil, NewStyle, X509}
 import code.api.util.NewStyle.HttpCode
-import code.api.v3_0_0.JSONFactory300
+import code.api.util._
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
-import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400, UserAttributeJsonV400}
+import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
 import code.consent.Consents
@@ -29,12 +25,11 @@ import code.util.Helper
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
+import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.S
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
@@ -176,7 +171,7 @@ trait APIMethods510 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canCreateNonPersonalUserAttribute))
     )
 
@@ -228,7 +223,7 @@ trait APIMethods510 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canDeleteNonPersonalUserAttribute)))
 
     lazy val deleteNonPersonalUserAttribute: OBPEndpoint = {
@@ -268,7 +263,7 @@ trait APIMethods510 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canGetNonPersonalUserAttributes)))
 
     lazy val getNonPersonalUserAttributes: OBPEndpoint = {
