@@ -28,7 +28,9 @@ object HydraUtil extends MdcLoggable{
   val clientSecretPost = "client_secret_post"
   
   val hydraTokenEndpointAuthMethod =
-    APIUtil.getPropsValue("hydra_token_endpoint_auth_method", "private_key_jwt")
+    APIUtil.getPropsValue("hydra_token_endpoint_auth_method", "private_key_jwt")  
+  val hydraSupportedTokenEndpointAuthMethods =
+    APIUtil.getPropsValue("hydra_supported_token_endpoint_auth_methods", "client_secret_basic,client_secret_post,private_key_jwt")
 
   lazy val hydraPublicUrl = APIUtil.getPropsValue("hydra_public_url")
     .openOrThrowException(s"If props $INTEGRATE_WITH_HYDRA is true, hydra_public_url value should not be blank")

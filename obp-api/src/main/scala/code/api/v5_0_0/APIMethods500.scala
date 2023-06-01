@@ -97,7 +97,7 @@ trait APIMethods500 {
       EmptyBody,
       bankJson500,
       List(UnknownError, BankNotFound),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 
     lazy val getBank : OBPEndpoint = {
@@ -138,7 +138,7 @@ trait APIMethods500 {
         InsufficientAuthorisationToCreateBank,
         UnknownError
       ),
-      List(apiTagBank, apiTagNewStyle),
+      List(apiTagBank),
       Some(List(canCreateBank))
     )
 
@@ -218,7 +218,7 @@ trait APIMethods500 {
         updateBankError,
         UnknownError
       ),
-      List(apiTagBank, apiTagNewStyle),
+      List(apiTagBank),
       Some(List(canCreateBank))
     )
 
@@ -299,7 +299,7 @@ trait APIMethods500 {
         AccountIdAlreadyExists,
         UnknownError
       ),
-      List(apiTagAccount,apiTagOnboarding, apiTagNewStyle),
+      List(apiTagAccount,apiTagOnboarding),
       Some(List(canCreateAccount))
     )
 
@@ -419,7 +419,7 @@ trait APIMethods500 {
         CreateUserAuthContextError,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canCreateUserAuthContext)))
     lazy val createUserAuthContext : OBPEndpoint = {
       case "users" :: userId ::"auth-context" :: Nil JsonPost  json -> _ => {
@@ -460,7 +460,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(canGetUserAuthContext :: Nil)
     )
     lazy val getUserAuthContexts : OBPEndpoint = {
@@ -500,7 +500,7 @@ trait APIMethods500 {
         CreateUserAuthContextError,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       None
     )
 
@@ -546,7 +546,7 @@ trait APIMethods500 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      apiTagUser :: apiTagNewStyle :: Nil)
+      apiTagUser  :: Nil)
 
     lazy val answerUserAuthContextUpdateChallenge : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "users" :: "current" ::"auth-context-updates"  :: authContextUpdateId :: "challenge" :: Nil JsonPost json -> _  => {
@@ -616,7 +616,7 @@ trait APIMethods500 {
         ConsentMaxTTL,
         UnknownError
         ),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
       )
   
     lazy val createConsentRequest : OBPEndpoint = {
@@ -670,7 +670,7 @@ trait APIMethods500 {
         ConsentRequestNotFound,
         UnknownError
         ),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
       )
 
     lazy val getConsentRequest : OBPEndpoint = {
@@ -716,7 +716,7 @@ trait APIMethods500 {
         $UserNotLoggedIn,
         UnknownError
         ),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle))
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
     lazy val getConsentByConsentRequestId: OBPEndpoint = {
       case "consumer" :: "consent-requests" :: consentRequestId :: "consents" :: Nil  JsonGet _  => {
         cc =>
@@ -766,7 +766,7 @@ trait APIMethods500 {
         InvalidConnectorResponse,
         UnknownError
         ),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil)
     staticResourceDocs += ResourceDoc(
       createConsentByConsentRequestIdSms,
       implementedInApiVersion,
@@ -797,7 +797,7 @@ trait APIMethods500 {
         InvalidConnectorResponse,
         UnknownError
         ),
-      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 ::apiTagNewStyle :: Nil)
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil)
     
     lazy val createConsentByConsentRequestIdEmail = createConsentByConsentRequestId
     lazy val createConsentByConsentRequestIdSms = createConsentByConsentRequestId
@@ -964,7 +964,7 @@ trait APIMethods500 {
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagATM, apiTagNewStyle)
+      List(apiTagATM)
     )
     lazy val headAtms : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonHead _ => {
@@ -1009,7 +1009,7 @@ trait APIMethods500 {
         CreateConsumerError,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagPerson, apiTagNewStyle),
+      List(apiTagCustomer, apiTagPerson),
       Some(List(canCreateCustomer,canCreateCustomerAtAnyBank))
     )
     lazy val createCustomer : OBPEndpoint = {
@@ -1080,7 +1080,7 @@ trait APIMethods500 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
+      List(apiTagCustomer, apiTagKyc),
       Some(List(canGetCustomerOverview))
     )
 
@@ -1129,7 +1129,7 @@ trait APIMethods500 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagKyc ,apiTagNewStyle),
+      List(apiTagCustomer, apiTagKyc),
       Some(List(canGetCustomerOverviewFlat))
     )
 
@@ -1212,7 +1212,7 @@ trait APIMethods500 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle)
+      List(apiTagCustomer)
     )
 
     lazy val getMyCustomersAtBank : OBPEndpoint = {
@@ -1255,7 +1255,7 @@ trait APIMethods500 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      List(apiTagCustomer, apiTagUser),
       Some(List(canGetCustomers))
     )
 
@@ -1290,7 +1290,7 @@ trait APIMethods500 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle),
+      List(apiTagCustomer, apiTagUser),
       Some(List(canGetCustomersMinimal))
     )
     lazy val getCustomersMinimalAtOneBank : OBPEndpoint = {
@@ -1340,7 +1340,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagProduct, apiTagNewStyle),
+      List(apiTagProduct),
       Some(List(canCreateProduct, canCreateProductAtAnyBank))
     )
     lazy val createProduct: OBPEndpoint = {
@@ -1406,7 +1406,7 @@ trait APIMethods500 {
         AllowedValuesAre,
         UnknownError
       ),
-      List(apiTagCard, apiTagNewStyle),
+      List(apiTagCard),
       Some(List(canCreateCardsForBank)))
     lazy val addCardForBank: OBPEndpoint = {
       case "management" :: "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
@@ -1523,7 +1523,7 @@ trait APIMethods500 {
         $BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagView, apiTagAccount, apiTagNewStyle))
+      List(apiTagView, apiTagAccount))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
@@ -1561,7 +1561,7 @@ trait APIMethods500 {
         UnknownError,
         "user does not have owner access"
       ),
-      List(apiTagSystemView, apiTagNewStyle),
+      List(apiTagSystemView),
       Some(List(canDeleteSystemView))
     )
 
@@ -1648,7 +1648,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagMetric, apiTagApi, apiTagNewStyle),
+      List(apiTagMetric, apiTagApi),
       Some(List(canGetMetricsAtOneBank)))
 
     lazy val getMetricsAtBank : OBPEndpoint = {
@@ -1684,7 +1684,7 @@ trait APIMethods500 {
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagSystemView, apiTagNewStyle),
+      List(apiTagSystemView),
       Some(List(canGetSystemView))
     )
 
@@ -1718,7 +1718,7 @@ trait APIMethods500 {
         $BankNotFound,
         UnknownError
       ),
-      List(apiTagSystemView, apiTagNewStyle),
+      List(apiTagSystemView),
       Some(List(canGetSystemView))
     )
 
@@ -1764,7 +1764,7 @@ trait APIMethods500 {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTagSystemView, apiTagNewStyle),
+      List(apiTagSystemView),
       Some(List(canCreateSystemView))
     )
 
@@ -1812,7 +1812,7 @@ trait APIMethods500 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagSystemView, apiTagNewStyle),
+      List(apiTagSystemView),
       Some(List(canUpdateSystemView))
     )
 
@@ -1912,7 +1912,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer),
       Some(List(canGetCustomerAccountLinks)))
     lazy val getCustomerAccountLinksByCustomerId : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "customer-account-links" :: Nil JsonGet _ => {
@@ -1950,7 +1950,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer),
       Some(List(canGetCustomerAccountLinks)))
     lazy val getCustomerAccountLinksByBankIdAccountId : OBPEndpoint = {
       case "banks" :: bankId :: "accounts" :: accountId :: "customer-account-links" :: Nil JsonGet _ => {
@@ -1984,7 +1984,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer),
       Some(List(canGetCustomerAccountLink)))
     lazy val getCustomerAccountLinkById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer-account-links" :: customerAccountLinkId :: Nil JsonGet _ => {
@@ -2018,7 +2018,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer),
       Some(List(canUpdateCustomerAccountLink)))
     lazy val updateCustomerAccountLinkById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer-account-links" :: customerAccountLinkId :: Nil JsonPut json -> _ => {
@@ -2057,7 +2057,7 @@ trait APIMethods500 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle),
+      List(apiTagCustomer),
       Some(List(canDeleteCustomerAccountLink)))
     lazy val deleteCustomerAccountLinkById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "customer-account-links" :: customerAccountLinkId :: Nil JsonDelete _ => {
@@ -2087,7 +2087,7 @@ trait APIMethods500 {
       EmptyBody,
       adapterInfoJsonV500,
       List($UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      List(apiTagApi, apiTagNewStyle),
+      List(apiTagApi),
       Some(List(canGetAdapterInfo))
     )
     lazy val getAdapterInfo: OBPEndpoint = {

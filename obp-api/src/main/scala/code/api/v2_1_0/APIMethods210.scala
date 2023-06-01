@@ -139,7 +139,7 @@ trait APIMethods210 {
       emptyObjectJson,
       transactionRequestTypesJSON,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagTransactionRequest, apiTagBank, apiTagNewStyle))
+      List(apiTagTransactionRequest, apiTagBank))
 
 
     lazy val getTransactionRequestTypesSupportedByBank: OBPEndpoint = {
@@ -743,7 +743,7 @@ trait APIMethods210 {
       emptyObjectJson,
       availableRolesJSON,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagRole, apiTagNewStyle))
+      List(apiTagRole))
 
     lazy val getRoles: OBPEndpoint = {
       case "roles" :: Nil JsonGet _ => {
@@ -781,7 +781,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtOneBank, canGetEntitlementsForAnyUserAtAnyBank)))
 
 
@@ -1446,7 +1446,7 @@ trait APIMethods210 {
         CustomerNotFoundByCustomerId,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagNewStyle)
+      List(apiTagCustomer)
     )
 
     lazy val getCustomersForCurrentUserAtBank : OBPEndpoint = {
@@ -1668,7 +1668,7 @@ trait APIMethods210 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagMetric, apiTagApi, apiTagNewStyle),
+      List(apiTagMetric, apiTagApi),
       Some(List(canReadMetrics)))
 
     lazy val getMetrics : OBPEndpoint = {

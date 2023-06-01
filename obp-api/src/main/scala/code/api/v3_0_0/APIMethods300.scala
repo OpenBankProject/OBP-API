@@ -100,7 +100,7 @@ trait APIMethods300 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagView, apiTagAccount, apiTagNewStyle))
+      List(apiTagView, apiTagAccount))
 
     lazy val getViewsForBankAccount : OBPEndpoint = {
       //get the available views on an bank account
@@ -156,7 +156,7 @@ trait APIMethods300 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagView, apiTagAccount, apiTagNewStyle))
+      List(apiTagView, apiTagAccount))
 
     lazy val createViewForBankAccount : OBPEndpoint = {
       //creates a view on an bank account
@@ -201,7 +201,7 @@ trait APIMethods300 {
       EmptyBody,
       viewsJsonV300,
       List(UserNotLoggedIn,BankNotFound, AccountNotFound,UnknownError),
-      List(apiTagView, apiTagAccount, apiTagUser, apiTagNewStyle))
+      List(apiTagView, apiTagAccount, apiTagUser))
   
     lazy val getPermissionForUserForBankAccount : OBPEndpoint = {
       //get access for specific user
@@ -241,7 +241,7 @@ trait APIMethods300 {
         BankAccountNotFound,
         UnknownError
       ),
-      List(apiTagView, apiTagAccount, apiTagNewStyle)
+      List(apiTagView, apiTagAccount)
     )
 
     lazy val updateViewForBankAccount : OBPEndpoint = {
@@ -305,7 +305,7 @@ trait APIMethods300 {
       EmptyBody,
       moderatedCoreAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      apiTagAccount ::  apiTagNewStyle :: Nil)
+      apiTagAccount  :: Nil)
     lazy val getPrivateAccountById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
         cc =>
@@ -348,7 +348,7 @@ trait APIMethods300 {
       EmptyBody,
       moderatedCoreAccountJsonV300,
       List(BankNotFound,AccountNotFound,ViewNotFound, UnknownError),
-      apiTagAccountPublic :: apiTagAccount ::  apiTagNewStyle :: Nil)
+      apiTagAccountPublic :: apiTagAccount  :: Nil)
 
     lazy val getPublicAccountById : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "public" :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet req => {
@@ -390,7 +390,7 @@ trait APIMethods300 {
       EmptyBody,
       newModeratedCoreAccountJsonV300,
       List(BankAccountNotFound,UnknownError),
-      apiTagAccount :: apiTagPSD2AIS ::  apiTagNewStyle :: apiTagPsd2 :: Nil)
+      apiTagAccount :: apiTagPSD2AIS  :: apiTagPsd2 :: Nil)
     lazy val getCoreAccountById : OBPEndpoint = {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet req => {
@@ -425,7 +425,7 @@ trait APIMethods300 {
       EmptyBody,
       coreAccountsJsonV300,
       List(UserNotLoggedIn,UnknownError),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2)
     )
 
 
@@ -482,7 +482,7 @@ trait APIMethods300 {
       EmptyBody,
       moderatedCoreAccountsJsonV300,
       List(UserNotLoggedIn,AccountFirehoseNotAllowedOnThisInstance,UnknownError),
-      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData, apiTagNewStyle),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
       Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
     )
 
@@ -571,7 +571,7 @@ trait APIMethods300 {
       EmptyBody,
       transactionsJsonV300,
       List(UserNotLoggedIn, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
-      List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData, apiTagNewStyle),
+      List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData),
       Some(List(canUseAccountFirehoseAtAnyBank, ApiRole.canUseAccountFirehose))
     )
 
@@ -645,7 +645,7 @@ trait APIMethods300 {
         ViewNotFound,
         UnknownError
       ),
-      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagPsd2, apiTagNewStyle)
+      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagPsd2)
     )
 
     lazy val getCoreTransactionsForBankAccount : OBPEndpoint = {
@@ -703,7 +703,7 @@ trait APIMethods300 {
         ViewNotFound,
         UnknownError
       ),
-      List(apiTagTransaction, apiTagAccount, apiTagNewStyle)
+      List(apiTagTransaction, apiTagAccount)
     )
 
     lazy val getTransactionsForBankAccount: OBPEndpoint = {
@@ -772,7 +772,7 @@ trait APIMethods300 {
       elasticSearchJsonV300,
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      List(apiTagSearchWarehouse, apiTagNewStyle),
+      List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouse)))
     val esw = new elasticsearchWarehouse
     lazy val dataWarehouseSearch: OBPEndpoint = {
@@ -851,7 +851,7 @@ trait APIMethods300 {
       elasticSearchJsonV300,
       emptyObjectJson, //TODO what is output here?
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      List(apiTagSearchWarehouse, apiTagNewStyle),
+      List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouseStatistics))
     )
     lazy val dataWarehouseStatistics: OBPEndpoint = {
@@ -906,7 +906,7 @@ trait APIMethods300 {
       EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canGetAnyUser)))
 
 
@@ -939,7 +939,7 @@ trait APIMethods300 {
       EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundById, UnknownError),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canGetAnyUser)))
 
 
@@ -976,7 +976,7 @@ trait APIMethods300 {
       EmptyBody,
       usersJsonV200,
       List(UserNotLoggedIn, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canGetAnyUser)))
 
 
@@ -1012,7 +1012,7 @@ trait APIMethods300 {
       EmptyBody,
       adapterInfoJsonV300,
       List(UserNotLoggedIn, UserHasMissingRoles, UnknownError),
-      List(apiTagApi, apiTagNewStyle),
+      List(apiTagApi),
       Some(List(canGetAdapterInfoAtOneBank))
     )
 
@@ -1211,7 +1211,7 @@ trait APIMethods300 {
         BranchNotFoundByBranchId,
         UnknownError
       ),
-      List(apiTagBranch, apiTagBank, apiTagNewStyle)
+      List(apiTagBranch, apiTagBank)
     )
     lazy val getBranch: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
@@ -1272,7 +1272,7 @@ trait APIMethods300 {
         BankNotFound,
         BranchesNotFoundLicense,
         UnknownError),
-      List(apiTagBranch, apiTagBank, apiTagNewStyle)
+      List(apiTagBranch, apiTagBank)
     )
 
     private[this] val branchCityPredicate = (city: Box[String], branchCity: String) => city.isEmpty || city.openOrThrowException("city should be have value!") == branchCity
@@ -1384,7 +1384,7 @@ trait APIMethods300 {
       EmptyBody,
       atmJsonV300,
       List(UserNotLoggedIn, BankNotFound, AtmNotFoundByAtmId, UnknownError),
-      List(apiTagATM, apiTagNewStyle)
+      List(apiTagATM)
     )
     lazy val getAtm: OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet req => {
@@ -1429,7 +1429,7 @@ trait APIMethods300 {
         BankNotFound,
         "No ATMs available. License may not be set.",
         UnknownError),
-      List(apiTagATM, apiTagNewStyle)
+      List(apiTagATM)
     )
     lazy val getAtms : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet req => {
@@ -1507,7 +1507,7 @@ trait APIMethods300 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagUser, apiTagNewStyle),
+      List(apiTagUser),
       Some(List(canGetAnyUser)))
 
     lazy val getUsers: OBPEndpoint = {
@@ -1549,7 +1549,7 @@ trait APIMethods300 {
         UserCustomerLinksNotFoundForUser,
         UnknownError
       ),
-      List(apiTagCustomer, apiTagUser, apiTagNewStyle)
+      List(apiTagCustomer, apiTagUser)
     )
 
 
@@ -1593,7 +1593,7 @@ trait APIMethods300 {
       EmptyBody,
       userJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagUser, apiTagNewStyle))
+      List(apiTagUser))
 
     lazy val getCurrentUser: OBPEndpoint = {
       case "users" :: "current" :: Nil JsonGet _ => {
@@ -1627,7 +1627,7 @@ trait APIMethods300 {
       EmptyBody,
       coreAccountsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      List(apiTagAccount,apiTagPSD2AIS, apiTagNewStyle, apiTagPsd2)
+      List(apiTagAccount,apiTagPSD2AIS, apiTagPsd2)
     )
   
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -1666,7 +1666,7 @@ trait APIMethods300 {
       EmptyBody,
       accountsIdsJsonV300,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2)
     )
   
     lazy val getPrivateAccountIdsbyBankId : OBPEndpoint = {
@@ -1707,7 +1707,7 @@ trait APIMethods300 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
+      List(apiTagCounterparty, apiTagAccount))
   
     lazy val getOtherAccountsForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: Nil JsonGet req => {
@@ -1743,7 +1743,7 @@ trait APIMethods300 {
         ViewNotFound,
         InvalidConnectorResponse,
         UnknownError),
-      List(apiTagCounterparty, apiTagAccount, apiTagNewStyle))
+      List(apiTagCounterparty, apiTagAccount))
   
     lazy val getOtherAccountByIdForBankAccount : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: Nil JsonGet _ => {
@@ -1796,7 +1796,7 @@ trait APIMethods300 {
         EntitlementRequestCannotBeAdded,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle))
+      List(apiTagRole, apiTagEntitlement, apiTagUser))
 
     lazy val addEntitlementRequest : OBPEndpoint = {
       case "entitlement-requests" :: Nil JsonPost json -> _ => {
@@ -1847,7 +1847,7 @@ trait APIMethods300 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementRequestsAtAnyBank)))
 
     lazy val getAllEntitlementRequests : OBPEndpoint = {
@@ -1886,7 +1886,7 @@ trait APIMethods300 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementRequestsAtAnyBank)))
 
     lazy val getEntitlementRequests : OBPEndpoint = {
@@ -1925,7 +1925,7 @@ trait APIMethods300 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
       None)
 
     lazy val getEntitlementRequestsForCurrentUser : OBPEndpoint = {
@@ -1960,7 +1960,7 @@ trait APIMethods300 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canDeleteEntitlementRequestsAtAnyBank)))
 
     lazy val deleteEntitlementRequest : OBPEndpoint = {
@@ -2000,7 +2000,7 @@ trait APIMethods300 {
         InvalidConnectorResponse,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
       None)
 
     lazy val getEntitlementsForCurrentUser : OBPEndpoint = {
@@ -2031,7 +2031,7 @@ trait APIMethods300 {
       EmptyBody,
       glossaryItemsJsonV300,
       List(UnknownError),
-      apiTagDocumentation :: apiTagNewStyle :: Nil)
+      apiTagDocumentation  :: Nil)
 
     lazy val getApiGlossary : OBPEndpoint = {
       case "api" :: "glossary" ::  Nil JsonGet req => {
@@ -2073,7 +2073,7 @@ trait APIMethods300 {
       EmptyBody,
       coreAccountsHeldJsonV300,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2, apiTagNewStyle)
+      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2)
     )
   
     lazy val getAccountsHeld : OBPEndpoint = {
@@ -2153,7 +2153,7 @@ trait APIMethods300 {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTagMetric, apiTagAggregateMetrics, apiTagNewStyle),
+      List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)))
 
       lazy val getAggregateMetrics : OBPEndpoint = {
@@ -2203,7 +2203,7 @@ trait APIMethods300 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      List(apiTagScope, apiTagConsumer, apiTagNewStyle),
+      List(apiTagScope, apiTagConsumer),
       Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)))
   
     lazy val addScope : OBPEndpoint = {
@@ -2274,7 +2274,7 @@ trait APIMethods300 {
       EmptyBody,
       EmptyBody,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
+      List(apiTagScope, apiTagConsumer))
 
     lazy val deleteScope: OBPEndpoint = {
       case "consumers" :: consumerId :: "scope" :: scopeId :: Nil JsonDelete _ => {
@@ -2312,7 +2312,7 @@ trait APIMethods300 {
       EmptyBody,
       scopeJsons,
       List(UserNotLoggedIn, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagConsumer, apiTagNewStyle))
+      List(apiTagScope, apiTagConsumer))
   
     lazy val getScopes: OBPEndpoint = {
       case "consumers" :: consumerId :: "scopes" :: Nil JsonGet _ => {
@@ -2346,7 +2346,7 @@ trait APIMethods300 {
       EmptyBody,
       banksJSON,
       List(UnknownError),
-      apiTagBank :: apiTagPSD2AIS:: apiTagPsd2 :: apiTagNewStyle :: Nil)
+      apiTagBank :: apiTagPSD2AIS:: apiTagPsd2  :: Nil)
 
     //The Json Body is totally the same as V121, just use new style endpoint.
     lazy val getBanks : OBPEndpoint = {
@@ -2376,7 +2376,7 @@ trait APIMethods300 {
       EmptyBody,
       bankJson400,
       List(UserNotLoggedIn, UnknownError, BankNotFound),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagNewStyle :: Nil
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2  :: Nil
     )
 
     lazy val bankById : OBPEndpoint = {

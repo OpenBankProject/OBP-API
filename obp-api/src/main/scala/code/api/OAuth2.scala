@@ -115,7 +115,8 @@ object OAuth2Login extends RestHelper with MdcLoggable {
     private def applyAccessTokenRules(value: String, cc: CallContext): (Box[User], Some[CallContext]) = {
       // In case of Hydra issued access tokens are not self-encoded/self-contained like JWT tokens are.
       // It implies the access token can be revoked at any time.
-      val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null);
+      val introspectOAuth2Token: OAuth2TokenIntrospection = hydraAdmin.introspectOAuth2Token(value, null)
+      val hydraClient = hydraAdmin.getOAuth2Client(introspectOAuth2Token.getClientId())
       var consumer: Box[Consumer] = consumers.vend.getConsumerByConsumerKey(introspectOAuth2Token.getClientId)
       logger.debug("introspectOAuth2Token.getIss: " + introspectOAuth2Token.getIss)
       logger.debug("introspectOAuth2Token.getActive: " + introspectOAuth2Token.getActive)
@@ -127,6 +128,11 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       // The access token can be disabled at any time due to fact it is NOT self-encoded/self-contained.
       if (!introspectOAuth2Token.getActive) {
         return (Failure(Oauth2IJwtCannotBeVerified), Some(cc.copy(consumer = Failure(Oauth2IJwtCannotBeVerified))))
+      }
+      if (!hydraSupportedTokenEndpointAuthMethods.contains(hydraClient.getTokenEndpointAuthMethod())) {
+        logger.debug("hydraClient.getTokenEndpointAuthMethod(): " + hydraClient.getTokenEndpointAuthMethod().toLowerCase())
+        val errorMessage = Oauth2TokenEndpointAuthMethodForbidden + hydraClient.getTokenEndpointAuthMethod()
+        return (Failure(errorMessage), Some(cc.copy(consumer = Failure(errorMessage))))
       }
       
       // check access token binding with client certificate

@@ -263,7 +263,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData, apiTagNewStyle)
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
 
     def processAccounts(privateViewsUserCanAccessAtOneBank: List[View], availablePrivateAccounts: List[BankAccount]) = {
@@ -308,7 +308,7 @@ trait APIMethods200 {
       emptyObjectJson,
       coreAccountsJSON,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagNewStyle, apiTagNewStyle))
+      List(apiTagAccount, apiTagPrivateData, apiTagPsd2))
 
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, createAccount, "new")
     apiRelations += ApiRelation(corePrivateAccountsAtOneBank, corePrivateAccountsAtOneBank, "self")
@@ -380,7 +380,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UserNotLoggedIn, BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagNewStyle, apiTagPsd2)
+      List(apiTagAccount, apiTagPsd2)
     )
 
     lazy val privateAccountsAtOneBank : OBPEndpoint = {
@@ -418,7 +418,7 @@ trait APIMethods200 {
       emptyObjectJson,
       basicAccountsJSON,
       List(UnknownError),
-      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData, apiTagNewStyle))
+      List(apiTagAccountPublic, apiTagAccount, apiTagPublicData))
 
     lazy val publicAccountsAtOneBank : OBPEndpoint = {
       //get public accounts for a single bank
@@ -449,7 +449,7 @@ trait APIMethods200 {
       emptyObjectJson,
       kycDocumentsJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+      List(apiTagKyc, apiTagCustomer),
       Some(List(canGetAnyKycDocuments))
     )
 
@@ -485,7 +485,7 @@ trait APIMethods200 {
       emptyObjectJson,
       kycMediasJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-    List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+    List(apiTagKyc, apiTagCustomer),
     Some(List(canGetAnyKycMedia)))
 
     lazy val getKycMedia  : OBPEndpoint = {
@@ -517,7 +517,7 @@ trait APIMethods200 {
       emptyObjectJson,
       kycChecksJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+      List(apiTagKyc, apiTagCustomer),
       Some(List(canGetAnyKycChecks))
     )
 
@@ -549,7 +549,7 @@ trait APIMethods200 {
       emptyObjectJson,
       kycStatusesJSON,
       List(UserNotLoggedIn, CustomerNotFoundByCustomerId, UnknownError),
-      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+      List(apiTagKyc, apiTagCustomer),
       Some(List(canGetAnyKycStatuses))
     )
 
@@ -616,7 +616,7 @@ trait APIMethods200 {
       postKycDocumentJSON,
       kycDocumentJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
-      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+      List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycDocument))
     )
 
@@ -667,7 +667,7 @@ trait APIMethods200 {
       postKycMediaJSON,
       kycMediaJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
-      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+      List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycMedia))
     )
 
@@ -716,7 +716,7 @@ trait APIMethods200 {
       postKycCheckJSON,
       kycCheckJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
-      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+      List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycCheck))
     )
 
@@ -766,7 +766,7 @@ trait APIMethods200 {
       postKycStatusJSON,
       kycStatusJSON,
       List(UserNotLoggedIn, InvalidJsonFormat, InvalidBankIdFormat,UnknownError, BankNotFound ,ServerAddDataError ,CustomerNotFoundByCustomerId),
-      List(apiTagKyc, apiTagCustomer, apiTagNewStyle),
+      List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycStatus))
     )
 
@@ -1000,7 +1000,7 @@ trait APIMethods200 {
       emptyObjectJson,
       permissionsJSON,
       List(UserNotLoggedIn, BankNotFound, AccountNotFound ,UnknownError),
-      List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement, apiTagNewStyle)
+      List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement)
     )
 
     lazy val getPermissionsForBankAccount : OBPEndpoint = {
@@ -1174,7 +1174,7 @@ trait APIMethods200 {
       emptyObjectJson,
       transactionTypesJsonV200,
       List(BankNotFound, UnknownError),
-      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2, apiTagNewStyle)
+      List(apiTagBank, apiTagPSD2AIS, apiTagPsd2)
     )
 
     lazy val getTransactionTypes : OBPEndpoint = {
@@ -1939,7 +1939,7 @@ trait APIMethods200 {
         EntitlementAlreadyExists,
         UnknownError
       ),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagNewStyle),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canCreateEntitlementAtOneBank,canCreateEntitlementAtAnyBank)))
 
     lazy val addEntitlement : OBPEndpoint = {
@@ -2039,7 +2039,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       List(UserNotLoggedIn, UserHasMissingRoles, EntitlementNotFound, UnknownError),
-      List(apiTagRole, apiTagUser, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagRole, apiTagUser, apiTagEntitlement))
 
 
     lazy val deleteEntitlement: OBPEndpoint = {
@@ -2077,7 +2077,7 @@ trait APIMethods200 {
       emptyObjectJson,
       entitlementJSONs,
       List(UserNotLoggedIn, UnknownError),
-      List(apiTagRole, apiTagEntitlement, apiTagNewStyle))
+      List(apiTagRole, apiTagEntitlement))
 
 
     lazy val getAllEntitlements: OBPEndpoint = {

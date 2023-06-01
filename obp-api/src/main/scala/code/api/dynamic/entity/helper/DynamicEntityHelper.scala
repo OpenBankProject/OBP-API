@@ -189,7 +189,7 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+      List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
       createdByBankId= dynamicEntityInfo.bankId
     )
@@ -217,7 +217,7 @@ object DynamicEntityHelper {
         UserHasMissingRoles,
         UnknownError
       ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+      List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
       createdByBankId= dynamicEntityInfo.bankId
     )
@@ -247,7 +247,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+      List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole)),
       createdByBankId= dynamicEntityInfo.bankId
       )
@@ -277,7 +277,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+      List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
       createdByBankId= dynamicEntityInfo.bankId
     )
@@ -304,7 +304,7 @@ object DynamicEntityHelper {
         InvalidJsonFormat,
         UnknownError
       ),
-      List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+      List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole)),
       createdByBankId= dynamicEntityInfo.bankId
     )
@@ -336,7 +336,7 @@ object DynamicEntityHelper {
           UserNotLoggedIn,
           UnknownError
         ),
-        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         createdByBankId= dynamicEntityInfo.bankId
       )
       
@@ -362,7 +362,7 @@ object DynamicEntityHelper {
           UserNotLoggedIn,
           UnknownError
         ),
-        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         createdByBankId= dynamicEntityInfo.bankId
       )
   
@@ -390,7 +390,7 @@ object DynamicEntityHelper {
           InvalidJsonFormat,
           UnknownError
         ),
-        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         createdByBankId= dynamicEntityInfo.bankId
         )
   
@@ -418,7 +418,7 @@ object DynamicEntityHelper {
           InvalidJsonFormat,
           UnknownError
         ),
-        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         Some(List(dynamicEntityInfo.canUpdateRole)),
         createdByBankId= dynamicEntityInfo.bankId
       )
@@ -443,7 +443,7 @@ object DynamicEntityHelper {
           UserNotLoggedIn,
           UnknownError
         ),
-        List(apiTag, apiTagNewStyle, apiTagDynamicEntity, apiTagDynamic),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
         createdByBankId= dynamicEntityInfo.bankId
       )
     }

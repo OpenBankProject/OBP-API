@@ -220,6 +220,7 @@ object ErrorMessages {
   val Oauth2CannotMatchIssuerAndJwksUriException = "OBP-20208: Cannot match the issuer and JWKS URI at this server instance. "
   val Oauth2TokenHaveNoConsumer = "OBP-20209: The token have no linked consumer. "
   val Oauth2TokenMatchCertificateFail = "OBP-20210: The token is linked with a different client certificate. "
+  val Oauth2TokenEndpointAuthMethodForbidden = "OBP-20213: The Token Endpoint Auth Method is not supported at this instance: "
 
   val OneTimePasswordExpired = "OBP-20211: The One Time Password (OTP) has expired. "
   

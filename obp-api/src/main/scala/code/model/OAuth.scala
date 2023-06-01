@@ -262,32 +262,24 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         val updatedConsumer = c.saveMe()
 
         // In case we use Hydra ORY as Identity Provider we update corresponding client at Hydra side a well
-        if(integrateWithHydra && Option(originIsActive) != isActive && isActive.isDefined) {
+        if(integrateWithHydra && isActive.isDefined) {
           val clientId = c.key.get
           val existsOAuth2Client = Box.tryo(hydraAdmin.getOAuth2Client(clientId))
             .filter(null !=)
-          // Please note: 
-          // Hydra's update client endpoint has a bug. Cannot update clients, so we need to delete and create a new one.
-          // If a consumer is disabled we delete a corresponding client at Hydra side. 
-          // If the consumer is enabled we delete and create our corresponding client at Hydra side.
-          if (isActive == Some(false)) {
+          // TODO Involve Hydra ORY version with working update mechanism
+          if (isActive == Some(false) && existsOAuth2Client.isDefined) {
               existsOAuth2Client
               .map { oAuth2Client =>
-                  hydraAdmin.deleteOAuth2Client(clientId)
-                  // set grantTypes to empty list in order to disable the client
-                  oAuth2Client.setGrantTypes(Collections.emptyList())
-                  hydraAdmin.createOAuth2Client(oAuth2Client)
+                oAuth2Client.setClientSecretExpiresAt(System.currentTimeMillis())
+                hydraAdmin.updateOAuth2Client(clientId, oAuth2Client)
               }
-          } else if(isActive == Some(true) && existsOAuth2Client.isDefined) {
+          }
+          if(isActive == Some(true) && existsOAuth2Client.isDefined) {
             existsOAuth2Client
               .map { oAuth2Client =>
-                hydraAdmin.deleteOAuth2Client(clientId)
-                // set grantTypes to correct value in order to enable the client
-                oAuth2Client.setGrantTypes(HydraUtil.grantTypes)
-                hydraAdmin.createOAuth2Client(oAuth2Client)
+                oAuth2Client.setClientSecretExpiresAt(0L)
+                hydraAdmin.updateOAuth2Client(clientId, oAuth2Client)
               }
-          } else if(isActive == Some(true)) {
-            createHydraClient(updatedConsumer)
           }
         }
 

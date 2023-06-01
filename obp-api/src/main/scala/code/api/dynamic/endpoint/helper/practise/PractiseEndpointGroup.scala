@@ -4,7 +4,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.requestRootJsonClass
 import code.api.dynamic.endpoint.helper.EndpointGroup
 import code.api.util.APIUtil
 import code.api.util.APIUtil.{ResourceDoc, StringBody}
-import code.api.util.ApiTag.{apiTagDynamicResourceDoc, apiTagNewStyle}
+import code.api.util.ApiTag.{apiTagDynamicResourceDoc}
 import code.api.util.ErrorMessages.UnknownError
 import com.openbankproject.commons.util.ApiVersion
 
@@ -40,5 +40,5 @@ object PractiseEndpointGroup extends EndpointGroup{
     List(
       UnknownError
     ),
-    List(apiTagDynamicResourceDoc, apiTagNewStyle)) :: Nil
+    List(apiTagDynamicResourceDoc)) :: Nil
 }

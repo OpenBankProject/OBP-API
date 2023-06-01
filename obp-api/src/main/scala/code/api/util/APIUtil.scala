@@ -48,7 +48,7 @@ import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
-import code.api.util.ApiTag.{ResourceDocTag, apiTagBank, apiTagNewStyle}
+import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
 import code.api.v1_2.ErrorMessage
@@ -488,7 +488,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // with a 200 status, only if it has been last modified after the given date. 
   // If the resource has not been modified since, the response is a 304 without any body; 
   // the Last-Modified response header of a previous request contains the date of last modification
-  private def checkIfModifiedSinceHeader(cc: Option[CallContext], httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
+  private def checkIfModifiedSinceHeader(cc: Option[CallContext], httpVerb: String, httpCode: Int, httpBody: Box[String], headerValue: String): Int = {
     def headerValueToMillis(): Long = {
       var epochTime = 0L
       // Create a DateFormat and set the timezone to GMT.
@@ -520,6 +520,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           .save) match {
           case Full(value) => value
           case other => 
+            logger.debug(s"checkIfModifiedSinceHeader.asyncCreate($cacheKey, $hash)")
             logger.debug(other)
             false
         }
@@ -542,7 +543,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val cacheKey = s"""$compositeKey::${hashedRequestPayload}"""
     val eTag = HashUtil.Sha256Hash(s"${url}${httpBody.getOrElse("")}")
     
-    if(httpCode == 200) { // If-Modified-Since can only be used with a GET or HEAD
+    if(httpVerb.toUpperCase() == "GET" || httpVerb.toUpperCase() == "HEAD") { // If-Modified-Since can only be used with a GET or HEAD
       val validETag = MappedETag.find(By(MappedETag.ETagResource, cacheKey)) match {
         case Full(row) if row.lastUpdatedMSSinceEpoch < headerValueToMillis() => 
           val modified = row.eTagValue != eTag 
@@ -562,10 +563,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         304 
       else 
         httpCode
-    } else httpCode
+    } else {
+      httpCode
+    }
   }
   
-  private def checkConditionalRequest(cc: Option[CallContext], httpCode: Int, httpBody: Box[String]) = {
+  private def checkConditionalRequest(cc: Option[CallContext], httpVerb: String, httpCode: Int, httpBody: Box[String]) = {
     val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
     requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
       case Some(value) => // Handle the If-None-Match HTTP request header
@@ -575,7 +578,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         // The most common use case is to update a cached entity that has no associated ETag
         requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match { 
           case Some(value) => // Handle the If-Modified-Since HTTP request header
-            checkIfModifiedSinceHeader(cc, httpCode, httpBody, value.values.mkString(""))
+            checkIfModifiedSinceHeader(cc, httpVerb, httpCode, httpBody, value.values.mkString(""))
           case None => 
             httpCode
         }
@@ -768,7 +771,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val httpBody = Full(JsonAST.compactRender(jsonValue))
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
-        val code = checkConditionalRequest(callContext, c.httpCode.get, httpBody)
+        val code = checkConditionalRequest(callContext, c.verb, c.httpCode.get, httpBody)
         if(code == 304)
           JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
         else
@@ -2737,9 +2740,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     // Endpoint Operation Ids
     val enabledEndpointOperationIds = getEnabledEndpointOperationIds
-
-    val onlyNewStyle = APIUtil.getPropsAsBoolValue("new_style_only", false)
-
+    
 
     val routes = for (
       item <- resourceDocs
@@ -2750,8 +2751,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         (enabledEndpointOperationIds.contains(item.operationId) || enabledEndpointOperationIds.isEmpty) &&
         // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
         // i.e. this function may receive more Resource Docs than version endpoints
-        endpoints.exists(_ == item.partialFunction) &&
-        (item.tags.exists(_ == apiTagNewStyle) || !onlyNewStyle)
+        endpoints.exists(_ == item.partialFunction)
     )
       yield item
     routes
@@ -2764,14 +2764,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       Full(t)
     } catch {
       case m: ParseException =>
-        logger.error("String-->Jvalue parse error"+in,m)
-        Failure("String-->Jvalue parse error"+in+m.getMessage)
+        logger.error("String --> JValue parse error"+in,m)
+        Failure("String --> JValue parse error"+in+m.getMessage)
       case m: MappingException =>
-        logger.error("JValue-->CaseClass extract error"+in,m)
-        Failure("JValue-->CaseClass extract error"+in+m.getMessage)
+        logger.error("JValue --> CaseClass extract error"+in,m)
+        Failure("JValue --> CaseClass extract error"+in+m.getMessage)
       case m: Throwable =>
-        logger.error("extractToCaseClass unknow error"+in,m)
-        Failure("extractToCaseClass unknow error"+in+m.getMessage)
+        logger.error("extractToCaseClass unknown error"+in,m)
+        Failure("extractToCaseClass unknown error"+in+m.getMessage)
     }
   }
 
