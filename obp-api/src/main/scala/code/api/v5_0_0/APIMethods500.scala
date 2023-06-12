@@ -512,7 +512,7 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate, cc=callContext) {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
             }
-            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
+            _ <- Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
