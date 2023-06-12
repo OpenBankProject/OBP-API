@@ -444,6 +444,7 @@ object ErrorMessages {
   val GetCustomerAccountLinksError = "OBP-30226: Could not get the customer account links."
   val UpdateCustomerAccountLinkError = "OBP-30227: Could not update the customer account link."
   val DeleteCustomerAccountLinkError = "OBP-30228: Could not delete the customer account link."
+  val GetConsentImplicitSCAError = "OBP-30229: Could not get the consent implicit SCA."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
