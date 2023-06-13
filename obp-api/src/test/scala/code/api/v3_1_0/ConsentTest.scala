@@ -64,6 +64,10 @@ class ConsentTest extends V310ServerSetup {
     .copy(entitlements=entitlements)
     .copy(consumer_id=Some(testConsumer.consumerId.get))
     .copy(views=views)
+  lazy val postConsentImplicitJsonV310 = SwaggerDefinitionsJSON.postConsentImplicitJsonV310
+    .copy(entitlements=entitlements)
+    .copy(consumer_id=Some(testConsumer.consumerId.get))
+    .copy(views=views)
 
   val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
   val timeToLive: Option[Long] = Some(maxTimeToLive + 10)
@@ -74,6 +78,15 @@ class ConsentTest extends V310ServerSetup {
       When("We make a request")
       val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "EMAIL" ).POST
       val response400 = makePostRequest(request400, write(postConsentEmailJsonV310))
+      Then("We should get a 401")
+      response400.code should equal(401)
+      response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
+    }
+    
+    scenario("We will call the endpoint without user credentials-IMPLICIT", ApiEndpoint1, VersionOfApi) {
+      When("We make a request")
+      val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "IMPLICIT" ).POST
+      val response400 = makePostRequest(request400, write(postConsentImplicitJsonV310))
       Then("We should get a 401")
       response400.code should equal(401)
       response400.body.extract[ErrorMessage].message should equal(UserNotLoggedIn)
@@ -94,6 +107,14 @@ class ConsentTest extends V310ServerSetup {
 
     scenario("We will call the endpoint with user credentials and deprecated header name", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
       wholeFunctionality(RequestHeader.`Consent-Id`)
+    }
+
+    scenario("We will call the endpoint with user credentials-Implicit", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
+      wholeFunctionalityImplicit(RequestHeader.`Consent-JWT`)
+    }
+
+    scenario("We will call the endpoint with user credentials and deprecated header name-Implicit", ApiEndpoint1, ApiEndpoint3, VersionOfApi, VersionOfApi2) {
+      wholeFunctionalityImplicit(RequestHeader.`Consent-Id`)
     }
   }
 
@@ -119,6 +140,85 @@ class ConsentTest extends V310ServerSetup {
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
     // Create a consent as the user1. The consent is in status INITIATED
     val secondResponse400 = makePostRequest(request400, write(postConsentEmailJsonV310))
+    Then("We should get a 201")
+    secondResponse400.code should equal(201)
+
+    val consentId = secondResponse400.body.extract[ConsentJsonV310].consent_id
+    val jwt = secondResponse400.body.extract[ConsentJsonV310].jwt
+    val header = List((nameOfRequestHeader, jwt))
+
+    // Make a request with the consent which is NOT in status ACCEPTED
+    val requestGetUserByUserId400 = (v3_1_0_Request / "users" / "current").GET
+    val responseGetUserByUserId400 = makeGetRequest(requestGetUserByUserId400, header)
+    APIUtil.getPropsAsBoolValue(nameOfProperty = "consents.allowed", defaultValue = false) match {
+      case true =>
+        // Due to the wrong status of the consent the request must fail
+        responseGetUserByUserId400.body.extract[ErrorMessage].message should include(ConsentStatusIssue)
+
+        // Answer security challenge i.e. SCA
+        val answerConsentChallengeRequest = (v3_1_0_Request / "banks" / bankId / "consents" / consentId / "challenge").POST <@ (user1)
+        val challenge = Consent.challengeAnswerAtTestEnvironment
+        val post = PostConsentChallengeJsonV310(answer = challenge)
+        val response400 = makePostRequest(answerConsentChallengeRequest, write(post))
+        Then("We should get a 201")
+        response400.code should equal(201)
+
+        // Make a request WITHOUT the request header "Consumer-Key: SOME_VALUE"
+        // Due to missing value the request must fail
+        makeGetRequest(requestGetUserByUserId400, header)
+          .body.extract[ErrorMessage].message should include(ConsumerKeyHeaderMissing)
+
+        // Make a request WITH the request header "Consumer-Key: NON_EXISTING_VALUE"
+        // Due to non existing value the request must fail
+        val headerConsumerKey = List((RequestHeader.`Consumer-Key`, "NON_EXISTING_VALUE"))
+        makeGetRequest(requestGetUserByUserId400, header ::: headerConsumerKey)
+          .body.extract[ErrorMessage].message should include(ConsentDoesNotMatchConsumer)
+
+        // Make a request WITH the request header "Consumer-Key: EXISTING_VALUE"
+        val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
+        val response = makeGetRequest((v3_1_0_Request / "users" / "current").GET, header ::: validHeaderConsumerKey)
+        val user =   response.body.extract[UserJsonV300]
+        val assignedEntitlements: Seq[PostConsentEntitlementJsonV310] = user.entitlements.list.flatMap(
+          e => entitlements.find(_ == PostConsentEntitlementJsonV310(e.bank_id, e.role_name))
+        )
+        // Check we have all entitlements from the consent
+        assignedEntitlements should equal(entitlements)
+
+        // Every consent implies a brand new user is created
+        user.user_id should not equal (resourceUser1.userId)
+
+        // Check we have all views from the consent
+        val assignedViews = user.views.map(_.list).toSeq.flatten
+        assignedViews.map(e => PostConsentViewJsonV310(e.bank_id, e.account_id, e.view_id)).distinct should equal(views)
+
+      case false =>
+        // Due to missing props at the instance the request must fail
+        responseGetUserByUserId400.body.extract[ErrorMessage].message should include(ConsentDisabled)
+    }
+  }
+  
+  private def wholeFunctionalityImplicit(nameOfRequestHeader: String) = {
+    When("We make a request")
+    // Create a consent as the user1.
+    // Must fail because we try to set time_to_live=4500
+    val requestWrongTimeToLive400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "IMPLICIT").POST <@ (user1)
+    val responseWrongTimeToLive400 = makePostRequest(requestWrongTimeToLive400, write(postConsentImplicitJsonV310.copy(time_to_live = timeToLive)))
+    Then("We should get a 400")
+    responseWrongTimeToLive400.code should equal(400)
+    responseWrongTimeToLive400.body.extract[ErrorMessage].message should include(ConsentMaxTTL)
+
+    // Create a consent as the user1.
+    // Must fail because we try to assign a role other that user already have access to the request 
+    val request400 = (v3_1_0_Request / "banks" / bankId / "my" / "consents" / "IMPLICIT").POST <@ (user1)
+    val response400 = makePostRequest(request400, write(postConsentImplicitJsonV310))
+    Then("We should get a 400")
+    response400.code should equal(400)
+    response400.body.extract[ErrorMessage].message should equal(RolesAllowedInConsent)
+
+    Then("We grant the role and test it again")
+    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+    // Create a consent as the user1. The consent is in status INITIATED
+    val secondResponse400 = makePostRequest(request400, write(postConsentImplicitJsonV310))
     Then("We should get a 201")
     secondResponse400.code should equal(201)
 

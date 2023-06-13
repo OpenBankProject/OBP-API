@@ -556,6 +556,15 @@ case class PostConsentPhoneJsonV310(
                                      time_to_live: Option[Long]
 ) extends PostConsentCommonBody
 
+case class PostConsentImplicitJsonV310(
+                                     everything: Boolean,
+                                     views:  List[PostConsentViewJsonV310],
+                                     entitlements: List[PostConsentEntitlementJsonV310],
+                                     consumer_id: Option[String],
+                                     valid_from: Option[Date],
+                                     time_to_live: Option[Long]
+) extends PostConsentCommonBody
+
 case class ConsentJsonV310(consent_id: String, jwt: String, status: String)
 case class ConsentsJsonV310(consents: List[ConsentJsonV310])
 
