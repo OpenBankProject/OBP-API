@@ -71,7 +71,7 @@ class SystemViewsTests extends V310ServerSetup {
   
   // Custom view, name starts from `_`
   // System view, owner
-  val randomSystemViewId = APIUtil.generateUUID()
+  val randomSystemViewId = "a"+APIUtil.generateUUID()
   val postBodySystemViewJson = createSystemViewJsonV300.copy(name=randomSystemViewId).copy(metadata_view = randomSystemViewId).toCreateViewJson
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
