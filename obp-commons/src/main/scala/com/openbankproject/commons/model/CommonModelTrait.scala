@@ -582,7 +582,16 @@ trait ChallengeTrait {
 }
 
 
+trait ConsentImplicitSCAT {
+  def scaMethod: SCA
+  def recipient: String
+}
+
 //---------------------------------------- trait dependents of case class
+case class ConsentImplicitSCA(
+  scaMethod: SCA,
+  recipient: String
+) extends ConsentImplicitSCAT
 
 @deprecated("Use Lobby instead which contains detailed fields, not this string","24 July 2017")
 case class LobbyString (hours : String) extends LobbyStringT

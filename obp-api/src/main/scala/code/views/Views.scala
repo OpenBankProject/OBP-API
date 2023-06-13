@@ -113,11 +113,6 @@ trait Views {
   def getOrCreateSystemView(viewId: String) : Box[View]
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
 
-  /**
-   * this is only used for the scala test
-   */
-  def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View]
-
   def getOwners(view: View): Set[User]
   
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
@@ -167,7 +162,6 @@ class RemotedataViewsCaseClasses {
   case class getOrCreateSystemViewFromCbs(viewId: String)
   case class getOrCreateSystemView(viewId: String)
   case class getOrCreatePublicPublicView(bankId: BankId, accountId: AccountId, description: String)
-  case class createRandomView(bankId: BankId, accountId: AccountId)
 
   case class getOwners(view: View)
   

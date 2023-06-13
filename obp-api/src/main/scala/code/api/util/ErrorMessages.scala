@@ -444,6 +444,7 @@ object ErrorMessages {
   val GetCustomerAccountLinksError = "OBP-30226: Could not get the customer account links."
   val UpdateCustomerAccountLinkError = "OBP-30227: Could not update the customer account link."
   val DeleteCustomerAccountLinkError = "OBP-30228: Could not delete the customer account link."
+  val GetConsentImplicitSCAError = "OBP-30229: Could not get the consent implicit SCA."
   
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
@@ -489,7 +490,7 @@ object ErrorMessages {
   val ConsentCheckExpiredIssue = "OBP-35006: Cannot check is Consent-Id expired. "
   val ConsentDisabled = "OBP-35007: Consents are not allowed at this instance. "
   val ConsentHeaderNotFound = "OBP-35008: Cannot get Consent-Id. "
-  val ConsentAllowedScaMethods = "OBP-35009: Only SMS and EMAIL are supported as SCA methods. "
+  val ConsentAllowedScaMethods = "OBP-35009: Only SMS, EMAIL and IMPLICIT are supported as SCA methods. "
   val SmsServerNotResponding = "OBP-35010: SMS server is not working or SMS server can not send the message to the phone number:"
   val AuthorizationNotFound = "OBP-35011: Resource identification of the related Consent authorisation sub-resource not found by AUTHORIZATION_ID. "
   val ConsentAlreadyRevoked = "OBP-35012: Consent is already revoked. "
@@ -514,6 +515,7 @@ object ErrorMessages {
   val ConsumerKeyIsToLong = "OBP-35031: The Consumer Key max length <= 512"
   val ConsentHeaderValueInvalid = "OBP-35032: The Consent's Request Header value is not formatted as UUID or JWT."
   val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain the following Roles: ${canCreateEntitlementAtOneBank} and ${canCreateEntitlementAtAnyBank}."
+  val UserAuthContextUpdateRequestAllowedScaMethods = "OBP-35034: Only SMS and EMAIL are supported as SCA methods. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "

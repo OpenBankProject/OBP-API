@@ -3942,6 +3942,11 @@ object NewStyle extends MdcLoggable{
         i => (unboxFullOrFail(i._1, callContext, UpdateCustomerAccountLinkError), i._2)
       }
     
+    def getConsentImplicitSCA(user: User, callContext: Option[CallContext]): OBPReturnType[ConsentImplicitSCAT] =
+      Connector.connector.vend.getConsentImplicitSCA(user: User, callContext: Option[CallContext]) map {
+        i => (unboxFullOrFail(i._1, callContext, GetConsentImplicitSCAError), i._2)
+      }
+    
     def getAtmsByBankId(bankId: BankId, offset: Box[String], limit: Box[String],  callContext: Option[CallContext]): OBPReturnType[List[AtmT]] =
       Connector.connector.vend.getAtms(bankId, callContext) map {
         case Empty =>
