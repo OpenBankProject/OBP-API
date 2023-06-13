@@ -75,7 +75,6 @@ class SystemViewsTests extends V500ServerSetup {
   val postBodySystemViewJson = createSystemViewJsonV500
     .copy(name=randomSystemViewId)
     .copy(metadata_view = randomSystemViewId).toCreateViewJson
-  val systemViewId = MapperViews.createViewIdByName(postBodySystemViewJson.name)
   
   def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = v5_0_0_Request / "system-views" / viewId <@(consumerAndToken)
@@ -266,15 +265,21 @@ class SystemViewsTests extends V500ServerSetup {
       response400.code should equal(200)
     }
   }
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access with proper Role in order to delete owner view") {
+  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access with proper Role in order to delete system view") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+      When(s"We make a request $ApiEndpoint2")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
+      val responseCreate400 = postSystemView(postBodySystemViewJson, user1)
+      Then("We should get a 201")
+      responseCreate400.code should equal(201)
+      
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)
       When(s"We make a request $ApiEndpoint4")
       AccountAccess.findAll(
-        By(AccountAccess.view_id, SYSTEM_OWNER_VIEW_ID),
+        By(AccountAccess.view_id, randomSystemViewId),
         By(AccountAccess.user_fk, resourceUser1.id.get)
-      ).forall(_.delete_!) // Remove all rows assigned to the system owner view in order to delete it
-      val response400 = deleteSystemView(SYSTEM_OWNER_VIEW_ID, user1)
+      ).forall(_.delete_!) // Remove all rows assigned to the system view in order to delete it
+      val response400 = deleteSystemView(randomSystemViewId, user1)
       Then("We should get a 200")
       response400.code should equal(200)
     }

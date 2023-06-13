@@ -28,10 +28,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   protected def getOrCreateSystemView(name: String) : View = {
     Views.views.vend.getOrCreateSystemView(name).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
-  protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.getOrCreateSystemView(SYSTEM_OWNER_VIEW_ID).openOrThrowException(attemptedToOpenAnEmptyBox)
-  }
-
+ 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
     Views.views.vend.getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, CUSTOM_PUBLIC_VIEW_ID).openOrThrowException(attemptedToOpenAnEmptyBox)
   }
