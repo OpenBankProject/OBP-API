@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -99,8 +100,9 @@ trait APIMethods220 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), callContext)
+            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(cc.loggedInUser), cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View", cc = cc.callContext) {
+              ownerView.canSeeBankAccountAllViews
             }
             views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {

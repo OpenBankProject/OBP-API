@@ -54,7 +54,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def getSingleton = ViewImpl
 
   def primaryKeyField = id_
-  
+
   //This field used ManyToMany  
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, ResourceUser)
 
@@ -243,6 +243,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
   object canSeeBankAccountOwners_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeBankAccountAllViews_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeBankAccountType_ extends MappedBoolean(this){
@@ -465,6 +468,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeImages : Boolean = canSeeImages_.get
 
   //Bank account fields
+  def canSeeBankAccountAllViews : Boolean = canSeeBankAccountAllViews_.get
   def canSeeBankAccountOwners : Boolean = canSeeBankAccountOwners_.get
   def canSeeBankAccountType : Boolean = canSeeBankAccountType_.get
   def canSeeBankAccountBalance : Boolean = canSeeBankAccountBalance_.get

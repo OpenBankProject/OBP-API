@@ -109,13 +109,14 @@ trait APIMethods300 {
           val res =
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
-              (account, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId, cc=callContext){
-                u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), callContext)
+              (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
+              ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(code.api.Constant.SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(cc.loggedInUser), cc.callContext)
+              _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View", cc = cc.callContext) {
+                ownerView.canSeeBankAccountAllViews
               }
             } yield {
               for {
-                views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+                views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
               } yield {
                 (createViewsJSON(views), HttpCode.`200`(callContext))
               }

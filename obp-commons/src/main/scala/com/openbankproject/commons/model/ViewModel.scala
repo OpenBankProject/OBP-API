@@ -288,6 +288,8 @@ trait View {
   def canSeeImages: Boolean
 
   //Bank account fields
+  def canSeeBankAccountAllViews: Boolean
+  
   def canSeeBankAccountOwners: Boolean
 
   def canSeeBankAccountType: Boolean

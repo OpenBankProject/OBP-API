@@ -543,11 +543,11 @@ trait APIMethods121 {
         cc =>
           for {
             u <- cc.user ?~  UserNotLoggedIn
-            account <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            _ <- booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(account.bankId, account.accountId), Some(cc)), UserNoOwnerView +"userId : " + u.userId + ". account : " + accountId)
-            views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+            bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
+            ownerView <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), None)
+            _ <- Helper.booleanToBox(ownerView.canSeeBankAccountAllViews, UserNoOwnerView + "userId : " + u.userId + ". account : " + accountId)
+            views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
           } yield {
-            // TODO Include system views as well
             val viewsJSON = JSONFactory.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))
           }

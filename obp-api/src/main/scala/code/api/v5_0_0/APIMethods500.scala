@@ -43,6 +43,7 @@ import net.liftweb.util.{Helpers, Props}
 import java.util.concurrent.ThreadLocalRandom
 
 import code.accountattribute.AccountAttributeX
+import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.util.Helper.booleanToFuture
 import code.views.system.AccountAccess
 
@@ -1590,8 +1591,9 @@ trait APIMethods500 {
         cc =>
           val res =
             for {
-              _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView +"userId : " + cc.userId + ". account : " + accountId, cc=cc.callContext){
-                cc.loggedInUser.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), Some(cc))
+              ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(cc.loggedInUser), cc.callContext)
+              _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View", cc=cc.callContext){
+                ownerView.canSeeBankAccountAllViews
               }
             } yield {
               for {
