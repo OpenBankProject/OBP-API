@@ -19,7 +19,7 @@ case class JvalueCaseClass(jvalueToCaseclass: JValue)
 
 case class MetaBis(
   LastUpdated: String,
-  TotalResults: Double,
+  TotalResults: Int,
   Agreement: String,
   License: String,
   TermsOfUse: String
@@ -182,7 +182,7 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
      GetAtmsResponseJson(
        meta = MetaBis(
          LastUpdated = APIUtil.DateWithMsFormat.format(lastUpdated),
-         TotalResults = atms.size.toDouble,
+         TotalResults = atms.size.toInt,
          Agreement = agreement,
          License = license,
          TermsOfUse = termsOfUse
