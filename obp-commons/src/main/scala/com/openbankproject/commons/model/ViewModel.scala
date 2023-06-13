@@ -258,6 +258,8 @@ trait View {
   //reading access
 
   //transaction fields
+  def canSeeTransactionRequestThisBankAccount: Boolean
+  
   def canSeeTransactionThisBankAccount: Boolean
 
   def canSeeTransactionOtherBankAccount: Boolean

@@ -60,6 +60,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeTransactionThisBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canSeeTransactionRequestThisBankAccount_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canSeeTransactionOtherBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -439,6 +442,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 
   //transaction fields
   def canSeeTransactionThisBankAccount : Boolean = canSeeTransactionThisBankAccount_.get
+  def canSeeTransactionRequestThisBankAccount : Boolean = canSeeTransactionRequestThisBankAccount_.get
   def canSeeTransactionOtherBankAccount : Boolean = canSeeTransactionOtherBankAccount_.get
   def canSeeTransactionMetadata : Boolean = canSeeTransactionMetadata_.get
   def canSeeTransactionDescription: Boolean = canSeeTransactionDescription_.get

@@ -7,7 +7,7 @@ import java.util.{Calendar, Date}
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.accountattribute.AccountAttributeX
-import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP, localIdentityProvider}
+import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP, SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{jsonDynamicResourceDoc, _}
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
@@ -5150,8 +5150,9 @@ trait APIMethods400 {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)
+            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(cc.loggedInUser), cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionRequestThisBankAccount` access for the Owner View", cc = cc.callContext) {
+              ownerView.canSeeTransactionRequestThisBankAccount
             }
             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, callContext)
           } yield {

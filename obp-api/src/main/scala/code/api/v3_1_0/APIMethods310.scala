@@ -1,7 +1,7 @@
 package code.api.v3_1_0
 
 import code.api.Constant
-import code.api.Constant.localIdentityProvider
+import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 
 import java.text.SimpleDateFormat
 import java.util.UUID
@@ -1086,9 +1086,9 @@ trait APIMethods310 {
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
-            _ <- Helper.booleanToFuture(failMsg = UserNoOwnerView, cc=callContext) {
-              u.hasOwnerViewAccess(BankIdAccountId(bankId,accountId), callContext)
+            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(cc.loggedInUser), cc.callContext)
+            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionRequestThisBankAccount` access for the Owner View", cc = cc.callContext) {
+              ownerView.canSeeTransactionRequestThisBankAccount
             }
             (transactionRequests, callContext) <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
               unboxFullOrFail(_, callContext, GetTransactionRequestsException)

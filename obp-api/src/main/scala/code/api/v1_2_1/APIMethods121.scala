@@ -545,7 +545,7 @@ trait APIMethods121 {
             u <- cc.user ?~  UserNotLoggedIn
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
             ownerView <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), None)
-            _ <- Helper.booleanToBox(ownerView.canSeeBankAccountAllViews, UserNoOwnerView + "userId : " + u.userId + ". account : " + accountId)
+            _ <- Helper.booleanToBox(ownerView.canSeeBankAccountAllViews, s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View")
             views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
           } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)
