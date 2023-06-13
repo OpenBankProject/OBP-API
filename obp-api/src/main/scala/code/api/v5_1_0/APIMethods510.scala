@@ -12,6 +12,7 @@ import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v3_1_0.JSONFactory310.createBadLoginStatusJson
 import code.api.v4_0_0.{JSONFactory400, PostApiCollectionJson400}
+import code.api.v5_0_0.ConsentJsonV500
 import code.atmattribute.AtmAttribute
 import code.bankconnectors.Connector
 import code.consent.Consents
@@ -738,9 +739,50 @@ trait APIMethods510 {
           }
       }
     }
-    
-    
 
+
+    staticResourceDocs += ResourceDoc(
+      getConsentByConsentId,
+      implementedInApiVersion,
+      nameOf(getConsentByConsentId),
+      "GET",
+      "/consumer/consents/CONSENT_ID",
+      "Get Consent By Consent Id",
+      s"""
+         |0
+         |This endpoint gets the Consent By consent id.
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentJsonV500,
+      List(
+        $UserNotLoggedIn,
+        UnknownError
+      ),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2))
+    lazy val getConsentByConsentId: OBPEndpoint = {
+      case "consumer" :: "consents" :: consentId :: Nil  JsonGet _  => {
+        cc =>
+          for {
+            consent<- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
+              unboxFullOrFail(_, cc.callContext, ConsentNotFound)
+            }
+          } yield {
+            (
+              ConsentJsonV500(
+                consent.consentId,
+                consent.jsonWebToken,
+                consent.status,
+                Some(consent.consentRequestId)
+              ),
+              HttpCode.`200`(cc)
+            )
+          }
+      }
+    }
+    
     staticResourceDocs += ResourceDoc(
       revokeConsentAtBank,
       implementedInApiVersion,

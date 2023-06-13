@@ -63,6 +63,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getUsers))
   object ApiEndpoint6 extends Tag(nameOf(Implementations5_1_0.revokeConsentAtBank))
+  object ApiEndpoint7 extends Tag(nameOf(Implementations5_1_0.getConsentByConsentId))
   
   lazy val entitlements = List(PostConsentEntitlementJsonV310("", CanGetAnyUser.toString()))
   lazy val bankId = testBankId1.value
@@ -80,6 +81,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   def getConsentRequestUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
   def createConsentByConsentRequestIdEmail(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
+  def getConsentByIdUrl(requestId:String) = (v5_1_0_Request / "consumer" / "consents" / requestId ).GET<@(user1)
   def revokeConsentUrl(consentId: String) = (v5_1_0_Request / "banks" / bankId / "consents" / consentId).DELETE
 
   feature(s"test $ApiEndpoint6 version $VersionOfApi - Unauthorized access") {
@@ -102,7 +104,7 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   }
   
   feature(s"Create/Use/Revoke Consent $VersionOfApi") {
-    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJsonV310))
       Then("We should get a 201")
@@ -147,6 +149,14 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       val getConsentByRequestResponseJson = getConsentByRequestResponse.body.extract[ConsentJsonV500]
       getConsentByRequestResponseJson.consent_request_id.head should be(consentRequestId)
       getConsentByRequestResponseJson.status should be(ConsentStatus.ACCEPTED.toString)
+
+      When("We try to make the GET request v5.1.0")
+      val getConsentById = makeGetRequest(getConsentByIdUrl(getConsentByRequestResponseJson.consent_id))
+      Then("We should get a 200")
+      getConsentById.code should equal(200)
+      val getConsentByIdJson = getConsentById.body.extract[ConsentJsonV500]
+      getConsentByIdJson.consent_request_id.head should be(consentRequestId)
+      getConsentByIdJson.status should be(ConsentStatus.ACCEPTED.toString)
 
 
       val requestGetUsers = (v5_1_0_Request / "users").GET
