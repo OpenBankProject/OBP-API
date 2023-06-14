@@ -528,6 +528,7 @@ trait PostConsentCommonBody{
 
 case class PostConsentBodyCommonJson(
                                       everything: Boolean,
+                                      bank_id: Option[String],
                                       views:  List[PostConsentViewJsonV310],
                                       entitlements: List[PostConsentEntitlementJsonV310],
                                       consumer_id: Option[String],

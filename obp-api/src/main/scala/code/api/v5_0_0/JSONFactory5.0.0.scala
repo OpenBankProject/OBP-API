@@ -220,6 +220,7 @@ case class AccountAccessV500(
 
 case class PostConsentRequestJsonV500(
   everything: Boolean,
+  bank_id: Option[String],
   account_access: List[AccountAccessV500],
   entitlements: Option[List[PostConsentEntitlementJsonV310]],
   consumer_id: Option[String],

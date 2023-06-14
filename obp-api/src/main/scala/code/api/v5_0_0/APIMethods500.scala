@@ -960,6 +960,7 @@ trait APIMethods500 {
 
             postConsentBodyCommonJson = PostConsentBodyCommonJson(
               everything = consentRequestJson.everything,
+              bank_id = consentRequestJson.bank_id,
               views = postConsentViewJsons,
               entitlements = consentRequestJson.entitlements.getOrElse(Nil),
               consumer_id = consentRequestJson.consumer_id,

@@ -542,9 +542,19 @@ object Consent {
       
     // 1. Add views
     // Please note that consents can only contain Views that the User already has access to.
-    val views: Seq[ConsentView] = 
+    val allUserViews = Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
+    val views = consent.bank_id match {
+      case Some(bankId) =>
+        // Filter out roles for other banks
+        allUserViews.filterNot { i =>
+          !i.bankId.value.isEmpty() && i.bankId.value != bankId
+        }
+      case None =>
+        allUserViews
+    }
+    val viewsToAdd: Seq[ConsentView] = 
       for {
-        view <- Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
+        view <- views
         if consent.everything || consent.views.exists(_ == PostConsentViewJsonV310(view.bankId.value,view.accountId.value, view.viewId.value))
       } yield  {
         ConsentView(
@@ -555,9 +565,19 @@ object Consent {
       }
     // 2. Add Roles
     // Please note that consents can only contain Roles that the User already has access to.
-    val entitlements: Seq[Role] = 
+    val allUserEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)
+    val entitlements = consent.bank_id match {
+      case Some(bankId) =>
+        // Filter out roles for other banks
+        allUserEntitlements.filterNot { i => 
+          !i.bankId.isEmpty() && i.bankId != bankId
+        }
+      case None =>
+        allUserEntitlements
+    }
+    val entitlementsToAdd: Seq[Role] = 
       for {
-        entitlement <- Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)
+        entitlement <- entitlements
         if !(entitlement.roleName == canCreateEntitlementAtOneBank.toString())
         if !(entitlement.roleName == canCreateEntitlementAtAnyBank.toString())
         if consent.everything || consent.entitlements.exists(_ == PostConsentEntitlementJsonV310(entitlement.bankId,entitlement.roleName))
@@ -575,8 +595,8 @@ object Consent {
       exp=timeInSeconds + timeToLive,
       name=None,
       email=None,
-      entitlements=entitlements.toList,
-      views=views.toList,
+      entitlements=entitlementsToAdd.toList,
+      views=viewsToAdd.toList,
       access = None
     )
     
