@@ -5150,7 +5150,7 @@ trait APIMethods400 {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(cc.loggedInUser), cc.callContext)
+            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(u), cc.callContext)
             _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionRequestThisBankAccount` access for the Owner View", cc = cc.callContext) {
               ownerView.canSeeTransactionRequestThisBankAccount
             }

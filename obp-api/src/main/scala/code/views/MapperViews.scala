@@ -791,11 +791,13 @@ object MapperViews extends Views with MdcLoggable {
       .canAddTransactionRequestToOwnAccount_(true) //added following two for payments
       .canAddTransactionRequestToAnyAccount_(true)
       .canSeeBankAccountAllViews_(false)
+      .canSeeTransactionRequestThisBankAccount_(false)
 
     viewId match {
       case SYSTEM_OWNER_VIEW_ID =>
         entity
           .canSeeBankAccountAllViews_(true)
+          .canSeeTransactionRequestThisBankAccount_(true)
       case SYSTEM_STAGE_ONE_VIEW_ID =>
         entity
           .canSeeTransactionDescription_(false)

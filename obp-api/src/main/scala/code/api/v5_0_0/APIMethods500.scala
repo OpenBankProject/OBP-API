@@ -1591,7 +1591,8 @@ trait APIMethods500 {
         cc =>
           val res =
             for {
-              ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(cc.loggedInUser), cc.callContext)
+              (Full(u), callContext) <- SS.user
+              ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(u), cc.callContext)
               _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View", cc=cc.callContext){
                 ownerView.canSeeBankAccountAllViews
               }

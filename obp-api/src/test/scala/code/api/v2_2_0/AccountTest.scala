@@ -170,7 +170,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       TimeUnit.SECONDS.sleep(2)
 
       Then("we get the account access for this account")
-      val accountViewsRequest = v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1 / "views" <@(user1)
+      val accountViewsRequest = (v2_2Request / "banks" / testBank.value / "accounts" / mockAccountId1 / "views").GET <@(user1)
       val accountViewsResponse = makeGetRequest(accountViewsRequest)
       val accountViews = accountViewsResponse.body.extract[ViewsJSONV220]
       //Note: now when we create new account, will have the systemOwnerView access to this view.
