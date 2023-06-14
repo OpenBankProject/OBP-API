@@ -60,7 +60,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeTransactionThisBankAccount_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canSeeTransactionRequestThisBankAccount_ extends MappedBoolean(this){
+  object canSeeTransactionRequests_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeTransactionOtherBankAccount_ extends MappedBoolean(this){
@@ -105,8 +105,8 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeBankAccountOwners_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canSeeBankAccountAllViews_ extends MappedBoolean(this){
-    override def defaultValue = false
+  object canSeeAvailableViewsForBankAccount_ extends MappedBoolean(this){
+    override def defaultValue = true
   }
   object canSeeBankAccountType_ extends MappedBoolean(this){
     override def defaultValue = false
@@ -442,7 +442,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
 
   //transaction fields
   def canSeeTransactionThisBankAccount : Boolean = canSeeTransactionThisBankAccount_.get
-  def canSeeTransactionRequestThisBankAccount : Boolean = canSeeTransactionRequestThisBankAccount_.get
+  def canSeeTransactionRequests : Boolean = canSeeTransactionRequests_.get
   def canSeeTransactionOtherBankAccount : Boolean = canSeeTransactionOtherBankAccount_.get
   def canSeeTransactionMetadata : Boolean = canSeeTransactionMetadata_.get
   def canSeeTransactionDescription: Boolean = canSeeTransactionDescription_.get
@@ -460,7 +460,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeImages : Boolean = canSeeImages_.get
 
   //Bank account fields
-  def canSeeBankAccountAllViews : Boolean = canSeeBankAccountAllViews_.get
+  def canSeeAvailableViewsForBankAccount : Boolean = canSeeAvailableViewsForBankAccount_.get
   def canSeeBankAccountOwners : Boolean = canSeeBankAccountOwners_.get
   def canSeeBankAccountType : Boolean = canSeeBankAccountType_.get
   def canSeeBankAccountBalance : Boolean = canSeeBankAccountBalance_.get

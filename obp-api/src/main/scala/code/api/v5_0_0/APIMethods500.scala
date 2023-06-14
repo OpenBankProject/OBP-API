@@ -1,7 +1,6 @@
 package code.api.v5_0_0
 
 import java.util.concurrent.ThreadLocalRandom
-
 import code.accountattribute.AccountAttributeX
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -40,12 +39,12 @@ import net.liftweb.json
 import net.liftweb.json.{Extraction, compactRender, prettyRender}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props}
-import java.util.concurrent.ThreadLocalRandom
 
+import java.util.concurrent.ThreadLocalRandom
 import code.accountattribute.AccountAttributeX
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.util.Helper.booleanToFuture
-import code.views.system.AccountAccess
+import code.views.system.{AccountAccess, ViewDefinition}
 
 import scala.collection.immutable.{List, Nil}
 import scala.collection.mutable.ArrayBuffer
@@ -1592,9 +1591,13 @@ trait APIMethods500 {
           val res =
             for {
               (Full(u), callContext) <- SS.user
-              ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(u), cc.callContext)
-              _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View", cc=cc.callContext){
-                ownerView.canSeeBankAccountAllViews
+              permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeAvailableViewsForBankAccount.toString}` permission on any your views",
+                cc = callContext
+              ) {
+                anyViewContainsCanSeeAvailableViewsForBankAccountPermission
               }
             } yield {
               for {

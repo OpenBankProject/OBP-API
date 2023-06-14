@@ -75,6 +75,7 @@ import code.util.Helper.booleanToFuture
 import code.util.{Helper, JsonSchemaUtil}
 import code.validation.JsonValidation
 import code.views.Views
+import code.views.system.ViewDefinition
 import code.webhook.{AccountWebhook, BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.nameOf
@@ -5150,9 +5151,11 @@ trait APIMethods400 {
           for {
             (user @Full(u), _, account, view, callContext) <- SS.userBankAccountView
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
-            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(u), cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionRequestThisBankAccount` access for the Owner View", cc = cc.callContext) {
-              ownerView.canSeeTransactionRequestThisBankAccount
+            view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests.toString}` permission on the View(${viewId.value})",
+              cc = callContext) {
+              view.canSeeTransactionRequests
             }
             (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(requestId, callContext)
           } yield {

@@ -110,9 +110,13 @@ trait APIMethods300 {
             for {
               (Full(u), callContext) <-  authenticatedAccess(cc)
               (bankAccount, callContext) <- NewStyle.function.getBankAccount(bankId, accountId, callContext)
-              ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(code.api.Constant.SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(u), cc.callContext)
-              _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View", cc = cc.callContext) {
-                ownerView.canSeeBankAccountAllViews
+              permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+              _ <- Helper.booleanToFuture(
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${code.views.system.ViewDefinition.canSeeAvailableViewsForBankAccount.toString}` permission on any your views",
+                cc = callContext
+              ) {
+                anyViewContainsCanSeeAvailableViewsForBankAccountPermission
               }
             } yield {
               for {

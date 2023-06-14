@@ -4,7 +4,6 @@ import java.net.URL
 import java.util.Random
 import java.security.SecureRandom
 import java.util.UUID.randomUUID
-
 import com.tesobe.CacheKeyFromArguments
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.Caching
@@ -20,6 +19,7 @@ import code.model.{BankAccountX, BankX, ModeratedTransactionMetadata, toBankAcco
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.google.common.cache.CacheBuilder
 import com.openbankproject.commons.model.{Bank, UpdateViewJSON, _}
 import com.openbankproject.commons.util.ApiVersion
@@ -544,8 +544,12 @@ trait APIMethods121 {
           for {
             u <- cc.user ?~  UserNotLoggedIn
             bankAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-            ownerView <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), None)
-            _ <- Helper.booleanToBox(ownerView.canSeeBankAccountAllViews, s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View")
+            permission <- Views.views.vend.permission(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), u)
+            anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+            _ <- Helper.booleanToBox(
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission, 
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeAvailableViewsForBankAccount.toString}` permission on any your views"
+            )
             views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
           } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)

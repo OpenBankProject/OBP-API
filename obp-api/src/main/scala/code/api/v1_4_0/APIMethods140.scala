@@ -1,5 +1,6 @@
 package code.api.v1_4_0
 
+import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -13,6 +14,7 @@ import code.customer.CustomerX
 import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
@@ -463,8 +465,11 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              ownerView <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), None)
-              _ <- Helper.booleanToBox(ownerView.canSeeTransactionRequestThisBankAccount, s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionRequestThisBankAccount` access for the Owner View")
+              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
+              _ <- Helper.booleanToBox(
+                view.canSeeTransactionRequests, 
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests.toString}` permission on the View(${viewId.value})"
+              )
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }
             yield {

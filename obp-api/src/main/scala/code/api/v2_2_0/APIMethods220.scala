@@ -1,6 +1,7 @@
 package code.api.v2_2_0
 
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
+
 import java.util.Date
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -23,6 +24,7 @@ import code.model.dataAccess.BankAccountCreation
 import code.util.Helper
 import code.util.Helper._
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.http.rest.RestHelper
@@ -100,9 +102,13 @@ trait APIMethods220 {
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(u), cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeBankAccountAllViews` access for the Owner View", cc = cc.callContext) {
-              ownerView.canSeeBankAccountAllViews
+            permission <- NewStyle.function.permission(bankId, accountId, u, callContext)
+            anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeAvailableViewsForBankAccount.toString}` permission on any your views",
+              cc= callContext
+            ){
+              anyViewContainsCanSeeAvailableViewsForBankAccountPermission
             }
             views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
           } yield {

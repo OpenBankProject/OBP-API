@@ -6,7 +6,6 @@ import code.api.Constant.{SYSTEM_OWNER_VIEW_ID, localIdentityProvider}
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.regex.Pattern
-
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{MessageDocsSwaggerDefinitions, ResourceDocsAPIMethodsUtil, SwaggerDefinitionsJSON, SwaggerJSONFactory}
 import code.api.util.APIUtil.{getWebUIPropsPairs, _}
@@ -40,6 +39,7 @@ import code.userlocks.{UserLocks, UserLocksProvider}
 import code.users.Users
 import code.util.Helper
 import code.views.Views
+import code.views.system.ViewDefinition
 import code.webhook.AccountWebhook
 import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -1086,9 +1086,11 @@ trait APIMethods310 {
             _ <- NewStyle.function.isEnabledTransactionRequests(callContext)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            ownerView <- NewStyle.function.checkViewAccessAndReturnView(ViewId(SYSTEM_OWNER_VIEW_ID), BankIdAccountId(bankId, accountId), Some(u), cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `canSeeTransactionRequestThisBankAccount` access for the Owner View", cc = cc.callContext) {
-              ownerView.canSeeTransactionRequestThisBankAccount
+            view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests.toString}` permission on the View(${viewId.value})",
+              cc=callContext){
+              view.canSeeTransactionRequests
             }
             (transactionRequests, callContext) <- Future(Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)) map {
               unboxFullOrFail(_, callContext, GetTransactionRequestsException)

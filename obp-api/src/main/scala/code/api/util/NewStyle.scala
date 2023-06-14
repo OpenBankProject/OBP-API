@@ -524,6 +524,11 @@ object NewStyle extends MdcLoggable{
     } map { fullBoxOrException(_)
     } map { unboxFull(_) } 
     
+    def permission(bankId: BankId,accountId: AccountId, user: User, callContext: Option[CallContext]) = Future {
+      Views.views.vend.permission(BankIdAccountId(bankId, accountId), user)
+    } map { fullBoxOrException(_)
+    } map { unboxFull(_) } 
+    
     def removeView(account: BankAccount, user: User, viewId: ViewId, callContext: Option[CallContext]) = Future {
       account.removeView(user, viewId, callContext)
     } map { fullBoxOrException(_)
