@@ -29,9 +29,10 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.enums.{AtmAttributeType, UserAttributeType}
 import com.openbankproject.commons.model.{AtmId, AtmT, BankId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.parse
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
@@ -766,19 +767,14 @@ trait APIMethods510 {
       case "consumer" :: "consents" :: consentId :: Nil  JsonGet _  => {
         cc =>
           for {
-            consent<- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
+            consent <- Future { Consents.consentProvider.vend.getConsentByConsentId(consentId)} map {
               unboxFullOrFail(_, cc.callContext, ConsentNotFound)
             }
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = cc.callContext) {
+              consent.mUserId == cc.userId
+            }
           } yield {
-            (
-              ConsentJsonV500(
-                consent.consentId,
-                consent.jsonWebToken,
-                consent.status,
-                Some(consent.consentRequestId)
-              ),
-              HttpCode.`200`(cc)
-            )
+            (JSONFactory510.getConsentInfoJson(consent), HttpCode.`200`(cc))
           }
       }
     }
