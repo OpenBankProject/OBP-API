@@ -1,7 +1,7 @@
 package code.views.system
 
 import code.api.util.APIUtil.{checkCustomViewIdOrName, checkSystemViewIdOrName}
-import code.api.util.ErrorMessages.{InvalidCustomViewFormat, InvalidSystemViewFormat}
+import code.api.util.ErrorMessages.{CreateSystemViewError, InvalidCustomViewFormat, InvalidSystemViewFormat}
 import code.util.{AccountIdString, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.common.Box
@@ -542,6 +542,11 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
       }
       if (!t.isSystem && !checkCustomViewIdOrName(t.view_id.get)) {
         throw new RuntimeException(InvalidCustomViewFormat+s"Current view_id (${t.view_id.get})")
+      }
+      
+      //sanity checks
+      if (!t.isSystem && (t.bank_id ==null || t.account_id == null)) {
+        throw new RuntimeException(CreateSystemViewError+s"Current view.isSystem${t.isSystem}, bank_id${t.bank_id}, account_id${t.account_id}")
       }
     }
   )
