@@ -1072,6 +1072,7 @@ trait APIMethods310 {
         BankNotFound,
         BankAccountNotFound,
         UserNoPermissionAccessView,
+        ViewDoesNotPermitAccess,
         UserNoOwnerView,
         GetTransactionRequestsException,
         UnknownError
@@ -1088,7 +1089,7 @@ trait APIMethods310 {
             (fromAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkAccountAccessAndGetView(viewId, BankIdAccountId(bankId, accountId), Full(u), callContext)
             _ <- Helper.booleanToFuture(
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests.toString}` permission on the View(${viewId.value})",
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value})",
               cc=callContext){
               view.canSeeTransactionRequests
             }

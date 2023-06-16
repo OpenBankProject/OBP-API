@@ -181,7 +181,6 @@ object ErrorMessages {
   val ConsumerIsDisabled = "OBP-20058: Consumer is disabled."
   val CouldNotGetUserLockStatus = "OBP-20059: Could not get the lock status of the user."
   val NoViewReadAccountsBerlinGroup = s"OBP-20060: User does not have access to the view $SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID."
-  val NoAccountAccessOnView = "OBP-20061: Current user does not have access to the view "
   val FrequencyPerDayError = "OBP-20062: Frequency per day must be greater than 0."
   val FrequencyPerDayMustBeOneError = "OBP-20063: Frequency per day must be equal to 1 in case of one-off access."
 

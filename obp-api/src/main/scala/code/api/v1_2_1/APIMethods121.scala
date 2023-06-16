@@ -548,7 +548,7 @@ trait APIMethods121 {
             anyViewContainsCanSeeAvailableViewsForBankAccountPermission = permission.views.map(_.canSeeAvailableViewsForBankAccount).find(_.==(true)).getOrElse(false)
             _ <- Helper.booleanToBox(
               anyViewContainsCanSeeAvailableViewsForBankAccountPermission, 
-              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeAvailableViewsForBankAccount.toString}` permission on any your views"
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName}` permission on any your views"
             )
             views <- Full(Views.views.vend.availableViewsForAccount(BankIdAccountId(bankAccount.bankId, bankAccount.accountId)))
           } yield {

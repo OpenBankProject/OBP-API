@@ -1,6 +1,5 @@
 package code.api.v1_4_0
 
-import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.NewStyle.HttpCode
@@ -468,7 +467,7 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
               _ <- Helper.booleanToBox(
                 view.canSeeTransactionRequests, 
-                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests.toString}` permission on the View(${viewId.value})"
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value})"
               )
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }

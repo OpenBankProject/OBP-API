@@ -592,7 +592,7 @@ object NewStyle extends MdcLoggable{
       Future{
         APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, user, callContext)
       } map {
-        unboxFullOrFail(_, callContext, s"$NoAccountAccessOnView ${viewId.value}", 403)
+        unboxFullOrFail(_, callContext, s"$UserNoPermissionAccessView ${viewId.value}", 403)
       }
     }
     def checkViewsAccessAndReturnView(firstView : ViewId, secondView : ViewId, bankAccountId: BankIdAccountId, user: Option[User], callContext: Option[CallContext]) : Future[View] = {

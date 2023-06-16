@@ -715,7 +715,8 @@ trait APIMethods210 {
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {BankNotFound}
               (fromAccount, callContext) <- BankAccountX(bankId, accountId, Some(cc)) ?~! {AccountNotFound}
               view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(u), callContext)
-              _ <- Helper.booleanToBox(view.canSeeTransactionRequests, s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests.toString}` permission on the View(${viewId.value} )")
+              _ <- Helper.booleanToBox(view.canSeeTransactionRequests, 
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value} )")
               (transactionRequests,callContext) <- Connector.connector.vend.getTransactionRequests210(u, fromAccount, callContext)
             }
               yield {
