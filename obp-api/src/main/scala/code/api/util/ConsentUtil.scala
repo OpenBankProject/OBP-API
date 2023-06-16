@@ -810,6 +810,8 @@ object Consent {
         val jsonWebTokenAsCaseClass: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken)
           .map(parse(_).extract[ConsentJWT])
         jsonWebTokenAsCaseClass match {
+          case Full(consentJWT) => consentJWT.entitlements.exists(_.bank_id.isEmpty()) // System roles
+          case Full(consentJWT) => consentJWT.entitlements.map(_.bank_id).contains(bankId.value) // Bank level roles
           case Full(consentJWT) => consentJWT.views.map(_.bank_id).contains(bankId.value)
           case _ => false
         }
