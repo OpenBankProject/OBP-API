@@ -985,7 +985,7 @@ trait APIMethods500 {
             _ <- scaMethod match {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
                 sendEmailNotification(callContext, consentRequestJson, challengeText)
-              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+              case v if v == StrongCustomerAuthentication.SMS.toString =>
                 sendSmsNotification(callContext, consentRequestJson, challengeText)
               case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
                 for {
@@ -993,7 +993,7 @@ trait APIMethods500 {
                   status <- consentImplicitSCA.scaMethod match {
                     case v if v == StrongCustomerAuthentication.EMAIL => // Send the email
                       sendEmailNotification(callContext, consentRequestJson.copy(email=Some(consentImplicitSCA.recipient)), challengeText)
-                    case v if v == StrongCustomerAuthentication.SMS => // Not implemented
+                    case v if v == StrongCustomerAuthentication.SMS =>
                       sendSmsNotification(callContext, consentRequestJson.copy(phone_number=Some(consentImplicitSCA.recipient)), challengeText)
                     case _ => Future {
                       "Success"
