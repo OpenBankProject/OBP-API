@@ -3549,7 +3549,7 @@ trait APIMethods310 {
                   callContext
                 )
               } yield Future{status}
-            case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+            case v if v == StrongCustomerAuthentication.SMS.toString =>
               for {
                 failMsg <- Future {
                   s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310"
@@ -3566,7 +3566,7 @@ trait APIMethods310 {
                   callContext
                 )
               } yield Future{status}
-            case v if v == StrongCustomerAuthentication.IMPLICIT.toString => // Not implemented
+            case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
               for {
                 (consentImplicitSCA, callContext) <- NewStyle.function.getConsentImplicitSCA(user, callContext)
                 status <- consentImplicitSCA.scaMethod match {
@@ -3578,7 +3578,7 @@ trait APIMethods310 {
                       challengeText,
                       callContext
                     )
-                  case v if v == StrongCustomerAuthentication.SMS => // Not implemented
+                  case v if v == StrongCustomerAuthentication.SMS =>
                     Connector.connector.vend.sendCustomerNotification(
                       StrongCustomerAuthentication.SMS,
                       consentImplicitSCA.recipient,
