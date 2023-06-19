@@ -769,15 +769,15 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def createDefaultSystemView(name: String): Box[View] = {
-    createAndSaveSystemView(name)
+  def createDefaultSystemView(viewId: String): Box[View] = {
+    createAndSaveSystemView(viewId)
   }
 
-  def createDefaultCustomPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+  def createDefaultCustomPublicView(bankId: BankId, accountId: AccountId, description: String): Box[View] = {
     if(!allowPublicViews) {
       return Failure(PublicViewsNotAllowedOnThisInstance)
     }
-    createAndSaveDefaultPublicCustomView(bankId, accountId, "Public View")
+    createAndSaveDefaultPublicCustomView(bankId, accountId, description)
   }
 
   def getExistingCustomView(bankId: BankId, accountId: AccountId, viewId: String): Box[View] = {
@@ -787,6 +787,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   def getExistingSystemView(viewId: String): Box[View] = {
     val res = ViewDefinition.findSystemView(viewId)
+    logger.debug(s"-->getExistingSystemView: ${res} ")
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }
@@ -913,6 +914,7 @@ object MapperViews extends Views with MdcLoggable {
   
   def createAndSaveSystemView(viewId: String) : Box[View] = {
     val res = unsavedSystemView(viewId).saveMe
+    logger.debug(s"-->createAndSaveSystemView: ${res} ")
     Full(res)
   }
 
