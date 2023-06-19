@@ -662,8 +662,8 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  def createDefaultSystemView(name: String): Box[View] = {
-    createAndSaveSystemView(name)
+  def createDefaultSystemView(viewId: String): Box[View] = {
+    createAndSaveSystemView(viewId)
   }
 
   def createDefaultCustomPublicView(bankId: BankId, accountId: AccountId, description: String): Box[View] = {
