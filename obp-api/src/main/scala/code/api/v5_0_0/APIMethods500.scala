@@ -512,7 +512,7 @@ trait APIMethods500 {
             _ <- Helper.booleanToFuture(failMsg = ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate, cc=callContext) {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
             }
-            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
+            _ <- Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
@@ -798,12 +798,83 @@ trait APIMethods500 {
         UnknownError
         ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil)
+    staticResourceDocs += ResourceDoc(
+      createConsentByConsentRequestIdImplicit,
+      implementedInApiVersion,
+      nameOf(createConsentByConsentRequestIdImplicit),
+      "POST",
+      "/consumer/consent-requests/CONSENT_REQUEST_ID/IMPLICIT/consents",
+      "Create Consent By CONSENT_REQUEST_ID (IMPLICIT)",
+      s"""
+         |
+         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
+         |Please note that the Consent cannot elevate the privileges logged in user already have. 
+         |
+         |""",
+      EmptyBody,
+      consentJsonV500,
+      List(
+        UserNotLoggedIn,
+        $BankNotFound,
+        InvalidJsonFormat,
+        ConsentRequestIsInvalid,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
+        InvalidConnectorResponse,
+        UnknownError
+        ),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil)
     
     lazy val createConsentByConsentRequestIdEmail = createConsentByConsentRequestId
     lazy val createConsentByConsentRequestIdSms = createConsentByConsentRequestId
+    lazy val createConsentByConsentRequestIdImplicit = createConsentByConsentRequestId
     
     lazy val createConsentByConsentRequestId : OBPEndpoint = {
+     
       case "consumer" :: "consent-requests":: consentRequestId :: scaMethod :: "consents" :: Nil JsonPost _ -> _  => {
+        def sendEmailNotification(callContext: Option[CallContext], consentRequestJson: PostConsentRequestJsonV500, challengeText: String) = {
+          for {
+            failMsg <- Future {
+              s"$InvalidJsonFormat The Json body must contain the field email"
+            }
+            consentScaEmail <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              consentRequestJson.email.head
+            }
+            (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+              StrongCustomerAuthentication.EMAIL,
+              consentScaEmail,
+              Some("OBP Consent Challenge"),
+              challengeText,
+              callContext
+            )
+          } yield  {
+            status
+          }
+        }
+        def sendSmsNotification(callContext: Option[CallContext], consentRequestJson: PostConsentRequestJsonV500, challengeText: String) = {
+          for {
+            failMsg <- Future {
+              s"$InvalidJsonFormat The Json body must contain the field phone_number"
+            }
+            consentScaPhoneNumber <- NewStyle.function.tryons(failMsg, 400, callContext) {
+              consentRequestJson.phone_number.head
+            }
+            (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
+              StrongCustomerAuthentication.SMS,
+              consentScaPhoneNumber,
+              None,
+              challengeText,
+              callContext
+            )
+          } yield  {
+            status
+          }
+        }
         cc =>
           for {
             (Full(user), callContext) <- authenticatedAccess(cc)
@@ -816,7 +887,7 @@ trait APIMethods500 {
               Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId).isEmpty
             }
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
-              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString(), StrongCustomerAuthentication.IMPLICIT.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
             consentRequestJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -912,35 +983,23 @@ trait APIMethods500 {
             challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
             _ <- scaMethod match {
               case v if v == StrongCustomerAuthentication.EMAIL.toString => // Send the email
-                for{
-                  failMsg <- Future {s"$InvalidJsonFormat The Json body must contain the field email"}
-                  consentScaEmail <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                    consentRequestJson.email.head
-                  }
-                  (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
-                    StrongCustomerAuthentication.EMAIL,
-                    consentScaEmail,
-                    Some("OBP Consent Challenge"),
-                    challengeText,
-                    callContext
-                    )
-                } yield Future{status}
-              case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+                sendEmailNotification(callContext, consentRequestJson, challengeText)
+              case v if v == StrongCustomerAuthentication.SMS.toString =>
+                sendSmsNotification(callContext, consentRequestJson, challengeText)
+              case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
                 for {
-                  failMsg <- Future {
-                    s"$InvalidJsonFormat The Json body must contain the field phone_number"
-                  }
-                  consentScaPhoneNumber <- NewStyle.function.tryons(failMsg, 400, callContext) {
-                    consentRequestJson.phone_number.head
-                  }
-                  (Full(status), callContext) <- Connector.connector.vend.sendCustomerNotification(
-                    StrongCustomerAuthentication.SMS,
-                    consentScaPhoneNumber,
-                    None,
-                    challengeText,
-                    callContext
-                    )
-                } yield Future{status}
+                  (consentImplicitSCA, callContext) <- NewStyle.function.getConsentImplicitSCA(user, callContext)
+                  status <- consentImplicitSCA.scaMethod match {
+                    case v if v == StrongCustomerAuthentication.EMAIL => // Send the email
+                      sendEmailNotification(callContext, consentRequestJson.copy(email=Some(consentImplicitSCA.recipient)), challengeText)
+                    case v if v == StrongCustomerAuthentication.SMS =>
+                      sendSmsNotification(callContext, consentRequestJson.copy(phone_number=Some(consentImplicitSCA.recipient)), challengeText)
+                    case _ => Future {
+                      "Success"
+                    }
+                  }} yield {
+                  status
+                }
               case _ =>Future{"Success"}
             }
           } yield {

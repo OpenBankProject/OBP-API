@@ -144,10 +144,6 @@ object RemotedataViews extends ObpActorInit with Views {
     (actor ? cc.getOrCreatePublicPublicView(bankId, accountId, description)).mapTo[Box[View]]
   )
 
-  def createCustomRandomView(bankId: BankId, accountId: AccountId) : Box[View] = getValueFromFuture(
-    (actor ? cc.createRandomView(bankId, accountId)).mapTo[Box[View]]
-  )
-
   // For tests
   def bulkDeleteAllPermissionsAndViews(): Boolean = getValueFromFuture(
     (actor ? cc.bulkDeleteAllPermissionsAndViews()).mapTo[Boolean]

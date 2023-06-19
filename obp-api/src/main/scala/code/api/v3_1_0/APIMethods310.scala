@@ -3235,8 +3235,9 @@ trait APIMethods310 {
          |
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
-         |A One Time Password (OTP) (AKA security challenge) is sent Out of band (OOB) to the User via the transport defined in SCA_METHOD
-         |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+         |SCA_METHOD is typically "SMS","EMAIL" or "IMPLICIT". "EMAIL" is used for testing purposes. OBP mapped mode "IMPLICIT" is "EMAIL".
+         |Other mode, bank can decide it in the connector method 'getConsentImplicitSCA'.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
@@ -3250,7 +3251,7 @@ trait APIMethods310 {
          |  "views": [],
          |  "entitlements": [],
          |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         |  "email": "eveline@example.com"
+         |  "phone_number": "+49 170 1234567"
          |}
          |
          |Please note that consumer_id is optional field
@@ -3259,7 +3260,7 @@ trait APIMethods310 {
          |  "everything": true,
          |  "views": [],
          |  "entitlements": [],
-         |  "email": "eveline@example.com"
+         |  "phone_number": "+49 170 1234567"
          |}
          |
          |Please note if everything=false you need to explicitly specify views and entitlements
@@ -3280,7 +3281,7 @@ trait APIMethods310 {
          |    }
          |  ],
          |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-         |  "email": "eveline@example.com"
+         |  "phone_number": "+49 170 1234567"
          |}
          |
          |""",
@@ -3314,7 +3315,8 @@ trait APIMethods310 {
          |The Consent is created in an ${ConsentStatus.INITIATED} state.
          |
          |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
-         |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+         |SCA_METHOD is typically "SMS","EMAIL" or "IMPLICIT". "EMAIL" is used for testing purposes. OBP mapped mode "IMPLICIT" is "EMAIL".
+         |Other mode, bank can decide it in the connector method 'getConsentImplicitSCA'.
          |
          |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
          |
@@ -3380,8 +3382,87 @@ trait APIMethods310 {
       ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil)
 
+    resourceDocs += ResourceDoc(
+      createConsentImplicit,
+      implementedInApiVersion,
+      nameOf(createConsentImplicit),
+      "POST",
+      "/banks/BANK_ID/my/consents/IMPLICIT",
+      "Create Consent (IMPLICIT)",
+      s"""
+         |
+         |This endpoint starts the process of creating a Consent.
+         |
+         |The Consent is created in an ${ConsentStatus.INITIATED} state.
+         |
+         |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+         |SCA_METHOD is typically "SMS","EMAIL" or "IMPLICIT". "EMAIL" is used for testing purposes. OBP mapped mode "IMPLICIT" is "EMAIL".
+         |Other mode, bank can decide it in the connector method 'getConsentImplicitSCA'.
+         |
+         |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
+         |
+         |$generalObpConsentText
+         |
+         |${authenticationRequiredMessage(true)}
+         |
+         |Example 1: 
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |}
+         |
+         |Please note that consumer_id is optional field
+         |Example 2:
+         |{
+         |  "everything": true,
+         |  "views": [],
+         |  "entitlements": [],
+         |}
+         |
+         |Please note if everything=false you need to explicitly specify views and entitlements
+         |Example 3:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "owner"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomer"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |}
+         |
+         |""",
+      postConsentImplicitJsonV310,
+      consentJsonV310,
+      List(
+        UserNotLoggedIn,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2  :: Nil)
+
     lazy val createConsentEmail = createConsent
     lazy val createConsentSms = createConsent
+    lazy val createConsentImplicit = createConsent
 
     lazy val createConsent : OBPEndpoint = {
       case "banks" :: BankId(bankId) :: "my" :: "consents"  :: scaMethod :: Nil JsonPost json -> _  => {
@@ -3390,7 +3471,7 @@ trait APIMethods310 {
             (Full(user), callContext) <- authenticatedAccess(cc)
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
-              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
+              List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString(), StrongCustomerAuthentication.IMPLICIT.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -3468,7 +3549,7 @@ trait APIMethods310 {
                   callContext
                 )
               } yield Future{status}
-            case v if v == StrongCustomerAuthentication.SMS.toString => // Not implemented
+            case v if v == StrongCustomerAuthentication.SMS.toString =>
               for {
                 failMsg <- Future {
                   s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310"
@@ -3485,6 +3566,32 @@ trait APIMethods310 {
                   callContext
                 )
               } yield Future{status}
+            case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
+              for {
+                (consentImplicitSCA, callContext) <- NewStyle.function.getConsentImplicitSCA(user, callContext)
+                status <- consentImplicitSCA.scaMethod match {
+                  case v if v == StrongCustomerAuthentication.EMAIL => // Send the email
+                    Connector.connector.vend.sendCustomerNotification (
+                      StrongCustomerAuthentication.EMAIL,
+                      consentImplicitSCA.recipient,
+                      Some ("OBP Consent Challenge"),
+                      challengeText,
+                      callContext
+                    )
+                  case v if v == StrongCustomerAuthentication.SMS =>
+                    Connector.connector.vend.sendCustomerNotification(
+                      StrongCustomerAuthentication.SMS,
+                      consentImplicitSCA.recipient,
+                      None,
+                      challengeText,
+                      callContext
+                    )
+                  case _ => Future {
+                    "Success"
+                  }
+                }} yield {
+                status
+              }
             case _ =>Future{"Success"}
             }
           } yield {
@@ -3671,7 +3778,7 @@ trait APIMethods310 {
               checkScope(bankId.value, getConsumerPrimaryKey(callContext), ApiRole.canCreateUserAuthContextUpdate)
             }
             (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
-            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc=callContext){
+            _ <- Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc=callContext){
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).exists(_ == scaMethod)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "

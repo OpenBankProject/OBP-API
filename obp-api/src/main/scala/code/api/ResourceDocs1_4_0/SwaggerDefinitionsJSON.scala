@@ -4189,6 +4189,15 @@ object SwaggerDefinitionsJSON {
     valid_from = Some(new Date()),
     time_to_live = Some(3600)
   )
+  
+  val postConsentImplicitJsonV310 = PostConsentImplicitJsonV310(
+    everything = false,
+    views = List(PostConsentViewJsonV310(bankIdExample.value, accountIdExample.value, viewIdExample.value)),
+    entitlements = List(PostConsentEntitlementJsonV310(bankIdExample.value, "CanGetCustomer")),
+    consumer_id = Some(consumerIdExample.value),
+    valid_from = Some(new Date()),
+    time_to_live = Some(3600)
+  )
   val postConsentRequestJsonV310 = postConsentPhoneJsonV310.copy(consumer_id = None)
   
   val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))

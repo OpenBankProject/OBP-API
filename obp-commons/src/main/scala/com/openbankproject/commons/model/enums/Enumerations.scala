@@ -84,6 +84,7 @@ object StrongCustomerAuthentication extends OBPEnumeration[StrongCustomerAuthent
   type SCA = Value
   object SMS extends Value
   object EMAIL extends Value
+  object IMPLICIT extends Value
   object DUMMY extends Value
   object UNDEFINED extends Value
 

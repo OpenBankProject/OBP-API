@@ -2,7 +2,6 @@ package code.bankconnectors
 
 import java.util.Date
 import java.util.UUID.randomUUID
-
 import _root_.akka.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
@@ -83,7 +82,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
+import com.openbankproject.commons.model.{AccountApplication, AccountAttribute, ConsentImplicitSCAT, DirectDebitTrait, FXRate, Product, ProductAttribute, ProductCollectionItem, TaxResidence, TransactionRequestCommonBodyJSON, _}
 import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import com.twilio.Twilio
@@ -5858,4 +5857,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     CustomerAccountLinkTrait.customerAccountLink.vend.createCustomerAccountLink(customerId: String, bankId, accountId: String, relationshipType: String) map { ( _, callContext) }
   }
 
+  override def getConsentImplicitSCA(user: User, callContext: Option[CallContext]): OBPReturnType[Box[ConsentImplicitSCAT]] = Future {
+  //find the email from the user, and the OBP Implicit SCA is email
+    (Full(ConsentImplicitSCA(
+      scaMethod =  StrongCustomerAuthentication.EMAIL,
+      recipient = user.emailAddress
+    )), callContext)
+  }
+
+  
 }
