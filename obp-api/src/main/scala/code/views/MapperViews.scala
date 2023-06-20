@@ -680,7 +680,7 @@ object MapperViews extends Views with MdcLoggable {
   }
   def getExistingSystemView(viewId: String): Box[View] = {
     val res = ViewDefinition.findSystemView(viewId)
-    logger.debug(s"-->getExistingSystemView: ${res} ")
+    logger.debug(s"-->getExistingSystemView(viewId($viewId)) = result ${res} ")
     if(res.isDefined && res.openOrThrowException(attemptedToOpenAnEmptyBox).isPublic && !allowPublicViews) return Failure(PublicViewsNotAllowedOnThisInstance)
     res
   }

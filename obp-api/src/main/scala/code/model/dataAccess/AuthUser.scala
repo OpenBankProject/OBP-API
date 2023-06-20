@@ -1433,6 +1433,7 @@ def restoreSomeSessions(): Unit = {
           accountId = newBankAccountId.accountId
           newBankAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- newBankAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
+          _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewBankAccountIds-------" + csbNewBankAccountIds)
           view <- Views.views.vend.getOrCreateSystemViewFromCbs(viewId)//TODO, only support system views so far, may add custom views later.
         } yield {
           UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
