@@ -93,8 +93,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "Metric",
-        "New-Style"
+        "Metric"
       ],
       "typed_request_body": {
         "type": "object",
@@ -396,8 +395,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "KYC",
-        "New-Style"
+        "KYC"
       ],
       "typed_request_body": {
         "type": "object",
@@ -673,8 +671,7 @@
       "is_obwg": false,
       "tags": [
         "Standing-Order",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -885,8 +882,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -1443,8 +1439,7 @@
       "is_obwg": true,
       "tags": [
         "Account",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -1616,8 +1611,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -1908,8 +1902,7 @@
       "is_obwg": true,
       "tags": [
         "Transaction-Request",
-        "Payment Initiation Service (PIS)",
-        "New-Style"
+        "Payment Initiation Service (PIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -2494,8 +2487,7 @@
       "tags": [
         "Scope",
         "Role",
-        "Entitlement",
-        "New-Style"
+        "Entitlement"
       ],
       "typed_request_body": {
         "type": "object",
@@ -2546,8 +2538,7 @@
       "is_obwg": false,
       "tags": [
         "Consent",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -2609,8 +2600,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "Card",
-        "New-Style"
+        "Card"
       ],
       "typed_request_body": {
         "type": "object",
@@ -2700,8 +2690,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -2826,8 +2815,7 @@
       "is_obwg": false,
       "tags": [
         "Dynamic-Entity",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -2889,8 +2877,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -2992,8 +2979,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -3150,8 +3136,7 @@
       "is_obwg": false,
       "tags": [
         "Method-Routing",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -3352,8 +3337,7 @@
       "tags": [
         "Account",
         "PrivateData",
-        "PublicData",
-        "New-Style"
+        "PublicData"
       ],
       "typed_request_body": {
         "type": "object",
@@ -3755,8 +3739,7 @@
       "is_obwg": false,
       "tags": [
         "View",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -4121,8 +4104,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -4253,8 +4235,7 @@
       "is_obwg": false,
       "tags": [
         "Consumer",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -4610,8 +4591,7 @@
       "tags": [
         "Account",
         "Account Information Service (AIS)",
-        "View",
-        "New-Style"
+        "View"
       ],
       "typed_request_body": {
         "type": "object",
@@ -4785,8 +4765,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Consumer",
-        "New-Style"
+        "Consumer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -4912,8 +4891,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -5138,8 +5116,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "System-View",
-        "New-Style"
+        "System-View"
       ],
       "typed_request_body": {
         "type": "object",
@@ -5586,8 +5563,7 @@
       "is_obwg": false,
       "tags": [
         "Account-Public",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -5710,8 +5686,7 @@
       "is_obwg": false,
       "tags": [
         "WebUi-Props",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -6226,8 +6201,7 @@
       "is_obwg": false,
       "tags": [
         "Webhook",
-        "Bank",
-        "New-Style"
+        "Bank"
       ],
       "typed_request_body": {
         "type": "object",
@@ -6321,8 +6295,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "KYC",
-        "New-Style"
+        "KYC"
       ],
       "typed_request_body": {
         "type": "object",
@@ -6405,8 +6378,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Consumer",
-        "New-Style"
+        "Consumer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -6551,8 +6523,7 @@
       "is_obwg": true,
       "tags": [
         "Consent",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -6804,8 +6775,7 @@
       "is_obwg": false,
       "tags": [
         "Account-Application",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -7384,8 +7354,7 @@
       "is_obwg": false,
       "tags": [
         "Role",
-        "Entitlement",
-        "New-Style"
+        "Entitlement"
       ],
       "typed_request_body": {
         "type": "object",
@@ -7637,8 +7606,7 @@
       "is_obwg": false,
       "tags": [
         "Transaction",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -8078,8 +8046,7 @@
       "is_obwg": false,
       "tags": [
         "Standing-Order",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -8273,8 +8240,7 @@
       "tags": [
         "Transaction",
         "Account Information Service (AIS)",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -8493,8 +8459,7 @@
       "is_obwg": false,
       "tags": [
         "Dynamic-Entity",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -8654,8 +8619,7 @@
       "is_obwg": true,
       "tags": [
         "Bank",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -8817,8 +8781,7 @@
       "is_obwg": true,
       "tags": [
         "Account",
-        "Confirmation of Funds Service (PIIS)",
-        "New-Style"
+        "Confirmation of Funds Service (PIIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -9372,8 +9335,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "ATM",
-        "New-Style"
+        "ATM"
       ],
       "typed_request_body": {
         "type": "object",
@@ -9577,8 +9539,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "KYC",
-        "New-Style"
+        "KYC"
       ],
       "typed_request_body": {
         "type": "object",
@@ -10140,8 +10101,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Product",
-        "New-Style"
+        "Product"
       ],
       "typed_request_body": {
         "type": "object",
@@ -10461,8 +10421,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -10646,8 +10605,7 @@
       "is_obwg": false,
       "tags": [
         "Transaction-Request",
-        "Payment Initiation Service (PIS)",
-        "New-Style"
+        "Payment Initiation Service (PIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -11007,8 +10965,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "System-View",
-        "New-Style"
+        "System-View"
       ],
       "typed_request_body": {
         "type": "object",
@@ -11292,8 +11249,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -11398,8 +11354,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Card",
-        "New-Style"
+        "Card"
       ],
       "typed_request_body": {
         "type": "object",
@@ -11567,8 +11522,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -11628,8 +11582,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -11706,8 +11659,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -12010,8 +11962,7 @@
       "is_obwg": false,
       "tags": [
         "Dynamic-Entity",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -12173,8 +12124,7 @@
       "is_obwg": true,
       "tags": [
         "Bank",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -12429,8 +12379,7 @@
       "is_obwg": true,
       "tags": [
         "Branch",
-        "Bank",
-        "New-Style"
+        "Bank"
       ],
       "typed_request_body": {
         "type": "object",
@@ -12789,8 +12738,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -12960,8 +12908,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "FirehoseData",
-        "New-Style"
+        "FirehoseData"
       ],
       "typed_request_body": {
         "type": "object",
@@ -13151,8 +13098,7 @@
       "is_obwg": true,
       "tags": [
         "Counterparty",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -13325,8 +13271,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -13486,8 +13431,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "ATM",
-        "New-Style"
+        "ATM"
       ],
       "typed_request_body": {
         "type": "object",
@@ -13717,8 +13661,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -13882,8 +13825,7 @@
       "is_obwg": false,
       "tags": [
         "Direct-Debit",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -14228,8 +14170,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -14305,8 +14246,7 @@
       "is_obwg": false,
       "tags": [
         "User",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -14387,8 +14327,7 @@
       "is_obwg": false,
       "tags": [
         "Method-Routing",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -14534,8 +14473,7 @@
       "is_obwg": true,
       "tags": [
         "Transaction-Request",
-        "Payment Initiation Service (PIS)",
-        "New-Style"
+        "Payment Initiation Service (PIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -14731,8 +14669,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Data-Warehouse",
-        "New-Style"
+        "Data-Warehouse"
       ],
       "typed_request_body": {
         "type": "object",
@@ -14797,8 +14734,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Product",
-        "New-Style"
+        "Product"
       ],
       "typed_request_body": {
         "type": "object",
@@ -16096,8 +16032,7 @@
       "is_obwg": false,
       "tags": [
         "Account-Application",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -16286,8 +16221,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "KYC",
-        "New-Style"
+        "KYC"
       ],
       "typed_request_body": {
         "type": "object",
@@ -16517,8 +16451,7 @@
       "is_obwg": true,
       "tags": [
         "Transaction-Request",
-        "Payment Initiation Service (PIS)",
-        "New-Style"
+        "Payment Initiation Service (PIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -16890,8 +16823,7 @@
       "tags": [
         "Account",
         "Account Information Service (AIS)",
-        "PrivateData",
-        "New-Style"
+        "PrivateData"
       ],
       "typed_request_body": {
         "type": "object",
@@ -17008,8 +16940,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -17137,8 +17068,7 @@
       "tags": [
         "Account",
         "Account-Firehose",
-        "FirehoseData",
-        "New-Style"
+        "FirehoseData"
       ],
       "typed_request_body": {
         "type": "object",
@@ -17457,8 +17387,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -17693,8 +17622,7 @@
       "tags": [
         "Account-Public",
         "Account",
-        "PublicData",
-        "New-Style"
+        "PublicData"
       ],
       "typed_request_body": {
         "type": "object",
@@ -17978,8 +17906,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Data-Warehouse",
-        "New-Style"
+        "Data-Warehouse"
       ],
       "typed_request_body": {
         "type": "object",
@@ -18150,8 +18077,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -18543,8 +18469,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -19204,8 +19129,7 @@
       "is_obwg": false,
       "tags": [
         "Scope",
-        "Role",
-        "New-Style"
+        "Role"
       ],
       "typed_request_body": {
         "type": "object",
@@ -19303,8 +19227,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "KYC",
-        "New-Style"
+        "KYC"
       ],
       "typed_request_body": {
         "type": "object",
@@ -20082,8 +20005,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -20166,8 +20088,7 @@
       "is_obwg": false,
       "tags": [
         "Consumer",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -20288,8 +20209,7 @@
       "is_obwg": true,
       "tags": [
         "Account",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -20710,8 +20630,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -20918,8 +20837,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -20993,8 +20911,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -21111,8 +21028,7 @@
       "is_obwg": false,
       "tags": [
         "Account-Application",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -21423,8 +21339,7 @@
       "is_obwg": true,
       "tags": [
         "Transaction-Request",
-        "Payment Initiation Service (PIS)",
-        "New-Style"
+        "Payment Initiation Service (PIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -21799,8 +21714,7 @@
       "is_obwg": false,
       "tags": [
         "Webhook",
-        "Bank",
-        "New-Style"
+        "Bank"
       ],
       "typed_request_body": {
         "type": "object",
@@ -21901,8 +21815,7 @@
       "is_obwg": true,
       "tags": [
         "Account",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -22134,8 +22047,7 @@
       "is_obwg": true,
       "tags": [
         "Transaction-Request",
-        "Payment Initiation Service (PIS)",
-        "New-Style"
+        "Payment Initiation Service (PIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -22530,8 +22442,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -23216,8 +23127,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "System-View",
-        "New-Style"
+        "System-View"
       ],
       "typed_request_body": {
         "type": "object",
@@ -23548,8 +23458,7 @@
       "is_obwg": true,
       "tags": [
         "Consent",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -23868,8 +23777,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -24020,8 +23928,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -24323,8 +24230,7 @@
       "is_obwg": true,
       "tags": [
         "Consent",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -24645,8 +24551,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -24762,8 +24667,7 @@
       "is_obwg": false,
       "tags": [
         "Dynamic-Entity",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -24876,8 +24780,7 @@
       "is_obwg": false,
       "tags": [
         "Method-Routing",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -26266,8 +26169,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -26507,8 +26409,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "Transaction",
-        "New-Style"
+        "Transaction"
       ],
       "typed_request_body": {
         "type": "object",
@@ -26902,8 +26803,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -27117,8 +27017,7 @@
       "is_obwg": false,
       "tags": [
         "View",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -27616,8 +27515,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -28029,8 +27927,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Role",
-        "New-Style"
+        "Role"
       ],
       "typed_request_body": {
         "type": "object",
@@ -28195,8 +28092,7 @@
       "is_obwg": true,
       "tags": [
         "Branch",
-        "Bank",
-        "New-Style"
+        "Bank"
       ],
       "typed_request_body": {
         "type": "object",
@@ -28525,8 +28421,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -28669,8 +28564,7 @@
       "is_obwg": false,
       "tags": [
         "Method-Routing",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -28778,8 +28672,7 @@
       "is_obwg": false,
       "tags": [
         "WebUi-Props",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -28982,8 +28875,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "KYC",
-        "New-Style"
+        "KYC"
       ],
       "typed_request_body": {
         "type": "object",
@@ -29081,8 +28973,7 @@
       "is_obwg": false,
       "tags": [
         "Account-Application",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -29265,8 +29156,7 @@
       "tags": [
         "Scope",
         "Role",
-        "Entitlement",
-        "New-Style"
+        "Entitlement"
       ],
       "typed_request_body": {
         "type": "object",
@@ -29424,8 +29314,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -29588,8 +29477,7 @@
       "is_obwg": false,
       "tags": [
         "Consumer",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -30836,8 +30724,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31018,8 +30905,7 @@
       "is_obwg": false,
       "tags": [
         "View",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31472,8 +31358,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31540,8 +31425,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "Metric",
-        "New-Style"
+        "Metric"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31615,8 +31499,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31683,8 +31566,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "FX",
-        "New-Style"
+        "FX"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31752,8 +31634,7 @@
       "is_obwg": false,
       "tags": [
         "Metric",
-        "Aggregate-Metrics",
-        "New-Style"
+        "Aggregate-Metrics"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31844,8 +31725,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -31975,8 +31855,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -32212,8 +32091,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Card",
-        "New-Style"
+        "Card"
       ],
       "typed_request_body": {
         "type": "object",
@@ -32296,8 +32174,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Product",
-        "New-Style"
+        "Product"
       ],
       "typed_request_body": {
         "type": "object",
@@ -32616,8 +32493,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -32773,8 +32649,7 @@
       "is_obwg": false,
       "tags": [
         "Consent",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -32856,8 +32731,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "KYC",
-        "New-Style"
+        "KYC"
       ],
       "typed_request_body": {
         "type": "object",
@@ -32981,8 +32855,7 @@
       "is_obwg": false,
       "tags": [
         "Direct-Debit",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -33524,8 +33397,7 @@
       "is_obwg": true,
       "tags": [
         "Transaction-Request",
-        "Payment Initiation Service (PIS)",
-        "New-Style"
+        "Payment Initiation Service (PIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -34212,8 +34084,7 @@
       "is_obwg": false,
       "tags": [
         "WebUi-Props",
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -34414,8 +34285,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -34872,8 +34742,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "System-View",
-        "New-Style"
+        "System-View"
       ],
       "typed_request_body": {
         "type": "object",
@@ -35304,8 +35173,7 @@
       "is_obwg": false,
       "tags": [
         "Customer",
-        "Person",
-        "New-Style"
+        "Person"
       ],
       "typed_request_body": {
         "type": "object",
@@ -35620,8 +35488,7 @@
       "is_obwg": false,
       "tags": [
         "Webhook",
-        "Bank",
-        "New-Style"
+        "Bank"
       ],
       "typed_request_body": {
         "type": "object",
@@ -35752,8 +35619,7 @@
       "is_obwg": true,
       "tags": [
         "Counterparty",
-        "Account",
-        "New-Style"
+        "Account"
       ],
       "typed_request_body": {
         "type": "object",
@@ -35999,8 +35865,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -36202,8 +36067,7 @@
       "is_obwg": false,
       "tags": [
         "Account",
-        "Account Information Service (AIS)",
-        "New-Style"
+        "Account Information Service (AIS)"
       ],
       "typed_request_body": {
         "type": "object",
@@ -36414,8 +36278,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Customer",
-        "New-Style"
+        "Customer"
       ],
       "typed_request_body": {
         "type": "object",
@@ -36593,8 +36456,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -36697,8 +36559,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -37000,8 +36861,7 @@
         "Transaction",
         "Account-Firehose",
         "Transaction-Firehose",
-        "FirehoseData",
-        "New-Style"
+        "FirehoseData"
       ],
       "typed_request_body": {
         "type": "object",
@@ -37411,8 +37271,7 @@
       "is_psd2": false,
       "is_obwg": false,
       "tags": [
-        "Product",
-        "New-Style"
+        "Product"
       ],
       "typed_request_body": {
         "type": "object",
@@ -37466,8 +37325,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -37805,8 +37663,7 @@
       "is_psd2": false,
       "is_obwg": true,
       "tags": [
-        "API",
-        "New-Style"
+        "API"
       ],
       "typed_request_body": {
         "type": "object",
@@ -38684,8 +38541,7 @@
       "tags": [
         "Role",
         "Entitlement",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
@@ -38826,8 +38682,7 @@
       "tags": [
         "View",
         "Account",
-        "User",
-        "New-Style"
+        "User"
       ],
       "typed_request_body": {
         "type": "object",
