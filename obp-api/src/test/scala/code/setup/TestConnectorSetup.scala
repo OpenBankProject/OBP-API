@@ -146,7 +146,7 @@ trait TestConnectorSetup {
   final protected def createPaymentTestBank() : Bank =
     createBank("payment-test-bank")
 
-  protected def getOrCreateSystemView(name: String): View
+  protected def getOrCreateSystemView(viewId: String): View
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View
   protected def createCustomRandomView(bankId: BankId, accountId: AccountId) : View
 
