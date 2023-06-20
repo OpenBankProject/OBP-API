@@ -1133,13 +1133,15 @@ trait APIMethods200 {
               "", //added new field in V220
               List.empty
             )
+            //1 Create or Update the `Owner` for the new account
+            //2 Add permission to the user
+            //3 Set the user as the account holder
+            _ = BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, callContext)
+            dataContext = DataContext(cc.user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
+            links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
+            json = JSONFactory200.createCoreAccountJSON(bankAccount, links)
+            
           } yield {
-            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, postedOrLoggedInUser, Some(cc))
-
-            val dataContext = DataContext(cc.user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
-            val links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
-            val json = JSONFactory200.createCoreAccountJSON(bankAccount, links)
-
             successJsonResponse(Extraction.decompose(json))
           }
         }
