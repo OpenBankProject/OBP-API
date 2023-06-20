@@ -96,7 +96,7 @@ object MapperViews extends Views with MdcLoggable {
       By(AccountAccess.bank_id, bankId), 
       By(AccountAccess.account_id, accountId), 
       By(AccountAccess.view_id, viewDefinition.viewId.value)) == 0) {
-      //logger.debug(s"saving AccountAccessList for user ${user.resourceUserId.value} for view ${vImpl.id}")
+      logger.debug(s"getOrGrantAccessToCustomView AccountAccess.create user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId)")
       // SQL Insert AccountAccessList
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
@@ -112,7 +112,10 @@ object MapperViews extends Views with MdcLoggable {
         //logger.debug("failed to save AccountAccessList")
         Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
       }
-    } else Full(viewDefinition) //accountAccess already exists, no need to create one
+    } else {
+      logger.debug(s"getOrGrantAccessToCustomView AccountAccess is already existing (UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId))")
+      Full(viewDefinition)
+    } //accountAccess already exists, no need to create one
   }
   // This is an idempotent function 
   private def getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user: User, view: View): Box[View] = {
