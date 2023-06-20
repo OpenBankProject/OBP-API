@@ -1420,8 +1420,8 @@ def restoreSomeSessions(): Unit = {
           _ = AccountHolders.accountHolders.vend.deleteAccountHolder(user,cbsRemovedBankAccountId)
           cbsAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- cbsAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
+          _=UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
         } yield {
-          UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
           Views.views.vend.removeCustomView(ViewId(viewId), cbsRemovedBankAccountId)
         }
         
@@ -1435,8 +1435,8 @@ def restoreSomeSessions(): Unit = {
           viewId <- newBankAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
           _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewBankAccountIds-------" + csbNewBankAccountIds)
           view <- Views.views.vend.getOrCreateSystemViewFromCbs(viewId)//TODO, only support system views so far, may add custom views later.
+          _=UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
         } yield {
-          UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
           if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
             Views.views.vend.grantAccessToSystemView(bankId, accountId, view, user)
           else //otherwise, we will call `grantAccessToCustomView`
@@ -1470,12 +1470,13 @@ def restoreSomeSessions(): Unit = {
               for{
                 newViewForAccount <- csbNewViewsForAccount
                 view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount)//TODO, only support system views so far, may add custom views later.
+                _ = UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
               }yield{
                 if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
                   Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
                 else //otherwise, we will call `grantAccessToCustomView`
                   Views.views.vend.grantAccessToCustomView(view.uid, user)
-                UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+                
               }
             } 
           } yield {
