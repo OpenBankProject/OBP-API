@@ -1433,7 +1433,7 @@ def restoreSomeSessions(): Unit = {
           accountId = newBankAccountId.accountId
           newBankAccount = accountsHeld.find(cbsAccount =>cbsAccount.bankId == bankId.value && cbsAccount.accountId == accountId.value)
           viewId <- newBankAccount.map(_.viewsToGenerate).getOrElse(List.empty[String])
-          view <- Views.views.vend.getOrCreateSystemViewFromCbs(viewId)//this method will return both system views and custom views back.
+          view <- Views.views.vend.getOrCreateSystemViewFromCbs(viewId)//TODO, only support system views so far, may add custom views later.
         } yield {
           UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
           if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
@@ -1451,9 +1451,11 @@ def restoreSomeSessions(): Unit = {
             obpViewsForAccount = Views.views.vend.privateViewsUserCanAccessForAccount(user, bankAccountId).map(_.viewId.value)
             
             cbsViewsForAccount = accountsHeld.find(account => account.bankId.equals(bankAccountId.bankId.value) && account.accountId.equals(bankAccountId.accountId.value)).map(_.viewsToGenerate).getOrElse(Nil)
-           
+            _ = logger.debug("refreshViewsAccountAccessAndHolders.obpViewsForAccount-------" + obpViewsForAccount)
+            _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsViewsForAccount-------" + cbsViewsForAccount)
             //cbs removed these views, but OBP still contains the data for them, so we need to clean data in OBP side.
             cbsRemovedViewsForAccount = obpViewsForAccount diff cbsViewsForAccount
+            _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsRemovedViewsForAccount-------" + cbsRemovedViewsForAccount)
             _ = if(cbsRemovedViewsForAccount.nonEmpty){
               val cbsRemovedViewIdBankIdAccountIds = cbsRemovedViewsForAccount.map(view => ViewIdBankIdAccountId(ViewId(view), bankAccountId.bankId, bankAccountId.accountId))
               Views.views.vend.revokeAccessToMultipleViews(cbsRemovedViewIdBankIdAccountIds, user) 
@@ -1462,10 +1464,11 @@ def restoreSomeSessions(): Unit = {
             } 
             //cbs has new views which are not in obp yet, we need to create new data for these accounts.
             csbNewViewsForAccount = cbsViewsForAccount diff obpViewsForAccount
+            _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount-------" + csbNewViewsForAccount)
             _ = if(csbNewViewsForAccount.nonEmpty){
               for{
                 newViewForAccount <- csbNewViewsForAccount
-                view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount) //this method will return both system views and custom views back.
+                view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount)//TODO, only support system views so far, may add custom views later.
               }yield{
                 if (view.isSystem)//if the view is a system view, we will call `grantAccessToSystemView`
                   Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
