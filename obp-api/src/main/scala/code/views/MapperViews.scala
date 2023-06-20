@@ -627,7 +627,7 @@ object MapperViews extends Views with MdcLoggable {
         Failure(ViewIdNotSupported+ s"Your input viewId is :$viewId")
       }
     
-    logger.debug(s"-->getOrCreateAccountView.${viewId } : ${theView} ")
+    logger.debug(s"-->getOrCreateSystemViewFromCbs.${viewId } : ${theView} ")
     
     theView
   }
