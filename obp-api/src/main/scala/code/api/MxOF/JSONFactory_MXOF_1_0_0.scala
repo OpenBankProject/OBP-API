@@ -1,7 +1,7 @@
 package code.api.MxOF
 
 import code.api.util.{APIUtil, CustomJsonFormats}
-import code.api.util.APIUtil.{defaultBankId, listOrNone, stringOrNone}
+import code.api.util.APIUtil.{defaultBankId, listOrNone, stringOrNone, theEpochTime}
 import code.atms.MappedAtm
 import code.bankattribute.BankAttribute
 import com.openbankproject.commons.model.Bank
@@ -170,10 +170,16 @@ object JSONFactory_MXOF_0_0_1 extends CustomJsonFormats {
        )
      }
      )
-     val lastUpdated: Date = MappedAtm.findAll(
+     val mappedAtmList: List[MappedAtm] = MappedAtm.findAll(
        NotNullRef(MappedAtm.updatedAt),
        OrderBy(MappedAtm.updatedAt, Descending),
-     ).head.updatedAt.get
+     )
+     
+     val lastUpdated: Date = if(mappedAtmList.nonEmpty) {
+        mappedAtmList.head.updatedAt.get
+       }else{
+        theEpochTime
+       }
      
      val agreement = attributes.find(_.name.equals(BANK_ATTRIBUTE_AGREEMENT)).map(_.value).getOrElse("")
      val license = attributes.find(_.name.equals(BANK_ATTRIBUTE_LICENSE)).map(_.value).getOrElse("")
