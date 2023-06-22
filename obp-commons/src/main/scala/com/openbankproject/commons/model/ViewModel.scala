@@ -260,6 +260,8 @@ trait View {
   //transaction fields
   def canSeeTransactionRequests: Boolean
   
+  def canSeeTransactionRequestTypes: Boolean
+  
   def canSeeTransactionThisBankAccount: Boolean
 
   def canSeeTransactionOtherBankAccount: Boolean

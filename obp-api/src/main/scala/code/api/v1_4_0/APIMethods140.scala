@@ -423,6 +423,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
             failMsg = ErrorMessages.InvalidISOCurrencyCode.concat("Please specify a valid value for CURRENCY of your Bank Account. ")
             _ <- NewStyle.function.isValidCurrencyISOCode(fromAccount.currency, failMsg, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName}` permission on the View(${viewId.value} )",
+              cc = callContext
+            ) {
+              view.canSeeTransactionRequestTypes
+            }
             transactionRequestTypes <- Future(Connector.connector.vend.getTransactionRequestTypes(u, fromAccount, callContext)) map {
               connectorEmptyResponse(_, callContext)
             }

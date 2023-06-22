@@ -20,8 +20,9 @@ object MigrationOfViewDefinitionPermissions {
           By(ViewDefinition.isSystem_,true)
         ).map(view => 
           view
-//            .canSeeTransactionRequests_(true)
-//            .canSeeAvailableViewsForBankAccount_(true)
+            .canSeeTransactionRequestTypes_(true)
+            .canSeeTransactionRequests_(true)
+            .canSeeAvailableViewsForBankAccount_(true)
             .save
         ).head
 
@@ -31,7 +32,9 @@ object MigrationOfViewDefinitionPermissions {
 
         val comment: String =
           s"""ViewDefinition system owner view, update the following rows to true:
-             |canSeeTransactionRequests_
+             |${ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName}
+             |${ViewDefinition.canSeeTransactionRequests_.dbColumnName}
+             |${ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName}
              |Duration: ${endDate - startDate} ms;
              """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)

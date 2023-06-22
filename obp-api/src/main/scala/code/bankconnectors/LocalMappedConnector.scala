@@ -5270,13 +5270,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getTransactionRequestTypes(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]): Box[List[TransactionRequestType]] = {
     for {
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
       transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
     } yield transactionRequestTypes
   }
 
   override def getTransactionRequestTypesImpl(fromAccount: BankAccount): Box[List[TransactionRequestType]] = {
-    //TODO: write logic / data access
     // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
     val validTransactionRequestTypes = APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
     Full(validTransactionRequestTypes)
