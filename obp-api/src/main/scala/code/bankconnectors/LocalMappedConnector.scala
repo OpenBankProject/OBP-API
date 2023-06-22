@@ -5216,7 +5216,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       for {
         fromAccount <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
           s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-        isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
         transactionRequests <- getTransactionRequestsImpl(fromAccount)
       } yield transactionRequests
 

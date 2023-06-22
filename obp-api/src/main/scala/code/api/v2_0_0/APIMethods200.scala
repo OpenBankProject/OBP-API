@@ -30,6 +30,7 @@ import code.usercustomerlinks.UserCustomerLink
 import code.util.Helper
 import code.util.Helper.booleanToBox
 import code.views.Views
+import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.CurrentReq
@@ -1435,6 +1436,8 @@ trait APIMethods200 {
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
               view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
+              _ <- Helper.booleanToBox(view.canSeeTransactionRequests,
+                s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canSeeTransactionRequests_.dbColumnName}` permission on the View(${viewId.value} )")
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount, callContext)
             }
               yield {
