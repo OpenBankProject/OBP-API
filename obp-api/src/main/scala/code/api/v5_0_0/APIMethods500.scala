@@ -722,8 +722,11 @@ trait APIMethods500 {
         cc =>
           for {
             (_, callContext) <- applicationAccess(cc)
-            consent<- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId)} map {
+            consent <- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId)} map {
               unboxFullOrFail(_, callContext, ConsentRequestNotFound)
+            }
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = cc.callContext) {
+              consent.mUserId == cc.userId
             }
           } yield {
             (
