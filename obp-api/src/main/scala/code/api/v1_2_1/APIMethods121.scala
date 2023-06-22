@@ -2662,10 +2662,11 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (user, callContext) <- authenticatedAccess(cc)
+            (Full(user), callContext) <- authenticatedAccess(cc)
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
-            delete <- Future(metadata.deleteComment(commentId, user, account, callContext)) map {
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(user), callContext)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            delete <- Future(metadata.deleteComment(commentId, Full(user), account, view, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -2781,10 +2782,11 @@ trait APIMethods121 {
 
         cc =>
           for {
-            (user, callContext) <- authenticatedAccess(cc)
-            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(user), callContext)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
             (bankAccount, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            delete <- Future(metadata.deleteTag(tagId, user, bankAccount, callContext)) map {
+            delete <- Future(metadata.deleteTag(tagId, Full(user), bankAccount, view, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -2904,10 +2906,11 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
         cc =>
           for {
-            (user, callContext) <- authenticatedAccess(cc)
-            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, Full(user), callContext)
+            view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Some(user), callContext)
             (account, _) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
-            delete <- Future(metadata.deleteImage(imageId, user, account, callContext)) map {
+            delete <- Future(metadata.deleteImage(imageId, Full(user), account, view, callContext)) map {
               unboxFullOrFail(_, callContext, "")
             }
           } yield {
@@ -3080,7 +3083,7 @@ trait APIMethods121 {
             (account, callContext) <- NewStyle.function.checkBankAccountExists(bankId, accountId, callContext)
             view <- NewStyle.function.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), user, callContext)
             metadata <- moderatedTransactionMetadataFuture(bankId, accountId, viewId, transactionId, user, callContext)
-            delete <- Future(metadata.deleteWhereTag(viewId, user, account, callContext)) map {
+            delete <- Future(metadata.deleteWhereTag(viewId, user, account, view, callContext)) map {
               unboxFullOrFail(_, callContext, "Delete not completed")
             }
           } yield {
