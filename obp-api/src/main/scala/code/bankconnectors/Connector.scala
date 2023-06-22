@@ -1166,30 +1166,8 @@ trait Connector extends MdcLoggable {
 
   def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean] = TransactionRequests.transactionRequestProvider.vend.saveTransactionRequestDescriptionImpl(transactionRequestId, description)
 
-  def getTransactionRequests(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext]) : Box[List[TransactionRequest]] = {
-    val transactionRequests =
-      for {
-        fromAccount <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
-          s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-        isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext), UserNoOwnerView)
-        transactionRequests <- getTransactionRequestsImpl(fromAccount)
-      } yield transactionRequests
-
-    //make sure we return null if no challenge was saved (instead of empty fields)
-    if (!transactionRequests.isEmpty) {
-      for {
-        treq <- transactionRequests
-      } yield {
-        treq.map(tr => if (tr.challenge.id == "") {
-          tr.copy(challenge = null)
-        } else {
-          tr
-        })
-      }
-    } else {
-      transactionRequests
-    }
-  }
+  def getTransactionRequests(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext]) : Box[List[TransactionRequest]] =
+    LocalMappedConnector.getTransactionRequests(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext])
 
   def getTransactionRequests210(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext]) : Box[(List[TransactionRequest], Option[CallContext])] = {
     val transactionRequests =
@@ -1230,12 +1208,8 @@ trait Connector extends MdcLoggable {
 
   def getTransactionRequestImpl(transactionRequestId: TransactionRequestId, callContext: Option[CallContext]): Box[(TransactionRequest, Option[CallContext])] = TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId).map(transactionRequest =>(transactionRequest, callContext))
 
-  def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext]) : Box[List[TransactionRequestType]] = {
-    for {
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext), UserNoOwnerView)
-      transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
-    } yield transactionRequestTypes
-  }
+  def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext]) : Box[List[TransactionRequestType]] =
+    LocalMappedConnector.getTransactionRequestTypes(initiator : User, fromAccount : BankAccount, callContext: Option[CallContext])
 
   protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
