@@ -1281,9 +1281,9 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              _ <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext) match {
+              _ <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext).map(_.canAddTransactionRequestToOwnAccount) match {
                 case Full(_) =>
-                  booleanToBox(u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext) == true)
+                  Full (Unit)
                 case _ =>
                   NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
               }
@@ -1350,9 +1350,10 @@ trait APIMethods200 {
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
               view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
-              _ <- if (u.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId,fromAccount.accountId), callContext)) Full(Unit)
-                  else NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
-              // Note: These checks are not in the ideal order. See version 2.1.0 which supercedes this
+              _ <- if (view.canAddTransactionRequestToOwnAccount)
+                Full(Unit)
+              else 
+                NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
 
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~! InvalidJsonFormat
               _ <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
