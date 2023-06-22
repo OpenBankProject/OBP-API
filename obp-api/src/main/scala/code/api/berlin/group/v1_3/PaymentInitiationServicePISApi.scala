@@ -567,10 +567,10 @@ $additionalInstructions
              (toAccount, callContext) <- NewStyle.function.getToBankAccountByIban(toAccountIban, callContext)
 
              //no accountAccess and no canAddTransactionRequestToOwnAccount ==> this will not throw exception,only return false! 
-             anyViewContainsCanAddTransactionRequestToOwnAccountPermission = Views.views.vend.permission(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), u)
-               .map(_.views.map(_.canAddTransactionRequestToOwnAccount).find(_.==(true)).getOrElse(false)).getOrElse(false)
+             anyViewContainsCanAddTransactionRequestToAnyAccountPermission = Views.views.vend.permission(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), u)
+               .map(_.views.map(_.canAddTransactionRequestToAnyAccount).find(_.==(true)).getOrElse(false)).getOrElse(false)
 
-             _ <- if (anyViewContainsCanAddTransactionRequestToOwnAccountPermission) 
+             _ <- if (anyViewContainsCanAddTransactionRequestToAnyAccountPermission) 
                Future.successful(Full(Unit))
              else 
                NewStyle.function.hasEntitlement(fromAccount.bankId.value, u.userId, ApiRole.canCreateAnyTransactionRequest, callContext, InsufficientAuthorisationToCreateTransactionRequest)

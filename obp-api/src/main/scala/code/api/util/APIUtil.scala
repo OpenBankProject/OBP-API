@@ -47,7 +47,7 @@ import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints
 import code.api.oauth1a.Arithmetics
 import code.api.oauth1a.OauthParams._
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
-import code.api.util.ApiRole.{canCreateProduct, canCreateProductAtAnyBank}
+import code.api.util.ApiRole.{canCreateAnyTransactionRequest, canCreateProduct, canCreateProductAtAnyBank}
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
 import code.api.util.Glossary.GlossaryItem
 import code.api.util.RateLimitingJson.CallLimit
@@ -3611,6 +3611,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           // The user has NO account access at all
           case _ => Empty
         }
+    }
+  }
+
+  final def checkAuthorisationToCreateTransactionRequest(viewId: ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]): Box[Boolean] = {
+    lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest)
+
+    lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user), callContext)
+
+    lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
+
+    //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
+    if (hasCanCreateAnyTransactionRequestRole) {
+      Full(true)
+      //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
+    } else if (canAddTransactionRequestToAnyAccount) {
+      Full(true)
+    } else {
+      Empty
     }
   }
 

@@ -625,22 +625,7 @@ object NewStyle extends MdcLoggable{
     
     def checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]) : Future[Boolean] = {
       Future{
-        
-        lazy val hasCanCreateAnyTransactionRequestRole = APIUtil.hasEntitlement(bankAccountId.bankId.value, user.userId, canCreateAnyTransactionRequest) 
-        
-        lazy val view = APIUtil.checkViewAccessAndReturnView(viewId, bankAccountId, Some(user), callContext)
-
-        lazy val canAddTransactionRequestToAnyAccount = view.map(_.canAddTransactionRequestToAnyAccount).getOrElse(false)
-        
-        //1st check the admin level role/entitlement `canCreateAnyTransactionRequest`
-        if(hasCanCreateAnyTransactionRequestRole) {
-          Full(true) 
-        //2rd: check if the user have the view access and the view has the `canAddTransactionRequestToAnyAccount` permission
-        } else if (canAddTransactionRequestToAnyAccount) {
-          Full(true)
-        } else{
-          Empty
-        }
+        APIUtil.checkAuthorisationToCreateTransactionRequest(viewId : ViewId, bankAccountId: BankIdAccountId, user: User, callContext: Option[CallContext])
       } map {
         unboxFullOrFail(_, callContext, s"$InsufficientAuthorisationToCreateTransactionRequest " +
           s"Current ViewId(${viewId.value})," +

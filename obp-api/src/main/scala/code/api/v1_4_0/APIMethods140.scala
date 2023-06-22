@@ -539,6 +539,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId : ViewId,  BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~!  {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " + 
+                  s"Current ViewId(${viewId.value})," + 
+                  s"current UserId(${u.userId})" + 
+                  s"current ConsumerId(${callContext.map (_.consumer.map (_.consumerId.get).getOrElse ("")).getOrElse ("")})"
+              }
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- BankAccountX(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -600,7 +606,12 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
               u <- cc.user ?~ ErrorMessages.UserNotLoggedIn
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccountX(bankId, accountId) ?~! BankAccountNotFound
-              view <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), Some(cc))
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId: ViewId, BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~! {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " +
+                  s"Current ViewId(${viewId.value})," +
+                  s"current UserId(${u.userId})" +
+                  s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
+              }
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ InvalidJsonFormat
               //TODO check more things here
               _ <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)

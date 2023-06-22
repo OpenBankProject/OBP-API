@@ -4672,7 +4672,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     for {
       fromAccount <- getBankAccountOld(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"$BankAccountNotFound  Account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
       toAccount <- getBankAccountOld(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"$BankAccountNotFound Account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
@@ -4730,7 +4729,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     val request = for {
       fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext), UserNoOwnerView)
       toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo {
@@ -4792,7 +4790,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     // Always create a new Transaction Request
     val request = for {
       fromAccountType <- getBankAccountOld(fromAccount.bankId, fromAccount.accountId) ?~ s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.hasOwnerViewAccess(BankIdAccountId(fromAccount.bankId, fromAccount.accountId), callContext) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, canCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       toAccountType <- getBankAccountOld(toAccount.bankId, toAccount.accountId) ?~ s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo {
         BigDecimal(body.value.amount)

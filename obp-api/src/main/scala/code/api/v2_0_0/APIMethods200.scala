@@ -1281,11 +1281,11 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(accountId.value)))?~! InvalidAccountIdFormat
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              _ <- APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext).map(_.canAddTransactionRequestToOwnAccount) match {
-                case Full(_) =>
-                  Full (Unit)
-                case _ =>
-                  NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId: ViewId, BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~! {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " +
+                  s"Current ViewId(${viewId.value})," +
+                  s"current UserId(${u.userId})" +
+                  s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
               }
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
@@ -1349,12 +1349,12 @@ trait APIMethods200 {
               _ <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               (bank, callContext ) <- BankX(bankId, Some(cc)) ?~! BankNotFound
               fromAccount <- BankAccountX(bankId, accountId) ?~! AccountNotFound
-              view <-APIUtil.checkViewAccessAndReturnView(viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), Some(u), callContext)
-              _ <- if (view.canAddTransactionRequestToOwnAccount)
-                Full(Unit)
-              else 
-                NewStyle.function.ownEntitlement(fromAccount.bankId.value, u.userId, canCreateAnyTransactionRequest, cc.callContext, InsufficientAuthorisationToCreateTransactionRequest)
-
+              _ <- APIUtil.checkAuthorisationToCreateTransactionRequest(viewId: ViewId, BankIdAccountId(bankId, accountId), u: User, callContext: Option[CallContext]) ?~! {
+                s"$InsufficientAuthorisationToCreateTransactionRequest " +
+                  s"Current ViewId(${viewId.value})," +
+                  s"current UserId(${u.userId})" +
+                  s"current ConsumerId(${callContext.map(_.consumer.map(_.consumerId.get).getOrElse("")).getOrElse("")})"
+              }
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~! InvalidJsonFormat
               _ <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //check the transReqId validation.
