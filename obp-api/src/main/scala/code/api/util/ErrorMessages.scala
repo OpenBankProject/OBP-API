@@ -467,6 +467,7 @@ object ErrorMessages {
 
   val DeleteCounterpartyError = "OBP-30317: Could not delete the Counterparty."
   val DeleteCounterpartyMetadataError = "OBP-30318: Could not delete CounterpartyMetadata"
+  val UpdateBankAccountLabelError = "OBP-30319: Could not update Bank Account Label."
   
   // Branch related messages
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."

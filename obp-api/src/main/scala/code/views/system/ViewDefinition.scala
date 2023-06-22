@@ -126,6 +126,9 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeBankAccountLabel_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canUpdateBankAccountLabel_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
   object canSeeBankAccountNationalIdentifier_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -403,6 +406,10 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     canSeeBankAccountCreditLimit_(actions.exists(_ == "can_see_bank_account_credit_limit"))
     canCreateDirectDebit_(actions.exists(_ == "can_create_direct_debit"))
     canCreateStandingOrder_(actions.exists(_ == "can_create_standing_order"))
+    canSeeTransactionRequests_(actions.exists(_ == "can_see_transaction_requests"))
+    canSeeTransactionRequestTypes_(actions.exists(_ == "can_see_transaction_request_types"))
+    canUpdateBankAccountLabel_(actions.exists(_ == "can_update_bank_account_label"))
+    canSeeAvailableViewsForBankAccount_(actions.exists(_ == "can_see_available_views_for_bank_account"))
   }
 
   
@@ -471,6 +478,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def canSeeBankAccountCurrency : Boolean = canSeeBankAccountCurrency_.get
   def canQueryAvailableFunds : Boolean = canQueryAvailableFunds_.get
   def canSeeBankAccountLabel : Boolean = canSeeBankAccountLabel_.get
+  def canUpdateBankAccountLabel : Boolean = canUpdateBankAccountLabel_.get
   def canSeeBankAccountNationalIdentifier : Boolean = canSeeBankAccountNationalIdentifier_.get
   def canSeeBankAccountSwift_bic : Boolean = canSeeBankAccountSwift_bic_.get
   def canSeeBankAccountIban : Boolean = canSeeBankAccountIban_.get

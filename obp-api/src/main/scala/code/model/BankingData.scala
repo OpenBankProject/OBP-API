@@ -162,15 +162,7 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
       Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
     }
   }
-
-  final def updateLabel(user : User, label : String, callContext: Option[CallContext]): Box[Boolean] = {
-    if(user.hasOwnerViewAccess(BankIdAccountId(bankId, accountId), callContext)){
-      Connector.connector.vend.updateAccountLabel(bankId, accountId, label)
-    } else {
-      Failure(UserNoOwnerView+"user's email : " + user.emailAddress + ". account : " + accountId, Empty, Empty)
-    }
-  }
-
+  
   /**
     * Note: There are two types of account-owners in OBP: the OBP users and the customers(in a real bank, these should from Main Frame)
     *

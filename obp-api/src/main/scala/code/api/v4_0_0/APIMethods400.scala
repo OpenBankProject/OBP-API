@@ -2779,8 +2779,20 @@ trait APIMethods400 {
             json <- NewStyle.function.tryons(failMsg, 400, callContext) {
               json.extract[UpdateAccountJsonV400]
             }
+            anyViewContainsCanUpdateBankAccountLabelPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), u)
+              .map(_.views.map(_.canUpdateBankAccountLabel).find(_.==(true)).getOrElse(false)).getOrElse(false)
+            _ <- Helper.booleanToFuture(
+              s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${ViewDefinition.canUpdateBankAccountLabel_.dbColumnName}` permission on any your views",
+              cc = callContext
+            ) {
+              anyViewContainsCanUpdateBankAccountLabelPermission
+            }
+            (success, callContext) <- Future {
+              Connector.connector.vend.updateAccountLabel(bankId, accountId, json.label)
+            } map { i =>
+              (unboxFullOrFail(i, callContext, s"$UpdateBankAccountLabelError Current BankId is $bankId and Current AccountId is $accountId", 404), callContext)
+            }
           } yield {
-            account.updateLabel(u, json.label, callContext)
             (Extraction.decompose(successMessage), HttpCode.`200`(callContext))
           }
       }

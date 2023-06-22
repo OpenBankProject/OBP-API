@@ -23,6 +23,7 @@ object MigrationOfViewDefinitionPermissions {
             .canSeeTransactionRequestTypes_(true)
             .canSeeTransactionRequests_(true)
             .canSeeAvailableViewsForBankAccount_(true)
+            .canUpdateBankAccountLabel_(true)
             .save
         ).head
 
@@ -35,6 +36,7 @@ object MigrationOfViewDefinitionPermissions {
              |${ViewDefinition.canSeeTransactionRequestTypes_.dbColumnName}
              |${ViewDefinition.canSeeTransactionRequests_.dbColumnName}
              |${ViewDefinition.canSeeAvailableViewsForBankAccount_.dbColumnName}
+             |${ViewDefinition.canUpdateBankAccountLabel_.dbColumnName}
              |Duration: ${endDate - startDate} ms;
              """.stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)

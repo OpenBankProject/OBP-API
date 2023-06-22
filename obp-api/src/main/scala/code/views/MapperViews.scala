@@ -793,6 +793,7 @@ object MapperViews extends Views with MdcLoggable {
       .canSeeAvailableViewsForBankAccount_(false)
       .canSeeTransactionRequests_(true)
       .canSeeTransactionRequestTypes_(true)
+      .canUpdateBankAccountLabel_(true)
 
     viewId match {
       case SYSTEM_OWNER_VIEW_ID =>
@@ -879,16 +880,16 @@ object MapperViews extends Views with MdcLoggable {
       canAddPrivateAlias_(true).
       canAddCounterparty_(true).
       canGetCounterparty_(true).
-      canDeleteCounterparty_(true).
-      canDeleteCorporateLocation_(true).
-      canDeletePhysicalLocation_(true).
+      canDeleteCounterparty_(false).
+      canDeleteCorporateLocation_(false).
+      canDeletePhysicalLocation_(false).
       canEditOwnerComment_(true).
       canAddComment_(true).
-      canDeleteComment_(true).
+      canDeleteComment_(false).
       canAddTag_(true).
-      canDeleteTag_(true).
+      canDeleteTag_(false).
       canAddImage_(true).
-      canDeleteImage_(true).
+      canDeleteImage_(false).
       canAddWhereTag_(true).
       canSeeWhereTag_(true).
       canSeeBankRoutingScheme_(true). //added following in V300
@@ -900,7 +901,10 @@ object MapperViews extends Views with MdcLoggable {
       canSeeOtherAccountRoutingScheme_(true).
       canSeeOtherAccountRoutingAddress_(true).
       canAddTransactionRequestToOwnAccount_(false). //added following two for payments
-      canAddTransactionRequestToAnyAccount_(false)
+      canAddTransactionRequestToAnyAccount_(false).
+      canSeeTransactionRequests_(false).
+      canSeeTransactionRequestTypes_(false).
+      canUpdateBankAccountLabel_(false)
   }
 
   def createAndSaveDefaultPublicCustomView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {

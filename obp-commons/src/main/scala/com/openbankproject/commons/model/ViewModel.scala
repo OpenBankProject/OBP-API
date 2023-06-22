@@ -297,6 +297,7 @@ trait View {
   def canSeeBankAccountOwners: Boolean
 
   def canSeeBankAccountType: Boolean
+  def canUpdateBankAccountLabel: Boolean
 
   def canSeeBankAccountBalance: Boolean
 
